@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Dashboard\AuthController;
 use App\Http\Controllers\Dashboard\BillingController;
+use App\Http\Controllers\Dashboard\BranchMenuController;
 use App\Http\Controllers\Dashboard\BranchesController;
 use App\Http\Controllers\Dashboard\CategoriesController;
 use App\Http\Controllers\Dashboard\CustomersController;
@@ -88,6 +89,8 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/branches', [BranchesController::class, 'index'])->name('branches');
         Route::post('/branches', [BranchesController::class, 'store'])->name('branches.store');
         Route::post('/branches/{branch}', [BranchesController::class, 'update'])->name('branches.update');
+        Route::get('/branches/{branch}/menu', [BranchMenuController::class, 'edit'])->middleware('feature:branch_pricing')->name('branches.menu');
+        Route::post('/branches/{branch}/menu', [BranchMenuController::class, 'update'])->middleware('feature:branch_pricing')->name('branches.menu.update');
     });
 
     Route::middleware('permission:tables.manage')->group(function () {

@@ -11,7 +11,10 @@
                 @csrf
                 <div class="flex items-center justify-between sm:col-span-2">
                     <h2 class="text-lg font-bold">{{ $b->name }} <span class="text-sm font-normal text-navy-500">· {{ __(':n tables', ['n' => $b->tables_count]) }}</span></h2>
-                    <a href="{{ tenant()->url('?branch=' . $b->slug) }}" target="_blank" rel="noopener" class="text-sm text-brand-700" dir="ltr">?branch={{ $b->slug }}</a>
+                    <div class="flex items-center gap-3">
+                        @if (\App\Services\Entitlements::current()->allows('branch_pricing'))<a href="{{ route('dash.branches.menu', $b) }}" class="btn-ghost min-h-9 px-3">{{ __('Prices & availability') }}</a>@endif
+                        <a href="{{ tenant()->url('?branch=' . $b->slug) }}" target="_blank" rel="noopener" class="text-sm text-brand-700" dir="ltr">?branch={{ $b->slug }}</a>
+                    </div>
                 </div>
                 @include('dashboard.partials.branch-fields', ['b' => $b])
                 <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="is_active" value="1" @checked($b->is_active) class="size-4 accent-brand-600"> {{ __('Active') }}</label>
