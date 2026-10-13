@@ -868,5 +868,18 @@
     "Need more rows? Save, and new empty rows appear.": "محتاج سطور أكتر؟ احفظ وهتظهر سطور فاضية جديدة.",
     "Save recipe": "حفظ الوصفة",
     "Recipe saved.": "تم حفظ الوصفة.",
-    ":n ingredients are running low.": ":n خامات قربت تخلص."
+    ":n ingredients are running low.": ":n خامات قربت تخلص.",
+    "Pin on the map": "حدد على الخريطة",
+    "pinned": "اتحدد",
+    "This location is outside every delivery zone.": "المكان ده برّه كل مناطق التوصيل.",
+    "The pinned location is outside :zone.": "المكان المحدد على الخريطة برّه :zone.",
+    "Areas on the map": "المناطق على الخريطة",
+    "Draw the area of…": "ارسم حدود منطقة…",
+    "Click the corners of the area on the map.": "اضغط على أركان المنطقة على الخريطة.",
+    "points": "نقطة",
+    "Undo point": "شيل آخر نقطة",
+    "Clear area": "امسح الحدود",
+    "Save area": "احفظ الحدود",
+    "With drawn areas, the call center can pin the customer on the map and the zone is picked automatically.": "لما ترسم حدود المناطق، الكول سنتر يقدر يحدد مكان العميل على الخريطة والمنطقة بتتختار لوحدها.",
+    "Area drawn on the map": "حدودها مرسومة على الخريطة"
 }

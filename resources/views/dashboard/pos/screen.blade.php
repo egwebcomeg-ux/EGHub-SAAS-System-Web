@@ -45,7 +45,7 @@
         </section>
 
         {{-- ticket --}}
-        <aside class="flex w-[22rem] shrink-0 flex-col border-s border-navy-100 bg-white">
+        <aside class="flex w-[22rem] shrink-0 flex-col overflow-y-auto border-s border-navy-100 bg-white">
             @if ($cc)
                 {{-- caller: lookup by mobile, saved addresses, last orders --}}
                 <div class="space-y-2 border-b border-navy-100 p-3 text-sm">
@@ -61,8 +61,11 @@
                     <button type="button" class="btn min-h-10 rounded-lg" data-type="delivery">{{ __('Delivery') }}</button>
                     <button type="button" class="btn min-h-10 rounded-lg" data-type="takeaway">{{ __('Pickup') }}</button>
                 </div>
+                @include('partials.leaflet')
                 <div class="space-y-2 px-3 pb-2 text-sm" data-delivery-box>
                     <div class="flex flex-wrap gap-1" data-addresses></div>
+                    <button type="button" class="btn-ghost min-h-9 w-full" data-map-toggle>📍 {{ __('Pin on the map') }} <span class="text-xs text-emerald-700" data-pinned></span></button>
+                    <div class="hidden h-56 overflow-hidden rounded-xl border border-navy-100" dir="ltr" data-cc-map></div>
                     <select class="field min-h-9" data-zone>
                         <option value="">{{ __('Choose the delivery zone') }}</option>
                     </select>
@@ -79,7 +82,7 @@
             <div class="hidden px-3 pb-2" data-table-box>
                 <select class="field" data-table><option value="">{{ __('Choose a table') }}</option></select>
             </div>
-            <ul class="flex-1 divide-y divide-navy-50 overflow-y-auto px-3" data-lines></ul>
+            <ul class="min-h-24 flex-1 divide-y divide-navy-50 overflow-y-auto px-3" data-lines></ul>
             <div class="space-y-2 border-t border-navy-100 p-3 text-sm">
                 @if ($cc)
                     <input class="field min-h-9" data-notes placeholder="{{ __('Notes for the order') }}" maxlength="500">
@@ -187,6 +190,7 @@
         'delivery' => __('Delivery'), 'deliveryFee' => __('Delivery fee'), 'phoneFirst' => __('Enter the caller mobile number.'),
         'chooseZone' => __('Choose the delivery zone.'), 'enterAddress' => __('Write the delivery address.'),
         'minOrder' => __('Minimum order for this zone: :amount', ['amount' => '__A__']), 'newCaller' => __('New customer, will be saved with the order.'),
+        'outside' => __('This location is outside every delivery zone.'), 'pinned' => __('pinned'),
         'ordersCount' => __(':n previous orders', ['n' => '__N__']), 'minutes' => __(':n min', ['n' => '__N__']), 'placed' => __('Order placed'),
     ];
 @endphp

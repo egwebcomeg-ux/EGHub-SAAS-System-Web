@@ -14,6 +14,7 @@ class DeliveryZonesTest extends TenantTestCase
     {
         $tenant = $this->restaurant($slug, 'basic');
         app(Billing::class)->setAddon($tenant, 'callcenter_pack', 1);
+
         return $tenant;
     }
 
@@ -54,5 +55,27 @@ class DeliveryZonesTest extends TenantTestCase
 
         $plain = $this->restaurant('cafe-plain', 'pro');
         $this->actingAs($this->owner($plain))->get($this->dashUrl('/delivery-zones'))->assertForbidden();
+    }
+
+    public function test_area_drawn_on_the_map_is_saved_and_checked(): void
+    {
+        $a = $this->withCallCenter('cafe-a');
+        $branch = $this->as($a, fn () => Branch::query()->first());
+        $zone = $this->as($a, fn () => DeliveryZone::query()->create(['branch_id' => $branch->id, 'name' => 'Square']));
+        $square = [[30.0, 31.0], [30.0, 31.1], [30.1, 31.1], [30.1, 31.0]];
+
+        $this->actingAs($this->owner($a))->post($this->dashUrl("/delivery-zones/{$zone->id}/area"), ['polygon' => $square])
+            ->assertSessionHasNoErrors();
+        $zone = $this->as($a, fn () => $zone->fresh());
+        $this->assertCount(4, $zone->polygon);
+        $this->assertTrue($zone->contains(30.05, 31.05));
+        $this->assertFalse($zone->contains(30.2, 31.05));
+
+        // two points are not an area
+        $this->actingAs($this->owner($a))->post($this->dashUrl("/delivery-zones/{$zone->id}/area"), ['polygon' => [[30, 31], [30.1, 31]]])
+            ->assertSessionHasErrors('polygon');
+        // posting nothing clears it
+        $this->actingAs($this->owner($a))->post($this->dashUrl("/delivery-zones/{$zone->id}/area"));
+        $this->assertNull($this->as($a, fn () => $zone->fresh()->polygon));
     }
 }

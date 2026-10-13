@@ -2,10 +2,12 @@
 
 use App\Http\Controllers\Dashboard\AuthController;
 use App\Http\Controllers\Dashboard\BillingController;
-use App\Http\Controllers\Dashboard\BranchMenuController;
 use App\Http\Controllers\Dashboard\BranchesController;
+use App\Http\Controllers\Dashboard\BranchMenuController;
+use App\Http\Controllers\Dashboard\CallCenterController;
 use App\Http\Controllers\Dashboard\CategoriesController;
 use App\Http\Controllers\Dashboard\CustomersController;
+use App\Http\Controllers\Dashboard\DeliveryZonesController;
 use App\Http\Controllers\Dashboard\FeedbackController;
 use App\Http\Controllers\Dashboard\HomeController;
 use App\Http\Controllers\Dashboard\InventoryController;
@@ -21,8 +23,6 @@ use App\Http\Controllers\Dashboard\ReportsController;
 use App\Http\Controllers\Dashboard\SettingsController;
 use App\Http\Controllers\Dashboard\ShiftsController;
 use App\Http\Controllers\Dashboard\StationsController;
-use App\Http\Controllers\Dashboard\CallCenterController;
-use App\Http\Controllers\Dashboard\DeliveryZonesController;
 use App\Http\Controllers\Dashboard\TablesController;
 use App\Http\Controllers\Dashboard\TvScreensController;
 use App\Http\Controllers\Dashboard\UsersController;
@@ -188,6 +188,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/delivery-zones', [DeliveryZonesController::class, 'index'])->name('zones');
         Route::post('/delivery-zones', [DeliveryZonesController::class, 'store'])->name('zones.store');
         Route::post('/delivery-zones/{zone}', [DeliveryZonesController::class, 'update'])->name('zones.update');
+        Route::post('/delivery-zones/{zone}/area', [DeliveryZonesController::class, 'polygon'])->name('zones.polygon');
         Route::post('/delivery-zones/{zone}/delete', [DeliveryZonesController::class, 'destroy'])->name('zones.delete');
     });
 

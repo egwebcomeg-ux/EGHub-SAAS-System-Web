@@ -12,8 +12,8 @@ class DeliveryZone extends TenantModel
     protected function casts(): array
     {
         return [
-            'polygon'   => 'array',
-            'fee'       => 'float',
+            'polygon' => 'array',
+            'fee' => 'float',
             'min_order' => 'float',
             'is_active' => 'boolean',
         ];
@@ -37,7 +37,26 @@ class DeliveryZone extends TenantModel
 
     public function label(): string
     {
-        return ($this->parent ? tr($this->parent->name, $this->parent->name_en) . ' › ' : '') . tr($this->name, $this->name_en);
+        return ($this->parent ? tr($this->parent->name, $this->parent->name_en).' › ' : '').tr($this->name, $this->name_en);
+    }
+
+    /** Whether the point falls inside this zone's drawn area (ray casting; false when no area is drawn). */
+    public function contains(float $lat, float $lng): bool
+    {
+        $points = $this->polygon ?? [];
+        if (count($points) < 3) {
+            return false;
+        }
+        $inside = false;
+        for ($i = 0, $j = count($points) - 1; $i < count($points); $j = $i++) {
+            [$latI, $lngI] = $points[$i];
+            [$latJ, $lngJ] = $points[$j];
+            if (($lngI > $lng) !== ($lngJ > $lng) && $lat < ($latJ - $latI) * ($lng - $lngI) / ($lngJ - $lngI) + $latI) {
+                $inside = ! $inside;
+            }
+        }
+
+        return $inside;
     }
 
     public function children(): HasMany

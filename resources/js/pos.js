@@ -18,6 +18,8 @@ if (dataEl) {
     });
 
     const CC = D.mode === 'callcenter'; // call-center mode: delivery / pickup, caller lookup, no payment here
+    let ccPoint = () => null; // the pinned customer location (set by the call-center map below)
+    let resetPoint = () => {};
     const zones = Object.fromEntries((D.zones || []).map((z) => [z.id, z]));
     let state = { type: CC ? 'delivery' : 'takeaway', table: '', lines: [], category: 'all' };
     let lastOrderId = null;
@@ -170,6 +172,7 @@ if (dataEl) {
         ['[data-customer-name]', '[data-customer-phone]', '[data-notes]', '[data-phone2]', '[data-zone]', '[data-address]', '[data-address-label]']
             .forEach((sel) => { if ($(sel)) $(sel).value = ''; });
         if (CC) {
+            resetPoint();
             state.type = 'delivery';
             $('[data-caller]').classList.add('hidden');
             $('[data-addresses]').innerHTML = '';
@@ -187,6 +190,7 @@ if (dataEl) {
         if (CC) p.phone_2 = $('[data-phone2]').value.trim();
         if (CC && state.type === 'delivery') {
             Object.assign(p, { zone_id: Number($('[data-zone]').value) || null, address: $('[data-address]').value.trim(), address_label: $('[data-address-label]').value.trim() });
+            if (ccPoint()) Object.assign(p, { lat: ccPoint()[0], lng: ccPoint()[1] });
         }
         return p;
     }
@@ -210,10 +214,51 @@ if (dataEl) {
         $('[data-zone]').innerHTML += D.zones.map((z) => `<option value="${z.id}">${esc(z.name)} · ${fmt(z.fee)}${z.minutes ? ' · ' + esc(T.minutes.replace('__N__', z.minutes)) : ''}</option>`).join('');
         $('[data-zone]').addEventListener('change', render);
         let saved = [];
+
+        // ---- map: pin the customer, the zone whose drawn area contains the pin is chosen ----
+        let point = null;
+        let map = null;
+        let marker = null;
+        const inside = ([lat, lng], poly) => {
+            let hit = false;
+            for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+                const [yi, xi] = poly[i];
+                const [yj, xj] = poly[j];
+                if ((xi > lng) !== (xj > lng) && lat < ((yj - yi) * (lng - xi)) / (xj - xi) + yi) hit = !hit;
+            }
+            return hit;
+        };
+        // sub-areas first: the most specific zone wins
+        const drawn = D.zones.filter((z) => z.polygon && z.polygon.length >= 3).sort((a, b) => b.sub - a.sub);
+        function setPoint(p, pickZone = true) {
+            point = p;
+            $('[data-pinned]').textContent = p ? '✓ ' + T.pinned : '';
+            if (!map) return;
+            if (marker) marker.remove();
+            marker = p ? L.marker(p).addTo(map) : null;
+            if (p && pickZone) {
+                const zone = drawn.find((z) => inside(p, z.polygon));
+                if (zone) { $('[data-zone]').value = zone.id; render(); } else alert(T.outside);
+            }
+        }
+        $('[data-map-toggle]').addEventListener('click', () => {
+            const box = $('[data-cc-map]');
+            box.classList.toggle('hidden');
+            if (map || !window.L || box.classList.contains('hidden')) return;
+            map = L.map(box).setView(drawn[0]?.polygon[0] || [30.0444, 31.2357], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+            drawn.forEach((z) => L.polygon(z.polygon, { color: '#1E2D4F', weight: 1, fillOpacity: 0.08 }).bindTooltip(z.name).addTo(map));
+            if (drawn.length) map.fitBounds(drawn.flatMap((z) => z.polygon));
+            map.on('click', (e) => setPoint([+e.latlng.lat.toFixed(6), +e.latlng.lng.toFixed(6)]));
+            setPoint(point, false);
+            if (point) map.setView(point, 15);
+        });
+
         const pick = (a) => {
             $('[data-zone]').value = a.zone_id;
             $('[data-address]').value = a.text;
             $('[data-address-label]').value = a.label || '';
+            setPoint(a.lat != null ? [a.lat, a.lng] : null, false);
             render();
         };
         $('[data-addresses]').addEventListener('click', (e) => {
@@ -250,6 +295,8 @@ if (dataEl) {
                 box.innerHTML = `<b class="text-red-600">${esc(err.message)}</b>`;
             }
         }
+        ccPoint = () => point;
+        resetPoint = () => setPoint(null, false);
         $('[data-lookup]').addEventListener('click', lookup);
         $('[data-customer-phone]').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); lookup(); } });
     }

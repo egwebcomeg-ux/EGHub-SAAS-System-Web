@@ -15,7 +15,10 @@ class DeliveryZonesController extends Controller
 {
     public function index(): View
     {
+        $branch = Branch::query()->whereNotNull('lat')->first();
+
         return view('dashboard.delivery', [
+            'center' => $branch ? [(float) $branch->lat, (float) $branch->lng] : null,
             'branches' => Branch::query()->orderBy('sort_order')->get(),
             // "Main › Sub" labels sort each sub-area right under its main area
             'zones' => DeliveryZone::query()->with('parent')->get()->sortBy(fn (DeliveryZone $z) => $z->label())->values(),
@@ -25,18 +28,37 @@ class DeliveryZonesController extends Controller
     public function store(Request $request): RedirectResponse
     {
         DeliveryZone::query()->create($this->validated($request) + ['sort_order' => (int) DeliveryZone::query()->max('sort_order') + 1]);
+
         return back()->with('ok', __('Zone saved.'));
     }
 
     public function update(Request $request, DeliveryZone $zone): RedirectResponse
     {
         $zone->update($this->validated($request, $zone) + ['is_active' => $request->boolean('is_active')]);
+
+        return back()->with('ok', __('Zone saved.'));
+    }
+
+    /** Saves the area drawn on the map: [[lat, lng], ...], or clears it. */
+    public function polygon(Request $request, DeliveryZone $zone): RedirectResponse
+    {
+        $request->validate([
+            'polygon' => 'nullable|array|min:3|max:300',
+            'polygon.*' => 'array|size:2',
+            'polygon.*.0' => 'numeric|between:-90,90',
+            'polygon.*.1' => 'numeric|between:-180,180',
+        ]);
+        $points = collect($request->input('polygon', []))
+            ->map(fn (array $p): array => [round((float) $p[0], 6), round((float) $p[1], 6)])->values()->all();
+        $zone->update(['polygon' => $points ?: null]);
+
         return back()->with('ok', __('Zone saved.'));
     }
 
     public function destroy(DeliveryZone $zone): RedirectResponse
     {
         $zone->delete();
+
         return back()->with('ok', __('Zone deleted.'));
     }
 
@@ -51,6 +73,7 @@ class DeliveryZonesController extends Controller
             'fee' => 'nullable|numeric|min:0|max:10000', 'min_order' => 'nullable|numeric|min:0|max:100000',
             'estimated_minutes' => 'nullable|integer|min:5|max:300',
         ]);
+
         return $data + ['name_en' => ''];
     }
 }

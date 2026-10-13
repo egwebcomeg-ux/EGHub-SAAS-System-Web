@@ -17,6 +17,7 @@ class CallCenterTest extends TenantTestCase
     {
         $tenant = $this->restaurant($slug, 'basic');
         app(Billing::class)->setAddon($tenant, 'callcenter_pack', 1);
+
         return $tenant;
     }
 
@@ -104,5 +105,24 @@ class CallCenterTest extends TenantTestCase
         $a = $this->withCallCenter('cafe-a');
         $kitchen = $this->staff($a, 'kitchen', 'k@a.test');
         $this->actingAs($kitchen)->get($this->dashUrl('/call-center'))->assertForbidden();
+    }
+
+    public function test_pinned_location_must_be_inside_the_zone_area(): void
+    {
+        $a = $this->withCallCenter('cafe-a');
+        $latte = $this->item($a, 'Latte', 60);
+        $zone = $this->zone($a, ['polygon' => [[30.0, 31.0], [30.0, 31.1], [30.1, 31.1], [30.1, 31.0]]]);
+        $sub = $this->zone($a, ['name' => 'Block 7', 'parent_id' => $zone->id, 'fee' => null, 'min_order' => null]);
+        $agent = $this->staff($a, 'callcenter', 'agent@a.test');
+
+        $this->actingAs($agent)->postJson($this->dashUrl('/call-center/orders'), $this->order($latte->id, 2, $zone, ['lat' => 30.5, 'lng' => 31.05]))
+            ->assertStatus(422);
+        // a sub-area without its own drawing is checked against its parent's area
+        $this->actingAs($agent)->postJson($this->dashUrl('/call-center/orders'), $this->order($latte->id, 2, $sub, ['lat' => 30.05, 'lng' => 31.05]))
+            ->assertOk();
+
+        $customer = $this->as($a, fn () => Customer::query()->first());
+        $this->assertSame(30.05, $customer->addresses[0]['lat']);
+        $this->assertSame(30.05, $this->as($a, fn () => Order::query()->first())->delivery_address['lat']);
     }
 }
