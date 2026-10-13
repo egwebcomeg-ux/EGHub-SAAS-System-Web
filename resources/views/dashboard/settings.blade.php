@@ -80,6 +80,56 @@
         <div><label class="field-label">{{ __('Google review link') }}</label><input class="field" name="google_review_url" value="{{ $s['google_review_url'] }}" dir="ltr"></div>
     </section>
 
+    @if ($ai)
+        <section class="card grid gap-4 sm:grid-cols-2 lg:grid-cols-3" id="ai">
+            <div class="sm:col-span-2 lg:col-span-3">
+                <h2 class="section-title">{{ __('AI menu import (your own key)') }}</h2>
+                <p class="muted">{{ __('Reading a menu photo costs a few piasters on your own account. The key is stored encrypted and never shown again.') }}</p>
+            </div>
+            <div>
+                <label class="field-label">{{ __('Provider') }}</label>
+                <select class="field" name="ai_provider" data-ai-provider>
+                    <option value="">—</option>
+                    @foreach ($providers as $key => [$label, $model, $url])
+                        <option value="{{ $key }}" data-model="{{ $model }}" data-url="{{ $url }}" @selected($s['ai_provider'] === $key)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <a href="#" target="_blank" rel="noopener" class="mt-1 hidden text-xs text-brand-700 underline" data-ai-link>{{ __('Get an API key') }}</a>
+            </div>
+            <div>
+                <label class="field-label">{{ __('Model (optional)') }}</label>
+                <input class="field" name="ai_model" value="{{ $s['ai_model'] }}" dir="ltr" data-ai-model maxlength="80">
+                <p class="mt-1 text-xs text-navy-500">{{ __('Leave empty for the cheapest recommended model.') }}</p>
+            </div>
+            <div>
+                <label class="field-label">{{ __('API key') }}</label>
+                <input class="field" name="ai_key" type="password" autocomplete="off" dir="ltr" placeholder="{{ $aiKey ?: '' }}">
+                @if ($aiKey)<label class="mt-1 flex items-center gap-2 text-xs"><input type="checkbox" name="remove_ai_key" value="1" class="size-4 accent-brand-600"> {{ __('Remove the saved key') }}</label>@endif
+                @error('ai_key')<div class="field-error">{{ $message }}</div>@enderror
+            </div>
+        </section>
+    @endif
+
     <button class="btn-primary">{{ __('Save settings') }}</button>
 </form>
+
+@if ($ai && $aiKey)
+    <form method="post" action="{{ route('dash.settings.ai-test') }}" class="mt-3">@csrf<button class="btn-ghost">🔌 {{ __('Test the AI key') }}</button></form>
+@endif
+
+<script>
+    (() => {
+        const sel = document.querySelector('[data-ai-provider]');
+        if (!sel) return;
+        const sync = () => {
+            const o = sel.selectedOptions[0];
+            document.querySelector('[data-ai-model]').placeholder = o?.dataset.model || '';
+            const a = document.querySelector('[data-ai-link]');
+            a.classList.toggle('hidden', !o?.dataset.url);
+            a.href = o?.dataset.url || '#';
+        };
+        sel.addEventListener('change', sync);
+        sync();
+    })();
+</script>
 @endsection

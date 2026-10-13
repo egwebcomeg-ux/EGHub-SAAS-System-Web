@@ -39,6 +39,10 @@ final class Settings
         'whatsapp_ordering' => '0',
         'service_percent'   => '0',
         'tax_percent'       => '0',
+        // AI menu import with the restaurant's own key (ai_key is encrypted, see AiProviders)
+        'ai_provider'       => '',
+        'ai_model'          => '',
+        'ai_key'            => '',
     ];
 
     /** @var array<string,array<string,string>> */

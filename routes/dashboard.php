@@ -10,6 +10,7 @@ use App\Http\Controllers\Dashboard\HomeController;
 use App\Http\Controllers\Dashboard\ItemsController;
 use App\Http\Controllers\Dashboard\KitchenController;
 use App\Http\Controllers\Dashboard\LoyaltyController;
+use App\Http\Controllers\Dashboard\MenuImportController;
 use App\Http\Controllers\Dashboard\OrdersController;
 use App\Http\Controllers\Dashboard\PosController;
 use App\Http\Controllers\Dashboard\SettingsController;
@@ -49,6 +50,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::middleware('permission:settings.manage')->group(function () {
         Route::get('/settings', [SettingsController::class, 'edit'])->name('settings');
         Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
+        Route::post('/settings/ai-test', [SettingsController::class, 'testAi'])->middleware('throttle:6,1')->name('settings.ai-test');
     });
 
     // Menu editor
@@ -64,6 +66,15 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/menu/categories/{category}', [CategoriesController::class, 'update'])->name('categories.update');
         Route::post('/menu/categories/{category}/delete', [CategoriesController::class, 'destroy'])->name('categories.delete');
         Route::post('/menu/categories-order', [CategoriesController::class, 'reorder'])->name('categories.reorder');
+
+        // import from Excel or from photos/PDF (AI with the restaurant's own key)
+        Route::get('/menu/import', [MenuImportController::class, 'index'])->name('import');
+        Route::get('/menu/import/template', [MenuImportController::class, 'template'])->name('import.template');
+        Route::post('/menu/import/excel', [MenuImportController::class, 'excel'])->name('import.excel');
+        Route::post('/menu/import/ai', [MenuImportController::class, 'ai'])->middleware('throttle:10,1')->name('import.ai');
+        Route::get('/menu/import/{import}', [MenuImportController::class, 'review'])->name('import.review');
+        Route::get('/menu/import/{import}/status', [MenuImportController::class, 'status'])->name('import.status');
+        Route::post('/menu/import/{import}/apply', [MenuImportController::class, 'apply'])->name('import.apply');
     });
     Route::post('/menu/items/{item}/toggle', [ItemsController::class, 'toggle'])
         ->middleware('permission:menu.manage|menu.availability')->name('items.toggle');

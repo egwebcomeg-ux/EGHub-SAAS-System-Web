@@ -23,3 +23,5 @@ Artisan::command('egmenu:loyalty-expire', function (App\Services\Loyalty\Loyalty
 // One cron line on the server runs everything: * * * * * php artisan schedule:run
 Schedule::command('egmenu:billing')->dailyAt('03:00')->withoutOverlapping();
 Schedule::command('egmenu:loyalty-expire')->dailyAt('03:30')->withoutOverlapping();
+// background jobs (AI menu import) without a separate worker process: drained every minute by the same cron
+Schedule::command('queue:work --stop-when-empty --max-time=55 --tries=1')->everyMinute()->withoutOverlapping();

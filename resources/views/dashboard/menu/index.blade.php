@@ -10,9 +10,17 @@
     <div class="flex flex-wrap gap-2">
         <form class="flex gap-2"><input class="field max-w-56" name="q" value="{{ $q }}" placeholder="{{ __('Search items') }}"></form>
         <a href="{{ tenant()->url() }}" target="_blank" rel="noopener" class="btn-ghost">{{ __('Preview menu') }}</a>
+        <a href="{{ route('dash.import') }}" class="btn-ghost">⬆ {{ __('Import menu') }}</a>
         @if ($canAdd && $categories->isNotEmpty())<a href="{{ route('dash.items.create') }}" class="btn-primary">+ {{ __('Add item') }}</a>@endif
     </div>
 </div>
+
+@if ($categories->isEmpty())
+    <div class="card mb-4 flex flex-wrap items-center justify-between gap-3 bg-brand-50">
+        <p class="font-semibold text-brand-700">{{ __('Starting from zero? Import your menu from Excel or a photo instead of typing it.') }}</p>
+        <a href="{{ route('dash.import') }}" class="btn-primary">{{ __('Import menu') }}</a>
+    </div>
+@endif
 
 <details class="card mb-4" @if ($categories->isEmpty()) open @endif>
     <summary class="cursor-pointer font-bold">+ {{ __('Add category') }}</summary>
