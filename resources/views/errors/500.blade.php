@@ -1,0 +1,7 @@
+@extends('errors.layout')
+@section('title', 'Server error')
+@section('code', '500')
+@section('title_ar', 'حدث خطأ غير متوقع')
+@section('message_ar', 'نعتذر، حدث خطأ من جانبنا. حاول مرة أخرى بعد قليل.')
+@section('message_en', 'Something went wrong on our side. Please try again shortly.')
+@section('action', '1')

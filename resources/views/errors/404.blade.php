@@ -1,0 +1,7 @@
+@extends('errors.layout')
+@section('title', 'Page not found')
+@section('code', '404')
+@section('title_ar', 'الصفحة غير موجودة')
+@section('message_ar', 'الرابط الذي فتحته غير صحيح أو تم نقله.')
+@section('message_en', 'The page you are looking for does not exist.')
+@section('action', '1')
