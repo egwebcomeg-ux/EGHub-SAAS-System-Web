@@ -21,7 +21,16 @@ class HomeController extends Controller
             $limits[$key] = ['label' => Plan::label($key), 'used' => $rights->usage($key), 'limit' => $rights->limit($key)];
         }
 
+        // ingredients at or under their alert level in any branch (inventory pack)
+        $lowStock = $rights->allows('inventory') && request()->user()->can('inventory.manage')
+            ? \App\Models\IngredientStock::query()->join('ingredients', 'ingredients.id', '=', 'ingredient_stocks.ingredient_id')
+                ->where('ingredients.is_active', true)->where('ingredients.min_stock', '>', 0)
+                ->whereColumn('ingredient_stocks.quantity', '<=', 'ingredients.min_stock')
+                ->distinct()->count('ingredient_stocks.ingredient_id')
+            : 0;
+
         return view('dashboard.home', [
+            'lowStock'     => $lowStock,
             'subscription' => tenant()->subscription()->with('plan')->first(),
             'limits'       => $limits,
             'stats'        => [

@@ -12,6 +12,7 @@ use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\User;
 use App\Services\Entitlements;
+use App\Services\Inventory\StockService;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Settings;
@@ -103,6 +104,7 @@ final class OrderService
                         $order->items()->create($line);
                     }
                     OrderStatusHistory::query()->create(['order_id' => $order->id, 'to_status' => 'new', 'user_id' => $by?->id]);
+                    app(StockService::class)->deductForOrder($order); // inventory pack only
                     return $order;
                 });
             } catch (QueryException $e) {
@@ -157,7 +159,7 @@ final class OrderService
             // the visit, spend and loyalty stamps count once the guest got the order (or paid, see pay())
             match ($to) {
                 'served' => app(LoyaltyService::class)->orderCompleted($order),
-                'cancelled' => app(LoyaltyService::class)->orderReversed($order),
+                'cancelled' => [app(LoyaltyService::class)->orderReversed($order), app(StockService::class)->restoreForOrder($order)],
                 default => null,
             };
             return $order;
@@ -208,7 +210,7 @@ final class OrderService
         return $lines;
     }
 
-    /** Validates the chosen options against the item's groups. @return list<array{group:string, name:string, price:float}> */
+    /** Validates the chosen options against the item's groups. @return list<array{id:int, group:string, name:string, price:float}> */
     private function options(MenuItem $item, array $chosen): array
     {
         $out = [];
@@ -229,7 +231,7 @@ final class OrderService
                 if ($o->is_sold_out) {
                     throw new OrderException(__(':item is sold out.', ['item' => tr($o->name, $o->name_en)]));
                 }
-                $out[] = ['group' => tr($group->name, $group->name_en), 'name' => tr($o->name, $o->name_en), 'price' => (float) $o->price];
+                $out[] = ['id' => $o->id, 'group' => tr($group->name, $group->name_en), 'name' => tr($o->name, $o->name_en), 'price' => (float) $o->price];
             }
         }
         if (array_diff($chosen, $known) !== []) {

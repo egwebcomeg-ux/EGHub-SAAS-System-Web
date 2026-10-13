@@ -8,6 +8,7 @@ use App\Http\Controllers\Dashboard\CategoriesController;
 use App\Http\Controllers\Dashboard\CustomersController;
 use App\Http\Controllers\Dashboard\FeedbackController;
 use App\Http\Controllers\Dashboard\HomeController;
+use App\Http\Controllers\Dashboard\InventoryController;
 use App\Http\Controllers\Dashboard\ItemsController;
 use App\Http\Controllers\Dashboard\KitchenController;
 use App\Http\Controllers\Dashboard\LoyaltyController;
@@ -94,12 +95,6 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/branches/{branch}', [BranchesController::class, 'update'])->name('branches.update');
         Route::get('/branches/{branch}/menu', [BranchMenuController::class, 'edit'])->middleware('feature:branch_pricing')->name('branches.menu');
         Route::post('/branches/{branch}/menu', [BranchMenuController::class, 'update'])->middleware('feature:branch_pricing')->name('branches.menu.update');
-        Route::middleware('feature:delivery_zones')->group(function () {
-            Route::get('/delivery-zones', [DeliveryZonesController::class, 'index'])->name('zones');
-            Route::post('/delivery-zones', [DeliveryZonesController::class, 'store'])->name('zones.store');
-            Route::post('/delivery-zones/{zone}', [DeliveryZonesController::class, 'update'])->name('zones.update');
-            Route::post('/delivery-zones/{zone}/delete', [DeliveryZonesController::class, 'destroy'])->name('zones.delete');
-        });
     });
 
     Route::middleware('permission:tables.manage')->group(function () {
@@ -188,11 +183,31 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/tv-screens/{screen}/delete', [TvScreensController::class, 'destroy'])->name('tv.delete');
     });
 
+    // Delivery zones (call-center pack)
+    Route::middleware(['feature:delivery_zones', 'permission:delivery.manage'])->group(function () {
+        Route::get('/delivery-zones', [DeliveryZonesController::class, 'index'])->name('zones');
+        Route::post('/delivery-zones', [DeliveryZonesController::class, 'store'])->name('zones.store');
+        Route::post('/delivery-zones/{zone}', [DeliveryZonesController::class, 'update'])->name('zones.update');
+        Route::post('/delivery-zones/{zone}/delete', [DeliveryZonesController::class, 'destroy'])->name('zones.delete');
+    });
+
     // Call-center pack: phone orders with delivery zones
     Route::middleware(['feature:call_center', 'permission:callcenter.use'])->group(function () {
         Route::get('/call-center', [CallCenterController::class, 'screen'])->name('callcenter');
         Route::get('/call-center/customer', [CallCenterController::class, 'lookup'])->name('callcenter.lookup');
         Route::post('/call-center/orders', [CallCenterController::class, 'store'])->name('callcenter.order');
+    });
+
+    // Inventory pack: ingredients, stock per branch, recipes and food cost
+    Route::middleware(['feature:inventory', 'permission:inventory.manage'])->group(function () {
+        Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory');
+        Route::post('/inventory/ingredients', [InventoryController::class, 'store'])->name('inventory.store');
+        Route::post('/inventory/ingredients/{ingredient}', [InventoryController::class, 'update'])->name('inventory.update');
+        Route::post('/inventory/move', [InventoryController::class, 'move'])->name('inventory.move');
+        Route::get('/inventory/movements', [InventoryController::class, 'movements'])->name('inventory.movements');
+        Route::get('/inventory/recipes', [InventoryController::class, 'recipes'])->name('inventory.recipes');
+        Route::get('/inventory/recipes/{item}', [InventoryController::class, 'recipe'])->name('inventory.recipe');
+        Route::post('/inventory/recipes/{item}', [InventoryController::class, 'saveRecipe'])->name('inventory.recipe.save');
     });
 
     // Kitchen pack: kitchen display and stations

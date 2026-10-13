@@ -17,6 +17,7 @@ final class Permissions
         'kitchen.view'      => ['شاشة المطبخ', 'Kitchen display'],
         'menu.manage'       => ['إدارة المنيو والأقسام', 'Manage menu'],
         'menu.availability' => ['تحديد الأصناف اللي خلصت', 'Mark items sold out'],
+        'inventory.manage'  => ['المخزون والوصفات', 'Inventory & recipes'],
         'tables.manage'     => ['الترابيزات وأكواد QR', 'Tables & QR codes'],
         'branches.manage'   => ['الفروع', 'Branches'],
         'customers.view'    => ['العملاء', 'Customers'],
@@ -39,7 +40,7 @@ final class Permissions
         'manager' => [
             'label' => ['مدير', 'Manager'],
             'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'pos.discount', 'callcenter.use', 'shifts.manage',
-                'kitchen.view', 'menu.manage', 'menu.availability', 'tables.manage', 'branches.manage', 'delivery.manage',
+                'kitchen.view', 'menu.manage', 'menu.availability', 'inventory.manage', 'tables.manage', 'branches.manage', 'delivery.manage',
                 'customers.view', 'loyalty.stamp', 'loyalty.manage', 'marketing.manage', 'reports.view', 'settings.manage', 'audit.view'],
         ],
         'cashier' => [

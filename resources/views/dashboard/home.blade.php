@@ -2,6 +2,11 @@
 @section('title', __('Home') . ' · ' . tenant()->name)
 
 @section('content')
+@if ($lowStock)
+    <a href="{{ route('dash.inventory') }}" class="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+        <span>⚠ {{ __(':n ingredients are running low.', ['n' => $lowStock]) }}</span><span class="underline">{{ __('Inventory') }}</span>
+    </a>
+@endif
 <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
     @foreach ([
         [__('Categories'), $stats['categories']],
