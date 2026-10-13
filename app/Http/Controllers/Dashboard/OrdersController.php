@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
+use App\Services\Settings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -46,6 +47,7 @@ class OrdersController extends Controller
         } catch (OrderException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
+
         return response()->json(['ok' => true, 'order' => $this->present($order->load(['items', 'table', 'branch']))]);
     }
 
@@ -53,9 +55,10 @@ class OrdersController extends Controller
     public function receipt(Request $request, Order $order): View
     {
         abort_unless($this->visible($request, $order), 404);
+
         return view('dashboard.orders.receipt', [
             'order' => $order->load(['items', 'table', 'branch']),
-            'settings' => \App\Services\Settings::all(),
+            'settings' => Settings::all(),
             'kitchen' => $request->query('copy') === 'kitchen',
         ]);
     }
@@ -63,12 +66,13 @@ class OrdersController extends Controller
     private function scoped(Request $request)
     {
         $branch = $request->user()->branch_id;
+
         return Order::query()->when($branch, fn ($q) => $q->where('branch_id', $branch));
     }
 
     private function visible(Request $request, Order $order): bool
     {
-        return !$request->user()->branch_id || $request->user()->branch_id === $order->branch_id;
+        return ! $request->user()->branch_id || $request->user()->branch_id === $order->branch_id;
     }
 
     /** @return array<string,mixed> */
@@ -78,8 +82,9 @@ class OrdersController extends Controller
             'id' => $o->id, 'number' => $o->number, 'status' => $o->status, 'status_label' => $o->statusLabel(),
             'type' => $o->type, 'type_label' => Order::TYPES[$o->type][app()->getLocale() === 'en' ? 1 : 0] ?? $o->type,
             'source' => $o->source, 'table' => $o->table?->name, 'branch' => $o->branch ? tr($o->branch->name, $o->branch->name_en) : null,
-            'customer' => trim($o->customer_name . ' ' . $o->customer_phone), 'notes' => $o->notes,
-            'address' => $o->delivery_address ? trim(($o->delivery_address['zone'] ?? '') . ' — ' . ($o->delivery_address['text'] ?? ''), ' —') : null,
+            'customer' => trim($o->customer_name.' '.$o->customer_phone), 'notes' => $o->notes,
+            'scheduled' => $o->scheduled_for ? local_time($o->scheduled_for, 'd/m h:i A') : null,
+            'address' => $o->delivery_address ? trim(($o->delivery_address['zone'] ?? '').' — '.($o->delivery_address['text'] ?? ''), ' —') : null,
             'total' => money($o->total), 'created_at' => $o->created_at->toIso8601String(),
             'time' => local_time($o->created_at, 'h:i A'),
             'next' => array_values(array_filter(Order::TRANSITIONS[$o->status] ?? [], fn ($s) => $o->canMoveTo($s))),

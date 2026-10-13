@@ -175,11 +175,15 @@ if (dataEl) {
         $('[data-cart-lines]', cartSheet).innerHTML = lines || `<li class="py-6 text-center text-navy-500">${esc(T.empty)}</li>`;
 
         const subtotal = cart.reduce((s, l) => s + unitPrice(M.items[l.item_id], l.option_ids) * l.qty, 0);
-        const service = M.canOrder ? subtotal * M.service / 100 : 0;
+        // service is charged on table orders only; online delivery adds the zone fee
+        const service = M.mode === 'table' ? subtotal * M.service / 100 : 0;
         const tax = M.canOrder ? (subtotal + service) * M.tax / 100 : 0;
+        const zone = currentZone();
+        const fee = zone ? zone.fee : 0;
         const row = (label, v, bold) => `<div class="flex justify-between ${bold ? 'text-base font-extrabold' : ''}"><span>${esc(label)}</span><span>${fmt(v)}</span></div>`;
-        $('[data-cart-summary]', cartSheet).innerHTML = (service || tax ? row(T.subtotal, subtotal) + (service ? row(T.service, service) : '') + (tax ? row(T.tax, tax) : '') : '')
-            + row(T.total, subtotal + service + tax, true);
+        $('[data-cart-summary]', cartSheet).innerHTML = (service || tax || fee ? row(T.subtotal, subtotal) + (service ? row(T.service, service) : '') + (tax ? row(T.tax, tax) : '') + (fee ? row(T.deliveryFee, fee) : '') : '')
+            + row(T.total, subtotal + service + tax + fee, true)
+            + (zone && zone.min > subtotal ? `<div class="mt-1 text-xs font-semibold text-amber-700">${esc(T.minOrder.replace('__A__', fmt(zone.min)))}</div>` : '');
     }
 
     $('[data-open-cart]').addEventListener('click', () => { renderCart(); cartSheet.showModal(); });
@@ -196,13 +200,47 @@ if (dataEl) {
         if (!cart.length) cartSheet.close();
     });
 
-    // ---- send order (only when the guest scanned a table QR) ----
+    // ---- online ordering (no table): pickup or delivery ----
+    const O = M.online;
+    let otype = O ? (O.takeaway ? 'takeaway' : 'delivery') : null;
+    function currentZone() {
+        if (M.mode !== 'online' || otype !== 'delivery') return null;
+        return O.zones.find((z) => String(z.id) === $('[data-zone]')?.value) || null;
+    }
+    function renderType() {
+        document.querySelectorAll('[data-otype]').forEach((b) => {
+            const on = b.dataset.otype === otype;
+            b.classList.toggle('m-primary', on);
+            b.classList.toggle('border-transparent', on);
+        });
+        $('[data-delivery-fields]')?.classList.toggle('hidden', otype !== 'delivery');
+    }
+    if (O) {
+        document.querySelectorAll('[data-otype]').forEach((b) => b.addEventListener('click', () => { otype = b.dataset.otype; renderType(); renderCart(); }));
+        $('[data-zone]')?.addEventListener('change', renderCart);
+        const when = $('[data-scheduled]');
+        if (when) {
+            const pad = (n) => String(n).padStart(2, '0');
+            const local = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            when.min = local(new Date(Date.now() + O.prep * 60000));
+            when.max = local(new Date(Date.now() + 7 * 86400000));
+        }
+        renderType();
+    }
+
+    // ---- send order (a scanned table, or online pickup / delivery) ----
     const sendBtn = $('[data-send-order]');
     let clientUuid = null;
     sendBtn?.addEventListener('click', async () => {
         if (!cart.length) return;
         const errorBox = $('[data-order-error]');
         errorBox.classList.add('hidden');
+        const fail = (msg) => { errorBox.textContent = msg; errorBox.classList.remove('hidden'); };
+        if (M.mode === 'online') {
+            if (!$('[data-customer-phone]').value.trim()) return fail(T.phoneRequired);
+            if (otype === 'delivery' && !currentZone()) return fail(T.chooseZone);
+            if (otype === 'delivery' && !$('[data-address]').value.trim()) return fail(T.enterAddress);
+        }
         sendBtn.disabled = true;
         const label = sendBtn.textContent;
         sendBtn.textContent = T.sending;
@@ -217,6 +255,10 @@ if (dataEl) {
                     customer_name: $('[data-customer-name]').value.trim(),
                     customer_phone: $('[data-customer-phone]').value.trim(),
                     notes: $('[data-order-notes]').value.trim(),
+                    ...(M.mode === 'online' ? {
+                        type: otype, branch_id: O.branch, zone_id: currentZone()?.id ?? null,
+                        address: $('[data-address]')?.value.trim() || null, scheduled_for: $('[data-scheduled]')?.value || null,
+                    } : {}),
                 }),
             });
             const body = await res.json().catch(() => ({}));

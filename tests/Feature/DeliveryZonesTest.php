@@ -53,7 +53,7 @@ class DeliveryZonesTest extends TenantTestCase
         $this->actingAs($this->owner($a))->post($this->dashUrl("/delivery-zones/{$foreignZone->id}/delete"))->assertNotFound();
         $this->assertSame(1, DeliveryZone::query()->withoutGlobalScopes()->count());
 
-        $plain = $this->restaurant('cafe-plain', 'pro');
+        $plain = $this->restaurant('cafe-plain', 'basic'); // no call-center pack and no online ordering
         $this->actingAs($this->owner($plain))->get($this->dashUrl('/delivery-zones'))->assertForbidden();
     }
 

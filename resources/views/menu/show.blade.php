@@ -222,9 +222,32 @@
         <ul class="divide-y divide-navy-50" data-cart-lines></ul>
         <div class="mt-3 space-y-1 border-t border-navy-100 pt-3 text-sm" data-cart-summary></div>
         @if ($canOrder)
+            @if ($online)
+                {{-- ordering from the menu link: pickup or delivery --}}
+                <div class="mt-4 space-y-3" data-online>
+                    <div class="grid grid-cols-2 gap-2">
+                        @if ($online['takeaway'])<button type="button" class="min-h-11 rounded-xl border border-navy-100 font-bold" data-otype="takeaway">🛍 {{ __('Pickup') }}</button>@endif
+                        @if ($online['delivery'])<button type="button" class="min-h-11 rounded-xl border border-navy-100 font-bold" data-otype="delivery">🛵 {{ __('Delivery') }}</button>@endif
+                    </div>
+                    <div class="hidden space-y-3" data-delivery-fields>
+                        <select class="field" data-zone>
+                            <option value="">{{ __('Choose your area') }}</option>
+                            @foreach ($online['zones'] as $z)<option value="{{ $z['id'] }}">{{ $z['name'] }} · {{ money($z['fee']) }} {{ tr($settings['currency'], $settings['currency_en']) }}</option>@endforeach
+                        </select>
+                        <textarea class="field min-h-16 py-2" maxlength="300" data-address placeholder="{{ __('Street, building, floor, apartment, landmark') }}"></textarea>
+                    </div>
+                    @if ($online['scheduled'])
+                        <label class="block text-sm">
+                            <span class="field-label">{{ __('When? (leave empty for as soon as possible)') }}</span>
+                            <input class="field" type="datetime-local" data-scheduled dir="ltr">
+                        </label>
+                    @endif
+                    <p class="text-xs text-navy-500">{{ __('Ready in about :n minutes. You pay on pickup or delivery.', ['n' => $online['prep']]) }}</p>
+                </div>
+            @endif
             <div class="mt-4 grid gap-3">
-                <input class="field" maxlength="100" data-customer-name placeholder="{{ __('Your name (optional)') }}">
-                <input class="field" maxlength="20" inputmode="tel" dir="ltr" data-customer-phone placeholder="{{ __('Mobile (optional, for offers & loyalty)') }}">
+                <input class="field" maxlength="100" data-customer-name placeholder="{{ $online ? __('Your name') : __('Your name (optional)') }}">
+                <input class="field" maxlength="20" inputmode="tel" dir="ltr" data-customer-phone placeholder="{{ $online ? __('Mobile number (required)') : __('Mobile (optional, for offers & loyalty)') }}">
                 <textarea class="field min-h-16 py-2" maxlength="500" data-order-notes placeholder="{{ __('Notes for the order') }}"></textarea>
             </div>
             <p class="mt-3 hidden rounded-xl bg-red-50 p-3 text-sm text-red-700" data-order-error></p>
@@ -242,6 +265,9 @@
         'cal' => __(':n kcal', ['n' => '__N__']), 'empty' => __('Your cart is empty.'),
         'comboHas' => __('This combo has:'), 'save' => __('You save :amount', ['amount' => '__A__']), 'add' => __('Add'),
         'view' => __('View'), 'order' => __('Order now'),
+        'deliveryFee' => __('Delivery fee'), 'minOrder' => __('Minimum order for this zone: :amount', ['amount' => '__A__']),
+        'chooseZone' => __('Choose your area'), 'enterAddress' => __('Write the delivery address.'),
+        'phoneRequired' => __('Enter your mobile number so the restaurant can reach you.'),
     ];
 @endphp
 <script type="application/json" id="menu-i18n">{!! json_encode($i18n, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>

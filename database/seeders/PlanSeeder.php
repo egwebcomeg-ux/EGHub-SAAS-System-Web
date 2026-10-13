@@ -19,7 +19,7 @@ class PlanSeeder extends Seeder
         // Starter = the menu to view only (no ordering), for the smallest cafes.
         $starter = ['excel_import', 'feedback'];
         $basic = array_merge($starter, ['qr_ordering', 'order_board', 'full_branding']);
-        $pro = array_merge($basic, ['whatsapp_orders', 'scheduled_orders', 'daily_reports', 'menu_themes', 'printed_menu',
+        $pro = array_merge($basic, ['online_ordering', 'scheduled_orders', 'daily_reports', 'menu_themes', 'printed_menu',
             'offers', 'upsell', 'ai_import', 'customers', 'loyalty_stamps', 'custom_domain']);
         // Business = every menu feature; operations (POS, kitchen, call center, inventory) are add-ons for every plan.
         $business = array_values(array_diff(array_keys(Plan::FEATURES), Plan::addonFeatures()));
@@ -83,6 +83,11 @@ class PlanSeeder extends Seeder
                 'description' => 'خامات وتكلفة وصفات وخصم تلقائي من المخزون',
                 'description_en' => 'Ingredients, recipe costing and automatic stock deduction',
                 'features' => ['inventory']],
+            ['key' => 'online_pack', 'type' => 'feature', 'monthly_price' => 249, 'sort_order' => 5,
+                'name' => 'الطلب الأونلاين', 'name_en' => 'Online ordering',
+                'description' => 'تيك أواي وتوصيل من لينك المنيو بدل عمولة تطبيقات التوصيل، والطلب بميعاد',
+                'description_en' => 'Takeaway and delivery from your menu link instead of app commissions, with scheduled orders',
+                'features' => ['online_ordering', 'scheduled_orders']],
             ['key' => 'domain_pack', 'type' => 'feature', 'monthly_price' => 49, 'sort_order' => 5,
                 'name' => 'دومين خاص', 'name_en' => 'Own domain',
                 'description' => 'المنيو وأكواد QR على دومينك (mycafe.com). سعر حجز الدومين نفسه من egweb.com.eg',

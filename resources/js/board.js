@@ -64,6 +64,7 @@ if (board) {
                 ${o.notes ? `<p class="mt-2 rounded-lg bg-brand-50 p-2 text-sm text-brand-700">${esc(o.notes)}</p>` : ''}
                 ${o.customer ? `<p class="mt-1 text-xs text-navy-500">${esc(o.customer)}</p>` : ''}
                 ${o.address ? `<p class="mt-1 text-xs font-semibold text-navy-700">📍 ${esc(o.address)}</p>` : ''}
+                ${o.scheduled ? `<p class="mt-1 rounded-lg bg-amber-50 p-1.5 text-xs font-bold text-amber-800">🕒 ${esc(o.scheduled)}</p>` : ''}
                 <div class="mt-2 text-sm font-bold">${esc(o.total)} ${esc(t.currency)}</div>
                 ${buttons ? `<div class="mt-3 flex gap-2">${buttons}</div>` : ''}
                 ${['served', 'cancelled'].includes(o.status) ? `<div class="mt-2 text-xs font-bold text-navy-500">${esc(o.status_label)}</div>` : ''}

@@ -24,7 +24,7 @@
         ['dash.shifts', __('Shifts'), 'M12 8v4l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z', 'shifts.manage', 'shifts'],
         ['dash.kitchen', \App\Support\BusinessType::prepScreen(), 'M6 13.9A4 4 0 0 1 7 6a5 5 0 0 1 10 0 4 4 0 0 1 1 7.9V20H6zM6 17h12', 'kitchen.view', 'kitchen_display'],
         ['dash.stations', __('Kitchen stations'), 'M4 6h16M4 12h16M4 18h10', 'menu.manage', 'kitchen_stations'],
-        ['dash.zones', __('Delivery zones'), 'M1 3h15v13H1zM16 8h4l3 3v5h-7zM5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z', 'delivery.manage', 'delivery_zones'],
+        ['dash.zones', __('Delivery zones'), 'M1 3h15v13H1zM16 8h4l3 3v5h-7zM5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z', 'delivery.manage', 'delivery_zones|online_ordering'],
         ['dash.inventory', __('Inventory'), 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8', 'inventory.manage', 'inventory'],
         ['dash.domain', __('Your own domain'), 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18', 'settings.manage', null],
         ['dash.billing', __('Subscription'), 'M3 6h18v12H3zM3 10h18M7 15h3', 'billing.manage', null],

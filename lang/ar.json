@@ -1042,5 +1042,18 @@
     "It changes the names on your screens (bar or kitchen) and the suggestions you see. Every feature stays available.": "بيغيّر الأسماء في الشاشات (بار أو مطبخ) والاقتراحات اللي بتظهرلك، وكل المميزات بتفضل متاحة.",
     "Suits you": "مناسب ليك",
     "Recommended for your :type": "مقترح لـ:type بتاعك",
-    "Included": "موجود عندك"
+    "Included": "موجود عندك",
+    "Online ordering from your menu link (no table)": "الطلب الأونلاين من لينك المنيو (من غير ترابيزة)",
+    "Takeaway (pickup)": "تيك أواي (استلام من الفرع)",
+    "Delivery (uses your delivery zones)": "توصيل (بمناطق التوصيل بتاعتك)",
+    "Ready in": "جاهز خلال",
+    "minutes": "دقيقة",
+    "Choose your area": "اختار منطقتك",
+    "When? (leave empty for as soon as possible)": "إمتى؟ (سيبها فاضية لو عايزه في أسرع وقت)",
+    "Ready in about :n minutes. You pay on pickup or delivery.": "هيبقى جاهز في حوالي :n دقيقة، والدفع عند الاستلام أو التوصيل.",
+    "Mobile number (required)": "رقم الموبايل (مطلوب)",
+    "Enter your mobile number so the restaurant can reach you.": "اكتب رقم موبايلك عشان المطعم يقدر يكلمك.",
+    "Ordering for later is not available.": "الطلب بميعاد مش متاح.",
+    "Choose a time between :min minutes and 7 days from now.": "اختار وقت بعد :min دقيقة على الأقل وفي خلال ٧ أيام.",
+    "Send the order on WhatsApp too": "ابعت الطلب على واتساب كمان"
 }

@@ -97,6 +97,16 @@
     <section class="card grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <h2 class="text-lg font-bold sm:col-span-2 lg:col-span-4">{{ __('Ordering') }}</h2>
         <label class="flex items-center gap-2 text-sm font-semibold sm:col-span-2 lg:col-span-4"><input type="checkbox" name="ordering_enabled" value="1" @checked($s['ordering_enabled'] === '1') class="size-4 accent-brand-600"> {{ __('Guests can order from the table QR') }}</label>
+        @if (\App\Services\Entitlements::current()->allows('online_ordering'))
+            <div class="rounded-xl bg-navy-50 p-3 sm:col-span-2 lg:col-span-4">
+                <div class="mb-2 font-semibold">{{ __('Online ordering from your menu link (no table)') }}</div>
+                <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+                    <label class="flex items-center gap-2"><input type="checkbox" name="online_takeaway" value="1" @checked($s['online_takeaway'] === '1') class="size-4 accent-brand-600"> {{ __('Takeaway (pickup)') }}</label>
+                    <label class="flex items-center gap-2"><input type="checkbox" name="online_delivery" value="1" @checked($s['online_delivery'] === '1') class="size-4 accent-brand-600"> {{ __('Delivery (uses your delivery zones)') }}</label>
+                    <label class="flex items-center gap-2">{{ __('Ready in') }} <input class="field min-h-9 w-20" name="online_prep_minutes" type="number" min="5" max="240" value="{{ $s['online_prep_minutes'] }}"> {{ __('minutes') }}</label>
+                </div>
+            </div>
+        @endif
         <div><label class="field-label">{{ __('Service %') }}</label><input class="field" name="service_percent" type="number" step="0.5" min="0" max="30" value="{{ $s['service_percent'] }}"></div>
         <div><label class="field-label">{{ __('Tax %') }}</label><input class="field" name="tax_percent" type="number" step="0.5" min="0" max="30" value="{{ $s['tax_percent'] }}"></div>
     </section>

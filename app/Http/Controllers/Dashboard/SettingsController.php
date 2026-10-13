@@ -52,6 +52,7 @@ class SettingsController extends Controller
             'tiktok' => 'nullable|url|max:200',
             'google_review_url' => 'nullable|url|max:300',
             'service_percent' => 'nullable|numeric|min:0|max:30',
+            'online_prep_minutes' => 'nullable|integer|min:5|max:240',
             'tax_percent' => 'nullable|numeric|min:0|max:30',
             'ai_provider' => ['nullable', Rule::in(array_keys(AiProviders::PROVIDERS))],
             'ai_model' => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._:\/-]+$/'],
@@ -72,6 +73,13 @@ class SettingsController extends Controller
         }
         $values['english_enabled'] = $request->boolean('english_enabled') ? '1' : '0';
         $values['ordering_enabled'] = $request->boolean('ordering_enabled') ? '1' : '0';
+        if (Entitlements::current()->allows('online_ordering')) {
+            $values['online_takeaway'] = $request->boolean('online_takeaway') ? '1' : '0';
+            $values['online_delivery'] = $request->boolean('online_delivery') ? '1' : '0';
+        }
+        if (($values['online_prep_minutes'] ?? '') === '') {
+            unset($values['online_prep_minutes']);
+        }
 
         if (! Entitlements::current()->allows('menu_themes')) {
             unset($values['menu_theme']);

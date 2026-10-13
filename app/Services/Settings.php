@@ -38,6 +38,10 @@ final class Settings
         // ordering
         'ordering_enabled' => '1',
         'whatsapp_ordering' => '0',
+        // online ordering from the menu link (plan feature online_ordering)
+        'online_takeaway' => '1',
+        'online_delivery' => '0',
+        'online_prep_minutes' => '20',
         'service_percent' => '0',
         'tax_percent' => '0',
         // AI menu import with the restaurant's own key (ai_key is encrypted, see AiProviders)

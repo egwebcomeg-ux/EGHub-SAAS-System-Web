@@ -70,9 +70,16 @@ final class Entitlements
         return new self($tenant, $plan, $e['features'], $e['limits']);
     }
 
+    /** "a|b" is allowed when either feature is. */
     public function allows(string $feature): bool
     {
-        return $this->features[$feature] ?? false;
+        foreach (explode('|', $feature) as $one) {
+            if ($this->features[$one] ?? false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** null = unlimited */
@@ -105,6 +112,7 @@ final class Entitlements
     /** Message shown when a limit or feature blocks an action. */
     public function upgradeMessage(string $key): string
     {
+        $key = explode('|', $key)[0];
         $label = Plan::label($key);
         if (isset(Plan::FEATURES[$key])) {
             return __('The ":feature" feature is not included in your plan (:plan). Upgrade to unlock it.',

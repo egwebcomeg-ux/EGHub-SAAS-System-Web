@@ -14,32 +14,33 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Order extends TenantModel
 {
     public const STATUSES = [
-        'new'       => ['جديد', 'New'],
+        'new' => ['جديد', 'New'],
         'preparing' => ['بيتحضر', 'Preparing'],
-        'ready'     => ['جاهز', 'Ready'],
-        'on_way'    => ['في الطريق', 'On the way'],
-        'served'    => ['اتسلّم', 'Served'],
+        'ready' => ['جاهز', 'Ready'],
+        'on_way' => ['في الطريق', 'On the way'],
+        'served' => ['اتسلّم', 'Served'],
         'cancelled' => ['ملغي', 'Cancelled'],
     ];
 
     public const TRANSITIONS = [
-        'new'       => ['preparing', 'cancelled'],
+        'new' => ['preparing', 'cancelled'],
         'preparing' => ['ready', 'cancelled'],
-        'ready'     => ['served', 'on_way', 'cancelled'],
-        'on_way'    => ['served', 'cancelled'],
-        'served'    => [],
+        'ready' => ['served', 'on_way', 'cancelled'],
+        'on_way' => ['served', 'cancelled'],
+        'served' => [],
         'cancelled' => [],
     ];
 
     public const SOURCES = [
-        'qr'         => ['منيو QR', 'QR menu'],
-        'pos'        => ['كاشير', 'POS'],
+        'qr' => ['منيو QR', 'QR menu'],
+        'pos' => ['كاشير', 'POS'],
         'callcenter' => ['كول سنتر', 'Call center'],
-        'whatsapp'   => ['واتساب', 'WhatsApp'],
+        'whatsapp' => ['واتساب', 'WhatsApp'],
+        'online' => ['طلب أونلاين', 'Online'],
     ];
 
     public const TYPES = [
-        'dine_in'  => ['صالة', 'Dine-in'],
+        'dine_in' => ['صالة', 'Dine-in'],
         'takeaway' => ['تيك أواي', 'Takeaway'],
         'delivery' => ['توصيل', 'Delivery'],
     ];
@@ -49,18 +50,18 @@ class Order extends TenantModel
         return [
             'subtotal' => 'float',
             'discount' => 'float',
-            'service'  => 'float',
-            'tax'      => 'float',
-            'total'    => 'float',
-            'delivery_fee'     => 'float',
+            'service' => 'float',
+            'tax' => 'float',
+            'total' => 'float',
+            'delivery_fee' => 'float',
             'delivery_address' => 'array',
-            'scheduled_for'    => 'datetime',
-            'preparing_at'     => 'datetime',
-            'ready_at'         => 'datetime',
-            'completed_at'     => 'datetime',
-            'cancelled_at'     => 'datetime',
+            'scheduled_for' => 'datetime',
+            'preparing_at' => 'datetime',
+            'ready_at' => 'datetime',
+            'completed_at' => 'datetime',
+            'cancelled_at' => 'datetime',
             'loyalty_applied_at' => 'datetime',
-            'stock_deducted_at'  => 'datetime',
+            'stock_deducted_at' => 'datetime',
         ];
     }
 
@@ -69,12 +70,14 @@ class Order extends TenantModel
         if ($status === 'on_way' && $this->type !== 'delivery') {
             return false;
         }
+
         return in_array($status, self::TRANSITIONS[$this->status] ?? [], true);
     }
 
     public function statusLabel(): string
     {
         $l = self::STATUSES[$this->status] ?? [$this->status, $this->status];
+
         return app()->getLocale() === 'en' ? $l[1] : $l[0];
     }
 

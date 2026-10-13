@@ -6,12 +6,26 @@
 @endpush
 
 @section('body')
-@php($steps = ['new', 'preparing', 'ready', 'served'])
+@php
+    $steps = $order->type === 'delivery' ? ['new', 'preparing', 'ready', 'on_way', 'served'] : ['new', 'preparing', 'ready', 'served'];
+    $wa = preg_replace('/\D+/', '', (string) ($order->branch?->whatsapp ?: $settings['whatsapp']));
+    $waText = collect([__('Order #:n', ['n' => $order->number])])
+        ->merge($order->items->map(fn ($i) => $i->quantity . '× ' . $i->name))
+        ->push(__('Total') . ': ' . money($order->total))
+        ->push($order->delivery_address ? ($order->delivery_address['zone'] ?? '') . ' - ' . ($order->delivery_address['text'] ?? '') : null)
+        ->push(route('menu.order.show', $order->tracking_token))
+        ->filter()->implode("\n");
+@endphp
 <main class="mx-auto max-w-md px-4 py-8">
     <div class="card text-center">
         <div class="text-sm text-navy-500">{{ tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name }}</div>
         <h1 class="mt-1 text-3xl font-extrabold">{{ __('Order #:n', ['n' => $order->number]) }}</h1>
         @if ($order->table)<div class="mt-1 font-semibold" style="color: var(--menu-primary)">{{ __('Table :name', ['name' => $order->table->name]) }}</div>@endif
+        @if (! $order->table)
+            <div class="mt-1 font-semibold" style="color: var(--menu-primary)">{{ \App\Models\Order::TYPES[$order->type][app()->getLocale() === 'en' ? 1 : 0] ?? '' }}</div>
+            @if ($order->delivery_address)<div class="text-sm text-navy-500">📍 {{ $order->delivery_address['zone'] ?? '' }} — {{ $order->delivery_address['text'] ?? '' }}</div>@endif
+            @if ($order->scheduled_for)<div class="text-sm text-navy-500">🕒 {{ local_time($order->scheduled_for, 'd/m h:i A') }}</div>@endif
+        @endif
 
         <div class="mt-6 text-lg font-bold" data-status-label>{{ $order->statusLabel() }}</div>
         @if ($order->status !== 'cancelled')
@@ -42,6 +56,7 @@
         <div class="mt-3 space-y-1 border-t border-navy-100 pt-3 text-sm">
             @if ($order->service > 0)<div class="flex justify-between"><span>{{ __('Service') }}</span><span>{{ money($order->service) }}</span></div>@endif
             @if ($order->tax > 0)<div class="flex justify-between"><span>{{ __('Tax') }}</span><span>{{ money($order->tax) }}</span></div>@endif
+            @if ($order->delivery_fee > 0)<div class="flex justify-between"><span>{{ __('Delivery fee') }}</span><span>{{ money($order->delivery_fee) }}</span></div>@endif
             <div class="flex justify-between text-base font-extrabold"><span>{{ __('Total') }}</span><span>{{ money($order->total) }} {{ tr($settings['currency'], $settings['currency_en']) }}</span></div>
         </div>
     </div>
@@ -50,6 +65,10 @@
         @include('partials.rate-us', ['orderToken' => $order->tracking_token])
     @endif
 
+    @if (! $order->table && $wa && ! in_array($order->status, ['served', 'cancelled'], true))
+        <a href="https://wa.me/{{ str_starts_with($wa, '0') ? '2' . $wa : $wa }}?text={{ rawurlencode($waText) }}" target="_blank" rel="noopener"
+           class="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] font-bold text-white">{{ __('Send the order on WhatsApp too') }}</a>
+    @endif
     <a href="{{ route('menu.show') }}" class="btn-ghost mt-4 w-full">{{ __('Back to menu') }}</a>
 </main>
 
