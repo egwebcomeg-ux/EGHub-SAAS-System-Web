@@ -210,7 +210,10 @@ return new class extends Migration
             $t->string('type', 10)->default('visits');     // visits | items | points
             $t->string('title');
             $t->string('title_en')->default('');
-            $t->unsignedTinyInteger('stamps_required')->default(5);
+            $t->unsignedTinyInteger('stamps_required')->default(10); // card size; locked once cards exist
+            // Rewards along the card, e.g. [{"at":5,"type":"discount_percent","value":30,"label":"خصم 30%"},
+            // {"at":10,"type":"free_item","label":"قهوة مجاناً"}]. Empty = one reward at stamps_required.
+            $t->json('milestones')->nullable();
             $t->json('qualifying_items')->nullable();      // items: {categories: [...], items: [...]}
             $t->decimal('min_order', 10, 2)->default(0);   // visits: smallest order that earns a stamp
             $t->decimal('points_per_egp', 6, 2)->default(1);
@@ -220,7 +223,9 @@ return new class extends Migration
             $t->string('reward_label');
             $t->string('reward_label_en')->default('');
             $t->unsignedSmallInteger('stamps_expire_days')->nullable(); // null = never
-            $t->json('card_design')->nullable();           // colors, stamp icon, background
+            // Wallet-style card: {bg, stamp_area_bg, text, stamp_icon (cup|bean|flower|star|logo), reward_icon (gift),
+            // logo, cover, back_text}. Front: logo, name, stamps count, QR. Back: terms, address, history.
+            $t->json('card_design')->nullable();
             $t->boolean('is_active')->default(true);
             $t->timestamps();
         });

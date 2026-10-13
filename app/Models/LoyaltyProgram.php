@@ -10,7 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *   visits: a stamp per qualifying visit (order >= min_order, at most one per day)
  *   items:  a stamp per qualifying item (selected categories/items), e.g. "every 5 coffees, the 6th is free"
  *   points: points per EGP spent
- * Reaching stamps_required turns the stamps into one available reward and the card starts again.
+ * Rewards can sit along the card (milestones: 30% at 5, free at 10); the last one completes the card and a new one
+ * starts. While cards exist, stamps_required and milestones are locked so nobody's progress changes under them.
  */
 class LoyaltyProgram extends TenantModel
 {
@@ -30,6 +31,7 @@ class LoyaltyProgram extends TenantModel
     {
         return [
             'qualifying_items' => 'array',
+            'milestones'       => 'array',
             'reward_items'     => 'array',
             'card_design'      => 'array',
             'min_order'        => 'float',
@@ -37,6 +39,12 @@ class LoyaltyProgram extends TenantModel
             'reward_value'     => 'float',
             'is_active'        => 'boolean',
         ];
+    }
+
+    /** Card size and milestones can't change once guests hold cards. */
+    public function isLocked(): bool
+    {
+        return $this->exists && $this->cards()->exists();
     }
 
     public function cards(): HasMany
