@@ -26,6 +26,16 @@ class LoyaltyCard extends TenantModel
         return $this->belongsTo(Customer::class);
     }
 
+    public function rewards(): HasMany
+    {
+        return $this->hasMany(LoyaltyReward::class)->latest('id');
+    }
+
+    public function availableRewards(): HasMany
+    {
+        return $this->hasMany(LoyaltyReward::class)->where('status', 'available')->orderBy('id');
+    }
+
     public function transactions(): HasMany
     {
         return $this->hasMany(LoyaltyTransaction::class)->latest('id');

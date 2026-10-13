@@ -27,7 +27,12 @@ class MenuController extends Controller
 
         $canOrder = $table !== null && Entitlements::current()->allows('qr_ordering') && $settings['ordering_enabled'] === '1';
 
+        $loyalty = app(\App\Services\Loyalty\LoyaltyService::class)->program();
+
         return view('menu.show', [
+            'loyalty'    => $loyalty,
+            'cardToken'  => $loyalty ? $request->cookie('card_' . tenant()->getTenantKey()) : null,
+            'feedback'   => Entitlements::current()->allows('feedback'),
             'settings'   => $settings,
             'categories' => $categories,
             'table'      => $table,

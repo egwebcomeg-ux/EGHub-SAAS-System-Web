@@ -49,8 +49,16 @@ class DemoSeeder extends Seeder
                     }
                 }
             }
+            \App\Models\LoyaltyProgram::query()->create([
+                'type' => 'visits', 'title' => 'كارت القهوة', 'title_en' => 'Coffee card', 'stamps_required' => 8,
+                'reward_label' => 'قهوة مجاناً', 'reward_label_en' => 'A free coffee',
+                'milestones' => [['at' => 4, 'type' => 'discount_percent', 'label' => 'خصم 20% على طلبك']],
+                'card_design' => ['bg' => '#B5451B', 'stamp_bg' => '#7A1F2B', 'icon' => 'cup'],
+            ]);
+            \App\Services\Settings::put(['google_review_url' => 'https://g.page/r/demo-cafe/review']);
         } finally {
             tenancy()->end();
+            \App\Services\Settings::flush();
         }
     }
 }

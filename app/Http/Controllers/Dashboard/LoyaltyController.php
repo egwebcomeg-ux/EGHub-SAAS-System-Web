@@ -1,0 +1,164 @@
+<?php
+
+namespace App\Http\Controllers\Dashboard;
+
+use App\Http\Controllers\Controller;
+use App\Models\Category;
+use App\Models\Customer;
+use App\Models\LoyaltyCard;
+use App\Models\LoyaltyProgram;
+use App\Models\LoyaltyReward;
+use App\Models\MenuItem;
+use App\Services\Entitlements;
+use App\Services\Loyalty\LoyaltyService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\View\View;
+
+/** Loyalty program setup (owner/manager) and the counter desk: find a card, stamp it, redeem rewards (cashier). */
+class LoyaltyController extends Controller
+{
+    public const STAMP_ICONS = ['cup', 'bean', 'star', 'heart', 'burger', 'pizza', 'logo'];
+
+    public function edit(): View
+    {
+        $program = LoyaltyProgram::query()->latest('id')->first() ?? new LoyaltyProgram([
+            'type' => 'visits', 'title' => __('Loyalty card'), 'stamps_required' => 10, 'reward_type' => 'free_item',
+            'reward_label' => __('A free drink'), 'is_active' => true,
+            'card_design' => ['bg' => '#B5451B', 'stamp_bg' => '#7A1F2B', 'icon' => 'cup'],
+        ]);
+        return view('dashboard.loyalty.setup', [
+            'program' => $program,
+            'locked' => $program->isLocked(),
+            'points' => Entitlements::current()->allows('loyalty_points'),
+            'categories' => Category::query()->orderBy('sort_order')->get(),
+            'items' => MenuItem::query()->orderBy('name')->get(['id', 'name', 'category_id']),
+            'icons' => self::STAMP_ICONS,
+            'stats' => $program->exists ? [
+                'cards' => $program->cards()->count(),
+                'rewards' => LoyaltyReward::query()->whereIn('loyalty_card_id', $program->cards()->select('id'))->count(),
+                'redeemed' => LoyaltyReward::query()->whereIn('loyalty_card_id', $program->cards()->select('id'))->where('status', 'redeemed')->count(),
+            ] : null,
+        ]);
+    }
+
+    public function update(Request $request): RedirectResponse
+    {
+        $program = LoyaltyProgram::query()->latest('id')->first() ?? new LoyaltyProgram();
+        $types = Entitlements::current()->allows('loyalty_points') ? ['visits', 'items', 'points'] : ['visits', 'items'];
+        $tenant = tenant()->getTenantKey();
+        $data = $request->validate([
+            'type'                 => ['required', Rule::in($types)],
+            'title'                => 'required|string|max:60',
+            'title_en'             => 'nullable|string|max:60',
+            'stamps_required'      => 'required|integer|min:2|max:30',
+            'min_order'            => 'nullable|numeric|min:0',
+            'points_per_egp'       => 'nullable|numeric|min:0.01|max:100',
+            'reward_label'         => 'required|string|max:80',
+            'stamps_expire_days'   => 'nullable|integer|min:7|max:730',
+            'categories'           => 'array',
+            'categories.*'         => [Rule::exists('categories', 'id')->where('tenant_id', $tenant)],
+            'items'                => 'array',
+            'items.*'              => [Rule::exists('menu_items', 'id')->where('tenant_id', $tenant)],
+            'milestones'           => 'array|max:10',
+            'milestones.*.at'      => 'nullable|integer|min:1|max:100000',
+            'milestones.*.label'   => 'nullable|string|max:80',
+            'design.bg'            => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'design.stamp_bg'      => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'design.icon'          => ['required', Rule::in(self::STAMP_ICONS)],
+        ]);
+
+        $milestones = collect($data['milestones'] ?? [])->filter(fn ($m) => !empty($m['at']) && !empty($m['label']))
+            ->map(fn ($m) => ['at' => (int) $m['at'], 'type' => 'free_item', 'label' => $m['label']])->values()->all();
+
+        // A card's size and rewards can't change under guests who already hold one.
+        if ($program->isLocked() && ((int) $data['stamps_required'] !== (int) $program->stamps_required
+            || $data['type'] !== $program->type || $milestones != array_values($program->milestones ?? []))) {
+            return back()->withErrors(['locked' => __('Guests already hold cards: the card size, type and rewards can no longer change. Start a new program to change them.')]);
+        }
+
+        $program->fill([
+            'type' => $data['type'], 'title' => $data['title'], 'title_en' => $data['title_en'] ?? '',
+            'stamps_required' => $data['stamps_required'], 'min_order' => $data['min_order'] ?? 0,
+            'points_per_egp' => $data['points_per_egp'] ?? 1, 'reward_type' => 'free_item', 'reward_label' => $data['reward_label'],
+            'stamps_expire_days' => $data['stamps_expire_days'] ?? null,
+            'qualifying_items' => ['categories' => array_map('intval', $data['categories'] ?? []), 'items' => array_map('intval', $data['items'] ?? [])],
+            'milestones' => $milestones, 'card_design' => $data['design'], 'is_active' => $request->boolean('is_active'),
+        ])->save();
+
+        return back()->with('ok', __('Loyalty program saved.'));
+    }
+
+    /** Ends the current program (cards stay readable) so a new one with other rules can start. */
+    public function restart(): RedirectResponse
+    {
+        LoyaltyProgram::query()->update(['is_active' => false]);
+        $old = LoyaltyProgram::query()->latest('id')->first();
+        if ($old) {
+            $copy = $old->replicate(['tenant_id']);
+            $copy->is_active = true;
+            $copy->save();
+        }
+        return back()->with('ok', __('A new program started. Old cards keep their rewards.'));
+    }
+
+    // ---- counter desk ----
+
+    public function desk(Request $request, LoyaltyService $loyalty): View
+    {
+        $q = trim((string) $request->query('q', ''));
+        $card = null;
+        if ($q !== '' && ($program = $loyalty->program())) {
+            $token = preg_match('#([a-f0-9]{24})$#', $q, $m) ? $m[1] : null; // scanned card URL or token
+            $customer = $token ? Customer::query()->where('card_token', $token)->first()
+                : Customer::query()->where('phone', normalize_phone($q) ?? $q)->first();
+            $card = $customer ? $loyalty->card($program, $customer)->load(['customer', 'availableRewards', 'transactions' => fn ($t) => $t->limit(10)]) : null;
+        }
+        return view('dashboard.loyalty.desk', [
+            'program' => $loyalty->program(), 'q' => $q, 'card' => $card,
+            'milestones' => ($p = $loyalty->program()) ? $loyalty->milestones($p) : [],
+        ]);
+    }
+
+    public function enroll(Request $request, LoyaltyService $loyalty): RedirectResponse
+    {
+        $data = $request->validate(['phone' => 'required|string|max:20', 'name' => 'nullable|string|max:100']);
+        $phone = normalize_phone($data['phone']);
+        if (!$phone) {
+            return back()->withErrors(['phone' => __('Enter a valid Egyptian mobile number.')]);
+        }
+        abort_unless($loyalty->program(), 404);
+        $loyalty->enroll($phone, $data['name'] ?? '', 'pos');
+        return redirect()->route('dash.loyalty.desk', ['q' => $phone])->with('ok', __('Card created.'));
+    }
+
+    public function stamp(Request $request, LoyaltyCard $card, LoyaltyService $loyalty): RedirectResponse
+    {
+        $data = $request->validate(['count' => 'required|integer|min:1|max:20', 'note' => 'nullable|string|max:100']);
+        abort_unless($card->program?->is_active, 404);
+        $loyalty->stamp($card, (int) $data['count'], $request->user(), $request->user()->branch_id, $data['note'] ?? '');
+        return back()->with('ok', __('Stamps added.'));
+    }
+
+    public function redeem(Request $request, LoyaltyReward $reward, LoyaltyService $loyalty): RedirectResponse
+    {
+        try {
+            $loyalty->redeem($reward, $request->user());
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['reward' => $e->getMessage()]);
+        }
+        return back()->with('ok', __('Reward redeemed: :label', ['label' => $reward->label]));
+    }
+
+    public function claim(Request $request, LoyaltyCard $card, LoyaltyService $loyalty): RedirectResponse
+    {
+        $data = $request->validate(['milestone' => 'required|integer|min:0']);
+        try {
+            $reward = $loyalty->claimPoints($card, (int) $data['milestone'], $request->user());
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['reward' => $e->getMessage()]);
+        }
+        return back()->with('ok', __('Reward redeemed: :label', ['label' => $reward->label]));
+    }
+}

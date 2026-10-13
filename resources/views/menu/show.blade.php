@@ -112,7 +112,23 @@
         <p class="py-16 text-center text-navy-500">{{ __('The menu is being prepared. Please check back soon.') }}</p>
     @endforelse
 
+    @if ($loyalty)
+        <a href="{{ $cardToken ? route('menu.card', $cardToken) : route('menu.card.join') }}"
+           class="mb-6 flex items-center gap-4 rounded-2xl p-4 text-white shadow-md" style="background: {{ $loyalty->card_design['bg'] ?? '#B5451B' }}">
+            <x-stamp-icon :icon="$loyalty->card_design['icon'] ?? 'cup'" :logo="$settings['logo']" class="size-10 shrink-0 text-white" />
+            <span class="flex-1">
+                <span class="block font-extrabold">{{ $cardToken ? __('My loyalty card') : __('Get your free loyalty card') }}</span>
+                <span class="block text-sm text-white/80">{{ $loyalty->reward_label }} · {{ $loyalty->type === 'points' ? '' : __(':n stamps', ['n' => $loyalty->stamps_required]) }}</span>
+            </span>
+            <span aria-hidden="true">←</span>
+        </a>
+    @endif
+
     <p class="hidden py-10 text-center text-navy-500" data-no-results>{{ __('No items match your search.') }}</p>
+
+    @if ($feedback)
+        @include('partials.rate-us')
+    @endif
 
     <footer class="mt-10 space-y-3 text-center text-sm text-navy-500">
         <div class="flex justify-center gap-4">

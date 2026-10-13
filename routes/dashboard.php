@@ -4,9 +4,12 @@ use App\Http\Controllers\Dashboard\AuthController;
 use App\Http\Controllers\Dashboard\BillingController;
 use App\Http\Controllers\Dashboard\BranchesController;
 use App\Http\Controllers\Dashboard\CategoriesController;
+use App\Http\Controllers\Dashboard\CustomersController;
+use App\Http\Controllers\Dashboard\FeedbackController;
 use App\Http\Controllers\Dashboard\HomeController;
 use App\Http\Controllers\Dashboard\ItemsController;
 use App\Http\Controllers\Dashboard\KitchenController;
+use App\Http\Controllers\Dashboard\LoyaltyController;
 use App\Http\Controllers\Dashboard\OrdersController;
 use App\Http\Controllers\Dashboard\PosController;
 use App\Http\Controllers\Dashboard\SettingsController;
@@ -90,6 +93,28 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
 
     Route::get('/orders/{order}/receipt', [OrdersController::class, 'receipt'])
         ->middleware('permission:orders.view|pos.use')->name('orders.receipt');
+
+    // ---- Guests: customers, loyalty card, feedback ----
+    Route::middleware(['feature:customers', 'permission:customers.view'])->group(function () {
+        Route::get('/customers', [CustomersController::class, 'index'])->name('customers');
+        Route::get('/customers/export', [CustomersController::class, 'export'])->name('customers.export');
+        Route::get('/customers/{customer}', [CustomersController::class, 'show'])->name('customers.show');
+        Route::post('/customers/{customer}', [CustomersController::class, 'update'])->name('customers.update');
+    });
+    Route::middleware(['feature:loyalty_stamps', 'permission:loyalty.manage'])->group(function () {
+        Route::get('/loyalty/setup', [LoyaltyController::class, 'edit'])->name('loyalty.setup');
+        Route::post('/loyalty/setup', [LoyaltyController::class, 'update'])->name('loyalty.update');
+        Route::post('/loyalty/restart', [LoyaltyController::class, 'restart'])->name('loyalty.restart');
+    });
+    Route::middleware(['feature:loyalty_stamps', 'permission:loyalty.stamp'])->group(function () {
+        Route::get('/loyalty', [LoyaltyController::class, 'desk'])->name('loyalty.desk');
+        Route::post('/loyalty/enroll', [LoyaltyController::class, 'enroll'])->name('loyalty.enroll');
+        Route::post('/loyalty/cards/{card}/stamp', [LoyaltyController::class, 'stamp'])->name('loyalty.stamp');
+        Route::post('/loyalty/cards/{card}/claim', [LoyaltyController::class, 'claim'])->name('loyalty.claim');
+        Route::post('/loyalty/rewards/{reward}/redeem', [LoyaltyController::class, 'redeem'])->name('loyalty.redeem');
+    });
+    Route::get('/feedback', [FeedbackController::class, 'index'])
+        ->middleware(['feature:feedback', 'permission:reports.view|customers.view'])->name('feedback');
 
     // ---- Operations add-ons (sold separately from the plans) ----
 

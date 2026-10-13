@@ -59,6 +59,7 @@ class Order extends TenantModel
             'ready_at'         => 'datetime',
             'completed_at'     => 'datetime',
             'cancelled_at'     => 'datetime',
+            'loyalty_applied_at' => 'datetime',
         ];
     }
 

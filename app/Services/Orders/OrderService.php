@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\User;
 use App\Services\Entitlements;
+use App\Services\Loyalty\LoyaltyService;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Settings;
 use Illuminate\Database\QueryException;
@@ -114,6 +115,7 @@ final class OrderService
             throw new OrderException(__('Open a shift first to take payments.'));
         }
         $order->update(['payment_status' => 'paid', 'payment_method' => $method, 'shift_id' => $shift?->id]);
+        app(LoyaltyService::class)->orderCompleted($order);
         return $order;
     }
 
@@ -134,6 +136,12 @@ final class OrderService
             }
             $order->save();
             OrderStatusHistory::query()->create(['order_id' => $order->id, 'from_status' => $from, 'to_status' => $to, 'user_id' => $by?->id]);
+            // the visit, spend and loyalty stamps count once the guest got the order (or paid, see pay())
+            match ($to) {
+                'served' => app(LoyaltyService::class)->orderCompleted($order),
+                'cancelled' => app(LoyaltyService::class)->orderReversed($order),
+                default => null,
+            };
             return $order;
         });
     }

@@ -46,6 +46,10 @@
         </div>
     </div>
 
+    @if ($order->status === 'served' && \App\Services\Entitlements::current()->allows('feedback'))
+        @include('partials.rate-us', ['orderToken' => $order->tracking_token])
+    @endif
+
     <a href="{{ route('menu.show') }}" class="btn-ghost mt-4 w-full">{{ __('Back to menu') }}</a>
 </main>
 
