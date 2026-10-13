@@ -28,14 +28,16 @@ class BranchMenuController extends Controller
 
     public function update(Request $request, Branch $branch): RedirectResponse
     {
-        $data = $request->validate([
+        $request->validate([
             'items' => 'array',
             'items.*.price' => 'nullable|numeric|min:0|max:100000',
         ]);
         $validIds = Category::query()->with('items:id,category_id')->get()->flatMap->items->pluck('id')->all();
 
-        DB::transaction(function () use ($request, $branch, $data, $validIds) {
-            foreach ($data['items'] ?? [] as $itemId => $row) {
+        DB::transaction(function () use ($request, $branch, $validIds) {
+            // every posted row, not only validated keys: a row without a price still carries its checkboxes
+            foreach ((array) $request->input('items', []) as $itemId => $row) {
+                $row = (array) $row;
                 $itemId = (int) $itemId;
                 if (!in_array($itemId, $validIds, true)) {
                     continue; // another restaurant's id, or a deleted item
