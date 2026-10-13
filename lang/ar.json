@@ -1073,5 +1073,9 @@
     "Needs the :plan plan": "محتاجة باقة :plan",
     "Priced per branch (40% off each extra branch)": "السعر لكل فرع (خصم ٤٠٪ على كل فرع زيادة)",
     "Available from plan": "متاحة من باقة",
-    "Any plan": "أي باقة"
+    "Any plan": "أي باقة",
+    "Orders & service": "الطلبات والخدمة",
+    "Customers & marketing": "العملاء والتسويق",
+    "Operations": "التشغيل",
+    "Management": "الإدارة"
 }
