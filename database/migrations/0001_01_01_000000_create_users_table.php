@@ -11,12 +11,32 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Restaurant staff. Every user belongs to exactly one restaurant; email/phone are unique platform-wide
+        // because everyone signs in on the shared dashboard host (app.<domain>).
         Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('tenant_id')->index();
+            $table->foreign('tenant_id')->references('id')->on('tenants')->cascadeOnUpdate()->cascadeOnDelete();
+            $table->unsignedBigInteger('branch_id')->nullable()->index(); // null = all branches
+            $table->string('name');
+            $table->string('email')->nullable()->unique();
+            $table->string('phone', 20)->nullable()->unique();
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('password');
+            $table->boolean('is_active')->default(true);
+            $table->string('locale', 5)->default('ar');
+            $table->timestamp('last_login_at')->nullable();
+            $table->rememberToken();
+            $table->timestamps();
+        });
+
+        // Platform owners (admin.<domain>). Separate table and guard: never mixed with restaurant staff.
+        Schema::create('platform_admins', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->timestamp('last_login_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
@@ -42,6 +62,7 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('platform_admins');
         Schema::dropIfExists('users');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
