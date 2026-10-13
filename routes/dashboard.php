@@ -15,6 +15,7 @@ use App\Http\Controllers\Dashboard\MenuImportController;
 use App\Http\Controllers\Dashboard\OrdersController;
 use App\Http\Controllers\Dashboard\PosController;
 use App\Http\Controllers\Dashboard\PrintMenuController;
+use App\Http\Controllers\Dashboard\ReportsController;
 use App\Http\Controllers\Dashboard\SettingsController;
 use App\Http\Controllers\Dashboard\ShiftsController;
 use App\Http\Controllers\Dashboard\StationsController;
@@ -108,6 +109,12 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
 
     Route::get('/orders/{order}/receipt', [OrdersController::class, 'receipt'])
         ->middleware('permission:orders.view|pos.use')->name('orders.receipt');
+
+    // ---- Reports (daily on Pro, advanced on Business) ----
+    Route::middleware(['feature:daily_reports', 'permission:reports.view'])->group(function () {
+        Route::get('/reports', [ReportsController::class, 'index'])->name('reports');
+        Route::get('/reports/export', [ReportsController::class, 'export'])->name('reports.export');
+    });
 
     // ---- Marketing: timed offers & popups ----
     Route::middleware(['feature:offers', 'permission:marketing.manage'])->group(function () {
