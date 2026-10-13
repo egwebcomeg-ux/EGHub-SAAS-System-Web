@@ -19,6 +19,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Behind Cloudflare: the real visitor IP comes from X-Forwarded-For (and https from X-Forwarded-Proto),
+        // trusted only when the request comes from config('trustedproxy.proxies') (Cloudflare ranges by default,
+        // TRUSTED_PROXIES in .env). The list lives in config because .env is not loaded yet at this point.
+        // X-Forwarded-Host is deliberately not trusted: tenants are resolved from the Host header.
+        // Every $request->ip() after this (rate limiters below, client_ip()) is the real client IP.
+        $middleware->trustProxies(headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO);
         $middleware->alias([
             'tenant.path' => IdentifyTenantByPath::class,
             'tenant.domain' => IdentifyTenantByDomain::class,
