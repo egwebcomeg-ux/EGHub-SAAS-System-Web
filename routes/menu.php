@@ -5,6 +5,7 @@ use App\Http\Controllers\Menu\FeedbackController;
 use App\Http\Controllers\Menu\LoyaltyCardController;
 use App\Http\Controllers\Menu\MenuController;
 use App\Http\Controllers\Menu\OrderController;
+use App\Http\Controllers\Menu\TvController;
 use Illuminate\Support\Facades\Route;
 
 // egmenu.app/{tenant}/... (tenancy initialised by IdentifyTenantByPath)
@@ -18,6 +19,10 @@ Route::get('/o/{token}/status', [OrderController::class, 'status'])->where('toke
 // Order-number board for a screen in the hall (POS pack)
 Route::get('/board', [BoardController::class, 'show'])->name('board');
 Route::get('/board/feed', [BoardController::class, 'feed'])->name('board.feed');
+
+// Menu boards on TVs (Business): secret link per screen
+Route::get('/tv/{token}', [TvController::class, 'show'])->where('token', '[a-f0-9]{20}')->name('tv');
+Route::get('/tv/{token}/version', [TvController::class, 'version'])->where('token', '[a-f0-9]{20}')->name('tv.version');
 
 // Digital loyalty card
 Route::get('/card', [LoyaltyCardController::class, 'join'])->name('card.join');

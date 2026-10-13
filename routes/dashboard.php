@@ -23,6 +23,7 @@ use App\Http\Controllers\Dashboard\StationsController;
 use App\Http\Controllers\Dashboard\CallCenterController;
 use App\Http\Controllers\Dashboard\DeliveryZonesController;
 use App\Http\Controllers\Dashboard\TablesController;
+use App\Http\Controllers\Dashboard\TvScreensController;
 use App\Http\Controllers\Dashboard\UsersController;
 use Illuminate\Support\Facades\Route;
 
@@ -176,6 +177,15 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/shifts/open', [ShiftsController::class, 'open'])->name('shifts.open');
         Route::post('/shifts/move', [ShiftsController::class, 'move'])->name('shifts.move');
         Route::post('/shifts/close', [ShiftsController::class, 'close'])->name('shifts.close');
+    });
+
+    // TV menu boards (Business)
+    Route::middleware(['feature:tv_screens', 'permission:menu.manage'])->group(function () {
+        Route::get('/tv-screens', [TvScreensController::class, 'index'])->name('tv');
+        Route::post('/tv-screens', [TvScreensController::class, 'store'])->name('tv.store');
+        Route::post('/tv-screens/{screen}', [TvScreensController::class, 'update'])->name('tv.update');
+        Route::post('/tv-screens/{screen}/link', [TvScreensController::class, 'regenerate'])->name('tv.regenerate');
+        Route::post('/tv-screens/{screen}/delete', [TvScreensController::class, 'destroy'])->name('tv.delete');
     });
 
     // Call-center pack: phone orders with delivery zones
