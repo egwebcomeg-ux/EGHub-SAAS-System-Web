@@ -5,13 +5,11 @@ use App\Http\Middleware\IdentifyTenantByDomain;
 use App\Http\Middleware\IdentifyTenantByPath;
 use App\Http\Middleware\InitializeTenancyFromUser;
 use App\Http\Middleware\RequireFeature;
-use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
-use Illuminate\Support\Facades\RateLimiter;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -19,12 +17,6 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
-        then: function () {
-            RateLimiter::for('login', fn (Request $r) => Limit::perMinute(8)->by($r->ip().'|'.$r->getHost()));
-            RateLimiter::for('signup', fn (Request $r) => Limit::perHour(5)->by($r->ip()));
-            // Guests placing orders from a menu: generous for a table of friends, tight for scripts.
-            RateLimiter::for('menu-orders', fn (Request $r) => Limit::perMinute(6)->by($r->ip().'|'.$r->path()));
-        },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
