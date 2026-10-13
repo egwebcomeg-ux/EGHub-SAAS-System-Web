@@ -49,6 +49,23 @@
         </div>
     </section>
 
+    <section class="card space-y-3">
+        <h2 class="text-lg font-bold">{{ __('Menu design') }}</h2>
+        @unless ($themes)
+            <p class="rounded-xl bg-brand-50 p-3 text-sm text-brand-700">{{ \App\Services\Entitlements::current()->upgradeMessage('menu_themes') }}</p>
+        @endunless
+        <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            @foreach (['classic' => [__('Classic'), __('Text with a photo on the side')], 'grid' => [__('Grid'), __('Big photos, two per row')], 'minimal' => [__('Minimal'), __('Like a printed menu')], 'dark' => [__('Dark'), __('Dark background, for evening cafes')]] as $key => [$label, $hint])
+                <label @class(['cursor-pointer rounded-xl border border-navy-100 p-3 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50', 'opacity-50' => !$themes && $key !== 'classic'])>
+                    <input type="radio" name="menu_theme" value="{{ $key }}" class="sr-only" @checked(($themes ? $s['menu_theme'] : 'classic') === $key) @disabled(!$themes && $key !== 'classic')>
+                    @include('dashboard.partials.theme-thumb', ['theme' => $key])
+                    <span class="mt-2 block font-bold">{{ $label }}</span>
+                    <span class="block text-xs text-navy-500">{{ $hint }}</span>
+                </label>
+            @endforeach
+        </div>
+    </section>
+
     <section class="card grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <h2 class="text-lg font-bold sm:col-span-2 lg:col-span-4">{{ __('Language & currency') }}</h2>
         <div>

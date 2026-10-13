@@ -22,6 +22,7 @@ class SettingsController extends Controller
     {
         return view('dashboard.settings', [
             's' => Settings::all(), 'fonts' => self::FONTS, 'branding' => Entitlements::current()->allows('full_branding'),
+            'themes' => Entitlements::current()->allows('menu_themes'),
             'ai' => Entitlements::current()->allows('ai_import'), 'providers' => AiProviders::PROVIDERS, 'aiKey' => AiProviders::masked(),
         ]);
     }
@@ -40,6 +41,7 @@ class SettingsController extends Controller
             'color_bg'          => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'font'              => ['required', Rule::in(self::FONTS)],
             'default_locale'    => ['required', Rule::in(['ar', 'en'])],
+            'menu_theme'        => ['nullable', Rule::in(['classic', 'grid', 'minimal', 'dark'])],
             'phone'             => 'nullable|string|max:20',
             'whatsapp'          => 'nullable|string|max:20',
             'instagram'         => 'nullable|url|max:200',
@@ -65,6 +67,9 @@ class SettingsController extends Controller
         $values['english_enabled'] = $request->boolean('english_enabled') ? '1' : '0';
         $values['ordering_enabled'] = $request->boolean('ordering_enabled') ? '1' : '0';
 
+        if (!Entitlements::current()->allows('menu_themes')) {
+            unset($values['menu_theme']);
+        }
         // Colors, fonts and logo are part of the branding feature; without it the EgMenu defaults stay.
         if (!Entitlements::current()->allows('full_branding')) {
             foreach (['color_primary', 'color_secondary', 'color_bg', 'font'] as $key) {

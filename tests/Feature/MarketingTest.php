@@ -125,4 +125,20 @@ class MarketingTest extends TenantTestCase
             'category_id' => $cat->id, 'name' => 'Burger Meal', 'price' => 160, 'pairings' => [$foreign->id],
         ])->assertSessionHasErrors('pairings.0');
     }
+
+    public function test_menu_design_follows_the_plan(): void
+    {
+        $settings = ['brand_name' => 'X', 'currency' => 'ج.م', 'currency_en' => 'EGP', 'color_primary' => '#111111',
+            'color_secondary' => '#222222', 'color_bg' => '#FFFFFF', 'font' => 'Cairo', 'default_locale' => 'ar', 'menu_theme' => 'grid'];
+
+        $pro = $this->restaurant('cafe-pro', 'pro');
+        $this->item($pro, 'Latte');
+        $this->actingAs($this->owner($pro))->post($this->dashUrl('/settings'), $settings)->assertSessionHasNoErrors();
+        $this->get($this->menuUrl('cafe-pro'))->assertSee('grid grid-cols-2 gap-3', false);
+
+        $basic = $this->restaurant('cafe-basic', 'basic');
+        $this->item($basic, 'Latte');
+        $this->actingAs($this->owner($basic))->post($this->dashUrl('/settings'), $settings)->assertSessionHasNoErrors();
+        $this->get($this->menuUrl('cafe-basic'))->assertDontSee('grid grid-cols-2 gap-3', false);
+    }
 }

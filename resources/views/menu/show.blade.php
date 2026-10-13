@@ -7,6 +7,8 @@
     $brand = tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name;
     $currency = tr($settings['currency'], $settings['currency_en']);
     $featured = $categories->flatMap->items->where('is_featured', true)->take(8);
+    $theme = \App\Services\Entitlements::current()->allows('menu_themes') && in_array($settings['menu_theme'], ['classic', 'grid', 'minimal', 'dark'], true)
+        ? $settings['menu_theme'] : 'classic';
 @endphp
 
 @push('head')
@@ -18,6 +20,16 @@
 <style>
     :root { --menu-primary: {{ $color('color_primary', '#E8642C') }}; --menu-secondary: {{ $color('color_secondary', '#1E2D4F') }}; --menu-bg: {{ $color('color_bg', '#FFFFFF') }}; }
     body { background: var(--menu-bg); font-family: '{{ $settings['font'] }}', 'Cairo', system-ui, sans-serif; }
+    @if ($theme === 'dark')
+    :root { --menu-bg: #0f1420; }
+    body { color: #f3f4f6; }
+    .m-card { background: #1a2130 !important; border-color: #273044 !important; }
+    .m-muted { color: #9aa3b5 !important; }
+    [data-cat-nav] { background: rgba(15, 20, 32, .95) !important; border-color: #273044 !important; }
+    [data-cat-nav] a:not(.m-primary) { background: #1a2130; color: #e5e7eb; }
+    [data-cat-nav] input { background: #1a2130; border-color: #273044; color: #f3f4f6; }
+    section h2 { color: #fff !important; }
+    @endif
     .m-primary { background: var(--menu-primary); color: #fff; }
     .m-primary-text { color: var(--menu-primary); }
     .m-secondary { background: var(--menu-secondary); color: #fff; }
@@ -97,24 +109,9 @@
         <section id="cat-{{ $c->id }}" class="mb-8 scroll-mt-36" data-category>
             <h2 class="mb-1 text-xl font-extrabold" style="color: var(--menu-secondary)">{{ tr($c->name, $c->name_en) }}</h2>
             @if ($d = tr($c->description, $c->description_en))<p class="mb-3 text-sm text-navy-500">{{ $d }}</p>@endif
-            <div class="mt-3 space-y-3">
+            <div @class(['mt-3', 'grid grid-cols-2 gap-3' => $theme === 'grid', 'divide-y divide-black/10' => $theme === 'minimal', 'space-y-3' => in_array($theme, ['classic', 'dark'], true)])>
                 @foreach ($c->items as $item)
-                    <button type="button" data-item="{{ $item->id }}" data-search-text="{{ mb_strtolower($item->name . ' ' . $item->name_en . ' ' . $item->description) }}"
-                        @class(['flex w-full items-stretch gap-3 rounded-2xl border border-black/5 bg-white p-3 text-start shadow-sm transition active:scale-[.99]', 'opacity-60' => $item->is_sold_out])>
-                        <div class="flex min-w-0 flex-1 flex-col">
-                            <div class="font-bold">{{ $item->displayName() }}</div>
-                            @if ($d = tr($item->description, $item->description_en))<div class="mt-0.5 line-clamp-2 text-sm text-navy-500">{{ $d }}</div>@endif
-                            <div class="mt-auto flex items-center gap-2 pt-2">
-                                <span class="m-primary-text font-extrabold">{{ money($item->price) }} {{ $currency }}</span>
-                                @if ($item->offer_from)<span class="text-sm text-navy-500 line-through">{{ money($item->offer_from) }}</span><span class="badge bg-emerald-100 text-emerald-800" dir="ltr">-{{ $item->offer_percent }}%</span>@endif
-                                @if ($item->relationLoaded('comboParts') && $item->comboParts->isNotEmpty())<span class="badge bg-brand-100 text-brand-700">{{ __('Combo') }}</span>@endif
-                                @if ($item->is_sold_out)<span class="badge bg-red-100 text-red-700">{{ __('Sold out') }}</span>@endif
-                            </div>
-                        </div>
-                        @if ($item->image)
-                            <img src="/storage/{{ $item->image }}" alt="" loading="lazy" class="size-24 shrink-0 rounded-xl object-cover">
-                        @endif
-                    </button>
+                    @include('menu.items.' . ($theme === 'dark' ? 'classic' : $theme), ['item' => $item])
                 @endforeach
             </div>
         </section>
