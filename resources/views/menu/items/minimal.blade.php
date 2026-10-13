@@ -7,4 +7,5 @@
         <span class="flex shrink-0 items-center gap-1.5">@include('menu.items.price')</span>
     </div>
     @if ($d = tr($item->description, $item->description_en))<div class="m-muted mt-0.5 text-sm text-navy-500">{{ $d }}</div>@endif
+    @include('menu.items.tags')
 </button>

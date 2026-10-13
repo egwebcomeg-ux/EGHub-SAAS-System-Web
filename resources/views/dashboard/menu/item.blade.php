@@ -34,6 +34,16 @@
                 <div><label class="field-label">{{ __('Price') }} ({{ __('EGP') }})</label><input class="field" name="price" type="number" step="0.01" min="0" value="{{ old('price', $item->price) }}" required></div>
                 <div><label class="field-label">{{ __('Calories') }}</label><input class="field" name="calories" type="number" min="0" value="{{ old('calories', $item->calories) }}"></div>
             </div>
+            <fieldset>
+                <legend class="field-label">{{ __('Labels on the menu') }}</legend>
+                <div class="flex flex-wrap gap-2">
+                    @foreach (\App\Models\MenuItem::TAGS as $key => [$icon, $ar, $en])
+                        <label class="flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full border border-navy-100 px-3 text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+                            <input type="checkbox" name="tags[]" value="{{ $key }}" class="sr-only" @checked(in_array($key, old('tags', $item->badges ?? []), true))> {{ $icon }} {{ app()->getLocale() === 'en' ? $en : $ar }}
+                        </label>
+                    @endforeach
+                </div>
+            </fieldset>
         </section>
 
         <section class="card">

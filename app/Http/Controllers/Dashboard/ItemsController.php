@@ -26,6 +26,7 @@ class ItemsController extends Controller
             ->get();
 
         $rights = Entitlements::current();
+
         return view('dashboard.menu.index', [
             'categories' => $categories, 'q' => $q,
             'canAdd' => $rights->canAdd('menu_items'),
@@ -36,9 +37,10 @@ class ItemsController extends Controller
     public function create(Request $request): View|RedirectResponse
     {
         $rights = Entitlements::current();
-        if (!$rights->canAdd('menu_items')) {
+        if (! $rights->canAdd('menu_items')) {
             return redirect()->route('dash.menu')->withErrors(['limit' => $rights->upgradeMessage('menu_items')]);
         }
+
         return view('dashboard.menu.item', [
             'item' => new MenuItem(['category_id' => (int) $request->query('category'), 'is_active' => true]),
             'categories' => Category::query()->orderBy('sort_order')->get(),
@@ -60,17 +62,19 @@ class ItemsController extends Controller
     public function store(Request $request, ImageService $images): RedirectResponse
     {
         $rights = Entitlements::current();
-        if (!$rights->canAdd('menu_items')) {
+        if (! $rights->canAdd('menu_items')) {
             return redirect()->route('dash.menu')->withErrors(['limit' => $rights->upgradeMessage('menu_items')]);
         }
         $item = new MenuItem(['sort_order' => (int) MenuItem::query()->max('sort_order') + 1]);
         $this->save($request, $item, $images);
+
         return redirect()->route('dash.menu')->with('ok', __('Item added.'));
     }
 
     public function update(Request $request, MenuItem $item, ImageService $images): RedirectResponse
     {
         $this->save($request, $item, $images);
+
         return redirect()->route('dash.menu')->with('ok', __('Item saved.'));
     }
 
@@ -78,6 +82,7 @@ class ItemsController extends Controller
     {
         $images->delete($item->image);
         $item->delete();
+
         return redirect()->route('dash.menu')->with('ok', __('Item deleted.'));
     }
 
@@ -85,10 +90,11 @@ class ItemsController extends Controller
     public function toggle(Request $request, MenuItem $item): JsonResponse
     {
         $field = $request->input('field') === 'active' ? 'is_active' : 'is_sold_out';
-        if ($field === 'is_active' && !$request->user()->can('menu.manage')) {
+        if ($field === 'is_active' && ! $request->user()->can('menu.manage')) {
             abort(403);
         }
-        $item->update([$field => !$item->{$field}]);
+        $item->update([$field => ! $item->{$field}]);
+
         return response()->json(['ok' => true, 'value' => $item->{$field}]);
     }
 
@@ -98,6 +104,7 @@ class ItemsController extends Controller
         foreach (array_map('intval', (array) $request->input('ids', [])) as $i => $id) {
             MenuItem::query()->whereKey($id)->update(['sort_order' => $i]);
         }
+
         return response()->json(['ok' => true]);
     }
 
@@ -105,28 +112,30 @@ class ItemsController extends Controller
     {
         $tenant = tenant()->getTenantKey();
         $data = $request->validate([
-            'category_id'    => ['required', Rule::exists('categories', 'id')->where('tenant_id', $tenant)],
-            'name'           => 'required|string|max:100',
-            'name_en'        => 'nullable|string|max:100',
-            'description'    => 'nullable|string|max:500',
+            'category_id' => ['required', Rule::exists('categories', 'id')->where('tenant_id', $tenant)],
+            'name' => 'required|string|max:100',
+            'name_en' => 'nullable|string|max:100',
+            'description' => 'nullable|string|max:500',
             'description_en' => 'nullable|string|max:500',
-            'price'          => 'required|numeric|min:0|max:100000',
-            'calories'       => 'nullable|integer|min:0|max:10000',
-            'image'          => 'nullable|file|max:5120',
-            'groups'                     => 'array|max:10',
-            'groups.*.name'              => 'required|string|max:60',
-            'groups.*.name_en'           => 'nullable|string|max:60',
-            'groups.*.type'              => ['required', Rule::in(['single', 'multiple'])],
-            'groups.*.max_choices'       => 'nullable|integer|min:1|max:20',
-            'groups.*.options'           => 'required|array|min:1|max:30',
-            'groups.*.options.*.name'    => 'required|string|max:60',
+            'price' => 'required|numeric|min:0|max:100000',
+            'calories' => 'nullable|integer|min:0|max:10000',
+            'tags' => 'array|max:8',
+            'tags.*' => [Rule::in(array_keys(MenuItem::TAGS))],
+            'image' => 'nullable|file|max:5120',
+            'groups' => 'array|max:10',
+            'groups.*.name' => 'required|string|max:60',
+            'groups.*.name_en' => 'nullable|string|max:60',
+            'groups.*.type' => ['required', Rule::in(['single', 'multiple'])],
+            'groups.*.max_choices' => 'nullable|integer|min:1|max:20',
+            'groups.*.options' => 'required|array|min:1|max:30',
+            'groups.*.options.*.name' => 'required|string|max:60',
             'groups.*.options.*.name_en' => 'nullable|string|max:60',
-            'groups.*.options.*.price'   => 'nullable|numeric|min:0|max:100000',
-            'pairings'                   => 'array|max:6',
-            'pairings.*'                 => [Rule::exists('menu_items', 'id')->where('tenant_id', $tenant)],
-            'combo'                      => 'array|max:10',
-            'combo.*.item_id'            => ['nullable', Rule::exists('menu_items', 'id')->where('tenant_id', $tenant)],
-            'combo.*.qty'                => 'nullable|integer|min:1|max:10',
+            'groups.*.options.*.price' => 'nullable|numeric|min:0|max:100000',
+            'pairings' => 'array|max:6',
+            'pairings.*' => [Rule::exists('menu_items', 'id')->where('tenant_id', $tenant)],
+            'combo' => 'array|max:10',
+            'combo.*.item_id' => ['nullable', Rule::exists('menu_items', 'id')->where('tenant_id', $tenant)],
+            'combo.*.qty' => 'nullable|integer|min:1|max:10',
         ]);
 
         DB::transaction(function () use ($request, $item, $images, $data) {
@@ -134,6 +143,7 @@ class ItemsController extends Controller
                 'category_id' => $data['category_id'], 'name' => $data['name'], 'name_en' => $data['name_en'] ?? '',
                 'description' => $data['description'] ?? null, 'description_en' => $data['description_en'] ?? null,
                 'price' => $data['price'], 'calories' => $data['calories'] ?? null,
+                'badges' => array_values(array_unique($data['tags'] ?? [])) ?: null,
                 'is_active' => $request->boolean('is_active'), 'is_sold_out' => $request->boolean('is_sold_out'),
                 'is_featured' => $request->boolean('is_featured'),
             ]);
@@ -151,7 +161,7 @@ class ItemsController extends Controller
                 $pivot = ['tenant_id' => tenant()->getTenantKey()];
                 $item->pairings()->sync(collect($data['pairings'] ?? [])->map('intval')->reject(fn ($id) => $id === $item->id)
                     ->mapWithKeys(fn ($id) => [$id => $pivot])->all());
-                $item->comboParts()->sync(collect($data['combo'] ?? [])->filter(fn ($c) => !empty($c['item_id']) && (int) $c['item_id'] !== $item->id)
+                $item->comboParts()->sync(collect($data['combo'] ?? [])->filter(fn ($c) => ! empty($c['item_id']) && (int) $c['item_id'] !== $item->id)
                     ->mapWithKeys(fn ($c) => [(int) $c['item_id'] => $pivot + ['quantity' => (int) ($c['qty'] ?? 1)]])->all());
             }
 
@@ -160,7 +170,7 @@ class ItemsController extends Controller
             foreach (array_values($data['groups'] ?? []) as $gi => $g) {
                 $group = $item->optionGroups()->create([
                     'name' => $g['name'], 'name_en' => $g['name_en'] ?? '', 'type' => $g['type'],
-                    'is_required' => !empty($request->input("groups.$gi.is_required")) || false,
+                    'is_required' => ! empty($request->input("groups.$gi.is_required")) || false,
                     'max_choices' => $g['type'] === 'multiple' ? ($g['max_choices'] ?? null) : null, 'sort_order' => $gi,
                 ]);
                 foreach (array_values($g['options']) as $oi => $o) {

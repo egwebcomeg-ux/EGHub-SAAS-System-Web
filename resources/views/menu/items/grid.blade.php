@@ -8,6 +8,7 @@
     @endif
     <div class="flex flex-1 flex-col p-3">
         <div class="line-clamp-2 font-bold leading-snug">{{ $item->displayName() }}</div>
+        @include('menu.items.tags')
         <div class="mt-auto flex flex-wrap items-center gap-1.5 pt-2 text-sm">@include('menu.items.price')</div>
     </div>
 </button>

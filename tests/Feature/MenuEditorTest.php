@@ -131,4 +131,21 @@ class MenuEditorTest extends TenantTestCase
 
         $this->get($this->menuUrl('cafe-a'))->assertSee('Kahwa')->assertSee('#112233')->assertSee('Tajawal');
     }
+
+    public function test_food_labels_are_saved_and_shown_on_the_menu(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $owner = $this->owner($a);
+        $cat = $this->as($a, fn () => Category::query()->first());
+
+        $this->actingAs($owner)->post($this->dashUrl('/menu/items'), [
+            'category_id' => $cat->id, 'name' => 'Falafel', 'price' => 20, 'is_active' => '1', 'tags' => ['vegetarian', 'spicy'],
+        ])->assertSessionHasNoErrors();
+        $this->assertSame(['vegetarian', 'spicy'], $this->as($a, fn () => MenuItem::query()->first()->badges));
+        $this->get($this->menuUrl('cafe-a'))->assertSee('🌱 نباتي')->assertSee('🌶 حار');
+
+        $this->actingAs($owner)->post($this->dashUrl('/menu/items'), [
+            'category_id' => $cat->id, 'name' => 'X', 'price' => 20, 'tags' => ['<script>'],
+        ])->assertSessionHasErrors('tags.0');
+    }
 }

@@ -8,6 +8,7 @@
     @endif
     <div class="min-w-0 flex-1">
         <div class="text-lg font-bold">{{ $item->displayName() }}</div>
+        @include('menu.items.tags')
         @if ($d = tr($item->description, $item->description_en))<div class="m-muted line-clamp-2 text-sm">{{ $d }}</div>@endif
         <div class="mt-2 flex flex-wrap items-center gap-2">@include('menu.items.price')</div>
     </div>
