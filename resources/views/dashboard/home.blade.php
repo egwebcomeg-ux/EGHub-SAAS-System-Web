@@ -1,0 +1,44 @@
+@extends('layouts.dashboard')
+@section('title', __('Home') . ' · ' . tenant()->name)
+
+@section('content')
+<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    @foreach ([
+        [__('Categories'), $stats['categories']],
+        [__('Menu items'), $stats['items']],
+        [__('Orders today'), $stats['orders_today']],
+        [__('Customers'), $stats['customers']],
+    ] as [$label, $value])
+        <div class="card">
+            <div class="text-sm text-navy-500">{{ $label }}</div>
+            <div class="mt-1 text-3xl font-extrabold">{{ $value }}</div>
+        </div>
+    @endforeach
+</div>
+
+<div class="mt-4 grid gap-4 lg:grid-cols-3">
+    <div class="card lg:col-span-2">
+        <h2 class="mb-1 text-lg font-bold">{{ __('Your menu link') }}</h2>
+        <p class="mb-4 text-sm text-navy-500">{{ __('Share it or print it as a QR code. Each table will get its own QR in the next phase.') }}</p>
+        <div class="flex flex-wrap items-center gap-2">
+            <code dir="ltr" class="rounded-lg bg-navy-50 px-3 py-2 text-sm">{{ tenant()->url() }}</code>
+            <a href="{{ tenant()->url() }}" target="_blank" rel="noopener" class="btn-primary">{{ __('Open menu') }}</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 class="mb-1 text-lg font-bold">{{ __('Your plan') }}</h2>
+        @if ($subscription)
+            <p class="mb-4 text-sm text-navy-500">
+                {{ $subscription->plan->displayName() }} · {{ $subscription->statusLabel() }}
+                @if ($subscription->endsAt()) · {{ __('until') }} {{ local_time($subscription->endsAt(), 'Y/m/d') }} @endif
+            </p>
+        @endif
+        <div class="space-y-3">
+            @foreach ($limits as $l)
+                <x-usage-bar :label="$l['label']" :used="$l['used']" :limit="$l['limit']" />
+            @endforeach
+        </div>
+    </div>
+</div>
+@endsection

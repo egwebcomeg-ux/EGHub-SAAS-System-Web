@@ -22,6 +22,9 @@ class User extends Authenticatable
 
     protected $hidden = ['password', 'remember_token'];
 
+    /** Same as the column defaults, so a freshly created model already knows them. */
+    protected $attributes = ['is_active' => true, 'locale' => 'ar'];
+
     protected string $guard_name = 'web';
 
     protected function casts(): array

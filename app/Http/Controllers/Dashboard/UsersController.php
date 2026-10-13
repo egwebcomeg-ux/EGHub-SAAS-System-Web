@@ -35,7 +35,7 @@ class UsersController extends Controller
 
         $user = User::query()->create([
             'name' => $data['name'], 'email' => $data['email'], 'phone' => $data['phone'],
-            'branch_id' => $data['branch_id'], 'password' => $data['password'], 'is_active' => true,
+            'branch_id' => $data['branch_id'] ?? null, 'password' => $data['password'], 'is_active' => true,
         ]);
         $user->assignRole($data['role']);
 
@@ -54,7 +54,7 @@ class UsersController extends Controller
 
         $user->fill([
             'name' => $data['name'], 'email' => $data['email'], 'phone' => $data['phone'],
-            'branch_id' => $data['branch_id'], 'is_active' => $request->boolean('is_active'),
+            'branch_id' => $data['branch_id'] ?? null, 'is_active' => $request->boolean('is_active'),
         ]);
         if (!empty($data['password'])) {
             $user->password = $data['password'];
