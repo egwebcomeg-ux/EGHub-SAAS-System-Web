@@ -1,0 +1,39 @@
+@extends('layouts.landing')
+@section('title', __('Privacy policy') . ' · EgMenu')
+
+@section('page')
+<article class="mx-auto max-w-3xl px-4 py-14 leading-relaxed [&_h2]:mt-8 [&_h2]:mb-2 [&_h2]:text-xl [&_h2]:font-extrabold [&_li]:ms-5 [&_li]:list-disc [&_p]:mb-3 [&_p]:text-navy-700 [&_li]:text-navy-700">
+    <h1 class="text-3xl font-extrabold">{{ __('Privacy policy') }}</h1>
+    <p class="text-sm text-navy-500">{{ __('Last updated: :date', ['date' => '2026/10/13']) }}</p>
+
+    @if (app()->getLocale() === 'en')
+        <p>This policy explains what data EgMenu (by EgWeb) keeps and why.</p>
+        <h2>Restaurants and their staff</h2>
+        <p>We keep the restaurant name, the names, emails and mobile numbers of its staff, the menu and its settings, orders and subscription invoices. We use them to run the service, send account emails (such as password resets and invoices) and support you.</p>
+        <h2>Guests of a restaurant</h2>
+        <ul><li>A guest who only browses the menu is not asked for any personal data.</li><li>When a guest orders, joins a loyalty card or leaves a rating, the name and mobile number they enter are kept for that restaurant only.</li><li>This data belongs to the restaurant, is visible only to its staff, and is never shared between restaurants or sold.</li></ul>
+        <h2>Cookies</h2>
+        <p>We use the cookies needed to keep you signed in, remember your language and keep a guest’s cart. We do not use advertising cookies.</p>
+        <h2>Services we rely on</h2>
+        <p>Hosting, email delivery and, when a restaurant connects them, payment or AI providers. They receive only what is needed for their part of the service.</p>
+        <h2>Keeping and deleting data</h2>
+        <p>Data is kept while the account is active. A restaurant can export its customers list and can ask us to delete its data after ending its subscription. Invoices may be kept as long as the law requires.</p>
+        <h2>Your rights</h2>
+        <p>In line with Egypt’s Personal Data Protection Law (No. 151 of 2020), you can ask to see, correct or delete your personal data. Guests should contact the restaurant first, since it controls their data; you can also contact us.</p>
+    @else
+        <p>السياسة دي بتوضح EgMenu (من EgWeb) بيحتفظ بأنهي بيانات وليه.</p>
+        <h2>المطاعم والموظفين</h2>
+        <p>بنحتفظ باسم المطعم، وأسماء وإيميلات وأرقام موبايلات الموظفين، والمنيو وإعداداته، والطلبات وفواتير الاشتراك. وبنستخدمها عشان نشغّل الخدمة ونبعت إيميلات الحساب (زي تغيير كلمة السر والفواتير) ونساعدك.</p>
+        <h2>عملاء المطعم</h2>
+        <ul><li>العميل اللي بيتفرّج على المنيو بس مش بيتطلب منه أي بيانات شخصية.</li><li>لما العميل يطلب أو يشترك في كارت الولاء أو يقيّم، الاسم والموبايل اللي بيكتبهم بيتحفظوا للمطعم ده بس.</li><li>البيانات دي ملك المطعم، ومحدش بيشوفها غير موظفينه، وعمرها ما بتتشارك بين المطاعم أو بتتباع.</li></ul>
+        <h2>الكوكيز</h2>
+        <p>بنستخدم الكوكيز اللازمة بس: إنك تفضل مسجل دخول، وتفتكر لغتك، وتحفظ سلة العميل. ومش بنستخدم كوكيز إعلانات.</p>
+        <h2>خدمات بنعتمد عليها</h2>
+        <p>الاستضافة وإرسال الإيميلات، ولما المطعم يربطها بنفسه: بوابات الدفع أو مزودي الذكاء الاصطناعي. كل خدمة بتاخد اللي محتاجاه لدورها بس.</p>
+        <h2>الاحتفاظ بالبيانات ومسحها</h2>
+        <p>البيانات بتفضل محفوظة طول ما الحساب شغال. المطعم يقدر ينزّل قائمة عملائه، ويقدر يطلب مسح بياناته بعد ما يوقف اشتراكه. الفواتير ممكن تفضل محفوظة للمدة اللي القانون بيطلبها.</p>
+        <h2>حقوقك</h2>
+        <p>طبقاً لقانون حماية البيانات الشخصية المصري (رقم ١٥١ لسنة ٢٠٢٠)، تقدر تطلب تشوف بياناتك الشخصية أو تصححها أو تمسحها. عملاء المطاعم يتواصلوا مع المطعم الأول لأنه المسؤول عن بياناتهم، وتقدروا تتواصلوا معانا كمان.</p>
+    @endif
+</article>
+@endsection

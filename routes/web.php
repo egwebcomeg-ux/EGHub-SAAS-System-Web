@@ -23,6 +23,8 @@ Route::domain("www.$domain")->get('/{any?}', fn (string $any = '') => redirect()
 Route::domain($domain)->group(function () {
     Route::middleware('admin.locale')->group(function () {
         Route::get('/', [LandingController::class, 'home'])->name('landing');
+        Route::get('/terms', [LandingController::class, 'terms'])->name('terms');
+        Route::get('/privacy', [LandingController::class, 'privacy'])->name('privacy');
         Route::get('/register', [SignupController::class, 'show'])->name('register');
         Route::post('/register', [SignupController::class, 'store'])->middleware('throttle:signup');
         Route::get('/register/check', [SignupController::class, 'check'])->middleware('throttle:60,1')->name('register.check');
