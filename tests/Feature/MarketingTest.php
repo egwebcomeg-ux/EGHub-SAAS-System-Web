@@ -141,4 +141,17 @@ class MarketingTest extends TenantTestCase
         $this->actingAs($this->owner($basic))->post($this->dashUrl('/settings'), $settings)->assertSessionHasNoErrors();
         $this->get($this->menuUrl('cafe-basic'))->assertDontSee('grid grid-cols-2 gap-3', false);
     }
+
+    public function test_printed_menu_uses_regular_prices_and_needs_the_feature(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $item = $this->item($a, 'Iced Latte', 80);
+        $this->as($a, fn () => Offer::query()->create(['title' => 'Happy hour', 'discount_percent' => 25]));
+
+        $this->actingAs($this->owner($a))->get($this->dashUrl('/menu/print?pages=1'))
+            ->assertOk()->assertSee('Iced Latte')->assertSee('<span class="price">80</span>', false)->assertSee('<svg', false);
+
+        $basic = $this->restaurant('cafe-basic', 'basic');
+        $this->actingAs($this->owner($basic))->get($this->dashUrl('/menu/print'))->assertForbidden();
+    }
 }

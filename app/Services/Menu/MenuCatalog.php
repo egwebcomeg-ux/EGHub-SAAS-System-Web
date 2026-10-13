@@ -22,8 +22,17 @@ final class MenuCatalog
     /** @var \Illuminate\Support\Collection<int, Offer>|null offers running right now in this branch */
     private $offers = null;
 
+    private bool $withOffers = true;
+
     public function __construct(public readonly Branch $branch)
     {
+    }
+
+    /** Regular prices only: for the printed menu, where a happy-hour price would be wrong most of the day. */
+    public function withoutOffers(): self
+    {
+        $this->withOffers = false;
+        return $this;
     }
 
     public static function forBranch(?Branch $branch): self
@@ -87,7 +96,7 @@ final class MenuCatalog
     /** Best running offer for the item (whole-menu or its category), 0 when none. */
     public function offerPercent(MenuItem $item): int
     {
-        if (!Entitlements::current()->allows('offers')) {
+        if (!$this->withOffers || !Entitlements::current()->allows('offers')) {
             return 0;
         }
         $this->offers ??= Offer::query()->where('is_active', true)->get()->filter(fn (Offer $o) => $o->runsAt(now(), $this->branch->id))->values();

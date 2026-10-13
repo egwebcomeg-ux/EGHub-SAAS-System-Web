@@ -11,6 +11,7 @@
         <form class="flex gap-2"><input class="field max-w-56" name="q" value="{{ $q }}" placeholder="{{ __('Search items') }}"></form>
         <a href="{{ tenant()->url() }}" target="_blank" rel="noopener" class="btn-ghost">{{ __('Preview menu') }}</a>
         <a href="{{ route('dash.import') }}" class="btn-ghost">⬆ {{ __('Import menu') }}</a>
+        @if (\App\Services\Entitlements::current()->allows('printed_menu'))<a href="{{ route('dash.menu.print') }}" target="_blank" class="btn-ghost">🖨 {{ __('Printed menu') }}</a>@endif
         @if ($canAdd && $categories->isNotEmpty())<a href="{{ route('dash.items.create') }}" class="btn-primary">+ {{ __('Add item') }}</a>@endif
     </div>
 </div>

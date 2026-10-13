@@ -14,6 +14,7 @@ use App\Http\Controllers\Dashboard\MarketingController;
 use App\Http\Controllers\Dashboard\MenuImportController;
 use App\Http\Controllers\Dashboard\OrdersController;
 use App\Http\Controllers\Dashboard\PosController;
+use App\Http\Controllers\Dashboard\PrintMenuController;
 use App\Http\Controllers\Dashboard\SettingsController;
 use App\Http\Controllers\Dashboard\ShiftsController;
 use App\Http\Controllers\Dashboard\StationsController;
@@ -67,6 +68,8 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/menu/categories/{category}', [CategoriesController::class, 'update'])->name('categories.update');
         Route::post('/menu/categories/{category}/delete', [CategoriesController::class, 'destroy'])->name('categories.delete');
         Route::post('/menu/categories-order', [CategoriesController::class, 'reorder'])->name('categories.reorder');
+
+        Route::get('/menu/print', [PrintMenuController::class, 'show'])->middleware('feature:printed_menu')->name('menu.print');
 
         // import from Excel or from photos/PDF (AI with the restaurant's own key)
         Route::get('/menu/import', [MenuImportController::class, 'index'])->name('import');
