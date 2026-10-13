@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\DeliveryZone;
 use App\Models\DiningTable;
 use App\Models\MenuItem;
+use App\Models\MenuVisit;
 use App\Models\Popup;
 use App\Services\Entitlements;
 use App\Services\Loyalty\LoyaltyService;
@@ -24,6 +25,12 @@ class MenuController extends Controller
     public function show(Request $request): View
     {
         $table = self::currentTable($request);
+        // one visit per browser session and day
+        $visitKey = 'visit.'.tenant()->getTenantKey();
+        if ($request->session()->get($visitKey) !== today()->toDateString()) {
+            $request->session()->put($visitKey, today()->toDateString());
+            MenuVisit::bump('views');
+        }
         $catalog = MenuCatalog::forBranch($table?->branch ?? $this->branch($request));
         $branch = $catalog->branch;
         $categories = $catalog->categories();
@@ -98,6 +105,8 @@ class MenuController extends Controller
     {
         $table = DiningTable::query()->where('qr_token', $token)->where('is_active', true)->firstOrFail();
         $request->session()->put($this->tableKey(), ['id' => $table->id, 'at' => now()->timestamp]);
+        $table->increment('scans_count', 1, ['last_scanned_at' => now()]);
+        MenuVisit::bump('scans');
 
         return redirect()->route('menu.show');
     }

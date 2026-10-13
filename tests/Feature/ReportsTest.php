@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Branch;
+use App\Models\DiningTable;
+use App\Models\MenuVisit;
 use App\Models\Order;
 use App\Models\Tenant;
 use Illuminate\Support\Carbon;
@@ -21,6 +23,7 @@ class ReportsTest extends TenantTestCase
             ]);
             $order->forceFill(['created_at' => Carbon::parse($at)])->save();
             $order->items()->create(['name' => $item, 'unit_price' => $total / $qty, 'quantity' => $qty, 'line_total' => $total]);
+
             return $order;
         });
     }
@@ -53,8 +56,8 @@ class ReportsTest extends TenantTestCase
     {
         $pro = $this->restaurant('cafe-pro', 'pro');
         $this->sale($pro, 50, now()->subDays(20)->toDateTimeString());
-        $q = '?range=custom&from=' . now()->subDays(25)->toDateString() . '&to=' . now()->toDateString();
-        $this->assertSame(0.0, $this->actingAs($this->owner($pro))->get($this->dashUrl('/reports' . $q))->viewData('report')['revenue']); // falls back to today
+        $q = '?range=custom&from='.now()->subDays(25)->toDateString().'&to='.now()->toDateString();
+        $this->assertSame(0.0, $this->actingAs($this->owner($pro))->get($this->dashUrl('/reports'.$q))->viewData('report')['revenue']); // falls back to today
         $this->actingAs($this->owner($pro))->get($this->dashUrl('/reports/export'))->assertForbidden();
 
         $biz = $this->restaurant('cafe-biz', 'business');
@@ -62,8 +65,8 @@ class ReportsTest extends TenantTestCase
         $other = $this->restaurant('cafe-other', 'business');
         $this->sale($other, 777, now()->subDays(20)->toDateTimeString());
 
-        $this->assertSame(50.0, $this->actingAs($this->owner($biz))->get($this->dashUrl('/reports' . $q))->viewData('report')['revenue']);
-        $csv = $this->actingAs($this->owner($biz))->get($this->dashUrl('/reports/export' . $q))->assertOk()->streamedContent();
+        $this->assertSame(50.0, $this->actingAs($this->owner($biz))->get($this->dashUrl('/reports'.$q))->viewData('report')['revenue']);
+        $csv = $this->actingAs($this->owner($biz))->get($this->dashUrl('/reports/export'.$q))->assertOk()->streamedContent();
         $this->assertStringContainsString('50', $csv);
         $this->assertStringNotContainsString('777', $csv);
     }
@@ -83,5 +86,22 @@ class ReportsTest extends TenantTestCase
         $manager->forceFill(['branch_id' => $second->id])->save();
         $this->assertSame(40.0, $this->actingAs($manager)->get($this->dashUrl('/reports'))->viewData('report')['revenue']);
         $this->assertSame(140.0, $this->actingAs($this->owner($a))->get($this->dashUrl('/reports'))->viewData('report')['revenue']);
+    }
+
+    public function test_menu_visits_and_table_scans_are_counted(): void
+    {
+        $a = $this->restaurant('cafe-a', 'pro');
+        $table = $this->as($a, fn () => DiningTable::query()->where('name', '2')->first());
+
+        $this->get($this->menuUrl('cafe-a'));
+        $this->get($this->menuUrl('cafe-a')); // same session: still one visit
+        $this->get($this->menuUrl("cafe-a/t/{$table->qr_token}"));
+        $this->get($this->menuUrl("cafe-a/t/{$table->qr_token}"));
+
+        $day = $this->as($a, fn () => MenuVisit::query()->first());
+        $this->assertSame([1, 2], [$day->views, $day->scans]);
+        $this->assertSame(2, $this->as($a, fn () => $table->fresh()->scans_count));
+        $this->actingAs($this->owner($a))->get($this->dashUrl('/reports'))->assertOk()->assertSee(__('Menu visits'))->assertSee(__('Table :name', ['name' => '2']))
+            ->assertViewHas('visits', fn ($v) => (int) $v->views === 1 && (int) $v->scans === 2);
     }
 }

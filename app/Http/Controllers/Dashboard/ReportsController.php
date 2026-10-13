@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use App\Models\DiningTable;
+use App\Models\MenuVisit;
 use App\Services\Entitlements;
 use App\Services\Reports\SalesReport;
 use Carbon\CarbonImmutable;
@@ -23,10 +25,15 @@ class ReportsController extends Controller
     {
         [$from, $to, $preset] = $this->range($request);
         $branchId = $this->branch($request);
+
         return view('dashboard.reports', [
             'report' => (new SalesReport($from, $to, $branchId))->build(),
             'from' => $from, 'to' => $to, 'preset' => $preset, 'branchId' => $branchId,
             'advanced' => Entitlements::current()->allows('advanced_reports'),
+            'visits' => MenuVisit::query()->whereBetween('day', [$from->startOfDay(), $to->endOfDay()])
+                ->selectRaw('COALESCE(SUM(views), 0) as views, COALESCE(SUM(scans), 0) as scans')->first(),
+            'topTables' => DiningTable::query()->where('scans_count', '>', 0)->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+                ->orderByDesc('scans_count')->limit(5)->get(['name', 'scans_count', 'last_scanned_at']),
             'branches' => $request->user()->branch_id ? collect() : Branch::query()->orderBy('sort_order')->get(),
         ]);
     }
@@ -48,7 +55,7 @@ class ReportsController extends Controller
                 fputcsv($out, $row);
             }
             fclose($out);
-        }, 'sales-' . $from->format('Ymd') . '-' . $to->format('Ymd') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }, 'sales-'.$from->format('Ymd').'-'.$to->format('Ymd').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     /** @return array{0: CarbonImmutable, 1: CarbonImmutable, 2: string} */
@@ -56,10 +63,11 @@ class ReportsController extends Controller
     {
         $advanced = Entitlements::current()->allows('advanced_reports');
         $preset = in_array($request->query('range'), self::PRESETS, true) ? $request->query('range') : 'today';
-        if (!$advanced && !in_array($preset, ['today', 'yesterday', '7d'], true)) {
+        if (! $advanced && ! in_array($preset, ['today', 'yesterday', '7d'], true)) {
             $preset = 'today';
         }
         $today = CarbonImmutable::today();
+
         return match ($preset) {
             'yesterday' => [$today->subDay(), $today->subDay(), $preset],
             '7d' => [$today->subDays(6), $today, $preset],
@@ -80,6 +88,7 @@ class ReportsController extends Controller
         if ($from->diffInDays($to) > 366) {
             $from = $to->subDays(366);
         }
+
         return [$from->startOfDay(), $to->startOfDay(), 'custom'];
     }
 
@@ -88,6 +97,7 @@ class ReportsController extends Controller
         if ($request->user()->branch_id) {
             return $request->user()->branch_id;
         }
+
         return Entitlements::current()->allows('advanced_reports') && $request->filled('branch') ? (int) $request->query('branch') : null;
     }
 }

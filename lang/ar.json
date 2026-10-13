@@ -1062,5 +1062,9 @@
     "A waiter is coming.": "الويتر جاي حالاً.",
     "Scan the QR code on your table first.": "امسح كود الترابيزة الأول.",
     "Done": "تم",
-    "Labels on the menu": "علامات تظهر في المنيو"
+    "Labels on the menu": "علامات تظهر في المنيو",
+    "Menu visits": "زيارات المنيو",
+    "People who opened the menu": "عدد اللي فتحوا المنيو",
+    "Table QR scans": "مرات مسح كود الترابيزات",
+    "Most scanned tables (all time)": "أكتر الترابيزات اللي اتمسح كودها"
 }

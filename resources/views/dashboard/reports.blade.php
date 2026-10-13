@@ -152,6 +152,21 @@
     </section>
     <div class="space-y-4">
         <section class="card">
+            <h2 class="section-title mb-2">{{ __('Menu visits') }}</h2>
+            <dl class="space-y-1 text-sm">
+                <div class="flex justify-between"><dt>{{ __('People who opened the menu') }}</dt><dd class="font-bold">{{ (int) $visits->views }}</dd></div>
+                <div class="flex justify-between"><dt>{{ __('Table QR scans') }}</dt><dd class="font-bold">{{ (int) $visits->scans }}</dd></div>
+            </dl>
+            @if ($topTables->isNotEmpty())
+                <h3 class="mt-3 mb-1 text-xs font-bold text-navy-500">{{ __('Most scanned tables (all time)') }}</h3>
+                <ul class="space-y-1 text-sm">
+                    @foreach ($topTables as $t)
+                        <li class="flex justify-between"><span>{{ __('Table :name', ['name' => $t->name]) }}</span><span class="font-semibold">{{ $t->scans_count }}</span></li>
+                    @endforeach
+                </ul>
+            @endif
+        </section>
+        <section class="card">
             <h2 class="section-title mb-2">{{ __('Guests') }}</h2>
             <dl class="space-y-1 text-sm">
                 <div class="flex justify-between"><dt>{{ __('Orders with a mobile number') }}</dt><dd class="font-bold">{{ $report['customers']['with_phone'] }}</dd></div>
