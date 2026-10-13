@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 use Stancl\Tenancy\Database\Concerns\HasDomains;
 use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
 
@@ -55,7 +56,7 @@ class Tenant extends BaseTenant
     /** Lowercase letters, digits and inner hyphens, 3-30 chars, not reserved, not taken. */
     public static function slugError(string $slug): ?string
     {
-        if (!preg_match('/^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])$/', $slug) || str_contains($slug, '--')) {
+        if (! preg_match('/^[a-z0-9](?:[a-z0-9-]{1,28}[a-z0-9])$/', $slug) || str_contains($slug, '--')) {
             return __('Use 3-30 lowercase English letters, numbers or hyphens.');
         }
         if (in_array($slug, self::RESERVED, true)) {
@@ -64,7 +65,19 @@ class Tenant extends BaseTenant
         if (static::withTrashed()->whereKey($slug)->exists()) {
             return __('This name is already taken.');
         }
+
         return null;
+    }
+
+    /**
+     * Active owners with an email: who receives subscription and payment emails.
+     *
+     * @return Collection<int, User>
+     */
+    public function owners()
+    {
+        return User::query()->withoutGlobalScopes()->where('tenant_id', $this->id)->where('is_active', true)
+            ->whereNotNull('email')->where('email', '!=', '')->role('owner')->get();
     }
 
     public function subscription(): HasOne
@@ -93,8 +106,9 @@ class Tenant extends BaseTenant
         $custom = $this->domains->first(fn ($d) => $d->verified_at !== null);
         $path = ltrim($path, '/');
         if ($custom) {
-            return scheme() . '://' . $custom->domain . port_suffix() . '/' . $path;
+            return scheme().'://'.$custom->domain.port_suffix().'/'.$path;
         }
-        return platform_url(null, $this->id . ($path === '' ? '' : '/' . $path));
+
+        return platform_url(null, $this->id.($path === '' ? '' : '/'.$path));
     }
 }

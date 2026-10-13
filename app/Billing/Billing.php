@@ -6,10 +6,14 @@ use App\Models\AddonPrice;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Plan;
+use App\Models\PlatformAdmin;
 use App\Models\Subscription;
 use App\Models\Tenant;
+use App\Notifications\PaymentClaimed;
+use App\Notifications\PaymentConfirmed;
 use App\Services\Entitlements;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * Subscription money rules in one place (adapted from Davaya):
@@ -25,11 +29,12 @@ final class Billing
     /** Unused value of the current paid period (0 during trial or when nothing was paid). */
     public function credit(Subscription $sub): float
     {
-        if ($sub->status !== 'active' || !$sub->current_period_end || !$sub->current_period_start || !$sub->period_value) {
+        if ($sub->status !== 'active' || ! $sub->current_period_end || ! $sub->current_period_start || ! $sub->period_value) {
             return 0.0;
         }
         $total = max(1, $sub->current_period_start->diffInSeconds($sub->current_period_end));
         $left = max(0, now()->diffInSeconds($sub->current_period_end, false));
+
         return round((float) $sub->period_value * min(1, $left / $total), 2);
     }
 
@@ -49,11 +54,11 @@ final class Billing
         // add-ons already on the subscription are billed with the plan for the same cycle
         foreach ($sub?->addons ?? [] as $addon) {
             $price = AddonPrice::query()->where('key', $addon->key)->first();
-            $lines[] = ['label' => ($price?->displayName() ?? $addon->key) . ($addon->quantity > 1 ? " × {$addon->quantity}" : '') . ' — ' . cycle_label($months),
+            $lines[] = ['label' => ($price?->displayName() ?? $addon->key).($addon->quantity > 1 ? " × {$addon->quantity}" : '').' — '.cycle_label($months),
                 'amount' => round($addon->unit_price * $addon->quantity * $months, 2)];
             $full += round($addon->unit_price * $addon->quantity * $months, 2);
         }
-        $credit = $sub && !$renewal ? $this->credit($sub) : 0.0;
+        $credit = $sub && ! $renewal ? $this->credit($sub) : 0.0;
         if ($credit > 0) {
             $lines[] = ['label' => __('Unused balance of your current plan'), 'amount' => -$credit];
         }
@@ -66,6 +71,7 @@ final class Billing
     public function invoiceForPlan(Tenant $tenant, Plan $plan, int $months): Invoice
     {
         $q = $this->quote($tenant, $plan, $months);
+
         return DB::transaction(function () use ($tenant, $plan, $months, $q) {
             $open = Invoice::query()->where('tenant_id', $tenant->id)->where('status', 'open')->where('kind', 'subscription')->get();
             $same = $open->first(fn (Invoice $i) => $i->plan_id === $plan->id && $i->cycle_months === $months && abs($i->total - $q['total']) < 0.01);
@@ -75,12 +81,13 @@ final class Billing
             $open->each->update(['status' => 'void']);
 
             $invoice = Invoice::query()->create([
-                'tenant_id' => $tenant->id, 'number' => 'TMP-' . random_token(6), 'kind' => 'subscription',
+                'tenant_id' => $tenant->id, 'number' => 'TMP-'.random_token(6), 'kind' => 'subscription',
                 'plan_id' => $plan->id, 'cycle_months' => $months, 'lines' => $q['lines'], 'subtotal' => $q['subtotal'],
                 'discount' => $q['discount'], 'total' => $q['total'], 'status' => 'open', 'due_at' => now()->addDays(3),
                 'meta' => ['renewal' => $q['renewal']],
             ]);
-            $invoice->update(['number' => 'EGM-' . now()->format('Ym') . '-' . str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT)]);
+            $invoice->update(['number' => 'EGM-'.now()->format('Ym').'-'.str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT)]);
+
             return $invoice->fresh();
         });
     }
@@ -95,18 +102,19 @@ final class Billing
         $paidPeriod = $sub && $sub->status === 'active' && $sub->current_period_end?->isFuture();
         $months = $paidPeriod ? max(0.1, round(now()->diffInDays($sub->current_period_end) / 30, 2)) : 1;
         $amount = round($addon->monthly_price * $quantity * $months);
-        $label = $addon->displayName() . ($quantity > 1 ? " × $quantity" : '') . ' — '
-            . ($paidPeriod ? __('until :date', ['date' => local_time($sub->current_period_end, 'Y/m/d')]) : cycle_label(1));
+        $label = $addon->displayName().($quantity > 1 ? " × $quantity" : '').' — '
+            .($paidPeriod ? __('until :date', ['date' => local_time($sub->current_period_end, 'Y/m/d')]) : cycle_label(1));
 
         return DB::transaction(function () use ($tenant, $addon, $quantity, $amount, $label) {
             Invoice::query()->where('tenant_id', $tenant->id)->where('status', 'open')->where('kind', 'addon')
                 ->where('meta->addon', $addon->key)->update(['status' => 'void']);
             $invoice = Invoice::query()->create([
-                'tenant_id' => $tenant->id, 'number' => 'TMP-' . random_token(6), 'kind' => 'addon',
+                'tenant_id' => $tenant->id, 'number' => 'TMP-'.random_token(6), 'kind' => 'addon',
                 'lines' => [['label' => $label, 'amount' => $amount]], 'subtotal' => $amount, 'discount' => 0, 'total' => $amount,
                 'status' => 'open', 'due_at' => now()->addDays(3), 'meta' => ['addon' => $addon->key, 'quantity' => $quantity],
             ]);
-            $invoice->update(['number' => 'EGM-' . now()->format('Ym') . '-' . str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT)]);
+            $invoice->update(['number' => 'EGM-'.now()->format('Ym').'-'.str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT)]);
+
             return $invoice->fresh();
         });
     }
@@ -127,11 +135,14 @@ final class Billing
     /** The restaurant says it transferred the money: recorded as a pending payment for EgWeb to confirm. */
     public function claimManualPayment(Invoice $invoice, string $method, string $reference, ?string $sender): Payment
     {
-        return Payment::query()->updateOrCreate(
+        $payment = Payment::query()->updateOrCreate(
             ['invoice_id' => $invoice->id, 'status' => 'pending'],
-            ['gateway' => $method, 'reference' => $reference, 'idempotency_key' => 'claim:' . $invoice->id . ':' . random_token(4),
+            ['gateway' => $method, 'reference' => $reference, 'idempotency_key' => 'claim:'.$invoice->id.':'.random_token(4),
                 'amount' => $invoice->total, 'payload' => ['sender' => $sender]],
         );
+        Notification::send(PlatformAdmin::query()->get(), new PaymentClaimed($payment));
+
+        return $payment;
     }
 
     /**
@@ -140,7 +151,7 @@ final class Billing
      */
     public function markPaid(Invoice $invoice, string $gateway, ?string $reference, float $amount, string $idempotencyKey, ?int $recordedBy = null): bool
     {
-        return DB::transaction(function () use ($invoice, $gateway, $reference, $amount, $idempotencyKey, $recordedBy) {
+        $applied = DB::transaction(function () use ($invoice, $gateway, $reference, $amount, $idempotencyKey, $recordedBy) {
             $invoice = Invoice::query()->lockForUpdate()->find($invoice->id);
             if ($invoice->status !== 'open' || Payment::query()->where('idempotency_key', $idempotencyKey)->exists()) {
                 return false;
@@ -155,8 +166,14 @@ final class Billing
             }
             $invoice->update(['status' => 'paid', 'paid_at' => now()]);
             $this->apply($invoice);
+
             return true;
         });
+        if ($applied) {
+            Notification::send($invoice->tenant->owners(), new PaymentConfirmed($invoice->fresh()));
+        }
+
+        return $applied;
     }
 
     /** A paid plan invoice: new period (or extension on renewal), restaurant back online. A paid add-on: switched on. */
@@ -167,6 +184,7 @@ final class Billing
             $current = (int) $tenant->subscription()->first()?->addons()->where('key', $invoice->meta['addon'])->value('quantity');
             $price = AddonPrice::query()->where('key', $invoice->meta['addon'])->first();
             $this->setAddon($tenant, $invoice->meta['addon'], $price?->isFeaturePack() ? 1 : $current + (int) ($invoice->meta['quantity'] ?? 1));
+
             return;
         }
         $sub = $tenant->subscription()->first();

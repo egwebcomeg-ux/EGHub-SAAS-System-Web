@@ -1,0 +1,27 @@
+<x-mail::layout>
+{{-- Header --}}
+<x-slot:header>
+<x-mail::header :url="platform_url(null)">
+<span style="font-size: 24px; font-weight: 800; color: #1E2D4F;">eg<span style="color: #E8642C;">menu</span></span>
+</x-mail::header>
+</x-slot:header>
+
+{{-- Body --}}
+{!! $slot !!}
+
+{{-- Subcopy --}}
+@isset($subcopy)
+<x-slot:subcopy>
+<x-mail::subcopy>
+{!! $subcopy !!}
+</x-mail::subcopy>
+</x-slot:subcopy>
+@endisset
+
+{{-- Footer --}}
+<x-slot:footer>
+<x-mail::footer>
+© {{ date('Y') }} EgMenu · {{ __('by') }} EgWeb
+</x-mail::footer>
+</x-slot:footer>
+</x-mail::layout>
