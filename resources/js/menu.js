@@ -57,6 +57,12 @@ if (dataEl) {
         $('[data-sheet-name]', sheet).textContent = current.name;
         $('[data-sheet-desc]', sheet).textContent = current.description || '';
         $('[data-sheet-cal]', sheet).textContent = current.calories ? T.cal.replace('__N__', current.calories) : '';
+        const comboBox = $('[data-sheet-combo]', sheet);
+        comboBox.classList.toggle('hidden', !current.combo);
+        if (current.combo) {
+            comboBox.innerHTML = `<b>${esc(T.comboHas)}</b><ul class="mt-1 list-disc ps-5">${current.combo.parts.map((p) => `<li>${p.qty}× ${esc(p.name)}</li>`).join('')}</ul>`
+                + (current.combo.saving > 0 ? `<div class="mt-1 font-bold text-emerald-700">${esc(T.save.replace('__A__', fmt(current.combo.saving)))}</div>` : '');
+        }
         $('[data-sheet-notes]', sheet).value = '';
         $('[data-sheet-groups]', sheet).innerHTML = current.groups.map((g) => {
             const hint = g.type === 'single' ? T.chooseOne : g.max ? T.chooseUpTo.replace('__N__', g.max) : T.optional;
@@ -111,6 +117,33 @@ if (dataEl) {
         save();
         renderBar();
         sheet.close();
+        showPairings(current);
+    });
+
+    // ---- "goes well with" ----
+    const pairSheet = $('[data-pair-sheet]');
+    function showPairings(item) {
+        const list = (item.pairings || []).map((id) => M.items[id]).filter((p) => p && !p.soldOut);
+        if (!list.length) return;
+        $('[data-pair-list]', pairSheet).innerHTML = list.map((p) => `
+            <div class="flex items-center gap-3 rounded-xl border border-navy-100 p-2">
+                ${p.image ? `<img src="${esc(p.image)}" alt="" class="size-12 rounded-lg object-cover">` : ''}
+                <div class="flex-1"><div class="font-bold">${esc(p.name)}</div><div class="text-sm m-primary-text">${fmt(p.price)}</div></div>
+                <button type="button" class="m-primary min-h-10 rounded-lg px-4 text-sm font-bold" data-pair-add="${p.id}">${esc(T.add)}</button>
+            </div>`).join('');
+        pairSheet.showModal();
+    }
+    pairSheet.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-pair-add]');
+        if (!b) return;
+        const p = M.items[b.dataset.pairAdd];
+        if (p.groups.some((g) => g.required)) { pairSheet.close(); openItem(p.id); return; }
+        const same = cart.find((l) => l.item_id === p.id && !l.notes && !l.option_ids.length);
+        if (same) same.qty++; else cart.push({ item_id: p.id, option_ids: [], qty: 1, notes: '' });
+        save();
+        renderBar();
+        b.disabled = true;
+        b.textContent = '✓';
     });
 
     document.addEventListener('click', (e) => {
@@ -234,6 +267,37 @@ if (dataEl) {
         });
     }, { rootMargin: '-40% 0px -55% 0px' });
     document.querySelectorAll('[data-category]').forEach((s) => observer.observe(s));
+
+    // ---- popup: shown once per always/session/day/once, counted (views & clicks only) ----
+    const P = M.popup;
+    if (P) {
+        const key = `egmenu.popup.${M.tenant}.${P.id}`;
+        const store = P.frequency === 'session' ? sessionStorage : localStorage;
+        let seen = null;
+        try { seen = store.getItem(key); } catch {}
+        const due = P.frequency === 'always' || !seen || (P.frequency === 'day' && seen !== new Date().toDateString());
+        if (due) {
+            setTimeout(() => {
+                const dlg = $('[data-popup]');
+                const img = $('[data-popup-image]', dlg);
+                img.classList.toggle('hidden', !P.image);
+                if (P.image) img.src = P.image;
+                $('[data-popup-title]', dlg).textContent = P.title || (P.item ? M.items[P.item]?.name : '');
+                $('[data-popup-body]', dlg).textContent = P.body || '';
+                const action = $('[data-popup-action]', dlg);
+                action.textContent = P.button || (P.item ? T.order : T.view);
+                action.classList.toggle('hidden', !P.item && !P.link);
+                action.onclick = () => {
+                    fetch(P.eventUrl.replace('__E__', 'click'), { method: 'POST', keepalive: true, headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } }).catch(() => {});
+                    dlg.close();
+                    if (P.item) openItem(P.item); else if (P.link) window.open(P.link, '_blank', 'noopener');
+                };
+                dlg.showModal();
+                try { store.setItem(key, new Date().toDateString()); } catch {}
+                fetch(P.eventUrl.replace('__E__', 'view'), { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } }).catch(() => {});
+            }, (P.delay || 0) * 1000);
+        }
+    }
 
     renderBar();
 }

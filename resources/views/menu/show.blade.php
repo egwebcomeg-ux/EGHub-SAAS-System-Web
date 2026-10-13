@@ -68,6 +68,14 @@
 @endif
 
 <main class="mx-auto max-w-2xl px-4 pt-5 pb-32">
+    @foreach ($offers as $offer)
+        <div class="mb-3 flex items-center gap-3 rounded-2xl bg-emerald-50 p-3 text-emerald-900 ring-1 ring-emerald-200">
+            <span class="rounded-xl bg-emerald-600 px-2.5 py-1 text-sm font-extrabold text-white" dir="ltr">-{{ $offer->discount_percent }}%</span>
+            <span class="text-sm font-semibold">{{ tr($offer->title, $offer->title_en) }}
+                @if ($offer->ends_at)<span class="font-normal text-emerald-800">· {{ __('until :time', ['time' => local_time(today()->setTimeFromTimeString($offer->ends_at), 'h:i A')]) }}</span>@endif
+            </span>
+        </div>
+    @endforeach
     @if ($featured->isNotEmpty())
         <section class="mb-6" data-featured>
             <h2 class="mb-3 text-lg font-extrabold">⭐ {{ __('Recommended') }}</h2>
@@ -98,6 +106,8 @@
                             @if ($d = tr($item->description, $item->description_en))<div class="mt-0.5 line-clamp-2 text-sm text-navy-500">{{ $d }}</div>@endif
                             <div class="mt-auto flex items-center gap-2 pt-2">
                                 <span class="m-primary-text font-extrabold">{{ money($item->price) }} {{ $currency }}</span>
+                                @if ($item->offer_from)<span class="text-sm text-navy-500 line-through">{{ money($item->offer_from) }}</span><span class="badge bg-emerald-100 text-emerald-800" dir="ltr">-{{ $item->offer_percent }}%</span>@endif
+                                @if ($item->relationLoaded('comboParts') && $item->comboParts->isNotEmpty())<span class="badge bg-brand-100 text-brand-700">{{ __('Combo') }}</span>@endif
                                 @if ($item->is_sold_out)<span class="badge bg-red-100 text-red-700">{{ __('Sold out') }}</span>@endif
                             </div>
                         </div>
@@ -162,6 +172,7 @@
             </div>
             <p class="mt-1 text-navy-500" data-sheet-desc></p>
             <p class="mt-1 text-xs text-navy-500" data-sheet-cal></p>
+            <div class="mt-3 hidden rounded-xl bg-brand-50 p-3 text-sm" data-sheet-combo></div>
             <div class="mt-4 space-y-5" data-sheet-groups></div>
             <label class="mt-5 block">
                 <span class="field-label">{{ __('Notes for the kitchen') }}</span>
@@ -178,6 +189,33 @@
                 </button>
             </div>
             <p class="mt-3 hidden text-center font-bold text-red-600" data-sheet-soldout>{{ __('Sold out') }}</p>
+        </div>
+    </form>
+</dialog>
+
+{{-- "Goes well with" after adding an item --}}
+<dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/40 sm:m-auto sm:max-w-lg" data-pair-sheet>
+    <form method="dialog" class="rounded-t-3xl bg-white p-5 sm:rounded-3xl">
+        <div class="mb-3 flex items-center justify-between">
+            <h3 class="text-lg font-extrabold">{{ __('Goes well with') }}</h3>
+            <button value="cancel" class="text-2xl leading-none text-navy-500" aria-label="{{ __('Close') }}">×</button>
+        </div>
+        <div class="space-y-2" data-pair-list></div>
+        <button value="cancel" class="btn-ghost mt-4 w-full">{{ __('No, thanks') }}</button>
+    </form>
+</dialog>
+
+{{-- Popup (offer / featured item) --}}
+<dialog class="m-auto w-[min(26rem,92vw)] overflow-hidden rounded-3xl p-0 backdrop:bg-black/50" data-popup>
+    <form method="dialog">
+        <img alt="" class="hidden aspect-[4/3] w-full object-cover" data-popup-image>
+        <div class="p-5 text-center">
+            <h3 class="text-xl font-extrabold" data-popup-title></h3>
+            <p class="mt-1 text-navy-500" data-popup-body></p>
+            <div class="mt-4 grid gap-2">
+                <button type="button" class="m-primary min-h-12 rounded-xl font-bold" data-popup-action></button>
+                <button value="cancel" class="text-sm text-navy-500">{{ __('Close') }}</button>
+            </div>
         </div>
     </form>
 </dialog>
@@ -213,6 +251,8 @@
         'optional' => __('Optional'), 'subtotal' => __('Subtotal'), 'service' => __('Service'), 'tax' => __('Tax'), 'total' => __('Total'),
         'remove' => __('Remove'), 'sending' => __('Sending…'), 'pickRequired' => __('Please choose: :group', ['group' => '__G__']),
         'cal' => __(':n kcal', ['n' => '__N__']), 'empty' => __('Your cart is empty.'),
+        'comboHas' => __('This combo has:'), 'save' => __('You save :amount', ['amount' => '__A__']), 'add' => __('Add'),
+        'view' => __('View'), 'order' => __('Order now'),
     ];
 @endphp
 <script type="application/json" id="menu-i18n">{!! json_encode($i18n, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>

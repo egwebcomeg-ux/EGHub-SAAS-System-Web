@@ -56,6 +56,31 @@
             <input class="field py-2" type="file" name="image" accept="image/jpeg,image/png,image/webp">
             <p class="text-xs text-navy-500">{{ __('JPG, PNG or WebP up to 5 MB. Converted automatically to a light WebP.') }}</p>
         </section>
+        @if ($upsell)
+            <section class="card space-y-3">
+                <h2 class="section-title">{{ __('Goes well with') }}</h2>
+                <p class="muted">{{ __('Suggested to the guest right after adding this item (up to 6).') }}</p>
+                <select class="field min-h-28 py-1" name="pairings[]" multiple size="6">
+                    @foreach ($allItems as $other)
+                        <option value="{{ $other->id }}" @selected($item->exists && $item->pairings->contains('id', $other->id))>{{ $other->name }}</option>
+                    @endforeach
+                </select>
+            </section>
+            <section class="card space-y-2">
+                <h2 class="section-title">{{ __('Combo contents') }}</h2>
+                <p class="muted">{{ __('Make this item a combo: the menu shows what is inside and how much the guest saves.') }}</p>
+                @php($parts = $item->exists ? $item->comboParts->values() : collect())
+                @for ($c = 0; $c < 4; $c++)
+                    <div class="grid grid-cols-[1fr_5rem] gap-2">
+                        <select class="field" name="combo[{{ $c }}][item_id]">
+                            <option value="">—</option>
+                            @foreach ($allItems as $other)<option value="{{ $other->id }}" @selected(($parts[$c]->id ?? null) === $other->id)>{{ $other->name }} ({{ money($other->price) }})</option>@endforeach
+                        </select>
+                        <input class="field" type="number" min="1" max="10" name="combo[{{ $c }}][qty]" value="{{ $parts[$c]->pivot->quantity ?? 1 }}">
+                    </div>
+                @endfor
+            </section>
+        @endif
         <section class="card space-y-2 text-sm">
             <label class="flex min-h-9 items-center gap-2"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', $item->is_active ?? true)) class="size-4 accent-brand-600"> {{ __('Visible on the menu') }}</label>
             <label class="flex min-h-9 items-center gap-2"><input type="checkbox" name="is_sold_out" value="1" @checked(old('is_sold_out', $item->is_sold_out)) class="size-4 accent-brand-600"> {{ __('Sold out') }}</label>

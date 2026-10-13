@@ -14,6 +14,7 @@ class OrderItem extends TenantModel
     {
         return [
             'unit_price' => 'float',
+            'original_price' => 'float',
             'line_total' => 'float',
             'options' => 'array',
         ];

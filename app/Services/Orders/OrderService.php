@@ -154,7 +154,7 @@ final class OrderService
         }
 
         $ids = array_map(fn ($l) => (int) ($l['item_id'] ?? 0), $items);
-        $menu = MenuItem::query()->whereIn('id', $ids)->with('optionGroups.options')->get()->keyBy('id');
+        $menu = MenuItem::query()->whereIn('id', $ids)->with(['optionGroups.options', 'comboParts', 'category'])->get()->keyBy('id');
 
         $lines = [];
         foreach ($items as $l) {
@@ -173,11 +173,17 @@ final class OrderService
 
             $chosen = array_values(array_unique(array_map('intval', (array) ($l['option_ids'] ?? []))));
             $options = $this->options($item, $chosen);
-            $unit = round($item->price + array_sum(array_column($options, 'price')), 2);
+            $extras = array_sum(array_column($options, 'price'));
+            // a combo's contents travel with the line so the kitchen sees what to prepare
+            foreach ($item->comboParts as $part) {
+                $options[] = ['group' => __('Combo'), 'name' => $part->pivot->quantity . '× ' . $part->displayName(), 'price' => 0.0];
+            }
+            $unit = round($item->price + $extras, 2);
+            $original = $item->getAttribute('offer_from') !== null ? round($item->getAttribute('offer_from') + $extras, 2) : null;
 
             $lines[] = [
                 'menu_item_id' => $item->id, 'kitchen_station_id' => $item->category?->kitchen_station_id,
-                'name' => $item->displayName(), 'unit_price' => $unit, 'quantity' => $qty, 'options' => $options,
+                'name' => $item->displayName(), 'unit_price' => $unit, 'original_price' => $original, 'quantity' => $qty, 'options' => $options,
                 'notes' => mb_substr(trim((string) ($l['notes'] ?? '')), 0, 200), 'line_total' => round($unit * $qty, 2),
             ];
         }

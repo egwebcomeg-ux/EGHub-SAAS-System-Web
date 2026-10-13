@@ -42,14 +42,18 @@ class ItemsController extends Controller
         return view('dashboard.menu.item', [
             'item' => new MenuItem(['category_id' => (int) $request->query('category'), 'is_active' => true]),
             'categories' => Category::query()->orderBy('sort_order')->get(),
+            'upsell' => Entitlements::current()->allows('upsell'),
+            'allItems' => MenuItem::query()->orderBy('name')->get(['id', 'name', 'price']),
         ]);
     }
 
     public function edit(MenuItem $item): View
     {
         return view('dashboard.menu.item', [
-            'item' => $item->load('optionGroups.options'),
+            'item' => $item->load('optionGroups.options', 'pairings', 'comboParts'),
             'categories' => Category::query()->orderBy('sort_order')->get(),
+            'upsell' => Entitlements::current()->allows('upsell'),
+            'allItems' => MenuItem::query()->whereKeyNot($item->id)->orderBy('name')->get(['id', 'name', 'price']),
         ]);
     }
 
@@ -118,6 +122,11 @@ class ItemsController extends Controller
             'groups.*.options.*.name'    => 'required|string|max:60',
             'groups.*.options.*.name_en' => 'nullable|string|max:60',
             'groups.*.options.*.price'   => 'nullable|numeric|min:0|max:100000',
+            'pairings'                   => 'array|max:6',
+            'pairings.*'                 => [Rule::exists('menu_items', 'id')->where('tenant_id', $tenant)],
+            'combo'                      => 'array|max:10',
+            'combo.*.item_id'            => ['nullable', Rule::exists('menu_items', 'id')->where('tenant_id', $tenant)],
+            'combo.*.qty'                => 'nullable|integer|min:1|max:10',
         ]);
 
         DB::transaction(function () use ($request, $item, $images, $data) {
@@ -136,6 +145,15 @@ class ItemsController extends Controller
                 $item->image = null;
             }
             $item->save();
+
+            // Pivot rows carry tenant_id like every restaurant row (BelongsToTenant can't fill pivots).
+            if (Entitlements::current()->allows('upsell')) {
+                $pivot = ['tenant_id' => tenant()->getTenantKey()];
+                $item->pairings()->sync(collect($data['pairings'] ?? [])->map('intval')->reject(fn ($id) => $id === $item->id)
+                    ->mapWithKeys(fn ($id) => [$id => $pivot])->all());
+                $item->comboParts()->sync(collect($data['combo'] ?? [])->filter(fn ($c) => !empty($c['item_id']) && (int) $c['item_id'] !== $item->id)
+                    ->mapWithKeys(fn ($c) => [(int) $c['item_id'] => $pivot + ['quantity' => (int) ($c['qty'] ?? 1)]])->all());
+            }
 
             // Option groups are replaced as a whole; past orders keep their own snapshot of names and prices.
             $item->optionGroups()->delete();

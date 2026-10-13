@@ -10,6 +10,7 @@ use App\Http\Controllers\Dashboard\HomeController;
 use App\Http\Controllers\Dashboard\ItemsController;
 use App\Http\Controllers\Dashboard\KitchenController;
 use App\Http\Controllers\Dashboard\LoyaltyController;
+use App\Http\Controllers\Dashboard\MarketingController;
 use App\Http\Controllers\Dashboard\MenuImportController;
 use App\Http\Controllers\Dashboard\OrdersController;
 use App\Http\Controllers\Dashboard\PosController;
@@ -104,6 +105,18 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
 
     Route::get('/orders/{order}/receipt', [OrdersController::class, 'receipt'])
         ->middleware('permission:orders.view|pos.use')->name('orders.receipt');
+
+    // ---- Marketing: timed offers & popups ----
+    Route::middleware(['feature:offers', 'permission:marketing.manage'])->group(function () {
+        Route::get('/marketing', [MarketingController::class, 'index'])->name('marketing');
+        Route::post('/marketing/offers', [MarketingController::class, 'saveOffer'])->name('offers.store');
+        Route::post('/marketing/offers/{offer}', [MarketingController::class, 'saveOffer'])->name('offers.update');
+        Route::post('/marketing/offers/{offer}/toggle', [MarketingController::class, 'toggleOffer'])->name('offers.toggle');
+        Route::post('/marketing/offers/{offer}/delete', [MarketingController::class, 'deleteOffer'])->name('offers.delete');
+        Route::post('/marketing/popups', [MarketingController::class, 'savePopup'])->name('popups.store');
+        Route::post('/marketing/popups/{popup}/toggle', [MarketingController::class, 'togglePopup'])->name('popups.toggle');
+        Route::post('/marketing/popups/{popup}/delete', [MarketingController::class, 'deletePopup'])->name('popups.delete');
+    });
 
     // ---- Guests: customers, loyalty card, feedback ----
     Route::middleware(['feature:customers', 'permission:customers.view'])->group(function () {

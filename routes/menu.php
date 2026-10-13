@@ -25,3 +25,7 @@ Route::post('/card', [LoyaltyCardController::class, 'store'])->middleware('throt
 Route::get('/card/{token}', [LoyaltyCardController::class, 'show'])->where('token', '[a-f0-9]{24}')->name('card');
 
 Route::post('/feedback', [FeedbackController::class, 'store'])->middleware('throttle:10,1')->name('feedback');
+
+// popup impressions / clicks (counters only, no personal data)
+Route::post('/popups/{popup}/{event}', [MenuController::class, 'popupEvent'])->whereIn('event', ['view', 'click'])
+    ->whereNumber('popup')->middleware('throttle:30,1')->name('popup.event');

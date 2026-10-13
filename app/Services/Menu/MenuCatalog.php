@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\BranchItem;
 use App\Models\Category;
 use App\Models\MenuItem;
+use App\Models\Offer;
 use App\Services\Entitlements;
 
 /**
@@ -17,6 +18,9 @@ final class MenuCatalog
 {
     /** @var array<int, BranchItem>|null */
     private ?array $overrides = null;
+
+    /** @var \Illuminate\Support\Collection<int, Offer>|null offers running right now in this branch */
+    private $offers = null;
 
     public function __construct(public readonly Branch $branch)
     {
@@ -36,7 +40,8 @@ final class MenuCatalog
     public function categories()
     {
         $categories = Category::query()->where('is_active', true)->orderBy('sort_order')->orderBy('id')
-            ->with(['items' => fn ($q) => $q->where('is_active', true)->orderBy('id')->with('optionGroups.options')])
+            ->with(['items' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order')->orderBy('id')
+                ->with(['optionGroups.options', 'pairings', 'comboParts'])])
             ->get();
 
         foreach ($categories as $category) {
@@ -55,16 +60,45 @@ final class MenuCatalog
         return !$o || $o->is_available;
     }
 
-    /** Applies the branch price/sold-out override to the model in memory (never saved). */
+    /**
+     * Applies the branch override and a running timed offer to the model in memory (never saved).
+     * With an offer, `offer_from` keeps the price before it and `offer_percent` the discount.
+     */
     public function apply(MenuItem $item): MenuItem
     {
+        if ($item->getAttribute('catalog_applied')) {
+            return $item;
+        }
         if ($o = $this->override($item)) {
             if ($o->price !== null) {
                 $item->price = $o->price;
             }
             $item->is_sold_out = $item->is_sold_out || $o->is_sold_out;
         }
+        if ($percent = $this->offerPercent($item)) {
+            $item->setAttribute('offer_from', (float) $item->price);
+            $item->setAttribute('offer_percent', $percent);
+            $item->price = round($item->price * (100 - $percent) / 100, 2);
+        }
+        $item->setAttribute('catalog_applied', true);
         return $item;
+    }
+
+    /** Best running offer for the item (whole-menu or its category), 0 when none. */
+    public function offerPercent(MenuItem $item): int
+    {
+        if (!Entitlements::current()->allows('offers')) {
+            return 0;
+        }
+        $this->offers ??= Offer::query()->where('is_active', true)->get()->filter(fn (Offer $o) => $o->runsAt(now(), $this->branch->id))->values();
+        return (int) $this->offers->filter(fn (Offer $o) => $o->category_id === null || $o->category_id === $item->category_id)->max('discount_percent');
+    }
+
+    /** @return \Illuminate\Support\Collection<int, Offer> */
+    public function runningOffers()
+    {
+        $this->offerPercent(new MenuItem());
+        return $this->offers ?? collect();
     }
 
     private function override(MenuItem $item): ?BranchItem

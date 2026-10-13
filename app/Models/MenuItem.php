@@ -32,6 +32,18 @@ class MenuItem extends TenantModel
         return $this->hasMany(ItemOptionGroup::class)->orderBy('sort_order');
     }
 
+    /** Items suggested with this one ("goes well with"). */
+    public function pairings(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(self::class, 'item_pairings', 'menu_item_id', 'paired_item_id');
+    }
+
+    /** Parts of a combo with their quantity (pivot). Empty for a normal item. */
+    public function comboParts(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(self::class, 'combo_items', 'combo_id', 'menu_item_id')->withPivot('quantity');
+    }
+
     public function branchOverrides(): HasMany
     {
         return $this->hasMany(BranchItem::class);
