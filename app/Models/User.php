@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\ResetPasswordLink;
 use App\Support\Permissions;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,6 +23,11 @@ class User extends Authenticatable
 
     protected $hidden = ['password', 'remember_token'];
 
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $this->notify(new ResetPasswordLink(route('dash.password.reset', ['token' => $token, 'email' => $this->email])));
+    }
+
     /** Same as the column defaults, so a freshly created model already knows them. */
     protected $attributes = ['is_active' => true, 'locale' => 'ar'];
 
@@ -31,9 +37,9 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'last_login_at'     => 'datetime',
-            'password'          => 'hashed',
-            'is_active'         => 'boolean',
+            'last_login_at' => 'datetime',
+            'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 

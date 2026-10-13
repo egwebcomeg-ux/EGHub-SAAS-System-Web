@@ -17,6 +17,7 @@ use App\Http\Controllers\Dashboard\LoyaltyController;
 use App\Http\Controllers\Dashboard\MarketingController;
 use App\Http\Controllers\Dashboard\MenuImportController;
 use App\Http\Controllers\Dashboard\OrdersController;
+use App\Http\Controllers\Dashboard\PasswordResetController;
 use App\Http\Controllers\Dashboard\PosController;
 use App\Http\Controllers\Dashboard\PrintMenuController;
 use App\Http\Controllers\Dashboard\ReportsController;
@@ -33,6 +34,10 @@ Route::middleware('admin.locale')->group(function () {
     Route::get('/login', [AuthController::class, 'show'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::get('/welcome/{user}', [AuthController::class, 'welcome'])->whereNumber('user')->name('welcome');
+    Route::get('/forgot-password', [PasswordResetController::class, 'request'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetController::class, 'send'])->middleware('throttle:5,1')->name('password.email');
+    Route::get('/reset-password/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
+    Route::post('/reset-password', [PasswordResetController::class, 'update'])->middleware('throttle:10,1')->name('password.update');
 });
 
 Route::middleware(['auth:web', 'tenant.user'])->group(function () {

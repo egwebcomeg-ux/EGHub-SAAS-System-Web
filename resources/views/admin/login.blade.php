@@ -21,6 +21,7 @@
                 </div>
                 <button class="btn-navy w-full">{{ __('Sign in') }}</button>
             </form>
+            <a href="{{ route('admin.password.request') }}" class="mt-4 block text-center text-sm text-navy-600">{{ __('Forgot your password?') }}</a>
         </div>
     </div>
 </div>

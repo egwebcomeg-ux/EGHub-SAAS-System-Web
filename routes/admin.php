@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\InvoicesController;
+use App\Http\Controllers\Admin\PasswordResetController;
 use App\Http\Controllers\Admin\PlansController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\TenantsController;
@@ -11,6 +12,10 @@ use Illuminate\Support\Facades\Route;
 // admin.<domain> — EgWeb super admin. Guard "admin" = platform_admins table, never restaurant staff.
 Route::get('/login', [AuthController::class, 'show'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+Route::get('/forgot-password', [PasswordResetController::class, 'request'])->name('password.request');
+Route::post('/forgot-password', [PasswordResetController::class, 'send'])->middleware('throttle:5,1')->name('password.email');
+Route::get('/reset-password/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
+Route::post('/reset-password', [PasswordResetController::class, 'update'])->middleware('throttle:10,1')->name('password.update');
 
 Route::middleware('auth:admin')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

@@ -881,5 +881,22 @@
     "Clear area": "امسح الحدود",
     "Save area": "احفظ الحدود",
     "With drawn areas, the call center can pin the customer on the map and the zone is picked automatically.": "لما ترسم حدود المناطق، الكول سنتر يقدر يحدد مكان العميل على الخريطة والمنطقة بتتختار لوحدها.",
-    "Area drawn on the map": "حدودها مرسومة على الخريطة"
+    "Area drawn on the map": "حدودها مرسومة على الخريطة",
+    "Forgot your password?": "نسيت كلمة السر؟",
+    "Enter the email of your account and we will send you a link to choose a new password.": "اكتب إيميل حسابك وهنبعتلك لينك تختار بيه كلمة سر جديدة.",
+    "Send reset link": "ابعت اللينك",
+    "Do you sign in with your mobile number? Ask the restaurant owner to set a new password for you from Users & roles.": "بتدخل برقم الموبايل؟ اطلب من صاحب المطعم يعملّك كلمة سر جديدة من \"المستخدمين والصلاحيات\".",
+    "Back to sign in": "رجوع لتسجيل الدخول",
+    "If this email belongs to an account, a reset link is on its way. Check your inbox and spam folder.": "لو الإيميل ده مسجل عندنا، لينك تغيير كلمة السر في الطريق. بُص على الوارد والـ Spam.",
+    "Choose a new password": "اختار كلمة سر جديدة",
+    "New password": "كلمة السر الجديدة",
+    "Confirm the new password": "أكّد كلمة السر الجديدة",
+    "Save new password": "احفظ كلمة السر",
+    "This reset link is invalid or has expired. Ask for a new one.": "اللينك ده مش صالح أو انتهى. اطلب لينك جديد.",
+    "Your password was changed. Sign in with the new one.": "كلمة السر اتغيّرت. ادخل بالجديدة.",
+    "Reset your EgMenu password": "تغيير كلمة السر في EgMenu",
+    "Hello :name,": "أهلاً :name،",
+    "We received a request to reset the password of your account.": "وصلنا طلب لتغيير كلمة السر بتاعة حسابك.",
+    "The link works for 60 minutes. If you did not ask for this, ignore this email and your password stays the same.": "اللينك شغال لمدة ٦٠ دقيقة. لو انت مطلبتش ده، تجاهل الإيميل وكلمة السر هتفضل زي ما هي.",
+    "EgMenu team": "فريق EgMenu"
 }

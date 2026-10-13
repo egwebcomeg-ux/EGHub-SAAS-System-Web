@@ -22,6 +22,7 @@
                 <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="remember" value="1" class="size-4 accent-brand-600"> {{ __('Remember me') }}</label>
                 <button class="btn-primary w-full">{{ __('Sign in') }}</button>
             </form>
+            <a href="{{ route('dash.password.request') }}" class="mt-4 block text-center text-sm text-brand-700">{{ __('Forgot your password?') }}</a>
         </div>
         <div class="mt-4 text-center text-sm">
             <a class="text-navy-500 hover:text-navy-800" href="?lang={{ app()->getLocale() === 'ar' ? 'en' : 'ar' }}">{{ app()->getLocale() === 'ar' ? 'English' : 'عربي' }}</a>
