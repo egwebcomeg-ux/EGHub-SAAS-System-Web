@@ -16,14 +16,21 @@ class PlanSeeder extends Seeder
     {
         $cycles = ['6' => 10, '12' => 17];
 
-        $basic = ['qr_ordering', 'order_board', 'full_branding', 'excel_import', 'feedback'];
+        // Starter = the menu to view only (no ordering), for the smallest cafes.
+        $starter = ['excel_import', 'feedback'];
+        $basic = array_merge($starter, ['qr_ordering', 'order_board', 'full_branding']);
         $pro = array_merge($basic, ['whatsapp_orders', 'scheduled_orders', 'daily_reports', 'menu_themes', 'printed_menu',
             'offers', 'upsell', 'ai_import', 'customers', 'loyalty_stamps']);
         // Business = every menu feature; operations (POS, kitchen, call center, inventory) are add-ons for every plan.
         $business = array_values(array_diff(array_keys(Plan::FEATURES), Plan::addonFeatures()));
 
         $plans = [
-            ['code' => 'basic', 'name' => 'أساسية', 'name_en' => 'Basic', 'monthly_price' => 149, 'sort_order' => 1,
+            ['code' => 'starter', 'name' => 'مبتدئ', 'name_en' => 'Starter', 'monthly_price' => 99, 'sort_order' => 0,
+                'tagline' => 'منيو QR بشكل محترم لكافيه صغير: العميل يشوف المنيو والأسعار',
+                'tagline_en' => 'A good-looking QR menu for a small cafe: guests browse the menu and prices',
+                'features' => $starter,
+                'limits' => ['branches' => 1, 'menu_items' => 60, 'staff' => 1, 'tables' => 10, 'ai_imports_per_month' => 0]],
+            ['code' => 'basic', 'name' => 'أساسية', 'name_en' => 'Basic', 'monthly_price' => 199, 'sort_order' => 1,
                 'tagline' => 'منيو QR وطلب من الترابيزة لمطعم أو كافيه بفرع واحد',
                 'tagline_en' => 'QR menu and table ordering for a single-branch venue',
                 'features' => $basic,

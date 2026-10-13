@@ -19,12 +19,14 @@ class OrderFlowTest extends TenantTestCase
     private function latte(Tenant $tenant): MenuItem
     {
         $item = $this->item($tenant, 'Latte', 65);
+
         return $this->as($tenant, function () use ($item) {
             $size = $item->optionGroups()->create(['name' => 'Size', 'type' => 'single', 'is_required' => true]);
             $size->options()->create(['name' => 'Small', 'price' => 0]);
             $size->options()->create(['name' => 'Large', 'price' => 15]);
             $extras = $item->optionGroups()->create(['name' => 'Extras', 'type' => 'multiple', 'max_choices' => 2]);
             $extras->options()->create(['name' => 'Shot', 'price' => 10]);
+
             return $item->load('optionGroups.options');
         });
     }
@@ -33,6 +35,7 @@ class OrderFlowTest extends TenantTestCase
     {
         $table = $this->as($tenant, fn () => DiningTable::query()->where('name', $name)->first());
         $this->get($this->menuUrl("{$tenant->id}/t/{$table->qr_token}"))->assertRedirect();
+
         return $table;
     }
 
@@ -214,7 +217,18 @@ class OrderFlowTest extends TenantTestCase
         $this->scanTable($a);
         $url = $this->order($a, [['item_id' => $item->id, 'qty' => 1]])->json('url');
 
-        $this->getJson($url . '/status')->assertOk()->assertJsonPath('status', 'new');
-        $this->get($this->menuUrl('cafe-a/o/' . str_repeat('0', 24)))->assertNotFound();
+        $this->getJson($url.'/status')->assertOk()->assertJsonPath('status', 'new');
+        $this->get($this->menuUrl('cafe-a/o/'.str_repeat('0', 24)))->assertNotFound();
+    }
+
+    public function test_starter_plan_menu_is_view_only(): void
+    {
+        $tenant = $this->restaurant('cafe-starter', 'starter');
+        $latte = $this->item($tenant, 'Latte', 65);
+
+        $this->get($this->menuUrl('cafe-starter'))->assertOk()->assertSee('Latte');
+        $this->postJson($this->menuUrl('cafe-starter/order'), ['client_uuid' => (string) Str::uuid(), 'items' => [['item_id' => $latte->id, 'qty' => 1]]])
+            ->assertStatus(422);
+        $this->assertSame(0, Order::query()->withoutGlobalScopes()->count());
     }
 }

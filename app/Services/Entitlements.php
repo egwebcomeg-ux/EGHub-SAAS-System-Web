@@ -19,7 +19,7 @@ use App\Models\User;
 final class Entitlements
 {
     /** Plan used when a restaurant has no subscription row (should not happen after provisioning). */
-    public const FALLBACK_PLAN = 'basic';
+    public const FALLBACK_PLAN = 'starter';
 
     /** @var array<string,self> per-request memo */
     private static array $memo = [];
@@ -30,8 +30,7 @@ final class Entitlements
         public readonly Plan $plan,
         private array $features,
         private array $limits,
-    ) {
-    }
+    ) {}
 
     public static function for(Tenant $tenant): self
     {
@@ -67,6 +66,7 @@ final class Entitlements
                 }
             }
         }
+
         return new self($tenant, $plan, $e['features'], $e['limits']);
     }
 
@@ -85,19 +85,20 @@ final class Entitlements
     public function usage(string $key): int
     {
         return $this->inTenant(fn () => match ($key) {
-            'branches'             => Branch::query()->count(),
-            'menu_items'           => MenuItem::query()->count(),
-            'staff'                => User::query()->count(),
-            'tables'               => DiningTable::query()->count(),
+            'branches' => Branch::query()->count(),
+            'menu_items' => MenuItem::query()->count(),
+            'staff' => User::query()->count(),
+            'tables' => DiningTable::query()->count(),
             'ai_imports_per_month' => MenuImport::query()->whereIn('source', ['image', 'pdf'])
                 ->where('created_at', '>=', now()->startOfMonth())->count(),
-            default                => 0,
+            default => 0,
         });
     }
 
     public function canAdd(string $key, int $n = 1): bool
     {
         $limit = $this->limit($key);
+
         return $limit === null || $this->usage($key) + $n <= $limit;
     }
 
@@ -109,6 +110,7 @@ final class Entitlements
             return __('The ":feature" feature is not included in your plan (:plan). Upgrade to unlock it.',
                 ['feature' => $label, 'plan' => $this->plan->displayName()]);
         }
+
         return __('You reached the maximum :limit for your plan (:plan: :max). Upgrade or add an add-on.',
             ['limit' => $label, 'plan' => $this->plan->displayName(), 'max' => (string) $this->limit($key)]);
     }

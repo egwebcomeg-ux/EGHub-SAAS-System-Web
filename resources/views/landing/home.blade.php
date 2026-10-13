@@ -18,7 +18,7 @@
     <a href="{{ route('register') }}" class="btn-primary mt-6 min-h-12 px-6 text-base">{{ __('Start your :days-day free trial', ['days' => \App\Services\TenantProvisioner::TRIAL_DAYS]) }}</a>
 </section>
 
-<section class="mx-auto grid max-w-6xl gap-4 px-4 pb-16 md:grid-cols-3">
+<section class="mx-auto grid max-w-7xl gap-4 px-4 pb-16 md:grid-cols-2 xl:grid-cols-4">
     @foreach ($plans as $p)
         <div @class(['card relative flex flex-col', 'ring-2 ring-brand-500' => $p->is_featured])>
             @if ($p->is_featured)<span class="badge absolute -top-3 start-5 bg-brand-600 text-white">{{ __('Most popular') }}</span>@endif

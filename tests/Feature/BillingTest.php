@@ -11,7 +11,6 @@ use App\Models\PlatformSetting;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Services\Entitlements;
 use Illuminate\Support\Facades\URL;
 use Tests\TenantTestCase;
 
@@ -46,7 +45,7 @@ class BillingTest extends TenantTestCase
             ->assertRedirect();
         $invoice = Invoice::query()->where('tenant_id', 'cafe-a')->firstOrFail();
         $this->assertSame('open', $invoice->status);
-        $this->assertSame(805.0, $invoice->total);                   // 149 × 6 − 10%, rounded
+        $this->assertSame(1075.0, $invoice->total);                  // 199 × 6 − 10%, rounded
 
         $this->actingAs($owner)->get($this->dashUrl("/billing/invoices/{$invoice->number}"))->assertOk()->assertSee('egweb@instapay');
         $this->actingAs($owner)->post($this->dashUrl("/billing/invoices/{$invoice->number}/claim"), ['method' => 'instapay', 'reference' => 'TX-123'])
@@ -75,7 +74,7 @@ class BillingTest extends TenantTestCase
         $this->assertTrue($billing->markPaid($invoice, 'paymob', 'tx1', $invoice->total, 'paymob:tx1'));
         $end = Subscription::query()->where('tenant_id', 'cafe-a')->value('current_period_end');
         $this->assertFalse($billing->markPaid($invoice, 'paymob', 'tx1', $invoice->total, 'paymob:tx1'));
-        $this->assertFalse($billing->markPaid($invoice->fresh(), 'manual', null, $invoice->total, 'admin:' . $invoice->id));
+        $this->assertFalse($billing->markPaid($invoice->fresh(), 'manual', null, $invoice->total, 'admin:'.$invoice->id));
         $this->assertSame((string) $end, (string) Subscription::query()->where('tenant_id', 'cafe-a')->value('current_period_end'));
     }
 
@@ -187,7 +186,7 @@ class BillingTest extends TenantTestCase
     public function test_unsigned_welcome_link_is_refused(): void
     {
         $a = $this->restaurant('cafe-a');
-        $this->get($this->dashUrl('/welcome/' . $this->owner($a)->id))->assertForbidden();
+        $this->get($this->dashUrl('/welcome/'.$this->owner($a)->id))->assertForbidden();
         $this->get(URL::temporarySignedRoute('dash.welcome', now()->subMinute(), ['user' => $this->owner($a)->id]))->assertForbidden();
     }
 }

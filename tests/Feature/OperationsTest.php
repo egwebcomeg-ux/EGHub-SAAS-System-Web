@@ -9,10 +9,12 @@ use App\Models\Invoice;
 use App\Models\KitchenStation;
 use App\Models\MenuItem;
 use App\Models\Order;
+use App\Models\Plan;
 use App\Models\PlatformAdmin;
 use App\Models\Shift;
 use App\Models\Tenant;
 use App\Services\Entitlements;
+use App\Services\Orders\ShiftService;
 use Illuminate\Support\Str;
 use Tests\TenantTestCase;
 
@@ -25,6 +27,7 @@ class OperationsTest extends TenantTestCase
         foreach ($packs as $pack) {
             app(Billing::class)->setAddon($tenant, $pack, 1);
         }
+
         return $tenant;
     }
 
@@ -73,7 +76,7 @@ class OperationsTest extends TenantTestCase
         $this->actingAs($cashier)->post($this->dashUrl('/shifts/move'), ['type' => 'out', 'amount' => 30, 'reason' => 'ice'])->assertSessionHasNoErrors();
 
         $shift = $this->as($a, fn () => Shift::query()->first());
-        $summary = app(\App\Services\Orders\ShiftService::class)->summary($shift);
+        $summary = app(ShiftService::class)->summary($shift);
         $this->assertSame(120.0, $summary['by_method']['cash']);
         $this->assertSame(60.0, $summary['by_method']['card']);
         $this->assertSame(590.0, $summary['expected_cash']); // 500 + 120 − 30
@@ -81,7 +84,7 @@ class OperationsTest extends TenantTestCase
         $this->actingAs($cashier)->post($this->dashUrl('/shifts/close'), ['closing_cash' => 580])->assertSessionHasNoErrors();
         $shift->refresh();
         $this->assertNotNull($shift->closed_at);
-        $this->assertSame(-10.0, app(\App\Services\Orders\ShiftService::class)->summary($shift)['difference']);
+        $this->assertSame(-10.0, app(ShiftService::class)->summary($shift)['difference']);
     }
 
     public function test_discount_needs_permission_and_dine_in_needs_a_table(): void
@@ -140,6 +143,7 @@ class OperationsTest extends TenantTestCase
             $bar = KitchenStation::query()->create(['name' => 'Bar']);
             $food = Category::query()->create(['name' => 'Food', 'kitchen_station_id' => $grill->id]);
             $drinks = Category::query()->create(['name' => 'Drinks', 'kitchen_station_id' => $bar->id]);
+
             return [$grill, $bar, MenuItem::query()->create(['category_id' => $food->id, 'name' => 'Burger', 'price' => 100]),
                 MenuItem::query()->create(['category_id' => $drinks->id, 'name' => 'Juice', 'price' => 30])];
         });
@@ -180,8 +184,8 @@ class OperationsTest extends TenantTestCase
         Entitlements::flush();
         $this->assertTrue(Entitlements::for($a)->allows('kitchen_display'));
 
-        $quote = app(Billing::class)->quote($a->fresh(), \App\Models\Plan::query()->where('code', 'basic')->first(), 1);
-        $this->assertSame(149.0 + 149.0, $quote['total']); // plan + kitchen pack
+        $quote = app(Billing::class)->quote($a->fresh(), Plan::query()->where('code', 'basic')->first(), 1);
+        $this->assertSame(199.0 + 149.0, $quote['total']); // basic plan + kitchen pack
     }
 
     public function test_admin_grants_and_removes_an_add_on(): void

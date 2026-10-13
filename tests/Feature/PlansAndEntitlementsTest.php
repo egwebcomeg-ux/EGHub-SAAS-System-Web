@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Billing\Billing;
 use App\Models\Plan;
 use App\Models\PlatformAdmin;
 use App\Models\Subscription;
+use App\Models\User;
 use App\Services\Entitlements;
 use App\Services\TenantProvisioner;
 use Illuminate\Support\Facades\Route;
@@ -14,7 +16,14 @@ class PlansAndEntitlementsTest extends TenantTestCase
 {
     public function test_seeded_plans_prices_and_feature_split(): void
     {
-        $this->assertSame([149.0, 399.0, 799.0], Plan::query()->orderBy('sort_order')->pluck('monthly_price')->all());
+        $this->assertSame([99.0, 199.0, 399.0, 799.0], Plan::query()->orderBy('sort_order')->pluck('monthly_price')->all());
+
+        // starter: the menu to browse, no ordering
+        $starter = Entitlements::for($this->restaurant('cafe-starter', 'starter'));
+        $this->assertFalse($starter->allows('qr_ordering'));
+        $this->assertFalse($starter->allows('order_board'));
+        $this->assertTrue($starter->allows('excel_import'));
+        $this->assertSame(60, $starter->limit('menu_items'));
 
         $basic = Entitlements::for($this->restaurant('cafe-basic', 'basic'));
         $pro = Entitlements::for($this->restaurant('cafe-pro', 'pro'));
@@ -33,7 +42,7 @@ class PlansAndEntitlementsTest extends TenantTestCase
         $this->assertTrue($business->allows('branch_pricing'));
 
         // operations are add-ons: in no plan by default
-        foreach ([$basic, $pro, $business] as $rights) {
+        foreach ([$starter, $basic, $pro, $business] as $rights) {
             foreach (['pos', 'shifts', 'kitchen_display', 'call_center', 'inventory'] as $feature) {
                 $this->assertFalse($rights->allows($feature), "$feature should be an add-on");
             }
@@ -63,7 +72,7 @@ class PlansAndEntitlementsTest extends TenantTestCase
 
         $add('01033333333')->assertSessionHasNoErrors();
         $add('01044444444')->assertSessionHasErrors('limit');
-        $this->assertSame(2, $this->as($a, fn () => \App\Models\User::query()->count()));
+        $this->assertSame(2, $this->as($a, fn () => User::query()->count()));
     }
 
     public function test_feature_middleware_blocks_routes_outside_the_plan(): void
@@ -73,7 +82,7 @@ class PlansAndEntitlementsTest extends TenantTestCase
 
         $without = $this->restaurant('cafe-basic', 'business');
         $with = $this->restaurant('cafe-pro', 'basic');
-        app(\App\Billing\Billing::class)->setAddon($with, 'pos_pack', 1);
+        app(Billing::class)->setAddon($with, 'pos_pack', 1);
 
         $this->actingAs($this->owner($without))->get($this->dashUrl('/_test/pos'))->assertForbidden();
         $this->actingAs($this->owner($with))->get($this->dashUrl('/_test/pos'))->assertOk()->assertSee('pos-ok');
