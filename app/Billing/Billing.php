@@ -54,9 +54,11 @@ final class Billing
         // add-ons already on the subscription are billed with the plan for the same cycle
         foreach ($sub?->addons ?? [] as $addon) {
             $price = AddonPrice::query()->where('key', $addon->key)->first();
+            // per-branch packs follow the current number of branches
+            $unit = $price?->per_branch ? $price->priceFor($tenant) : $addon->unit_price;
             $lines[] = ['label' => ($price?->displayName() ?? $addon->key).($addon->quantity > 1 ? " × {$addon->quantity}" : '').' — '.cycle_label($months),
-                'amount' => round($addon->unit_price * $addon->quantity * $months, 2)];
-            $full += round($addon->unit_price * $addon->quantity * $months, 2);
+                'amount' => round($unit * $addon->quantity * $months, 2)];
+            $full += round($unit * $addon->quantity * $months, 2);
         }
         $credit = $sub && ! $renewal ? $this->credit($sub) : 0.0;
         if ($credit > 0) {
@@ -101,7 +103,7 @@ final class Billing
         $sub = $tenant->subscription()->first();
         $paidPeriod = $sub && $sub->status === 'active' && $sub->current_period_end?->isFuture();
         $months = $paidPeriod ? max(0.1, round(now()->diffInDays($sub->current_period_end) / 30, 2)) : 1;
-        $amount = round($addon->monthly_price * $quantity * $months);
+        $amount = round($addon->priceFor($tenant) * $quantity * $months);
         $label = $addon->displayName().($quantity > 1 ? " × $quantity" : '').' — '
             .($paidPeriod ? __('until :date', ['date' => local_time($sub->current_period_end, 'Y/m/d')]) : cycle_label(1));
 
@@ -127,7 +129,13 @@ final class Billing
             $sub->addons()->where('key', $key)->delete();
         } else {
             $price = AddonPrice::query()->where('key', $key)->firstOrFail();
-            $sub->addons()->updateOrCreate(['key' => $key], ['quantity' => $quantity, 'unit_price' => $price->monthly_price]);
+            $sub->addons()->updateOrCreate(['key' => $key], ['quantity' => $quantity, 'unit_price' => $price->priceFor($tenant)]);
+            // a pack that covers smaller packs replaces them (e.g. the full operations bundle)
+            if ($price->isFeaturePack() && $price->features) {
+                $covered = AddonPrice::query()->where('type', 'feature')->where('key', '!=', $key)->get()
+                    ->filter(fn (AddonPrice $p) => $p->features && array_diff($p->features, $price->features) === [])->pluck('key');
+                $sub->addons()->whereIn('key', $covered)->delete();
+            }
         }
         Entitlements::flush();
     }

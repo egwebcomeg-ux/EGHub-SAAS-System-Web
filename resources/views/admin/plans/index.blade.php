@@ -60,6 +60,15 @@
                     <input class="field" name="addons[{{ $a->id }}][monthly_price]" type="number" step="1" min="0" value="{{ $a->monthly_price }}" required>
                 </div>
                 <input class="field" name="addons[{{ $a->id }}][description]" value="{{ $a->description }}" placeholder="{{ __('Description') }}">
+                <div class="flex flex-wrap items-center gap-4 text-sm">
+                    <label class="flex items-center gap-2"><input type="checkbox" name="addons[{{ $a->id }}][per_branch]" value="1" @checked($a->per_branch) class="size-4 accent-brand-600"> {{ __('Priced per branch (40% off each extra branch)') }}</label>
+                    <label class="flex items-center gap-2">{{ __('Available from plan') }}
+                        <select class="field min-h-9 w-auto py-0" name="addons[{{ $a->id }}][min_plan]">
+                            <option value="">{{ __('Any plan') }}</option>
+                            @foreach (\App\Models\Plan::query()->orderBy('sort_order')->get() as $pl)<option value="{{ $pl->code }}" @selected($a->min_plan === $pl->code)>{{ $pl->displayName() }}</option>@endforeach
+                        </select>
+                    </label>
+                </div>
                 @if ($a->isFeaturePack())
                     <div class="flex flex-wrap gap-x-4 gap-y-1">
                         @foreach (\App\Models\Plan::FEATURES as $key => $f)

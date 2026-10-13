@@ -31,7 +31,9 @@
 <h2 class="mb-3 text-lg font-bold">{{ __('Choose a plan') }}</h2>
 <div class="grid gap-4 lg:grid-cols-3">
     @foreach ($plans as $p)
-        @php($current = $subscription && $subscription->plan_id === $p->id)
+        @php
+            $current = $subscription && $subscription->plan_id === $p->id;
+        @endphp
         <form method="post" action="{{ route('dash.billing.checkout') }}" @class(['card flex flex-col', 'ring-2 ring-brand-500' => $p->is_featured])>
             @csrf
             <input type="hidden" name="plan_id" value="{{ $p->id }}">
@@ -44,7 +46,9 @@
 
             <div class="mb-5 grid grid-cols-3 gap-2" role="radiogroup">
                 @foreach (\App\Models\Plan::CYCLES as $m)
-                    @php($pct = (float) ($p->cycle_discounts[(string) $m] ?? 0))
+                    @php
+                        $pct = (float) ($p->cycle_discounts[(string) $m] ?? 0);
+                    @endphp
                     <label class="cursor-pointer rounded-xl border border-navy-100 p-2 text-center text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
                         <input type="radio" name="months" value="{{ $m }}" class="sr-only" @checked($m === 1)>
                         <span class="block font-bold">{{ cycle_label($m) }}</span>
@@ -65,16 +69,30 @@
     <p class="mb-3 muted">{{ __('For bigger restaurants: add only what you need, on top of any plan.') }}</p>
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         @foreach ($addons as $addon)
-            @php($qty = (int) ($myAddons[$addon->key] ?? 0))
+            @php
+                $qty = (int) ($myAddons[$addon->key] ?? 0);
+            @endphp
             <div class="card flex flex-col">
                 <div class="flex items-start justify-between gap-2">
                     <h3 class="font-bold">{{ $addon->displayName() }}</h3>
                     @if ($qty > 0)<span class="badge bg-emerald-100 text-emerald-800">{{ $addon->isFeaturePack() ? __('Active') : '× ' . $qty }}</span>@endif
                 </div>
                 <p class="mt-1 flex-1 text-sm text-navy-500">{{ tr($addon->description, $addon->description_en) }}</p>
+                @php
+                    $myPrice = $addon->priceFor(tenant());
+                    $planOk = $addon->availableFor($subscription?->plan);
+                    $covered = $addon->isFeaturePack() && $qty === 0 && $addon->features && collect($addon->features)->every(fn ($f) => \App\Services\Entitlements::current()->allows($f));
+                @endphp
                 <div class="mt-3 flex items-center justify-between gap-2">
-                    <span><b class="text-lg">{{ money($addon->monthly_price) }}</b> <span class="text-sm text-navy-500">{{ __('EGP / month') }}</span></span>
-                    @if (!$addon->isFeaturePack() || $qty === 0)
+                    <span>
+                        <b class="text-lg">{{ money($myPrice) }}</b> <span class="text-sm text-navy-500">{{ __('EGP / month') }}</span>
+                        @if ($addon->per_branch && $myPrice > $addon->monthly_price)<span class="block text-xs text-navy-500">{{ __('For all your branches (40% off each extra branch)') }}</span>@endif
+                    </span>
+                    @if (! $planOk)
+                        <span class="text-xs text-navy-500">{{ __('Needs the :plan plan', ['plan' => $plans->firstWhere('code', $addon->min_plan)?->displayName()]) }}</span>
+                    @elseif ($covered)
+                        <span class="badge bg-emerald-100 text-emerald-800">{{ __('Included') }}</span>
+                    @elseif (! $addon->isFeaturePack() || $qty === 0)
                         <form method="post" action="{{ route('dash.billing.addon', $addon->key) }}">@csrf<button class="btn-ghost min-h-9 px-3">{{ $addon->isFeaturePack() ? __('Add') : __('Add one') }}</button></form>
                     @endif
                 </div>

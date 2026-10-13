@@ -1066,5 +1066,12 @@
     "Menu visits": "زيارات المنيو",
     "People who opened the menu": "عدد اللي فتحوا المنيو",
     "Table QR scans": "مرات مسح كود الترابيزات",
-    "Most scanned tables (all time)": "أكتر الترابيزات اللي اتمسح كودها"
+    "Most scanned tables (all time)": "أكتر الترابيزات اللي اتمسح كودها",
+    "This add-on needs at least the :plan plan.": "الإضافة دي محتاجة باقة :plan على الأقل.",
+    "Everything in this add-on is already included in your subscription.": "كل اللي في الإضافة دي موجود في اشتراكك بالفعل.",
+    "For all your branches (40% off each extra branch)": "لكل فروعك (خصم ٤٠٪ على كل فرع زيادة)",
+    "Needs the :plan plan": "محتاجة باقة :plan",
+    "Priced per branch (40% off each extra branch)": "السعر لكل فرع (خصم ٤٠٪ على كل فرع زيادة)",
+    "Available from plan": "متاحة من باقة",
+    "Any plan": "أي باقة"
 }

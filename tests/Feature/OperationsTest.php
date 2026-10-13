@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Billing\Billing;
+use App\Models\AddonPrice;
+use App\Models\Branch;
 use App\Models\Category;
 use App\Models\DiningTable;
 use App\Models\Invoice;
@@ -200,5 +202,25 @@ class OperationsTest extends TenantTestCase
         $this->actingAs($admin, 'admin')->post($this->adminUrl('/tenants/cafe-a/addons'), ['addons' => ['pos_pack' => 0, 'branches' => 0]]);
         Entitlements::flush();
         $this->assertFalse(Entitlements::for($a)->allows('pos'));
+    }
+
+    public function test_per_branch_price_bundle_replaces_packs_and_starter_cannot_buy_operations(): void
+    {
+        $a = $this->restaurant('cafe-a', 'business');
+        $kitchen = AddonPrice::query()->where('key', 'kitchen_pack')->first();
+        $this->assertSame(149.0, $kitchen->priceFor($a));
+        $this->as($a, fn () => Branch::query()->create(['name' => 'Second', 'slug' => 'second']));
+        $this->assertSame(round(149 * 1.6), $kitchen->priceFor($a)); // second branch at 40% off
+
+        app(Billing::class)->setAddon($a, 'pos_pack', 1);
+        app(Billing::class)->setAddon($a, 'kitchen_pack', 1);
+        app(Billing::class)->setAddon($a, 'ops_bundle', 1);
+        $this->assertSame(['ops_bundle'], $a->subscription()->first()->addons()->pluck('key')->all());
+        Entitlements::flush();
+        $this->assertTrue(Entitlements::for($a)->allows('inventory'));
+
+        $starter = $this->restaurant('cafe-s', 'starter');
+        $this->actingAs($this->owner($starter))->post($this->dashUrl('/billing/addons/pos_pack'))->assertSessionHasErrors('addon');
+        $this->assertSame(0, Invoice::query()->where('tenant_id', 'cafe-s')->count());
     }
 }
