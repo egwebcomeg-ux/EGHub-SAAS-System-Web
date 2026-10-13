@@ -11,6 +11,7 @@ use App\Models\LoyaltyReward;
 use App\Models\MenuItem;
 use App\Services\Entitlements;
 use App\Services\Loyalty\LoyaltyService;
+use App\Support\BusinessType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -24,10 +25,9 @@ class LoyaltyController extends Controller
     public function edit(): View
     {
         $program = LoyaltyProgram::query()->latest('id')->first() ?? new LoyaltyProgram([
-            'type' => 'visits', 'title' => __('Loyalty card'), 'stamps_required' => 10, 'reward_type' => 'free_item',
-            'reward_label' => __('A free drink'), 'is_active' => true,
-            'card_design' => ['bg' => '#B5451B', 'stamp_bg' => '#7A1F2B', 'icon' => 'cup'],
-        ]);
+            'type' => 'visits', 'title' => __('Loyalty card'), 'reward_type' => 'free_item', 'is_active' => true,
+        ] + BusinessType::loyaltyDefaults());
+
         return view('dashboard.loyalty.setup', [
             'program' => $program,
             'locked' => $program->isLocked(),
@@ -45,31 +45,31 @@ class LoyaltyController extends Controller
 
     public function update(Request $request): RedirectResponse
     {
-        $program = LoyaltyProgram::query()->latest('id')->first() ?? new LoyaltyProgram();
+        $program = LoyaltyProgram::query()->latest('id')->first() ?? new LoyaltyProgram;
         $types = Entitlements::current()->allows('loyalty_points') ? ['visits', 'items', 'points'] : ['visits', 'items'];
         $tenant = tenant()->getTenantKey();
         $data = $request->validate([
-            'type'                 => ['required', Rule::in($types)],
-            'title'                => 'required|string|max:60',
-            'title_en'             => 'nullable|string|max:60',
-            'stamps_required'      => 'required|integer|min:2|max:30',
-            'min_order'            => 'nullable|numeric|min:0',
-            'points_per_egp'       => 'nullable|numeric|min:0.01|max:100',
-            'reward_label'         => 'required|string|max:80',
-            'stamps_expire_days'   => 'nullable|integer|min:7|max:730',
-            'categories'           => 'array',
-            'categories.*'         => [Rule::exists('categories', 'id')->where('tenant_id', $tenant)],
-            'items'                => 'array',
-            'items.*'              => [Rule::exists('menu_items', 'id')->where('tenant_id', $tenant)],
-            'milestones'           => 'array|max:10',
-            'milestones.*.at'      => 'nullable|integer|min:1|max:100000',
-            'milestones.*.label'   => 'nullable|string|max:80',
-            'design.bg'            => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
-            'design.stamp_bg'      => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
-            'design.icon'          => ['required', Rule::in(self::STAMP_ICONS)],
+            'type' => ['required', Rule::in($types)],
+            'title' => 'required|string|max:60',
+            'title_en' => 'nullable|string|max:60',
+            'stamps_required' => 'required|integer|min:2|max:30',
+            'min_order' => 'nullable|numeric|min:0',
+            'points_per_egp' => 'nullable|numeric|min:0.01|max:100',
+            'reward_label' => 'required|string|max:80',
+            'stamps_expire_days' => 'nullable|integer|min:7|max:730',
+            'categories' => 'array',
+            'categories.*' => [Rule::exists('categories', 'id')->where('tenant_id', $tenant)],
+            'items' => 'array',
+            'items.*' => [Rule::exists('menu_items', 'id')->where('tenant_id', $tenant)],
+            'milestones' => 'array|max:10',
+            'milestones.*.at' => 'nullable|integer|min:1|max:100000',
+            'milestones.*.label' => 'nullable|string|max:80',
+            'design.bg' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'design.stamp_bg' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'design.icon' => ['required', Rule::in(self::STAMP_ICONS)],
         ]);
 
-        $milestones = collect($data['milestones'] ?? [])->filter(fn ($m) => !empty($m['at']) && !empty($m['label']))
+        $milestones = collect($data['milestones'] ?? [])->filter(fn ($m) => ! empty($m['at']) && ! empty($m['label']))
             ->map(fn ($m) => ['at' => (int) $m['at'], 'type' => 'free_item', 'label' => $m['label']])->values()->all();
 
         // A card's size and rewards can't change under guests who already hold one.
@@ -100,6 +100,7 @@ class LoyaltyController extends Controller
             $copy->is_active = true;
             $copy->save();
         }
+
         return back()->with('ok', __('A new program started. Old cards keep their rewards.'));
     }
 
@@ -115,6 +116,7 @@ class LoyaltyController extends Controller
                 : Customer::query()->where('phone', normalize_phone($q) ?? $q)->first();
             $card = $customer ? $loyalty->card($program, $customer)->load(['customer', 'availableRewards', 'transactions' => fn ($t) => $t->limit(10)]) : null;
         }
+
         return view('dashboard.loyalty.desk', [
             'program' => $loyalty->program(), 'q' => $q, 'card' => $card,
             'milestones' => ($p = $loyalty->program()) ? $loyalty->milestones($p) : [],
@@ -125,11 +127,12 @@ class LoyaltyController extends Controller
     {
         $data = $request->validate(['phone' => 'required|string|max:20', 'name' => 'nullable|string|max:100']);
         $phone = normalize_phone($data['phone']);
-        if (!$phone) {
+        if (! $phone) {
             return back()->withErrors(['phone' => __('Enter a valid Egyptian mobile number.')]);
         }
         abort_unless($loyalty->program(), 404);
         $loyalty->enroll($phone, $data['name'] ?? '', 'pos');
+
         return redirect()->route('dash.loyalty.desk', ['q' => $phone])->with('ok', __('Card created.'));
     }
 
@@ -138,6 +141,7 @@ class LoyaltyController extends Controller
         $data = $request->validate(['count' => 'required|integer|min:1|max:20', 'note' => 'nullable|string|max:100']);
         abort_unless($card->program?->is_active, 404);
         $loyalty->stamp($card, (int) $data['count'], $request->user(), $request->user()->branch_id, $data['note'] ?? '');
+
         return back()->with('ok', __('Stamps added.'));
     }
 
@@ -148,6 +152,7 @@ class LoyaltyController extends Controller
         } catch (\RuntimeException $e) {
             return back()->withErrors(['reward' => $e->getMessage()]);
         }
+
         return back()->with('ok', __('Reward redeemed: :label', ['label' => $reward->label]));
     }
 
@@ -159,6 +164,7 @@ class LoyaltyController extends Controller
         } catch (\RuntimeException $e) {
             return back()->withErrors(['reward' => $e->getMessage()]);
         }
+
         return back()->with('ok', __('Reward redeemed: :label', ['label' => $reward->label]));
     }
 }

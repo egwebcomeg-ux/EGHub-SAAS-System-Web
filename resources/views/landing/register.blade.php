@@ -43,6 +43,17 @@
                 <label class="field-label" for="password_confirmation">{{ __('Confirm password') }}</label>
                 <input class="field" id="password_confirmation" name="password_confirmation" type="password" required minlength="8" autocomplete="new-password" dir="ltr">
             </div>
+            <fieldset class="sm:col-span-2">
+                <legend class="field-label">{{ __('Type of place') }}</legend>
+                <div class="grid grid-cols-3 gap-2">
+                    @foreach (\App\Support\BusinessType::TYPES as $key => $label)
+                        <label class="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-navy-100 px-2 text-center text-sm font-semibold has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+                            <input type="radio" name="business_type" value="{{ $key }}" required class="sr-only" @checked(old('business_type', 'cafe') === $key)>
+                            {{ $key === 'cafe' ? '☕' : ($key === 'restaurant' ? '🍽' : '☕🍽') }} {{ app()->getLocale() === 'en' ? $label[1] : $label[0] }}
+                        </label>
+                    @endforeach
+                </div>
+            </fieldset>
             <label class="flex items-start gap-2 text-sm sm:col-span-2"><input type="checkbox" name="terms" value="1" required class="mt-1 size-4 accent-brand-600"> {{ __('I agree to the EgMenu terms of service.') }}</label>
             <button class="btn-primary sm:col-span-2">{{ __('Create my menu') }}</button>
         </form>

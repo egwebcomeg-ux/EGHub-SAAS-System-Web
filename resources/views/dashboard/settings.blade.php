@@ -8,6 +8,17 @@
     @csrf
     <section class="card grid gap-4 sm:grid-cols-2">
         <h2 class="text-lg font-bold sm:col-span-2">{{ __('Restaurant identity') }}</h2>
+        <div class="sm:col-span-2">
+            <label class="field-label">{{ __('Type of place') }}</label>
+            <div class="flex flex-wrap gap-2">
+                @foreach (\App\Support\BusinessType::TYPES as $key => $label)
+                    <label class="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-navy-100 px-4 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+                        <input type="radio" name="business_type" value="{{ $key }}" class="accent-brand-600" @checked(old('business_type', $s['business_type']) === $key)> {{ app()->getLocale() === 'en' ? $label[1] : $label[0] }}
+                    </label>
+                @endforeach
+            </div>
+            <p class="mt-1 text-xs text-navy-500">{{ __('It changes the names on your screens (bar or kitchen) and the suggestions you see. Every feature stays available.') }}</p>
+        </div>
         <div><label class="field-label">{{ __('Name (Arabic)') }}</label><input class="field" name="brand_name" value="{{ old('brand_name', $s['brand_name']) }}" required maxlength="80"></div>
         <div><label class="field-label">{{ __('Name (English)') }}</label><input class="field" name="brand_name_en" value="{{ old('brand_name_en', $s['brand_name_en']) }}" maxlength="80" dir="ltr"></div>
         <div><label class="field-label">{{ __('Tagline (Arabic)') }}</label><input class="field" name="tagline" value="{{ old('tagline', $s['tagline']) }}" maxlength="150"></div>
@@ -55,11 +66,14 @@
             <p class="rounded-xl bg-brand-50 p-3 text-sm text-brand-700">{{ \App\Services\Entitlements::current()->upgradeMessage('menu_themes') }}</p>
         @endunless
         <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            @foreach (['classic' => [__('Classic'), __('Text with a photo on the side')], 'grid' => [__('Grid'), __('Big photos, two per row')], 'minimal' => [__('Minimal'), __('Like a printed menu')], 'dark' => [__('Dark'), __('Dark background, for evening cafes')]] as $key => [$label, $hint])
+            @foreach (\App\Support\MenuThemes::keys() as $key)
+                @php
+                    [$label, $hint] = \App\Support\MenuThemes::label($key);
+                @endphp
                 <label @class(['cursor-pointer rounded-xl border border-navy-100 p-3 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50', 'opacity-50' => !$themes && $key !== 'classic'])>
                     <input type="radio" name="menu_theme" value="{{ $key }}" class="sr-only" @checked(($themes ? $s['menu_theme'] : 'classic') === $key) @disabled(!$themes && $key !== 'classic')>
                     @include('dashboard.partials.theme-thumb', ['theme' => $key])
-                    <span class="mt-2 block font-bold">{{ $label }}</span>
+                    <span class="mt-2 flex items-center gap-1.5 font-bold">{{ $label }}@if (\App\Support\MenuThemes::suits($key, $s['business_type']) && ! in_array($key, ['classic', 'grid'], true))<span class="badge bg-emerald-100 text-emerald-800">{{ __('Suits you') }}</span>@endif</span>
                     <span class="block text-xs text-navy-500">{{ $hint }}</span>
                 </label>
             @endforeach

@@ -7,8 +7,9 @@
     $brand = tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name;
     $currency = tr($settings['currency'], $settings['currency_en']);
     $featured = $categories->flatMap->items->where('is_featured', true)->take(8);
-    $theme = \App\Services\Entitlements::current()->allows('menu_themes') && in_array($settings['menu_theme'], ['classic', 'grid', 'minimal', 'dark'], true)
+    $theme = \App\Services\Entitlements::current()->allows('menu_themes') && in_array($settings['menu_theme'], \App\Support\MenuThemes::keys(), true)
         ? $settings['menu_theme'] : 'classic';
+    $layout = \App\Support\MenuThemes::layout($theme);
 @endphp
 
 @push('head')
@@ -20,16 +21,7 @@
 <style>
     :root { --menu-primary: {{ $color('color_primary', '#E8642C') }}; --menu-secondary: {{ $color('color_secondary', '#1E2D4F') }}; --menu-bg: {{ $color('color_bg', '#FFFFFF') }}; }
     body { background: var(--menu-bg); font-family: '{{ $settings['font'] }}', 'Cairo', system-ui, sans-serif; }
-    @if ($theme === 'dark')
-    :root { --menu-bg: #0f1420; }
-    body { color: #f3f4f6; }
-    .m-card { background: #1a2130 !important; border-color: #273044 !important; }
-    .m-muted { color: #9aa3b5 !important; }
-    [data-cat-nav] { background: rgba(15, 20, 32, .95) !important; border-color: #273044 !important; }
-    [data-cat-nav] a:not(.m-primary) { background: #1a2130; color: #e5e7eb; }
-    [data-cat-nav] input { background: #1a2130; border-color: #273044; color: #f3f4f6; }
-    section h2 { color: #fff !important; }
-    @endif
+    @include('menu.themes.styles', ['theme' => $theme])
     .m-primary { background: var(--menu-primary); color: #fff; }
     .m-primary-text { color: var(--menu-primary); }
     .m-secondary { background: var(--menu-secondary); color: #fff; }
@@ -109,9 +101,9 @@
         <section id="cat-{{ $c->id }}" class="mb-8 scroll-mt-36" data-category>
             <h2 class="mb-1 text-xl font-extrabold" style="color: var(--menu-secondary)">{{ tr($c->name, $c->name_en) }}</h2>
             @if ($d = tr($c->description, $c->description_en))<p class="mb-3 text-sm text-navy-500">{{ $d }}</p>@endif
-            <div @class(['mt-3', 'grid grid-cols-2 gap-3' => $theme === 'grid', 'divide-y divide-black/10' => $theme === 'minimal', 'space-y-3' => in_array($theme, ['classic', 'dark'], true)])>
+            <div @class(['mt-3', 'grid grid-cols-2 gap-3' => $layout === 'grid', 'divide-y divide-black/10' => $layout === 'minimal', 'space-y-3' => in_array($layout, ['classic', 'cafe'], true)])>
                 @foreach ($c->items as $item)
-                    @include('menu.items.' . ($theme === 'dark' ? 'classic' : $theme), ['item' => $item])
+                    @include('menu.items.' . $layout, ['item' => $item])
                 @endforeach
             </div>
         </section>

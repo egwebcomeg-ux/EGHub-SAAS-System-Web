@@ -1,5 +1,5 @@
 @extends('layouts.base', ['viteEntries' => ['resources/js/kitchen.js']])
-@section('title', __('Kitchen display'))
+@section('title', \App\Support\BusinessType::prepScreen())
 @section('body_class', 'bg-navy-900 text-white')
 
 @section('body')
@@ -12,7 +12,7 @@
 <div class="flex min-h-dvh flex-col">
     <header class="flex flex-wrap items-center gap-3 border-b border-white/10 px-4 py-3">
         <a href="{{ route('dash.home') }}" class="text-white/60 hover:text-white">←</a>
-        <h1 class="text-xl font-extrabold">{{ __('Kitchen display') }}{{ $station ? ' · ' . tr($station->name, $station->name_en) : '' }}</h1>
+        <h1 class="text-xl font-extrabold">{{ \App\Support\BusinessType::prepScreen() }}{{ $station ? ' · ' . tr($station->name, $station->name_en) : '' }}</h1>
         @if ($stations->isNotEmpty())
             <nav class="flex flex-wrap gap-1 text-sm">
                 <a href="?" @class(['rounded-lg px-3 py-1.5', 'bg-white text-navy-900' => !$station, 'bg-white/10' => $station])>{{ __('All') }}</a>

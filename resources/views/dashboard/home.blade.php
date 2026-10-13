@@ -47,4 +47,24 @@
         </div>
     </div>
 </div>
+@if ($suggestions)
+    <section class="card mt-4">
+        <h2 class="mb-3 text-lg font-bold">{{ __('Recommended for your :type', ['type' => \App\Support\BusinessType::label($businessType)]) }}</h2>
+        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            @foreach ($suggestions as $sug)
+                @php
+                    $has = \App\Services\Entitlements::current()->allows($sug['feature']);
+                @endphp
+                <div class="rounded-xl border border-navy-100 p-3">
+                    <div class="flex items-center justify-between gap-2">
+                        <b>{{ $sug['title'] }}</b>
+                        @if ($has)<span class="badge bg-emerald-100 text-emerald-800">{{ __('Included') }}</span>@endif
+                    </div>
+                    <p class="mt-1 text-sm text-navy-500">{{ $sug['text'] }}</p>
+                    @unless ($has)<a href="{{ route('dash.billing') }}" class="mt-2 inline-block text-sm font-semibold text-brand-700">{{ __('Add') }} ←</a>@endunless
+                </div>
+            @endforeach
+        </div>
+    </section>
+@endif
 @endsection

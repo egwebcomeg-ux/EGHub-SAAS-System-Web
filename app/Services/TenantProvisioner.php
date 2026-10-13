@@ -3,11 +3,14 @@
 namespace App\Services;
 
 use App\Models\Branch;
+use App\Models\Category;
 use App\Models\DiningTable;
+use App\Models\KitchenStation;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\BusinessType;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -23,7 +26,7 @@ final class TenantProvisioner
     public const STARTER_TABLES = 5;
 
     /**
-     * @param array{slug:string,name:string,owner_name:string,email:string,password:string,phone?:string,plan?:string,trial?:bool} $d
+     * @param  array{slug:string,name:string,owner_name:string,email:string,password:string,phone?:string,plan?:string,trial?:bool,business_type?:string}  $d
      */
     public function create(array $d): Tenant
     {
@@ -41,7 +44,18 @@ final class TenantProvisioner
 
             tenancy()->initialize($tenant);
             try {
-                Settings::put(['brand_name' => $d['name'], 'phone' => $d['phone'] ?? '', 'whatsapp' => $d['phone'] ?? '']);
+                $type = isset(BusinessType::TYPES[$d['business_type'] ?? '']) ? $d['business_type'] : BusinessType::DEFAULT;
+                Settings::put([
+                    'brand_name' => $d['name'], 'phone' => $d['phone'] ?? '', 'whatsapp' => $d['phone'] ?? '',
+                    'business_type' => $type, 'menu_theme' => BusinessType::theme($type),
+                ]);
+                // starter categories and prep stations for the kind of place (empty: the owner adds the items)
+                foreach (BusinessType::categories($type) as $i => [$ar, $en]) {
+                    Category::query()->create(['name' => $ar, 'name_en' => $en, 'sort_order' => $i + 1]);
+                }
+                foreach (BusinessType::stations($type) as $i => [$ar, $en]) {
+                    KitchenStation::query()->create(['name' => $ar, 'name_en' => $en, 'sort_order' => $i + 1]);
+                }
 
                 $owner = User::query()->create([
                     'name' => $d['owner_name'], 'email' => strtolower($d['email']), 'phone' => $d['phone'] ?? null,
@@ -58,6 +72,7 @@ final class TenantProvisioner
                 Settings::flush();
             }
             Entitlements::flush();
+
             return $tenant;
         });
     }
