@@ -6,8 +6,12 @@ use App\Http\Controllers\Dashboard\BranchesController;
 use App\Http\Controllers\Dashboard\CategoriesController;
 use App\Http\Controllers\Dashboard\HomeController;
 use App\Http\Controllers\Dashboard\ItemsController;
+use App\Http\Controllers\Dashboard\KitchenController;
 use App\Http\Controllers\Dashboard\OrdersController;
+use App\Http\Controllers\Dashboard\PosController;
 use App\Http\Controllers\Dashboard\SettingsController;
+use App\Http\Controllers\Dashboard\ShiftsController;
+use App\Http\Controllers\Dashboard\StationsController;
 use App\Http\Controllers\Dashboard\TablesController;
 use App\Http\Controllers\Dashboard\UsersController;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +38,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::middleware('permission:billing.manage')->group(function () {
         Route::get('/billing', [BillingController::class, 'index'])->name('billing');
         Route::post('/billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
+        Route::post('/billing/addons/{key}', [BillingController::class, 'addon'])->where('key', '[a-z_]+')->name('billing.addon');
         Route::get('/billing/invoices/{number}', [BillingController::class, 'invoice'])->name('billing.invoice');
         Route::post('/billing/invoices/{number}/claim', [BillingController::class, 'claim'])->middleware('throttle:10,1')->name('billing.claim');
     });
@@ -81,5 +86,38 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/orders/feed', [OrdersController::class, 'feed'])->name('orders.feed');
         Route::post('/orders/{order}/status', [OrdersController::class, 'transition'])
             ->middleware('permission:orders.manage')->name('orders.status');
+    });
+
+    Route::get('/orders/{order}/receipt', [OrdersController::class, 'receipt'])
+        ->middleware('permission:orders.view|pos.use')->name('orders.receipt');
+
+    // ---- Operations add-ons (sold separately from the plans) ----
+
+    // POS pack: cashier screen, shifts & drawer, customer display
+    Route::middleware(['feature:pos', 'permission:pos.use'])->group(function () {
+        Route::get('/pos', [PosController::class, 'screen'])->name('pos');
+        Route::post('/pos/orders', [PosController::class, 'store'])->name('pos.order');
+        Route::post('/pos/orders/{order}/pay', [PosController::class, 'pay'])->name('pos.pay');
+        Route::get('/pos/open', [PosController::class, 'open'])->name('pos.open');
+        Route::get('/pos/display', [PosController::class, 'display'])->name('pos.display');
+    });
+    Route::middleware(['feature:shifts', 'permission:shifts.manage'])->group(function () {
+        Route::get('/shifts', [ShiftsController::class, 'index'])->name('shifts');
+        Route::post('/shifts/open', [ShiftsController::class, 'open'])->name('shifts.open');
+        Route::post('/shifts/move', [ShiftsController::class, 'move'])->name('shifts.move');
+        Route::post('/shifts/close', [ShiftsController::class, 'close'])->name('shifts.close');
+    });
+
+    // Kitchen pack: kitchen display and stations
+    Route::middleware(['feature:kitchen_display', 'permission:kitchen.view'])->group(function () {
+        Route::get('/kitchen', [KitchenController::class, 'screen'])->name('kitchen');
+        Route::get('/kitchen/feed', [KitchenController::class, 'feed'])->name('kitchen.feed');
+        Route::post('/kitchen/orders/{order}', [KitchenController::class, 'bump'])->name('kitchen.bump');
+    });
+    Route::middleware(['feature:kitchen_stations', 'permission:menu.manage'])->group(function () {
+        Route::get('/kitchen/stations', [StationsController::class, 'index'])->name('stations');
+        Route::post('/kitchen/stations', [StationsController::class, 'store'])->name('stations.store');
+        Route::post('/kitchen/stations/assign', [StationsController::class, 'assign'])->name('stations.assign');
+        Route::post('/kitchen/stations/{station}/delete', [StationsController::class, 'destroy'])->name('stations.delete');
     });
 });

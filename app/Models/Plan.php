@@ -20,14 +20,15 @@ class Plan extends Model
         'qr_ordering'      => ['الطلب من الترابيزة', 'Table ordering', 'orders'],
         'order_board'      => ['لوحة الطلبات', 'Live order board', 'orders'],
         'whatsapp_orders'  => ['طلبات واتساب', 'WhatsApp orders', 'orders'],
-        'pos'              => ['كاشير POS', 'POS cashier', 'orders'],
-        'kitchen_display'  => ['شاشة المطبخ', 'Kitchen display', 'orders'],
-        'kitchen_stations' => ['أقسام مطبخ (شاشة لكل قسم)', 'Kitchen stations (screen per station)', 'orders'],
-        'customer_display' => ['شاشة العميل ولوحة أرقام الطلبات', 'Customer display & order-number board', 'orders'],
-        'shifts'           => ['ورديات الكاشير والدرج', 'Cashier shifts & cash drawer', 'orders'],
         'scheduled_orders' => ['طلبات مجدولة', 'Scheduled orders', 'orders'],
-        'call_center'      => ['شاشة الكول سنتر', 'Call-center screen', 'orders'],
-        'delivery_zones'   => ['مناطق توصيل على الخريطة', 'Delivery zones on a map', 'orders'],
+        // operations: sold as add-on packs on top of any plan (AddonPrice type=feature), off in the plans by default
+        'pos'              => ['كاشير POS', 'POS cashier', 'operations'],
+        'shifts'           => ['ورديات الكاشير والدرج', 'Cashier shifts & cash drawer', 'operations'],
+        'customer_display' => ['شاشة العميل ولوحة أرقام الطلبات', 'Customer display & order-number board', 'operations'],
+        'kitchen_display'  => ['شاشة المطبخ', 'Kitchen display', 'operations'],
+        'kitchen_stations' => ['أقسام مطبخ (شاشة لكل قسم)', 'Kitchen stations (screen per station)', 'operations'],
+        'call_center'      => ['شاشة الكول سنتر', 'Call-center screen', 'operations'],
+        'delivery_zones'   => ['مناطق توصيل على الخريطة', 'Delivery zones on a map', 'operations'],
         // menu
         'full_branding'    => ['ألوان وخطوط ولوجو المطعم', 'Colors, fonts & logo', 'menu'],
         'menu_themes'      => ['تصميمات منيو جاهزة', 'Menu themes', 'menu'],
@@ -46,7 +47,7 @@ class Plan extends Model
         // management
         'daily_reports'    => ['تقارير يومية', 'Daily reports', 'management'],
         'advanced_reports' => ['تقارير متقدمة', 'Advanced reports', 'management'],
-        'inventory'        => ['مخزون وتكلفة وصفات', 'Inventory & recipe costing', 'management'],
+        'inventory'        => ['مخزون وتكلفة وصفات', 'Inventory & recipe costing', 'operations'],
         'staff_roles'      => ['صلاحيات موظفين مخصصة', 'Custom staff permissions', 'management'],
         'audit_log'        => ['سجل العمليات', 'Audit log', 'management'],
         // platform
@@ -70,7 +71,14 @@ class Plan extends Model
         'marketing'  => ['التسويق والعملاء', 'Marketing & guests'],
         'management' => ['الإدارة', 'Management'],
         'platform'   => ['المنصة', 'Platform'],
+        'operations' => ['إضافات التشغيل (تتباع منفصلة)', 'Operations add-ons (sold separately)'],
     ];
+
+    /** Features sold as add-on packs; the plan comparison for guests leaves them out. */
+    public static function addonFeatures(): array
+    {
+        return array_keys(array_filter(self::FEATURES, fn ($f) => $f[2] === 'operations'));
+    }
 
     protected $guarded = ['id'];
 

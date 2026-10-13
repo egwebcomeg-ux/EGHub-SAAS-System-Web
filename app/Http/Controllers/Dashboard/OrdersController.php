@@ -49,6 +49,17 @@ class OrdersController extends Controller
         return response()->json(['ok' => true, 'order' => $this->present($order->load(['items', 'table', 'branch']))]);
     }
 
+    /** 80mm receipt for the thermal printer (customer copy, or kitchen copy without prices). */
+    public function receipt(Request $request, Order $order): View
+    {
+        abort_unless($this->visible($request, $order), 404);
+        return view('dashboard.orders.receipt', [
+            'order' => $order->load(['items', 'table', 'branch']),
+            'settings' => \App\Services\Settings::all(),
+            'kitchen' => $request->query('copy') === 'kitchen',
+        ]);
+    }
+
     private function scoped(Request $request)
     {
         $branch = $request->user()->branch_id;

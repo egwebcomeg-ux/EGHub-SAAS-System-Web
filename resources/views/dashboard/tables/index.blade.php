@@ -8,6 +8,9 @@
         <p class="text-sm text-navy-500">{{ __('Tables') }}: {{ $usage['used'] }} / {{ $usage['limit'] ?? '∞' }}</p>
     </div>
     <div class="flex flex-wrap gap-2">
+        @if (\App\Services\Entitlements::current()->allows('customer_display'))
+            <a href="{{ tenant()->url('board') }}" target="_blank" rel="noopener" class="btn-ghost">{{ __('Order-number board (hall screen)') }}</a>
+        @endif
         <a href="{{ route('dash.tables.print', ['menu' => 1]) }}" target="_blank" class="btn-ghost">{{ __('Print general menu QR') }}</a>
         <a href="{{ route('dash.tables.print') }}" target="_blank" class="btn-primary">{{ __('Print all table QR cards') }}</a>
     </div>

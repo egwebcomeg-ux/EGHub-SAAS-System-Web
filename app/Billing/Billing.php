@@ -2,6 +2,7 @@
 
 namespace App\Billing;
 
+use App\Models\AddonPrice;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Plan;
@@ -45,6 +46,13 @@ final class Billing
         if ($full - $price > 0) {
             $lines[] = ['label' => __(':pct% discount for :cycle', ['pct' => money($plan->cycle_discounts[(string) $months] ?? 0), 'cycle' => cycle_label($months)]), 'amount' => -round($full - $price, 2)];
         }
+        // add-ons already on the subscription are billed with the plan for the same cycle
+        foreach ($sub?->addons ?? [] as $addon) {
+            $price = AddonPrice::query()->where('key', $addon->key)->first();
+            $lines[] = ['label' => ($price?->displayName() ?? $addon->key) . ($addon->quantity > 1 ? " × {$addon->quantity}" : '') . ' — ' . cycle_label($months),
+                'amount' => round($addon->unit_price * $addon->quantity * $months, 2)];
+            $full += round($addon->unit_price * $addon->quantity * $months, 2);
+        }
         $credit = $sub && !$renewal ? $this->credit($sub) : 0.0;
         if ($credit > 0) {
             $lines[] = ['label' => __('Unused balance of your current plan'), 'amount' => -$credit];
@@ -75,6 +83,45 @@ final class Billing
             $invoice->update(['number' => 'EGM-' . now()->format('Ym') . '-' . str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT)]);
             return $invoice->fresh();
         });
+    }
+
+    /**
+     * Invoice for adding a pack (POS, kitchen display...) or extra branch/staff. During a paid period it is prorated
+     * to the period end (the next renewal then bills it for the whole cycle); otherwise one month.
+     */
+    public function invoiceForAddon(Tenant $tenant, AddonPrice $addon, int $quantity = 1): Invoice
+    {
+        $sub = $tenant->subscription()->first();
+        $paidPeriod = $sub && $sub->status === 'active' && $sub->current_period_end?->isFuture();
+        $months = $paidPeriod ? max(0.1, round(now()->diffInDays($sub->current_period_end) / 30, 2)) : 1;
+        $amount = round($addon->monthly_price * $quantity * $months);
+        $label = $addon->displayName() . ($quantity > 1 ? " × $quantity" : '') . ' — '
+            . ($paidPeriod ? __('until :date', ['date' => local_time($sub->current_period_end, 'Y/m/d')]) : cycle_label(1));
+
+        return DB::transaction(function () use ($tenant, $addon, $quantity, $amount, $label) {
+            Invoice::query()->where('tenant_id', $tenant->id)->where('status', 'open')->where('kind', 'addon')
+                ->where('meta->addon', $addon->key)->update(['status' => 'void']);
+            $invoice = Invoice::query()->create([
+                'tenant_id' => $tenant->id, 'number' => 'TMP-' . random_token(6), 'kind' => 'addon',
+                'lines' => [['label' => $label, 'amount' => $amount]], 'subtotal' => $amount, 'discount' => 0, 'total' => $amount,
+                'status' => 'open', 'due_at' => now()->addDays(3), 'meta' => ['addon' => $addon->key, 'quantity' => $quantity],
+            ]);
+            $invoice->update(['number' => 'EGM-' . now()->format('Ym') . '-' . str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT)]);
+            return $invoice->fresh();
+        });
+    }
+
+    /** Switches an add-on on or off for a restaurant (paid invoice, or EgWeb granting it by hand). */
+    public function setAddon(Tenant $tenant, string $key, int $quantity): void
+    {
+        $sub = $tenant->subscription()->firstOrFail();
+        if ($quantity <= 0) {
+            $sub->addons()->where('key', $key)->delete();
+        } else {
+            $price = AddonPrice::query()->where('key', $key)->firstOrFail();
+            $sub->addons()->updateOrCreate(['key' => $key], ['quantity' => $quantity, 'unit_price' => $price->monthly_price]);
+        }
+        Entitlements::flush();
     }
 
     /** The restaurant says it transferred the money: recorded as a pending payment for EgWeb to confirm. */
@@ -112,10 +159,16 @@ final class Billing
         });
     }
 
-    /** A paid plan invoice: new period (or extension on renewal), restaurant back online. */
+    /** A paid plan invoice: new period (or extension on renewal), restaurant back online. A paid add-on: switched on. */
     private function apply(Invoice $invoice): void
     {
         $tenant = $invoice->tenant;
+        if ($invoice->kind === 'addon') {
+            $current = (int) $tenant->subscription()->first()?->addons()->where('key', $invoice->meta['addon'])->value('quantity');
+            $price = AddonPrice::query()->where('key', $invoice->meta['addon'])->first();
+            $this->setAddon($tenant, $invoice->meta['addon'], $price?->isFeaturePack() ? 1 : $current + (int) ($invoice->meta['quantity'] ?? 1));
+            return;
+        }
         $sub = $tenant->subscription()->first();
         $months = (int) $invoice->cycle_months;
         $renewal = (bool) ($invoice->meta['renewal'] ?? false) && $sub && $sub->current_period_end?->isFuture();

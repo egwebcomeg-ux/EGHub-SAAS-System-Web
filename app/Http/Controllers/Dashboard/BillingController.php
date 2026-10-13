@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Billing\Billing;
 use App\Billing\PaymentMethods;
 use App\Http\Controllers\Controller;
+use App\Models\AddonPrice;
 use App\Models\Invoice;
 use App\Models\Plan;
 use Illuminate\Http\RedirectResponse;
@@ -26,7 +27,20 @@ class BillingController extends Controller
             'plans'        => $plans,
             'matrix'       => $plans->mapWithKeys(fn (Plan $p) => [$p->id => $p->entitlements()]),
             'invoices'     => Invoice::query()->where('tenant_id', tenant()->getTenantKey())->latest('id')->limit(20)->get(),
+            'addons'       => AddonPrice::query()->where('is_active', true)->orderBy('sort_order')->get(),
+            'myAddons'     => tenant()->subscription()->first()?->addons()->pluck('quantity', 'key')->all() ?? [],
         ]);
+    }
+
+    public function addon(Request $request, string $key, Billing $billing): RedirectResponse
+    {
+        $addon = AddonPrice::query()->where('is_active', true)->where('key', $key)->firstOrFail();
+        $mine = (int) tenant()->subscription()->first()?->addons()->where('key', $key)->value('quantity');
+        if ($addon->isFeaturePack() && $mine > 0) {
+            return back()->with('ok', __('This add-on is already active.'));
+        }
+        $invoice = $billing->invoiceForAddon(tenant(), $addon, 1);
+        return redirect()->route('dash.billing.invoice', $invoice->number);
     }
 
     public function checkout(Request $request, Billing $billing): RedirectResponse

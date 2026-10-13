@@ -52,9 +52,11 @@ final class OrderService
 
         $lines = $this->priceLines($data['items'] ?? [], MenuCatalog::forBranch($branch));
         $subtotal = round(array_sum(array_column($lines, 'line_total')), 2);
+        // Only staff (POS) can discount; the caller checks the permission. Never more than the order itself.
+        $discount = round(min($subtotal, max(0.0, (float) ($data['discount'] ?? 0))), 2);
         $type = in_array($data['type'] ?? null, array_keys(Order::TYPES), true) ? $data['type'] : ($table ? 'dine_in' : 'takeaway');
-        $service = $type === 'dine_in' ? round($subtotal * $this->percent('service_percent'), 2) : 0.0;
-        $tax = round(($subtotal + $service) * $this->percent('tax_percent'), 2);
+        $service = $type === 'dine_in' ? round(($subtotal - $discount) * $this->percent('service_percent'), 2) : 0.0;
+        $tax = round(($subtotal - $discount + $service) * $this->percent('tax_percent'), 2);
 
         $phone = isset($data['customer_phone']) && $data['customer_phone'] !== '' ? normalize_phone((string) $data['customer_phone']) : null;
         if (isset($data['customer_phone']) && $data['customer_phone'] !== '' && !$phone) {
@@ -63,7 +65,7 @@ final class OrderService
 
         for ($attempt = 1; ; $attempt++) {
             try {
-                return DB::transaction(function () use ($data, $branch, $table, $by, $lines, $subtotal, $service, $tax, $type, $phone, $uuid) {
+                return DB::transaction(function () use ($data, $branch, $table, $by, $lines, $subtotal, $discount, $service, $tax, $type, $phone, $uuid) {
                     $customer = $phone && Entitlements::current()->allows('customers')
                         ? $this->customer($phone, (string) ($data['customer_name'] ?? '')) : null;
 
@@ -75,8 +77,8 @@ final class OrderService
                         'customer_name' => mb_substr(trim((string) ($data['customer_name'] ?? '')), 0, 100),
                         'customer_phone' => $phone ?? '',
                         'notes' => mb_substr(trim((string) ($data['notes'] ?? '')), 0, 500) ?: null,
-                        'subtotal' => $subtotal, 'service' => $service, 'tax' => $tax,
-                        'total' => round($subtotal + $service + $tax, 2), 'created_by' => $by?->id,
+                        'subtotal' => $subtotal, 'discount' => $discount, 'service' => $service, 'tax' => $tax,
+                        'total' => round($subtotal - $discount + $service + $tax, 2), 'created_by' => $by?->id,
                     ]);
                     foreach ($lines as $line) {
                         $order->items()->create($line);
@@ -94,6 +96,25 @@ final class OrderService
                 }
             }
         }
+    }
+
+    /** Collects the money of an order (POS). Cash goes into the cashier's open shift drawer. */
+    public function pay(Order $order, string $method, User $by, ?\App\Models\Shift $shift): Order
+    {
+        if ($order->payment_status === 'paid') {
+            throw new OrderException(__('This order is already paid.'));
+        }
+        if ($order->status === 'cancelled') {
+            throw new OrderException(__('This order was cancelled.'));
+        }
+        if (!in_array($method, ShiftService::METHODS, true)) {
+            throw new OrderException(__('Choose a payment method.'));
+        }
+        if (!$shift && Entitlements::current()->allows('shifts')) {
+            throw new OrderException(__('Open a shift first to take payments.'));
+        }
+        $order->update(['payment_status' => 'paid', 'payment_method' => $method, 'shift_id' => $shift?->id]);
+        return $order;
     }
 
     /** Moves an order to its next status, stamping the time and recording who did it. */

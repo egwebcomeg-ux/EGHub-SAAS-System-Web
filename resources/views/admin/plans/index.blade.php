@@ -43,4 +43,33 @@
         </tbody>
     </table>
 </div>
+<h2 class="mt-8 mb-1 text-xl font-extrabold">{{ __('Add-ons') }}</h2>
+<p class="mb-4 text-sm text-navy-500">{{ __('Sold on top of any plan. A pack unlocks the features ticked below; extra branch/staff raise a limit.') }}</p>
+<form method="post" action="{{ route('admin.addons.update') }}" class="space-y-4">
+    @csrf
+    <div class="grid gap-4 lg:grid-cols-2">
+        @foreach ($addons as $a)
+            <div class="card space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="badge {{ $a->isFeaturePack() ? 'bg-brand-100 text-brand-700' : 'bg-navy-100 text-navy-700' }}">{{ $a->isFeaturePack() ? __('Feature pack') : __('Extra limit') }}</span>
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="addons[{{ $a->id }}][is_active]" value="1" @checked($a->is_active) class="size-4 accent-brand-600"> {{ __('On sale') }}</label>
+                </div>
+                <div class="grid gap-3 sm:grid-cols-3">
+                    <input class="field" name="addons[{{ $a->id }}][name]" value="{{ $a->name }}" required>
+                    <input class="field" name="addons[{{ $a->id }}][name_en]" value="{{ $a->name_en }}" dir="ltr">
+                    <input class="field" name="addons[{{ $a->id }}][monthly_price]" type="number" step="1" min="0" value="{{ $a->monthly_price }}" required>
+                </div>
+                <input class="field" name="addons[{{ $a->id }}][description]" value="{{ $a->description }}" placeholder="{{ __('Description') }}">
+                @if ($a->isFeaturePack())
+                    <div class="flex flex-wrap gap-x-4 gap-y-1">
+                        @foreach (\App\Models\Plan::FEATURES as $key => $f)
+                            <label class="flex items-center gap-1.5 text-xs"><input type="checkbox" name="addons[{{ $a->id }}][features][]" value="{{ $key }}" @checked(in_array($key, $a->features ?? [], true)) class="size-3.5 accent-brand-600"> {{ \App\Models\Plan::label($key) }}</label>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        @endforeach
+    </div>
+    <button class="btn-primary">{{ __('Save add-ons') }}</button>
+</form>
 @endsection

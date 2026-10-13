@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AddonPrice;
 use App\Models\Branch;
 use App\Models\DiningTable;
 use App\Models\MenuImport;
@@ -12,7 +13,7 @@ use App\Models\User;
 
 /**
  * The single answer to "may this restaurant do X / how many Y may it have".
- * Effective rights = the subscription's plan + paid add-ons. Enforced server-side (middleware `feature:`,
+ * Effective rights = the subscription's plan + its add-ons (extra limits, or feature packs such as the POS). Enforced server-side (middleware `feature:`,
  * controllers, services); the UI only mirrors it.
  */
 final class Entitlements
@@ -54,9 +55,16 @@ final class Entitlements
         $plan = $sub?->plan ?? Plan::query()->with('features')->where('code', self::FALLBACK_PLAN)->first()
             ?? throw new \RuntimeException('Plans are missing — run the PlanSeeder.');
         $e = $plan->entitlements();
+        $packs = AddonPrice::query()->where('type', 'feature')->pluck('features', 'key');
         foreach ($sub?->addons ?? [] as $addon) {
             if (array_key_exists($addon->key, $e['limits']) && $e['limits'][$addon->key] !== null) {
                 $e['limits'][$addon->key] += $addon->quantity;
+            }
+            // feature packs (POS, kitchen display, ...) switch their features on, whatever the plan
+            foreach ((array) ($packs[$addon->key] ?? []) as $feature) {
+                if (array_key_exists($feature, $e['features'])) {
+                    $e['features'][$feature] = true;
+                }
             }
         }
         return new self($tenant, $plan, $e['features'], $e['limits']);

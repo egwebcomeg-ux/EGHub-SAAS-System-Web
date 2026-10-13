@@ -35,5 +35,21 @@
     @endforeach
 </section>
 
+@if ($addons->isNotEmpty())
+<section class="mx-auto max-w-6xl px-4 pb-16">
+    <h2 class="text-center text-2xl font-extrabold">{{ __('Add-ons for bigger restaurants') }}</h2>
+    <p class="mx-auto mt-2 mb-6 max-w-2xl text-center text-navy-500">{{ __('Start with the menu. When you grow, add only what you need, on top of any plan.') }}</p>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        @foreach ($addons as $addon)
+            <div class="card">
+                <h3 class="font-bold">{{ $addon->displayName() }}</h3>
+                <p class="mt-1 min-h-14 text-sm text-navy-500">{{ tr($addon->description, $addon->description_en) }}</p>
+                <div class="mt-3"><b class="text-xl">+{{ money($addon->monthly_price) }}</b> <span class="text-sm text-navy-500">{{ __('EGP / month') }}</span></div>
+            </div>
+        @endforeach
+    </div>
+</section>
+@endif
+
 <footer class="border-t border-navy-100 py-6 text-center text-sm text-navy-500">© {{ date('Y') }} EgMenu · {{ __('by') }} EgWeb</footer>
 @endsection

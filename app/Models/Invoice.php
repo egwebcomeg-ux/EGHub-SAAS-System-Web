@@ -24,6 +24,15 @@ class Invoice extends Model
         ];
     }
 
+    /** "Pro · 6 months" for a plan invoice, the add-on line for an add-on invoice. */
+    public function description(): string
+    {
+        if ($this->kind === 'addon') {
+            return (string) ($this->lines[0]['label'] ?? __('Add-on'));
+        }
+        return trim(($this->plan?->displayName() ?? '') . ' · ' . cycle_label((int) $this->cycle_months), ' ·');
+    }
+
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);

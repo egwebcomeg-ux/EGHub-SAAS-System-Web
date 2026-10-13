@@ -14,6 +14,7 @@ class LandingController extends Controller
         $plans = Plan::query()->where('is_public', true)->with('features')->orderBy('sort_order')->get();
         return view('landing.home', [
             'plans'  => $plans,
+            'addons' => \App\Models\AddonPrice::query()->where('is_active', true)->where('type', 'feature')->orderBy('sort_order')->get(),
             'matrix' => $plans->mapWithKeys(fn (Plan $p) => [$p->id => $p->entitlements()]),
         ]);
     }

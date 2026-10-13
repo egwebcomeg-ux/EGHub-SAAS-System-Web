@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AddonPrice;
 use App\Models\Plan;
 use App\Services\Entitlements;
 use Illuminate\Http\RedirectResponse;
@@ -16,9 +17,37 @@ class PlansController extends Controller
     {
         $plans = Plan::query()->with('features')->orderBy('sort_order')->get();
         return view('admin.plans.index', [
+            'addons' => AddonPrice::query()->orderBy('sort_order')->get(),
             'plans'  => $plans,
             'matrix' => $plans->mapWithKeys(fn (Plan $p) => [$p->id => $p->entitlements()]),
         ]);
+    }
+
+    /** Prices / names / on-off of the add-ons; a feature pack's feature list is edited here too. */
+    public function addons(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'addons'                  => 'array',
+            'addons.*.name'           => 'required|string|max:60',
+            'addons.*.name_en'        => 'nullable|string|max:60',
+            'addons.*.description'    => 'nullable|string|max:200',
+            'addons.*.monthly_price'  => 'required|numeric|min:0|max:100000',
+            'addons.*.features'       => 'array',
+            'addons.*.features.*'     => ['string', \Illuminate\Validation\Rule::in(array_keys(Plan::FEATURES))],
+        ]);
+        foreach ($data['addons'] ?? [] as $id => $a) {
+            $addon = AddonPrice::query()->find((int) $id);
+            if (!$addon) {
+                continue;
+            }
+            $addon->update([
+                'name' => $a['name'], 'name_en' => $a['name_en'] ?? '', 'description' => $a['description'] ?? '',
+                'monthly_price' => $a['monthly_price'], 'is_active' => $request->boolean("addons.$id.is_active"),
+                'features' => $addon->isFeaturePack() ? array_values($a['features'] ?? []) : null,
+            ]);
+        }
+        Entitlements::flush();
+        return back()->with('ok', __('Add-ons saved.'));
     }
 
     public function edit(Plan $plan): View

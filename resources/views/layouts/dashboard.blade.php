@@ -12,11 +12,16 @@
         ['dash.tables', __('Tables & QR'), 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2z', 'tables.manage', null],
         ['dash.branches', __('Branches'), 'M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z', 'branches.manage', null],
         ['dash.users', __('Users & roles'), 'M16 11a4 4 0 1 0-8 0M4 21a8 8 0 0 1 16 0', 'users.manage', null],
+        // operations add-ons (shown only when the restaurant has the pack)
+        ['dash.pos', __('POS'), 'M3 4h18v12H3zM8 20h8M12 16v4', 'pos.use', 'pos'],
+        ['dash.shifts', __('Shifts'), 'M12 8v4l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z', 'shifts.manage', 'shifts'],
+        ['dash.kitchen', __('Kitchen display'), 'M6 13.9A4 4 0 0 1 7 6a5 5 0 0 1 10 0 4 4 0 0 1 1 7.9V20H6zM6 17h12', 'kitchen.view', 'kitchen_display'],
+        ['dash.stations', __('Kitchen stations'), 'M4 6h16M4 12h16M4 18h10', 'menu.manage', 'kitchen_stations'],
         ['dash.billing', __('Subscription'), 'M3 6h18v12H3zM3 10h18M7 15h3', 'billing.manage', null],
         ['dash.settings', __('Settings'), 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.8 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.8-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 4.6V4.5a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.8 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 11h.1a2 2 0 1 1 0 4z', 'settings.manage', null],
     ];
     // Built in the next phases; listed so staff see where the product is going.
-    $soon = [__('Kitchen display'), __('POS'), __('Call center'), __('Loyalty card'), __('Reports')];
+    $soon = [__('Loyalty card'), __('Reports'), __('Call center')];
 @endphp
 
 @section('body')

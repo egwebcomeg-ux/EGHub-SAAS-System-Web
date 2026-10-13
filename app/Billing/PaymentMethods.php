@@ -35,6 +35,9 @@ final class PaymentMethods
             'instapay' => 'InstaPay',
             'vodafone_cash' => __('Vodafone Cash'),
             'manual' => __('Manual'),
+            'cash' => __('Cash'),
+            'card' => __('Card'),
+            'wallet' => __('Mobile wallet'),
             default => ucfirst($key),
         };
     }

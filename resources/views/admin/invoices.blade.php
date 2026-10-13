@@ -20,7 +20,7 @@
             <tr>
                 <td dir="ltr" class="text-start font-semibold">{{ $inv->number }}<div class="text-xs font-normal text-navy-500">{{ local_time($inv->created_at, 'Y/m/d') }}</div></td>
                 <td><a class="text-brand-700" href="{{ route('admin.tenants.show', $inv->tenant_id) }}">{{ $inv->tenant?->name ?? $inv->tenant_id }}</a></td>
-                <td>{{ $inv->plan?->displayName() }} · {{ cycle_label((int) $inv->cycle_months) }}</td>
+                <td>{{ $inv->description() }}</td>
                 <td class="font-bold">{{ money($inv->total) }}</td>
                 <td>@include('partials.invoice-status', ['invoice' => $inv])</td>
                 <td class="text-sm">

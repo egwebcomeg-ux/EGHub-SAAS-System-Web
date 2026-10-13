@@ -17,9 +17,10 @@ class PlanSeeder extends Seeder
         $cycles = ['6' => 10, '12' => 17];
 
         $basic = ['qr_ordering', 'order_board', 'full_branding', 'excel_import', 'feedback'];
-        $pro = array_merge($basic, ['whatsapp_orders', 'pos', 'kitchen_display', 'customer_display', 'shifts', 'scheduled_orders',
-            'daily_reports', 'menu_themes', 'printed_menu', 'offers', 'upsell', 'ai_import', 'customers', 'loyalty_stamps']);
-        $business = array_keys(Plan::FEATURES);
+        $pro = array_merge($basic, ['whatsapp_orders', 'scheduled_orders', 'daily_reports', 'menu_themes', 'printed_menu',
+            'offers', 'upsell', 'ai_import', 'customers', 'loyalty_stamps']);
+        // Business = every menu feature; operations (POS, kitchen, call center, inventory) are add-ons for every plan.
+        $business = array_values(array_diff(array_keys(Plan::FEATURES), Plan::addonFeatures()));
 
         $plans = [
             ['code' => 'basic', 'name' => 'أساسية', 'name_en' => 'Basic', 'monthly_price' => 149, 'sort_order' => 1,
@@ -28,13 +29,13 @@ class PlanSeeder extends Seeder
                 'features' => $basic,
                 'limits' => ['branches' => 1, 'menu_items' => 150, 'staff' => 2, 'tables' => 15, 'ai_imports_per_month' => 0]],
             ['code' => 'pro', 'name' => 'احترافية', 'name_en' => 'Pro', 'monthly_price' => 399, 'sort_order' => 2, 'is_featured' => true,
-                'tagline' => 'كاشير وشاشة مطبخ وتقارير وكارت ولاء',
-                'tagline_en' => 'POS, kitchen display, reports and a loyalty card',
+                'tagline' => 'طلب من الترابيزة وكارت ولاء وعروض ومنيو مطبوع',
+                'tagline_en' => 'Table ordering, loyalty card, offers and a printed menu',
                 'features' => $pro,
                 'limits' => ['branches' => 1, 'menu_items' => null, 'staff' => 8, 'tables' => 50, 'ai_imports_per_month' => 5]],
             ['code' => 'business', 'name' => 'بيزنس', 'name_en' => 'Business', 'monthly_price' => 799, 'sort_order' => 3,
-                'tagline' => 'فروع متعددة ومخزون وولاء بالنقاط وصلاحيات كاملة',
-                'tagline_en' => 'Multiple branches, inventory, points and full permissions',
+                'tagline' => 'فروع متعددة وأسعار لكل فرع ونقاط ولاء وصلاحيات كاملة',
+                'tagline_en' => 'Multiple branches, per-branch prices, loyalty points and full permissions',
                 'features' => $business,
                 'limits' => ['branches' => 3, 'menu_items' => null, 'staff' => null, 'tables' => null, 'ai_imports_per_month' => 20]],
         ];
@@ -55,8 +56,28 @@ class PlanSeeder extends Seeder
         }
 
         foreach ([
-            ['key' => 'branches', 'name' => 'فرع إضافي', 'monthly_price' => 99],
-            ['key' => 'staff', 'name' => 'مستخدم إضافي', 'monthly_price' => 25],
+            ['key' => 'pos_pack', 'type' => 'feature', 'monthly_price' => 199, 'sort_order' => 1,
+                'name' => 'الكاشير', 'name_en' => 'POS pack',
+                'description' => 'نقطة بيع، وورديات ودرج كاش، وشاشة عميل، ولوحة أرقام الطلبات',
+                'description_en' => 'Point of sale, shifts & cash drawer, customer display, order-number board',
+                'features' => ['pos', 'shifts', 'customer_display']],
+            ['key' => 'kitchen_pack', 'type' => 'feature', 'monthly_price' => 149, 'sort_order' => 2,
+                'name' => 'شاشة المطبخ', 'name_en' => 'Kitchen display',
+                'description' => 'شاشة طلبات للمطبخ بالوقت والألوان، وأقسام مطبخ (شاشة لكل قسم)',
+                'description_en' => 'Kitchen order screen with timers, kitchen stations (a screen per station)',
+                'features' => ['kitchen_display', 'kitchen_stations']],
+            ['key' => 'callcenter_pack', 'type' => 'feature', 'monthly_price' => 199, 'sort_order' => 3,
+                'name' => 'الكول سنتر والتوصيل', 'name_en' => 'Call center & delivery',
+                'description' => 'شاشة كول سنتر بالبحث برقم العميل، ومناطق توصيل على الخريطة',
+                'description_en' => 'Call-center screen with phone lookup, delivery zones on a map',
+                'features' => ['call_center', 'delivery_zones', 'customers']],
+            ['key' => 'inventory_pack', 'type' => 'feature', 'monthly_price' => 199, 'sort_order' => 4,
+                'name' => 'المخزون', 'name_en' => 'Inventory',
+                'description' => 'خامات وتكلفة وصفات وخصم تلقائي من المخزون',
+                'description_en' => 'Ingredients, recipe costing and automatic stock deduction',
+                'features' => ['inventory']],
+            ['key' => 'branches', 'type' => 'limit', 'monthly_price' => 99, 'sort_order' => 5, 'name' => 'فرع إضافي', 'name_en' => 'Extra branch'],
+            ['key' => 'staff', 'type' => 'limit', 'monthly_price' => 25, 'sort_order' => 6, 'name' => 'مستخدم إضافي', 'name_en' => 'Extra staff account'],
         ] as $a) {
             AddonPrice::query()->firstOrCreate(['key' => $a['key']], $a);
         }

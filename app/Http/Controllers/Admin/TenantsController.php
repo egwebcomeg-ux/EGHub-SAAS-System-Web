@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AddonPrice;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Tenant;
@@ -78,6 +79,9 @@ class TenantsController extends Controller
             'tenant' => $tenant,
             'plans'  => Plan::query()->orderBy('sort_order')->get(),
             'users'  => User::query()->where('tenant_id', $tenant->id)->with('roles')->get(),
+            'addons' => AddonPrice::query()->orderBy('sort_order')->get(),
+            'myAddons' => $tenant->subscription?->addons()->pluck('quantity', 'key')->all() ?? [],
+            'invoices' => $tenant->invoices()->latest('id')->limit(10)->get(),
             'usage'  => $usage,
         ]);
     }
@@ -100,6 +104,17 @@ class TenantsController extends Controller
         Entitlements::flush();
 
         return back()->with('ok', __('Subscription updated.'));
+    }
+
+    /** Grant / remove add-ons by hand (e.g. paid outside the system, or a free month). quantity 0 = off. */
+    public function addons(Request $request, Tenant $tenant, \App\Billing\Billing $billing): RedirectResponse
+    {
+        $data = $request->validate(['addons' => 'array', 'addons.*' => 'nullable|integer|min:0|max:50']);
+        foreach (AddonPrice::query()->get() as $addon) {
+            $qty = (int) ($data['addons'][$addon->key] ?? 0);
+            $billing->setAddon($tenant, $addon->key, $addon->isFeaturePack() ? min(1, $qty) : $qty);
+        }
+        return back()->with('ok', __('Add-ons saved.'));
     }
 
     public function suspend(Tenant $tenant): RedirectResponse

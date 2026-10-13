@@ -65,6 +65,42 @@
     </div>
 </div>
 
+<div class="mt-4 grid gap-4 lg:grid-cols-2">
+    <form method="post" action="{{ route('admin.tenants.addons', $tenant) }}" class="card space-y-2">
+        @csrf
+        <h2 class="mb-1 text-lg font-bold">{{ __('Add-ons') }}</h2>
+        @foreach ($addons as $a)
+            <label class="flex min-h-10 items-center justify-between gap-3 text-sm">
+                <span>{{ $a->displayName() }} <span class="text-navy-500">· {{ money($a->monthly_price) }} {{ __('EGP / month') }}</span></span>
+                @if ($a->isFeaturePack())
+                    <span><input type="hidden" name="addons[{{ $a->key }}]" value="0"><input type="checkbox" name="addons[{{ $a->key }}]" value="1" @checked(($myAddons[$a->key] ?? 0) > 0) class="size-5 accent-brand-600"></span>
+                @else
+                    <input class="field w-20" type="number" min="0" max="50" name="addons[{{ $a->key }}]" value="{{ $myAddons[$a->key] ?? 0 }}">
+                @endif
+            </label>
+        @endforeach
+        <button class="btn-primary">{{ __('Save add-ons') }}</button>
+    </form>
+
+    <div class="card overflow-x-auto">
+        <h2 class="mb-3 text-lg font-bold">{{ __('Invoices') }}</h2>
+        <table class="table-base">
+            <tbody>
+            @forelse ($invoices as $inv)
+                <tr>
+                    <td dir="ltr" class="text-start">{{ $inv->number }}</td>
+                    <td>{{ $inv->description() }}</td>
+                    <td>{{ money($inv->total) }}</td>
+                    <td>@include('partials.invoice-status', ['invoice' => $inv])</td>
+                </tr>
+            @empty
+                <tr><td class="py-4 text-center text-navy-500">{{ __('No invoices here.') }}</td></tr>
+            @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <div class="card mt-4 overflow-x-auto">
     <h2 class="mb-3 text-lg font-bold">{{ __('Staff') }}</h2>
     <table class="table-base">

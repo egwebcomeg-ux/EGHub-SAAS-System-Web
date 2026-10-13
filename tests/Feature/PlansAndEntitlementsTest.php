@@ -25,16 +25,19 @@ class PlansAndEntitlementsTest extends TenantTestCase
         $this->assertFalse($basic->allows('ai_import'));
         $this->assertFalse($basic->allows('pos'));
 
-        $this->assertTrue($pro->allows('pos'));
-        $this->assertTrue($pro->allows('kitchen_display'));
         $this->assertTrue($pro->allows('ai_import'));
         $this->assertTrue($pro->allows('loyalty_stamps'));
-        $this->assertFalse($pro->allows('inventory'));
-        $this->assertFalse($pro->allows('call_center'));
+        $this->assertFalse($pro->allows('loyalty_points'));
 
-        $this->assertTrue($business->allows('inventory'));
-        $this->assertTrue($business->allows('call_center'));
         $this->assertTrue($business->allows('loyalty_points'));
+        $this->assertTrue($business->allows('branch_pricing'));
+
+        // operations are add-ons: in no plan by default
+        foreach ([$basic, $pro, $business] as $rights) {
+            foreach (['pos', 'shifts', 'kitchen_display', 'call_center', 'inventory'] as $feature) {
+                $this->assertFalse($rights->allows($feature), "$feature should be an add-on");
+            }
+        }
         $this->assertSame(3, $business->limit('branches'));
         $this->assertNull($business->limit('staff'));
     }
@@ -68,11 +71,12 @@ class PlansAndEntitlementsTest extends TenantTestCase
         Route::domain('app.egmenu.test')->middleware(['web', 'auth:web', 'tenant.user', 'feature:pos'])
             ->get('/_test/pos', fn () => 'pos-ok');
 
-        $basic = $this->restaurant('cafe-basic', 'basic');
-        $pro = $this->restaurant('cafe-pro', 'pro');
+        $without = $this->restaurant('cafe-basic', 'business');
+        $with = $this->restaurant('cafe-pro', 'basic');
+        app(\App\Billing\Billing::class)->setAddon($with, 'pos_pack', 1);
 
-        $this->actingAs($this->owner($basic))->get($this->dashUrl('/_test/pos'))->assertForbidden();
-        $this->actingAs($this->owner($pro))->get($this->dashUrl('/_test/pos'))->assertOk()->assertSee('pos-ok');
+        $this->actingAs($this->owner($without))->get($this->dashUrl('/_test/pos'))->assertForbidden();
+        $this->actingAs($this->owner($with))->get($this->dashUrl('/_test/pos'))->assertOk()->assertSee('pos-ok');
     }
 
     public function test_admin_edits_a_plan_and_rights_change(): void

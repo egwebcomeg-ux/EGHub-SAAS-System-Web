@@ -60,6 +60,29 @@
     @endforeach
 </div>
 
+@if ($addons->isNotEmpty())
+    <h2 class="mt-8 mb-1 text-lg font-bold">{{ __('Add-ons') }}</h2>
+    <p class="mb-3 muted">{{ __('For bigger restaurants: add only what you need, on top of any plan.') }}</p>
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        @foreach ($addons as $addon)
+            @php($qty = (int) ($myAddons[$addon->key] ?? 0))
+            <div class="card flex flex-col">
+                <div class="flex items-start justify-between gap-2">
+                    <h3 class="font-bold">{{ $addon->displayName() }}</h3>
+                    @if ($qty > 0)<span class="badge bg-emerald-100 text-emerald-800">{{ $addon->isFeaturePack() ? __('Active') : '× ' . $qty }}</span>@endif
+                </div>
+                <p class="mt-1 flex-1 text-sm text-navy-500">{{ tr($addon->description, $addon->description_en) }}</p>
+                <div class="mt-3 flex items-center justify-between gap-2">
+                    <span><b class="text-lg">{{ money($addon->monthly_price) }}</b> <span class="text-sm text-navy-500">{{ __('EGP / month') }}</span></span>
+                    @if (!$addon->isFeaturePack() || $qty === 0)
+                        <form method="post" action="{{ route('dash.billing.addon', $addon->key) }}">@csrf<button class="btn-ghost min-h-9 px-3">{{ $addon->isFeaturePack() ? __('Add') : __('Add one') }}</button></form>
+                    @endif
+                </div>
+            </div>
+        @endforeach
+    </div>
+@endif
+
 @if ($invoices->isNotEmpty())
     <section class="card mt-6 overflow-x-auto">
         <h2 class="mb-3 text-lg font-bold">{{ __('Invoices') }}</h2>
@@ -69,7 +92,7 @@
             @foreach ($invoices as $inv)
                 <tr>
                     <td dir="ltr" class="text-start font-semibold">{{ $inv->number }}</td>
-                    <td>{{ $inv->plan?->displayName() }} · {{ cycle_label((int) $inv->cycle_months) }}</td>
+                    <td>{{ $inv->description() }}</td>
                     <td>{{ money($inv->total) }} {{ __('EGP') }}</td>
                     <td>@include('partials.invoice-status', ['invoice' => $inv])</td>
                     <td>{{ local_time($inv->created_at, 'Y/m/d') }}</td>
