@@ -28,7 +28,7 @@ class Plan extends Model
         'kitchen_display'  => ['شاشة المطبخ', 'Kitchen display', 'operations'],
         'kitchen_stations' => ['أقسام مطبخ (شاشة لكل قسم)', 'Kitchen stations (screen per station)', 'operations'],
         'call_center'      => ['شاشة الكول سنتر', 'Call-center screen', 'operations'],
-        'delivery_zones'   => ['مناطق توصيل على الخريطة', 'Delivery zones on a map', 'operations'],
+        'delivery_zones'   => ['مناطق التوصيل ورسوم كل منطقة', 'Delivery zones and fees', 'operations'],
         // menu
         'full_branding'    => ['ألوان وخطوط ولوجو المطعم', 'Colors, fonts & logo', 'menu'],
         'menu_themes'      => ['تصميمات منيو جاهزة', 'Menu themes', 'menu'],

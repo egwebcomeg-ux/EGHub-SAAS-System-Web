@@ -20,6 +20,7 @@ use App\Http\Controllers\Dashboard\ReportsController;
 use App\Http\Controllers\Dashboard\SettingsController;
 use App\Http\Controllers\Dashboard\ShiftsController;
 use App\Http\Controllers\Dashboard\StationsController;
+use App\Http\Controllers\Dashboard\DeliveryZonesController;
 use App\Http\Controllers\Dashboard\TablesController;
 use App\Http\Controllers\Dashboard\UsersController;
 use Illuminate\Support\Facades\Route;
@@ -91,6 +92,12 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/branches/{branch}', [BranchesController::class, 'update'])->name('branches.update');
         Route::get('/branches/{branch}/menu', [BranchMenuController::class, 'edit'])->middleware('feature:branch_pricing')->name('branches.menu');
         Route::post('/branches/{branch}/menu', [BranchMenuController::class, 'update'])->middleware('feature:branch_pricing')->name('branches.menu.update');
+        Route::middleware('feature:delivery_zones')->group(function () {
+            Route::get('/delivery-zones', [DeliveryZonesController::class, 'index'])->name('zones');
+            Route::post('/delivery-zones', [DeliveryZonesController::class, 'store'])->name('zones.store');
+            Route::post('/delivery-zones/{zone}', [DeliveryZonesController::class, 'update'])->name('zones.update');
+            Route::post('/delivery-zones/{zone}/delete', [DeliveryZonesController::class, 'destroy'])->name('zones.delete');
+        });
     });
 
     Route::middleware('permission:tables.manage')->group(function () {

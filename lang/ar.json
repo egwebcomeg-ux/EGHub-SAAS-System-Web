@@ -758,5 +758,22 @@
     "until": "لحد",
     "until :date": "لحد :date",
     "until :time": "لحد :time",
-    "whole category": "القسم كله"
+    "whole category": "القسم كله",
+    "Delivery zones": "مناطق التوصيل",
+    "Zone saved.": "تم حفظ المنطقة.",
+    "Zone deleted.": "تم حذف المنطقة.",
+    "The call center picks the zone for each delivery: its fee is added and its minimum order is checked. A sub-area left empty uses its main area’s values.": "الكول سنتر بيختار المنطقة مع كل طلب توصيل: رسومها بتتضاف والحد الأدنى بيتراجع. المنطقة الفرعية اللي سايبها فاضية بتاخد قيم المنطقة الرئيسية.",
+    "Area": "المنطقة",
+    "Delivery fee": "رسوم التوصيل",
+    "Minimum order": "الحد الأدنى للطلب",
+    "Minutes": "دقايق",
+    "inherited": "موروثة",
+    "Delete this zone?": "تحذف المنطقة دي؟",
+    "No zones yet.": "لسه مفيش مناطق.",
+    "Add zone": "إضافة منطقة",
+    "Main area": "منطقة رئيسية",
+    "Inside :area": "جوه :area",
+    "Area name, e.g. Nasr City": "اسم المنطقة، مثلاً مدينة نصر",
+    "Fee": "الرسوم",
+    "Minimum": "الحد الأدنى"
 }
