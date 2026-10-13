@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\TableCall;
+use App\Services\Audit;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use App\Services\Settings;
@@ -66,6 +67,9 @@ class OrdersController extends Controller
             $service->transition($order, $data['status'], $request->user(), $data['reason'] ?? null);
         } catch (OrderException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
+        }
+        if ($data['status'] === 'cancelled') {
+            Audit::record('order.cancelled', '#'.$order->number, ['id' => $order->id, 'reason' => $data['reason'] ?? null]);
         }
 
         return response()->json(['ok' => true, 'order' => $this->present($order->load(['items', 'table', 'branch']))]);

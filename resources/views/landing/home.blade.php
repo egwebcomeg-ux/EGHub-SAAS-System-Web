@@ -32,7 +32,7 @@
     <div class="mx-auto grid max-w-7xl items-center gap-10 px-4 py-14 lg:grid-cols-2 lg:py-20">
         <div>
             <span class="badge bg-white text-brand-700 shadow-sm">{{ __(':days days free, no card needed', ['days' => $trial]) }}</span>
-            <h1 class="mt-4 text-4xl font-extrabold leading-tight sm:text-5xl">{{ __('Digital QR menu for restaurants and cafes') }}</h1>
+            <h1 class="mt-4 text-4xl font-black leading-tight sm:text-5xl">{{ __('Digital QR menu for restaurants and cafes') }}</h1>
             <p class="mt-4 max-w-xl text-lg text-navy-600">{{ __('Your menu on the guest phone in seconds, ordering from the table and a loyalty card that brings them back. Set it up yourself in under an hour.') }}</p>
             <div class="mt-7 flex flex-wrap gap-3">
                 <a href="{{ route('register') }}" class="btn-primary min-h-12 px-6 text-base">{{ __('Start your :days-day free trial', ['days' => $trial]) }}</a>
@@ -71,7 +71,7 @@
 
 {{-- how it works --}}
 <section class="mx-auto max-w-7xl px-4 py-16">
-    <h2 class="text-center text-3xl font-extrabold">{{ __('Ready in three steps') }}</h2>
+    <h2 class="text-center text-3xl font-black">{{ __('Ready in three steps') }}</h2>
     <div class="mt-10 grid gap-6 md:grid-cols-3">
         @foreach ([
             [__('Add your menu'), __('Type it, upload an Excel sheet or a photo of your printed menu.')],
@@ -90,7 +90,7 @@
 {{-- features --}}
 <section id="features" class="scroll-mt-20 bg-navy-50/60 py-16">
     <div class="mx-auto max-w-7xl px-4">
-        <h2 class="text-center text-3xl font-extrabold">{{ __('Everything a cafe needs, nothing it does not') }}</h2>
+        <h2 class="text-center text-3xl font-black">{{ __('Everything a cafe needs, nothing it does not') }}</h2>
         <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             @foreach ($features as [$icon, $title, $text])
                 <div class="card">
@@ -119,7 +119,7 @@
         </div>
     </div>
     <div class="order-1 lg:order-2">
-        <h2 class="text-3xl font-extrabold">{{ __('Guests who come back') }}</h2>
+        <h2 class="text-3xl font-black">{{ __('Guests who come back') }}</h2>
         <p class="mt-4 text-lg text-navy-600">{{ __('The loyalty card lives on the guest phone. The cashier adds a stamp with one tap, and the gift is redeemed on the spot. You see who your regulars are and how often they visit.') }}</p>
     </div>
 </section>
@@ -127,7 +127,7 @@
 {{-- pricing --}}
 <section id="pricing" class="scroll-mt-20 bg-navy-50/60 py-16">
     <div class="mx-auto max-w-7xl px-4">
-        <h2 class="text-center text-3xl font-extrabold">{{ __('Simple monthly prices') }}</h2>
+        <h2 class="text-center text-3xl font-black">{{ __('Simple monthly prices') }}</h2>
         <p class="mx-auto mt-3 max-w-2xl text-center text-navy-500">
             {{ __('Every plan starts with a :days-day free trial.', ['days' => $trial]) }}
             @if (!empty($cycles['6']) || !empty($cycles['12']))
@@ -169,7 +169,7 @@
 
 {{-- FAQ --}}
 <section id="faq" class="mx-auto max-w-3xl scroll-mt-20 px-4 py-16">
-    <h2 class="text-center text-3xl font-extrabold">{{ __('Frequently asked questions') }}</h2>
+    <h2 class="text-center text-3xl font-black">{{ __('Frequently asked questions') }}</h2>
     <div class="mt-8 divide-y divide-navy-100 rounded-2xl border border-navy-100 bg-white">
         @foreach ($faq as [$q, $a])
             <details class="group px-5 py-4">
@@ -186,7 +186,7 @@
 {{-- final call to action --}}
 <section class="px-4 pb-16">
     <div class="mx-auto max-w-5xl rounded-3xl bg-navy-800 px-6 py-12 text-center text-white">
-        <h2 class="text-3xl font-extrabold">{{ __('Your menu can be live today') }}</h2>
+        <h2 class="text-3xl font-black">{{ __('Your menu can be live today') }}</h2>
         <p class="mx-auto mt-3 max-w-xl text-white/70">{{ __('Sign up, add your items and print the codes. If you need help, we set it up with you.') }}</p>
         <a href="{{ route('register') }}" class="btn-primary mt-7 min-h-12 px-7 text-base">{{ __('Start your :days-day free trial', ['days' => $trial]) }}</a>
     </div>

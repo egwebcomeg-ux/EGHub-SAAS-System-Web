@@ -38,7 +38,7 @@
             <img src="/storage/{{ $settings['logo'] }}" alt="{{ $brand }}" class="size-14 shrink-0 rounded-2xl bg-white object-contain p-1 {{ $settings['cover'] ? '-mt-10 shadow-lg' : '' }}">
         @endif
         <div class="min-w-0 flex-1">
-            <h1 class="truncate text-xl font-extrabold">{{ $brand }}</h1>
+            <h1 class="truncate text-xl font-black">{{ $brand }}</h1>
             @if ($t = tr($settings['tagline'], $settings['tagline_en']))<p class="truncate text-sm text-white/75">{{ $t }}</p>@endif
         </div>
         @if ($settings['english_enabled'] === '1')

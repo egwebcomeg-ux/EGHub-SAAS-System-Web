@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Services\Audit;
 use App\Services\Entitlements;
 use App\Services\ImageService;
 use App\Services\Import\Ai\AiException;
@@ -100,6 +101,7 @@ class SettingsController extends Controller
             }
         }
         Settings::put($values);
+        Audit::record('settings.updated', '', ['keys' => array_values(array_diff(array_keys($values), ['ai_key']))]);
 
         return back()->with('ok', __('Settings saved.'));
     }

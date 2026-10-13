@@ -1077,5 +1077,11 @@
     "Orders & service": "الطلبات والخدمة",
     "Customers & marketing": "العملاء والتسويق",
     "Operations": "التشغيل",
-    "Management": "الإدارة"
+    "Management": "الإدارة",
+    "Audit log": "سجل العمليات",
+    "The last 200 actions: who changed what, and when.": "آخر ٢٠٠ عملية: مين غيّر إيه ومتى.",
+    "All users": "كل المستخدمين",
+    "Action": "العملية",
+    "Details": "التفاصيل",
+    "No actions recorded yet.": "لسه مفيش عمليات متسجلة."
 }

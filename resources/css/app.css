@@ -66,11 +66,11 @@
 }
 
 @utility page-title {
-    @apply text-2xl font-extrabold text-navy-900;
+    @apply text-2xl font-black text-navy-900;
 }
 
 @utility section-title {
-    @apply text-lg font-bold text-navy-900;
+    @apply text-lg font-black text-navy-900;
 }
 
 @utility muted {

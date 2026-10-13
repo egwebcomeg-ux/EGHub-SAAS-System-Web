@@ -10,6 +10,7 @@ use App\Models\IngredientStock;
 use App\Models\MenuItem;
 use App\Models\RecipeLine;
 use App\Models\StockMovement;
+use App\Services\Audit;
 use App\Services\Inventory\StockService;
 use App\Services\Menu\MenuCatalog;
 use Illuminate\Http\RedirectResponse;
@@ -41,12 +42,14 @@ class InventoryController extends Controller
     public function store(Request $request): RedirectResponse
     {
         Ingredient::query()->create($this->validated($request));
+
         return back()->with('ok', __('Ingredient saved.'));
     }
 
     public function update(Request $request, Ingredient $ingredient): RedirectResponse
     {
         $ingredient->update($this->validated($request) + ['is_active' => $request->boolean('is_active')]);
+
         return back()->with('ok', __('Ingredient saved.'));
     }
 
@@ -71,6 +74,8 @@ class InventoryController extends Controller
             'waste' => $stock->waste($ingredient, $branch, $qty, $request->user(), $data['note'] ?? null),
             'count' => $stock->count($ingredient, $branch, $qty, $request->user(), $data['note'] ?? null),
         };
+        Audit::record('stock.'.$data['type'], $ingredient->name, ['ingredient_id' => $ingredient->id, 'branch_id' => $branch->id, 'quantity' => $qty, 'note' => $data['note'] ?? null]);
+
         return back()->with('ok', __('Stock updated.'));
     }
 
@@ -84,6 +89,7 @@ class InventoryController extends Controller
         if ($request->filled('ingredient')) {
             $query->where('ingredient_id', (int) $request->query('ingredient'));
         }
+
         return view('dashboard.inventory.movements', [
             'branch' => $branch, 'branches' => $this->branches($request), 'movements' => $query->paginate(50)->withQueryString(),
             'ingredients' => Ingredient::query()->orderBy('name')->get(['id', 'name']),
@@ -97,6 +103,7 @@ class InventoryController extends Controller
             ->groupBy('recipe_lines.menu_item_id')
             ->selectRaw('recipe_lines.menu_item_id, SUM(recipe_lines.quantity * ingredients.cost_per_unit) as cost')
             ->pluck('cost', 'menu_item_id');
+
         return view('dashboard.inventory.recipes', [
             'categories' => Category::query()->orderBy('sort_order')->with(['items' => fn ($q) => $q->orderBy('sort_order')])->get(),
             'costs' => $costs,
@@ -119,7 +126,7 @@ class InventoryController extends Controller
     {
         $tenant = tenant()->getTenantKey();
         $request->validate([
-            'lines' => 'array|max:' . self::MAX_RECIPE_LINES,
+            'lines' => 'array|max:'.self::MAX_RECIPE_LINES,
             'lines.*.ingredient_id' => ['nullable', Rule::exists('ingredients', 'id')->where('tenant_id', $tenant)],
             'lines.*.quantity' => 'nullable|numeric|min:0|max:100000',
             'lines.*.option_id' => ['nullable', 'integer'],
@@ -133,12 +140,13 @@ class InventoryController extends Controller
                 if (empty($row['ingredient_id']) || $qty <= 0) {
                     continue;
                 }
-                $option = !empty($row['option_id']) && in_array((int) $row['option_id'], $optionIds, true) ? (int) $row['option_id'] : null;
+                $option = ! empty($row['option_id']) && in_array((int) $row['option_id'], $optionIds, true) ? (int) $row['option_id'] : null;
                 RecipeLine::query()->create([
                     'menu_item_id' => $item->id, 'ingredient_id' => (int) $row['ingredient_id'], 'item_option_id' => $option, 'quantity' => $qty,
                 ]);
             }
         });
+
         return back()->with('ok', __('Recipe saved.'));
     }
 
@@ -151,6 +159,7 @@ class InventoryController extends Controller
             'cost_per_unit' => 'nullable|numeric|min:0|max:1000000',
             'min_stock' => 'nullable|numeric|min:0|max:1000000',
         ]);
+
         return ['cost_per_unit' => (float) ($data['cost_per_unit'] ?? 0), 'min_stock' => (float) ($data['min_stock'] ?? 0)] + $data;
     }
 
@@ -162,6 +171,7 @@ class InventoryController extends Controller
         if ($request->filled('branch')) {
             $request->session()->put('inventory.branch', (int) $request->input('branch'));
         }
+
         return Branch::query()->find((int) $request->session()->get('inventory.branch')) ?? MenuCatalog::defaultBranch();
     }
 

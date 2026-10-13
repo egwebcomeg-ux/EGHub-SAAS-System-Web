@@ -10,7 +10,7 @@ export default defineConfig({
             refresh: true,
             fonts: [
                 // Arabic + Latin glyphs: without the arabic subset, Arabic text silently fell back to the OS font.
-                bunny('Cairo', { weights: [400, 500, 600, 700, 800], subsets: ['arabic', 'latin'] }),
+                bunny('Cairo', { weights: [400, 500, 600, 700, 800, 900], subsets: ['arabic', 'latin'] }),
             ],
         }),
         tailwindcss(),

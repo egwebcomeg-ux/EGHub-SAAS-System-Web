@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\MenuItem;
+use App\Services\Audit;
 use App\Services\Entitlements;
 use App\Services\ImageService;
 use Illuminate\Http\JsonResponse;
@@ -67,13 +68,19 @@ class ItemsController extends Controller
         }
         $item = new MenuItem(['sort_order' => (int) MenuItem::query()->max('sort_order') + 1]);
         $this->save($request, $item, $images);
+        Audit::record('item.created', $item->name, ['id' => $item->id, 'price' => (float) $item->price]);
 
         return redirect()->route('dash.menu')->with('ok', __('Item added.'));
     }
 
     public function update(Request $request, MenuItem $item, ImageService $images): RedirectResponse
     {
+        $oldPrice = (float) $item->price;
         $this->save($request, $item, $images);
+        Audit::record('item.updated', $item->name, ['id' => $item->id]);
+        if ($oldPrice !== (float) $item->price) {
+            Audit::record('item.price_changed', $item->name, ['id' => $item->id, 'from' => $oldPrice, 'to' => (float) $item->price]);
+        }
 
         return redirect()->route('dash.menu')->with('ok', __('Item saved.'));
     }
@@ -82,6 +89,7 @@ class ItemsController extends Controller
     {
         $images->delete($item->image);
         $item->delete();
+        Audit::record('item.deleted', $item->name, ['id' => $item->id]);
 
         return redirect()->route('dash.menu')->with('ok', __('Item deleted.'));
     }

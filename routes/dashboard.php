@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Dashboard\AuditController;
 use App\Http\Controllers\Dashboard\AuthController;
 use App\Http\Controllers\Dashboard\BillingController;
 use App\Http\Controllers\Dashboard\BranchesController;
@@ -134,6 +135,9 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/reports', [ReportsController::class, 'index'])->name('reports');
         Route::get('/reports/export', [ReportsController::class, 'export'])->name('reports.export');
     });
+
+    Route::get('/audit', [AuditController::class, 'index'])
+        ->middleware(['feature:audit_log', 'permission:audit.view'])->name('audit');
 
     // ---- Marketing: timed offers & popups ----
     Route::middleware(['feature:offers', 'permission:marketing.manage'])->group(function () {
