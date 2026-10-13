@@ -25,6 +25,8 @@ class Subscription extends Model
             'current_period_start' => 'datetime',
             'current_period_end'   => 'datetime',
             'grace_ends_at'        => 'datetime',
+            'reminded_at'          => 'datetime',
+            'period_value'         => 'float',
         ];
     }
 
@@ -53,6 +55,12 @@ class Subscription extends Model
     public function endsAt(): ?CarbonInterface
     {
         return $this->status === 'trialing' ? $this->trial_ends_at : $this->current_period_end;
+    }
+
+    /** Shown as a banner in the dashboard: trial ending, renewal due, or unpaid. */
+    public function needsAttention(): bool
+    {
+        return $this->status === 'past_due' || ($this->endsAt() && $this->endsAt()->lte(now()->addDays(3)));
     }
 
     public function daysLeft(): int

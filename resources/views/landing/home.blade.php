@@ -8,12 +8,14 @@
     <div class="flex items-center gap-3 text-sm font-semibold">
         <a href="?lang={{ app()->getLocale() === 'ar' ? 'en' : 'ar' }}">{{ app()->getLocale() === 'ar' ? 'English' : 'عربي' }}</a>
         <a href="{{ platform_url('app', '/login') }}" class="btn-ghost">{{ __('Restaurant login') }}</a>
+        <a href="{{ route('register') }}" class="btn-primary">{{ __('Start free') }}</a>
     </div>
 </header>
 
 <section class="mx-auto max-w-6xl px-4 py-12 text-center">
     <h1 class="mx-auto max-w-3xl text-4xl font-extrabold leading-tight sm:text-5xl">{{ __('Digital QR menu for restaurants and cafes') }}</h1>
     <p class="mx-auto mt-4 max-w-2xl text-lg text-navy-500">{{ __('Table ordering, kitchen display, POS and a loyalty card — in one simple monthly subscription.') }}</p>
+    <a href="{{ route('register') }}" class="btn-primary mt-6 min-h-12 px-6 text-base">{{ __('Start your :days-day free trial', ['days' => \App\Services\TenantProvisioner::TRIAL_DAYS]) }}</a>
 </section>
 
 <section class="mx-auto grid max-w-6xl gap-4 px-4 pb-16 md:grid-cols-3">

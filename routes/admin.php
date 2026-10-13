@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\InvoicesController;
 use App\Http\Controllers\Admin\PlansController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\TenantsController;
@@ -26,6 +27,10 @@ Route::middleware('auth:admin')->group(function () {
     Route::get('/plans', [PlansController::class, 'index'])->name('plans');
     Route::get('/plans/{plan}', [PlansController::class, 'edit'])->name('plans.edit');
     Route::post('/plans/{plan}', [PlansController::class, 'update'])->name('plans.update');
+
+    Route::get('/invoices', [InvoicesController::class, 'index'])->name('invoices');
+    Route::post('/invoices/{invoice}/paid', [InvoicesController::class, 'markPaid'])->name('invoices.paid');
+    Route::post('/invoices/{invoice}/void', [InvoicesController::class, 'void'])->name('invoices.void');
 
     Route::get('/settings', [SettingsController::class, 'edit'])->name('settings');
     Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');

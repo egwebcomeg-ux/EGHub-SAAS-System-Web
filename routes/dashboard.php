@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Dashboard\AuthController;
+use App\Http\Controllers\Dashboard\BillingController;
 use App\Http\Controllers\Dashboard\BranchesController;
 use App\Http\Controllers\Dashboard\CategoriesController;
 use App\Http\Controllers\Dashboard\HomeController;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('admin.locale')->group(function () {
     Route::get('/login', [AuthController::class, 'show'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+    Route::get('/welcome/{user}', [AuthController::class, 'welcome'])->whereNumber('user')->name('welcome');
 });
 
 Route::middleware(['auth:web', 'tenant.user'])->group(function () {
@@ -27,6 +29,13 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/users', [UsersController::class, 'index'])->name('users');
         Route::post('/users', [UsersController::class, 'store'])->name('users.store');
         Route::post('/users/{user}', [UsersController::class, 'update'])->name('users.update');
+    });
+
+    Route::middleware('permission:billing.manage')->group(function () {
+        Route::get('/billing', [BillingController::class, 'index'])->name('billing');
+        Route::post('/billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
+        Route::get('/billing/invoices/{number}', [BillingController::class, 'invoice'])->name('billing.invoice');
+        Route::post('/billing/invoices/{number}/claim', [BillingController::class, 'claim'])->middleware('throttle:10,1')->name('billing.claim');
     });
 
     Route::middleware('permission:settings.manage')->group(function () {

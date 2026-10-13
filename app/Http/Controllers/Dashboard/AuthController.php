@@ -42,6 +42,17 @@ class AuthController extends Controller
         return redirect()->intended(route('dash.home'));
     }
 
+    /** One-time signed link from signup (valid 5 minutes, only for a user who never logged in). */
+    public function welcome(Request $request, int $user): RedirectResponse
+    {
+        abort_unless($request->hasValidSignature(), 403);
+        $owner = User::query()->whereNull('last_login_at')->findOrFail($user);
+        Auth::guard('web')->login($owner, true);
+        $request->session()->regenerate();
+        $owner->forceFill(['last_login_at' => now()])->save();
+        return redirect()->route('dash.home')->with('ok', __('Welcome to EgMenu! Your 14-day free trial has started.'));
+    }
+
     public function logout(Request $request): RedirectResponse
     {
         Auth::guard('web')->logout();
