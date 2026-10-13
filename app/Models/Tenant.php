@@ -11,7 +11,7 @@ use Stancl\Tenancy\Database\Concerns\HasDomains;
 use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
 
 /**
- * A restaurant or cafe. Its id is the slug of its public menu: egmenu.app/{slug}.
+ * A restaurant or cafe. Its id is the slug of its public menu: {slug}.egmenu.app.
  * Data is never hard-deleted by the app: soft delete keeps everything restorable, suspension only takes the menu offline.
  */
 class Tenant extends BaseTenant
@@ -19,8 +19,8 @@ class Tenant extends BaseTenant
     use HasDomains, SoftDeletes;
 
     /**
-     * Never usable as a slug: first path segments the platform itself uses on the main domain, plus
-     * subdomain-like names kept free for future hosts.
+     * Never usable as a slug (the slug is the menu's subdomain): platform hosts (www, app, admin), first path
+     * segments the main domain uses (old /{slug} links still redirect from there), and names kept for future hosts.
      */
     public const RESERVED = [
         'www', 'admin', 'app', 'api', 'mail', 'email', 'ftp', 'smtp', 'cpanel', 'webmail', 'ns1', 'ns2', 'mx',
@@ -109,7 +109,7 @@ class Tenant extends BaseTenant
         return $domain && Entitlements::for($this)->allows('custom_domain') ? $domain : null;
     }
 
-    /** Public menu URL: the active custom domain when there is one, else egmenu.app/{slug}. */
+    /** Public menu URL: the active custom domain when there is one, else {slug}.egmenu.app. */
     public function url(string $path = ''): string
     {
         $custom = $this->customDomain();
@@ -118,6 +118,6 @@ class Tenant extends BaseTenant
             return scheme().'://'.$custom->domain.port_suffix().'/'.$path;
         }
 
-        return platform_url(null, $this->id.($path === '' ? '' : '/'.$path));
+        return platform_url($this->id, $path);
     }
 }

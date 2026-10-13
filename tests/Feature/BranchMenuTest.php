@@ -20,7 +20,7 @@ class BranchMenuTest extends TenantTestCase
             $tea->id => ['price' => 25, 'available' => 1],
             $cake->id => ['price' => '', 'available' => 1, 'sold_out' => 1],
         ]])->assertSessionHasNoErrors();
-        $this->get($this->menuUrl('cafe-a'))->assertSee('25')->assertSee('Cake');
+        $this->get($this->subUrl('cafe-a'))->assertSee('25')->assertSee('Cake');
         $this->assertSame(2, $this->as($a, fn () => BranchItem::query()->count()));
 
         // back to "same as the main menu": the override rows are removed

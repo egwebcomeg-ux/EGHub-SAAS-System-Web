@@ -14,12 +14,12 @@ class TableCallTest extends TenantTestCase
         $table = $this->as($a, fn () => DiningTable::query()->where('name', '3')->first());
 
         // without scanning a table nothing is created
-        $this->postJson($this->menuUrl('cafe-a/call'), ['kind' => 'waiter'])->assertStatus(422);
+        $this->postJson($this->subUrl('cafe-a', 'call'), ['kind' => 'waiter'])->assertStatus(422);
 
-        $this->get($this->menuUrl("cafe-a/t/{$table->qr_token}"));
-        $this->postJson($this->menuUrl('cafe-a/call'), ['kind' => 'waiter'])->assertOk();
-        $this->postJson($this->menuUrl('cafe-a/call'), ['kind' => 'waiter'])->assertOk(); // same open call, not a second one
-        $this->postJson($this->menuUrl('cafe-a/call'), ['kind' => 'bill'])->assertOk();
+        $this->get($this->subUrl('cafe-a', "t/{$table->qr_token}"));
+        $this->postJson($this->subUrl('cafe-a', 'call'), ['kind' => 'waiter'])->assertOk();
+        $this->postJson($this->subUrl('cafe-a', 'call'), ['kind' => 'waiter'])->assertOk(); // same open call, not a second one
+        $this->postJson($this->subUrl('cafe-a', 'call'), ['kind' => 'bill'])->assertOk();
         $this->assertSame(2, $this->as($a, fn () => TableCall::query()->count()));
 
         $owner = $this->owner($a);

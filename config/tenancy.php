@@ -7,7 +7,7 @@ use App\Models\Tenant;
 
 return [
     'tenant_model' => Tenant::class,
-    'id_generator' => null, // tenant id = its slug: egmenu.app/{slug}
+    'id_generator' => null, // tenant id = its slug: {slug}.egmenu.app
 
     'domain_model' => Domain::class,
 

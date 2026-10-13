@@ -51,7 +51,7 @@ class BusinessTypeTest extends TenantTestCase
         $this->item($a, 'Latte');
         foreach (MenuThemes::keys() as $theme) {
             $this->as($a, fn () => Settings::put(['menu_theme' => $theme]));
-            $this->get($this->menuUrl('cafe-a'))->assertOk()->assertSee('Latte');
+            $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('Latte');
         }
     }
 }

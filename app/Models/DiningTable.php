@@ -5,7 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\TenantModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-/** A table in a branch. Its QR opens egmenu.app/{tenant}/t/{qr_token}; the token is random so tables can't be guessed. */
+/** A table in a branch. Its QR opens {tenant}.egmenu.app/t/{qr_token}; the token is random so tables can't be guessed. */
 class DiningTable extends TenantModel
 {
     protected static function booted(): void

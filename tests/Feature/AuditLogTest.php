@@ -58,8 +58,8 @@ class AuditLogTest extends TenantTestCase
         ])->assertSessionHasNoErrors();
 
         $latte = $this->item($a, 'Latte', 65);
-        $this->get($this->menuUrl("{$a->id}/t/".$this->as($a, fn () => DiningTable::query()->first())->qr_token))->assertRedirect();
-        $res = $this->postJson($this->menuUrl("{$a->id}/order"), ['client_uuid' => (string) Str::uuid(), 'items' => [['item_id' => $latte->id, 'qty' => 1]]])->assertOk();
+        $this->get($this->subUrl($a->id, "/t/".$this->as($a, fn () => DiningTable::query()->first())->qr_token))->assertRedirect();
+        $res = $this->postJson($this->subUrl($a->id, "/order"), ['client_uuid' => (string) Str::uuid(), 'items' => [['item_id' => $latte->id, 'qty' => 1]]])->assertOk();
         $orderId = $this->as($a, fn () => Order::query()->value('id'));
         $this->actingAs($owner)->postJson($this->dashUrl("/orders/$orderId/status"), ['status' => 'cancelled', 'reason' => 'mistake'])->assertOk();
 

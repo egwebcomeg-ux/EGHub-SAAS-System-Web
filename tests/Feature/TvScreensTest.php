@@ -20,16 +20,16 @@ class TvScreensTest extends TenantTestCase
         $screen = $this->as($a, fn () => TvScreen::query()->first());
         $this->actingAs($owner)->get($this->dashUrl('/tv-screens'))->assertOk()->assertSee($screen->token);
 
-        $this->get($this->menuUrl("cafe-a/tv/{$screen->token}"))->assertOk()->assertSee('Latte')->assertSee('60');
-        $before = $this->getJson($this->menuUrl("cafe-a/tv/{$screen->token}/version"))->assertOk()->json('v');
+        $this->get($this->subUrl('cafe-a', "tv/{$screen->token}"))->assertOk()->assertSee('Latte')->assertSee('60');
+        $before = $this->getJson($this->subUrl('cafe-a', "tv/{$screen->token}/version"))->assertOk()->json('v');
 
         $this->as($a, fn () => MenuItem::query()->whereKey($latte->id)->update(['price' => 70]));
-        $after = $this->getJson($this->menuUrl("cafe-a/tv/{$screen->token}/version"))->json('v');
+        $after = $this->getJson($this->subUrl('cafe-a', "tv/{$screen->token}/version"))->json('v');
         $this->assertNotSame($before, $after);
 
         // a new link retires the old one
         $this->actingAs($owner)->post($this->dashUrl("/tv-screens/{$screen->id}/link"));
-        $this->get($this->menuUrl("cafe-a/tv/{$screen->token}"))->assertNotFound();
+        $this->get($this->subUrl('cafe-a', "tv/{$screen->token}"))->assertNotFound();
     }
 
     public function test_tokens_and_categories_are_per_restaurant_and_pro_has_no_screens(): void
@@ -40,7 +40,7 @@ class TvScreensTest extends TenantTestCase
         $screenB = $this->as($b, fn () => TvScreen::query()->create(['name' => 'B', 'token' => random_token(10)]));
 
         // B's screen link under A's address does not open
-        $this->get($this->menuUrl("cafe-a/tv/{$screenB->token}"))->assertNotFound();
+        $this->get($this->subUrl('cafe-a', "tv/{$screenB->token}"))->assertNotFound();
         // another restaurant's category cannot be picked
         $this->actingAs($this->owner($a))->post($this->dashUrl('/tv-screens'), [
             'name' => 'X', 'layout' => 'all', 'columns' => 3, 'rotate_seconds' => 10, 'theme' => 'light', 'category_ids' => [$foreign->category_id],
@@ -48,7 +48,7 @@ class TvScreensTest extends TenantTestCase
 
         $pro = $this->restaurant('cafe-pro', 'pro');
         $screenPro = $this->as($pro, fn () => TvScreen::query()->create(['name' => 'P', 'token' => random_token(10)]));
-        $this->get($this->menuUrl("cafe-pro/tv/{$screenPro->token}"))->assertNotFound();
+        $this->get($this->subUrl('cafe-pro', "tv/{$screenPro->token}"))->assertNotFound();
         $this->actingAs($this->owner($pro))->get($this->dashUrl('/tv-screens'))->assertForbidden();
     }
 }

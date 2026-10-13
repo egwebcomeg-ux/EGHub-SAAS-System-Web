@@ -20,8 +20,8 @@ class MarketingTest extends TenantTestCase
     private function orderAtTable(Tenant $t, array $items)
     {
         $table = $this->as($t, fn () => DiningTable::query()->first());
-        $this->get($this->menuUrl("{$t->id}/t/{$table->qr_token}"));
-        return $this->postJson($this->menuUrl("{$t->id}/order"), ['client_uuid' => (string) Str::uuid(), 'items' => $items]);
+        $this->get($this->subUrl($t->id, "t/{$table->qr_token}"));
+        return $this->postJson($this->subUrl($t->id, 'order'), ['client_uuid' => (string) Str::uuid(), 'items' => $items]);
     }
 
     public function test_overnight_and_daily_windows(): void
@@ -44,7 +44,7 @@ class MarketingTest extends TenantTestCase
         $item = $this->item($a, 'Iced Latte', 80);
         $this->as($a, fn () => Offer::query()->create(['title' => 'Happy hour', 'discount_percent' => 25, 'category_id' => $item->category_id]));
 
-        $this->get($this->menuUrl('cafe-a'))->assertOk()->assertSee('Happy hour')->assertSee('-25%');
+        $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('Happy hour')->assertSee('-25%');
         $this->orderAtTable($a, [['item_id' => $item->id, 'qty' => 2]])->assertOk();
 
         $line = $this->as($a, fn () => Order::query()->first()->items()->first());
@@ -85,10 +85,10 @@ class MarketingTest extends TenantTestCase
             'type' => 'item', 'menu_item_id' => $item->id, 'title' => 'Try our cake', 'frequency' => 'day',
         ])->assertSessionHasNoErrors();
         $popup = $this->as($a, fn () => Popup::query()->first());
-        $this->get($this->menuUrl('cafe-a'))->assertSee('Try our cake', false);
+        $this->get($this->subUrl('cafe-a'))->assertSee('Try our cake', false);
 
-        $this->postJson($this->menuUrl("cafe-a/popups/{$popup->id}/view"))->assertOk();
-        $this->postJson($this->menuUrl("cafe-a/popups/{$popup->id}/click"))->assertOk();
+        $this->postJson($this->subUrl('cafe-a', "popups/{$popup->id}/view"))->assertOk();
+        $this->postJson($this->subUrl('cafe-a', "popups/{$popup->id}/click"))->assertOk();
         $popup->refresh();
         $this->assertSame([1, 1], [$popup->views, $popup->clicks]);
     }
@@ -115,7 +115,7 @@ class MarketingTest extends TenantTestCase
 
         $this->assertSame(3, DB::table('combo_items')->where('combo_id', $meal->id)->where('tenant_id', 'cafe-a')->count());
         $this->assertSame(1, DB::table('item_pairings')->where('menu_item_id', $meal->id)->where('tenant_id', 'cafe-a')->count());
-        $this->get($this->menuUrl('cafe-a'))->assertSee('"saving":30', false);   // 120+40+30 − 160
+        $this->get($this->subUrl('cafe-a'))->assertSee('"saving":30', false);   // 120+40+30 − 160
 
         $this->orderAtTable($a, [['item_id' => $meal->id, 'qty' => 1]])->assertOk();
         $options = $this->as($a, fn () => Order::query()->first()->items()->first()->options);
@@ -134,12 +134,12 @@ class MarketingTest extends TenantTestCase
         $pro = $this->restaurant('cafe-pro', 'pro');
         $this->item($pro, 'Latte');
         $this->actingAs($this->owner($pro))->post($this->dashUrl('/settings'), $settings)->assertSessionHasNoErrors();
-        $this->get($this->menuUrl('cafe-pro'))->assertSee('grid grid-cols-2 gap-3', false);
+        $this->get($this->subUrl('cafe-pro'))->assertSee('grid grid-cols-2 gap-3', false);
 
         $basic = $this->restaurant('cafe-basic', 'basic');
         $this->item($basic, 'Latte');
         $this->actingAs($this->owner($basic))->post($this->dashUrl('/settings'), $settings)->assertSessionHasNoErrors();
-        $this->get($this->menuUrl('cafe-basic'))->assertDontSee('grid grid-cols-2 gap-3', false);
+        $this->get($this->subUrl('cafe-basic'))->assertDontSee('grid grid-cols-2 gap-3', false);
     }
 
     public function test_printed_menu_uses_regular_prices_and_needs_the_feature(): void

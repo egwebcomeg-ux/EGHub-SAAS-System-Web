@@ -93,10 +93,10 @@ class ReportsTest extends TenantTestCase
         $a = $this->restaurant('cafe-a', 'pro');
         $table = $this->as($a, fn () => DiningTable::query()->where('name', '2')->first());
 
-        $this->get($this->menuUrl('cafe-a'));
-        $this->get($this->menuUrl('cafe-a')); // same session: still one visit
-        $this->get($this->menuUrl("cafe-a/t/{$table->qr_token}"));
-        $this->get($this->menuUrl("cafe-a/t/{$table->qr_token}"));
+        $this->get($this->subUrl('cafe-a'));
+        $this->get($this->subUrl('cafe-a')); // same session: still one visit
+        $this->get($this->subUrl('cafe-a', "t/{$table->qr_token}"));
+        $this->get($this->subUrl('cafe-a', "t/{$table->qr_token}"));
 
         $day = $this->as($a, fn () => MenuVisit::query()->first());
         $this->assertSame([1, 2], [$day->views, $day->scans]);

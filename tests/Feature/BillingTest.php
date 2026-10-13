@@ -108,19 +108,19 @@ class BillingTest extends TenantTestCase
         $this->travel(15)->days();
         $this->assertSame(1, $lifecycle->run()['past_due']);
         $this->assertSame('past_due', $a->subscription()->first()->status);
-        $this->get($this->menuUrl('cafe-a'))->assertOk(); // still online during grace
+        $this->get($this->subUrl('cafe-a'))->assertOk(); // still online during grace
 
         $this->travel(6)->days();
         $this->assertSame(1, $lifecycle->run()['suspended']);
         $this->assertTrue($a->fresh()->isSuspended());
-        $this->get($this->menuUrl('cafe-a'))->assertStatus(503);
+        $this->get($this->subUrl('cafe-a'))->assertStatus(503);
         $this->actingAs($this->owner($a))->get($this->dashUrl('/billing'))->assertOk(); // can still pay
 
         $billing = app(Billing::class);
         $invoice = $billing->invoiceForPlan($a->fresh(), $this->plan('pro'), 1);
         $billing->markPaid($invoice, 'manual', null, $invoice->total, 'restore');
         $this->assertFalse($a->fresh()->isSuspended());
-        $this->get($this->menuUrl('cafe-a'))->assertOk()->assertSee('Tea');
+        $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('Tea');
     }
 
     public function test_reminder_and_banner_before_the_end(): void

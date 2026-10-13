@@ -10,12 +10,12 @@ use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Public menu on a restaurant's own domain: menu.cafe.com/... (same routes as egmenu.app/{slug}/...).
- * Links generated during the request (route('menu.*')) point back to the custom domain without the slug.
- * A domain that is not active, or whose plan lost custom domains, goes to egmenu.app/{slug} so printed QR
+ * Public menu on a restaurant's own domain: menu.cafe.com/... (same routes as {slug}.egmenu.app/...).
+ * Links generated during the request (route('menu.*')) point back to the custom domain instead of the subdomain.
+ * A domain that is not active, or whose plan lost custom domains, goes to {slug}.egmenu.app so printed QR
  * codes keep working.
  */
-class IdentifyTenantByDomain extends IdentifyTenantByPath
+class IdentifyTenantByDomain extends IdentifyTenantBySubdomain
 {
     public function handle(Request $request, Closure $next): Response
     {
@@ -25,22 +25,15 @@ class IdentifyTenantByDomain extends IdentifyTenantByPath
 
         $tenant = $domain->tenant;
         if (! $tenant->customDomain()) {
-            return redirect()->away(platform_url(null, $tenant->id.'/'.ltrim($request->path(), '/')));
+            $query = $request->getQueryString();
+
+            return redirect()->away(platform_url($tenant->id, $request->path()).($query ? '?'.$query : ''));
         }
 
-        tenancy()->initialize($tenant);
-        URL::defaults(['tenant' => $tenant->id]);
         $customRoot = $request->getSchemeAndHttpHost();
-        $mainRoot = rtrim(platform_url(null, ''), '/');
-        URL::formatHostUsing(fn (string $root, $route) => $route instanceof Route && str_starts_with((string) $route->getName(), 'menu.') && $root === $mainRoot ? $customRoot : $root);
-        URL::formatPathUsing(fn (string $path, $route) => $route instanceof Route && str_starts_with((string) $route->getName(), 'menu.')
-            ? (preg_replace('#^/'.preg_quote($tenant->id, '#').'(?=/|$)#', '', $path) ?: '/') : $path);
+        $subRoot = rtrim(platform_url($tenant->id, ''), '/');
+        URL::formatHostUsing(fn (string $root, $route) => $route instanceof Route && str_starts_with((string) $route->getName(), 'menu.') && $root === $subRoot ? $customRoot : $root);
 
-        $this->applyLocale($request, $tenant);
-        if ($tenant->isSuspended()) {
-            return response()->view('menu.suspended', ['tenant' => $tenant], 503);
-        }
-
-        return $next($request);
+        return $this->serve($request, $next, $tenant);
     }
 }

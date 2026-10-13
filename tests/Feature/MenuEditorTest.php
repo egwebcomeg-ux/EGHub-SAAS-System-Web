@@ -43,7 +43,7 @@ class MenuEditorTest extends TenantTestCase
         $this->assertSame(900, $w); // resized
 
         // the public menu shows it with its options
-        $this->get($this->menuUrl('cafe-a'))->assertOk()->assertSee('لاتيه')->assertSee('كبير', false);
+        $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('لاتيه')->assertSee('كبير', false);
     }
 
     public function test_a_non_image_upload_is_rejected(): void
@@ -98,7 +98,7 @@ class MenuEditorTest extends TenantTestCase
         $this->item($a, 'Shown');
         $hidden = $this->item($a, 'HiddenOne');
         $this->as($a, fn () => $hidden->update(['is_active' => false]));
-        $this->get($this->menuUrl('cafe-a'))->assertSee('Shown')->assertDontSee('HiddenOne');
+        $this->get($this->subUrl('cafe-a'))->assertSee('Shown')->assertDontSee('HiddenOne');
     }
 
     public function test_tables_range_limit_rotate_and_print(): void
@@ -115,7 +115,7 @@ class MenuEditorTest extends TenantTestCase
         $old = $table->qr_token;
         $this->actingAs($owner)->post($this->dashUrl("/tables/{$table->id}/rotate"))->assertSessionHasNoErrors();
         $this->assertNotSame($old, $table->fresh()->qr_token);
-        $this->get($this->menuUrl("cafe-a/t/$old"))->assertNotFound();
+        $this->get($this->subUrl('cafe-a', "t/$old"))->assertNotFound();
 
         $this->actingAs($owner)->get($this->dashUrl('/tables/print'))->assertOk()->assertSee('<svg', false);
     }
@@ -129,7 +129,7 @@ class MenuEditorTest extends TenantTestCase
             'english_enabled' => '1', 'ordering_enabled' => '1',
         ])->assertSessionHasNoErrors();
 
-        $this->get($this->menuUrl('cafe-a'))->assertSee('Kahwa')->assertSee('#112233')->assertSee('Tajawal');
+        $this->get($this->subUrl('cafe-a'))->assertSee('Kahwa')->assertSee('#112233')->assertSee('Tajawal');
     }
 
     public function test_food_labels_are_saved_and_shown_on_the_menu(): void
@@ -142,7 +142,7 @@ class MenuEditorTest extends TenantTestCase
             'category_id' => $cat->id, 'name' => 'Falafel', 'price' => 20, 'is_active' => '1', 'tags' => ['vegetarian', 'spicy'],
         ])->assertSessionHasNoErrors();
         $this->assertSame(['vegetarian', 'spicy'], $this->as($a, fn () => MenuItem::query()->first()->badges));
-        $this->get($this->menuUrl('cafe-a'))->assertSee('🌱 نباتي')->assertSee('🌶 حار');
+        $this->get($this->subUrl('cafe-a'))->assertSee('🌱 نباتي')->assertSee('🌶 حار');
 
         $this->actingAs($owner)->post($this->dashUrl('/menu/items'), [
             'category_id' => $cat->id, 'name' => 'X', 'price' => 20, 'tags' => ['<script>'],

@@ -34,7 +34,7 @@ class OrderFlowTest extends TenantTestCase
     private function scanTable(Tenant $tenant, string $name = '1'): DiningTable
     {
         $table = $this->as($tenant, fn () => DiningTable::query()->where('name', $name)->first());
-        $this->get($this->menuUrl("{$tenant->id}/t/{$table->qr_token}"))->assertRedirect();
+        $this->get($this->subUrl($tenant->id, "t/{$table->qr_token}"))->assertRedirect();
 
         return $table;
     }
@@ -46,7 +46,7 @@ class OrderFlowTest extends TenantTestCase
 
     private function order(Tenant $tenant, array $items, array $extra = [])
     {
-        return $this->postJson($this->menuUrl("{$tenant->id}/order"), $extra + ['client_uuid' => (string) Str::uuid(), 'items' => $items]);
+        return $this->postJson($this->subUrl($tenant->id, 'order'), $extra + ['client_uuid' => (string) Str::uuid(), 'items' => $items]);
     }
 
     public function test_guest_orders_from_a_table_and_the_server_prices_it(): void
@@ -218,7 +218,7 @@ class OrderFlowTest extends TenantTestCase
         $url = $this->order($a, [['item_id' => $item->id, 'qty' => 1]])->json('url');
 
         $this->getJson($url.'/status')->assertOk()->assertJsonPath('status', 'new');
-        $this->get($this->menuUrl('cafe-a/o/'.str_repeat('0', 24)))->assertNotFound();
+        $this->get($this->subUrl('cafe-a', 'o/'.str_repeat('0', 24)))->assertNotFound();
     }
 
     public function test_starter_plan_menu_is_view_only(): void
@@ -226,8 +226,8 @@ class OrderFlowTest extends TenantTestCase
         $tenant = $this->restaurant('cafe-starter', 'starter');
         $latte = $this->item($tenant, 'Latte', 65);
 
-        $this->get($this->menuUrl('cafe-starter'))->assertOk()->assertSee('Latte');
-        $this->postJson($this->menuUrl('cafe-starter/order'), ['client_uuid' => (string) Str::uuid(), 'items' => [['item_id' => $latte->id, 'qty' => 1]]])
+        $this->get($this->subUrl('cafe-starter'))->assertOk()->assertSee('Latte');
+        $this->postJson($this->subUrl('cafe-starter', 'order'), ['client_uuid' => (string) Str::uuid(), 'items' => [['item_id' => $latte->id, 'qty' => 1]]])
             ->assertStatus(422);
         $this->assertSame(0, Order::query()->withoutGlobalScopes()->count());
     }

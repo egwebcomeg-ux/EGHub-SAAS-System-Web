@@ -3,6 +3,7 @@
 use App\Http\Middleware\AdminLocale;
 use App\Http\Middleware\IdentifyTenantByDomain;
 use App\Http\Middleware\IdentifyTenantByPath;
+use App\Http\Middleware\IdentifyTenantBySubdomain;
 use App\Http\Middleware\InitializeTenancyFromUser;
 use App\Http\Middleware\RequireFeature;
 use Illuminate\Foundation\Application;
@@ -27,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO);
         $middleware->alias([
             'tenant.path' => IdentifyTenantByPath::class,
+            'tenant.subdomain' => IdentifyTenantBySubdomain::class,
             'tenant.domain' => IdentifyTenantByDomain::class,
             'tenant.user' => InitializeTenancyFromUser::class,
             'feature' => RequireFeature::class,
@@ -36,6 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Tenancy must be initialised before route-model binding, or {model} ids would resolve outside the
         // tenant scope (another restaurant's rows). Authenticate already runs before SubstituteBindings.
         $middleware->prependToPriorityList(SubstituteBindings::class, IdentifyTenantByPath::class);
+        $middleware->prependToPriorityList(SubstituteBindings::class, IdentifyTenantBySubdomain::class);
         $middleware->prependToPriorityList(SubstituteBindings::class, IdentifyTenantByDomain::class);
         $middleware->prependToPriorityList(SubstituteBindings::class, InitializeTenancyFromUser::class);
         // Each host has its own login page.

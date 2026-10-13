@@ -9,7 +9,8 @@ use App\Http\Controllers\Menu\TableCallController;
 use App\Http\Controllers\Menu\TvController;
 use Illuminate\Support\Facades\Route;
 
-// egmenu.app/{tenant}/... (tenancy initialised by IdentifyTenantByPath)
+// {tenant}.egmenu.app/... (IdentifyTenantBySubdomain), a custom domain (IdentifyTenantByDomain) and the old
+// egmenu.app/{tenant}/... address (IdentifyTenantByPath: GET redirects to the subdomain).
 Route::get('/', [MenuController::class, 'show'])->name('show');
 Route::get('/t/{token}', [MenuController::class, 'table'])->where('token', '[a-f0-9]{20}')->name('table');
 

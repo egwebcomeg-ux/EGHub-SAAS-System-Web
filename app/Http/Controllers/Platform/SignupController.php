@@ -30,7 +30,7 @@ class SignupController extends Controller
         $slug = strtolower(trim((string) $request->query('slug', '')));
         $error = Tenant::slugError($slug);
 
-        return response()->json(['ok' => $error === null, 'message' => $error, 'url' => platform_url(null, $slug)]);
+        return response()->json(['ok' => $error === null, 'message' => $error, 'url' => platform_url($slug, '')]);
     }
 
     public function store(Request $request, TenantProvisioner $provisioner): RedirectResponse

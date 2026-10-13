@@ -11,10 +11,10 @@ class HideBadgeTest extends TenantTestCase
     {
         $pro = $this->restaurant('cafe-pro', 'pro');
         $this->item($pro, 'Latte');
-        $this->get($this->menuUrl('cafe-pro'))->assertOk()->assertSee('مقدم من');
+        $this->get($this->subUrl('cafe-pro'))->assertOk()->assertSee('مقدم من');
 
         $business = $this->restaurant('cafe-biz', 'business');
         $this->item($business, 'Latte');
-        $this->get($this->menuUrl('cafe-biz'))->assertOk()->assertDontSee('مقدم من');
+        $this->get($this->subUrl('cafe-biz'))->assertOk()->assertDontSee('مقدم من');
     }
 }

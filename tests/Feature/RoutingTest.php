@@ -37,7 +37,7 @@ class RoutingTest extends TenantTestCase
         $a = $this->restaurant('cafe-a');
         $a->update(['status' => 'suspended']);
 
-        $this->get($this->menuUrl('cafe-a'))->assertStatus(503);
+        $this->get($this->subUrl('cafe-a'))->assertStatus(503);
         $this->actingAs($this->owner($a))->get($this->dashUrl())->assertOk();
     }
 
@@ -46,8 +46,8 @@ class RoutingTest extends TenantTestCase
         $a = $this->restaurant('cafe-a');
         $table = $this->as($a, fn () => DiningTable::query()->where('name', '3')->first());
 
-        $this->get($this->menuUrl("cafe-a/t/{$table->qr_token}"))->assertRedirect($this->menuUrl('cafe-a'));
-        $this->get($this->menuUrl('cafe-a'))->assertSee('3');
+        $this->get($this->subUrl('cafe-a', "t/{$table->qr_token}"))->assertRedirect($this->subUrl('cafe-a'));
+        $this->get($this->subUrl('cafe-a'))->assertSee('3');
         $this->assertSame($table->id, session('table.cafe-a')['id']);
     }
 
@@ -55,7 +55,7 @@ class RoutingTest extends TenantTestCase
     {
         $a = $this->restaurant('cafe-a');
         $this->item($a);
-        $this->get($this->menuUrl('cafe-a?lang=en'))->assertOk()->assertSee('dir="ltr"', false);
-        $this->get($this->menuUrl('cafe-a?lang=ar'))->assertOk()->assertSee('dir="rtl"', false);
+        $this->get($this->subUrl('cafe-a', '?lang=en'))->assertOk()->assertSee('dir="ltr"', false);
+        $this->get($this->subUrl('cafe-a', '?lang=ar'))->assertOk()->assertSee('dir="rtl"', false);
     }
 }

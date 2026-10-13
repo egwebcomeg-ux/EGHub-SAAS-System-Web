@@ -33,8 +33,8 @@ class LoyaltyTest extends TenantTestCase
     private function servedOrder(Tenant $t, MenuItem $item, string $phone, int $qty = 1): Order
     {
         $table = $this->as($t, fn () => DiningTable::query()->first());
-        $this->get($this->menuUrl("{$t->id}/t/{$table->qr_token}"));
-        $this->postJson($this->menuUrl("{$t->id}/order"), [
+        $this->get($this->subUrl($t->id, "t/{$table->qr_token}"));
+        $this->postJson($this->subUrl($t->id, 'order'), [
             'client_uuid' => (string) Str::uuid(), 'items' => [['item_id' => $item->id, 'qty' => $qty]], 'customer_phone' => $phone,
         ])->assertOk();
         return $this->as($t, function () {
@@ -150,14 +150,14 @@ class LoyaltyTest extends TenantTestCase
     {
         $a = $this->restaurant('cafe-a');
         $this->program($a);
-        $this->get($this->menuUrl('cafe-a/card'))->assertOk();
-        $this->post($this->menuUrl('cafe-a/card'), ['phone' => '123'])->assertSessionHasErrors('phone');
+        $this->get($this->subUrl('cafe-a', 'card'))->assertOk();
+        $this->post($this->subUrl('cafe-a', 'card'), ['phone' => '123'])->assertSessionHasErrors('phone');
 
-        $res = $this->post($this->menuUrl('cafe-a/card'), ['phone' => '01066666666', 'name' => 'Sara', 'consent' => '1']);
+        $res = $this->post($this->subUrl('cafe-a', 'card'), ['phone' => '01066666666', 'name' => 'Sara', 'consent' => '1']);
         $customer = $this->as($a, fn () => Customer::query()->where('phone', '01066666666')->first());
-        $res->assertRedirect($this->menuUrl("cafe-a/card/{$customer->card_token}"));
+        $res->assertRedirect($this->subUrl('cafe-a', "card/{$customer->card_token}"));
         $this->assertTrue($customer->marketing_opt_in);
-        $this->get($this->menuUrl("cafe-a/card/{$customer->card_token}"))->assertOk()->assertSee('Coffee card')->assertSee('<svg', false);
+        $this->get($this->subUrl('cafe-a', "card/{$customer->card_token}"))->assertOk()->assertSee('Coffee card')->assertSee('<svg', false);
 
         // the guest's own browser has no way to add stamps
         $card = $this->card($a, '01066666666');
@@ -171,11 +171,11 @@ class LoyaltyTest extends TenantTestCase
         $b = $this->restaurant('cafe-b');
         $this->program($a);
         $this->program($b);
-        $this->post($this->menuUrl('cafe-b/card'), ['phone' => '01077777777']);
+        $this->post($this->subUrl('cafe-b', 'card'), ['phone' => '01077777777']);
         $customerOfB = $this->as($b, fn () => Customer::query()->first());
         $cardOfB = $this->card($b, '01077777777');
 
-        $this->get($this->menuUrl("cafe-a/card/{$customerOfB->card_token}"))->assertNotFound();
+        $this->get($this->subUrl('cafe-a', "card/{$customerOfB->card_token}"))->assertNotFound();
         $owner = $this->owner($a);
         $this->actingAs($owner)->get($this->dashUrl("/customers/{$customerOfB->id}"))->assertNotFound();
         $this->actingAs($owner)->post($this->dashUrl("/loyalty/cards/{$cardOfB->id}/stamp"), ['count' => 3])->assertNotFound();
@@ -187,7 +187,7 @@ class LoyaltyTest extends TenantTestCase
     {
         $a = $this->restaurant('cafe-a', 'basic');
         $this->program($a);
-        $this->get($this->menuUrl('cafe-a/card'))->assertNotFound();
+        $this->get($this->subUrl('cafe-a', 'card'))->assertNotFound();
         $this->actingAs($this->owner($a))->get($this->dashUrl('/loyalty'))->assertForbidden();
         $this->actingAs($this->owner($a))->get($this->dashUrl('/customers'))->assertForbidden();
     }
@@ -196,7 +196,7 @@ class LoyaltyTest extends TenantTestCase
     {
         $a = $this->restaurant('cafe-a');
         $this->program($a);
-        $this->post($this->menuUrl('cafe-a/card'), ['phone' => '01088888888']);
+        $this->post($this->subUrl('cafe-a', 'card'), ['phone' => '01088888888']);
         $form = ['type' => 'visits', 'title' => 'Coffee card', 'stamps_required' => 8, 'reward_label' => 'Free coffee', 'is_active' => '1',
             'design' => ['bg' => '#B5451B', 'stamp_bg' => '#7A1F2B', 'icon' => 'cup']];
 
@@ -209,7 +209,7 @@ class LoyaltyTest extends TenantTestCase
     {
         $a = $this->restaurant('cafe-a');
         $this->program($a, ['stamps_expire_days' => 30]);
-        $this->post($this->menuUrl('cafe-a/card'), ['phone' => '01099999999']);
+        $this->post($this->subUrl('cafe-a', 'card'), ['phone' => '01099999999']);
         $card = $this->card($a, '01099999999');
         $this->as($a, fn () => app(LoyaltyService::class)->stamp($card, 2, $this->owner($a)));
 
@@ -223,11 +223,11 @@ class LoyaltyTest extends TenantTestCase
         $a = $this->restaurant('cafe-a');
         $this->as($a, fn () => Settings::put(['google_review_url' => 'https://g.page/r/x/review']));
 
-        $this->postJson($this->menuUrl('cafe-a/feedback'), ['rating' => 5, 'comment' => 'Great latte'])
+        $this->postJson($this->subUrl('cafe-a', 'feedback'), ['rating' => 5, 'comment' => 'Great latte'])
             ->assertOk()->assertJsonPath('google', 'https://g.page/r/x/review');
-        $this->postJson($this->menuUrl('cafe-a/feedback'), ['rating' => 2])->assertOk()->assertJsonPath('google', null);
-        $this->postJson($this->menuUrl('cafe-a/feedback'), ['rating' => 3])->assertOk();
-        $this->postJson($this->menuUrl('cafe-a/feedback'), ['rating' => 4])->assertStatus(429);
+        $this->postJson($this->subUrl('cafe-a', 'feedback'), ['rating' => 2])->assertOk()->assertJsonPath('google', null);
+        $this->postJson($this->subUrl('cafe-a', 'feedback'), ['rating' => 3])->assertOk();
+        $this->postJson($this->subUrl('cafe-a', 'feedback'), ['rating' => 4])->assertStatus(429);
 
         $this->assertSame(3, $this->as($a, fn () => Feedback::query()->count()));
         $this->actingAs($this->owner($a))->get($this->dashUrl('/feedback'))->assertOk()->assertSee('Great latte')->assertSee('3.3');

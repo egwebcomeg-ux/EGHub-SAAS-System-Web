@@ -18,7 +18,7 @@ class OnlineOrderingTest extends TenantTestCase
     {
         $item = $this->as($tenant, fn () => MenuItem::query()->first());
 
-        return $this->postJson($this->menuUrl("{$tenant->id}/order"), $extra + [
+        return $this->postJson($this->subUrl($tenant->id, 'order'), $extra + [
             'client_uuid' => (string) Str::uuid(), 'items' => [['item_id' => $item->id, 'qty' => 2]],
             'customer_name' => 'Mona', 'customer_phone' => '01012345678',
         ]);
@@ -34,7 +34,7 @@ class OnlineOrderingTest extends TenantTestCase
             return DeliveryZone::query()->create(['branch_id' => Branch::query()->first()->id, 'name' => 'Maadi', 'fee' => 25, 'min_order' => 100]);
         });
 
-        $this->get($this->menuUrl('cafe-a'))->assertOk()->assertSee('data-otype="takeaway"', false)->assertSee('Maadi');
+        $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('data-otype="takeaway"', false)->assertSee('Maadi');
 
         $this->order($a, ['type' => 'takeaway'])->assertOk()->assertJsonStructure(['url']);
         $this->order($a, ['type' => 'delivery', 'zone_id' => $zone->id, 'address' => '9 Road 233'])->assertOk();
@@ -47,7 +47,7 @@ class OnlineOrderingTest extends TenantTestCase
 
         // the guest sees the WhatsApp button on the tracking page (the restaurant has a WhatsApp number)
         $this->as($a, fn () => Settings::put(['whatsapp' => '01099999999']));
-        $this->get($this->menuUrl('cafe-a/o/'.$orders[1]->tracking_token))->assertOk()->assertSee('wa.me/201099999999', false);
+        $this->get($this->subUrl('cafe-a', 'o/'.$orders[1]->tracking_token))->assertOk()->assertSee('wa.me/201099999999', false);
     }
 
     public function test_rules_phone_zone_minimum_and_schedule(): void

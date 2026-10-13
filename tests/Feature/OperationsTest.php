@@ -45,7 +45,7 @@ class OperationsTest extends TenantTestCase
         $this->actingAs($owner)->get($this->dashUrl('/pos'))->assertForbidden();
         $this->actingAs($owner)->get($this->dashUrl('/kitchen'))->assertForbidden();
         $this->actingAs($owner)->get($this->dashUrl('/shifts'))->assertForbidden();
-        $this->get($this->menuUrl('cafe-a/board'))->assertNotFound();
+        $this->get($this->subUrl('cafe-a', 'board'))->assertNotFound();
     }
 
     public function test_pos_pack_unlocks_pos_shifts_and_display(): void
@@ -59,7 +59,7 @@ class OperationsTest extends TenantTestCase
 
         $this->item($a, 'Latte', 60);
         $this->actingAs($this->owner($a))->get($this->dashUrl('/pos'))->assertOk()->assertSee('Latte');
-        $this->get($this->menuUrl('cafe-a/board'))->assertOk();
+        $this->get($this->subUrl('cafe-a', 'board'))->assertOk();
     }
 
     public function test_cashier_shift_takeaway_cash_sale_and_close(): void
@@ -166,7 +166,7 @@ class OperationsTest extends TenantTestCase
         $item = $this->item($a, 'Secret Burger', 100);
         $this->actingAs($this->owner($a))->posOrder(['items' => [['item_id' => $item->id, 'qty' => 1]], 'customer_name' => 'Mona']);
 
-        $feed = $this->getJson($this->menuUrl('cafe-a/board/feed'))->assertOk();
+        $feed = $this->getJson($this->subUrl('cafe-a', 'board/feed'))->assertOk();
         $this->assertSame([1], $feed->json('preparing'));
         $this->assertStringNotContainsString('Mona', $feed->getContent());
         $this->assertStringNotContainsString('Secret', $feed->getContent());

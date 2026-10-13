@@ -50,8 +50,8 @@ class TenantIsolationTest extends TenantTestCase
         $this->item($a, 'Only-In-A');
         $this->item($b, 'Only-In-B');
 
-        $this->get($this->menuUrl('cafe-a'))->assertOk()->assertSee('Only-In-A')->assertDontSee('Only-In-B');
-        $this->get($this->menuUrl('cafe-b'))->assertOk()->assertSee('Only-In-B')->assertDontSee('Only-In-A');
+        $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('Only-In-A')->assertDontSee('Only-In-B');
+        $this->get($this->subUrl('cafe-b'))->assertOk()->assertSee('Only-In-B')->assertDontSee('Only-In-A');
     }
 
     public function test_table_qr_of_another_restaurant_is_not_found(): void
@@ -60,8 +60,8 @@ class TenantIsolationTest extends TenantTestCase
         $b = $this->restaurant('cafe-b');
         $tokenOfB = $this->as($b, fn () => DiningTable::query()->value('qr_token'));
 
-        $this->get($this->menuUrl("cafe-a/t/$tokenOfB"))->assertNotFound();
-        $this->get($this->menuUrl("cafe-b/t/$tokenOfB"))->assertRedirect($this->menuUrl('cafe-b'));
+        $this->get($this->subUrl('cafe-a', "t/$tokenOfB"))->assertNotFound();
+        $this->get($this->subUrl('cafe-b', "t/$tokenOfB"))->assertRedirect($this->subUrl('cafe-b'));
     }
 
     public function test_dashboard_cannot_reach_another_restaurants_user_by_id(): void

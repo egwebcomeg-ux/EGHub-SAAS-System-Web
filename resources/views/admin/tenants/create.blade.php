@@ -12,8 +12,8 @@
     <div>
         <label class="field-label">{{ __('Menu link') }}</label>
         <div class="flex items-center gap-1" dir="ltr">
-            <span class="text-sm text-navy-500">{{ central_domain() }}/</span>
             <input class="field" name="slug" value="{{ old('slug') }}" required pattern="[a-z0-9-]{3,30}" placeholder="my-cafe">
+            <span class="shrink-0 text-sm text-navy-500">.{{ central_domain() }}</span>
         </div>
         @error('slug')<div class="field-error">{{ $message }}</div>@enderror
     </div>
