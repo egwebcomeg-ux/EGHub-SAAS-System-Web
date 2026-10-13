@@ -17,7 +17,9 @@ if (dataEl) {
         return (c === 'x' ? r : (r & 3) | 8).toString(16);
     });
 
-    let state = { type: 'takeaway', table: '', lines: [], category: 'all' };
+    const CC = D.mode === 'callcenter'; // call-center mode: delivery / pickup, caller lookup, no payment here
+    const zones = Object.fromEntries((D.zones || []).map((z) => [z.id, z]));
+    let state = { type: CC ? 'delivery' : 'takeaway', table: '', lines: [], category: 'all' };
     let lastOrderId = null;
 
     async function api(url, body, method = 'POST') {
@@ -108,7 +110,9 @@ if (dataEl) {
         const discount = Math.min(subtotal, $('[data-discount-kind]')?.value === 'percent' ? subtotal * raw / 100 : raw);
         const service = state.type === 'dine_in' ? (subtotal - discount) * D.service / 100 : 0;
         const tax = (subtotal - discount + service) * D.tax / 100;
-        return { subtotal, discount: Math.round(discount * 100) / 100, service, tax, total: subtotal - discount + service + tax };
+        const zone = CC && state.type === 'delivery' ? zones[$('[data-zone]').value] : null;
+        const delivery = zone ? zone.fee : 0;
+        return { subtotal, discount: Math.round(discount * 100) / 100, service, tax, delivery, zone, total: subtotal - discount + service + tax + delivery };
     }
     function render() {
         $$('[data-type]').forEach((b) => {
@@ -117,7 +121,8 @@ if (dataEl) {
             b.classList.toggle('text-white', on);
             b.classList.toggle('bg-navy-50', !on);
         });
-        $('[data-table-box]').classList.toggle('hidden', state.type !== 'dine_in');
+        $('[data-table-box]')?.classList.toggle('hidden', state.type !== 'dine_in');
+        $('[data-delivery-box]')?.classList.toggle('hidden', state.type !== 'delivery');
         $('[data-lines]').innerHTML = state.lines.length ? state.lines.map((l, i) => {
             const item = items[l.item_id];
             const opts = item.groups.flatMap((g) => g.options).filter((o) => l.option_ids.includes(o.id)).map((o) => o.name).join('، ');
@@ -134,7 +139,12 @@ if (dataEl) {
         const row = (label, v, cls = '') => `<div class="flex justify-between ${cls}"><span>${esc(label)}</span><span>${fmt(v)}</span></div>`;
         $('[data-totals]').innerHTML = (t.discount || t.service || t.tax ? row(T.subtotal, t.subtotal) : '')
             + (t.discount ? row(T.discount, -t.discount, 'text-emerald-700') : '') + (t.service ? row(T.service, t.service) : '')
-            + (t.tax ? row(T.tax, t.tax) : '') + row(T.total, t.total, 'text-lg font-extrabold');
+            + (t.tax ? row(T.tax, t.tax) : '') + (t.delivery ? row(T.deliveryFee, t.delivery) : '') + row(T.total, t.total, 'text-lg font-extrabold');
+        if (CC) {
+            const short = t.zone && t.zone.min > 0 && t.subtotal - t.discount < t.zone.min;
+            $('[data-min-warning]').textContent = short ? T.minOrder.replace('__A__', fmt(t.zone.min)) : '';
+            $('[data-min-warning]').classList.toggle('hidden', !short);
+        }
         display?.postMessage({ lines: state.lines.map((l) => ({ name: items[l.item_id].name, qty: l.qty, amount: unit(l) * l.qty })), totals: t, currency: D.currency });
     }
     $('[data-lines]').addEventListener('click', (e) => {
@@ -146,31 +156,102 @@ if (dataEl) {
         render();
     });
     $$('[data-type]').forEach((b) => b.addEventListener('click', () => { state.type = b.dataset.type; render(); }));
-    $('[data-table]').innerHTML += D.tables.map((t) => `<option value="${t.id}">${esc(T.table.replace('__N__', t.name))}</option>`).join('');
-    $('[data-table]').addEventListener('change', (e) => (state.table = e.target.value));
+    if (!CC) {
+        $('[data-table]').innerHTML += D.tables.map((t) => `<option value="${t.id}">${esc(T.table.replace('__N__', t.name))}</option>`).join('');
+        $('[data-table]').addEventListener('change', (e) => (state.table = e.target.value));
+    }
     $('[data-discount]')?.addEventListener('input', render);
     $('[data-discount-kind]')?.addEventListener('change', render);
     $('[data-clear]').addEventListener('click', () => { if (state.lines.length && confirm(T.clearAsk)) reset(); });
 
     function reset() {
         state = { ...state, lines: [], table: '' };
-        $('[data-table]').value = '';
-        ['[data-customer-name]', '[data-customer-phone]', '[data-notes]'].forEach((s) => ($(s).value = ''));
+        if ($('[data-table]')) $('[data-table]').value = '';
+        ['[data-customer-name]', '[data-customer-phone]', '[data-notes]', '[data-phone2]', '[data-zone]', '[data-address]', '[data-address-label]']
+            .forEach((sel) => { if ($(sel)) $(sel).value = ''; });
+        if (CC) {
+            state.type = 'delivery';
+            $('[data-caller]').classList.add('hidden');
+            $('[data-addresses]').innerHTML = '';
+        }
         if ($('[data-discount]')) $('[data-discount]').value = 0;
         render();
     }
 
     function payload(pay) {
-        return {
+        const p = {
             client_uuid: uuid(), type: state.type, table_id: state.type === 'dine_in' ? Number(state.table) || null : null,
             items: state.lines, discount: totals().discount, pay: pay || null,
             customer_name: $('[data-customer-name]').value.trim(), customer_phone: $('[data-customer-phone]').value.trim(), notes: $('[data-notes]').value.trim(),
         };
+        if (CC) p.phone_2 = $('[data-phone2]').value.trim();
+        if (CC && state.type === 'delivery') {
+            Object.assign(p, { zone_id: Number($('[data-zone]').value) || null, address: $('[data-address]').value.trim(), address_label: $('[data-address-label]').value.trim() });
+        }
+        return p;
     }
     function canSubmit() {
         if (!state.lines.length) return false;
         if (state.type === 'dine_in' && !state.table) { alert(T.chooseTable); return false; }
+        if (CC) {
+            if (!$('[data-customer-phone]').value.trim()) { alert(T.phoneFirst); $('[data-customer-phone]').focus(); return false; }
+            if (state.type === 'delivery') {
+                const t = totals();
+                if (!t.zone) { alert(T.chooseZone); return false; }
+                if (!$('[data-address]').value.trim()) { alert(T.enterAddress); $('[data-address]').focus(); return false; }
+                if (t.zone.min > 0 && t.subtotal - t.discount < t.zone.min) { alert(T.minOrder.replace('__A__', fmt(t.zone.min))); return false; }
+            }
+        }
         return true;
+    }
+
+    // ---- call center: caller lookup and saved addresses ----
+    if (CC) {
+        $('[data-zone]').innerHTML += D.zones.map((z) => `<option value="${z.id}">${esc(z.name)} · ${fmt(z.fee)}${z.minutes ? ' · ' + esc(T.minutes.replace('__N__', z.minutes)) : ''}</option>`).join('');
+        $('[data-zone]').addEventListener('change', render);
+        let saved = [];
+        const pick = (a) => {
+            $('[data-zone]').value = a.zone_id;
+            $('[data-address]').value = a.text;
+            $('[data-address-label]').value = a.label || '';
+            render();
+        };
+        $('[data-addresses]').addEventListener('click', (e) => {
+            const b = e.target.closest('[data-pick-address]');
+            if (b) pick(saved[Number(b.dataset.pickAddress)]);
+        });
+        async function lookup() {
+            const phone = $('[data-customer-phone]').value.trim();
+            if (!phone) return;
+            const box = $('[data-caller]');
+            box.classList.remove('hidden');
+            try {
+                const res = await fetch(D.urls.lookup + '?phone=' + encodeURIComponent(phone), { headers: { Accept: 'application/json' } });
+                const c = await res.json();
+                if (!res.ok) throw new Error(c.message || res.status);
+                $('[data-customer-phone]').value = c.phone;
+                if (!c.found) {
+                    saved = [];
+                    box.innerHTML = `<b class="text-emerald-700">${esc(T.newCaller)}</b>`;
+                    $('[data-addresses]').innerHTML = '';
+                    $('[data-customer-name]').focus();
+                    return;
+                }
+                $('[data-customer-name]').value = c.name || '';
+                $('[data-phone2]').value = c.phone_2 || '';
+                box.innerHTML = `<div class="font-bold">${esc(c.name || c.phone)}${c.orders_count ? ' · ' + esc(T.ordersCount.replace('__N__', c.orders_count)) : ''}</div>`
+                    + (c.notes ? `<div class="mt-1 text-brand-700">⚠ ${esc(c.notes)}</div>` : '')
+                    + (c.orders.length ? `<ul class="mt-1 space-y-0.5 text-navy-500">${c.orders.map((o) => `<li>#${o.number} · ${esc(o.date)} · ${esc(o.type)} · ${esc(o.total)} · ${esc(o.status)}</li>`).join('')}</ul>` : '');
+                saved = c.addresses.filter((a) => zones[a.zone_id]); // addresses in zones this branch still serves
+                $('[data-addresses]').innerHTML = saved.map((a, i) =>
+                    `<button type="button" class="btn-ghost min-h-8 px-2 text-xs" data-pick-address="${i}" title="${esc(a.text)}">📍 ${esc(a.label || zones[a.zone_id].name)}</button>`).join('');
+                if (saved[0]) pick(saved[0]);
+            } catch (err) {
+                box.innerHTML = `<b class="text-red-600">${esc(err.message)}</b>`;
+            }
+        }
+        $('[data-lookup]').addEventListener('click', lookup);
+        $('[data-customer-phone]').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); lookup(); } });
     }
 
     // ---- send / pay ----
@@ -189,7 +270,7 @@ if (dataEl) {
 
     $('[data-send]').addEventListener('click', async () => {
         if (!canSubmit()) return;
-        try { done(await api(D.urls.order, payload(null)), T.sent); } catch (err) { alert(err.message); }
+        try { done(await api(D.urls.order, payload(null)), CC ? T.placed : T.sent); } catch (err) { alert(err.message); }
     });
 
     const payDialog = $('[data-pay-dialog]');
@@ -228,7 +309,7 @@ if (dataEl) {
         const b = e.target.closest('[data-quick-v]');
         if (b) { $('[data-tendered]').value = b.dataset.quickV; showChange(); }
     });
-    $('[data-pay]').addEventListener('click', () => { if (canSubmit()) openPay(null); });
+    $('[data-pay]')?.addEventListener('click', () => { if (canSubmit()) openPay(null); });
     $('[data-pay-confirm]').addEventListener('click', async () => {
         const err = $('[data-pay-error]');
         err.classList.add('hidden');

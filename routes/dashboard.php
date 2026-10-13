@@ -20,6 +20,7 @@ use App\Http\Controllers\Dashboard\ReportsController;
 use App\Http\Controllers\Dashboard\SettingsController;
 use App\Http\Controllers\Dashboard\ShiftsController;
 use App\Http\Controllers\Dashboard\StationsController;
+use App\Http\Controllers\Dashboard\CallCenterController;
 use App\Http\Controllers\Dashboard\DeliveryZonesController;
 use App\Http\Controllers\Dashboard\TablesController;
 use App\Http\Controllers\Dashboard\UsersController;
@@ -175,6 +176,13 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/shifts/open', [ShiftsController::class, 'open'])->name('shifts.open');
         Route::post('/shifts/move', [ShiftsController::class, 'move'])->name('shifts.move');
         Route::post('/shifts/close', [ShiftsController::class, 'close'])->name('shifts.close');
+    });
+
+    // Call-center pack: phone orders with delivery zones
+    Route::middleware(['feature:call_center', 'permission:callcenter.use'])->group(function () {
+        Route::get('/call-center', [CallCenterController::class, 'screen'])->name('callcenter');
+        Route::get('/call-center/customer', [CallCenterController::class, 'lookup'])->name('callcenter.lookup');
+        Route::post('/call-center/orders', [CallCenterController::class, 'store'])->name('callcenter.order');
     });
 
     // Kitchen pack: kitchen display and stations

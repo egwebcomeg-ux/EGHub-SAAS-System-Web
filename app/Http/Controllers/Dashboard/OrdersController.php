@@ -79,6 +79,7 @@ class OrdersController extends Controller
             'type' => $o->type, 'type_label' => Order::TYPES[$o->type][app()->getLocale() === 'en' ? 1 : 0] ?? $o->type,
             'source' => $o->source, 'table' => $o->table?->name, 'branch' => $o->branch ? tr($o->branch->name, $o->branch->name_en) : null,
             'customer' => trim($o->customer_name . ' ' . $o->customer_phone), 'notes' => $o->notes,
+            'address' => $o->delivery_address ? trim(($o->delivery_address['zone'] ?? '') . ' — ' . ($o->delivery_address['text'] ?? ''), ' —') : null,
             'total' => money($o->total), 'created_at' => $o->created_at->toIso8601String(),
             'time' => local_time($o->created_at, 'h:i A'),
             'next' => array_values(array_filter(Order::TRANSITIONS[$o->status] ?? [], fn ($s) => $o->canMoveTo($s))),

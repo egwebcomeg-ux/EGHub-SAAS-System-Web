@@ -775,5 +775,22 @@
     "Inside :area": "جوه :area",
     "Area name, e.g. Nasr City": "اسم المنطقة، مثلاً مدينة نصر",
     "Fee": "الرسوم",
-    "Minimum": "الحد الأدنى"
+    "Minimum": "الحد الأدنى",
+    "Caller mobile": "موبايل المتصل",
+    "Another phone (optional)": "رقم تاني (اختياري)",
+    "Pickup": "استلام من الفرع",
+    "Choose the delivery zone": "اختار منطقة التوصيل",
+    "Choose the delivery zone.": "اختار منطقة التوصيل.",
+    "Street, building, floor, apartment, landmark": "الشارع، العمارة، الدور، الشقة، علامة مميزة",
+    "Address name, e.g. Home or Work (optional)": "اسم للعنوان، مثلاً البيت أو الشغل (اختياري)",
+    "Place order": "تسجيل الطلب",
+    "Enter the caller mobile number.": "اكتب رقم موبايل المتصل.",
+    "Write the delivery address.": "اكتب عنوان التوصيل.",
+    "Minimum order for this zone: :amount": "الحد الأدنى للطلب في المنطقة دي: :amount",
+    "New customer, will be saved with the order.": "عميل جديد، هيتسجل مع الطلب.",
+    ":n previous orders": ":n طلب قبل كده",
+    ":n min": ":n دقيقة",
+    "Order placed": "الطلب اتسجل",
+    "This zone is not served by this branch.": "الفرع ده مش بيوصّل للمنطقة دي.",
+    "The minimum order for :zone is :amount.": "الحد الأدنى للطلب في :zone هو :amount."
 }

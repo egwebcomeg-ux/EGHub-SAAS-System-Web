@@ -87,6 +87,11 @@ class Order extends TenantModel
         return $this->belongsTo(DiningTable::class, 'dining_table_id');
     }
 
+    public function deliveryZone(): BelongsTo
+    {
+        return $this->belongsTo(DeliveryZone::class);
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);

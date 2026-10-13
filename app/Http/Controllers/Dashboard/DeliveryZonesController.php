@@ -17,7 +17,8 @@ class DeliveryZonesController extends Controller
     {
         return view('dashboard.delivery', [
             'branches' => Branch::query()->orderBy('sort_order')->get(),
-            'zones' => DeliveryZone::query()->with('parent')->orderBy('branch_id')->orderBy('sort_order')->orderBy('name')->get(),
+            // "Main › Sub" labels sort each sub-area right under its main area
+            'zones' => DeliveryZone::query()->with('parent')->get()->sortBy(fn (DeliveryZone $z) => $z->label())->values(),
         ]);
     }
 

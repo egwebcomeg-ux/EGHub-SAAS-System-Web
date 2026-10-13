@@ -4,6 +4,7 @@ namespace App\Services\Orders;
 
 use App\Models\Branch;
 use App\Models\Customer;
+use App\Models\DeliveryZone;
 use App\Models\DiningTable;
 use App\Models\ItemOption;
 use App\Models\MenuItem;
@@ -32,7 +33,8 @@ final class OrderService
 
     /**
      * @param array{client_uuid?:string, items:array<int,array{item_id:int, qty:int, option_ids?:int[], notes?:string}>,
-     *              notes?:string, customer_name?:string, customer_phone?:string, type?:string, source?:string} $data
+     *              notes?:string, customer_name?:string, customer_phone?:string, type?:string, source?:string,
+     *              delivery_zone?:DeliveryZone, delivery_address?:array<string,string>} $data
      */
     public function place(array $data, Branch $branch, ?DiningTable $table = null, ?User $by = null): Order
     {
@@ -59,6 +61,20 @@ final class OrderService
         $service = $type === 'dine_in' ? round(($subtotal - $discount) * $this->percent('service_percent'), 2) : 0.0;
         $tax = round(($subtotal - $discount + $service) * $this->percent('tax_percent'), 2);
 
+        // Delivery (call center): the zone sets the fee and the minimum; its sub-areas inherit empty values.
+        $zone = $type === 'delivery' ? ($data['delivery_zone'] ?? null) : null;
+        $deliveryFee = 0.0;
+        if ($zone instanceof DeliveryZone) {
+            if ($zone->branch_id !== $branch->id || !$zone->is_active) {
+                throw new OrderException(__('This zone is not served by this branch.'));
+            }
+            $min = (float) ($zone->effective('min_order') ?? 0);
+            if ($min > 0 && $subtotal - $discount < $min) {
+                throw new OrderException(__('The minimum order for :zone is :amount.', ['zone' => $zone->label(), 'amount' => money($min)]));
+            }
+            $deliveryFee = round((float) ($zone->effective('fee') ?? 0), 2);
+        }
+
         $phone = isset($data['customer_phone']) && $data['customer_phone'] !== '' ? normalize_phone((string) $data['customer_phone']) : null;
         if (isset($data['customer_phone']) && $data['customer_phone'] !== '' && !$phone) {
             throw new OrderException(__('Enter a valid Egyptian mobile number.'));
@@ -66,9 +82,9 @@ final class OrderService
 
         for ($attempt = 1; ; $attempt++) {
             try {
-                return DB::transaction(function () use ($data, $branch, $table, $by, $lines, $subtotal, $discount, $service, $tax, $type, $phone, $uuid) {
+                return DB::transaction(function () use ($data, $branch, $table, $by, $lines, $subtotal, $discount, $service, $tax, $type, $phone, $uuid, $zone, $deliveryFee) {
                     $customer = $phone && Entitlements::current()->allows('customers')
-                        ? $this->customer($phone, (string) ($data['customer_name'] ?? '')) : null;
+                        ? $this->customer($phone, (string) ($data['customer_name'] ?? ''), ($data['source'] ?? 'qr') === 'callcenter' ? 'callcenter' : 'menu') : null;
 
                     $order = Order::query()->create([
                         'branch_id' => $branch->id, 'dining_table_id' => $table?->id, 'customer_id' => $customer?->id,
@@ -79,7 +95,9 @@ final class OrderService
                         'customer_phone' => $phone ?? '',
                         'notes' => mb_substr(trim((string) ($data['notes'] ?? '')), 0, 500) ?: null,
                         'subtotal' => $subtotal, 'discount' => $discount, 'service' => $service, 'tax' => $tax,
-                        'total' => round($subtotal - $discount + $service + $tax, 2), 'created_by' => $by?->id,
+                        'delivery_zone_id' => $zone?->id, 'delivery_fee' => $deliveryFee,
+                        'delivery_address' => $type === 'delivery' ? ($data['delivery_address'] ?? null) : null,
+                        'total' => round($subtotal - $discount + $service + $tax + $deliveryFee, 2), 'created_by' => $by?->id,
                     ]);
                     foreach ($lines as $line) {
                         $order->items()->create($line);
@@ -225,9 +243,9 @@ final class OrderService
         return max(0.0, min(100.0, (float) Settings::get($key))) / 100;
     }
 
-    private function customer(string $phone, string $name): Customer
+    private function customer(string $phone, string $name, string $source = 'menu'): Customer
     {
-        $customer = Customer::query()->firstOrCreate(['phone' => $phone], ['name' => mb_substr($name, 0, 100), 'source' => 'menu']);
+        $customer = Customer::query()->firstOrCreate(['phone' => $phone], ['name' => mb_substr($name, 0, 100), 'source' => $source]);
         if ($customer->name === '' && $name !== '') {
             $customer->name = mb_substr($name, 0, 100);
         }
