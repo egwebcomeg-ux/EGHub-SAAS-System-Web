@@ -26,6 +26,7 @@ php artisan serve --port=8000
 - Menu: http://localhost:8000/demo-cafe
 - Dashboard: http://app.localhost:8000 — `owner@demo.test` / `password`
 - Super admin: http://admin.localhost:8000 — `admin@egmenu.test` / `password`
+- Order as a guest: open a table QR from Dashboard → Tables & QR → Print, or `/demo-cafe/t/{token}`.
 
 ## Code map
 
@@ -36,6 +37,11 @@ php artisan serve --port=8000
 - `app/Models/Plan.php` — catalogue of plan features/limits; values live in `plans` / `plan_features` (super admin edits them).
 - `app/Support/Permissions.php` — staff roles: owner, manager, cashier, call center, kitchen, waiter.
 - `app/Services/TenantProvisioner.php` — new restaurant: owner, 14-day Pro trial, main branch, 5 tables.
+- `app/Services/Orders/OrderService.php` — places orders (prices recomputed server-side, option rules, idempotent
+  `client_uuid`, per-restaurant numbers) and moves them (`new → preparing → ready → served`, history + timestamps).
+- `app/Services/Menu/MenuCatalog.php` — the menu as a branch sees it (branch price / availability overrides).
+- `app/Services/ImageService.php` — uploads re-encoded to WebP under `storage/app/public/tenants/{tenant}/`.
+- Order board polls `/orders/feed` every 5 s (`resources/js/board.js`); public menu cart in `resources/js/menu.js`.
 - `lang/ar.json` — Arabic strings; `tests/Unit/TranslationsTest.php` fails when one is missing.
 
 ## Tests

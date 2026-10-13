@@ -19,7 +19,11 @@ class TranslationsTest extends TestCase
                 if (!str_ends_with($file->getFilename(), '.php')) {
                     continue;
                 }
-                preg_match_all("/__\('((?:[^'\\]|\\.)*)'/", (string) file_get_contents($file->getPathname()), $m);
+                // matches __('text') and __('it\'s') — the key is group 1
+                $found = preg_match_all(<<<'RE'
+                    /__\('((?:[^'\\]|\\.)*)'/
+                    RE, (string) file_get_contents($file->getPathname()), $m);
+                $this->assertNotFalse($found, 'Translation key regex failed');
                 foreach ($m[1] as $key) {
                     $key = stripslashes($key);
                     if (!array_key_exists($key, $ar)) {

@@ -7,7 +7,7 @@
     <title>@yield('title', 'EgMenu')</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     @fonts
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(array_merge(['resources/css/app.css', 'resources/js/app.js'], $viteEntries ?? []))
     @stack('head')
 </head>
 <body class="@yield('body_class', 'bg-navy-50 text-navy-900') min-h-screen font-sans antialiased">

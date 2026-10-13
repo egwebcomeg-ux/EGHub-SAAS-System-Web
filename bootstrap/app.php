@@ -20,6 +20,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
         then: function () {
             RateLimiter::for('login', fn (Request $r) => Limit::perMinute(8)->by($r->ip() . '|' . $r->getHost()));
+            // Guests placing orders from a menu: generous for a table of friends, tight for scripts.
+            RateLimiter::for('menu-orders', fn (Request $r) => Limit::perMinute(6)->by($r->ip() . '|' . $r->path()));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {

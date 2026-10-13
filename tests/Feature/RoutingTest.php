@@ -46,7 +46,7 @@ class RoutingTest extends TenantTestCase
 
         $this->get($this->menuUrl("cafe-a/t/{$table->qr_token}"))->assertRedirect($this->menuUrl('cafe-a'));
         $this->get($this->menuUrl('cafe-a'))->assertSee('3');
-        $this->assertSame($table->id, session('table.cafe-a'));
+        $this->assertSame($table->id, session('table.cafe-a')['id']);
     }
 
     public function test_menu_language_switch(): void
