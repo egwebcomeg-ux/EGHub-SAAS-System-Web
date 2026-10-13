@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\TableCall;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use App\Services\Settings;
@@ -32,10 +33,29 @@ class OrdersController extends Controller
                 ->orWhere(fn ($q) => $q->whereIn('status', ['served', 'cancelled'])->where('updated_at', '>=', now()->subHours(3))))
             ->with(['items', 'table', 'branch'])->orderBy('id')->limit(200)->get();
 
+        $branch = $request->user()->branch_id;
+        $calls = TableCall::query()->whereNull('handled_at')->when($branch, fn ($q) => $q->where('branch_id', $branch))
+            ->with('table')->orderBy('id')->limit(50)->get();
+
         return response()->json([
             'max_id' => (int) $this->scoped($request)->max('id'),
             'orders' => $orders->map(fn (Order $o) => $this->present($o))->values(),
+            'calls' => $calls->map(fn (TableCall $c) => [
+                'id' => $c->id, 'kind' => $c->kind, 'label' => $c->kindLabel(), 'table' => $c->table?->name,
+                'minutes' => (int) $c->created_at->diffInMinutes(now()),
+            ])->values(),
         ]);
+    }
+
+    /** A waiter answered the table: the call disappears from every screen. */
+    public function handleCall(Request $request, TableCall $call): JsonResponse
+    {
+        abort_if($request->user()->branch_id && $request->user()->branch_id !== $call->branch_id, 404);
+        if (! $call->handled_at) {
+            $call->update(['handled_at' => now(), 'handled_by' => $request->user()->id]);
+        }
+
+        return response()->json(['ok' => true]);
     }
 
     public function transition(Request $request, Order $order, OrderService $service): JsonResponse

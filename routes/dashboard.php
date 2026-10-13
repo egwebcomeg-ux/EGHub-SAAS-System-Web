@@ -121,6 +121,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::middleware(['feature:order_board', 'permission:orders.view'])->group(function () {
         Route::get('/orders', [OrdersController::class, 'board'])->name('orders');
         Route::get('/orders/feed', [OrdersController::class, 'feed'])->name('orders.feed');
+        Route::post('/orders/calls/{call}', [OrdersController::class, 'handleCall'])->name('orders.call');
         Route::post('/orders/{order}/status', [OrdersController::class, 'transition'])
             ->middleware('permission:orders.manage')->name('orders.status');
     });

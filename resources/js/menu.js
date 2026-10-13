@@ -277,6 +277,29 @@ if (dataEl) {
         }
     });
 
+    // ---- call the waiter / ask for the bill (table guests) ----
+    const callSheet = $('[data-call-sheet]');
+    $('[data-call-open]')?.addEventListener('click', () => { $('[data-call-done]').classList.add('hidden'); callSheet.showModal(); });
+    callSheet?.addEventListener('click', async (e) => {
+        const btn = e.target.closest('[data-call]');
+        if (!btn || !M.callUrl) return;
+        btn.disabled = true;
+        try {
+            const res = await fetch(M.callUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+                body: JSON.stringify({ kind: btn.dataset.call }),
+            });
+            const body = await res.json().catch(() => ({}));
+            const done = $('[data-call-done]');
+            done.textContent = body.message || '';
+            done.classList.remove('hidden');
+            if (res.ok) setTimeout(() => callSheet.close(), 1800);
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
     // ---- search & active category chip ----
     const search = $('[data-search]');
     search?.addEventListener('input', () => {

@@ -5,6 +5,7 @@ use App\Http\Controllers\Menu\FeedbackController;
 use App\Http\Controllers\Menu\LoyaltyCardController;
 use App\Http\Controllers\Menu\MenuController;
 use App\Http\Controllers\Menu\OrderController;
+use App\Http\Controllers\Menu\TableCallController;
 use App\Http\Controllers\Menu\TvController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,6 +30,7 @@ Route::get('/card', [LoyaltyCardController::class, 'join'])->name('card.join');
 Route::post('/card', [LoyaltyCardController::class, 'store'])->middleware('throttle:10,1')->name('card.store');
 Route::get('/card/{token}', [LoyaltyCardController::class, 'show'])->where('token', '[a-f0-9]{24}')->name('card');
 
+Route::post('/call', [TableCallController::class, 'store'])->middleware('throttle:6,1')->name('call');
 Route::post('/feedback', [FeedbackController::class, 'store'])->middleware('throttle:10,1')->name('feedback');
 
 // popup impressions / clicks (counters only, no personal data)

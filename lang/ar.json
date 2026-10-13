@@ -1055,5 +1055,11 @@
     "Enter your mobile number so the restaurant can reach you.": "اكتب رقم موبايلك عشان المطعم يقدر يكلمك.",
     "Ordering for later is not available.": "الطلب بميعاد مش متاح.",
     "Choose a time between :min minutes and 7 days from now.": "اختار وقت بعد :min دقيقة على الأقل وفي خلال ٧ أيام.",
-    "Send the order on WhatsApp too": "ابعت الطلب على واتساب كمان"
+    "Send the order on WhatsApp too": "ابعت الطلب على واتساب كمان",
+    "Call the waiter": "نادي الويتر",
+    "The bill, please": "الحساب لو سمحت",
+    "The bill is on its way.": "الحساب جاي في الطريق.",
+    "A waiter is coming.": "الويتر جاي حالاً.",
+    "Scan the QR code on your table first.": "امسح كود الترابيزة الأول.",
+    "Done": "تم"
 }

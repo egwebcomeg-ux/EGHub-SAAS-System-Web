@@ -7,6 +7,7 @@ if (board) {
     const canManage = board.dataset.canManage === '1';
     const pollMs = Number(board.dataset.poll || 5) * 1000;
     let lastMaxId = null;
+    let lastCallId = null;
     let soundOn = localStorage.getItem('egmenu.sound') === '1';
     let audio = null;
 
@@ -88,6 +89,30 @@ if (board) {
         document.title = (waiting ? `(${waiting}) ` : '') + document.title.replace(/^\(\d+\) /, '');
     }
 
+    // ---- waiter calls and bill requests from the tables ----
+    const callsBox = document.querySelector('[data-calls]');
+    function renderCalls(calls) {
+        if (!callsBox) return;
+        const newest = calls.reduce((m, c) => Math.max(m, c.id), 0);
+        if (lastCallId !== null && newest > lastCallId) chime();
+        lastCallId = Math.max(lastCallId ?? 0, newest);
+        callsBox.classList.toggle('hidden', !calls.length);
+        callsBox.classList.toggle('flex', calls.length > 0);
+        callsBox.innerHTML = calls.map((c) => `
+            <div class="flex items-center gap-3 rounded-2xl px-4 py-2 font-bold text-white shadow ${c.kind === 'bill' ? 'bg-emerald-600' : 'bg-brand-600'} animate-pulse">
+                <span>${c.kind === 'bill' ? '🧾' : '🛎'} ${esc(c.label)} · ${esc(t.table.replace('__N__', c.table ?? ''))}</span>
+                <span class="text-xs font-normal text-white/80">${esc(t.minutes.replace('__N__', c.minutes))}</span>
+                ${canManage ? `<button class="rounded-lg bg-white/20 px-3 py-1 text-sm" data-call-done="${c.id}">${esc(t.handled)}</button>` : ''}
+            </div>`).join('');
+    }
+    callsBox?.addEventListener('click', async (e) => {
+        const btn = e.target.closest('[data-call-done]');
+        if (!btn) return;
+        btn.disabled = true;
+        await fetch(board.dataset.callUrl.replace('__ID__', btn.dataset.callDone), { method: 'POST', headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrf } });
+        btn.closest('div').remove();
+    });
+
     async function poll() {
         try {
             const res = await fetch(board.dataset.feed, { headers: { Accept: 'application/json' } });
@@ -96,6 +121,7 @@ if (board) {
             if (lastMaxId !== null && data.max_id > lastMaxId) chime();
             lastMaxId = data.max_id;
             render(data.orders);
+            renderCalls(data.calls || []);
             document.querySelector('[data-live-dot]')?.classList.replace('bg-red-500', 'bg-emerald-500');
         } catch {
             document.querySelector('[data-live-dot]')?.classList.replace('bg-emerald-500', 'bg-red-500');

@@ -64,6 +64,7 @@ class MenuController extends Controller
                 'tenant' => tenant()->getTenantKey(),
                 'canOrder' => $canOrder,
                 'mode' => $tableOrder ? 'table' : ($online ? 'online' : 'none'),
+                'callUrl' => $tableOrder ? route('menu.call') : null,
                 'online' => $online,
                 'currency' => tr($settings['currency'], $settings['currency_en']),
                 'orderUrl' => route('menu.order'),

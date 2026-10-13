@@ -209,6 +209,20 @@
     </form>
 </dialog>
 
+@if ($table && $canOrder)
+    {{-- call the waiter / ask for the bill --}}
+    <button type="button" class="fixed bottom-24 start-4 z-30 grid size-14 place-items-center rounded-full bg-white text-2xl shadow-lg ring-1 ring-black/5" data-call-open aria-label="{{ __('Call the waiter') }}">🛎</button>
+    <dialog class="m-auto w-full max-w-xs rounded-3xl p-0 backdrop:bg-black/50" data-call-sheet>
+        <form method="dialog" class="space-y-3 p-5 text-center">
+            <h3 class="text-lg font-extrabold">{{ __('Table :name', ['name' => $table->name]) }}</h3>
+            <button type="button" class="m-primary min-h-12 w-full rounded-2xl font-bold" data-call="waiter">🛎 {{ __('Call the waiter') }}</button>
+            <button type="button" class="min-h-12 w-full rounded-2xl bg-emerald-600 font-bold text-white" data-call="bill">🧾 {{ __('The bill, please') }}</button>
+            <p class="hidden text-sm font-semibold text-emerald-700" data-call-done></p>
+            <button value="cancel" class="text-sm text-navy-500">{{ __('Close') }}</button>
+        </form>
+    </dialog>
+@endif
+
 {{-- Cart sheet --}}
 <dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/50 sm:m-auto sm:max-w-lg" data-cart-sheet>
     <form method="dialog" class="max-h-[90vh] overflow-y-auto rounded-t-3xl bg-white p-5 sm:rounded-3xl">
