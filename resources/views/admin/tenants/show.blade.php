@@ -15,6 +15,21 @@
     @endif
 </div>
 
+@foreach ($tenant->domains as $d)
+    <form method="post" action="{{ route('admin.domains.update', $d) }}" class="card mb-4 flex flex-wrap items-end gap-3">
+        @csrf
+        <div class="me-auto">
+            <div class="text-sm text-navy-500">{{ __('Custom domain') }} · {{ $d->source === 'egweb' ? __('book on egweb.com.eg') : __('own domain') }}</div>
+            <a href="http://{{ $d->domain }}" target="_blank" rel="noopener" dir="ltr" class="text-lg font-bold">{{ $d->domain }}</a>
+        </div>
+        <select name="status" class="field min-h-10 w-auto">
+            @foreach (\App\Models\Domain::STATUSES as $key => $label)<option value="{{ $key }}" @selected($d->status === $key)>{{ app()->getLocale() === 'en' ? $label[1] : $label[0] }}</option>@endforeach
+        </select>
+        <input name="note" value="{{ $d->note }}" class="field min-h-10 w-64" maxlength="300" placeholder="{{ __('Note to the restaurant') }}">
+        <button class="btn-primary">{{ __('Save') }}</button>
+    </form>
+@endforeach
+
 <div class="grid gap-4 lg:grid-cols-3">
     <form method="post" action="{{ route('admin.tenants.subscription', $tenant) }}" class="card space-y-3 lg:col-span-2">
         @csrf

@@ -34,3 +34,7 @@ Route::domain($domain)->group(function () {
     Route::prefix('{tenant}')->where(['tenant' => '[a-z0-9][a-z0-9-]{1,28}[a-z0-9]'])
         ->middleware('tenant.path')->name('menu.')->group(base_path('routes/menu.php'));
 });
+
+// A restaurant's own domain (menu.cafe.com): the same menu routes without the slug. Registered last and not
+// bound to a host, so it only catches hosts that none of the groups above own.
+Route::middleware('tenant.domain')->name('custom.')->group(base_path('routes/menu.php'));

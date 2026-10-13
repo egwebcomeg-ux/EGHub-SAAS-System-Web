@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DomainsController;
 use App\Http\Controllers\Admin\InvoicesController;
 use App\Http\Controllers\Admin\PasswordResetController;
 use App\Http\Controllers\Admin\PlansController;
@@ -29,6 +30,7 @@ Route::middleware('auth:admin')->group(function () {
     Route::post('/tenants/{tenant}/addons', [TenantsController::class, 'addons'])->name('tenants.addons');
     Route::post('/tenants/{tenant}/suspend', [TenantsController::class, 'suspend'])->name('tenants.suspend');
     Route::post('/tenants/{tenant}/activate', [TenantsController::class, 'activate'])->name('tenants.activate');
+    Route::post('/domains/{domain}', [DomainsController::class, 'update'])->name('domains.update');
 
     Route::get('/plans', [PlansController::class, 'index'])->name('plans');
     Route::post('/addons', [PlansController::class, 'addons'])->name('addons.update');

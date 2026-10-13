@@ -39,6 +39,12 @@
         <div><label class="field-label">{{ __('Email') }}</label><input class="field" name="support_email" type="email" value="{{ $s['support_email'] }}" dir="ltr"></div>
     </div>
 
+    <div class="card grid gap-4 sm:grid-cols-2">
+        <h2 class="text-lg font-bold sm:col-span-2">{{ __('Custom domains') }}</h2>
+        <div><label class="field-label">{{ __('Server IP (restaurants point their domain here)') }}</label><input class="field" name="server_ip" value="{{ $s['server_ip'] }}" dir="ltr" placeholder="54.36.13.152"></div>
+        <div><label class="field-label">{{ __('Domain booking link on egweb.com.eg (the domain is added at the end)') }}</label><input class="field" name="domain_cart_url" value="{{ $s['domain_cart_url'] }}" dir="ltr" placeholder="{{ \App\Http\Controllers\Dashboard\DomainController::DEFAULT_CART_URL }}"></div>
+    </div>
+
     <button class="btn-primary">{{ __('Save') }}</button>
 </form>
 @endsection

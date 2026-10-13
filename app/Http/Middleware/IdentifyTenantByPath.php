@@ -22,7 +22,7 @@ class IdentifyTenantByPath
         $slug = strtolower((string) $route->parameter('tenant'));
 
         $tenant = in_array($slug, Tenant::RESERVED, true) ? null : Tenant::query()->find($slug);
-        abort_if(!$tenant, 404);
+        abort_if(! $tenant, 404);
 
         tenancy()->initialize($tenant);
         URL::defaults(['tenant' => $tenant->id]);
@@ -33,13 +33,14 @@ class IdentifyTenantByPath
         if ($tenant->isSuspended()) {
             return response()->view('menu.suspended', ['tenant' => $tenant], 503);
         }
+
         return $next($request);
     }
 
     /** ?lang=en|ar switches and is remembered per restaurant; otherwise the restaurant's default language. */
-    private function applyLocale(Request $request, Tenant $tenant): void
+    protected function applyLocale(Request $request, Tenant $tenant): void
     {
-        $cookie = 'lang_' . $tenant->id;
+        $cookie = 'lang_'.$tenant->id;
         $lang = $request->query('lang');
         if (in_array($lang, ['ar', 'en'], true)) {
             cookie()->queue($cookie, $lang, 60 * 24 * 365);

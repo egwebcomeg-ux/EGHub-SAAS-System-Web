@@ -8,6 +8,7 @@ use App\Http\Controllers\Dashboard\CallCenterController;
 use App\Http\Controllers\Dashboard\CategoriesController;
 use App\Http\Controllers\Dashboard\CustomersController;
 use App\Http\Controllers\Dashboard\DeliveryZonesController;
+use App\Http\Controllers\Dashboard\DomainController;
 use App\Http\Controllers\Dashboard\FeedbackController;
 use App\Http\Controllers\Dashboard\HomeController;
 use App\Http\Controllers\Dashboard\InventoryController;
@@ -64,6 +65,11 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/settings', [SettingsController::class, 'edit'])->name('settings');
         Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
         Route::post('/settings/ai-test', [SettingsController::class, 'testAi'])->middleware('throttle:6,1')->name('settings.ai-test');
+        Route::get('/domain', [DomainController::class, 'show'])->name('domain');
+        Route::post('/domain/book', [DomainController::class, 'book'])->middleware('throttle:10,1')->name('domain.book');
+        Route::post('/domain/connect', [DomainController::class, 'connect'])->middleware('throttle:10,1')->name('domain.connect');
+        Route::post('/domain/check', [DomainController::class, 'check'])->middleware('throttle:10,1')->name('domain.check');
+        Route::post('/domain/delete', [DomainController::class, 'destroy'])->name('domain.delete');
     });
 
     // Menu editor

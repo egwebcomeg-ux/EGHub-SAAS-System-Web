@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AdminLocale;
+use App\Http\Middleware\IdentifyTenantByDomain;
 use App\Http\Middleware\IdentifyTenantByPath;
 use App\Http\Middleware\InitializeTenancyFromUser;
 use App\Http\Middleware\RequireFeature;
@@ -19,23 +20,25 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function () {
-            RateLimiter::for('login', fn (Request $r) => Limit::perMinute(8)->by($r->ip() . '|' . $r->getHost()));
+            RateLimiter::for('login', fn (Request $r) => Limit::perMinute(8)->by($r->ip().'|'.$r->getHost()));
             RateLimiter::for('signup', fn (Request $r) => Limit::perHour(5)->by($r->ip()));
             // Guests placing orders from a menu: generous for a table of friends, tight for scripts.
-            RateLimiter::for('menu-orders', fn (Request $r) => Limit::perMinute(6)->by($r->ip() . '|' . $r->path()));
+            RateLimiter::for('menu-orders', fn (Request $r) => Limit::perMinute(6)->by($r->ip().'|'.$r->path()));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'tenant.path'  => IdentifyTenantByPath::class,
-            'tenant.user'  => InitializeTenancyFromUser::class,
-            'feature'      => RequireFeature::class,
-            'permission'   => PermissionMiddleware::class,
+            'tenant.path' => IdentifyTenantByPath::class,
+            'tenant.domain' => IdentifyTenantByDomain::class,
+            'tenant.user' => InitializeTenancyFromUser::class,
+            'feature' => RequireFeature::class,
+            'permission' => PermissionMiddleware::class,
             'admin.locale' => AdminLocale::class,
         ]);
         // Tenancy must be initialised before route-model binding, or {model} ids would resolve outside the
         // tenant scope (another restaurant's rows). Authenticate already runs before SubstituteBindings.
         $middleware->prependToPriorityList(SubstituteBindings::class, IdentifyTenantByPath::class);
+        $middleware->prependToPriorityList(SubstituteBindings::class, IdentifyTenantByDomain::class);
         $middleware->prependToPriorityList(SubstituteBindings::class, InitializeTenancyFromUser::class);
         // Each host has its own login page.
         $middleware->redirectGuestsTo(fn (Request $r) => str_starts_with($r->getHost(), 'admin.') ? route('admin.login') : route('dash.login'));

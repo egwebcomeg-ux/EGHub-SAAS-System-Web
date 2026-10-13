@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Entitlements;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -100,10 +101,18 @@ class Tenant extends BaseTenant
         return $this->status === 'suspended';
     }
 
-    /** Public menu URL: the verified custom domain when there is one, else egmenu.app/{slug}. */
+    /** The active custom domain, if the plan (or an add-on) still includes custom domains. */
+    public function customDomain(): ?Domain
+    {
+        $domain = $this->domains->first(fn (Domain $d) => $d->isActive());
+
+        return $domain && Entitlements::for($this)->allows('custom_domain') ? $domain : null;
+    }
+
+    /** Public menu URL: the active custom domain when there is one, else egmenu.app/{slug}. */
     public function url(string $path = ''): string
     {
-        $custom = $this->domains->first(fn ($d) => $d->verified_at !== null);
+        $custom = $this->customDomain();
         $path = ltrim($path, '/');
         if ($custom) {
             return scheme().'://'.$custom->domain.port_suffix().'/'.$path;

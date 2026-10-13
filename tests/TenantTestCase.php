@@ -12,6 +12,7 @@ use App\Services\TenantProvisioner;
 use Database\Seeders\PlanSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\URL;
 
 /** Base for multi-tenant feature tests: plans/roles seeded, helpers to create restaurants and menu rows. */
 abstract class TenantTestCase extends TestCase
@@ -50,6 +51,9 @@ abstract class TenantTestCase extends TestCase
             }
             Entitlements::flush();
             Settings::flush();
+            // a custom-domain request rewrites generated links; production gets a fresh process per request
+            URL::formatHostUsing(fn ($root) => $root);
+            URL::formatPathUsing(fn ($path) => $path);
         }
     }
 
@@ -77,6 +81,7 @@ abstract class TenantTestCase extends TestCase
     {
         return $this->as($tenant, function () use ($name, $price) {
             $cat = Category::query()->firstOrCreate(['name' => 'Coffee']);
+
             return MenuItem::query()->create(['category_id' => $cat->id, 'name' => $name, 'price' => $price]);
         });
     }
@@ -92,22 +97,23 @@ abstract class TenantTestCase extends TestCase
         return $this->as($tenant, function () use ($role, $email) {
             $u = User::query()->create(['name' => ucfirst($role), 'email' => $email, 'password' => 'Secret-pass-123']);
             $u->assignRole($role);
+
             return $u;
         });
     }
 
     protected function menuUrl(string $path = ''): string
     {
-        return 'http://egmenu.test/' . ltrim($path, '/');
+        return 'http://egmenu.test/'.ltrim($path, '/');
     }
 
     protected function dashUrl(string $path = '/'): string
     {
-        return 'http://app.egmenu.test' . $path;
+        return 'http://app.egmenu.test'.$path;
     }
 
     protected function adminUrl(string $path = '/'): string
     {
-        return 'http://admin.egmenu.test' . $path;
+        return 'http://admin.egmenu.test'.$path;
     }
 }

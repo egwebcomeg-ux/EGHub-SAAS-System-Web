@@ -20,7 +20,7 @@ class PlanSeeder extends Seeder
         $starter = ['excel_import', 'feedback'];
         $basic = array_merge($starter, ['qr_ordering', 'order_board', 'full_branding']);
         $pro = array_merge($basic, ['whatsapp_orders', 'scheduled_orders', 'daily_reports', 'menu_themes', 'printed_menu',
-            'offers', 'upsell', 'ai_import', 'customers', 'loyalty_stamps']);
+            'offers', 'upsell', 'ai_import', 'customers', 'loyalty_stamps', 'custom_domain']);
         // Business = every menu feature; operations (POS, kitchen, call center, inventory) are add-ons for every plan.
         $business = array_values(array_diff(array_keys(Plan::FEATURES), Plan::addonFeatures()));
 
@@ -83,6 +83,11 @@ class PlanSeeder extends Seeder
                 'description' => 'خامات وتكلفة وصفات وخصم تلقائي من المخزون',
                 'description_en' => 'Ingredients, recipe costing and automatic stock deduction',
                 'features' => ['inventory']],
+            ['key' => 'domain_pack', 'type' => 'feature', 'monthly_price' => 49, 'sort_order' => 5,
+                'name' => 'دومين خاص', 'name_en' => 'Own domain',
+                'description' => 'المنيو وأكواد QR على دومينك (mycafe.com). سعر حجز الدومين نفسه من egweb.com.eg',
+                'description_en' => 'Your menu and QR codes on your own domain (mycafe.com). The domain itself is booked on egweb.com.eg',
+                'features' => ['custom_domain']],
             ['key' => 'branches', 'type' => 'limit', 'monthly_price' => 99, 'sort_order' => 5, 'name' => 'فرع إضافي', 'name_en' => 'Extra branch'],
             ['key' => 'staff', 'type' => 'limit', 'monthly_price' => 25, 'sort_order' => 6, 'name' => 'مستخدم إضافي', 'name_en' => 'Extra staff account'],
         ] as $a) {
