@@ -95,3 +95,13 @@ function tr(?string $ar, ?string $en): string
 {
     return app()->getLocale() === 'en' && (string) $en !== '' ? (string) $en : (string) $ar;
 }
+
+/** "شهر" / "6 شهور" / "سنة" — billing cycle length in words. */
+function cycle_label(int $months): string
+{
+    return match ($months) {
+        1 => __('1 month'),
+        12 => __('1 year'),
+        default => __(':n months', ['n' => $months]),
+    };
+}

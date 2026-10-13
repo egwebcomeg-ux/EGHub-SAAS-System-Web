@@ -32,7 +32,7 @@ class BillingTest extends TenantTestCase
         $a = $this->restaurant('cafe-a', 'pro', trial: true);
         $q = app(Billing::class)->quote($a, $this->plan('pro'), 12);
         $this->assertSame(4788.0, $q['subtotal']);                 // 399 × 12
-        $this->assertSame(round(399 * 12 * 0.83, 2), $q['total']);  // 17% yearly discount
+        $this->assertSame(3974.0, $q['total']);                    // 17% yearly discount, whole pounds
     }
 
     public function test_owner_picks_a_plan_claims_a_transfer_and_admin_confirms(): void
@@ -46,7 +46,7 @@ class BillingTest extends TenantTestCase
             ->assertRedirect();
         $invoice = Invoice::query()->where('tenant_id', 'cafe-a')->firstOrFail();
         $this->assertSame('open', $invoice->status);
-        $this->assertSame(round(149 * 6 * 0.9, 2), $invoice->total);
+        $this->assertSame(805.0, $invoice->total);                   // 149 × 6 − 10%, rounded
 
         $this->actingAs($owner)->get($this->dashUrl("/billing/invoices/{$invoice->number}"))->assertOk()->assertSee('egweb@instapay');
         $this->actingAs($owner)->post($this->dashUrl("/billing/invoices/{$invoice->number}/claim"), ['method' => 'instapay', 'reference' => 'TX-123'])

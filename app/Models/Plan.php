@@ -37,8 +37,8 @@ class Plan extends Model
         'ai_import'        => ['تحويل صورة المنيو لأصناف (AI)', 'Menu photo to items (AI)', 'menu'],
         'branch_pricing'   => ['أسعار وتوفر لكل فرع', 'Per-branch prices & availability', 'menu'],
         // marketing
-        'offers'           => ['عروض بالوقت وPopups', 'Timed offers & popups', 'marketing'],
-        'upsell'           => ['كومبو و"بيتاكل مع"', 'Combos & pairings', 'marketing'],
+        'offers'           => ['عروض بالوقت ونوافذ إعلانية', 'Timed offers & popups', 'marketing'],
+        'upsell'           => ['كومبو واقتراحات «بيتاكل مع»', 'Combos & pairings', 'marketing'],
         'feedback'         => ['تقييمات العملاء', 'Guest feedback', 'marketing'],
         'customers'        => ['قاعدة بيانات العملاء', 'Customer database', 'marketing'],
         'loyalty_stamps'   => ['كارت ولاء ديجيتال (أختام)', 'Digital stamp card', 'marketing'],
@@ -101,11 +101,11 @@ class Plan extends Model
         return $this->hasMany(PlanFeature::class);
     }
 
-    /** Price for a whole cycle after its discount. */
+    /** Price for a whole cycle after its discount, rounded to whole pounds (3,974 not 3,973.92). */
     public function priceFor(int $months): float
     {
         $pct = (float) ($this->cycle_discounts[(string) $months] ?? 0);
-        return round($this->monthly_price * $months * (1 - $pct / 100), 2);
+        return round($this->monthly_price * $months * (1 - $pct / 100));
     }
 
     /** @return array{features: array<string,bool>, limits: array<string,int|null>} */

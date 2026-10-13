@@ -42,28 +42,19 @@
             <p class="mt-1 min-h-10 text-sm text-navy-500">{{ tr($p->tagline, $p->tagline_en) }}</p>
             <div class="my-3"><span class="text-3xl font-extrabold">{{ money($p->monthly_price) }}</span> <span class="text-sm text-navy-500">{{ __('EGP / month') }}</span></div>
 
-            <div class="mb-4 grid grid-cols-3 gap-2" role="radiogroup">
+            <div class="mb-5 grid grid-cols-3 gap-2" role="radiogroup">
                 @foreach (\App\Models\Plan::CYCLES as $m)
                     @php($pct = (float) ($p->cycle_discounts[(string) $m] ?? 0))
                     <label class="cursor-pointer rounded-xl border border-navy-100 p-2 text-center text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
                         <input type="radio" name="months" value="{{ $m }}" class="sr-only" @checked($m === 1)>
-                        <span class="block font-bold">{{ __(':n months', ['n' => $m]) }}</span>
+                        <span class="block font-bold">{{ cycle_label($m) }}</span>
                         <span class="block text-xs text-navy-500">{{ money($p->priceFor($m)) }}</span>
                         @if ($pct > 0)<span class="block text-xs font-bold text-emerald-700">-{{ money($pct) }}%</span>@endif
                     </label>
                 @endforeach
             </div>
 
-            <ul class="mb-4 flex-1 space-y-1 text-sm">
-                @foreach (\App\Models\Plan::LIMITS as $key => $_)
-                    @php($v = $matrix[$p->id]['limits'][$key])
-                    @continue($v === 0)
-                    <li>• {{ \App\Models\Plan::label($key) }}: <b>{{ $v === null ? __('Unlimited') : $v }}</b></li>
-                @endforeach
-                @foreach ($matrix[$p->id]['features'] as $key => $on)
-                    @if ($on)<li class="text-navy-700">✓ {{ \App\Models\Plan::label($key) }}</li>@endif
-                @endforeach
-            </ul>
+            <div class="mb-5 flex-1">@include('partials.plan-features', ['plan' => $p])</div>
             <button class="{{ $p->is_featured ? 'btn-primary' : 'btn-navy' }} w-full">{{ $current ? __('Renew') : __('Choose :plan', ['plan' => $p->displayName()]) }}</button>
         </form>
     @endforeach
@@ -78,7 +69,7 @@
             @foreach ($invoices as $inv)
                 <tr>
                     <td dir="ltr" class="text-start font-semibold">{{ $inv->number }}</td>
-                    <td>{{ $inv->plan?->displayName() }} · {{ __(':n months', ['n' => $inv->cycle_months]) }}</td>
+                    <td>{{ $inv->plan?->displayName() }} · {{ cycle_label((int) $inv->cycle_months) }}</td>
                     <td>{{ money($inv->total) }} {{ __('EGP') }}</td>
                     <td>@include('partials.invoice-status', ['invoice' => $inv])</td>
                     <td>{{ local_time($inv->created_at, 'Y/m/d') }}</td>

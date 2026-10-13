@@ -19,10 +19,11 @@
 <div class="mt-4 grid gap-4 lg:grid-cols-3">
     <div class="card lg:col-span-2">
         <h2 class="mb-1 text-lg font-bold">{{ __('Your menu link') }}</h2>
-        <p class="mb-4 text-sm text-navy-500">{{ __('Share it or print it as a QR code. Each table will get its own QR in the next phase.') }}</p>
+        <p class="mb-4 text-sm text-navy-500">{{ __('Share it on social media, or print a QR card for every table from Tables & QR.') }}</p>
         <div class="flex flex-wrap items-center gap-2">
             <code dir="ltr" class="rounded-lg bg-navy-50 px-3 py-2 text-sm">{{ tenant()->url() }}</code>
             <a href="{{ tenant()->url() }}" target="_blank" rel="noopener" class="btn-primary">{{ __('Open menu') }}</a>
+            @can('tables.manage')<a href="{{ route('dash.tables') }}" class="btn-ghost">{{ __('Tables & QR') }}</a>@endcan
         </div>
     </div>
 

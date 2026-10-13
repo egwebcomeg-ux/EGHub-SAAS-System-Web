@@ -29,16 +29,8 @@
                 <span class="text-4xl font-extrabold">{{ money($p->monthly_price) }}</span>
                 <span class="text-sm text-navy-500">{{ __('EGP / month') }}</span>
             </div>
-            <ul class="flex-1 space-y-1.5 text-sm">
-                @foreach (\App\Models\Plan::LIMITS as $key => $_)
-                    @php($v = $matrix[$p->id]['limits'][$key])
-                    @continue($v === 0)
-                    <li>• {{ \App\Models\Plan::label($key) }}: <b>{{ $v === null ? __('Unlimited') : $v }}</b></li>
-                @endforeach
-                @foreach ($matrix[$p->id]['features'] as $key => $on)
-                    @if ($on)<li class="text-navy-700">✓ {{ \App\Models\Plan::label($key) }}</li>@endif
-                @endforeach
-            </ul>
+            <div class="flex-1">@include('partials.plan-features', ['plan' => $p])</div>
+            <a href="{{ route('register') }}" class="{{ $p->is_featured ? 'btn-primary' : 'btn-ghost' }} mt-6 w-full">{{ __('Start free') }}</a>
         </div>
     @endforeach
 </section>

@@ -9,8 +9,8 @@ export default defineConfig({
             input: ['resources/css/app.css', 'resources/js/app.js', 'resources/js/menu.js', 'resources/js/board.js', 'resources/js/menu-editor.js'],
             refresh: true,
             fonts: [
-                bunny('Cairo', { weights: [400, 600, 700, 800] }),
-                bunny('Inter', { weights: [400, 600, 700] }),
+                // Arabic + Latin glyphs: without the arabic subset, Arabic text silently fell back to the OS font.
+                bunny('Cairo', { weights: [400, 500, 600, 700, 800], subsets: ['arabic', 'latin'] }),
             ],
         }),
         tailwindcss(),

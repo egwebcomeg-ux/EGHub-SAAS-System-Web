@@ -41,9 +41,9 @@ final class Billing
 
         $full = round($plan->monthly_price * $months, 2);
         $price = $plan->priceFor($months);
-        $lines = [['label' => __(':plan plan — :n months', ['plan' => $plan->displayName(), 'n' => $months]), 'amount' => $full]];
+        $lines = [['label' => __(':plan plan — :cycle', ['plan' => $plan->displayName(), 'cycle' => cycle_label($months)]), 'amount' => $full]];
         if ($full - $price > 0) {
-            $lines[] = ['label' => __(':pct% discount for :n months', ['pct' => money($plan->cycle_discounts[(string) $months] ?? 0), 'n' => $months]), 'amount' => -round($full - $price, 2)];
+            $lines[] = ['label' => __(':pct% discount for :cycle', ['pct' => money($plan->cycle_discounts[(string) $months] ?? 0), 'cycle' => cycle_label($months)]), 'amount' => -round($full - $price, 2)];
         }
         $credit = $sub && !$renewal ? $this->credit($sub) : 0.0;
         if ($credit > 0) {

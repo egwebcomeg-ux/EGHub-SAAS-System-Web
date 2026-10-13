@@ -41,7 +41,7 @@
                 <label class="field-label">{{ __('Billing cycle') }}</label>
                 <select class="field" name="cycle_months">
                     @foreach (\App\Models\Plan::CYCLES as $m)
-                        <option value="{{ $m }}" @selected(($sub?->cycle_months ?? 1) === $m)>{{ __(':n months', ['n' => $m]) }}</option>
+                        <option value="{{ $m }}" @selected(($sub?->cycle_months ?? 1) === $m)>{{ cycle_label($m) }}</option>
                     @endforeach
                 </select>
             </div>
