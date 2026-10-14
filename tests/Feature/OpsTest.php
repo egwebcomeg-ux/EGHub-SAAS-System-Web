@@ -41,9 +41,12 @@ class OpsTest extends TenantTestCase
         $this->artisan('egmenu:doctor')->assertFailed();
 
         config(['app.debug' => false, 'mail.default' => 'smtp']);
-        $link = public_path('storage');
-        $made = !file_exists($link) && mkdir($link);
+        // a throw-away public path with its storage link, so the check does not depend on this machine's symlink
+        $public = sys_get_temp_dir().'/egmenu-doctor-'.uniqid();
+        mkdir($public.'/storage', 0777, true);
+        app()->usePublicPath($public);
         $this->artisan('egmenu:doctor')->assertSuccessful();
-        $made && rmdir($link);
+        rmdir($public.'/storage');
+        rmdir($public);
     }
 }
