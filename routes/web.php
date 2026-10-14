@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Platform\FeaturesController;
 use App\Http\Controllers\Platform\LandingController;
 use App\Http\Controllers\Platform\SignupController;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +27,9 @@ Route::domain("www.$domain")->get('/{any?}', fn (string $any = '') => redirect()
 Route::domain($domain)->group(function () use ($slug) {
     Route::middleware('admin.locale')->group(function () {
         Route::get('/', [LandingController::class, 'home'])->name('landing');
+        Route::get('/pricing', [LandingController::class, 'pricing'])->name('pricing');
+        Route::get('/features', [FeaturesController::class, 'index'])->name('features');
+        Route::get('/features/{slug}', [FeaturesController::class, 'show'])->where('slug', '[a-z-]{2,40}')->name('features.show');
         Route::get('/terms', [LandingController::class, 'terms'])->name('terms');
         Route::get('/privacy', [LandingController::class, 'privacy'])->name('privacy');
         Route::get('/register', [SignupController::class, 'show'])->name('register');

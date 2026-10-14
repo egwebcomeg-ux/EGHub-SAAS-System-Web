@@ -1,14 +1,14 @@
 @extends('layouts.base')
-@section('title', __('Start your free trial') . ' · EgMenu')
+@section('title', __('Create your free account') . ' · EgMenu')
 @section('body_class', 'bg-gradient-to-b from-brand-50 via-white to-navy-50 text-navy-900')
 
 @section('body')
 <div class="mx-auto max-w-xl px-4 py-10">
     <a href="{{ route('landing') }}" class="mb-8 flex justify-center" aria-label="EgMenu"><x-logo :size="44" /></a>
     <div class="card rounded-3xl p-6 shadow-xl shadow-navy-900/5 sm:p-8">
-        <span class="badge bg-brand-50 text-brand-700">{{ __(':days days free', ['days' => \App\Services\TenantProvisioner::TRIAL_DAYS]) }}</span>
-        <h1 class="mt-2 text-2xl font-extrabold sm:text-3xl">{{ __('Start your free trial') }}</h1>
-        <p class="mb-6 text-sm text-navy-500">{{ __(':days days of the Pro plan, no card needed.', ['days' => \App\Services\TenantProvisioner::TRIAL_DAYS]) }}</p>
+        <span class="badge bg-emerald-50 text-emerald-800">{{ __('Free plan · no card') }}</span>
+        <h1 class="mt-2 text-2xl font-extrabold sm:text-3xl">{{ __('Create your free account') }}</h1>
+        <p class="mb-6 text-sm text-navy-500">{{ __('Your account starts on the free plan and stays free as long as you like. On top, you get :days days of Pro to try ordering, the loyalty card and the rest. No card needed.', ['days' => \App\Services\TenantProvisioner::TRIAL_DAYS]) }}</p>
         <x-flash />
         <form method="post" action="{{ route('register') }}" class="grid gap-4 sm:grid-cols-2" data-signup>
             @csrf

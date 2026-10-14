@@ -1,0 +1,138 @@
+@extends('layouts.landing')
+@section('title', __('Pricing') . ' · EgMenu')
+@section('description', __('EgMenu prices in Egyptian pounds: a free plan for your QR menu, paid plans for ordering and loyalty, and add-ons for POS, kitchen, call center and inventory.'))
+
+@php
+    $groups = collect(\App\Models\Plan::GROUPS)->except('operations');
+    $planByCode = $plans->keyBy('code');
+    $extraBranchOff = (int) round((1 - \App\Models\AddonPrice::EXTRA_BRANCH_SHARE) * 100);
+    $featurePacks = $addons->where('type', 'feature')->values();
+    $limitPacks = $addons->where('type', 'limit')->values();
+    $moduleFor = collect(\App\Support\SiteModules::all())->filter(fn ($m) => $m['addons'] !== [])
+        ->flatMap(fn ($m) => array_fill_keys($m['addons'], $m['slug']))->all();
+@endphp
+
+@section('page')
+<section data-hero class="border-b border-navy-100 bg-[var(--lp-paper)]">
+    <div class="mx-auto max-w-7xl px-4 pt-12 pb-10 sm:px-6 lg:pt-16">
+        <p class="lp-eyebrow">{{ __('Pricing') }}</p>
+        <h1 class="mt-3 max-w-3xl text-[2rem] leading-[1.3] font-black tracking-tight sm:text-5xl sm:leading-[1.25]">{{ __('Start free. Pay only when you need more.') }}</h1>
+        <p class="lp-lead mt-4 max-w-2xl">{{ __('Prices in Egyptian pounds, paid by InstaPay or Vodafone Cash. No commission on your orders and no contract.') }}</p>
+    </div>
+</section>
+
+<section class="py-14 lg:py-16">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6">
+        @include('landing.partials.plans')
+    </div>
+</section>
+
+{{-- full comparison --}}
+<section id="compare" class="border-t border-navy-100 py-14 lg:py-16">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6">
+        <h2 class="lp-h2">{{ __('Compare the plans') }}</h2>
+        <p class="mt-2 text-navy-500">{{ __('Everything each plan includes, side by side.') }} <span class="sm:hidden">{{ __('Swipe the table to see every plan.') }}</span></p>
+        <div class="relative mt-6 overflow-x-auto rounded-2xl border border-navy-200 bg-white">
+            <table class="lp-compare w-full min-w-[640px] text-sm">
+                <thead>
+                    <tr class="border-b border-navy-200">
+                        <th class="w-40 p-3 text-start text-xs font-bold text-navy-500 sm:w-[30%] sm:p-4">{{ __('Plan') }}</th>
+                        @foreach ($plans as $p)
+                            <th @class(['p-3 text-center sm:p-4', 'bg-emerald-50' => (float) $p->monthly_price === 0.0, 'bg-navy-50' => $p->is_featured])>
+                                <div class="font-black text-navy-900">{{ $p->displayName() }}</div>
+                                <div class="text-xs font-semibold whitespace-nowrap text-navy-500">{{ (float) $p->monthly_price === 0.0 ? __('Free') : money($p->monthly_price) . ' ' . __('EGP') }}</div>
+                            </th>
+                        @endforeach
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="grp"><td colspan="{{ $plans->count() + 1 }}" class="bg-navy-50 px-4 py-2 text-xs font-extrabold text-navy-700">{{ __('Limits') }}</td></tr>
+                    @foreach (\App\Models\Plan::LIMITS as $lk => $_)
+                        <tr class="border-t border-navy-50">
+                            <td class="px-4 py-2.5 text-navy-700">{{ \App\Models\Plan::label($lk) }}</td>
+                            @foreach ($plans as $p)
+                                @php
+                                    $v = $matrix[$p->id]['limits'][$lk];
+                                @endphp
+                                <td class="px-4 py-2.5 text-center font-bold">{{ $v === null ? __('Unlimited') : ($v === 0 ? '—' : $v) }}</td>
+                            @endforeach
+                        </tr>
+                    @endforeach
+                    @foreach ($groups as $g => $gl)
+                        @php
+                            $keys = array_keys(array_filter(\App\Models\Plan::FEATURES, fn ($f) => $f[2] === $g));
+                        @endphp
+                        @continue(empty($keys))
+                        <tr class="grp"><td colspan="{{ $plans->count() + 1 }}" class="bg-navy-50 px-4 py-2 text-xs font-extrabold text-navy-700">{{ app()->getLocale() === 'en' ? $gl[1] : $gl[0] }}</td></tr>
+                        @foreach ($keys as $fk)
+                            <tr class="border-t border-navy-50">
+                                <td class="px-4 py-2.5 text-navy-700">{{ \App\Models\Plan::label($fk) }}</td>
+                                @foreach ($plans as $p)
+                                    <td class="px-4 py-2.5 text-center">
+                                        @if (!empty($matrix[$p->id]['features'][$fk]))
+                                            <span class="inline-grid size-6 place-items-center rounded-full bg-emerald-100 text-emerald-700"><x-landing.icon name="check" class="size-4" /></span><span class="sr-only">{{ __('Included') }}</span>
+                                        @else
+                                            <span class="text-navy-300" aria-hidden="true">—</span><span class="sr-only">{{ __('Not included') }}</span>
+                                        @endif
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endforeach
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+{{-- add-ons --}}
+@if ($addons->isNotEmpty())
+    <section id="addons" class="bg-[var(--lp-paper)] py-14 lg:py-16">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6">
+            <h2 class="lp-h2">{{ __('Add-ons') }}</h2>
+            <p class="mt-2 max-w-2xl text-navy-600">{{ __('Start with the menu. When you grow, add only what you need, on top of your plan.') }}</p>
+            <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach ($featurePacks as $addon)
+                    @php
+                        $bundle = $addon->key === 'ops_bundle';
+                        $minPlan = $addon->min_plan ? $planByCode->get($addon->min_plan) : null;
+                        $slug = $moduleFor[$addon->key] ?? null;
+                    @endphp
+                    <div @class(['flex flex-col rounded-2xl border p-5', 'border-navy-900 bg-navy-900 text-white lg:col-span-1' => $bundle, 'border-navy-200 bg-white' => !$bundle])>
+                        <div class="flex items-start justify-between gap-3">
+                            <h3 class="text-lg font-extrabold">{{ $addon->displayName() }}</h3>
+                            @if ($bundle)<span class="badge shrink-0 bg-brand-600 text-white">{{ __('Best value') }}</span>@endif
+                        </div>
+                        <p @class(['mt-1 flex-1 text-sm', 'text-white/70' => $bundle, 'text-navy-500' => !$bundle])>{{ tr($addon->description, $addon->description_en) }}</p>
+                        <p class="mt-4"><b class="text-2xl font-black"><bdi dir="ltr">+{{ money($addon->monthly_price) }}</bdi></b> <span @class(['text-sm', 'text-white/70' => $bundle, 'text-navy-500' => !$bundle])>{{ __('EGP / month') }}</span></p>
+                        <div class="mt-3 flex flex-wrap gap-1.5 text-xs font-bold">
+                            @if ($addon->per_branch)<span @class(['rounded-full px-2.5 py-1', 'bg-white/10' => $bundle, 'bg-navy-50 text-navy-700' => !$bundle])>{{ __('Per branch, :pct% off each extra branch', ['pct' => $extraBranchOff]) }}</span>@endif
+                            @if ($minPlan)<span @class(['rounded-full px-2.5 py-1', 'bg-white/10' => $bundle, 'bg-brand-50 text-brand-700' => !$bundle])>{{ __('With :plan or higher', ['plan' => $minPlan->displayName()]) }}</span>@endif
+                        </div>
+                        @if ($slug && !$bundle)
+                            <a href="{{ route('features.show', $slug) }}" class="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-brand-700 hover:text-brand-600">{{ __('How it works') }} <span aria-hidden="true" class="ms-1 inline-block rtl:rotate-180">→</span></a>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+            @if ($limitPacks->isNotEmpty())
+                <div class="mt-6 flex flex-wrap gap-3">
+                    @foreach ($limitPacks as $addon)
+                        <div class="flex min-h-12 items-center gap-3 rounded-xl border border-navy-200 bg-white px-4 text-sm">
+                            <b>{{ $addon->displayName() }}</b><span class="text-navy-500"><bdi dir="ltr">+{{ money($addon->monthly_price) }}</bdi> {{ __('EGP / month') }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+    </section>
+@endif
+
+<section class="py-14">
+    <div class="mx-auto max-w-3xl px-4 text-center sm:px-6">
+        <h2 class="lp-h2">{{ __('Questions about paying?') }}</h2>
+        <p class="lp-lead mt-3">{{ __('You pay from your dashboard by InstaPay or Vodafone Cash. Paying for 6 or 12 months gets a discount. There is no contract and you can stop whenever you want; your menu then stays on the free plan.') }}</p>
+        <a href="{{ route('register') }}" class="btn-primary mt-6 min-h-12 px-7 text-base">{{ __('Start free') }}</a>
+    </div>
+</section>
+@endsection

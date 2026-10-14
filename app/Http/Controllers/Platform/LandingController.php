@@ -3,22 +3,21 @@
 namespace App\Http\Controllers\Platform;
 
 use App\Http\Controllers\Controller;
-use App\Models\AddonPrice;
-use App\Models\Plan;
+use App\Support\SiteModules;
 use Illuminate\View\View;
 
-/** Marketing site: home, terms and privacy. Plans, add-ons and prices come from the database. */
+/** Marketing site: home, pricing, terms and privacy. Plans, add-ons and prices come from the database. */
 class LandingController extends Controller
 {
     public function home(): View
     {
-        $plans = Plan::query()->where('is_public', true)->with('features')->orderBy('sort_order')->get();
+        return view('landing.home', SiteModules::pricing());
+    }
 
-        return view('landing.home', [
-            'plans' => $plans,
-            'addons' => AddonPrice::query()->where('is_active', true)->where('type', 'feature')->orderBy('sort_order')->get(),
-            'matrix' => $plans->mapWithKeys(fn (Plan $p) => [$p->id => $p->entitlements()]),
-        ]);
+    /** All plans side by side, with the add-ons. */
+    public function pricing(): View
+    {
+        return view('landing.pricing', SiteModules::pricing());
     }
 
     public function terms(): View

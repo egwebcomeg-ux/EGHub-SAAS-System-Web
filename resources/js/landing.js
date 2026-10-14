@@ -1,245 +1,184 @@
 // Marketing site interactions (layouts/landing). Vanilla JS, no dependencies.
-// Every block checks its own markup first, so the legal pages load this file without errors.
+// Every block checks its own markup first, so any landing page can load this file.
 
 const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const nf = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
-const store = {
-    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
-    set(k, v) { try { localStorage.setItem(k, v); } catch { /* private mode */ } },
-};
-const root = $('#lp');
 let T = {};
-try { T = JSON.parse(root?.dataset.i18n || '{}'); } catch { /* keep defaults */ }
+try { T = JSON.parse(document.querySelector('[data-i18n]')?.dataset.i18n || '{}'); } catch { /* keep defaults */ }
 
-/* ---------- header: compact on scroll, mobile menu, active section ---------- */
+/* ---------- header: compact on scroll, mega menu, mobile menu, bottom bar ---------- */
 const header = $('[data-header]');
 if (header) {
-    const onScroll = () => header.classList.toggle('is-compact', window.scrollY > 12);
+    const bottom = $('[data-bottom-bar]');
+    const hero = $('[data-hero]');
+    const onScroll = () => {
+        header.classList.toggle('is-compact', window.scrollY > 8);
+        if (bottom) {
+            const past = hero ? hero.getBoundingClientRect().bottom < 0 : window.scrollY > 500;
+            const nearEnd = window.innerHeight + window.scrollY > document.body.scrollHeight - 420;
+            bottom.classList.toggle('is-on', past && !nearEnd);
+        }
+    };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
 
+    // desktop mega menu: click or hover (with a short grace period so the pointer can travel to the panel)
+    const megaBtn = $('[data-mega-toggle]');
+    const mega = $('[data-mega]');
+    if (megaBtn && mega) {
+        let closeTimer = null;
+        const setMega = (open) => {
+            clearTimeout(closeTimer);
+            mega.classList.toggle('is-open', open);
+            megaBtn.setAttribute('aria-expanded', String(open));
+        };
+        megaBtn.addEventListener('click', () => setMega(megaBtn.getAttribute('aria-expanded') !== 'true'));
+        if (window.matchMedia('(hover: hover)').matches) {
+            [megaBtn, mega].forEach((el) => {
+                el.addEventListener('pointerenter', () => setMega(true));
+                el.addEventListener('pointerleave', () => { closeTimer = setTimeout(() => setMega(false), 180); });
+            });
+        }
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { setMega(false); } });
+        document.addEventListener('click', (e) => { if (!e.target.closest('[data-mega], [data-mega-toggle]')) { setMega(false); } });
+    }
+
+    // mobile drawer
     const toggle = $('[data-menu-toggle]');
     const panel = $('[data-mobile-nav]');
-    toggle?.addEventListener('click', () => {
-        const open = panel.hidden;
+    const setPanel = (open) => {
         panel.hidden = !open;
         toggle.setAttribute('aria-expanded', String(open));
-    });
-    panel?.addEventListener('click', (e) => {
-        if (e.target.closest('a')) { panel.hidden = true; toggle.setAttribute('aria-expanded', 'false'); }
-    });
-
-    const links = $$('[data-nav]');
-    if (links.length && 'IntersectionObserver' in window) {
-        const spy = new IntersectionObserver((entries) => {
-            entries.forEach((en) => {
-                if (!en.isIntersecting) return;
-                links.forEach((a) => a.classList.toggle('is-active', a.dataset.nav === en.target.id));
-            });
-        }, { rootMargin: '-45% 0px -50% 0px' });
-        links.forEach((a) => { const s = document.getElementById(a.dataset.nav); if (s) spy.observe(s); });
-    }
-}
-
-/* ---------- scroll reveal + counters ---------- */
-function countUp(el) {
-    const to = Number(el.dataset.countTo) || 0;
-    if (still || to === 0) { el.textContent = nf.format(to); return; }
-    const start = performance.now();
-    const dur = 1100;
-    const tick = (now) => {
-        const p = Math.min(1, (now - start) / dur);
-        el.textContent = nf.format(Math.round(to * (1 - Math.pow(1 - p, 3))));
-        if (p < 1) requestAnimationFrame(tick);
+        document.body.classList.toggle('lp-locked', open);
+        $$('[data-menu-icon]', toggle).forEach((i) => { i.hidden = (i.dataset.menuIcon === 'open') === open; });
     };
-    el.textContent = '0';
-    requestAnimationFrame(tick);
+    toggle?.addEventListener('click', () => setPanel(panel.hidden));
+    panel?.addEventListener('click', (e) => { if (e.target.closest('a')) { setPanel(false); } });
 }
 
+/* ---------- plan details: open on wide screens, one tap away on phones ---------- */
+if (window.matchMedia('(min-width: 1024px)').matches) {
+    $$('details[data-open-wide]').forEach((d) => { d.open = true; });
+}
+
+/* ---------- scroll reveal ---------- */
 if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver((entries) => {
         entries.forEach((en) => {
-            if (!en.isIntersecting) return;
+            if (!en.isIntersecting) { return; }
             en.target.classList.add('is-in');
-            $$('[data-count-to]', en.target).forEach(countUp);
             io.unobserve(en.target);
         });
-    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    }, { rootMargin: '0px 0px -6% 0px', threshold: 0.06 });
     $$('[data-reveal]').forEach((el) => io.observe(el));
 } else {
     $$('[data-reveal]').forEach((el) => el.classList.add('is-in'));
 }
 
-/* ---------- hero phone: add items, count the cart, send the order ---------- */
-const phoneTimers = [];
-function clearPhone() { phoneTimers.splice(0).forEach(clearTimeout); }
-function runPhone(phone) {
-    clearPhone();
-    if (!phone) return;
-    const items = $$('[data-item]', phone);
-    const cart = $('[data-cart]', phone);
-    const count = $('[data-count]', phone);
-    const total = $('[data-total]', phone);
-    const toast = $('[data-toast]', phone);
-    const ding = $('[data-ding]');
-    let n = 0;
-    let sum = 0;
-    const later = (ms, fn) => phoneTimers.push(setTimeout(fn, ms));
-    const add = (item) => {
-        n += 1;
-        sum += Number(item.dataset.price);
-        count.textContent = n;
-        total.textContent = nf.format(sum);
-        cart.classList.add('is-up');
-        count.classList.remove('lp-badge-pop');
-        void count.offsetWidth;
-        count.classList.add('lp-badge-pop');
-    };
-    const reset = () => {
-        n = 0; sum = 0;
-        count.textContent = '0'; total.textContent = '0';
-        cart.classList.remove('is-up');
-        toast.classList.remove('is-on');
-        items.forEach((i) => i.classList.remove('is-hit'));
-    };
-    if (still) { reset(); add(items[0]); add(items[2]); return; }
-
-    const order = [0, 2, 1];
-    const loop = () => {
-        reset();
-        order.forEach((idx, step) => {
-            later(900 + step * 1300, () => { items[idx].classList.add('is-hit'); add(items[idx]); });
-            later(900 + step * 1300 + 650, () => items[idx].classList.remove('is-hit'));
-        });
-        later(5200, () => { toast.classList.add('is-on'); cart.classList.remove('is-up'); });
-        later(5600, () => {
-            const bell = ding && $('svg', ding);
-            if (bell) { bell.classList.remove('lp-ring'); void bell.offsetWidth; bell.classList.add('lp-ring'); }
-        });
-        later(8200, loop);
-    };
-    loop();
+/*
+ * ---------- workflow scenes ----------
+ * <figure data-scene> holds a stage ([data-stage], drawn at data-w × data-h and scaled to fit) and caption
+ * buttons ([data-step] with data-ms). Stage elements declare when they appear:
+ *   data-show="2"  only in step 2      data-show="2-"  from step 2 on      data-show="2-3"  steps 2 and 3
+ *   data-on="..."  same ranges, but toggles the class is-on (style it with Tailwind's [&.is-on]: variant)
+ * The player loops while the scene is on screen, pauses on hover / touch, and shows the last step when the
+ * visitor prefers reduced motion.
+ */
+function range(v, n) {
+    const [a, b] = String(v).split('-');
+    return [Number(a), b === undefined ? Number(a) : (b === '' ? n : Number(b))];
 }
 
-/* ---------- cafe / restaurant ---------- */
-function setAudience(aud, save = true) {
-    if (!root || !['cafe', 'restaurant'].includes(aud)) return;
-    root.dataset.aud = aud;
-    $$('[data-aud-set]').forEach((b) => {
-        const on = b.dataset.audSet === aud;
-        b.setAttribute(b.getAttribute('role') === 'tab' ? 'aria-selected' : 'aria-pressed', String(on));
-    });
-    const rec = aud === 'cafe' ? ['starter', 'basic'] : ['pro', 'business'];
-    $$('[data-plan-code]').forEach((c) => c.classList.toggle('is-recommended', rec.includes(c.dataset.planCode)));
-    $$('[data-col]').forEach((c) => {
-        const on = c.dataset.col === aud;
-        c.classList.toggle('bg-brand-50/60', on);
-        c.classList.toggle('font-semibold', on);
-        c.classList.toggle('text-navy-900', on);
-    });
-    if (save) store.set('egm-aud', aud);
-    runPhone($$('[data-phone]').find((p) => p.offsetParent !== null));
-}
-if (root) {
-    $$('[data-aud-set]').forEach((b) => b.addEventListener('click', () => setAudience(b.dataset.audSet)));
-    setAudience(store.get('egm-aud') || 'cafe', false);
-}
+function initScene(root) {
+    const wrap = $('[data-stage-wrap]', root);
+    const stage = $('[data-stage]', root);
+    const caps = $$('[data-step]', root);
+    const texts = $$('[data-step-text]', root);
+    const n = caps.length;
+    if (!stage || !n) { return; }
+    const W = Number(stage.dataset.w) || 640;
+    const H = Number(stage.dataset.h) || 400;
+    const els = $$('[data-show], [data-on]', stage).map((el) => ({
+        el,
+        show: el.dataset.show !== undefined ? range(el.dataset.show, n) : null,
+        on: el.dataset.on !== undefined ? range(el.dataset.on, n) : null,
+    }));
 
-/* ---------- live order board ---------- */
-const board = $('[data-board]');
-if (board) {
-    let orders = [];
-    try { orders = JSON.parse(board.dataset.orders || '[]'); } catch { /* none */ }
-    const cols = { new: $('[data-board-col="new"]', board), prep: $('[data-board-col="prep"]', board), ready: $('[data-board-col="ready"]', board) };
-    const card = ([table, items, note], fresh) => {
-        const el = document.createElement('div');
-        el.className = 'rounded-xl border border-navy-100 bg-white p-2 shadow-sm' + (fresh ? ' lp-order border-brand-200' : '');
-        el.innerHTML = '<div class="font-extrabold text-navy-900"></div><div class="text-navy-600"></div>' + (note ? '<div class="mt-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-amber-800"></div>' : '');
-        el.children[0].textContent = table;
-        el.children[1].textContent = items;
-        if (note) el.children[2].textContent = note;
-        return el;
+    const fit = () => {
+        wrap.style.aspectRatio = 'auto';
+        const k = Math.min(1.4, wrap.clientWidth / W);
+        stage.style.setProperty('--k', k.toFixed(4));
+        wrap.style.height = `${Math.round(H * k)}px`;
     };
-    let i = 0;
-    const state = { new: [], prep: [], ready: [] };
-    const render = (fresh) => {
-        Object.entries(state).forEach(([k, list]) => {
-            cols[k].replaceChildren(...list.map((o, j) => card(o, fresh && k === 'new' && j === 0)));
+    fit();
+    if ('ResizeObserver' in window) { new ResizeObserver(fit).observe(wrap); } else { window.addEventListener('resize', fit); }
+
+    let at = 0;
+    let timer = null;
+    let started = 0;
+    let left = 0;
+    let paused = false;
+    let visible = false;
+
+    const render = (i) => {
+        at = i;
+        root.dataset.at = String(i);
+        els.forEach(({ el, show, on }) => {
+            if (show) { el.classList.toggle('is-shown', i >= show[0] && i <= show[1]); }
+            if (on) { el.classList.toggle('is-on', i >= on[0] && i <= on[1]); }
         });
+        caps.forEach((c, j) => {
+            const k = j + 1;
+            c.classList.toggle('is-active', k === i);
+            c.classList.toggle('is-done', k < i || (still && k <= i));
+            c.setAttribute('aria-current', k === i ? 'step' : 'false');
+            c.style.setProperty('--ms', `${Number(c.dataset.ms) || 2600}ms`);
+            // restart the progress bar animation
+            const bar = $('i', c);
+            if (bar && k === i) { bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = ''; }
+        });
+        texts.forEach((t) => { t.hidden = Number(t.dataset.stepText) !== i; });
     };
-    const step = () => {
-        state.ready = state.prep.slice(0, 2);
-        state.prep = state.new.slice(-1).concat(state.prep).slice(0, 2);
-        state.new = [orders[i % orders.length]].concat(state.new.slice(0, 1));
-        i += 1;
-        render(true);
+    const schedule = (ms) => {
+        clearTimeout(timer);
+        started = performance.now();
+        left = ms;
+        timer = setTimeout(() => go(at % n + 1), ms);
     };
-    if (orders.length) {
-        state.new = [orders[0]]; state.prep = [orders[1]]; state.ready = [orders[2]];
-        i = 3;
-        render(false);
-        if (!still) {
-            let timer = null;
-            const vis = new IntersectionObserver(([en]) => {
-                clearInterval(timer);
-                if (en.isIntersecting) timer = setInterval(step, 2600);
-            });
-            vis.observe(board);
-        }
+    const go = (i) => {
+        render(i);
+        if (!still && visible && !paused) { schedule(Number(caps[i - 1].dataset.ms) || 2600); }
+    };
+    const halt = () => {
+        if (timer) { clearTimeout(timer); timer = null; left = Math.max(300, left - (performance.now() - started)); }
+    };
+    const resume = () => {
+        if (still || paused || !visible || timer) { return; }
+        if (at === 0) { go(1); } else { schedule(left || 1200); }
+    };
+    const setPaused = (p) => { paused = p; root.classList.toggle('is-paused', p); p ? halt() : resume(); };
+
+    caps.forEach((c, j) => c.addEventListener('click', () => { halt(); timer = null; go(j + 1); }));
+    if (still) { render(n); return; }
+    render(1);
+    root.classList.add('is-off');
+    wrap.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { setPaused(true); } });
+    wrap.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') { setPaused(false); } });
+    wrap.addEventListener('pointerup', (e) => { if (e.pointerType !== 'mouse') { setPaused(!paused); } });
+    if ('IntersectionObserver' in window) {
+        new IntersectionObserver(([en]) => {
+            visible = en.isIntersecting;
+            root.classList.toggle('is-off', !visible);
+            visible ? resume() : halt();
+        }, { threshold: 0.35 }).observe(wrap);
+    } else {
+        visible = true;
+        resume();
     }
 }
-
-/* ---------- printed menu demo ---------- */
-const demo = $('[data-print-demo]');
-if (demo) {
-    const sheet = $('[data-paper-sheet]', demo);
-    const label = $('[data-paper-label]', demo);
-    const flash = (el) => { el.classList.remove('lp-flash'); void el.offsetWidth; el.classList.add('lp-flash'); };
-    $$('[data-price-input]', demo).forEach((input) => {
-        input.addEventListener('input', () => {
-            const v = Math.max(0, Math.min(9999, Number(input.value) || 0));
-            $$(`[data-price-out="${input.dataset.priceInput}"]`, demo).forEach((out) => { out.textContent = nf.format(v); flash(out); });
-        });
-    });
-    $$('[data-paper]', demo).forEach((b) => b.addEventListener('click', () => {
-        $$('[data-paper]', demo).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-        const a5 = b.dataset.paper === 'a5';
-        sheet.style.width = a5 ? 'min(100%, 330px)' : '';
-        sheet.style.fontSize = a5 ? '0.86em' : '';
-        label.textContent = (a5 ? 'A5' : 'A4') + ' · PDF';
-    }));
-    $$('[data-accent]', demo).forEach((b) => b.addEventListener('click', () => {
-        $$('[data-accent]', demo).forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-        sheet.style.setProperty('--accent', b.dataset.accent);
-    }));
-    const exp = $('[data-export]', demo);
-    const toast = $('[data-export-toast]', demo);
-    exp?.addEventListener('click', () => {
-        const txt = $('[data-export-label]', exp);
-        exp.disabled = true;
-        txt.textContent = T.exporting || '…';
-        setTimeout(() => {
-            exp.disabled = false;
-            txt.textContent = T.exportPdf || 'PDF';
-            toast.classList.add('is-on');
-            setTimeout(() => toast.classList.remove('is-on'), 2600);
-        }, still ? 0 : 900);
-    });
-}
-
-/* ---------- features filter ---------- */
-const filters = $$('[data-filter]');
-filters.forEach((b) => b.addEventListener('click', () => {
-    const f = b.dataset.filter;
-    filters.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-    $$('[data-feature]').forEach((card) => {
-        const match = f === 'all' || card.dataset.feature === 'both' || card.dataset.feature === f;
-        card.style.opacity = match ? '' : '0.35';
-        card.style.filter = match ? '' : 'grayscale(1)';
-    });
-}));
+$$('[data-scene]').forEach(initScene);
 
 /* ---------- legal pages: list the sections beside the text ---------- */
 const toc = $('[data-toc]');
@@ -257,11 +196,11 @@ if (toc && legal) {
     });
 }
 
-/* ---------- pricing: monthly / 6 / 12 months ---------- */
+/* ---------- pricing: monthly / 6 / 12 months (paid plans only) ---------- */
 const cycleButtons = $$('[data-cycle]');
 function setCycle(months) {
     cycleButtons.forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.cycle) === months)));
-    $$('[data-plan-code]').forEach((card) => {
+    $$('[data-plan-price]').forEach((card) => {
         const monthly = Number(card.dataset.monthly) || 0;
         let disc = {};
         try { disc = JSON.parse(card.dataset.discounts || '{}'); } catch { /* none */ }
@@ -271,7 +210,7 @@ function setCycle(months) {
         const perMonth = months === 1 ? monthly : Math.round(cycleTotal / months);
         const price = $('[data-price]', card);
         price.textContent = nf.format(perMonth);
-        if (!still) { price.classList.remove('lp-badge-pop'); void price.offsetWidth; price.classList.add('lp-badge-pop'); }
+        if (!still) { price.classList.remove('lp-pop'); void price.offsetWidth; price.classList.add('lp-pop'); }
         $('[data-billed]', card).textContent = months === 1
             ? (T.billedMonthly || '')
             : (T.billedEvery || ':total / :period')
