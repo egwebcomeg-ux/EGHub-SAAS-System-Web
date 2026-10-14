@@ -38,8 +38,11 @@ class CustomDomainTest extends TenantTestCase
         $this->get('http://www.menu.cafe-a.com/')->assertOk();
         // QR codes and shared links now use the domain
         $this->assertSame('http://menu.cafe-a.com/', $a->fresh()->url());
-        // the slug address keeps working
-        $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('Latte');
+        // the slug addresses keep working, and every address declares the domain as canonical
+        $canonical = '<link rel="canonical" href="http://menu.cafe-a.com/">';
+        $this->get('http://menu.cafe-a.com/')->assertSee($canonical, false);
+        $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('Latte')->assertSee($canonical, false);
+        $this->get($this->pathUrl('cafe-a'))->assertOk()->assertSee('Latte')->assertSee($canonical, false);
     }
 
     public function test_unknown_pending_or_unpaid_domains(): void
@@ -48,12 +51,12 @@ class CustomDomainTest extends TenantTestCase
         $this->get('http://nobody.com/')->assertNotFound();
 
         Domain::query()->create(['domain' => 'pending.com', 'tenant_id' => $a->id, 'status' => 'pending']);
-        $this->get('http://pending.com/')->assertRedirect($this->subUrl('cafe-a', '/'));
+        $this->get('http://pending.com/')->assertRedirect($this->pathUrl('cafe-a'));
 
         // active but the plan has no custom domains: printed QR codes still reach the menu
         $this->activeDomain($a, 'starter-cafe.com');
-        $this->get('http://starter-cafe.com/t/0123456789abcdef0123')->assertRedirect($this->subUrl('cafe-a', 't/0123456789abcdef0123'));
-        $this->assertSame($this->subUrl('cafe-a', '/'), $a->fresh()->url());
+        $this->get('http://starter-cafe.com/t/0123456789abcdef0123')->assertRedirect($this->pathUrl('cafe-a', 't/0123456789abcdef0123'));
+        $this->assertSame($this->pathUrl('cafe-a'), $a->fresh()->url());
     }
 
     public function test_another_restaurants_data_is_not_reachable_through_a_domain(): void
@@ -82,7 +85,7 @@ class CustomDomainTest extends TenantTestCase
         Notification::assertSentTo($admin, DomainRequested::class);
 
         // not served before EgWeb activates it
-        $this->assertSame($this->subUrl('cafe-a', '/'), $a->fresh()->url());
+        $this->assertSame($this->pathUrl('cafe-a'), $a->fresh()->url());
         $this->actingAs($admin, 'admin')->post($this->adminUrl("/domains/{$domain->id}"), ['status' => 'active'])->assertSessionHasNoErrors();
         $this->assertSame('http://mycafe.com/', $a->fresh()->url());
 

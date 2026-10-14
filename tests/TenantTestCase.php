@@ -102,13 +102,21 @@ abstract class TenantTestCase extends TestCase
         });
     }
 
-    /** The main domain: landing pages, and the old /{slug}/... menu address (redirects to the subdomain). */
+    /** The main domain: landing pages, directory, sitemap — and menus at /{slug}/... (see pathUrl()). */
     protected function menuUrl(string $path = ''): string
     {
         return 'http://egmenu.test/'.ltrim($path, '/');
     }
 
-    /** A restaurant's menu on its subdomain: subUrl('cafe-a', 't/abc') → http://cafe-a.egmenu.test/t/abc. */
+    /** A restaurant's canonical menu address: pathUrl('cafe-a', 't/abc') → http://egmenu.test/cafe-a/t/abc. */
+    protected function pathUrl(string $slug, string $path = ''): string
+    {
+        $path = ltrim($path, '/');
+
+        return "http://egmenu.test/$slug".($path === '' || str_starts_with($path, '?') ? $path : '/'.$path);
+    }
+
+    /** A restaurant's menu on its subdomain alias: subUrl('cafe-a', 't/abc') → http://cafe-a.egmenu.test/t/abc. */
     protected function subUrl(string $slug, string $path = ''): string
     {
         $root = "http://$slug.egmenu.test";

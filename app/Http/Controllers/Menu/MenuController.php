@@ -13,6 +13,7 @@ use App\Models\Popup;
 use App\Services\Entitlements;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Menu\MenuCatalog;
+use App\Services\Seo\RestaurantProfile;
 use App\Services\Settings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -46,8 +47,11 @@ class MenuController extends Controller
             : null;
 
         $loyalty = app(LoyaltyService::class)->program();
+        $profile = new RestaurantProfile;
 
         return view('menu.show', [
+            'profile' => $profile,
+            'schemas' => [$profile->menuSchema($categories)],
             'loyalty' => $loyalty,
             'cardToken' => $loyalty ? $request->cookie('card_'.tenant()->getTenantKey()) : null,
             'feedback' => Entitlements::current()->allows('feedback'),

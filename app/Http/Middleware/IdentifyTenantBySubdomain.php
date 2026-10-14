@@ -7,12 +7,14 @@ use App\Services\Settings;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Public menu on the restaurant's own subdomain: {tenant}.egmenu.app/... (the canonical menu address).
- * Resolves the restaurant from the {tenant} host parameter, initialises tenancy and removes the parameter so
- * controllers never receive it (route('menu.*') fills it in by itself). Unknown or reserved name → 404.
+ * Public menu on the restaurant's subdomain: {tenant}.egmenu.app/... (a short alias for QR codes and branding; its
+ * pages declare egmenu.app/{tenant}/... or the custom domain as canonical). Resolves the restaurant from the
+ * {tenant} host parameter, initialises tenancy and removes the parameter so controllers never receive it
+ * (route('menu.*') fills it in by itself). Unknown or reserved name → 404.
  */
 class IdentifyTenantBySubdomain
 {
@@ -38,12 +40,40 @@ class IdentifyTenantBySubdomain
         $request->route()?->forgetParameter('tenant');
 
         $this->applyLocale($request, $tenant);
+        $this->markCanonical($request, $tenant);
 
         if ($tenant->isSuspended()) {
             return response()->view('menu.suspended', ['tenant' => $tenant], 503);
         }
 
         return $next($request);
+    }
+
+    /** Path of the page below the restaurant's root: "" for the menu, "about", "t/abc", ... */
+    protected function relativePath(Request $request): string
+    {
+        return trim($request->path(), '/');
+    }
+
+    /**
+     * The address search engines should index for this page, read by layouts.base: the same page on the custom
+     * domain when active, else on egmenu.app/{tenant}. Only ?branch and ?lang=en change the content, so only they
+     * are kept. Private pages (order tracking, loyalty cards, screens) are marked noindex instead.
+     */
+    protected function markCanonical(Request $request, Tenant $tenant): void
+    {
+        $name = Str::after((string) $request->route()?->getName(), '.');
+        if (! in_array($name, ['show', 'about'], true)) {
+            $request->attributes->set('noindex', true);
+
+            return;
+        }
+        $query = array_filter([
+            'branch' => is_string($request->query('branch')) ? $request->query('branch') : null,
+            'lang' => $request->query('lang') === 'en' ? 'en' : null,
+        ]);
+        $path = $this->relativePath($request);
+        $request->attributes->set('canonical', $tenant->url($path.($query ? '?'.http_build_query($query) : '')));
     }
 
     /** ?lang=en|ar switches and is remembered per restaurant; otherwise the restaurant's default language. */

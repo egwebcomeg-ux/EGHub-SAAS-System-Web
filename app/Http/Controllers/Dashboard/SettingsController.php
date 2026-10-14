@@ -10,6 +10,8 @@ use App\Services\Import\Ai\AiException;
 use App\Services\Import\Ai\AiProviders;
 use App\Services\Settings;
 use App\Support\BusinessType;
+use App\Support\Cities;
+use App\Support\Cuisines;
 use App\Support\MenuThemes;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,6 +54,12 @@ class SettingsController extends Controller
             'facebook' => 'nullable|url|max:200',
             'tiktok' => 'nullable|url|max:200',
             'google_review_url' => 'nullable|url|max:300',
+            'city' => ['nullable', Rule::in(array_keys(Cities::ALL))],
+            'area' => 'nullable|string|max:60',
+            'cuisine' => 'nullable|array|max:6',
+            'cuisine.*' => [Rule::in(array_keys(Cuisines::ALL))],
+            'short_description' => 'nullable|string|max:160',
+            'short_description_en' => 'nullable|string|max:160',
             'service_percent' => 'nullable|numeric|min:0|max:30',
             'online_prep_minutes' => 'nullable|integer|min:5|max:240',
             'tax_percent' => 'nullable|numeric|min:0|max:30',
@@ -62,7 +70,9 @@ class SettingsController extends Controller
             'cover' => 'nullable|file|max:5120',
         ]);
 
-        $values = collect($data)->except(['logo', 'cover', 'ai_key'])->map(fn ($v) => (string) ($v ?? ''))->all();
+        $values = collect($data)->except(['logo', 'cover', 'ai_key', 'cuisine'])->map(fn ($v) => (string) ($v ?? ''))->all();
+        $values['cuisine'] = implode(',', array_values(array_unique($data['cuisine'] ?? [])));
+        $values['listed_in_directory'] = $request->boolean('listed_in_directory') ? '1' : '0';
         // the key is only replaced when a new one is typed, and is stored encrypted
         if (! empty($data['ai_key'])) {
             $values['ai_key'] = AiProviders::encrypt($data['ai_key']);

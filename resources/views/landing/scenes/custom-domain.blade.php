@@ -1,10 +1,10 @@
-{{-- rosto.egmenu.app from day one → book rosto.com → connected over https → the menu on rosto.com. --}}
+{{-- egmenu.app/rosto from day one → book rosto.com → connected over https → the menu on rosto.com. --}}
 <div class="absolute inset-5 overflow-hidden rounded-2xl border border-navy-200 bg-white shadow-[0_24px_40px_-26px_rgba(20,31,56,.6)]">
     <div class="flex h-10 items-center gap-2 border-b border-navy-100 bg-navy-50 px-3" dir="ltr">
         <i class="size-2.5 rounded-full bg-navy-200"></i><i class="size-2.5 rounded-full bg-navy-200"></i><i class="size-2.5 rounded-full bg-navy-200"></i>
         <div data-on="4" class="mx-auto flex h-7 w-[300px] items-center gap-1.5 rounded-lg border border-navy-200 bg-white px-3 text-[12px] font-bold [&.is-on]:border-emerald-400 [&.is-on]:ring-2 [&.is-on]:ring-emerald-100">
             <x-landing.icon name="shield" class="size-3.5 text-emerald-600" />
-            <x-landing.swap :values="['1-3' => 'rosto.egmenu.app', '4-' => 'rosto.com']" />
+            <x-landing.swap :values="['1-3' => 'egmenu.app/rosto', '4-' => 'rosto.com']" />
         </div>
     </div>
     <div class="relative h-[calc(100%-2.5rem)] bg-[#fbf7f1]">

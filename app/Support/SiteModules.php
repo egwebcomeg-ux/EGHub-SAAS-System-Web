@@ -142,6 +142,7 @@ final class SiteModules
                     ['globe', __('Arabic and English'), __('Each item has an Arabic and an English name. The guest switches language with one tap.')],
                     ['layers', __('Eight ready designs'), __('Cozy cafe, bistro, dark, oriental grill and more, with your logo and colours, on the paid plans.')],
                     ['pencil', __('Change it any time'), __('Prices, photos, sold-out items: edit from your phone and the menu updates at once.')],
+                    ['globe', __('On Google and in the directory'), __('Your menu and a page about your place live at egmenu.app/your-name, ready for Google, and you can be listed in the EgMenu restaurant directory.')],
                 ],
                 'steps' => [
                     [__('Scan'), __('The guest scans the code on the table.')],
@@ -294,7 +295,7 @@ final class SiteModules
                     ['chat', __('WhatsApp follow-up'), __('Each order has a tracking page, and you can confirm it with the customer on WhatsApp.')],
                 ],
                 'steps' => [
-                    [__('Open your link'), __('A customer taps rosto.egmenu.app in your Instagram bio.')],
+                    [__('Open your link'), __('A customer taps egmenu.app/rosto in your Instagram bio.')],
                     [__('Choose delivery'), __('Delivery to Nasr City, or pickup at a set time.')],
                     [__('See the fee'), __('The zone adds its delivery fee to the total.')],
                     [__('Order arrives'), __('It lands on your board, with no commission taken.')],
@@ -557,12 +558,12 @@ final class SiteModules
                 'feature' => 'custom_domain', 'addons' => ['domain_pack'],
                 'shot' => 'domain', 'frame' => 'browser', 'url' => 'app.egmenu.app/domain', 'phone' => null,
                 'benefits' => [
-                    ['qr', __('A link from day one'), __('Every restaurant gets name.egmenu.app the moment it signs up.')],
+                    ['qr', __('A link from day one'), __('Every restaurant gets egmenu.app/name the moment it signs up, with name.egmenu.app as a short alias.')],
                     ['globe', __('Your domain'), __('Book a new domain through EgWeb, or connect one you already own.')],
                     ['shield', __('Secure by default'), __('The menu opens over https on your domain, and your QR codes keep working.')],
                 ],
                 'steps' => [
-                    [__('Your egmenu link'), __('rosto.egmenu.app works from the first day.')],
+                    [__('Your egmenu link'), __('egmenu.app/rosto works from the first day.')],
                     [__('Choose a domain'), __('Search for rosto.com and book it.')],
                     [__('Connect'), __('It is checked and secured with https.')],
                     [__('Live'), __('The menu opens on rosto.com.')],

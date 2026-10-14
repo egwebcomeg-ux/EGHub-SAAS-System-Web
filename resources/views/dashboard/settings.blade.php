@@ -121,6 +121,50 @@
         <div><label class="field-label">{{ __('Google review link') }}</label><input class="field" name="google_review_url" value="{{ $s['google_review_url'] }}" dir="ltr"></div>
     </section>
 
+    <section class="card grid gap-4 sm:grid-cols-2" id="seo">
+        <div class="sm:col-span-2">
+            <h2 class="text-lg font-bold">{{ __('Showing up in search') }}</h2>
+            <p class="text-sm text-navy-500">{{ __('Used on your page :url, in the EgMenu restaurant directory and by Google.', ['url' => tenant()->url('about')]) }}</p>
+        </div>
+        <div>
+            <label class="field-label" for="city">{{ __('City') }}</label>
+            <select class="field" id="city" name="city">
+                <option value="">—</option>
+                @foreach (\App\Support\Cities::options() as $slug => $name)
+                    <option value="{{ $slug }}" @selected(old('city', $s['city']) === $slug)>{{ $name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label class="field-label" for="area">{{ __('Area') }}</label>
+            <input class="field" id="area" name="area" value="{{ old('area', $s['area']) }}" maxlength="60" placeholder="{{ __('e.g. Maadi') }}">
+        </div>
+        <div class="sm:col-span-2">
+            <span class="field-label">{{ __('What you serve (up to 6)') }}</span>
+            @php
+                $chosen = old('cuisine', \App\Support\Cuisines::parse($s['cuisine']));
+            @endphp
+            <div class="flex flex-wrap gap-2">
+                @foreach (array_keys(\App\Support\Cuisines::ALL) as $key)
+                    <label class="flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border border-navy-100 px-3 text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+                        <input type="checkbox" name="cuisine[]" value="{{ $key }}" class="accent-brand-600" @checked(in_array($key, $chosen, true))> {{ \App\Support\Cuisines::name($key) }}
+                    </label>
+                @endforeach
+            </div>
+            @error('cuisine')<div class="field-error">{{ $message }}</div>@enderror
+        </div>
+        <div>
+            <label class="field-label" for="short_description">{{ __('Short description (Arabic)') }}</label>
+            <textarea class="field min-h-20 py-2" id="short_description" name="short_description" maxlength="160">{{ old('short_description', $s['short_description']) }}</textarea>
+        </div>
+        <div>
+            <label class="field-label" for="short_description_en">{{ __('Short description (English)') }}</label>
+            <textarea class="field min-h-20 py-2" id="short_description_en" name="short_description_en" maxlength="160" dir="ltr">{{ old('short_description_en', $s['short_description_en']) }}</textarea>
+        </div>
+        <p class="text-xs text-navy-500 sm:col-span-2">{{ __('Up to 160 characters: what makes your place worth a visit. It appears under your name in Google.') }}</p>
+        <label class="flex items-center gap-2 text-sm font-semibold sm:col-span-2"><input type="checkbox" name="listed_in_directory" value="1" @checked($s['listed_in_directory'] === '1') class="size-4 accent-brand-600"> {{ __('Show my place in the EgMenu restaurant directory') }}</label>
+    </section>
+
     @if ($ai)
         <section class="card grid gap-4 sm:grid-cols-2 lg:grid-cols-3" id="ai">
             <div class="sm:col-span-2 lg:col-span-3">

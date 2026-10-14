@@ -5,13 +5,15 @@ use App\Http\Controllers\Menu\FeedbackController;
 use App\Http\Controllers\Menu\LoyaltyCardController;
 use App\Http\Controllers\Menu\MenuController;
 use App\Http\Controllers\Menu\OrderController;
+use App\Http\Controllers\Menu\ProfileController;
 use App\Http\Controllers\Menu\TableCallController;
 use App\Http\Controllers\Menu\TvController;
 use Illuminate\Support\Facades\Route;
 
-// {tenant}.egmenu.app/... (IdentifyTenantBySubdomain), a custom domain (IdentifyTenantByDomain) and the old
-// egmenu.app/{tenant}/... address (IdentifyTenantByPath: GET redirects to the subdomain).
+// egmenu.app/{tenant}/... (IdentifyTenantByPath, canonical), {tenant}.egmenu.app/... (IdentifyTenantBySubdomain,
+// alias) and a custom domain (IdentifyTenantByDomain).
 Route::get('/', [MenuController::class, 'show'])->name('show');
+Route::get('/about', [ProfileController::class, 'show'])->name('about');
 Route::get('/t/{token}', [MenuController::class, 'table'])->where('token', '[a-f0-9]{20}')->name('table');
 
 Route::post('/order', [OrderController::class, 'store'])->middleware('throttle:menu-orders')->name('order');

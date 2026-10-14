@@ -146,6 +146,7 @@
                     <div class="mb-3 font-extrabold text-white">EgMenu</div>
                     <ul class="space-y-2">
                         <li><a href="{{ route('pricing') }}" class="hover:text-white">{{ __('Pricing') }}</a></li>
+                        <li><a href="{{ route('directory') }}" class="hover:text-white">{{ __('Restaurant directory') }}</a></li>
                         <li><a href="{{ platform_url('app', '/login') }}" class="hover:text-white">{{ __('Log in') }}</a></li>
                         @if ($whatsappUrl)<li><a href="{{ $whatsappUrl }}" target="_blank" rel="noopener" class="hover:text-white">{{ __('WhatsApp') }}</a></li>@endif
                         @if ($supportEmail)<li><a href="mailto:{{ $supportEmail }}" class="break-all hover:text-white" dir="ltr">{{ $supportEmail }}</a></li>@endif

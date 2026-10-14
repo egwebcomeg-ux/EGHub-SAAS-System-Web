@@ -7,14 +7,15 @@ call center, loyalty card. Arabic-first (RTL) with English.
 
 | Host | What |
 |---|---|
-| `egmenu.app` | Landing pages. Old menu links `egmenu.app/{slug}/...` answer **301** to `{slug}.egmenu.app/...` (POSTs from a page opened there before the move are still served) |
-| `{slug}.egmenu.app` | A restaurant's public menu — the canonical address used by QR codes, the dashboard, admin and emails (`/t/{token}` = table QR, `/order`, `/o/{token}`, `/card`, `/board`, `/tv/{token}`, ...) |
+| `egmenu.app` | Landing pages, restaurant directory (`/restaurants`), `/sitemap.xml`, `/robots.txt` |
+| `egmenu.app/{slug}` | A restaurant's public menu — the **canonical** address used by QR codes, the dashboard, admin, emails and `<link rel="canonical">` (`/about` = SEO profile, `/t/{token}` = table QR, `/order`, `/o/{token}`, `/card`, `/board`, `/tv/{token}`, ...) |
+| `{slug}.egmenu.app` | Short alias: the same pages, links stay on the alias, canonical tag points at `egmenu.app/{slug}` |
 | `app.egmenu.app` | Restaurant dashboard; the restaurant is the logged-in user's own |
 | `admin.egmenu.app` | EgWeb super admin (restaurants, subscriptions, plans & features, payment settings) |
-| any other host | A restaurant's verified custom domain (same menu routes); inactive/unpaid → redirect to `{slug}.egmenu.app` |
+| any other host | A restaurant's verified custom domain (same menu routes, canonical to itself); inactive/unpaid → redirect to `egmenu.app/{slug}` |
 
 `www`, `app`, `admin` (and every name in `Tenant::RESERVED`) are never restaurants. `Tenant::url()` builds the menu
-address (custom domain if active, else the subdomain). Cookies are per host (`SESSION_DOMAIN` stays empty — never
+address (custom domain if active, else `egmenu.app/{slug}`); `Tenant::subdomainUrl()` the alias. Cookies are per host (`SESSION_DOMAIN` stays empty — never
 `.egmenu.app`, or the dashboard session would be sent to every restaurant's subdomain).
 
 Production needs a wildcard DNS record `*.egmenu.app` and a wildcard subdomain (`*`) in cPanel pointing at `public/`,
@@ -40,7 +41,8 @@ php artisan serve --port=8000
 
 - `app/Models/Concerns/TenantModel.php` — base model; `BelongsToTenant` scopes every query to the current restaurant.
 - `app/Http/Middleware/IdentifyTenantBySubdomain.php` — menus (`IdentifyTenantByDomain` for custom domains,
-  `IdentifyTenantByPath` redirects old `/{slug}` links); `InitializeTenancyFromUser.php` — dashboard.
+  `IdentifyTenantByPath` for `egmenu.app/{slug}`, which keeps generated links on the main domain; every menu page
+  gets `<link rel="canonical">` from `markCanonical()`); `InitializeTenancyFromUser.php` — dashboard.
   All run before route-model binding (`bootstrap/app.php`), so `{id}`s never resolve across restaurants.
 - `app/Services/Entitlements.php` — what a plan allows (`allows()`, `limit()`, `canAdd()`); `feature:` middleware.
 - `app/Models/Plan.php` — catalogue of plan features/limits; values live in `plans` / `plan_features` (super admin edits them).

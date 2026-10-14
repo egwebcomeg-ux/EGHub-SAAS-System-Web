@@ -17,6 +17,10 @@
 </div>
 
 <div class="space-y-4">
+    <section class="card">
+        <h2 class="mb-3 text-lg font-bold">{{ __('Your menu link') }}</h2>
+        @include('dashboard.partials.menu-links')
+    </section>
     @foreach ($branches as $branch)
         <section class="card">
             <div class="mb-3 flex flex-wrap items-center justify-between gap-2">

@@ -6,7 +6,7 @@
             <span class="grid size-12 place-items-center rounded-full bg-[#4a3426] text-sm font-black text-white">R</span>
             <div><b class="block text-xs">rosto.cafe</b><span class="text-[10px] text-navy-500">{{ __('Specialty coffee & homemade desserts') }}</span></div>
         </div>
-        <div class="mt-3 rounded-lg bg-navy-50 px-2 py-1.5 text-[11px] font-bold text-sky-700" dir="ltr">rosto.egmenu.app</div>
+        <div class="mt-3 rounded-lg bg-navy-50 px-2 py-1.5 text-[11px] font-bold text-sky-700" dir="ltr">egmenu.app/rosto</div>
         <div class="mt-3 grid grid-cols-3 gap-1">@for ($i = 0; $i < 9; $i++)<span class="aspect-square rounded bg-[#ead9c6]"></span>@endfor</div>
         <span data-show="1" class="sc-tap" style="top: 98px; inset-inline-start: 70px"></span>
     </div>

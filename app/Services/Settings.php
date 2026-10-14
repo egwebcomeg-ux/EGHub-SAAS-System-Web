@@ -35,6 +35,13 @@ final class Settings
         'facebook' => '',
         'tiktok' => '',
         'google_review_url' => '',
+        // showing up in search: profile page egmenu.app/{slug}/about and the directory egmenu.app/restaurants
+        'city' => '',                       // App\Support\Cities slug
+        'area' => '',                       // free text, e.g. المعادي
+        'cuisine' => '',                    // App\Support\Cuisines keys, comma-separated
+        'short_description' => '',
+        'short_description_en' => '',
+        'listed_in_directory' => '1',
         // ordering
         'ordering_enabled' => '1',
         'whatsapp_ordering' => '0',

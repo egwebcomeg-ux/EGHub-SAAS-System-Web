@@ -11,7 +11,7 @@ use Stancl\Tenancy\Database\Concerns\HasDomains;
 use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
 
 /**
- * A restaurant or cafe. Its id is the slug of its public menu: {slug}.egmenu.app.
+ * A restaurant or cafe. Its id is the slug of its public menu: egmenu.app/{slug} (canonical), {slug}.egmenu.app (alias).
  * Data is never hard-deleted by the app: soft delete keeps everything restorable, suspension only takes the menu offline.
  */
 class Tenant extends BaseTenant
@@ -19,8 +19,8 @@ class Tenant extends BaseTenant
     use HasDomains, SoftDeletes;
 
     /**
-     * Never usable as a slug (the slug is the menu's subdomain): platform hosts (www, app, admin), first path
-     * segments the main domain uses (old /{slug} links still redirect from there), and names kept for future hosts.
+     * Never usable as a slug (the slug is the first path segment of the menu on the main domain and its subdomain):
+     * platform hosts (www, app, admin), paths the main domain uses (directory, sitemap, ...) and names kept for later.
      */
     public const RESERVED = [
         'www', 'admin', 'app', 'api', 'mail', 'email', 'ftp', 'smtp', 'cpanel', 'webmail', 'ns1', 'ns2', 'mx',
@@ -29,6 +29,7 @@ class Tenant extends BaseTenant
         'test', 'beta', 'dashboard', 'login', 'logout', 'register', 'signup', 'account', 'tenants', 'egmenu', 'egweb',
         'root', 'administrator', 'system', 'internal', 'terms', 'privacy', 'about', 'contact', 'features', 'en', 'ar',
         'up', 'health', 'sitemap', 'robots', 'favicon', 'manifest', 'webhooks', 'lang', 'menu', 'card', 'qr', 'localhost',
+        'restaurants', 'restaurant', 'cafes', 'directory', 'search', 'explore', 'cities', 'cuisines', 'feed', 'rss', 'llms',
     ];
 
     protected $keyType = 'string';
@@ -109,7 +110,10 @@ class Tenant extends BaseTenant
         return $domain && Entitlements::for($this)->allows('custom_domain') ? $domain : null;
     }
 
-    /** Public menu URL: the active custom domain when there is one, else {slug}.egmenu.app. */
+    /**
+     * Canonical public URL (QR codes, links, <link rel="canonical">): the active custom domain when there is one,
+     * else the path on the main domain, egmenu.app/{slug}. url('card') → egmenu.app/{slug}/card.
+     */
     public function url(string $path = ''): string
     {
         $custom = $this->customDomain();
@@ -118,6 +122,20 @@ class Tenant extends BaseTenant
             return scheme().'://'.$custom->domain.port_suffix().'/'.$path;
         }
 
-        return platform_url($this->id, $path);
+        return self::pathUrl($this->id, $path);
+    }
+
+    /** The menu on the main domain: pathUrl('rosto', 't/abc') → https://egmenu.app/rosto/t/abc (no trailing slash). */
+    public static function pathUrl(string $slug, string $path = ''): string
+    {
+        $path = ltrim($path, '/');
+
+        return platform_url(null, $slug.($path === '' || str_starts_with($path, '?') ? $path : '/'.$path));
+    }
+
+    /** The short alias {slug}.egmenu.app (same pages, canonical to url()). */
+    public function subdomainUrl(string $path = ''): string
+    {
+        return platform_url($this->id, ltrim($path, '/'));
     }
 }

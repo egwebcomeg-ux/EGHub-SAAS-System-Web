@@ -1,5 +1,5 @@
 @extends('layouts.base', ['viteEntries' => ['resources/js/menu.js']])
-@section('title', tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name)
+@section('title', $profile->title())
 @section('body_class', 'text-navy-900')
 
 @php
@@ -13,6 +13,7 @@
 @endphp
 
 @push('head')
+@include('menu.partials.seo-head', ['profile' => $profile, 'schemas' => $schemas])
 <meta name="theme-color" content="{{ $color('color_secondary', '#1E2D4F') }}">
 @if ($settings['font'] !== 'Cairo')
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -40,6 +41,7 @@
         <div class="min-w-0 flex-1">
             <h1 class="truncate text-xl font-black">{{ $brand }}</h1>
             @if ($t = tr($settings['tagline'], $settings['tagline_en']))<p class="truncate text-sm text-white/75">{{ $t }}</p>@endif
+            <a href="{{ route('menu.about') }}" class="text-xs font-semibold text-white/80 underline underline-offset-2" data-about-link>{{ __('About the place') }}</a>
         </div>
         @if ($settings['english_enabled'] === '1')
             <a href="?lang={{ app()->getLocale() === 'ar' ? 'en' : 'ar' }}" class="shrink-0 rounded-full border border-white/30 px-3 py-1.5 text-sm font-semibold">{{ app()->getLocale() === 'ar' ? 'EN' : 'ع' }}</a>

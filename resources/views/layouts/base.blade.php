@@ -6,6 +6,12 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'EgMenu')</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    @if (request()->attributes->get('canonical'))
+        <link rel="canonical" href="{{ request()->attributes->get('canonical') }}">
+    @endif
+    @if (request()->attributes->get('noindex'))
+        <meta name="robots" content="noindex">
+    @endif
     @fonts
     @vite(array_merge(['resources/css/app.css', 'resources/js/app.js'], $viteEntries ?? []))
     @stack('head')
