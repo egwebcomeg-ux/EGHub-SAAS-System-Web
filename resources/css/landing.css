@@ -1,0 +1,81 @@
+/*
+ * Marketing site only (loaded by layouts/landing). Plain CSS on top of the Tailwind build in app.css:
+ * header compaction, scroll reveal, the cafe/restaurant switch, and the small animations of the mock screens.
+ * Everything that moves stops under prefers-reduced-motion.
+ */
+html { scroll-behavior: smooth; }
+section[id] { scroll-margin-top: 76px; }
+
+/* header compacts once the page scrolls */
+.lp-header-row { min-height: 68px; transition: min-height .25s ease; }
+.lp-header-logo { transition: font-size .25s ease; }
+.lp-header.is-compact { border-color: #e1e7f1; box-shadow: 0 6px 24px -14px rgba(20, 31, 56, .25); }
+.lp-header.is-compact .lp-header-row { min-height: 56px; }
+.lp-header.is-compact .lp-header-logo { font-size: 29px !important; }
+.lp-header.is-compact .lp-header-logo svg { width: 29px; height: 29px; }
+[data-nav].is-active { color: #1e2d4f; background: #f2f5fa; }
+
+/* scroll reveal: only hidden when JS is running, so the page is complete without it */
+.js [data-reveal] { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s cubic-bezier(.2, .7, .2, 1); transition-delay: var(--d, 0ms); }
+.js [data-reveal].is-in { opacity: 1; transform: none; }
+
+/* cafe / restaurant: the switch on #lp decides which blocks show */
+[data-aud="cafe"] .only-restaurant, [data-aud="restaurant"] .only-cafe { display: none !important; }
+.aud-panel { animation: lp-fade .45s ease both; }
+@keyframes lp-fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+[data-aud-set][aria-pressed="true"], [data-aud-set][aria-selected="true"] { background: #1e2d4f; color: #fff; box-shadow: 0 6px 18px -8px rgba(20, 31, 56, .6); }
+[data-plan-code].is-recommended { box-shadow: 0 0 0 2px #1e2d4f, 0 18px 40px -24px rgba(20, 31, 56, .55); }
+[data-plan-code] .rec-flag { display: none; }
+[data-plan-code].is-recommended .rec-flag { display: inline-flex; }
+
+/* hero background: soft dots */
+.lp-dots { background-image: radial-gradient(rgba(30, 45, 79, .12) 1px, transparent 1px); background-size: 22px 22px; -webkit-mask-image: linear-gradient(to bottom, #000 30%, transparent 90%); mask-image: linear-gradient(to bottom, #000 30%, transparent 90%); }
+
+/* phone mock-up */
+.lp-phone { width: 282px; }
+.lp-phone [data-item] { transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease; }
+.lp-phone [data-item].is-hit { transform: scale(1.03); border-color: #f07a2a; box-shadow: 0 10px 24px -14px rgba(232, 100, 44, .9); }
+.lp-phone [data-item].is-hit .lp-plus { transform: scale(1.25); background: #c04a1a; }
+.lp-plus { transition: transform .2s ease, background .2s ease; }
+.lp-cart { transform: translateY(130%); transition: transform .45s cubic-bezier(.2, .8, .2, 1); }
+.lp-cart.is-up { transform: none; }
+.lp-badge-pop { animation: lp-pop .35s ease; }
+@keyframes lp-pop { 50% { transform: scale(1.45); } }
+.lp-toast { opacity: 0; transform: translateY(-8px) scale(.96); transition: opacity .35s ease, transform .35s ease; }
+.lp-toast.is-on { opacity: 1; transform: none; }
+.lp-float { animation: lp-bob 5s ease-in-out infinite; }
+.lp-float-2 { animation-delay: -2.5s; }
+@keyframes lp-bob { 50% { transform: translateY(-8px); } }
+.lp-ring { animation: lp-ring 1.2s ease 2; transform-origin: 50% 10%; }
+@keyframes lp-ring { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(14deg); } 40% { transform: rotate(-12deg); } 60% { transform: rotate(8deg); } 80% { transform: rotate(-4deg); } }
+
+/* live order board */
+.lp-order { animation: lp-in .5s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes lp-in { from { opacity: 0; transform: translateY(-10px) scale(.97); } to { opacity: 1; transform: none; } }
+.lp-pulse { position: relative; }
+.lp-pulse::after { content: ''; position: absolute; inset: -4px; border-radius: inherit; border: 2px solid #f07a2a; animation: lp-wave 1.6s ease-out infinite; }
+@keyframes lp-wave { from { opacity: .9; transform: scale(.9); } to { opacity: 0; transform: scale(1.35); } }
+
+/* printed menu paper */
+.lp-paper { --accent: #e8642c; transition: width .4s ease, padding .4s ease, font-size .4s ease; }
+.lp-paper .acc { color: var(--accent); }
+.lp-paper .acc-bg { background: var(--accent); }
+.lp-paper .acc-border { border-color: var(--accent); }
+.lp-paper .lead { flex: 1; border-bottom: 1.5px dotted #c5cfe0; margin: 0 6px .45em; }
+.lp-flash { animation: lp-flash 1.1s ease; }
+@keyframes lp-flash { 0% { background: rgba(240, 122, 42, .35); } 100% { background: transparent; } }
+
+/* FAQ */
+.lp-faq summary::-webkit-details-marker { display: none; }
+.lp-faq[open] .lp-faq-icon { transform: rotate(45deg); background: #e8642c; color: #fff; }
+.lp-faq-icon { transition: transform .25s ease, background .25s ease; }
+
+/* pricing table: first column stays put while the plans scroll on small screens */
+.lp-compare th:first-child, .lp-compare td:first-child { position: sticky; inset-inline-start: 0; z-index: 1; background: #fff; }
+.lp-compare tr.grp td:first-child { background: #f2f5fa; }
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    .js [data-reveal] { opacity: 1; transform: none; }
+}

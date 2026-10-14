@@ -1,13 +1,14 @@
 @extends('layouts.base')
 @section('title', __('Start your free trial') . ' · EgMenu')
-@section('body_class', 'bg-navy-50 text-navy-900')
+@section('body_class', 'bg-gradient-to-b from-brand-50 via-white to-navy-50 text-navy-900')
 
 @section('body')
 <div class="mx-auto max-w-xl px-4 py-10">
-    <a href="{{ route('landing') }}" class="mb-6 flex justify-center"><x-logo :size="40" /></a>
-    <div class="card">
-        <h1 class="text-2xl font-extrabold">{{ __('Start your free trial') }}</h1>
-        <p class="mb-5 text-sm text-navy-500">{{ __(':days days of the Pro plan, no card needed.', ['days' => \App\Services\TenantProvisioner::TRIAL_DAYS]) }}</p>
+    <a href="{{ route('landing') }}" class="mb-8 flex justify-center" aria-label="EgMenu"><x-logo :size="44" /></a>
+    <div class="card rounded-3xl p-6 shadow-xl shadow-navy-900/5 sm:p-8">
+        <span class="badge bg-brand-50 text-brand-700">{{ __(':days days free', ['days' => \App\Services\TenantProvisioner::TRIAL_DAYS]) }}</span>
+        <h1 class="mt-2 text-2xl font-extrabold sm:text-3xl">{{ __('Start your free trial') }}</h1>
+        <p class="mb-6 text-sm text-navy-500">{{ __(':days days of the Pro plan, no card needed.', ['days' => \App\Services\TenantProvisioner::TRIAL_DAYS]) }}</p>
         <x-flash />
         <form method="post" action="{{ route('register') }}" class="grid gap-4 sm:grid-cols-2" data-signup>
             @csrf
@@ -55,9 +56,14 @@
                 </div>
             </fieldset>
             <label class="flex items-start gap-2 text-sm sm:col-span-2"><input type="checkbox" name="terms" value="1" required class="mt-1 size-4 accent-brand-600"> {{ __('I agree to the EgMenu terms of service.') }}</label>
-            <button class="btn-primary sm:col-span-2">{{ __('Create my menu') }}</button>
+            <button class="btn-primary min-h-12 text-base shadow-lg shadow-brand-600/25 sm:col-span-2">{{ __('Create my menu') }}</button>
         </form>
     </div>
+    <ul class="mt-5 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-navy-600">
+        @foreach ([__('No card'), __('No commission'), __('Pay by InstaPay or Vodafone Cash')] as $point)
+            <li class="flex items-center gap-1.5"><x-landing.icon name="check" class="size-4 text-emerald-600" />{{ $point }}</li>
+        @endforeach
+    </ul>
     <p class="mt-4 text-center text-sm text-navy-500">{{ __('Already have an account?') }} <a class="font-semibold text-brand-700" href="{{ platform_url('app', '/login') }}">{{ __('Sign in') }}</a></p>
 </div>
 

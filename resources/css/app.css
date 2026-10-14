@@ -31,6 +31,25 @@
     --radius-card: 1rem;
 }
 
+/*
+ * Logo wordmark font. Drop Diamonds-Regular.woff2 (and .ttf) into public/fonts/; until then the wordmark falls back
+ * to Cairo. Only the regular weight exists, so the wordmark asks for 600 with synthesis off: Diamonds renders as
+ * drawn and the Cairo fallback still looks solid.
+ */
+@font-face {
+    font-family: 'Diamonds';
+    src: url('/fonts/Diamonds-Regular.woff2') format('woff2'), url('/fonts/Diamonds-Regular.ttf') format('truetype');
+    font-display: swap;
+}
+
+.logo-wordmark {
+    font-family: 'Diamonds', 'Cairo', sans-serif;
+    font-weight: 600;
+    font-synthesis: none;
+    letter-spacing: -0.035em;
+    line-height: 1;
+}
+
 /* Arabic needs a taller line than Latin; numbers line up in tables and prices. */
 @layer base {
     html { -webkit-text-size-adjust: 100%; }

@@ -2,9 +2,7 @@
 @section('title', __('Terms of service') . ' · EgMenu')
 
 @section('page')
-<article class="mx-auto max-w-3xl px-4 py-14 leading-relaxed [&_h2]:mt-8 [&_h2]:mb-2 [&_h2]:text-xl [&_h2]:font-extrabold [&_li]:ms-5 [&_li]:list-disc [&_p]:mb-3 [&_p]:text-navy-700 [&_li]:text-navy-700">
-    <h1 class="text-3xl font-extrabold">{{ __('Terms of service') }}</h1>
-    <p class="text-sm text-navy-500">{{ __('Last updated: :date', ['date' => '2026/10/13']) }}</p>
+<x-landing.legal :title="__('Terms of service')" :updated="__('Last updated: :date', ['date' => '2026/10/13'])" current="terms">
 
     @if (app()->getLocale() === 'en')
         <p>EgMenu is a service of EgWeb (“we”). By creating an account you (“the restaurant”) accept these terms.</p>
@@ -43,5 +41,5 @@
         <h2>٨. القانون</h2>
         <p>الشروط دي خاضعة لقوانين جمهورية مصر العربية.</p>
     @endif
-</article>
+</x-landing.legal>
 @endsection

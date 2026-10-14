@@ -6,7 +6,7 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js', 'resources/js/menu.js', 'resources/js/board.js', 'resources/js/menu-editor.js', 'resources/js/pos.js', 'resources/js/kitchen.js', 'resources/js/zones-map.js'],
+            input: ['resources/css/app.css', 'resources/js/app.js', 'resources/js/menu.js', 'resources/js/board.js', 'resources/js/menu-editor.js', 'resources/js/pos.js', 'resources/js/kitchen.js', 'resources/js/zones-map.js', 'resources/css/landing.css', 'resources/js/landing.js'],
             refresh: true,
             fonts: [
                 // Arabic + Latin glyphs: without the arabic subset, Arabic text silently fell back to the OS font.

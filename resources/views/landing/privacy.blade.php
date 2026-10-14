@@ -2,9 +2,7 @@
 @section('title', __('Privacy policy') . ' · EgMenu')
 
 @section('page')
-<article class="mx-auto max-w-3xl px-4 py-14 leading-relaxed [&_h2]:mt-8 [&_h2]:mb-2 [&_h2]:text-xl [&_h2]:font-extrabold [&_li]:ms-5 [&_li]:list-disc [&_p]:mb-3 [&_p]:text-navy-700 [&_li]:text-navy-700">
-    <h1 class="text-3xl font-extrabold">{{ __('Privacy policy') }}</h1>
-    <p class="text-sm text-navy-500">{{ __('Last updated: :date', ['date' => '2026/10/13']) }}</p>
+<x-landing.legal :title="__('Privacy policy')" :updated="__('Last updated: :date', ['date' => '2026/10/13'])" current="privacy">
 
     @if (app()->getLocale() === 'en')
         <p>This policy explains what data EgMenu (by EgWeb) keeps and why.</p>
@@ -35,5 +33,5 @@
         <h2>حقوقك</h2>
         <p>طبقاً لقانون حماية البيانات الشخصية المصري (رقم ١٥١ لسنة ٢٠٢٠)، تقدر تطلب تشوف بياناتك الشخصية أو تصححها أو تمسحها. عملاء المطاعم يتواصلوا مع المطعم الأول لأنه المسؤول عن بياناتهم، وتقدروا تتواصلوا معانا كمان.</p>
     @endif
-</article>
+</x-landing.legal>
 @endsection
