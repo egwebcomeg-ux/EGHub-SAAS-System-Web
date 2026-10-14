@@ -1273,5 +1273,9 @@
     "Breadcrumb": "مسار الصفحة",
     "On this page": "في الصفحة دي",
     "No card": "من غير كارت",
-    "Your menu at yourname.egmenu.app from day one, or on your own domain like mycafe.com.": "المنيو بتاعك على اسمك.egmenu.app من أول يوم، أو على دومين خاص بيك زي mycafe.com."
+    "Your menu at yourname.egmenu.app from day one, or on your own domain like mycafe.com.": "المنيو بتاعك على اسمك.egmenu.app من أول يوم، أو على دومين خاص بيك زي mycafe.com.",
+    "Your EgMenu trial has ended": "التجربة المجانية في EgMenu خلصت",
+    "The free trial of :restaurant is over, so it is now on the free plan.": "التجربة المجانية لـ :restaurant خلصت، فهو دلوقتي على الباقة المجانية.",
+    "The :plan subscription of :restaurant was not renewed, so it is now on the free plan.": "اشتراك :plan بتاع :restaurant ماتجددش، فهو دلوقتي على الباقة المجانية.",
+    "Your menu and QR codes keep working. Table and online ordering, the loyalty card and the other paid features are paused until you choose a plan; everything you set up is kept.": "المنيو وأكواد QR شغالين زي ما هما. الطلب من الترابيزة والأونلاين وكارت الولاء وباقي المميزات المدفوعة متوقفة لحد ما تختار باقة، وكل اللي جهزته محفوظ."
 }

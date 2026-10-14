@@ -11,6 +11,7 @@ use App\Models\PlatformSetting;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Entitlements;
 use Illuminate\Support\Facades\URL;
 use Tests\TenantTestCase;
 
@@ -99,28 +100,45 @@ class BillingTest extends TenantTestCase
         $this->assertLessThan(799, $quote['total']);
     }
 
-    public function test_lifecycle_trial_end_grace_then_suspension_and_payment_restores(): void
+    public function test_lifecycle_trial_end_moves_to_free_and_payment_restores(): void
     {
         $a = $this->restaurant('cafe-a', 'pro', trial: true);
         $this->item($a, 'Tea');
         $lifecycle = app(Lifecycle::class);
 
         $this->travel(15)->days();
-        $this->assertSame(1, $lifecycle->run()['past_due']);
-        $this->assertSame('past_due', $a->subscription()->first()->status);
-        $this->get($this->subUrl('cafe-a'))->assertOk(); // still online during grace
-
-        $this->travel(6)->days();
-        $this->assertSame(1, $lifecycle->run()['suspended']);
-        $this->assertTrue($a->fresh()->isSuspended());
-        $this->get($this->subUrl('cafe-a'))->assertStatus(503);
-        $this->actingAs($this->owner($a))->get($this->dashUrl('/billing'))->assertOk(); // can still pay
+        $this->assertSame(1, $lifecycle->run()['downgraded']);
+        $sub = $a->subscription()->with('plan')->first();
+        $this->assertSame(['free', 'active'], [$sub->plan->code, $sub->status]);
+        $this->assertNull($sub->endsAt());
+        $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('Tea'); // the menu never goes offline
+        $this->assertFalse(Entitlements::for($a->fresh())->allows('qr_ordering'));
+        $this->assertSame(0, $lifecycle->run()['downgraded']); // nothing fires again for the free plan
 
         $billing = app(Billing::class);
         $invoice = $billing->invoiceForPlan($a->fresh(), $this->plan('pro'), 1);
         $billing->markPaid($invoice, 'manual', null, $invoice->total, 'restore');
+        $this->assertSame('pro', $a->subscription()->with('plan')->first()->plan->code);
+        $this->assertTrue(Entitlements::for($a->fresh())->allows('qr_ordering'));
+    }
+
+    public function test_lifecycle_paid_period_end_grace_then_free(): void
+    {
+        $a = $this->restaurant('cafe-a', 'basic');
+        $this->item($a, 'Tea');
+        $lifecycle = app(Lifecycle::class);
+
+        $this->travel(32)->days();
+        $this->assertSame(1, $lifecycle->run()['past_due']);
+        $this->assertSame('past_due', $a->subscription()->first()->status);
+        $this->assertTrue(Entitlements::for($a->fresh())->allows('qr_ordering')); // grace: everything still works
+
+        $this->travel(6)->days();
+        $this->assertSame(1, $lifecycle->run()['downgraded']);
+        $this->assertSame('free', $a->subscription()->with('plan')->first()->plan->code);
         $this->assertFalse($a->fresh()->isSuspended());
         $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('Tea');
+        $this->actingAs($this->owner($a))->get($this->dashUrl('/billing'))->assertOk();
     }
 
     public function test_reminder_and_banner_before_the_end(): void

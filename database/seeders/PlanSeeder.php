@@ -25,6 +25,13 @@ class PlanSeeder extends Seeder
         $business = array_values(array_diff(array_keys(Plan::FEATURES), Plan::addonFeatures()));
 
         $plans = [
+            // Free = the menu online with the egmenu badge, no ordering; what a restaurant lands on when a trial or
+            // a subscription ends unpaid (App\Billing\Lifecycle), so nothing ever goes offline.
+            ['code' => 'free', 'name' => 'مجاني', 'name_en' => 'Free', 'monthly_price' => 0, 'sort_order' => -1,
+                'tagline' => 'منيو QR أونلاين لمحلك من غير أي تكلفة، لحد ما تحتاج أكتر',
+                'tagline_en' => 'Your QR menu online at no cost, until you need more',
+                'features' => ['excel_import'],
+                'limits' => ['branches' => 1, 'menu_items' => 30, 'staff' => 1, 'tables' => 5, 'ai_imports_per_month' => 0]],
             ['code' => 'starter', 'name' => 'مبتدئ', 'name_en' => 'Starter', 'monthly_price' => 99, 'sort_order' => 0,
                 'tagline' => 'منيو QR بشكل محترم لكافيه صغير: العميل يشوف المنيو والأسعار',
                 'tagline_en' => 'A good-looking QR menu for a small cafe: guests browse the menu and prices',

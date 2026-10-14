@@ -6,9 +6,9 @@ use App\Billing\Billing;
 use App\Billing\Lifecycle;
 use App\Models\Plan;
 use App\Models\PlatformAdmin;
+use App\Notifications\MovedToFreePlan;
 use App\Notifications\PaymentClaimed;
 use App\Notifications\PaymentConfirmed;
-use App\Notifications\RestaurantSuspended;
 use App\Notifications\SubscriptionEndingSoon;
 use App\Notifications\SubscriptionPastDue;
 use Illuminate\Support\Facades\Notification;
@@ -30,15 +30,23 @@ class NotificationsTest extends TenantTestCase
         Notification::assertSentTo($owner, SubscriptionEndingSoon::class);
         Notification::assertNotSentTo($cashier, SubscriptionEndingSoon::class);
 
+        // trial over: straight to the free plan, no past-due step
         $this->travel(3)->days();
         $lifecycle->run();
-        Notification::assertSentTo($owner, SubscriptionPastDue::class);
+        Notification::assertSentTo($owner, MovedToFreePlan::class, fn (MovedToFreePlan $n) => $n->tenant->id === 'cafe-a' && $n->reason === 'trial');
+        Notification::assertNotSentTo($owner, SubscriptionPastDue::class);
+        // each restaurant's emails go to its own owners only
+        Notification::assertSentTo($otherOwner, MovedToFreePlan::class, fn (MovedToFreePlan $n) => $n->tenant->id === 'cafe-b');
 
+        // a paid plan: past due with grace, then the free plan
+        $paid = $this->restaurant('cafe-paid', 'basic');
+        $paidOwner = $this->owner($paid);
+        $this->travel(32)->days();
+        $lifecycle->run();
+        Notification::assertSentTo($paidOwner, SubscriptionPastDue::class);
         $this->travel(6)->days();
         $lifecycle->run();
-        Notification::assertSentTo($owner, RestaurantSuspended::class, fn (RestaurantSuspended $n) => $n->tenant->id === 'cafe-a');
-        // each restaurant's emails go to its own owners only
-        Notification::assertSentTo($otherOwner, RestaurantSuspended::class, fn (RestaurantSuspended $n) => $n->tenant->id === 'cafe-b');
+        Notification::assertSentTo($paidOwner, MovedToFreePlan::class, fn (MovedToFreePlan $n) => $n->reason === 'subscription');
     }
 
     public function test_payment_claim_alerts_admins_and_confirmation_sends_a_receipt(): void

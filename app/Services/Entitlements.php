@@ -19,7 +19,7 @@ use App\Models\User;
 final class Entitlements
 {
     /** Plan used when a restaurant has no subscription row (should not happen after provisioning). */
-    public const FALLBACK_PLAN = 'starter';
+    public const FALLBACK_PLAN = 'free';
 
     /** @var array<string,self> per-request memo */
     private static array $memo = [];

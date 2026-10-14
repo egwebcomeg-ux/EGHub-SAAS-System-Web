@@ -16,7 +16,7 @@ class PlansAndEntitlementsTest extends TenantTestCase
 {
     public function test_seeded_plans_prices_and_feature_split(): void
     {
-        $this->assertSame([99.0, 199.0, 399.0, 799.0], Plan::query()->orderBy('sort_order')->pluck('monthly_price')->all());
+        $this->assertSame([0.0, 99.0, 199.0, 399.0, 799.0], Plan::query()->orderBy('sort_order')->pluck('monthly_price')->all());
 
         // starter: the menu to browse, no ordering
         $starter = Entitlements::for($this->restaurant('cafe-starter', 'starter'));
