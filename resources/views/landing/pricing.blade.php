@@ -1,15 +1,27 @@
 @extends('layouts.landing')
 @section('title', __('Pricing') . ' · EgMenu')
-@section('description', __('EgMenu prices in Egyptian pounds: a free plan for your QR menu, paid plans for ordering and loyalty, and add-ons for POS, kitchen, call center and inventory.'))
+@section('description', __('EgMenu prices in Egyptian pounds: a free plan for your QR menu, paid plans for ordering and loyalty, add-ons for POS, kiosk, kitchen, call center and inventory, and WhatsApp credits paid once.'))
 
 @php
     $groups = collect(\App\Models\Plan::GROUPS)->except('operations');
     $planByCode = $plans->keyBy('code');
     $extraBranchOff = (int) round((1 - \App\Models\AddonPrice::EXTRA_BRANCH_SHARE) * 100);
-    $featurePacks = $addons->where('type', 'feature')->values();
     $limitPacks = $addons->where('type', 'limit')->values();
-    $moduleFor = collect(\App\Support\SiteModules::all())->filter(fn ($m) => $m['addons'] !== [])
-        ->flatMap(fn ($m) => array_fill_keys($m['addons'], $m['slug']))->all();
+    // add-ons in three groups: packs that unlock an operations feature, the other feature packs, one-off credits
+    $opsFeatures = \App\Models\Plan::addonFeatures();
+    $isOps = fn ($a) => array_intersect($a->features ?? [], $opsFeatures) !== [];
+    $addonGroups = [
+        'operations' => [__('Operations'), __('The cashier, the kiosk, kitchen screens, the call center and stock. Priced per branch.'), $addons->filter(fn ($a) => $a->isFeaturePack() && $isOps($a))->values()],
+        'growth' => [__('Growth'), __('More orders, more returning guests and better numbers, on top of your plan.'), $addons->filter(fn ($a) => $a->isFeaturePack() && !$isOps($a))->values()],
+        'credits' => [__('Credits'), __('WhatsApp messages for order updates and campaigns. One message is one credit.'), $addons->filter(fn ($a) => $a->isCreditPack())->values()],
+    ];
+    // the first module page that sells each add-on
+    $moduleFor = [];
+    foreach (\App\Support\SiteModules::all() as $m) {
+        foreach ($m['addons'] as $key) {
+            $moduleFor[$key] ??= $m['slug'];
+        }
+    }
 @endphp
 
 @section('page')
@@ -91,39 +103,57 @@
         <div class="mx-auto max-w-7xl px-4 sm:px-6">
             <h2 class="lp-h2">{{ __('Add-ons') }}</h2>
             <p class="mt-2 max-w-2xl text-navy-600">{{ __('Start with the menu. When you grow, add only what you need, on top of your plan.') }}</p>
-            <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                @foreach ($featurePacks as $addon)
-                    @php
-                        $bundle = $addon->key === 'ops_bundle';
-                        $minPlan = $addon->min_plan ? $planByCode->get($addon->min_plan) : null;
-                        $slug = $moduleFor[$addon->key] ?? null;
-                    @endphp
-                    <div @class(['flex flex-col rounded-2xl border p-5', 'border-navy-900 bg-navy-900 text-white lg:col-span-1' => $bundle, 'border-navy-200 bg-white' => !$bundle])>
-                        <div class="flex items-start justify-between gap-3">
-                            <h3 class="text-lg font-extrabold">{{ $addon->displayName() }}</h3>
-                            @if ($bundle)<span class="badge shrink-0 bg-brand-600 text-white">{{ __('Best value') }}</span>@endif
-                        </div>
-                        <p @class(['mt-1 flex-1 text-sm', 'text-white/70' => $bundle, 'text-navy-500' => !$bundle])>{{ tr($addon->description, $addon->description_en) }}</p>
-                        <p class="mt-4"><b class="text-2xl font-black"><bdi dir="ltr">+{{ money($addon->monthly_price) }}</bdi></b> <span @class(['text-sm', 'text-white/70' => $bundle, 'text-navy-500' => !$bundle])>{{ __('EGP / month') }}</span></p>
-                        <div class="mt-3 flex flex-wrap gap-1.5 text-xs font-bold">
-                            @if ($addon->per_branch)<span @class(['rounded-full px-2.5 py-1', 'bg-white/10' => $bundle, 'bg-navy-50 text-navy-700' => !$bundle])>{{ __('Per branch, :pct% off each extra branch', ['pct' => $extraBranchOff]) }}</span>@endif
-                            @if ($minPlan)<span @class(['rounded-full px-2.5 py-1', 'bg-white/10' => $bundle, 'bg-brand-50 text-brand-700' => !$bundle])>{{ __('With :plan or higher', ['plan' => $minPlan->displayName()]) }}</span>@endif
-                        </div>
-                        @if ($slug && !$bundle)
-                            <a href="{{ route('features.show', $slug) }}" class="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-brand-700 hover:text-brand-600">{{ __('How it works') }} <span aria-hidden="true" class="ms-1 inline-block rtl:rotate-180">→</span></a>
-                        @endif
+            @foreach ($addonGroups as $groupKey => [$groupLabel, $groupLead, $packs])
+                @continue($packs->isEmpty() && !($groupKey === 'operations' && $limitPacks->isNotEmpty()))
+                <div id="addons-{{ $groupKey }}" class="mt-10 border-t border-navy-200 pt-6">
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
+                        <h3 class="flex items-center gap-2 text-xl font-black">
+                            {{ $groupLabel }}
+                            @if ($groupKey === 'credits')<span class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-sm font-bold text-emerald-800">{{ __('Paid once') }}</span>@endif
+                        </h3>
+                        <p class="text-sm text-navy-500">{{ $groupLead }}</p>
                     </div>
-                @endforeach
-            </div>
-            @if ($limitPacks->isNotEmpty())
-                <div class="mt-6 flex flex-wrap gap-3">
-                    @foreach ($limitPacks as $addon)
-                        <div class="flex min-h-12 items-center gap-3 rounded-xl border border-navy-200 bg-white px-4 text-sm">
-                            <b>{{ $addon->displayName() }}</b><span class="text-navy-500"><bdi dir="ltr">+{{ money($addon->monthly_price) }}</bdi> {{ __('EGP / month') }}</span>
+                    <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        @foreach ($packs as $addon)
+                            @php
+                                $bundle = $addon->key === 'ops_bundle';
+                                $credits = $addon->isCreditPack();
+                                $minPlan = $addon->min_plan ? $planByCode->get($addon->min_plan) : null;
+                                $slug = $moduleFor[$addon->key] ?? null;
+                            @endphp
+                            <div @class(['flex flex-col rounded-2xl border p-5', 'border-navy-900 bg-navy-900 text-white' => $bundle, 'border-navy-200 bg-white' => !$bundle])>
+                                <div class="flex items-start justify-between gap-3">
+                                    <h4 class="text-lg font-extrabold">{{ $addon->displayName() }}</h4>
+                                    @if ($bundle)<span class="badge shrink-0 bg-brand-600 text-white">{{ __('Best value') }}</span>@endif
+                                </div>
+                                <p @class(['mt-1 flex-1 text-sm', 'text-white/70' => $bundle, 'text-navy-500' => !$bundle])>{{ tr($addon->description, $addon->description_en) }}</p>
+                                @if ($credits)
+                                    <p class="mt-4"><b class="text-2xl font-black"><bdi dir="ltr">{{ money($addon->monthly_price) }}</bdi></b> <span class="text-sm text-navy-500">{{ __('EGP') }} · {{ __('Paid once') }}</span></p>
+                                @else
+                                    <p class="mt-4"><b class="text-2xl font-black"><bdi dir="ltr">+{{ money($addon->monthly_price) }}</bdi></b> <span @class(['text-sm', 'text-white/70' => $bundle, 'text-navy-500' => !$bundle])>{{ __('EGP / month') }}</span></p>
+                                @endif
+                                <div class="mt-3 flex flex-wrap gap-1.5 text-xs font-bold">
+                                    @if ($addon->per_branch)<span @class(['rounded-full px-2.5 py-1', 'bg-white/10' => $bundle, 'bg-navy-50 text-navy-700' => !$bundle])>{{ __('Per branch, :pct% off each extra branch', ['pct' => $extraBranchOff]) }}</span>@endif
+                                    @if ($minPlan)<span @class(['rounded-full px-2.5 py-1', 'bg-white/10' => $bundle, 'bg-brand-50 text-brand-700' => !$bundle])>{{ __('With :plan or higher', ['plan' => $minPlan->displayName()]) }}</span>@endif
+                                    @if ($credits)<span class="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-800">{{ __('Never expires') }}</span>@endif
+                                </div>
+                                @if ($slug && !$bundle)
+                                    <a href="{{ route('features.show', $slug) }}" class="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-brand-700 hover:text-brand-600">{{ __('How it works') }} <span aria-hidden="true" class="ms-1 inline-block rtl:rotate-180">→</span></a>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                    @if ($groupKey === 'operations' && $limitPacks->isNotEmpty())
+                        <div class="mt-4 flex flex-wrap gap-3">
+                            @foreach ($limitPacks as $addon)
+                                <div class="flex min-h-12 items-center gap-3 rounded-xl border border-navy-200 bg-white px-4 text-sm">
+                                    <b>{{ $addon->displayName() }}</b><span class="text-navy-500"><bdi dir="ltr">+{{ money($addon->monthly_price) }}</bdi> {{ __('EGP / month') }}</span>
+                                </div>
+                            @endforeach
                         </div>
-                    @endforeach
+                    @endif
                 </div>
-            @endif
+            @endforeach
         </div>
     </section>
 @endif

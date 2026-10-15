@@ -1,15 +1,15 @@
 @extends('layouts.landing')
 @section('title', __('Features') . ' · EgMenu')
-@section('description', __('Every EgMenu module with a real screen and a short animation of how it works: QR menu, ordering, loyalty, printed menu, POS, kitchen display and more.'))
+@section('description', __('Every EgMenu module with a real screen and a short animation of how it works: QR menu, ordering, reservations, loyalty, WhatsApp, POS, kiosk, kitchen display and more.'))
 
 @php
     $pricing = ['plans' => $plans, 'addons' => $addons, 'matrix' => $matrix];
     $intro = [
-        'menu' => __('Put the menu online, on paper and on the TVs, and keep every copy up to date from one place.'),
-        'orders' => __('Orders from the table and from your own link, with no commission, on one live board.'),
-        'customers' => __('Bring guests back with a stamp card, and fill the quiet hours with offers.'),
-        'operations' => __('For busier places. Add only the ones you need, on top of a paid plan.'),
-        'management' => __('Numbers you can read, more branches, and your own domain.'),
+        'menu' => __('Put the menu online in your guests’ languages, on paper and on the TVs, and keep every copy up to date from one place.'),
+        'orders' => __('Orders from the table and from your own link with no commission, and table bookings, on one live board.'),
+        'customers' => __('Bring guests back with a stamp card, offers, WhatsApp messages and a prepaid balance.'),
+        'operations' => __('For busier places: a cashier, a self-order tablet, kitchen screens and stock. Add only the ones you need, on top of a paid plan.'),
+        'management' => __('Numbers you can read, more branches, your own domain and a place in the directory.'),
     ];
 @endphp
 
@@ -36,7 +36,7 @@
                 </h2>
                 <p class="text-navy-600 lg:text-end">{{ $intro[$g] }}</p>
             </div>
-            <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div @class(['mt-8 grid gap-5 sm:grid-cols-2', 'lg:grid-cols-3 xl:grid-cols-5' => count($modules) === 5, 'lg:grid-cols-3' => count($modules) === 3, 'lg:grid-cols-4' => !in_array(count($modules), [3, 5], true)])>
                 @foreach ($modules as $m)
                     <x-landing.module-card :m="$m" :note="\App\Support\SiteModules::where($m, $pricing)" data-reveal style="--d: {{ $loop->index * 60 }}ms" />
                 @endforeach

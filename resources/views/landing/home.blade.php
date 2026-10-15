@@ -9,10 +9,10 @@
     $free = $plans->first(fn ($p) => (float) $p->monthly_price === 0.0);
 
     $paths = [
-        'cafe' => ['cup', __('For a cafe like Rosto'), __('Quick orders, regulars who come back, and a bar screen at rush hour.'), ['qr-menu', 'table-ordering', 'loyalty', 'offers', 'kitchen-display', 'pos']],
-        'restaurant' => ['plate', __('For a restaurant like Sofra'), __('Accurate orders to the kitchen, delivery without commission, and costs under control.'), ['table-ordering', 'kitchen-display', 'online-ordering', 'call-center', 'inventory', 'multi-branch']],
+        'cafe' => ['cup', __('For a cafe like Rosto'), __('Quick orders, regulars who come back, and a bar screen at rush hour.'), ['qr-menu', 'table-ordering', 'loyalty', 'kiosk', 'kitchen-display', 'pos']],
+        'restaurant' => ['plate', __('For a restaurant like Sofra'), __('Accurate orders to the kitchen, delivery without commission, and costs under control.'), ['table-ordering', 'online-ordering', 'reservations', 'kitchen-display', 'call-center', 'inventory']],
     ];
-    $showcase = ['qr-menu', 'table-ordering', 'online-ordering', 'loyalty', 'printed-menu', 'offers', 'pos', 'kitchen-display'];
+    $showcase = ['qr-menu', 'table-ordering', 'online-ordering', 'loyalty', 'reservations', 'whatsapp', 'pos', 'kiosk'];
 
     $faq = [
         [__('Is the free plan really free?'), __('Yes. Your menu stays online with its QR codes at no cost and with no time limit, with a small egmenu badge. You pay only if you choose a paid plan.')],
@@ -166,7 +166,7 @@
         <p class="lp-lead mt-3 max-w-2xl">{{ __('Clear prices in Egyptian pounds, with no commission on your orders.') }}</p>
         <div class="mt-10">@include('landing.partials.plans')</div>
         <div class="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-navy-200 p-5">
-            <p class="text-navy-600">{{ __('POS, kitchen display, call center and inventory are add-ons you switch on when you need them.') }}</p>
+            <p class="text-navy-600">{{ __('POS, the self-order kiosk, kitchen display, call center and inventory are add-ons you switch on when you need them; WhatsApp credits are paid once.') }}</p>
             <a href="{{ route('pricing') }}#compare" class="btn-ghost min-h-11">{{ __('Compare all plans and add-ons') }}</a>
         </div>
     </div>

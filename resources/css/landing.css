@@ -35,11 +35,13 @@ body.lp-locked { overflow: hidden; }
 .lp-browser-bar { display: flex; align-items: center; gap: 10px; height: 34px; padding-inline: 12px; background: #f4f6fa; border-bottom: 1px solid #e1e7f1; }
 .lp-browser-bar i { width: 9px; height: 9px; border-radius: 50%; background: #d3d9e4; }
 .lp-browser-url { flex: 1; max-width: 340px; margin-inline: auto; height: 22px; border-radius: 6px; background: #fff; border: 1px solid #e1e7f1; font-size: 11px; line-height: 20px; color: #3a4f7a; text-align: center; direction: ltr; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding-inline: 8px; }
-.lp-browser img, .lp-phone img, .lp-tv img { display: block; width: 100%; height: auto; }
+.lp-browser img, .lp-phone img, .lp-tv img, .lp-tablet img { display: block; width: 100%; height: auto; }
 .lp-phone { border-radius: 38px; padding: 9px; background: #10182b; box-shadow: 0 1px 0 #2a3654 inset, 0 30px 50px -30px rgba(20, 31, 56, .7); }
 .lp-phone > div { border-radius: 30px; overflow: hidden; background: #fff; }
 .lp-tv { border-radius: 12px; padding: 10px 10px 14px; background: #0d1322; box-shadow: 0 30px 50px -30px rgba(20, 31, 56, .7); }
 .lp-tv > div { border-radius: 4px; overflow: hidden; }
+.lp-tablet { border-radius: 26px; padding: 14px; background: #10182b; box-shadow: 0 1px 0 #2a3654 inset, 0 30px 50px -30px rgba(20, 31, 56, .7); }
+.lp-tablet > div { border-radius: 10px; overflow: hidden; background: #fff; }
 .lp-shot-crop { aspect-ratio: 16 / 10; overflow: hidden; }
 .lp-shot-crop img { width: 100%; height: 100%; object-fit: cover; object-position: top right; }
 [dir="ltr"] .lp-shot-crop img { object-position: top left; }

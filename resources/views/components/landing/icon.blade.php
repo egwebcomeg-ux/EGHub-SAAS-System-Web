@@ -38,6 +38,12 @@
         'menu' => 'M4 6h16M4 12h16M4 18h16',
         'chat' => 'M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.4A8 8 0 1 1 21 12z',
         'layers' => 'M12 2 2 7l10 5 10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
+        'tablet' => 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM11 17.5h2',
+        'calendar' => 'M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM3 10h18M8 2v4M16 2v4M8 14h.01M12 14h.01M16 14h.01',
+        'megaphone' => 'M3 10v4a1 1 0 0 0 1 1h3l7 5V4L7 9H4a1 1 0 0 0-1 1zM18 9a4 4 0 0 1 0 6M7 15l1 5h3l-1-4',
+        'translate' => 'M4 5h9M8.5 3v2M11 5c-1 4.5-3.5 7.5-7 9.5M6.5 9c1.2 2.2 3 3.8 5.5 5M13 21l4-10 4 10M14.5 17.5h5',
+        'star' => 'M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5-4.8-4.6 6.6-.9z',
+        'trend' => 'M3 17l6-6 4 4 8-8M15 7h6v6',
     ];
 @endphp
 <svg {{ $attributes->merge(['class' => 'size-6']) }} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ $paths[$name] ?? $paths['check'] }}"/></svg>

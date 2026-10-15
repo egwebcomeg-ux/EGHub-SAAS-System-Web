@@ -7,7 +7,7 @@
     $paid = $plans->reject(fn ($p) => (float) $p->monthly_price === 0.0)->values();
     $cycles = collect(\App\Models\Plan::CYCLES)->mapWithKeys(fn ($m) => [$m => (float) ($paid->max(fn ($p) => (float) ($p->cycle_discounts[(string) $m] ?? 0)) ?? 0)]);
     $trial = \App\Services\TenantProvisioner::TRIAL_DAYS;
-    $paidAdds = ['qr_ordering', 'online_ordering', 'loyalty_stamps', 'offers', 'printed_menu', 'menu_themes', 'daily_reports', 'custom_domain'];
+    $paidAdds = ['qr_ordering', 'online_ordering', 'reservations', 'loyalty_stamps', 'offers', 'whatsapp_notifications', 'printed_menu', 'menu_themes', 'daily_reports', 'custom_domain'];
 @endphp
 
 @if ($free)

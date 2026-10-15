@@ -78,6 +78,16 @@
     </div>
 </section>
 
+{{-- ============ MORE SCREENS ============ --}}
+@foreach ($module['gallery'] ?? [] as [$shot, $frame, $url, $caption])
+    <section class="border-t border-navy-100 py-14 lg:py-16">
+        <figure class="mx-auto grid max-w-7xl items-center gap-6 px-4 sm:px-6 lg:grid-cols-[minmax(0,4fr)_minmax(0,7fr)] lg:gap-12">
+            <figcaption class="text-lg leading-relaxed text-navy-700"><x-landing.icon name="layers" class="mb-3 size-6 text-brand-600" />{{ $caption }}</figcaption>
+            <x-landing.shot :name="$shot" :frame="$frame" :url="$url" :alt="$caption" data-reveal />
+        </figure>
+    </section>
+@endforeach
+
 {{-- ============ WHO + WHERE ============ --}}
 <section class="bg-[var(--lp-paper)] py-16 lg:py-20">
     <div class="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:gap-14">
@@ -144,10 +154,27 @@
                         @endforeach
                     </ul>
                     @foreach ($availability['addons'] as $addon)
+                        @php
+                            $minPlan = $addon->min_plan ? $planByCode->get($addon->min_plan) : null;
+                        @endphp
                         <div class="border-t border-dashed border-navy-200 bg-navy-50/60 px-5 py-4 text-sm">
-                            <b>{{ __('Or as an add-on on any plan:') }}</b> {{ $addon->displayName() }} · <b><bdi dir="ltr">+{{ money($addon->monthly_price) }}</bdi></b> {{ __('EGP / month') }}
+                            <b>{{ $minPlan ? __('Or as an add-on with :plan or higher:', ['plan' => $minPlan->displayName()]) : __('Or as an add-on on any plan:') }}</b> {{ $addon->displayName() }} · <b><bdi dir="ltr">+{{ money($addon->monthly_price) }}</bdi></b> {{ __('EGP / month') }}
                         </div>
                     @endforeach
+                @endif
+                @if ($availability['credits']->isNotEmpty())
+                    <div class="border-t border-navy-100 px-5 py-4">
+                        <h3 class="font-extrabold">{{ __('WhatsApp message credits') }}</h3>
+                        <p class="mt-1 text-sm text-navy-500">{{ __('Every message uses one credit. Credits are paid once and never expire.') }}</p>
+                        <ul class="mt-3 grid gap-2 sm:grid-cols-2">
+                            @foreach ($availability['credits'] as $pack)
+                                <li class="rounded-xl border border-navy-200 px-3 py-2.5">
+                                    <span class="block text-sm font-bold">{{ $pack->displayName() }}</span>
+                                    <span class="text-sm text-navy-500"><b class="text-lg font-black text-navy-900"><bdi dir="ltr">{{ money($pack->monthly_price) }}</bdi></b> {{ __('EGP') }} · {{ __('Paid once') }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
                 @endif
                 <div class="flex flex-wrap items-center justify-between gap-3 border-t border-navy-100 bg-navy-900 px-5 py-4 text-white">
                     <span class="text-sm text-white/75">{{ __('Every account starts free, with :days days of Pro to try everything.', ['days' => \App\Services\TenantProvisioner::TRIAL_DAYS]) }}</span>

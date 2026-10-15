@@ -31,7 +31,8 @@ final class SiteModules
      * @return array<string, array{slug:string, group:string, icon:string, name:string, tagline:string, summary:string,
      *     for:list<string>, feature:?string, addons:list<string>, shot:string, frame:string, url:string, phone:?string,
      *     benefits:list<array{0:string,1:string,2:string}>, steps:list<array{0:string,1:string}>,
-     *     who:array{cafe:string,restaurant:string}, faq:list<array{0:string,1:string}>, related:list<string>}>
+     *     who:array{cafe:string,restaurant:string}, faq:list<array{0:string,1:string}>, related:list<string>,
+     *     gallery?:list<array{0:string,1:string,2:string,3:string}>}> gallery = more real screens [shot, frame, url, caption]
      */
     public static function all(): array
     {
@@ -77,19 +78,22 @@ final class SiteModules
      * @param  Collection<int, Plan>  $plans  public plans in order
      * @param  array<int, array{features: array<string,bool>}>  $matrix  entitlements by plan id
      * @param  Collection<int, AddonPrice>  $addons  active add-ons
-     * @return array{plans: Collection<int, Plan>, from: ?Plan, everyPlan: bool, addons: Collection<int, AddonPrice>}
+     *                                               Monthly add-ons and one-off credit packs (WhatsApp messages) come back apart.
+     * @return array{plans: Collection<int, Plan>, from: ?Plan, everyPlan: bool, addons: Collection<int, AddonPrice>, credits: Collection<int, AddonPrice>}
      */
     public static function availability(array $module, Collection $plans, array $matrix, Collection $addons): array
     {
         $key = $module['feature'];
         $in = $key === null ? $plans->values() : $plans->filter(fn (Plan $p) => ! empty($matrix[$p->id]['features'][$key]))->values();
+        $listed = $addons->filter(fn (AddonPrice $a) => in_array($a->key, $module['addons'], true))
+            ->sortBy(fn (AddonPrice $a) => array_search($a->key, $module['addons'], true))->values();
 
         return [
             'plans' => $in,
             'from' => $in->first(),
             'everyPlan' => $in->count() === $plans->count() && $plans->isNotEmpty(),
-            'addons' => $addons->filter(fn (AddonPrice $a) => in_array($a->key, $module['addons'], true))
-                ->sortBy(fn (AddonPrice $a) => array_search($a->key, $module['addons'], true))->values(),
+            'addons' => $listed->reject(fn (AddonPrice $a) => $a->isCreditPack())->values(),
+            'credits' => $listed->filter(fn (AddonPrice $a) => $a->isCreditPack())->values(),
         ];
     }
 
@@ -160,6 +164,36 @@ final class SiteModules
                     [__('Can I use my own photos and colours?'), __('Item photos, yes, on every plan. Your logo, your colours and the extra designs come with the paid plans.')],
                 ],
                 'related' => ['printed-menu', 'table-ordering', 'menu-import'],
+            ],
+            [
+                'slug' => 'languages', 'group' => 'menu', 'icon' => 'translate', 'for' => ['cafe', 'restaurant'],
+                'name' => __('Menu languages'),
+                'tagline' => __('Your menu in French, Russian, Italian and more, translated in one click'),
+                'summary' => __('Seven more languages, filled in by AI with your own key.'),
+                'feature' => 'extra_languages', 'addons' => ['languages_pack'],
+                'shot' => 'languages', 'frame' => 'browser', 'url' => 'app.egmenu.app/settings', 'phone' => 'm-languages',
+                'benefits' => [
+                    ['globe', __('Seven more languages'), __('French, Italian, German, Russian, Spanish, Turkish and Chinese, next to Arabic and English.')],
+                    ['sparkles', __('One-click translation'), __('AI fills in every missing name and description with your own AI key; you pay the provider only for what you use.')],
+                    ['pencil', __('Edit any word'), __('Fix any translation by hand, item by item, like any other text in the menu.')],
+                    ['zap', __('The guest picks'), __('A tourist switches the menu to their language from the menu header.')],
+                ],
+                'steps' => [
+                    [__('Pick languages'), __('Rosto turns on French and Russian.')],
+                    [__('Translate'), __('One click fills in the items with AI.')],
+                    [__('Review'), __('Fix a name by hand where you want.')],
+                    [__('The guest switches'), __('A tourist picks Русский from the menu.')],
+                ],
+                'who' => [
+                    'cafe' => __('A cafe in Zamalek or Dahab where many guests read neither Arabic nor English.'),
+                    'restaurant' => __('Restaurants on the tourist route in Hurghada, Sharm, Luxor and downtown Cairo.'),
+                ],
+                'faq' => [
+                    [__('Who pays for the translation?'), __('You use your own AI key (Claude, Gemini or OpenAI) from Settings, as with the menu import; translating a whole menu costs very little.')],
+                    [__('Are Arabic and English part of it?'), __('Arabic and English are in every plan. This module adds the other seven languages.')],
+                    [__('What if I add items later?'), __('Run the translation again: it fills in only what is missing and keeps what you edited by hand.')],
+                ],
+                'related' => ['qr-menu', 'menu-import', 'printed-menu'],
             ],
             [
                 'slug' => 'printed-menu', 'group' => 'menu', 'icon' => 'printer', 'for' => ['cafe', 'restaurant'],
@@ -311,6 +345,36 @@ final class SiteModules
                 ],
                 'related' => ['call-center', 'table-ordering', 'custom-domain'],
             ],
+            [
+                'slug' => 'reservations', 'group' => 'orders', 'icon' => 'calendar', 'for' => ['cafe', 'restaurant'],
+                'name' => __('Table reservations'),
+                'tagline' => __('Guests book a table from your menu link'),
+                'summary' => __('Bookings by time and party size, within the seats you have.'),
+                'feature' => 'reservations', 'addons' => ['reservations_pack'],
+                'shot' => 'reservations', 'frame' => 'browser', 'url' => 'app.egmenu.app/reservations', 'phone' => 'm-reserve',
+                'benefits' => [
+                    ['calendar', __('Book from the menu link'), __('A “Book a table” page next to your menu: the day, the time, the number of guests and a mobile number.')],
+                    ['users', __('Never overbooked'), __('Set the seats per time slot, the table time and the largest group; guests only see the times that are free.')],
+                    ['bell', __('On the order board'), __('Today’s bookings show in a strip on the order board, so the floor knows who is coming.')],
+                    ['chat', __('Confirmed your way'), __('Confirm each booking with one tap, or automatically; with WhatsApp updates the guest gets it on WhatsApp.')],
+                ],
+                'steps' => [
+                    [__('Pick a time'), __('Mona picks Friday and 4 guests, and sees the free times.')],
+                    [__('Book'), __('She books 8:30 pm with a note: a birthday.')],
+                    [__('Confirm'), __('The booking waits on the reservations page; one tap confirms it.')],
+                    [__('Seat'), __('At 8:30 the board strip shows the booking; mark them seated.')],
+                ],
+                'who' => [
+                    'cafe' => __('A corner for a study group or a birthday at the weekend, booked ahead.'),
+                    'restaurant' => __('Friday dinners and big families booked by time, within the seats you really have.'),
+                ],
+                'faq' => [
+                    [__('Can I add phone bookings by hand?'), __('Yes, add a booking from the reservations page with the name, mobile, time and number of guests.')],
+                    [__('Can the guest cancel?'), __('Yes. Every booking has its own page where the guest follows it and can cancel it.')],
+                    [__('Can I stop online booking on busy days?'), __('Turn online booking off at any time, or set booking hours per day; a day with no hours is closed.')],
+                ],
+                'related' => ['table-ordering', 'whatsapp', 'qr-menu'],
+            ],
 
             // ---------------- customers ----------------
             [
@@ -371,6 +435,96 @@ final class SiteModules
                 ],
                 'related' => ['loyalty', 'tv-screens', 'qr-menu'],
             ],
+            [
+                'slug' => 'whatsapp', 'group' => 'customers', 'icon' => 'chat', 'for' => ['cafe', 'restaurant'],
+                'name' => __('WhatsApp updates'),
+                'tagline' => __('Your guests get their order updates on WhatsApp'),
+                'summary' => __('Order received, ready, on the way, booking confirmed, reward earned.'),
+                'feature' => 'whatsapp_notifications', 'addons' => ['whatsapp_pack', 'wa_500', 'wa_2000'],
+                'shot' => 'whatsapp', 'frame' => 'browser', 'url' => 'app.egmenu.app/settings', 'phone' => null,
+                'benefits' => [
+                    ['bell', __('Sent as the order moves'), __('Order received, ready for pickup, out with the rider: each message goes by itself when the order changes.')],
+                    ['calendar', __('Bookings and rewards'), __('A message when a booking is confirmed, and when a guest earns a reward on the loyalty card.')],
+                    ['pencil', __('You choose the messages'), __('Switch each message on or off, and set the name your guests see in it.')],
+                    ['wallet', __('Pay per message'), __('Each message uses one credit. Credits come in packs you pay once, and they never expire.')],
+                ],
+                'steps' => [
+                    [__('Order arrives'), __('Karim orders delivery from Rosto’s menu link.')],
+                    [__('Order received'), __('WhatsApp: Rosto received your order and is on it.')],
+                    [__('On the way'), __('When it leaves with the rider, a second message goes out.')],
+                    [__('Credits'), __('Each message takes one credit from your balance.')],
+                ],
+                'who' => [
+                    'cafe' => __('Pickup orders: “your order is ready”, so the guest comes at the right minute.'),
+                    'restaurant' => __('Delivery customers who know their food is on the way, without calling you.'),
+                ],
+                'faq' => [
+                    [__('Do I need my own WhatsApp Business account?'), __('No. Messages go out from the EgMenu WhatsApp channel, with your place’s name in every message.')],
+                    [__('What does a message cost?'), __('One message is one credit. Credit packs are paid once, and their prices are on the pricing page.')],
+                    [__('Can a guest stop the messages?'), __('Yes. Guests who opt out are skipped, and no credit is used for them.')],
+                ],
+                'related' => ['campaigns', 'online-ordering', 'reservations'],
+            ],
+            [
+                'slug' => 'campaigns', 'group' => 'customers', 'icon' => 'megaphone', 'for' => ['cafe', 'restaurant'],
+                'name' => __('WhatsApp campaigns'),
+                'tagline' => __('Bring guests back with a WhatsApp message and a coupon'),
+                'summary' => __('Pick the guests, write the message, add a coupon, send or schedule.'),
+                'feature' => 'campaigns', 'addons' => ['marketing_pack', 'wa_500', 'wa_2000'],
+                'shot' => 'campaigns', 'frame' => 'browser', 'url' => 'app.egmenu.app/campaigns', 'phone' => null,
+                'benefits' => [
+                    ['users', __('Guests by segment'), __('Guests who have not come back for 30 days, regulars with many visits, or birthdays this month.')],
+                    ['tag', __('A coupon in the message'), __('Attach a discount code like BACK20 with an end date; the guest uses it at the counter or online.')],
+                    ['clock', __('Now or later'), __('Schedule the campaign for Thursday evening and it starts by itself.')],
+                    ['chart', __('Counted for you'), __('Sent, failed and skipped messages are counted for every campaign.')],
+                ],
+                'steps' => [
+                    [__('Pick the guests'), __('Guests who have not visited for 30 days.')],
+                    [__('Write'), __('“We miss you at Rosto: 20% off with BACK20.”')],
+                    [__('Schedule'), __('Thursday at 6 pm, with the coupon valid for 14 days.')],
+                    [__('Sent'), __('The messages go out and the coupon is used at the counter.')],
+                ],
+                'who' => [
+                    'cafe' => __('A “we miss you” message with a discount for regulars who stopped coming.'),
+                    'restaurant' => __('A weekend offer to the families who ordered delivery last month.'),
+                ],
+                'faq' => [
+                    [__('Who receives a campaign?'), __('Only guests in your customer list who match the segment and have not opted out of WhatsApp messages.')],
+                    [__('What does sending cost?'), __('Each message uses one WhatsApp credit, and you see how many guests a campaign reaches before you send it.')],
+                    [__('Can I stop a campaign?'), __('Yes. Cancel it before it starts, or stop it while it runs and resume it later.')],
+                ],
+                'related' => ['whatsapp', 'loyalty', 'offers'],
+            ],
+            [
+                'slug' => 'wallet', 'group' => 'customers', 'icon' => 'wallet', 'for' => ['cafe', 'restaurant'],
+                'name' => __('Wallet and gift cards'),
+                'tagline' => __('Prepaid balance and gift cards: the money comes in first'),
+                'summary' => __('Guests top up and pay from their balance; gift cards with a QR.'),
+                'feature' => 'wallet', 'addons' => ['wallet_pack'],
+                'shot' => 'wallet', 'frame' => 'browser', 'url' => 'app.egmenu.app/wallet', 'phone' => 'm-gift',
+                'benefits' => [
+                    ['wallet', __('Top up at the counter'), __('The cashier adds a balance to the guest’s mobile number and prints a receipt.')],
+                    ['cash', __('Pay from the balance'), __('At the POS or with an online order, the guest pays from the balance; a refund goes back to it.')],
+                    ['gift', __('Gift cards'), __('Sell printed gift cards with a code and a QR; whoever receives one adds it to their own balance.')],
+                    ['shield', __('Every pound on record'), __('Each top-up, payment, refund and adjustment is recorded with the staff member and the time.')],
+                ],
+                'steps' => [
+                    [__('Top up'), __('Mona tops up 500 EGP at the counter.')],
+                    [__('Pay'), __('Her latte and cheesecake are paid from the balance.')],
+                    [__('Gift card'), __('Her friend scans a 300 EGP gift card.')],
+                    [__('Added'), __('The card’s amount is added to the friend’s balance.')],
+                ],
+                'who' => [
+                    'cafe' => __('Regulars who top up once a month and order every morning without cash.'),
+                    'restaurant' => __('Gift cards for birthdays and companies, paid in advance.'),
+                ],
+                'faq' => [
+                    [__('Can the guest see the balance?'), __('Yes, on their card page, from the same link as the loyalty card.')],
+                    [__('Can a gift card be used twice?'), __('No. A gift card is added to one mobile number, once, and you can void a card that was not used.')],
+                    [__('Who can top up?'), __('Staff with the wallet permission, from the wallet page or from the POS during their shift.')],
+                ],
+                'related' => ['loyalty', 'pos', 'campaigns'],
+            ],
 
             // ---------------- operations (add-ons) ----------------
             [
@@ -402,6 +556,38 @@ final class SiteModules
                     [__('Does it work with several cashiers?'), __('Yes, each cashier has an account, and each shift is tied to the person who opened it.')],
                 ],
                 'related' => ['kitchen-display', 'reports', 'loyalty'],
+            ],
+            [
+                'slug' => 'kiosk', 'group' => 'operations', 'icon' => 'tablet', 'for' => ['cafe', 'restaurant'],
+                'name' => __('Self-order kiosk'),
+                'tagline' => __('A tablet at the counter where guests order by themselves'),
+                'summary' => __('Guests tap, order and get a number, then pay at the cashier.'),
+                'feature' => 'kiosk', 'addons' => ['kiosk_pack'],
+                'shot' => 'kiosk-screen', 'frame' => 'tablet', 'url' => '', 'phone' => null,
+                'gallery' => [['kiosks', 'browser', 'app.egmenu.app/kiosks', __('The kiosks page: one secret link per tablet, eat-in or takeaway, stop it any time.')]],
+                'benefits' => [
+                    ['zap', __('A shorter line'), __('At rush hour guests order on the tablet while the cashier takes the money.')],
+                    ['layers', __('Your menu, made big'), __('The kiosk shows your menu with sizes, extras and sold-out items, laid out for a tablet.')],
+                    ['bell', __('Straight to the board'), __('The order lands on the order board and the kitchen screen with its number, like any other order.')],
+                    ['shield', __('One link per tablet'), __('Each tablet opens its own secret link; stop it or change the link from the dashboard.')],
+                ],
+                'steps' => [
+                    [__('Start'), __('The guest taps “Start your order” on the tablet.')],
+                    [__('Pick items'), __('A latte with a size, and a cheesecake.')],
+                    [__('Order number'), __('They write their name and get order number 74.')],
+                    [__('Pay and collect'), __('They pay at the cashier, and the order is already at the bar.')],
+                ],
+                'who' => [
+                    'cafe' => __('Takeaway coffee at rush hour: the line orders on the tablet while the barista keeps going.'),
+                    'restaurant' => __('A fast-casual counter where guests choose eat-in or takeaway and wait for their number.'),
+                ],
+                'faq' => [
+                    [__('Which tablet do I need?'), __('Any tablet with a browser; a 10-inch screen in landscape works best. Open the kiosk link once and leave it on.')],
+                    [__('Does the guest pay on the tablet?'), __('No. The kiosk takes the order, and the guest pays at the cashier as usual.')],
+                    [__('What if a guest walks away mid-order?'), __('The kiosk asks “Are you still here?” and starts over by itself after a short wait.')],
+                    [__('How is it priced?'), __('It is an add-on per branch, with a discount on each extra branch, on top of a paid plan.')],
+                ],
+                'related' => ['pos', 'kitchen-display', 'table-ordering'],
             ],
             [
                 'slug' => 'kitchen-display', 'group' => 'operations', 'icon' => 'chef', 'for' => ['cafe', 'restaurant'],
@@ -517,9 +703,40 @@ final class SiteModules
                 'faq' => [
                     [__('Do reports include POS and phone orders?'), __('Yes, every order source is counted and shown separately.')],
                     [__('Can I see each branch?'), __('Yes, with advanced reports you can filter by branch or see them all together.')],
-                    [__('What do advanced reports add?'), __('Branch filters and the spreadsheet export, on the plans that include them.')],
+                    [__('What do advanced reports add?'), __('Item performance, a busy-hours heat map, branch and period comparison, CSV exports and a weekly email.')],
                 ],
-                'related' => ['inventory', 'multi-branch', 'pos'],
+                'related' => ['advanced-reports', 'inventory', 'multi-branch'],
+            ],
+            [
+                'slug' => 'advanced-reports', 'group' => 'management', 'icon' => 'trend', 'for' => ['cafe', 'restaurant'],
+                'name' => __('Advanced reports'),
+                'tagline' => __('Which items sell, when you are busy, and how branches compare'),
+                'summary' => __('Item performance, a heat map, comparisons, CSV and a weekly email.'),
+                'feature' => 'advanced_reports', 'addons' => ['reports_pack'],
+                'shot' => 'reports-advanced', 'frame' => 'browser', 'url' => 'app.egmenu.app/reports', 'phone' => null,
+                'gallery' => [['reports-heatmap', 'browser', 'app.egmenu.app/reports', __('Orders by day and hour, branch against branch, and where orders come from; every table downloads as CSV.')]],
+                'benefits' => [
+                    ['chart', __('Item performance'), __('How many guests opened each item against how many ordered it, so you see which photo or price needs work.')],
+                    ['clock', __('Busy-hours heat map'), __('Days against hours on one map: the darker the cell, the busier you were.')],
+                    ['layers', __('Compare'), __('This week against last week, and one branch against another.')],
+                    ['file', __('CSV and a weekly email'), __('Download any table as CSV, and get last week’s numbers by email every week.')],
+                ],
+                'steps' => [
+                    [__('Item performance'), __('Cheesecake: opened often, ordered less. Time for a better photo.')],
+                    [__('Heat map'), __('Friday evening is the darkest cell.')],
+                    [__('Compare'), __('This week against last week, side by side.')],
+                    [__('Weekly email'), __('Monday morning, last week’s numbers in your inbox.')],
+                ],
+                'who' => [
+                    'cafe' => __('See which drinks are looked at but not ordered, and fix the photo or the price.'),
+                    'restaurant' => __('Compare branches and periods before you change the menu or the staff.'),
+                ],
+                'faq' => [
+                    [__('How is this different from the daily reports?'), __('Daily reports show sales, orders, busy hours and best sellers. Advanced reports add item performance, the heat map, comparisons, exports and the weekly email.')],
+                    [__('Who gets the weekly email?'), __('The owner, once the weekly report is switched on in Settings.')],
+                    [__('Can I give the numbers to my accountant?'), __('Yes, each table downloads as a CSV file that opens in Excel.')],
+                ],
+                'related' => ['reports', 'multi-branch', 'inventory'],
             ],
             [
                 'slug' => 'multi-branch', 'group' => 'management', 'icon' => 'store', 'for' => ['restaurant'],
@@ -578,6 +795,34 @@ final class SiteModules
                     [__('Is the domain itself included?'), __('Connecting is in the plan or the add-on; the yearly domain fee is separate if you book a new one.')],
                 ],
                 'related' => ['online-ordering', 'qr-menu', 'multi-branch'],
+            ],
+            [
+                'slug' => 'featured-listing', 'group' => 'management', 'icon' => 'star', 'for' => ['cafe', 'restaurant'],
+                'name' => __('Featured in the directory'),
+                'tagline' => __('Show first in the EgMenu restaurant directory'),
+                'summary' => __('Paid placement with a “Featured” badge on your city and cuisine pages.'),
+                'feature' => 'featured_listing', 'addons' => ['featured_listing'],
+                'shot' => 'directory', 'frame' => 'browser', 'url' => 'egmenu.app/restaurants', 'phone' => null,
+                'benefits' => [
+                    ['star', __('At the top of the list'), __('Your place shows first on egmenu.app/restaurants and on your city and cuisine pages.')],
+                    ['users', __('Shared fairly'), __('Up to 5 featured places take turns on each page, so no single place buys the whole list.')],
+                    ['shield', __('Clearly marked'), __('Featured places carry a visible “Featured” badge. Visitors always know it is paid placement.')],
+                ],
+                'steps' => [
+                    [__('Listed'), __('Rosto is in the directory for free, among the cafes of its city.')],
+                    [__('Featured'), __('With the add-on it moves to the top, with a badge.')],
+                    [__('A visit'), __('A visitor opens Rosto’s page, then its menu.')],
+                ],
+                'who' => [
+                    'cafe' => __('A new cafe that wants to be found by people looking around its area.'),
+                    'restaurant' => __('A new branch in a city where people do not know the name yet.'),
+                ],
+                'faq' => [
+                    [__('Is this advertising?'), __('Yes. It is paid placement inside the EgMenu directory, marked with a “Featured” badge. It does not change your ranking on Google.')],
+                    [__('Do I have to be in the directory?'), __('Yes. Your place must be listed in the directory; listing is on by default and free, and you can switch it off in Settings.')],
+                    [__('How many visitors will I get?'), __('We cannot promise a number. The directory is new and grows with the places in it, and you can stop the add-on in any month.')],
+                ],
+                'related' => ['qr-menu', 'custom-domain', 'campaigns'],
             ],
         ];
     }
