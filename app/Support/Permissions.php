@@ -29,6 +29,7 @@ final class Permissions
         'users.manage'      => ['المستخدمين والصلاحيات', 'Users & roles'],
         'billing.manage'    => ['الاشتراك والفواتير', 'Subscription & billing'],
         'audit.view'        => ['سجل العمليات', 'Audit log'],
+        'wallet.manage'     => ['المحفظة وكروت الهدايا', 'Wallet & gift cards'],
     ];
 
     /** role => [labels, permissions ('*' = everything)] */
@@ -41,11 +42,12 @@ final class Permissions
             'label' => ['مدير', 'Manager'],
             'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'pos.discount', 'callcenter.use', 'shifts.manage',
                 'kitchen.view', 'menu.manage', 'menu.availability', 'inventory.manage', 'tables.manage', 'branches.manage', 'delivery.manage',
-                'customers.view', 'loyalty.stamp', 'loyalty.manage', 'marketing.manage', 'reports.view', 'settings.manage', 'audit.view'],
+                'customers.view', 'loyalty.stamp', 'loyalty.manage', 'marketing.manage', 'reports.view', 'settings.manage', 'audit.view',
+                'wallet.manage'],
         ],
         'cashier' => [
             'label' => ['كاشير', 'Cashier'],
-            'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'shifts.manage', 'menu.availability', 'customers.view', 'loyalty.stamp'],
+            'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'shifts.manage', 'menu.availability', 'customers.view', 'loyalty.stamp', 'wallet.manage'],
         ],
         'callcenter' => [
             'label' => ['كول سنتر', 'Call center'],

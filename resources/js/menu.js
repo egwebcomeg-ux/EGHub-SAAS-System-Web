@@ -195,6 +195,16 @@ if (dataEl) {
         $('[data-cart-summary]', cartSheet).innerHTML = (service || tax || fee ? row(T.subtotal, subtotal) + (service ? row(T.service, service) : '') + (tax ? row(T.tax, tax) : '') + (fee ? row(T.deliveryFee, fee) : '') : '')
             + row(T.total, subtotal + service + tax + fee, true)
             + (zone && zone.min > subtotal ? `<div class="mt-1 text-xs font-semibold text-amber-700">${esc(T.minOrder.replace('__A__', fmt(zone.min)))}</div>` : '');
+        // prepaid balance: the whole order is paid from it, or not at all (no partial payment)
+        const walletBox = $('[data-pay-wallet]', cartSheet);
+        if (walletBox && M.wallet) {
+            const enough = Math.round(M.wallet.balance * 100) >= Math.round((subtotal + service + tax + fee) * 100);
+            walletBox.disabled = !enough;
+            if (!enough) walletBox.checked = false;
+            $('[data-wallet-note]', cartSheet).textContent = enough ? T.payFromBalance : T.notEnoughBalance;
+            const phone = $('[data-customer-phone]', cartSheet);
+            if (phone && !phone.value) phone.value = M.wallet.phone;
+        }
     }
 
     $('[data-open-cart]').addEventListener('click', () => { renderCart(); cartSheet.showModal(); });
@@ -274,6 +284,7 @@ if (dataEl) {
                     customer_phone: $('[data-customer-phone]').value.trim(),
                     notes: $('[data-order-notes]').value.trim(),
                     coupon: $('[data-coupon]')?.value.trim() || null,
+                    pay_wallet: !!$('[data-pay-wallet]')?.checked,
                     ...(M.mode === 'online' ? {
                         type: otype, branch_id: O.branch, zone_id: currentZone()?.id ?? null,
                         address: $('[data-address]')?.value.trim() || null, scheduled_for: $('[data-scheduled]')?.value || null,

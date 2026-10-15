@@ -38,6 +38,7 @@ final class PaymentMethods
             'cash' => __('Cash'),
             'card' => __('Card'),
             'wallet' => __('Mobile wallet'),
+            'credit' => __('Wallet balance'),
             default => ucfirst($key),
         };
     }

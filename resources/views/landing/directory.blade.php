@@ -55,8 +55,11 @@
         @if ($cards)
             <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 @foreach ($cards as $c)
-                    <li>
-                        <a href="{{ $c['url'] }}" class="flex h-full flex-col rounded-2xl border border-navy-100 bg-white p-4 transition hover:border-navy-300 hover:shadow-md" data-place="{{ $c['slug'] }}">
+                    <li class="relative" @if ($c['featured']) data-featured @endif>
+                        <a href="{{ $c['url'] }}" @class(['flex h-full flex-col rounded-2xl border bg-white p-4 transition hover:shadow-md', 'border-amber-300 ring-1 ring-amber-200 hover:border-amber-400' => $c['featured'], 'border-navy-100 hover:border-navy-300' => !$c['featured'], 'pb-16' => $c['online']]) data-place="{{ $c['slug'] }}">
+                            @if ($c['featured'])
+                                <span class="absolute -top-2.5 end-4 rounded-full bg-amber-400 px-2.5 py-0.5 text-xs font-extrabold text-amber-950">★ {{ __('Featured') }}</span>
+                            @endif
                             <div class="flex items-center gap-3">
                                 @if ($c['logo'])
                                     <img src="{{ $c['logo'] }}" alt="" loading="lazy" class="size-14 shrink-0 rounded-xl border border-navy-100 object-contain p-0.5">
@@ -86,6 +89,12 @@
                                 @endif
                             </div>
                         </a>
+                        @if ($c['online'])
+                            {{-- outside the card link (no nested links): straight to the menu to order pickup or delivery --}}
+                            <a href="{{ $c['menu_url'] }}" class="absolute start-4 bottom-4 inline-flex min-h-9 items-center gap-1 rounded-full bg-brand-600 px-3.5 text-sm font-bold text-white hover:bg-brand-700" data-order-online>
+                                {{ __('Order online') }} <span aria-hidden="true" class="inline-block rtl:rotate-180">→</span>
+                            </a>
+                        @endif
                     </li>
                 @endforeach
             </ul>

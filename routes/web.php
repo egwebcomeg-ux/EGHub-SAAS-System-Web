@@ -4,6 +4,7 @@ use App\Http\Controllers\Platform\DirectoryController;
 use App\Http\Controllers\Platform\FeaturesController;
 use App\Http\Controllers\Platform\LandingController;
 use App\Http\Controllers\Platform\SeoController;
+use App\Http\Controllers\Platform\ServicesController;
 use App\Http\Controllers\Platform\SignupController;
 use Illuminate\Support\Facades\Route;
 
@@ -34,6 +35,8 @@ Route::domain($domain)->group(function () use ($slug) {
     Route::middleware('admin.locale')->group(function () {
         Route::get('/', [LandingController::class, 'home'])->name('landing');
         Route::get('/pricing', [LandingController::class, 'pricing'])->name('pricing');
+        Route::get('/services', [ServicesController::class, 'index'])->name('services');
+        Route::post('/services', [ServicesController::class, 'store'])->middleware('throttle:5,1')->name('services.request');
         Route::get('/features', [FeaturesController::class, 'index'])->name('features');
         Route::get('/features/{slug}', [FeaturesController::class, 'show'])->where('slug', '[a-z-]{2,40}')->name('features.show');
         Route::get('/terms', [LandingController::class, 'terms'])->name('terms');

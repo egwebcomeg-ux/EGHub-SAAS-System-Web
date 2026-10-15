@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Category;
+use App\Models\Customer;
 use App\Models\DiningTable;
 use App\Models\MenuItem;
 use App\Models\Order;
@@ -14,6 +15,7 @@ use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use App\Services\Orders\ShiftService;
 use App\Services\Settings;
+use App\Services\Wallet\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -43,10 +45,15 @@ class PosController extends Controller
                 'service' => (float) $settings['service_percent'], 'tax' => (float) $settings['tax_percent'],
                 'canDiscount' => $request->user()->can('pos.discount'),
                 'shifts' => Entitlements::current()->allows('shifts'),
+                // prepaid wallet: anyone at the POS can take a payment from the balance; top-ups and gift cards need wallet.manage
+                'wallet' => WalletService::enabled(),
+                'walletManage' => WalletService::enabled() && $request->user()->can('wallet.manage'),
                 'urls' => [
                     'order' => route('dash.pos.order'), 'pay' => url('/pos/orders/__ID__/pay'), 'open' => route('dash.pos.open'),
                     'receipt' => url('/orders/__ID__/receipt'), 'display' => route('dash.pos.display'),
-                ],
+                ] + (WalletService::enabled() ? [
+                    'walletLookup' => route('dash.wallet.lookup'), 'topup' => route('dash.wallet.topup'), 'giftSell' => route('dash.wallet.gift.sell'),
+                ] : []),
                 'tables' => DiningTable::query()->where('branch_id', $branch->id)->where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
                 'categories' => $categories->map(fn (Category $c) => ['id' => $c->id, 'name' => tr($c->name, $c->name_en)])->values(),
                 'items' => $categories->flatMap(fn (Category $c) => $c->items->map(fn (MenuItem $i) => [
@@ -104,7 +111,15 @@ class PosController extends Controller
     public function pay(Request $request, Order $order, OrderService $orders, ShiftService $shifts): JsonResponse
     {
         abort_if($request->user()->branch_id && $request->user()->branch_id !== $order->branch_id, 404);
-        $data = $request->validate(['method' => ['required', Rule::in(ShiftService::METHODS)]]);
+        $data = $request->validate(['method' => ['required', Rule::in(ShiftService::METHODS)], 'phone' => 'nullable|string|max:20']);
+        // paying an open (table) order from the wallet: the cashier may name the guest now
+        if ($data['method'] === WalletService::METHOD && ! $order->customer_id && ! empty($data['phone'])) {
+            $customer = Customer::query()->where('phone', normalize_phone($data['phone']) ?? '')->first();
+            if (! $customer) {
+                return response()->json(['message' => __('No wallet for this mobile number.')], 422);
+            }
+            $order->update(['customer_id' => $customer->id, 'customer_phone' => $customer->phone, 'customer_name' => $order->customer_name ?: $customer->name]);
+        }
         try {
             $orders->pay($order, $data['method'], $request->user(), $shifts->current($request->user()));
         } catch (OrderException $e) {

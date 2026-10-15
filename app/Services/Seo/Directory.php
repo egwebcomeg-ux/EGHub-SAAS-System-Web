@@ -2,6 +2,7 @@
 
 namespace App\Services\Seo;
 
+use App\Models\AddonPrice;
 use App\Models\Tenant;
 use App\Services\Entitlements;
 use App\Services\Settings;
@@ -24,6 +25,9 @@ final class Directory
     public const MIN_ITEMS = 3;
 
     public const PER_PAGE = 24;
+
+    /** Places with the featured_listing add-on shown first on a page; more than this take turns day by day. */
+    public const FEATURED_PER_PAGE = 5;
 
     /** Settings read for the cards. */
     private const CARD_KEYS = ['brand_name', 'brand_name_en', 'logo', 'city', 'area', 'cuisine', 'business_type',
@@ -54,6 +58,26 @@ final class Directory
         }
 
         return $query;
+    }
+
+    /**
+     * Listed places of this page whose plan or add-ons include featured_listing: at most FEATURED_PER_PAGE, in an
+     * order that changes every day, so each paying place gets its turn on top. Nothing else changes their rank.
+     *
+     * @return list<string> tenant ids
+     */
+    public static function featuredIds(?string $city = null, ?string $cuisine = null, ?string $search = null): array
+    {
+        $packs = AddonPrice::query()->where('type', 'feature')->get(['key', 'features'])
+            ->filter(fn (AddonPrice $a) => in_array('featured_listing', (array) $a->features, true))->pluck('key')->all();
+        $subscriptions = DB::table('subscriptions')->select('tenant_id')->where(fn ($q) => $q
+            ->whereIn('id', DB::table('subscription_addons')->select('subscription_id')->whereIn('key', $packs ?: ['']))
+            ->orWhereIn('plan_id', DB::table('plan_features')->select('plan_id')->where('key', 'featured_listing')->where('value', 1)));
+
+        $day = today()->toDateString();
+
+        return self::query($city, $cuisine, $search)->whereIn('id', $subscriptions)->pluck('id')
+            ->sortBy(fn (string $id) => crc32($day.'|'.$id))->take(self::FEATURED_PER_PAGE)->values()->all();
     }
 
     /**
@@ -92,9 +116,10 @@ final class Directory
      * Card data of listed places (one settings query, one ratings query, one zones query for the whole page).
      *
      * @param  iterable<Tenant>  $tenants
+     * @param  list<string>  $featured  ids shown with the "Featured" badge (featuredIds())
      * @return list<array<string, mixed>>
      */
-    public static function cards(iterable $tenants): array
+    public static function cards(iterable $tenants, array $featured = []): array
     {
         $tenants = collect($tenants);
         $ids = $tenants->pluck('id')->all();
@@ -104,10 +129,11 @@ final class Directory
             ->selectRaw('tenant_id, avg(rating) as avg, count(*) as n')->get()->keyBy('tenant_id');
         $zones = DB::table('delivery_zones')->whereIn('tenant_id', $ids)->where('is_active', true)->distinct()->pluck('tenant_id')->flip();
 
-        return $tenants->map(function (Tenant $t) use ($settings, $ratings, $zones) {
+        return $tenants->map(function (Tenant $t) use ($settings, $ratings, $zones, $featured) {
             $s = array_merge(Settings::DEFAULTS, $settings[$t->id] ?? []);
             $rights = Entitlements::for($t);
             $ordering = $s['ordering_enabled'] === '1';
+            $delivery = $ordering && $rights->allows('online_ordering') && $s['online_delivery'] === '1' && isset($zones[$t->id]);
             $rating = $rights->allows('feedback') && isset($ratings[$t->id])
                 ? ['avg' => round((float) $ratings[$t->id]->avg, 1), 'count' => (int) $ratings[$t->id]->n] : null;
 
@@ -122,8 +148,12 @@ final class Directory
                 'description' => tr($s['short_description'], $s['short_description_en']),
                 'rating' => $rating,
                 'table' => $ordering && $rights->allows('qr_ordering'),
-                'delivery' => $ordering && $rights->allows('online_ordering') && $s['online_delivery'] === '1' && isset($zones[$t->id]),
+                'delivery' => $delivery,
+                // takeaway or delivery straight from the menu link
+                'online' => $ordering && $rights->allows('online_ordering') && ($s['online_takeaway'] === '1' || $delivery),
+                'featured' => in_array($t->id, $featured, true),
                 'url' => $t->url('about'),
+                'menu_url' => $t->url(),
             ];
         })->values()->all();
     }

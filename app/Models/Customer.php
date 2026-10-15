@@ -38,4 +38,10 @@ class Customer extends TenantModel
     {
         return $this->hasMany(LoyaltyCard::class);
     }
+
+    /** Prepaid wallet ledger (WalletService); its deltas add up to credit_balance. */
+    public function walletTransactions(): HasMany
+    {
+        return $this->hasMany(WalletTransaction::class);
+    }
 }

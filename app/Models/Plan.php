@@ -47,6 +47,7 @@ class Plan extends Model
         'loyalty_points' => ['نقاط ولاء', 'Loyalty points', 'marketing'],
         'whatsapp_notifications' => ['رسائل واتساب للعميل (استلام الطلب، جاهز، في الطريق)', 'WhatsApp updates to guests (order received, ready, on the way)', 'marketing'],
         'campaigns' => ['حملات واتساب وكوبونات خصم', 'WhatsApp campaigns & coupons', 'marketing'],
+        'wallet' => ['محفظة رصيد مسبق وكروت هدايا', 'Prepaid wallet & gift cards', 'marketing'],
         // management
         'daily_reports' => ['تقارير يومية', 'Daily reports', 'management'],
         'advanced_reports' => ['تقارير متقدمة', 'Advanced reports', 'management'],
@@ -57,6 +58,7 @@ class Plan extends Model
         'custom_domain' => ['دومين خاص', 'Custom domain', 'platform'],
         'hide_badge' => ['إخفاء شارة egmenu', 'Remove egmenu badge', 'platform'],
         'priority_support' => ['أولوية في الدعم', 'Priority support', 'platform'],
+        'featured_listing' => ['ظهور مميز في دليل المطاعم', 'Featured in the restaurant directory', 'platform'],
     ];
 
     /** key => [arabic label, english label] — value null = unlimited */

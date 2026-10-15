@@ -45,6 +45,7 @@
                 <svg class="lp-chev size-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5.3 7.3a1 1 0 0 1 1.4 0L10 10.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 0-1.4z"/></svg>
             </button>
             <a href="{{ route('pricing') }}" class="flex min-h-11 items-center rounded-lg px-3 hover:bg-navy-50 hover:text-navy-900">{{ __('Pricing') }}</a>
+            <a href="{{ route('services') }}" class="flex min-h-11 items-center rounded-lg px-3 hover:bg-navy-50 hover:text-navy-900">{{ __('Services') }}</a>
             <a href="{{ $home }}#faq" class="flex min-h-11 items-center rounded-lg px-3 hover:bg-navy-50 hover:text-navy-900">{{ __('FAQ') }}</a>
         </nav>
 
@@ -109,6 +110,7 @@
         @endforeach
         <a href="{{ route('features') }}" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-extrabold text-navy-900">{{ __('All features') }}</a>
         <a href="{{ route('pricing') }}" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-extrabold text-navy-900">{{ __('Pricing') }}</a>
+        <a href="{{ route('services') }}" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-extrabold text-navy-900">{{ __('Services') }}</a>
         <a href="{{ $home }}#faq" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-extrabold text-navy-900">{{ __('FAQ') }}</a>
         <a href="{{ platform_url('app', '/login') }}" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-bold text-navy-600">{{ __('Log in') }}</a>
         <a href="?lang={{ $other }}" class="flex min-h-13 items-center px-1 text-base font-bold text-navy-600" lang="{{ $other }}">{{ $other === 'en' ? 'English' : 'عربي' }}</a>
@@ -146,6 +148,7 @@
                     <div class="mb-3 font-extrabold text-white">EgMenu</div>
                     <ul class="space-y-2">
                         <li><a href="{{ route('pricing') }}" class="hover:text-white">{{ __('Pricing') }}</a></li>
+                        <li><a href="{{ route('services') }}" class="hover:text-white">{{ __('Services') }}</a></li>
                         <li><a href="{{ route('directory') }}" class="hover:text-white">{{ __('Restaurant directory') }}</a></li>
                         <li><a href="{{ platform_url('app', '/login') }}" class="hover:text-white">{{ __('Log in') }}</a></li>
                         @if ($whatsappUrl)<li><a href="{{ $whatsappUrl }}" target="_blank" rel="noopener" class="hover:text-white">{{ __('WhatsApp') }}</a></li>@endif

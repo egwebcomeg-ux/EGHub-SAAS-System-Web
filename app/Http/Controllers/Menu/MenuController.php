@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Menu;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Category;
+use App\Models\Customer;
 use App\Models\DeliveryZone;
 use App\Models\DiningTable;
 use App\Models\MenuItem;
@@ -15,6 +16,7 @@ use App\Services\Loyalty\LoyaltyService;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Seo\RestaurantProfile;
 use App\Services\Settings;
+use App\Services\Wallet\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -48,6 +50,10 @@ class MenuController extends Controller
 
         $loyalty = app(LoyaltyService::class)->program();
         $profile = new RestaurantProfile;
+        // prepaid balance of the guest whose card this phone remembers (cookie set by their card link)
+        $cardCookie = $request->cookie('card_'.tenant()->getTenantKey());
+        $walletGuest = $canOrder && WalletService::enabled() && is_string($cardCookie)
+            ? Customer::query()->where('card_token', $cardCookie)->first() : null;
 
         return view('menu.show', [
             'profile' => $profile,
@@ -76,6 +82,8 @@ class MenuController extends Controller
                 'canOrder' => $canOrder,
                 'mode' => $tableOrder ? 'table' : ($online ? 'online' : 'none'),
                 'callUrl' => $tableOrder ? route('menu.call') : null,
+                'wallet' => $walletGuest && $walletGuest->credit_balance > 0
+                    ? ['balance' => round((float) $walletGuest->credit_balance, 2), 'phone' => $walletGuest->phone] : null,
                 'online' => $online,
                 'currency' => tr($settings['currency'], $settings['currency_en']),
                 'orderUrl' => route('menu.order'),

@@ -37,7 +37,14 @@ class DirectoryController extends Controller
         if ($search !== '') {
             $request->attributes->set('noindex', true); // search results are not pages of their own
         }
-        $places = Directory::query($city, $cuisine, $search)->orderBy('name')->paginate(Directory::PER_PAGE)->withQueryString();
+        // featured places (paid add-on, max FEATURED_PER_PAGE) first, then everyone by name
+        $featured = Directory::featuredIds($city, $cuisine, $search);
+        $places = Directory::query($city, $cuisine, $search)
+            ->when($featured !== [], fn ($q) => $q->orderByRaw(
+                'case id '.implode(' ', array_fill(0, count($featured), 'when ? then ?')).' else ? end',
+                [...array_merge(...array_map(fn ($id, $i) => [$id, $i], $featured, array_keys($featured))), count($featured)]
+            ))
+            ->orderBy('name')->paginate(Directory::PER_PAGE)->withQueryString();
 
         $cityName = Cities::name($city);
         $cuisineName = $cuisine ? Cuisines::name($cuisine) : '';
@@ -49,7 +56,7 @@ class DirectoryController extends Controller
 
         return view('landing.directory', [
             'places' => $places,
-            'cards' => Directory::cards($places->items()),
+            'cards' => Directory::cards($places->items(), $featured),
             'city' => $city,
             'cuisine' => $cuisine,
             'search' => $search,

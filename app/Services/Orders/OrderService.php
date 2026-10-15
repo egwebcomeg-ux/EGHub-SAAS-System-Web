@@ -18,6 +18,7 @@ use App\Services\Loyalty\LoyaltyService;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Notify\GuestNotifier;
 use App\Services\Settings;
+use App\Services\Wallet\WalletService;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -37,7 +38,9 @@ final class OrderService
     /**
      * @param array{client_uuid?:string, items:array<int,array{item_id:int, qty:int, option_ids?:int[], notes?:string}>,
      *              notes?:string, customer_name?:string, customer_phone?:string, type?:string, source?:string,
-     *              delivery_zone?:DeliveryZone, delivery_address?:array<string,string>} $data
+     *              delivery_zone?:DeliveryZone, delivery_address?:array<string,string>, pay_wallet?:bool} $data
+     *
+     * With `pay_wallet` the order is paid at once from the customer's prepaid balance (whole total, or nothing is placed).
      */
     public function place(array $data, Branch $branch, ?DiningTable $table = null, ?User $by = null): Order
     {
@@ -95,7 +98,7 @@ final class OrderService
                     if ($coupon) {
                         app(Coupons::class)->redeem($coupon);
                     }
-                    $customer = $phone && Entitlements::current()->allows('customers')
+                    $customer = $phone && Entitlements::current()->allows('customers|wallet')
                         ? $this->customer($phone, (string) ($data['customer_name'] ?? ''), ($data['source'] ?? 'qr') === 'callcenter' ? 'callcenter' : 'menu') : null;
 
                     $order = Order::query()->create([
@@ -119,6 +122,11 @@ final class OrderService
                     app(StockService::class)->deductForOrder($order); // inventory pack only
                     DB::afterCommit(fn () => app(GuestNotifier::class)->orderPlaced($order)); // WhatsApp "we got your order"
 
+                    if (!empty($data['pay_wallet'])) {
+                        app(WalletService::class)->payOrder($order, $by);
+                        $order->update(['payment_status' => 'paid', 'payment_method' => WalletService::METHOD]);
+                        app(LoyaltyService::class)->orderCompleted($order);
+                    }
                     return $order;
                 });
             } catch (QueryException $e) {
@@ -148,10 +156,20 @@ final class OrderService
         if (! $shift && Entitlements::current()->allows('shifts')) {
             throw new OrderException(__('Open a shift first to take payments.'));
         }
-        $order->update(['payment_status' => 'paid', 'payment_method' => $method, 'shift_id' => $shift?->id]);
-        app(LoyaltyService::class)->orderCompleted($order);
 
-        return $order;
+        return DB::transaction(function () use ($order, $method, $by, $shift) {
+            // locked: two taps on "pay" (or two cashiers) never take the money twice
+            $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
+            if ($locked->payment_status === 'paid') {
+                throw new OrderException(__('This order is already paid.'));
+            }
+            if ($method === WalletService::METHOD) {
+                app(WalletService::class)->payOrder($locked, $by, $shift);
+            }
+            $order->update(['payment_status' => 'paid', 'payment_method' => $method, 'shift_id' => $shift?->id]);
+            app(LoyaltyService::class)->orderCompleted($order);
+            return $order;
+        });
     }
 
     /** Moves an order to its next status, stamping the time and recording who did it. */
@@ -175,7 +193,8 @@ final class OrderService
             // the visit, spend and loyalty stamps count once the guest got the order (or paid, see pay())
             match ($to) {
                 'served' => app(LoyaltyService::class)->orderCompleted($order),
-                'cancelled' => [app(LoyaltyService::class)->orderReversed($order), app(StockService::class)->restoreForOrder($order)],
+                'cancelled' => [app(LoyaltyService::class)->orderReversed($order), app(StockService::class)->restoreForOrder($order),
+                    app(WalletService::class)->refundOrder($order, $by)],
                 default => null,
             };
             if ($to === 'cancelled') {

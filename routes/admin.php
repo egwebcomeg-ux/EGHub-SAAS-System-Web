@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\DomainsController;
 use App\Http\Controllers\Admin\InvoicesController;
 use App\Http\Controllers\Admin\PasswordResetController;
 use App\Http\Controllers\Admin\PlansController;
+use App\Http\Controllers\Admin\ServicesController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\TenantsController;
 use Illuminate\Support\Facades\Route;
@@ -44,4 +45,7 @@ Route::middleware('auth:admin')->group(function () {
 
     Route::get('/settings', [SettingsController::class, 'edit'])->name('settings');
     Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
+
+    Route::get('/services', [ServicesController::class, 'index'])->name('services');
+    Route::post('/services/{serviceRequest}', [ServicesController::class, 'update'])->whereNumber('serviceRequest')->name('services.update');
 });

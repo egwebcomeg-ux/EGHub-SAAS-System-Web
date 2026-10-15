@@ -19,6 +19,9 @@
 
     <section data-face="front">
         @include('partials.loyalty-card', ['stamps' => $card->stamps, 'name' => $customer->name ?: null])
+        @if ($wallet)
+            @include('menu.partials.wallet-balance')
+        @endif
 
         @if ($card->availableRewards->isNotEmpty())
             <div class="mt-5 space-y-2">

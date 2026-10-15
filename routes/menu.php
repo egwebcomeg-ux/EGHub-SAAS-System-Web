@@ -3,6 +3,7 @@
 use App\Http\Controllers\Menu\BoardController;
 use App\Http\Controllers\Menu\FeedbackController;
 use App\Http\Controllers\Menu\ItemViewController;
+use App\Http\Controllers\Menu\GiftController;
 use App\Http\Controllers\Menu\LoyaltyCardController;
 use App\Http\Controllers\Menu\MenuController;
 use App\Http\Controllers\Menu\OrderController;
@@ -33,6 +34,10 @@ Route::get('/tv/{token}/version', [TvController::class, 'version'])->where('toke
 Route::get('/card', [LoyaltyCardController::class, 'join'])->name('card.join');
 Route::post('/card', [LoyaltyCardController::class, 'store'])->middleware('throttle:10,1')->name('card.store');
 Route::get('/card/{token}', [LoyaltyCardController::class, 'show'])->where('token', '[a-f0-9]{24}')->name('card');
+
+// Gift cards (wallet): the printed card's QR; adds the amount to the wallet of the mobile entered, once
+Route::get('/gift/{code}', [GiftController::class, 'show'])->where('code', '[A-Za-z0-9]{12}')->name('gift');
+Route::post('/gift/{code}', [GiftController::class, 'redeem'])->where('code', '[A-Za-z0-9]{12}')->middleware('throttle:10,1')->name('gift.redeem');
 
 Route::post('/call', [TableCallController::class, 'store'])->middleware('throttle:6,1')->name('call');
 Route::post('/feedback', [FeedbackController::class, 'store'])->middleware('throttle:10,1')->name('feedback');

@@ -11,11 +11,13 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Cashier shifts (idea from Filetto): a cashier opens a shift with the cash in the drawer, records cash in/out
- * with a reason, and closes by counting the drawer. Expected cash = opening + cash payments + cash in − cash out.
+ * with a reason, and closes by counting the drawer. Expected cash = opening + cash payments + cash in − cash out
+ * + wallet top-ups and gift cards paid in cash.
  */
 final class ShiftService
 {
-    public const METHODS = ['cash', 'card', 'instapay', 'wallet'];
+    /** wallet = mobile wallet (Vodafone Cash...); credit = the guest's prepaid balance (WalletService). */
+    public const METHODS = ['cash', 'card', 'instapay', 'wallet', 'credit'];
 
     public function current(User $user): ?Shift
     {
@@ -54,7 +56,12 @@ final class ShiftService
         });
     }
 
-    /** @return array{orders:int, by_method:array<string,float>, total:float, cash_in:float, cash_out:float, expected_cash:float, difference:?float} */
+    /**
+     * prepaid = wallet top-ups and gift cards sold in the shift, by how the guest paid (not sales: the sale is the
+     * order later paid by credit).
+     *
+     * @return array{orders:int, by_method:array<string,float>, total:float, cash_in:float, cash_out:float, prepaid:array<string,float>, prepaid_total:float, expected_cash:float, difference:?float}
+     */
     public function summary(Shift $shift): array
     {
         $paid = Order::query()->where('shift_id', $shift->id)->where('payment_status', 'paid')->where('status', '!=', 'cancelled')->get(['payment_method', 'total']);
@@ -64,11 +71,15 @@ final class ShiftService
         }
         $in = (float) $shift->movements()->where('type', 'in')->sum('amount');
         $out = (float) $shift->movements()->where('type', 'out')->sum('amount');
-        $expected = round($shift->opening_cash + $byMethod['cash'] + $in - $out, 2);
+        $prepaid = [];
+        foreach ($shift->movements()->whereIn('type', ['topup', 'gift'])->get(['method', 'amount']) as $m) {
+            $prepaid[$m->method ?? 'cash'] = round(($prepaid[$m->method ?? 'cash'] ?? 0) + $m->amount, 2);
+        }
+        $expected = round($shift->opening_cash + $byMethod['cash'] + $in - $out + ($prepaid['cash'] ?? 0), 2);
 
         return [
             'orders' => $paid->count(), 'by_method' => $byMethod, 'total' => round(array_sum($byMethod), 2),
-            'cash_in' => $in, 'cash_out' => $out, 'expected_cash' => $expected,
+            'cash_in' => $in, 'cash_out' => $out, 'prepaid' => $prepaid, 'prepaid_total' => round(array_sum($prepaid), 2), 'expected_cash' => $expected,
             'difference' => $shift->closing_cash !== null ? round($shift->closing_cash - ($shift->expected_cash ?? $expected), 2) : null,
         ];
     }

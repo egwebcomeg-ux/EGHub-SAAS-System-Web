@@ -22,7 +22,8 @@ class PlanSeeder extends Seeder
         $pro = array_merge($basic, ['online_ordering', 'scheduled_orders', 'daily_reports', 'menu_themes', 'printed_menu',
             'offers', 'upsell', 'ai_import', 'customers', 'loyalty_stamps', 'custom_domain', 'whatsapp_notifications']);
         // Business = every menu feature; operations (POS, kitchen, call center, inventory) are add-ons for every plan.
-        $business = array_values(array_diff(array_keys(Plan::FEATURES), Plan::addonFeatures()));
+        // A featured directory listing is paid placement, sold only as its own add-on.
+        $business = array_values(array_diff(array_keys(Plan::FEATURES), Plan::addonFeatures(), ['featured_listing']));
 
         $plans = [
             // Free = the menu online with the egmenu badge, no ordering; what a restaurant lands on when a trial or
@@ -135,6 +136,16 @@ class PlanSeeder extends Seeder
                 'description' => 'أداء الأصناف وخريطة الزحمة ومقارنة الفروع والفترات وتصدير CSV وتقرير أسبوعي بالإيميل',
                 'description_en' => 'Item performance, busy-hours heat map, branch and period comparison, CSV exports and a weekly email report',
                 'features' => ['advanced_reports', 'daily_reports']],
+            ['key' => 'wallet_pack', 'type' => 'feature', 'monthly_price' => 149, 'sort_order' => 7, 'min_plan' => 'basic',
+                'name' => 'المحفظة وكروت الهدايا', 'name_en' => 'Wallet & gift cards',
+                'description' => 'العميل يشحن رصيد عندك ويدفع منه في المحل أو أونلاين، وكروت هدايا مطبوعة بكود وQR يضيفها لرصيده. موجودة في باقة بيزنس',
+                'description_en' => 'Guests top up a balance and pay from it in the shop or online, plus printed gift cards with a code and QR they add to their wallet. Included in Business',
+                'features' => ['wallet', 'customers']],
+            ['key' => 'featured_listing', 'type' => 'feature', 'monthly_price' => 199, 'sort_order' => 8,
+                'name' => 'ظهور مميز في دليل المطاعم', 'name_en' => 'Featured directory listing',
+                'description' => 'مطعمك يظهر في أول دليل egmenu.app/restaurants وصفحة مدينتك ونوع أكلك بعلامة «مميز» (5 أماكن بالدور في كل صفحة). لازم يكون ظاهر في الدليل',
+                'description_en' => 'Your place shows first in egmenu.app/restaurants, your city and cuisine pages with a "Featured" badge (5 places take turns per page). Your place must be listed in the directory',
+                'features' => ['featured_listing']],
         ] as $a) {
             AddonPrice::query()->firstOrCreate(['key' => $a['key']], $a);
         }

@@ -33,6 +33,12 @@ if (dataEl) {
         if (!res.ok) throw new Error(data.message || (data.errors ? Object.values(data.errors)[0][0] : res.status));
         return data;
     }
+    async function getJson(url) {
+        const res = await fetch(url, { headers: { Accept: 'application/json' } });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || (data.errors ? Object.values(data.errors)[0][0] : res.status));
+        return data;
+    }
 
     // ---- menu grid ----
     function renderCats() {
@@ -330,6 +336,10 @@ if (dataEl) {
         $('[data-tendered]').value = '';
         $('[data-change]').textContent = '';
         $('[data-pay-error]').classList.add('hidden');
+        if ($('[data-credit-phone]')) {
+            $('[data-credit-phone]').value = target ? '' : $('[data-customer-phone]').value.trim();
+            $('[data-credit-info]').textContent = T.enterPhone;
+        }
         const round = (n) => Math.ceil(total / n) * n;
         $('[data-quick]').innerHTML = [...new Set([Math.ceil(total), round(50), round(100), round(200)])]
             .map((v) => `<button type="button" class="btn-ghost min-h-9 px-3" data-quick-v="${v}">${v}</button>`).join('');
@@ -343,7 +353,28 @@ if (dataEl) {
             b.classList.toggle('ring-brand-500', b.dataset.method === m);
         });
         $('[data-cash-box]').classList.toggle('hidden', m !== 'cash');
+        $('[data-credit-box]')?.classList.toggle('hidden', m !== 'credit');
+        if (m === 'credit') $('[data-credit-phone]').value ? creditLookup() : $('[data-credit-phone]').focus();
     }
+
+    // ---- paying from the guest's prepaid balance: show it before confirming ----
+    async function creditLookup() {
+        const phone = $('[data-credit-phone]').value.trim();
+        const info = $('[data-credit-info]');
+        if (!phone) { info.textContent = T.enterPhone; return; }
+        try {
+            const c = await getJson(D.urls.walletLookup + '?phone=' + encodeURIComponent(phone));
+            $('[data-credit-phone]').value = c.phone;
+            const total = payTarget ? payTarget.total : totals().total;
+            info.innerHTML = !c.found ? `<span class="text-red-600">${esc(T.noWallet)}</span>`
+                : `${esc(c.name || c.phone)} · ${esc(T.balance.replace('__A__', fmt(c.balance)))}`
+                    + (c.balance + 0.001 < total ? `<div class="mt-1 text-red-600">${esc(T.notEnough.replace('__A__', fmt(c.balance)))}</div>` : '');
+        } catch (e) {
+            info.innerHTML = `<span class="text-red-600">${esc(e.message)}</span>`;
+        }
+    }
+    $('[data-credit-lookup]')?.addEventListener('click', creditLookup);
+    $('[data-credit-phone]')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); creditLookup(); } });
     $$('[data-method]').forEach((b) => b.addEventListener('click', () => setMethod(b.dataset.method)));
     function showChange() {
         const total = payTarget ? payTarget.total : totals().total;
@@ -360,13 +391,16 @@ if (dataEl) {
     $('[data-pay-confirm]').addEventListener('click', async () => {
         const err = $('[data-pay-error]');
         err.classList.add('hidden');
+        const creditPhone = method === 'credit' ? $('[data-credit-phone]').value.trim() : '';
+        if (method === 'credit' && !creditPhone) { err.textContent = T.enterPhone; err.classList.remove('hidden'); return; }
         try {
             if (payTarget) {
-                await api(D.urls.pay.replace('__ID__', payTarget.id), { method });
+                await api(D.urls.pay.replace('__ID__', payTarget.id), { method, phone: creditPhone || null });
                 payDialog.close();
                 $('[data-open-dialog]').close();
                 done({ id: payTarget.id, number: payTarget.number }, T.paid);
             } else {
+                if (creditPhone) $('[data-customer-phone]').value = creditPhone;
                 const order = await api(D.urls.order, payload(method));
                 payDialog.close();
                 done(order, T.paid);
@@ -376,6 +410,98 @@ if (dataEl) {
             err.classList.remove('hidden');
         }
     });
+
+    // ---- wallet: top-up and gift cards (taken through the open shift, like a sale) ----
+    if (D.walletManage) {
+        const pick = (attr, value) => $$(`[${attr}]`).forEach((b) => {
+            b.classList.toggle('ring-2', b.getAttribute(attr) === value);
+            b.classList.toggle('ring-brand-500', b.getAttribute(attr) === value);
+        });
+        const show = (el, text) => { el.textContent = text; el.classList.toggle('hidden', !text); };
+
+        const topup = $('[data-topup-dialog]');
+        let topupMethod = 'cash';
+        $('[data-topup-open]').addEventListener('click', () => {
+            ['[data-topup-phone]', '[data-topup-name]', '[data-topup-amount]'].forEach((s) => ($(s).value = ''));
+            ['[data-topup-info]', '[data-topup-error]', '[data-topup-done]'].forEach((s) => show($(s), ''));
+            topupMethod = 'cash';
+            pick('data-topup-method', 'cash');
+            topup.showModal();
+            $('[data-topup-phone]').focus();
+        });
+        async function topupLookup() {
+            const phone = $('[data-topup-phone]').value.trim();
+            if (!phone) return;
+            try {
+                const c = await getJson(D.urls.walletLookup + '?phone=' + encodeURIComponent(phone));
+                $('[data-topup-phone]').value = c.phone;
+                if (c.found && c.name) $('[data-topup-name]').value = c.name;
+                show($('[data-topup-info]'), c.found ? `${c.name || c.phone} · ${T.balance.replace('__A__', fmt(c.balance))}` : T.newGuest);
+            } catch (e) {
+                show($('[data-topup-info]'), e.message);
+            }
+        }
+        $('[data-topup-lookup]').addEventListener('click', topupLookup);
+        $('[data-topup-phone]').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); topupLookup(); } });
+        $$('[data-topup-quick]').forEach((b) => b.addEventListener('click', () => ($('[data-topup-amount]').value = b.dataset.topupQuick)));
+        $$('[data-topup-method]').forEach((b) => b.addEventListener('click', () => { topupMethod = b.dataset.topupMethod; pick('data-topup-method', topupMethod); }));
+        $('[data-topup-confirm]').addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            show($('[data-topup-error]'), '');
+            show($('[data-topup-done]'), '');
+            if (!$('[data-topup-phone]').value.trim()) return show($('[data-topup-error]'), T.enterPhone);
+            if (!(Number($('[data-topup-amount]').value) > 0)) return show($('[data-topup-error]'), T.enterAmount);
+            btn.disabled = true;
+            try {
+                const r = await api(D.urls.topup, {
+                    phone: $('[data-topup-phone]').value.trim(), name: $('[data-topup-name]').value.trim(),
+                    amount: Number($('[data-topup-amount]').value), method: topupMethod,
+                });
+                $('[data-topup-amount]').value = '';
+                const done = $('[data-topup-done]');
+                done.innerHTML = `${esc(T.topupDone.replace('__A__', fmt(r.balance)))} · <a href="${esc(r.receipt)}" target="_blank" class="underline" data-slip>${esc(T.printSlip)}</a>`;
+                done.classList.remove('hidden');
+                show($('[data-topup-info]'), `${r.name || r.phone} · ${T.balance.replace('__A__', fmt(r.balance))}`);
+            } catch (err) {
+                show($('[data-topup-error]'), err.message);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        const gift = $('[data-gift-dialog]');
+        let giftMethod = 'cash';
+        $('[data-gift-open]').addEventListener('click', () => {
+            ['[data-gift-amount]', '[data-gift-phone]', '[data-gift-message]'].forEach((s) => ($(s).value = ''));
+            show($('[data-gift-error]'), '');
+            giftMethod = 'cash';
+            pick('data-gift-method', 'cash');
+            gift.showModal();
+            $('[data-gift-amount]').focus();
+        });
+        $$('[data-gift-quick]').forEach((b) => b.addEventListener('click', () => ($('[data-gift-amount]').value = b.dataset.giftQuick)));
+        $$('[data-gift-method]').forEach((b) => b.addEventListener('click', () => { giftMethod = b.dataset.giftMethod; pick('data-gift-method', giftMethod); }));
+        $('[data-gift-confirm]').addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            show($('[data-gift-error]'), '');
+            if (!(Number($('[data-gift-amount]').value) > 0)) return show($('[data-gift-error]'), T.enterAmount);
+            btn.disabled = true;
+            const win = window.open('about:blank', '_blank', 'width=420,height=700'); // opened on the tap so it is not blocked
+            try {
+                const r = await api(D.urls.giftSell, {
+                    amount: Number($('[data-gift-amount]').value), method: giftMethod,
+                    recipient_phone: $('[data-gift-phone]').value.trim() || null, message: $('[data-gift-message]').value.trim() || null,
+                });
+                if (win) win.location = r.print; else window.open(r.print, '_blank');
+                gift.close();
+            } catch (err) {
+                win?.close();
+                show($('[data-gift-error]'), err.message);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    }
 
     // ---- open (unpaid) orders ----
     async function refreshOpen() {

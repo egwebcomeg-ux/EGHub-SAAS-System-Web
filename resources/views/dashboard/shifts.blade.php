@@ -2,7 +2,9 @@
 @section('title', __('Shifts'))
 
 @section('content')
-@php($methods = ['cash' => __('Cash'), 'card' => __('Card'), 'instapay' => 'InstaPay', 'wallet' => __('Mobile wallet')])
+@php
+    $methods = ['cash' => __('Cash'), 'card' => __('Card'), 'instapay' => 'InstaPay', 'wallet' => __('Mobile wallet'), 'credit' => __('Wallet balance')];
+@endphp
 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
     <h1 class="page-title">{{ __('Shifts') }}</h1>
     @can('pos.use')<a href="{{ route('dash.pos') }}" class="btn-primary">{{ __('Go to POS') }}</a>@endcan
@@ -32,7 +34,11 @@
             <table class="table-base mt-4">
                 <tbody>
                 @foreach ($methods as $key => $label)
+                    @continue($key === 'credit' && empty($summary['by_method']['credit']))
                     <tr><td>{{ $label }}</td><td class="text-end font-semibold">{{ money($summary['by_method'][$key]) }}</td></tr>
+                @endforeach
+                @foreach ($summary['prepaid'] as $key => $amount)
+                    <tr><td>{{ __('Wallet top-ups & gift cards') }} · {{ $methods[$key] ?? $key }}</td><td class="text-end font-semibold text-emerald-700">+{{ money($amount) }}</td></tr>
                 @endforeach
                 <tr><td>{{ __('Cash in') }}</td><td class="text-end font-semibold text-emerald-700">+{{ money($summary['cash_in']) }}</td></tr>
                 <tr><td>{{ __('Cash out') }}</td><td class="text-end font-semibold text-red-600">−{{ money($summary['cash_out']) }}</td></tr>
@@ -41,7 +47,7 @@
             @if ($movements->isNotEmpty())
                 <ul class="mt-4 space-y-1 text-sm">
                     @foreach ($movements as $m)
-                        <li class="flex justify-between"><span>{{ local_time($m->created_at, 'h:i A') }} · {{ $m->reason }}</span><b @class(['text-emerald-700' => $m->type === 'in', 'text-red-600' => $m->type === 'out'])>{{ $m->type === 'in' ? '+' : '−' }}{{ money($m->amount) }}</b></li>
+                        <li class="flex justify-between"><span>{{ local_time($m->created_at, 'h:i A') }} · {{ $m->reason }}@if ($m->method && $m->method !== 'cash') · {{ $methods[$m->method] ?? $m->method }}@endif</span><b @class(['text-emerald-700' => $m->type !== 'out', 'text-red-600' => $m->type === 'out'])>{{ $m->type === 'out' ? '−' : '+' }}{{ money($m->amount) }}</b></li>
                     @endforeach
                 </ul>
             @endif

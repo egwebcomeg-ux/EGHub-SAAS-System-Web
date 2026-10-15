@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Menu;
 
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use App\Models\Customer;
 use App\Models\DeliveryZone;
 use App\Models\Order;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use App\Services\Settings;
+use App\Services\Wallet\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -42,7 +44,18 @@ class OrderController extends Controller
             'zone_id' => 'nullable|integer',
             'address' => 'nullable|string|max:300',
             'scheduled_for' => 'nullable|date',
+            'pay_wallet' => 'nullable|boolean',
         ]);
+
+        // "Pay from my balance": only the guest whose card this phone holds (card link cookie), with their own number
+        $data['pay_wallet'] = $request->boolean('pay_wallet');
+        if ($data['pay_wallet']) {
+            $token = $request->cookie('card_'.tenant()->getTenantKey());
+            $guest = WalletService::enabled() && is_string($token) ? Customer::query()->where('card_token', $token)->first() : null;
+            if (! $guest || normalize_phone((string) ($data['customer_phone'] ?? '')) !== $guest->phone) {
+                return response()->json(['message' => __('Open your card link on this phone and order with its mobile number to pay from your balance.')], 422);
+            }
+        }
 
         $table = MenuController::currentTable($request);
         try {

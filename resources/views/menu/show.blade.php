@@ -267,6 +267,15 @@
                 @endif
                 <textarea class="field min-h-16 py-2" maxlength="500" data-order-notes placeholder="{{ __('Notes for the order') }}"></textarea>
             </div>
+            @if ($data['wallet'])
+                <label class="mt-3 flex items-center gap-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900 ring-1 ring-emerald-200">
+                    <input type="checkbox" class="size-5 shrink-0 accent-emerald-600" data-pay-wallet>
+                    <span>
+                        <b class="block">{{ __('You have a balance of :amount', ['amount' => money($data['wallet']['balance']) . ' ' . $data['currency']]) }}</b>
+                        <span class="block" data-wallet-note>{{ __('Pay from my balance') }}</span>
+                    </span>
+                </label>
+            @endif
             <p class="mt-3 hidden rounded-xl bg-red-50 p-3 text-sm text-red-700" data-order-error></p>
             <button type="button" class="m-primary mt-4 min-h-14 w-full rounded-2xl text-lg font-bold" data-send-order>{{ __('Send order') }}</button>
         @endif
@@ -285,6 +294,7 @@
         'deliveryFee' => __('Delivery fee'), 'minOrder' => __('Minimum order for this zone: :amount', ['amount' => '__A__']),
         'chooseZone' => __('Choose your area'), 'enterAddress' => __('Write the delivery address.'),
         'phoneRequired' => __('Enter your mobile number so the restaurant can reach you.'),
+        'payFromBalance' => __('Pay from my balance'), 'notEnoughBalance' => __('Not enough balance for this order.'),
     ];
 @endphp
 <script type="application/json" id="menu-i18n">{!! json_encode($i18n, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>

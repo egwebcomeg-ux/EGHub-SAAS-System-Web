@@ -31,6 +31,7 @@ use App\Http\Controllers\Dashboard\StationsController;
 use App\Http\Controllers\Dashboard\TablesController;
 use App\Http\Controllers\Dashboard\TvScreensController;
 use App\Http\Controllers\Dashboard\UsersController;
+use App\Http\Controllers\Dashboard\WalletController;
 use Illuminate\Support\Facades\Route;
 
 // app.<domain> — restaurant dashboard. The tenant is the logged-in user's restaurant (InitializeTenancyFromUser).
@@ -255,5 +256,19 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/kitchen/stations', [StationsController::class, 'store'])->name('stations.store');
         Route::post('/kitchen/stations/assign', [StationsController::class, 'assign'])->name('stations.assign');
         Route::post('/kitchen/stations/{station}/delete', [StationsController::class, 'destroy'])->name('stations.delete');
+    });
+
+    // Prepaid wallet & gift cards: the page, and the POS actions (top-up, gift card sale) through the cashier's shift
+    Route::middleware('feature:wallet')->group(function () {
+        Route::get('/wallet/customer', [WalletController::class, 'lookup'])->middleware('permission:wallet.manage|pos.use')->name('wallet.lookup');
+        Route::middleware('permission:wallet.manage')->group(function () {
+            Route::get('/wallet', [WalletController::class, 'index'])->name('wallet');
+            Route::post('/wallet/topup', [WalletController::class, 'topUp'])->name('wallet.topup');
+            Route::get('/wallet/topups/{tx}', [WalletController::class, 'receipt'])->whereNumber('tx')->name('wallet.receipt');
+            Route::post('/wallet/gift-cards', [WalletController::class, 'sellGift'])->name('wallet.gift.sell');
+            Route::get('/wallet/gift-cards/{card}/print', [WalletController::class, 'printGift'])->whereNumber('card')->name('wallet.gift.print');
+            Route::post('/wallet/gift-cards/{card}/void', [WalletController::class, 'voidGift'])->whereNumber('card')->name('wallet.gift.void');
+            Route::post('/wallet/customers/{customer}/adjust', [WalletController::class, 'adjust'])->whereNumber('customer')->name('wallet.adjust');
+        });
     });
 });
