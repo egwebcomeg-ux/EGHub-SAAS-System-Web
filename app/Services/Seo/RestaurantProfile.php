@@ -203,11 +203,11 @@ final class RestaurantProfile
             'inLanguage' => app()->getLocale(),
             'hasMenuSection' => $categories->map(fn (Category $c) => [
                 '@type' => 'MenuSection',
-                'name' => tr($c->name, $c->name_en),
+                'name' => tx($c, 'name'),
                 'hasMenuItem' => $c->items->map(fn (MenuItem $i) => array_filter([
                     '@type' => 'MenuItem',
                     'name' => $i->displayName(),
-                    'description' => trim((string) tr($i->description, $i->description_en)) ?: null,
+                    'description' => trim(tx($i, 'description')) ?: null,
                     'image' => $this->imageUrl($i->image),
                     'offers' => ['@type' => 'Offer', 'price' => number_format((float) $i->price, 2, '.', ''), 'priceCurrency' => 'EGP'],
                 ]))->values()->all(),

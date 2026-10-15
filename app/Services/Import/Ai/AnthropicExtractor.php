@@ -8,11 +8,9 @@ use Anthropic\Core\Exceptions\APIStatusException;
 use App\Services\Import\MenuDraft;
 
 /** Claude through the official Anthropic PHP SDK, with structured output (the reply is valid JSON for the schema). */
-final class AnthropicExtractor implements MenuExtractor
+final class AnthropicExtractor implements JsonCompleter, MenuExtractor
 {
-    public function __construct(private readonly string $key, private readonly string $model)
-    {
-    }
+    public function __construct(private readonly string $key, private readonly string $model) {}
 
     public function extract(array $files): array
     {
@@ -44,6 +42,25 @@ final class AnthropicExtractor implements MenuExtractor
             }
         }
         throw new AiException(__('The AI returned no menu. Try clearer photos.'));
+    }
+
+    public function complete(string $prompt, array $schema, int $maxTokens = 8000): array
+    {
+        $message = $this->call(fn (Client $c) => $c->messages->create(
+            model: $this->model,
+            maxTokens: $maxTokens,
+            messages: [['role' => 'user', 'content' => $prompt]],
+            outputConfig: ['effort' => 'low', 'format' => ['type' => 'json_schema', 'schema' => $schema]],
+        ));
+        if ($message->stopReason === 'max_tokens') {
+            throw new AiException(__('The AI reply was cut short. Try again.'));
+        }
+        foreach ($message->content as $block) {
+            if ($block->type === 'text') {
+                return (array) json_decode($block->text, true);
+            }
+        }
+        throw new AiException(__('The AI returned an empty reply. Try again.'));
     }
 
     public function ping(): void

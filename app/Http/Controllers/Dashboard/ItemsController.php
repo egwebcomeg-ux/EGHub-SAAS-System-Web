@@ -3,11 +3,17 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\TranslateMenu;
 use App\Models\Category;
+use App\Models\ItemOption;
 use App\Models\MenuItem;
+use App\Models\MenuTranslation;
 use App\Services\Audit;
 use App\Services\Entitlements;
 use App\Services\ImageService;
+use App\Services\Import\Ai\AiProviders;
+use App\Services\Menu\MenuTranslations;
+use App\Support\MenuLocales;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,11 +33,17 @@ class ItemsController extends Controller
             ->get();
 
         $rights = Entitlements::current();
+        $extraLocales = MenuLocales::enabled();
 
         return view('dashboard.menu.index', [
             'categories' => $categories, 'q' => $q,
             'canAdd' => $rights->canAdd('menu_items'),
             'usage' => ['used' => $rights->usage('menu_items'), 'limit' => $rights->limit('menu_items')],
+            'extraLocales' => $extraLocales,
+            'categoryTranslations' => $extraLocales ? MenuTranslation::query()->where('translatable_type', 'category')->get()
+                ->groupBy('translatable_id')->map(fn ($rows) => $rows->mapWithKeys(fn ($t) => [$t->locale => ['name' => $t->name, 'description' => (string) $t->description]])->all())->all() : [],
+            'translation' => $extraLocales ? TranslateMenu::status() : null,
+            'aiReady' => AiProviders::configured(),
         ]);
     }
 
@@ -47,6 +59,8 @@ class ItemsController extends Controller
             'categories' => Category::query()->orderBy('sort_order')->get(),
             'upsell' => Entitlements::current()->allows('upsell'),
             'allItems' => MenuItem::query()->orderBy('name')->get(['id', 'name', 'price']),
+            'extraLocales' => MenuLocales::enabled(),
+            'translations' => [],
         ]);
     }
 
@@ -57,6 +71,8 @@ class ItemsController extends Controller
             'categories' => Category::query()->orderBy('sort_order')->get(),
             'upsell' => Entitlements::current()->allows('upsell'),
             'allItems' => MenuItem::query()->whereKeyNot($item->id)->orderBy('name')->get(['id', 'name', 'price']),
+            'extraLocales' => MenuLocales::enabled(),
+            'translations' => MenuTranslations::of($item),
         ]);
     }
 
@@ -88,6 +104,10 @@ class ItemsController extends Controller
     public function destroy(MenuItem $item, ImageService $images): RedirectResponse
     {
         $images->delete($item->image);
+        $groups = $item->optionGroups()->pluck('id')->all();
+        MenuTranslations::forget('option', ItemOption::query()->whereIn('item_option_group_id', $groups)->pluck('id')->all());
+        MenuTranslations::forget('group', $groups);
+        MenuTranslations::forget('item', [$item->id]);
         $item->delete();
         Audit::record('item.deleted', $item->name, ['id' => $item->id]);
 
@@ -144,6 +164,10 @@ class ItemsController extends Controller
             'combo' => 'array|max:10',
             'combo.*.item_id' => ['nullable', Rule::exists('menu_items', 'id')->where('tenant_id', $tenant)],
             'combo.*.qty' => 'nullable|integer|min:1|max:10',
+            // extra menu languages: tr[fr][name], tr[fr][description]
+            'tr' => 'array',
+            'tr.*.name' => 'nullable|string|max:100',
+            'tr.*.description' => 'nullable|string|max:500',
         ]);
 
         DB::transaction(function () use ($request, $item, $images, $data) {
@@ -173,7 +197,22 @@ class ItemsController extends Controller
                     ->mapWithKeys(fn ($c) => [(int) $c['item_id'] => $pivot + ['quantity' => (int) ($c['qty'] ?? 1)]])->all());
             }
 
+            if ($request->has('tr')) {
+                MenuTranslations::save($item, $data['tr'] ?? []);
+            }
+
             // Option groups are replaced as a whole; past orders keep their own snapshot of names and prices.
+            // Their extra-language texts move to the new rows with the same Arabic names.
+            $oldGroups = $item->optionGroups()->with('options')->get();
+            $oldGroupNames = $oldGroups->pluck('name', 'id')->all();
+            $oldOptionNames = [];
+            foreach ($oldGroups as $oldGroup) {
+                foreach ($oldGroup->options as $oldOption) {
+                    $oldOptionNames[$oldOption->id] = $oldGroup->name."\x1F".$oldOption->name;
+                }
+            }
+            $newGroupIds = [];
+            $newOptionIds = [];
             $item->optionGroups()->delete();
             foreach (array_values($data['groups'] ?? []) as $gi => $g) {
                 $group = $item->optionGroups()->create([
@@ -181,13 +220,16 @@ class ItemsController extends Controller
                     'is_required' => ! empty($request->input("groups.$gi.is_required")) || false,
                     'max_choices' => $g['type'] === 'multiple' ? ($g['max_choices'] ?? null) : null, 'sort_order' => $gi,
                 ]);
+                $newGroupIds[$group->name] ??= $group->id;
                 foreach (array_values($g['options']) as $oi => $o) {
-                    $group->options()->create([
+                    $option = $group->options()->create([
                         'name' => $o['name'], 'name_en' => $o['name_en'] ?? '', 'price' => $o['price'] ?? 0, 'sort_order' => $oi,
                         'is_default' => $oi === 0 && $g['type'] === 'single',
                     ]);
+                    $newOptionIds[$group->name."\x1F".$option->name] ??= $option->id;
                 }
             }
+            MenuTranslations::carryOver($oldGroupNames, $oldOptionNames, $newGroupIds, $newOptionIds);
         });
     }
 }

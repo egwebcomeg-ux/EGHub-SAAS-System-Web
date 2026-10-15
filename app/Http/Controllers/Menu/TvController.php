@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Menu;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\MenuItem;
+use App\Models\MenuTranslation;
 use App\Models\TvScreen;
 use App\Services\Entitlements;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Settings;
+use App\Support\MenuLocales;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 /**
@@ -22,6 +25,7 @@ class TvController extends Controller
     {
         $screen = $this->screen($token);
         $board = $this->board($screen);
+
         return view('menu.tv', [
             'screen' => $screen, 'categories' => $board, 'settings' => Settings::all(),
             'version' => $this->fingerprint($screen, $board),
@@ -31,16 +35,18 @@ class TvController extends Controller
     public function version(string $token): JsonResponse
     {
         $screen = $this->screen($token);
+
         return response()->json(['v' => $this->fingerprint($screen, $this->board($screen))]);
     }
 
     private function screen(string $token): TvScreen
     {
         abort_unless(Entitlements::current()->allows('tv_screens'), 404);
+
         return TvScreen::query()->where('token', $token)->where('is_active', true)->firstOrFail();
     }
 
-    /** @return \Illuminate\Support\Collection<int, Category> */
+    /** @return Collection<int, Category> */
     private function board(TvScreen $screen)
     {
         $branch = $screen->branch_id ? $screen->branch()->where('is_active', true)->first() : null;
@@ -49,6 +55,7 @@ class TvController extends Controller
             $order = array_flip(array_map('intval', $screen->category_ids));
             $categories = $categories->filter(fn (Category $c) => isset($order[$c->id]))->values();
         }
+
         return $categories;
     }
 
@@ -58,6 +65,10 @@ class TvController extends Controller
             $i->id, $i->name, $i->name_en, $i->description, $i->price, $i->is_sold_out, $i->image, $i->getAttribute('offer_percent'),
         ])]);
         $settings = Settings::all();
-        return md5(json_encode([$data, $screen->updated_at?->timestamp, $settings['brand_name'] ?? '', $settings['logo'] ?? '', $settings['color_primary'] ?? '']));
+        // shown in an extra language: a new or edited translation reloads the screen too
+        $translations = MenuLocales::current() ? [MenuLocales::current(), MenuTranslation::query()->where('locale', MenuLocales::current())->count(),
+            (string) MenuTranslation::query()->where('locale', MenuLocales::current())->max('updated_at')] : null;
+
+        return md5(json_encode([$data, $screen->updated_at?->timestamp, $settings['brand_name'] ?? '', $settings['logo'] ?? '', $settings['color_primary'] ?? '', $translations]));
     }
 }

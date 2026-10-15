@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Tenant;
 use App\Services\Settings;
+use App\Support\MenuLocales;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
@@ -57,7 +58,7 @@ class IdentifyTenantBySubdomain
 
     /**
      * The address search engines should index for this page, read by layouts.base: the same page on the custom
-     * domain when active, else on egmenu.app/{tenant}. Only ?branch and ?lang=en change the content, so only they
+     * domain when active, else on egmenu.app/{tenant}. Only ?branch and ?lang (en or an extra language) change the content, so only they
      * are kept. Private pages (order tracking, loyalty cards, screens) are marked noindex instead.
      */
     protected function markCanonical(Request $request, Tenant $tenant): void
@@ -70,25 +71,32 @@ class IdentifyTenantBySubdomain
         }
         $query = array_filter([
             'branch' => is_string($request->query('branch')) ? $request->query('branch') : null,
-            'lang' => $request->query('lang') === 'en' ? 'en' : null,
+            'lang' => $request->query('lang') === 'en' || (MenuLocales::current() && $request->query('lang') === MenuLocales::current())
+                ? $request->query('lang') : null,
         ]);
         $path = $this->relativePath($request);
         $request->attributes->set('canonical', $tenant->url($path.($query ? '?'.http_build_query($query) : '')));
     }
 
-    /** ?lang=en|ar switches and is remembered per restaurant; otherwise the restaurant's default language. */
+    /**
+     * ?lang=ar|en (or an extra language the restaurant enabled, MenuLocales) switches and is remembered per
+     * restaurant; otherwise the restaurant's default language. An extra language keeps the interface in English.
+     */
     protected function applyLocale(Request $request, Tenant $tenant): void
     {
         $cookie = 'lang_'.$tenant->id;
+        $available = MenuLocales::available();
         $lang = $request->query('lang');
-        if (in_array($lang, ['ar', 'en'], true)) {
+        if (is_string($lang) && in_array($lang, $available, true)) {
             cookie()->queue($cookie, $lang, 60 * 24 * 365);
         } else {
             $lang = $request->cookie($cookie);
         }
-        if ($lang === 'en' && Settings::get('english_enabled') !== '1') {
-            $lang = null;
+        if (! is_string($lang) || ! in_array($lang, $available, true)) {
+            $lang = Settings::get('default_locale', 'ar');
         }
-        app()->setLocale(in_array($lang, ['ar', 'en'], true) ? $lang : Settings::get('default_locale', 'ar'));
+        $extra = in_array($lang, MenuLocales::codes(), true) ? $lang : null;
+        MenuLocales::use($extra);
+        app()->setLocale($extra ? 'en' : ($lang === 'en' ? 'en' : 'ar'));
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Services\ImageService;
+use App\Services\Menu\MenuTranslations;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,7 @@ class CategoriesController extends Controller
             $data['image'] = $images->store($request->file('image'), 'category');
         }
         Category::query()->create($data);
+
         return back()->with('ok', __('Category added.'));
     }
 
@@ -31,6 +33,14 @@ class CategoriesController extends Controller
             $data['image'] = $images->store($request->file('image'), 'category');
         }
         $category->update($data);
+        if ($request->has('tr')) {
+            MenuTranslations::save($category, $request->validate([
+                'tr' => 'array',
+                'tr.*.name' => 'nullable|string|max:80',
+                'tr.*.description' => 'nullable|string|max:200',
+            ])['tr']);
+        }
+
         return back()->with('ok', __('Category saved.'));
     }
 
@@ -41,6 +51,8 @@ class CategoriesController extends Controller
         }
         $images->delete($category->image);
         $category->delete();
+        MenuTranslations::forget('category', [$category->id]);
+
         return back()->with('ok', __('Category deleted.'));
     }
 
@@ -51,6 +63,7 @@ class CategoriesController extends Controller
         foreach ($ids as $i => $id) {
             Category::query()->whereKey($id)->update(['sort_order' => $i]);
         }
+
         return response()->json(['ok' => true]);
     }
 
@@ -58,11 +71,11 @@ class CategoriesController extends Controller
     private function validated(Request $request): array
     {
         return $request->validate([
-            'name'           => 'required|string|max:80',
-            'name_en'        => 'nullable|string|max:80',
-            'description'    => 'nullable|string|max:200',
+            'name' => 'required|string|max:80',
+            'name_en' => 'nullable|string|max:80',
+            'description' => 'nullable|string|max:200',
             'description_en' => 'nullable|string|max:200',
-            'image'          => 'nullable|file|max:5120',
+            'image' => 'nullable|file|max:5120',
         ]) + ['name_en' => '', 'description' => '', 'description_en' => ''];
     }
 }

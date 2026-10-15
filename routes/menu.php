@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Menu\BoardController;
 use App\Http\Controllers\Menu\FeedbackController;
+use App\Http\Controllers\Menu\ItemViewController;
 use App\Http\Controllers\Menu\LoyaltyCardController;
 use App\Http\Controllers\Menu\MenuController;
 use App\Http\Controllers\Menu\OrderController;
@@ -39,3 +40,6 @@ Route::post('/feedback', [FeedbackController::class, 'store'])->middleware('thro
 // popup impressions / clicks (counters only, no personal data)
 Route::post('/popups/{popup}/{event}', [MenuController::class, 'popupEvent'])->whereIn('event', ['view', 'click'])
     ->whereNumber('popup')->middleware('throttle:30,1')->name('popup.event');
+
+// item sheet opened (counter for the advanced reports: viewed vs ordered)
+Route::post('/i/{item}/view', [ItemViewController::class, 'store'])->whereNumber('item')->middleware('throttle:60,1')->name('item.view');

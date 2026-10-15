@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{ $lang === 'en' ? 'en' : 'ar' }}" dir="{{ $lang === 'en' ? 'ltr' : 'rtl' }}">
+<html lang="{{ $mainLang }}" dir="{{ \App\Support\MenuLocales::dir($mainLang) }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,11 +9,22 @@
     @php
         $primary = is_hex_color($settings['color_primary']) ? $settings['color_primary'] : '#E8642C';
         $secondary = is_hex_color($settings['color_secondary']) ? $settings['color_secondary'] : '#1E2D4F';
-        $currency = $lang === 'en' ? $settings['currency_en'] : $settings['currency'];
-        $name = fn ($ar, $en) => match ($lang) { 'en' => $en ?: $ar, 'ar' => $ar, default => $ar };
-        $sizePrices = function ($item) {
+        $currency = $mainLang === 'ar' ? $settings['currency'] : ($settings['currency_en'] ?: $settings['currency']);
+        // a menu row in one language: Arabic as typed; English (name falls back to Arabic); an extra language (then English, then Arabic)
+        $text = function ($model, string $field, ?string $locale) {
+            $ar = (string) $model->getAttribute($field);
+            $en = (string) $model->getAttribute($field.'_en');
+            $fallback = $field === 'name' ? ($en ?: $ar) : $en;
+            return match ($locale) {
+                null => '',
+                'ar' => $ar,
+                'en' => $fallback,
+                default => (string) \App\Services\Menu\MenuTranslations::text($model, $field, $locale) ?: $fallback,
+            };
+        };
+        $sizePrices = function ($item) use ($text, $mainLang) {
             $sizes = $item->optionGroups->first(fn ($g) => $g->type === 'single' && $g->is_required);
-            return $sizes ? $sizes->options->map(fn ($o) => [tr($o->name, $o->name_en), $item->price + $o->price])->all() : [['', $item->price]];
+            return $sizes ? $sizes->options->map(fn ($o) => [$text($o, 'name', $mainLang), $item->price + $o->price])->all() : [['', $item->price]];
         };
     @endphp
     <style>
@@ -63,6 +74,10 @@
                 <option value="both" @selected($lang === 'both')>{{ __('Arabic + English') }}</option>
                 <option value="ar" @selected($lang === 'ar')>العربية</option>
                 <option value="en" @selected($lang === 'en')>English</option>
+                @foreach ($extraLocales as $code)
+                    <option value="ar-{{ $code }}" @selected($lang === 'ar-'.$code)>العربية + {{ \App\Support\MenuLocales::native($code) }}</option>
+                    <option value="{{ $code }}" @selected($lang === $code)>{{ \App\Support\MenuLocales::native($code) }}</option>
+                @endforeach
             </select></div>
         @if ($branches->count() > 1)
             <div><label class="field-label">{{ __('Branch prices') }}</label>
@@ -81,8 +96,8 @@
         @if ($p === 1)
             <header class="top">
                 <div>
-                    <h1>{{ $lang === 'en' ? ($settings['brand_name_en'] ?: $settings['brand_name']) : $settings['brand_name'] }}</h1>
-                    @if ($t = $lang === 'en' ? $settings['tagline_en'] : $settings['tagline'])<p>{{ $t }}</p>@endif
+                    <h1>{{ $mainLang !== 'ar' ? ($settings['brand_name_en'] ?: $settings['brand_name']) : $settings['brand_name'] }}</h1>
+                    @if ($t = $mainLang !== 'ar' ? $settings['tagline_en'] : $settings['tagline'])<p>{{ $t }}</p>@endif
                 </div>
                 @if ($settings['logo'])<img src="/storage/{{ $settings['logo'] }}" alt="" style="height: 20mm">@endif
             </header>
@@ -108,7 +123,7 @@
 <div id="pool">
     @foreach ($categories as $c)
         <section class="cat">
-            <div class="cat-head"><span>{{ $name($c->name, $c->name_en) }}</span>@if ($lang === 'both' && $c->name_en)<span class="en" dir="ltr">{{ $c->name_en }}</span>@endif</div>
+            <div class="cat-head"><span>{{ $text($c, 'name', $mainLang) }}</span>@if (($second = $text($c, 'name', $secondLang)) && $second !== $text($c, 'name', $mainLang))<span class="en" dir="{{ \App\Support\MenuLocales::dir($secondLang) }}">{{ $second }}</span>@endif</div>
             @foreach ($c->items as $item)
                 @php
                     $prices = $sizePrices($item);
@@ -117,15 +132,15 @@
                     @if ($template === 'photos' && $item->image)<img src="/storage/{{ $item->image }}" alt="">@endif
                     <div class="body">
                         <div class="line">
-                            <span>{{ $name($item->name, $item->name_en) }}</span>
+                            <span>{{ $text($item, 'name', $mainLang) }}</span>
                             <span class="dots"></span>
                             @if (count($prices) === 1)<span class="price">{{ money($prices[0][1]) }}</span>@endif
                         </div>
-                        @if ($lang === 'both' && $item->name_en)<div class="en" dir="ltr">{{ $item->name_en }}</div>@endif
+                        @if (($second = $text($item, 'name', $secondLang)) && $second !== $text($item, 'name', $mainLang))<div class="en" dir="{{ \App\Support\MenuLocales::dir($secondLang) }}">{{ $second }}</div>@endif
                         @if (count($prices) > 1)
                             <div class="sizes">@foreach ($prices as [$size, $price]){{ $size }} <b class="price">{{ money($price) }}</b>@if (!$loop->last) · @endif @endforeach</div>
                         @endif
-                        @if ($desc && ($d = $lang === 'en' ? $item->description_en : $item->description))<div class="desc">{{ $d }}</div>@endif
+                        @if ($desc && ($d = $text($item, 'description', $mainLang)))<div class="desc">{{ $d }}</div>@endif
                     </div>
                 </div>
             @endforeach

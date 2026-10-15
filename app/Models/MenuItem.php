@@ -71,8 +71,9 @@ class MenuItem extends TenantModel
             ->map(fn ($k) => ['key' => $k, 'icon' => self::TAGS[$k][0], 'label' => self::TAGS[$k][$en ? 2 : 1]])->all();
     }
 
+    /** Name for the current language, including an extra menu language (see tx()). */
     public function displayName(): string
     {
-        return app()->getLocale() === 'en' && $this->name_en !== '' ? $this->name_en : $this->name;
+        return tx($this, 'name');
     }
 }

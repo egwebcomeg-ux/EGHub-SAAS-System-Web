@@ -1,5 +1,5 @@
 {{-- Grid: photo-first cards, two per row. --}}
-<button type="button" data-item="{{ $item->id }}" data-search-text="{{ mb_strtolower($item->name . ' ' . $item->name_en . ' ' . $item->description) }}"
+<button type="button" data-item="{{ $item->id }}" data-search-text="{{ mb_strtolower($item->name . ' ' . $item->name_en . ' ' . $item->description . ' ' . $item->displayName()) }}"
     @class(['m-card flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-white text-start shadow-sm transition active:scale-[.98]', 'opacity-60' => $item->is_sold_out])>
     @if ($item->image)
         <img src="/storage/{{ $item->image }}" alt="" loading="lazy" class="aspect-square w-full object-cover">

@@ -38,7 +38,7 @@
                 <div class="h-full gap-[2vw]" style="{{ $screen->layout === 'rotate' ? 'display:grid;align-items:start;grid-template-columns:repeat(' . $cols . ',minmax(0,1fr))' : 'column-count:' . $cols }}" data-fit>
                     @foreach ($pageCategories as $c)
                         <section class="tv-card mb-[2vh] break-inside-avoid rounded-3xl p-[1.6vh_1.4vw]">
-                            <h2 class="tv-price mb-[1vh] text-[1.3em] font-extrabold">{{ tr($c->name, $c->name_en) }}</h2>
+                            <h2 class="tv-price mb-[1vh] text-[1.3em] font-extrabold">{{ tx($c, 'name') }}</h2>
                             <ul class="space-y-[0.9vh]">
                                 @foreach ($c->items as $item)
                                     <li @class(['flex items-center gap-3', 'opacity-40' => $item->is_sold_out])>
@@ -47,8 +47,8 @@
                                         @endif
                                         <div class="min-w-0 flex-1">
                                             <div class="font-bold leading-tight">{{ $item->displayName() }}</div>
-                                            @if (tr((string) $item->description, (string) $item->description_en))
-                                                <div class="tv-muted truncate text-[.7em]">{{ tr((string) $item->description, (string) $item->description_en) }}</div>
+                                            @if (tx($item, 'description'))
+                                                <div class="tv-muted truncate text-[.7em]">{{ tx($item, 'description') }}</div>
                                             @endif
                                         </div>
                                         <div class="flex shrink-0 items-baseline gap-2">

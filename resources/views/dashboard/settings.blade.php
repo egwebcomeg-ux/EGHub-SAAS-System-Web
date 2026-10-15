@@ -94,6 +94,35 @@
         <label class="flex items-center gap-2 self-end text-sm font-semibold"><input type="checkbox" name="english_enabled" value="1" @checked($s['english_enabled'] === '1') class="size-4 accent-brand-600"> {{ __('Show English menu') }}</label>
     </section>
 
+    @if ($extraLanguages)
+        <section class="card space-y-3" id="languages">
+            <div>
+                <h2 class="text-lg font-bold">{{ __('Extra menu languages') }}</h2>
+                <p class="text-sm text-navy-500">{{ __('Guests pick the language from the menu. Items without a translation show in English, then Arabic.') }}</p>
+            </div>
+            @php
+                $chosenLocales = old('menu_locales', \App\Support\MenuLocales::parse($s['menu_locales']));
+            @endphp
+            <input type="hidden" name="menu_locales_sent" value="1">
+            <div class="flex flex-wrap gap-2">
+                @foreach (\App\Support\MenuLocales::ALL as $code => [$native])
+                    <label class="flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border border-navy-100 px-3 text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+                        <input type="checkbox" name="menu_locales[]" value="{{ $code }}" class="accent-brand-600" @checked(in_array($code, (array) $chosenLocales, true))>
+                        <span lang="{{ $code }}">{{ $native }}</span> <span class="text-navy-500">· {{ \App\Support\MenuLocales::label($code) }}</span>
+                    </label>
+                @endforeach
+            </div>
+            <p class="text-xs text-navy-500">{{ __('Write the translations on each item, or fill them all at once with AI from the menu page.') }}</p>
+        </section>
+    @endif
+
+    @if ($advancedReports)
+        <section class="card" id="weekly-report">
+            <h2 class="text-lg font-bold">{{ __('Weekly report') }}</h2>
+            <label class="mt-2 flex items-center gap-2 text-sm font-semibold"><input type="hidden" name="weekly_report_email" value="0"><input type="checkbox" name="weekly_report_email" value="1" @checked($s['weekly_report_email'] === '1') class="size-4 accent-brand-600"> {{ __('Email the owners last week\'s numbers every Monday at 8 AM') }}</label>
+        </section>
+    @endif
+
     <section class="card grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <h2 class="text-lg font-bold sm:col-span-2 lg:col-span-4">{{ __('Ordering') }}</h2>
         <label class="flex items-center gap-2 text-sm font-semibold sm:col-span-2 lg:col-span-4"><input type="checkbox" name="ordering_enabled" value="1" @checked($s['ordering_enabled'] === '1') class="size-4 accent-brand-600"> {{ __('Guests can order from the table QR') }}</label>

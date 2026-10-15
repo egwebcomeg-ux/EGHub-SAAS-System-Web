@@ -54,6 +54,10 @@
             <p class="mb-4 text-sm text-navy-500">{{ __('Example: "Size" (choose one, required) with Small +0 / Large +15, or "Extras" (choose many) with Extra shot +10.') }}</p>
             <div class="space-y-4" data-groups data-initial='@json(array_values($groups))'></div>
         </section>
+
+        @if ($extraLocales)
+            @include('dashboard.menu.partials.translations', ['translations' => $translations, 'descriptionMax' => 500])
+        @endif
     </div>
 
     <div class="space-y-4">

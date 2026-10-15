@@ -43,9 +43,7 @@
             @if ($t = tr($settings['tagline'], $settings['tagline_en']))<p class="truncate text-sm text-white/75">{{ $t }}</p>@endif
             <a href="{{ route('menu.about') }}" class="text-xs font-semibold text-white/80 underline underline-offset-2" data-about-link>{{ __('About the place') }}</a>
         </div>
-        @if ($settings['english_enabled'] === '1')
-            <a href="?lang={{ app()->getLocale() === 'ar' ? 'en' : 'ar' }}" class="shrink-0 rounded-full border border-white/30 px-3 py-1.5 text-sm font-semibold">{{ app()->getLocale() === 'ar' ? 'EN' : 'ع' }}</a>
-        @endif
+        @include('menu.partials.lang-switch')
     </div>
     @if ($table)
         <div class="mx-auto max-w-2xl px-4 pb-4">
@@ -64,7 +62,7 @@
     <nav class="sticky top-0 z-20 border-b border-black/5 bg-white/95 backdrop-blur" data-cat-nav>
         <div class="mx-auto flex max-w-2xl gap-2 overflow-x-auto px-4 py-3">
             @foreach ($categories as $c)
-                <a href="#cat-{{ $c->id }}" data-cat-link="cat-{{ $c->id }}" class="shrink-0 rounded-full bg-navy-50 px-4 py-2 text-sm font-semibold transition">{{ tr($c->name, $c->name_en) }}</a>
+                <a href="#cat-{{ $c->id }}" data-cat-link="cat-{{ $c->id }}" class="shrink-0 rounded-full bg-navy-50 px-4 py-2 text-sm font-semibold transition">{{ tx($c, 'name') }}</a>
             @endforeach
         </div>
         <div class="mx-auto max-w-2xl px-4 pb-3">
@@ -101,8 +99,8 @@
 
     @forelse ($categories as $c)
         <section id="cat-{{ $c->id }}" class="mb-8 scroll-mt-36" data-category>
-            <h2 class="mb-1 text-xl font-extrabold" style="color: var(--menu-secondary)">{{ tr($c->name, $c->name_en) }}</h2>
-            @if ($d = tr($c->description, $c->description_en))<p class="mb-3 text-sm text-navy-500">{{ $d }}</p>@endif
+            <h2 class="mb-1 text-xl font-extrabold" style="color: var(--menu-secondary)">{{ tx($c, 'name') }}</h2>
+            @if ($d = tx($c, 'description'))<p class="mb-3 text-sm text-navy-500">{{ $d }}</p>@endif
             <div @class(['mt-3', 'grid grid-cols-2 gap-3' => $layout === 'grid', 'divide-y divide-black/10' => $layout === 'minimal', 'space-y-3' => in_array($layout, ['classic', 'cafe'], true)])>
                 @foreach ($c->items as $item)
                     @include('menu.items.' . $layout, ['item' => $item])

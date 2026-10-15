@@ -13,6 +13,7 @@ use App\Services\Settings;
 use App\Support\BusinessType;
 use App\Support\Cities;
 use App\Support\Cuisines;
+use App\Support\MenuLocales;
 use App\Support\MenuThemes;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,8 +30,11 @@ class SettingsController extends Controller
         return view('dashboard.settings', [
             's' => Settings::all(), 'fonts' => self::FONTS, 'branding' => Entitlements::current()->allows('full_branding'),
             'themes' => Entitlements::current()->allows('menu_themes'),
-            'ai' => Entitlements::current()->allows('ai_import'), 'providers' => AiProviders::PROVIDERS, 'aiKey' => AiProviders::masked(),
             'whatsapp' => Entitlements::current()->allows('whatsapp_notifications'),
+            // the AI key also translates the menu into the extra languages
+            'ai' => Entitlements::current()->allows('ai_import|extra_languages'), 'providers' => AiProviders::PROVIDERS, 'aiKey' => AiProviders::masked(),
+            'extraLanguages' => Entitlements::current()->allows('extra_languages'),
+            'advancedReports' => Entitlements::current()->allows('advanced_reports'),
         ]);
     }
 
@@ -71,9 +75,11 @@ class SettingsController extends Controller
             'wa_sender_name' => 'nullable|string|max:40',
             'logo' => 'nullable|file|max:5120',
             'cover' => 'nullable|file|max:5120',
+            'menu_locales' => 'nullable|array',
+            'menu_locales.*' => [Rule::in(MenuLocales::codes())],
         ]);
 
-        $values = collect($data)->except(['logo', 'cover', 'ai_key', 'cuisine'])->map(fn ($v) => (string) ($v ?? ''))->all();
+        $values = collect($data)->except(['logo', 'cover', 'ai_key', 'cuisine', 'menu_locales'])->map(fn ($v) => (string) ($v ?? ''))->all();
         $values['cuisine'] = implode(',', array_values(array_unique($data['cuisine'] ?? [])));
         $values['listed_in_directory'] = $request->boolean('listed_in_directory') ? '1' : '0';
         // the key is only replaced when a new one is typed, and is stored encrypted
@@ -101,6 +107,14 @@ class SettingsController extends Controller
         }
         if (($values['online_prep_minutes'] ?? '') === '') {
             unset($values['online_prep_minutes']);
+        }
+
+        // extra menu languages and the weekly report are only saved while their feature is on (the form sends them then)
+        if (Entitlements::current()->allows('extra_languages') && $request->boolean('menu_locales_sent')) {
+            $values['menu_locales'] = json_encode(array_values(array_intersect(MenuLocales::codes(), $data['menu_locales'] ?? [])));
+        }
+        if (Entitlements::current()->allows('advanced_reports') && $request->has('weekly_report_email')) {
+            $values['weekly_report_email'] = $request->boolean('weekly_report_email') ? '1' : '0';
         }
 
         if (! Entitlements::current()->allows('menu_themes')) {

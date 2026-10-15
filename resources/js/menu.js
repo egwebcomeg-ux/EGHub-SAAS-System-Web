@@ -85,6 +85,17 @@ if (dataEl) {
         $('[data-add-to-cart]', sheet).classList.toggle('hidden', soldOut);
         refreshSheetTotal();
         sheet.showModal();
+        countView(id);
+    }
+
+    // one anonymous "opened" count per item and page visit, for the restaurant's item reports
+    const viewed = new Set();
+    function countView(id) {
+        if (!M.viewUrl || viewed.has(id)) return;
+        viewed.add(id);
+        fetch(M.viewUrl.replace(/\/0\/view$/, `/${id}/view`), {
+            method: 'POST', keepalive: true, headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+        }).catch(() => {});
     }
 
     sheet.addEventListener('change', (e) => {

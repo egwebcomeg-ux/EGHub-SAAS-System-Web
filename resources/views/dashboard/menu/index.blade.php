@@ -16,6 +16,10 @@
     </div>
 </div>
 
+@if ($extraLocales)
+    @include('dashboard.menu.partials.translate-banner')
+@endif
+
 @if ($categories->isEmpty())
     <div class="card mb-4 flex flex-wrap items-center justify-between gap-3 bg-brand-50">
         <p class="font-semibold text-brand-700">{{ __('Starting from zero? Import your menu from Excel or a photo instead of typing it.') }}</p>
@@ -53,6 +57,9 @@
                             <input class="field" name="name" value="{{ $category->name }}" required maxlength="80">
                             <input class="field" name="name_en" value="{{ $category->name_en }}" maxlength="80" dir="ltr" placeholder="{{ __('Name (English)') }}">
                             <input class="field py-2" type="file" name="image" accept="image/jpeg,image/png,image/webp">
+                            @if ($extraLocales)
+                                @include('dashboard.menu.partials.translations', ['translations' => $categoryTranslations[$category->id] ?? [], 'descriptionMax' => 200, 'compact' => true])
+                            @endif
                             <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="is_active" value="1" @checked($category->is_active) class="size-4 accent-brand-600"> {{ __('Visible on the menu') }}</label>
                             <button class="btn-primary w-full">{{ __('Save') }}</button>
                         </form>

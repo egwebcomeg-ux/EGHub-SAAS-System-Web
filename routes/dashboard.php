@@ -19,6 +19,7 @@ use App\Http\Controllers\Dashboard\KitchenController;
 use App\Http\Controllers\Dashboard\LoyaltyController;
 use App\Http\Controllers\Dashboard\MarketingController;
 use App\Http\Controllers\Dashboard\MenuImportController;
+use App\Http\Controllers\Dashboard\MenuTranslationController;
 use App\Http\Controllers\Dashboard\OrdersController;
 use App\Http\Controllers\Dashboard\PasswordResetController;
 use App\Http\Controllers\Dashboard\PosController;
@@ -98,6 +99,10 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/menu/import/{import}', [MenuImportController::class, 'review'])->name('import.review');
         Route::get('/menu/import/{import}/status', [MenuImportController::class, 'status'])->name('import.status');
         Route::post('/menu/import/{import}/apply', [MenuImportController::class, 'apply'])->name('import.apply');
+
+        // extra menu languages: fill the missing translations with the restaurant's own AI key
+        Route::post('/menu/translate', [MenuTranslationController::class, 'start'])->middleware(['feature:extra_languages', 'throttle:6,1'])->name('menu.translate');
+        Route::get('/menu/translate/status', [MenuTranslationController::class, 'status'])->middleware('feature:extra_languages')->name('menu.translate.status');
     });
     Route::post('/menu/items/{item}/toggle', [ItemsController::class, 'toggle'])
         ->middleware('permission:menu.manage|menu.availability')->name('items.toggle');
@@ -135,6 +140,8 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::middleware(['feature:daily_reports', 'permission:reports.view'])->group(function () {
         Route::get('/reports', [ReportsController::class, 'index'])->name('reports');
         Route::get('/reports/export', [ReportsController::class, 'export'])->name('reports.export');
+        Route::get('/reports/export/{table}', [ReportsController::class, 'exportTable'])
+            ->whereIn('table', ['comparison', 'items', 'heatmap', 'branches', 'sources', 'types', 'guests'])->name('reports.export.table');
     });
 
     Route::get('/audit', [AuditController::class, 'index'])

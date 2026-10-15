@@ -62,6 +62,12 @@ final class Settings
         'wa_reservation_confirmed' => '0',
         'wa_loyalty_reward' => '0',
         'wa_sender_name' => '',
+        // extra menu languages (feature extra_languages): JSON list of App\Support\MenuLocales codes
+        'menu_locales' => '[]',
+        // progress of the AI translation of the whole menu (App\Jobs\TranslateMenu), JSON
+        'menu_translation_status' => '',
+        // owners get the week's numbers by email on Monday morning (feature advanced_reports)
+        'weekly_report_email' => '0',
     ];
 
     /** @var array<string,array<string,string>> */

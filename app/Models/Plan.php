@@ -37,6 +37,7 @@ class Plan extends Model
         'excel_import' => ['استيراد المنيو من Excel', 'Import menu from Excel', 'menu'],
         'ai_import' => ['تحويل صورة المنيو لأصناف (AI)', 'Menu photo to items (AI)', 'menu'],
         'branch_pricing' => ['أسعار وتوفر لكل فرع', 'Per-branch prices & availability', 'menu'],
+        'extra_languages' => ['لغات منيو إضافية (فرنساوي، إيطالي، روسي...)', 'Extra menu languages (French, Italian, Russian...)', 'menu'],
         // marketing
         'offers' => ['عروض بالوقت ونوافذ إعلانية', 'Timed offers & popups', 'marketing'],
         'upsell' => ['كومبو واقتراحات «بيتاكل مع»', 'Combos & pairings', 'marketing'],

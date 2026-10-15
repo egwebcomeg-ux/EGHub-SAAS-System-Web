@@ -79,6 +79,7 @@ class MenuController extends Controller
                 'online' => $online,
                 'currency' => tr($settings['currency'], $settings['currency_en']),
                 'orderUrl' => route('menu.order'),
+                'viewUrl' => route('menu.item.view', ['item' => 0]),
                 'service' => (float) $settings['service_percent'],
                 'tax' => (float) $settings['tax_percent'],
                 'items' => $categories->flatMap(fn (Category $c) => $c->items)->mapWithKeys(fn (MenuItem $i) => [$i->id => [
@@ -89,13 +90,13 @@ class MenuController extends Controller
                         'parts' => $i->comboParts->map(fn ($p) => ['name' => $p->displayName(), 'qty' => (int) $p->pivot->quantity])->values(),
                         'saving' => max(0, round($i->comboParts->sum(fn ($p) => $p->price * $p->pivot->quantity) - $i->price, 2)),
                     ] : null,
-                    'description' => tr($i->description, $i->description_en), 'image' => $i->image ? '/storage/'.$i->image : null,
+                    'description' => tx($i, 'description'), 'image' => $i->image ? '/storage/'.$i->image : null,
                     'calories' => $i->calories,
                     'groups' => $i->optionGroups->map(fn ($g) => [
-                        'id' => $g->id, 'name' => tr($g->name, $g->name_en), 'type' => $g->type, 'required' => $g->is_required,
+                        'id' => $g->id, 'name' => tx($g, 'name'), 'type' => $g->type, 'required' => $g->is_required,
                         'max' => $g->max_choices,
                         'options' => $g->options->map(fn ($o) => [
-                            'id' => $o->id, 'name' => tr($o->name, $o->name_en), 'price' => (float) $o->price,
+                            'id' => $o->id, 'name' => tx($o, 'name'), 'price' => (float) $o->price,
                             'soldOut' => $o->is_sold_out, 'default' => $o->is_default,
                         ])->values(),
                     ])->values(),

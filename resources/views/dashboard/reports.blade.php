@@ -188,4 +188,16 @@
         @endif
     </div>
 </div>
+
+@if ($extra)
+    @include('dashboard.reports-advanced', ['x' => $extra])
+@else
+    <section class="card mt-4 flex flex-wrap items-center justify-between gap-3 bg-brand-50" data-advanced-locked>
+        <div>
+            <h2 class="section-title">{{ __('Advanced reports') }}</h2>
+            <p class="text-sm text-navy-700">{{ __('Which items guests open but do not order, busy hours by weekday, branches side by side, period comparison, CSV exports and a weekly email.') }}</p>
+        </div>
+        @can('billing.manage')<a href="{{ route('dash.billing') }}" class="btn-primary">{{ __('Unlock advanced reports') }}</a>@endcan
+    </section>
+@endif
 @endsection

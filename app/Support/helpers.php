@@ -1,6 +1,10 @@
 <?php
 
 declare(strict_types=1);
+use App\Services\Menu\MenuTranslations;
+use App\Support\MenuLocales;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 /*
  * Small global helpers (host/URL building, money, phones). Loaded through composer "autoload.files".
@@ -21,14 +25,16 @@ function scheme(): string
 function port_suffix(): string
 {
     $port = request()?->getPort();
-    return $port && !in_array((int) $port, [80, 443], true) ? ':' . $port : '';
+
+    return $port && ! in_array((int) $port, [80, 443], true) ? ':'.$port : '';
 }
 
 /** Absolute URL on a platform host: platform_url('app', '/login'), platform_url(null, 'my-cafe') for a menu. */
 function platform_url(?string $sub, string $path = '/'): string
 {
-    $host = ($sub ? $sub . '.' : '') . central_domain();
-    return scheme() . '://' . $host . port_suffix() . '/' . ltrim($path, '/');
+    $host = ($sub ? $sub.'.' : '').central_domain();
+
+    return scheme().'://'.$host.port_suffix().'/'.ltrim($path, '/');
 }
 
 /** Random URL-safe hex token of 2*$bytes characters. */
@@ -46,6 +52,7 @@ function client_ip(): string
 function money(float|int|string|null $n): string
 {
     $s = number_format((float) $n, 2, '.', ',');
+
     return str_contains($s, '.') ? rtrim(rtrim($s, '0'), '.') : $s;
 }
 
@@ -59,8 +66,9 @@ function normalize_phone(string $raw): ?string
         $d = substr($d, 2);
     }
     if (strlen($d) === 10 && $d[0] === '1') {
-        $d = '0' . $d;
+        $d = '0'.$d;
     }
+
     return preg_match('/^01[0125]\d{8}$/', $d) ? $d : null;
 }
 
@@ -71,7 +79,8 @@ function whatsapp_number(string $phone): string
     if (str_starts_with($d, '20')) {
         return $d;
     }
-    return '20' . (str_starts_with($d, '0') ? substr($d, 1) : $d);
+
+    return '20'.(str_starts_with($d, '0') ? substr($d, 1) : $d);
 }
 
 function is_hex_color(?string $c): bool
@@ -80,13 +89,14 @@ function is_hex_color(?string $c): bool
 }
 
 /** Date in Cairo time; Arabic AM/PM when the locale is Arabic. */
-function local_time(\DateTimeInterface|string|null $at, string $format = 'Y/m/d h:i A'): string
+function local_time(DateTimeInterface|string|null $at, string $format = 'Y/m/d h:i A'): string
 {
-    if (!$at) {
+    if (! $at) {
         return '—';
     }
-    $d = $at instanceof \DateTimeInterface ? \Illuminate\Support\Carbon::instance($at) : \Illuminate\Support\Carbon::parse($at);
+    $d = $at instanceof DateTimeInterface ? Carbon::instance($at) : Carbon::parse($at);
     $s = $d->timezone(config('app.timezone'))->format($format);
+
     return app()->getLocale() === 'ar' ? str_replace(['AM', 'PM'], ['ص', 'م'], $s) : $s;
 }
 
@@ -94,6 +104,25 @@ function local_time(\DateTimeInterface|string|null $at, string $format = 'Y/m/d 
 function tr(?string $ar, ?string $en): string
 {
     return app()->getLocale() === 'en' && (string) $en !== '' ? (string) $en : (string) $ar;
+}
+
+/**
+ * Text of a menu row (category, item, option group, option) for the public menu: the extra language the guest
+ * picked (App\Support\MenuLocales) when translated, else English, else Arabic — tx($item, 'name').
+ */
+function tx(?Model $model, string $field): string
+{
+    if (! $model) {
+        return '';
+    }
+    if ($locale = MenuLocales::current()) {
+        $text = MenuTranslations::text($model, $field, $locale);
+        if ($text !== null && trim($text) !== '') {
+            return $text;
+        }
+    }
+
+    return tr((string) $model->getAttribute($field), (string) $model->getAttribute($field.'_en'));
 }
 
 /** "شهر" / "6 شهور" / "سنة" — billing cycle length in words. */

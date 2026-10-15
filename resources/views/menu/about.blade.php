@@ -35,9 +35,7 @@
             <h1 class="text-2xl font-black sm:text-3xl">{{ $name }}</h1>
             <p class="mt-1 text-sm text-white/80">{{ $profile->typeLabel() }}@if ($place) · {{ $place }}@endif</p>
         </div>
-        @if ($settings['english_enabled'] === '1')
-            <a href="?lang={{ app()->getLocale() === 'ar' ? 'en' : 'ar' }}" class="shrink-0 self-start rounded-full border border-white/30 px-3 py-1.5 text-sm font-semibold">{{ app()->getLocale() === 'ar' ? 'EN' : 'ع' }}</a>
-        @endif
+        @include('menu.partials.lang-switch', ['class' => 'self-start'])
     </div>
 </header>
 

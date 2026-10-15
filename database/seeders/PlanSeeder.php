@@ -125,6 +125,16 @@ class PlanSeeder extends Seeder
                 'name' => '٢٠٠٠ رسالة واتساب', 'name_en' => '2,000 WhatsApp messages',
                 'description' => 'رصيد ٢٠٠٠ رسالة (أوفر ٢٥٪)، بيتدفع مرة واحدة ومالوش تاريخ انتهاء',
                 'description_en' => 'Credit for 2,000 messages (save 25%), paid once, never expires'],
+            ['key' => 'languages_pack', 'type' => 'feature', 'monthly_price' => 99, 'sort_order' => 5,
+                'name' => 'لغات منيو إضافية', 'name_en' => 'Extra menu languages',
+                'description' => 'المنيو بالفرنساوي والإيطالي والألماني والروسي والإسباني والتركي والصيني، وترجمة بضغطة بالذكاء الاصطناعي',
+                'description_en' => 'Your menu in French, Italian, German, Russian, Spanish, Turkish and Chinese, with one-click AI translation',
+                'features' => ['extra_languages']],
+            ['key' => 'reports_pack', 'type' => 'feature', 'monthly_price' => 149, 'sort_order' => 5,
+                'name' => 'تقارير متقدمة', 'name_en' => 'Advanced reports',
+                'description' => 'أداء الأصناف وخريطة الزحمة ومقارنة الفروع والفترات وتصدير CSV وتقرير أسبوعي بالإيميل',
+                'description_en' => 'Item performance, busy-hours heat map, branch and period comparison, CSV exports and a weekly email report',
+                'features' => ['advanced_reports', 'daily_reports']],
         ] as $a) {
             AddonPrice::query()->firstOrCreate(['key' => $a['key']], $a);
         }
