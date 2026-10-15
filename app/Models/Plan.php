@@ -21,6 +21,7 @@ class Plan extends Model
         'order_board' => ['لوحة الطلبات', 'Live order board', 'orders'],
         'online_ordering' => ['طلب أونلاين (تيك أواي وتوصيل) من غير عمولة', 'Online ordering (takeaway & delivery), no commission', 'orders'],
         'scheduled_orders' => ['طلب بميعاد (العميل يختار وقت الاستلام)', 'Scheduled orders (guest picks the time)', 'orders'],
+        'reservations' => ['حجز ترابيزات أونلاين', 'Table reservations', 'orders'],
         // operations: sold as add-on packs on top of any plan (AddonPrice type=feature), off in the plans by default
         'pos' => ['كاشير POS', 'POS cashier', 'operations'],
         'shifts' => ['ورديات الكاشير والدرج', 'Cashier shifts & cash drawer', 'operations'],
@@ -29,6 +30,7 @@ class Plan extends Model
         'kitchen_stations' => ['أقسام مطبخ (شاشة لكل قسم)', 'Kitchen stations (screen per station)', 'operations'],
         'call_center' => ['شاشة الكول سنتر', 'Call-center screen', 'operations'],
         'delivery_zones' => ['مناطق التوصيل ورسوم كل منطقة', 'Delivery zones and fees', 'operations'],
+        'kiosk' => ['كشك طلب ذاتي (تابلت عند الكاشير)', 'Self-order kiosk (tablet at the counter)', 'operations'],
         // menu
         'full_branding' => ['ألوان وخطوط ولوجو المطعم', 'Colors, fonts & logo', 'menu'],
         'menu_themes' => ['تصميمات منيو جاهزة', 'Menu themes', 'menu'],

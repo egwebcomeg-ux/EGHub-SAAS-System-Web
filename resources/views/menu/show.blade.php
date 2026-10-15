@@ -44,6 +44,12 @@
             <a href="{{ route('menu.about') }}" class="text-xs font-semibold text-white/80 underline underline-offset-2" data-about-link>{{ __('About the place') }}</a>
         </div>
         @include('menu.partials.lang-switch')
+        @if (! $table && \App\Services\Reservations\ReservationService::enabled())
+            <a href="{{ route('menu.reserve', $branches->count() > 1 ? ['branch' => $branch->id] : []) }}" class="m-primary shrink-0 rounded-full px-3 py-1.5 text-sm font-bold shadow" data-reserve-link>{{ __('Book a table') }}</a>
+        @endif
+        @if ($settings['english_enabled'] === '1')
+            <a href="?lang={{ app()->getLocale() === 'ar' ? 'en' : 'ar' }}" class="shrink-0 rounded-full border border-white/30 px-3 py-1.5 text-sm font-semibold">{{ app()->getLocale() === 'ar' ? 'EN' : 'ع' }}</a>
+        @endif
     </div>
     @if ($table)
         <div class="mx-auto max-w-2xl px-4 pb-4">

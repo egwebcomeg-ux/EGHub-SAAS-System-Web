@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\Reservation;
 use App\Models\TableCall;
 use App\Services\Audit;
+use App\Services\Entitlements;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use App\Services\Settings;
@@ -45,7 +47,24 @@ class OrdersController extends Controller
                 'id' => $c->id, 'kind' => $c->kind, 'label' => $c->kindLabel(), 'table' => $c->table?->name,
                 'minutes' => (int) $c->created_at->diffInMinutes(now()),
             ])->values(),
+            'reservations' => $this->pendingReservations($request),
         ]);
+    }
+
+    /** Bookings waiting for confirmation (reservations feature), shown in the strip on top of the board. */
+    private function pendingReservations(Request $request): array
+    {
+        if (! Entitlements::current()->allows('reservations') || ! $request->user()->can('reservations.manage')) {
+            return [];
+        }
+        $branch = $request->user()->branch_id;
+
+        return Reservation::query()->where('status', 'pending')->where('starts_at', '>=', now()->subHours(2))
+            ->when($branch, fn ($q) => $q->where('branch_id', $branch))->orderBy('starts_at')->limit(20)->get()
+            ->map(fn (Reservation $r) => [
+                'id' => $r->id, 'name' => $r->name, 'phone' => $r->phone, 'party' => $r->party_size, 'notes' => $r->notes,
+                'when' => local_time($r->starts_at, $r->starts_at->isToday() ? 'h:i A' : 'd/m h:i A'),
+            ])->values()->all();
     }
 
     /** A waiter answered the table: the call disappears from every screen. */

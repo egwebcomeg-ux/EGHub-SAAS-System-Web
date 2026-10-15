@@ -30,6 +30,8 @@ final class Permissions
         'billing.manage'    => ['الاشتراك والفواتير', 'Subscription & billing'],
         'audit.view'        => ['سجل العمليات', 'Audit log'],
         'wallet.manage'     => ['المحفظة وكروت الهدايا', 'Wallet & gift cards'],
+        'kiosk.manage'      => ['الكشك (طلب ذاتي)', 'Self-order kiosks'],
+        'reservations.manage' => ['الحجوزات', 'Reservations'],
     ];
 
     /** role => [labels, permissions ('*' = everything)] */
@@ -43,7 +45,7 @@ final class Permissions
             'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'pos.discount', 'callcenter.use', 'shifts.manage',
                 'kitchen.view', 'menu.manage', 'menu.availability', 'inventory.manage', 'tables.manage', 'branches.manage', 'delivery.manage',
                 'customers.view', 'loyalty.stamp', 'loyalty.manage', 'marketing.manage', 'reports.view', 'settings.manage', 'audit.view',
-                'wallet.manage'],
+                'wallet.manage', 'kiosk.manage', 'reservations.manage'],
         ],
         'cashier' => [
             'label' => ['كاشير', 'Cashier'],

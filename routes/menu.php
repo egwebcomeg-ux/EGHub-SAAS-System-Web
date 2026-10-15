@@ -4,10 +4,12 @@ use App\Http\Controllers\Menu\BoardController;
 use App\Http\Controllers\Menu\FeedbackController;
 use App\Http\Controllers\Menu\ItemViewController;
 use App\Http\Controllers\Menu\GiftController;
+use App\Http\Controllers\Menu\KioskController;
 use App\Http\Controllers\Menu\LoyaltyCardController;
 use App\Http\Controllers\Menu\MenuController;
 use App\Http\Controllers\Menu\OrderController;
 use App\Http\Controllers\Menu\ProfileController;
+use App\Http\Controllers\Menu\ReservationController;
 use App\Http\Controllers\Menu\TableCallController;
 use App\Http\Controllers\Menu\TvController;
 use Illuminate\Support\Facades\Route;
@@ -48,3 +50,14 @@ Route::post('/popups/{popup}/{event}', [MenuController::class, 'popupEvent'])->w
 
 // item sheet opened (counter for the advanced reports: viewed vs ordered)
 Route::post('/i/{item}/view', [ItemViewController::class, 'store'])->whereNumber('item')->middleware('throttle:60,1')->name('item.view');
+// Self-order kiosk (kiosk pack): a tablet at the counter, secret link per kiosk
+Route::get('/kiosk/{token}', [KioskController::class, 'show'])->where('token', '[a-f0-9]{20}')->name('kiosk');
+Route::post('/kiosk/{token}/order', [KioskController::class, 'order'])->where('token', '[a-f0-9]{20}')
+    ->middleware('throttle:30,1')->name('kiosk.order');
+
+// Table reservations (plan feature reservations): book, then follow / cancel on the secret page
+Route::get('/reserve', [ReservationController::class, 'create'])->name('reserve');
+Route::post('/reserve', [ReservationController::class, 'store'])->middleware('throttle:10,1')->name('reserve.store');
+Route::get('/reserve/{token}', [ReservationController::class, 'show'])->where('token', '[a-f0-9]{24}')->name('reserve.show');
+Route::post('/reserve/{token}/cancel', [ReservationController::class, 'cancel'])->where('token', '[a-f0-9]{24}')
+    ->middleware('throttle:10,1')->name('reserve.cancel');

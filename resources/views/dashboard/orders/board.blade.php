@@ -9,6 +9,8 @@
         'cancel' => __('Cancel'), 'cancelReason' => __('Reason for cancelling?'), 'empty' => __('No orders'),
         'currency' => __('EGP'),
         'handled' => __('Done'), 'minutes' => __(':n min', ['n' => '__N__']),
+        'booking' => __('Booking'), 'guests' => __(':n guests', ['n' => '__N__']), 'confirm' => __('Confirm'), 'seat' => __('Seated'),
+        'noShow' => __('No-show'), 'sure' => __('Are you sure?'),
     ];
 @endphp
 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -20,11 +22,13 @@
 </div>
 
 <div class="mb-4 hidden flex-wrap gap-2" data-calls></div>
+<div class="mb-4 hidden flex-wrap gap-2" data-reservations></div>
 
 <div id="board" class="grid gap-4 lg:grid-cols-3"
      data-feed="{{ route('dash.orders.feed') }}"
      data-status-url="{{ url('/orders/__ID__/status') }}"
      data-call-url="{{ url('/orders/calls/__ID__') }}"
+     data-reservation-url="{{ url('/reservations/__ID__/status') }}"
      data-poll="{{ $poll }}"
      data-can-manage="{{ auth()->user()->can('orders.manage') ? 1 : 0 }}"
      data-i18n='{{ json_encode($i18n, JSON_UNESCAPED_UNICODE) }}'>

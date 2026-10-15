@@ -20,7 +20,7 @@ class PlanSeeder extends Seeder
         $starter = ['excel_import', 'feedback'];
         $basic = array_merge($starter, ['qr_ordering', 'order_board', 'full_branding']);
         $pro = array_merge($basic, ['online_ordering', 'scheduled_orders', 'daily_reports', 'menu_themes', 'printed_menu',
-            'offers', 'upsell', 'ai_import', 'customers', 'loyalty_stamps', 'custom_domain', 'whatsapp_notifications']);
+            'offers', 'upsell', 'ai_import', 'customers', 'loyalty_stamps', 'custom_domain', 'whatsapp_notifications', 'reservations']);
         // Business = every menu feature; operations (POS, kitchen, call center, inventory) are add-ons for every plan.
         // A featured directory listing is paid placement, sold only as its own add-on.
         $business = array_values(array_diff(array_keys(Plan::FEATURES), Plan::addonFeatures(), ['featured_listing']));
@@ -146,6 +146,16 @@ class PlanSeeder extends Seeder
                 'description' => 'مطعمك يظهر في أول دليل egmenu.app/restaurants وصفحة مدينتك ونوع أكلك بعلامة «مميز» (5 أماكن بالدور في كل صفحة). لازم يكون ظاهر في الدليل',
                 'description_en' => 'Your place shows first in egmenu.app/restaurants, your city and cuisine pages with a "Featured" badge (5 places take turns per page). Your place must be listed in the directory',
                 'features' => ['featured_listing']],
+            ['key' => 'kiosk_pack', 'type' => 'feature', 'monthly_price' => 149, 'sort_order' => 7, 'per_branch' => true, 'min_plan' => 'basic',
+                'name' => 'كشك الطلب الذاتي', 'name_en' => 'Self-order kiosk',
+                'description' => 'تابلت عند الكاشير: العميل يختار ويطلب بنفسه وياخد رقم طلبه ويدفع عند الكاشير',
+                'description_en' => 'A tablet at the counter: guests order by themselves, get their order number and pay at the cashier',
+                'features' => ['kiosk']],
+            ['key' => 'reservations_pack', 'type' => 'feature', 'monthly_price' => 149, 'sort_order' => 8, 'min_plan' => 'basic',
+                'name' => 'حجز الترابيزات', 'name_en' => 'Table reservations',
+                'description' => 'العميل يحجز ترابيزة من لينك المنيو بميعاد وعدد أفراد، وانت تأكد وتتابع الحجوزات من لوحة الطلبات',
+                'description_en' => 'Guests book a table from your menu link with a time and party size; you confirm and follow them from the order board',
+                'features' => ['reservations']],
         ] as $a) {
             AddonPrice::query()->firstOrCreate(['key' => $a['key']], $a);
         }

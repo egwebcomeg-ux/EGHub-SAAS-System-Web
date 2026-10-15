@@ -68,6 +68,16 @@ final class Settings
         'menu_translation_status' => '',
         // owners get the week's numbers by email on Monday morning (feature advanced_reports)
         'weekly_report_email' => '0',
+        // table reservations (plan feature reservations, App\Services\Reservations\ReservationService)
+        'reservations_enabled' => '0',
+        'reservation_auto_confirm' => '0',
+        'reservation_slot_minutes' => '30',
+        'reservation_duration_minutes' => '90',  // how long a table is held; overlapping bookings share the seats
+        'reservation_max_party' => '12',
+        'reservation_lead_hours' => '1',
+        'reservation_horizon_days' => '30',
+        'reservation_hours' => '',               // json {0..6 (Sunday = 0): {open, close}}; empty = the branch working hours
+        'reservation_seats' => '',               // json {branch id: seats per slot}; missing = 20
     ];
 
     /** @var array<string,array<string,string>> */

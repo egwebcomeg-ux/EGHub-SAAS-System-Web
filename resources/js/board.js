@@ -113,6 +113,40 @@ if (board) {
         btn.closest('div').remove();
     });
 
+    // ---- table bookings waiting for confirmation (reservations) ----
+    const bookingsBox = document.querySelector('[data-reservations]');
+    let lastBookingId = null;
+    function renderReservations(list) {
+        if (!bookingsBox) return;
+        const newest = list.reduce((m, r) => Math.max(m, r.id), 0);
+        if (lastBookingId !== null && newest > lastBookingId) chime();
+        lastBookingId = Math.max(lastBookingId ?? 0, newest);
+        bookingsBox.classList.toggle('hidden', !list.length);
+        bookingsBox.classList.toggle('flex', list.length > 0);
+        const btn = (r, to, label, cls) => `<button class="rounded-lg px-3 py-1 text-sm ${cls}" data-booking="${r.id}" data-to="${to}">${esc(label)}</button>`;
+        bookingsBox.innerHTML = list.map((r) => `
+            <div class="flex flex-wrap items-center gap-3 rounded-2xl bg-violet-600 px-4 py-2 font-bold text-white shadow">
+                <span>📅 ${esc(t.booking)} · <span dir="ltr">${esc(r.when)}</span> ·${esc(t.guests.replace('__N__', r.party))} · ${esc(r.name)}</span>
+                <a href="tel:${esc(r.phone)}" dir="ltr" class="text-xs font-normal text-white/80">${esc(r.phone)}</a>
+                ${r.notes ? `<span class="text-xs font-normal text-white/80">${esc(r.notes)}</span>` : ''}
+                <span class="flex gap-1">${btn(r, 'confirmed', t.confirm, 'bg-white text-violet-700')}${btn(r, 'seated', t.seat, 'bg-white/20')}${btn(r, 'no_show', t.noShow, 'bg-white/20')}${btn(r, 'cancelled', t.cancel, 'bg-white/20')}</span>
+            </div>`).join('');
+    }
+    bookingsBox?.addEventListener('click', async (e) => {
+        const btn = e.target.closest('[data-booking]');
+        if (!btn) return;
+        if (['cancelled', 'no_show'].includes(btn.dataset.to) && !confirm(t.sure)) return;
+        btn.disabled = true;
+        const res = await fetch(board.dataset.reservationUrl.replace('__ID__', btn.dataset.booking), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
+            body: JSON.stringify({ status: btn.dataset.to }),
+        });
+        if (!res.ok) alert((await res.json().catch(() => ({}))).message || res.status);
+        btn.closest('[data-reservations] > div')?.remove();
+        bookingsBox.classList.toggle('hidden', !bookingsBox.children.length);
+    });
+
     async function poll() {
         try {
             const res = await fetch(board.dataset.feed, { headers: { Accept: 'application/json' } });
@@ -122,6 +156,7 @@ if (board) {
             lastMaxId = data.max_id;
             render(data.orders);
             renderCalls(data.calls || []);
+            renderReservations(data.reservations || []);
             document.querySelector('[data-live-dot]')?.classList.replace('bg-red-500', 'bg-emerald-500');
         } catch {
             document.querySelector('[data-live-dot]')?.classList.replace('bg-emerald-500', 'bg-red-500');

@@ -37,6 +37,7 @@ class Order extends TenantModel
         'callcenter' => ['كول سنتر', 'Call center'],
         'whatsapp' => ['واتساب', 'WhatsApp'],
         'online' => ['طلب أونلاين', 'Online'],
+        'kiosk' => ['كشك', 'Kiosk'],
     ];
 
     public const TYPES = [

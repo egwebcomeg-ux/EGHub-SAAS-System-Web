@@ -15,6 +15,7 @@ use App\Http\Controllers\Dashboard\FeedbackController;
 use App\Http\Controllers\Dashboard\HomeController;
 use App\Http\Controllers\Dashboard\InventoryController;
 use App\Http\Controllers\Dashboard\ItemsController;
+use App\Http\Controllers\Dashboard\KiosksController;
 use App\Http\Controllers\Dashboard\KitchenController;
 use App\Http\Controllers\Dashboard\LoyaltyController;
 use App\Http\Controllers\Dashboard\MarketingController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\Dashboard\PasswordResetController;
 use App\Http\Controllers\Dashboard\PosController;
 use App\Http\Controllers\Dashboard\PrintMenuController;
 use App\Http\Controllers\Dashboard\ReportsController;
+use App\Http\Controllers\Dashboard\ReservationsController;
 use App\Http\Controllers\Dashboard\SettingsController;
 use App\Http\Controllers\Dashboard\ShiftsController;
 use App\Http\Controllers\Dashboard\StationsController;
@@ -270,5 +272,22 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
             Route::post('/wallet/gift-cards/{card}/void', [WalletController::class, 'voidGift'])->whereNumber('card')->name('wallet.gift.void');
             Route::post('/wallet/customers/{customer}/adjust', [WalletController::class, 'adjust'])->whereNumber('customer')->name('wallet.adjust');
         });
+    });
+
+    // Kiosk pack: self-order tablets at the counter
+    Route::middleware(['feature:kiosk', 'permission:kiosk.manage'])->group(function () {
+        Route::get('/kiosks', [KiosksController::class, 'index'])->name('kiosks');
+        Route::post('/kiosks', [KiosksController::class, 'store'])->name('kiosks.store');
+        Route::post('/kiosks/{kiosk}', [KiosksController::class, 'update'])->name('kiosks.update');
+        Route::post('/kiosks/{kiosk}/link', [KiosksController::class, 'regenerate'])->name('kiosks.regenerate');
+        Route::post('/kiosks/{kiosk}/delete', [KiosksController::class, 'destroy'])->name('kiosks.delete');
+    });
+
+    // Table reservations (plan feature / reservations pack)
+    Route::middleware(['feature:reservations', 'permission:reservations.manage'])->group(function () {
+        Route::get('/reservations', [ReservationsController::class, 'index'])->name('reservations');
+        Route::post('/reservations', [ReservationsController::class, 'store'])->name('reservations.store');
+        Route::post('/reservations/settings', [ReservationsController::class, 'settings'])->name('reservations.settings');
+        Route::post('/reservations/{reservation}/status', [ReservationsController::class, 'transition'])->name('reservations.status');
     });
 });

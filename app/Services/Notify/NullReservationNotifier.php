@@ -2,8 +2,12 @@
 
 namespace App\Services\Notify;
 
-/** Sends nothing. Bind it in place of WhatsAppReservationNotifier to switch reservation messages off entirely. */
+use App\Models\Reservation;
+
+/** Switches reservation messages off entirely (bind it instead of the WhatsApp one). */
 final class NullReservationNotifier implements ReservationNotifier
 {
-    public function confirmed(array $reservation): void {}
+    public function created(Reservation $reservation): void {}
+
+    public function statusChanged(Reservation $reservation, string $from): void {}
 }

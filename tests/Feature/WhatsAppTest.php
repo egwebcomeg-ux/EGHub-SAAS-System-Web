@@ -268,7 +268,13 @@ class WhatsAppTest extends TenantTestCase
         });
         $this->as($a, fn () => app(LoyaltyService::class)->stamp(LoyaltyCard::query()->find($card->id), 2, $this->owner($a)));
 
-        $this->as($a, fn () => app(ReservationNotifier::class)->confirmed(['phone' => '01055556666', 'name' => 'Omar', 'at' => '2026-10-20 20:00', 'guests' => 4]));
+        $this->as($a, function () {
+            $reservation = \App\Models\Reservation::query()->create([
+                'branch_id' => \App\Models\Branch::query()->first()->id, 'name' => 'Omar', 'phone' => '01055556666', 'party_size' => 4,
+                'starts_at' => '2026-10-20 20:00', 'ends_at' => '2026-10-20 21:30', 'status' => 'confirmed', 'source' => 'staff', 'token' => random_token(12),
+            ]);
+            app(ReservationNotifier::class)->created($reservation);
+        });
 
         $messages = $this->messages($a);
         $this->assertSame(['loyalty_reward', 'reservation_confirmed'], $messages->pluck('template')->all());

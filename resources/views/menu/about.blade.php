@@ -66,6 +66,9 @@
             @endif
         </div>
         <a href="{{ route('menu.show') }}" class="m-primary mt-5 flex min-h-14 items-center justify-center rounded-2xl text-lg font-extrabold shadow-md">{{ __('Open the menu') }} @if ($itemsCount)<span class="ms-2 text-sm font-semibold opacity-80">({{ __(':n items', ['n' => $itemsCount]) }})</span>@endif</a>
+        @if (\App\Services\Reservations\ReservationService::enabled())
+            <a href="{{ route('menu.reserve') }}" class="mt-3 flex min-h-12 items-center justify-center rounded-2xl border-2 border-navy-100 text-base font-extrabold">{{ __('Book a table') }}</a>
+        @endif
     </section>
 
     @if ($featured->isNotEmpty())
