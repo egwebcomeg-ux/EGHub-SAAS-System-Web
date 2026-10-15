@@ -43,7 +43,8 @@ class CustomersController extends Controller
             'name' => 'nullable|string|max:100', 'phone_2' => 'nullable|string|max:20', 'birthday' => 'nullable|date|before:today',
             'notes' => 'nullable|string|max:1000',
         ]);
-        $customer->update($data + ['marketing_opt_in' => $request->boolean('marketing_opt_in')]);
+        $customer->update($data + ['marketing_opt_in' => $request->boolean('marketing_opt_in'), 'whatsapp_opt_out' => $request->boolean('whatsapp_opt_out')]);
+
         return back()->with('ok', __('Saved.'));
     }
 
@@ -54,6 +55,7 @@ class CustomersController extends Controller
         // pin the restaurant explicitly instead of relying on the global scope.
         $rows = $this->search(trim((string) $request->query('q', '')))
             ->withoutGlobalScopes()->where('tenant_id', tenant()->getTenantKey())->orderBy('id');
+
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
@@ -64,12 +66,12 @@ class CustomersController extends Controller
                 }
             });
             fclose($out);
-        }, 'customers-' . now()->format('Y-m-d') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }, 'customers-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     private function search(string $q)
     {
         return Customer::query()->when($q !== '', fn ($w) => $w->where(fn ($w) => $w->where('name', 'like', "%$q%")
-            ->orWhere('phone', 'like', '%' . (normalize_phone($q) ?? $q) . '%')));
+            ->orWhere('phone', 'like', '%'.(normalize_phone($q) ?? $q).'%')));
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Billing\Billing;
+use App\Billing\Credits;
 use App\Billing\PaymentMethods;
 use App\Http\Controllers\Controller;
 use App\Models\AddonPrice;
@@ -20,7 +21,7 @@ use Illuminate\View\View;
  */
 class BillingController extends Controller
 {
-    public function index(): View
+    public function index(Credits $credits): View
     {
         $plans = Plan::query()->where('is_public', true)->with('features')->orderBy('sort_order')->get();
 
@@ -29,7 +30,9 @@ class BillingController extends Controller
             'plans' => $plans,
             'matrix' => $plans->mapWithKeys(fn (Plan $p) => [$p->id => $p->entitlements()]),
             'invoices' => Invoice::query()->where('tenant_id', tenant()->getTenantKey())->latest('id')->limit(20)->get(),
-            'addons' => AddonPrice::query()->where('is_active', true)->orderBy('sort_order')->get(),
+            'addons' => AddonPrice::query()->where('is_active', true)->where('type', '!=', 'credits')->orderBy('sort_order')->get(),
+            'creditPacks' => AddonPrice::query()->where('is_active', true)->where('type', 'credits')->orderBy('sort_order')->get(),
+            'creditBalance' => $credits->balance(tenant()),
             'myAddons' => tenant()->subscription()->first()?->addons()->pluck('quantity', 'key')->all() ?? [],
         ]);
     }
@@ -37,6 +40,9 @@ class BillingController extends Controller
     public function addon(Request $request, string $key, Billing $billing): RedirectResponse
     {
         $addon = AddonPrice::query()->where('is_active', true)->where('key', $key)->firstOrFail();
+        if ($addon->isCreditPack()) {
+            return redirect()->route('dash.billing.invoice', $billing->invoiceForAddon(tenant(), $addon, 1)->number);
+        }
         $mine = (int) tenant()->subscription()->first()?->addons()->where('key', $key)->value('quantity');
         if ($addon->isFeaturePack() && $mine > 0) {
             return back()->with('ok', __('This add-on is already active.'));

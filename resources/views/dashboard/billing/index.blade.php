@@ -101,6 +101,31 @@
     </div>
 @endif
 
+@if ($creditPacks->isNotEmpty())
+    <section class="mt-8" id="whatsapp-credits">
+        <h2 class="mb-1 text-lg font-bold">{{ __('WhatsApp credits') }}</h2>
+        <p class="mb-3 muted">{{ __('Every WhatsApp message to a guest (order updates, campaigns) uses one credit. Credits are paid once and never expire.') }}</p>
+        <div class="grid gap-4 md:grid-cols-3">
+            <div @class(['card flex flex-col justify-center', 'ring-2 ring-red-300' => $creditBalance < 1])>
+                <div class="text-sm text-navy-500">{{ __('Your balance') }}</div>
+                <div class="text-3xl font-extrabold">{{ number_format($creditBalance) }} <span class="text-base font-semibold text-navy-500">{{ __('messages') }}</span></div>
+                @if ($creditBalance < 1)<div class="mt-1 text-sm font-semibold text-red-700">{{ __('Your WhatsApp credits ran out') }}</div>@endif
+            </div>
+            @foreach ($creditPacks as $pack)
+                <div class="card flex flex-col">
+                    <h3 class="font-bold">{{ $pack->displayName() }}</h3>
+                    <p class="mt-1 flex-1 text-sm text-navy-500">{{ tr($pack->description, $pack->description_en) }}</p>
+                    <div class="mt-3 flex items-center justify-between gap-2">
+                        <span><b class="text-lg">{{ money($pack->monthly_price) }}</b> <span class="text-sm text-navy-500">{{ __('EGP') }}</span>
+                            <span class="block text-xs text-navy-500">{{ __(':price EGP per message', ['price' => money(round($pack->monthly_price / max(1, $pack->credits), 2))]) }}</span></span>
+                        <form method="post" action="{{ route('dash.billing.addon', $pack->key) }}">@csrf<button class="btn-ghost min-h-9 px-3">{{ __('Buy') }}</button></form>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </section>
+@endif
+
 @if ($invoices->isNotEmpty())
     <section class="card mt-6 overflow-x-auto">
         <h2 class="mb-3 text-lg font-bold">{{ __('Invoices') }}</h2>

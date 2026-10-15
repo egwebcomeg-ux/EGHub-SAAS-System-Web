@@ -165,6 +165,71 @@
         <label class="flex items-center gap-2 text-sm font-semibold sm:col-span-2"><input type="checkbox" name="listed_in_directory" value="1" @checked($s['listed_in_directory'] === '1') class="size-4 accent-brand-600"> {{ __('Show my place in the EgMenu restaurant directory') }}</label>
     </section>
 
+    <section class="card grid gap-4 lg:grid-cols-2" id="whatsapp">
+        <div class="lg:col-span-2">
+            <h2 class="section-title">{{ __('WhatsApp') }}</h2>
+            <p class="muted">{{ __('Automatic WhatsApp messages to your guests. Each message uses one credit from your WhatsApp balance.') }}</p>
+        </div>
+        @if ($whatsapp)
+            @php
+                $waToggles = [
+                    'wa_order_received' => [__('Order received'), __('Online, kiosk and call-center orders')],
+                    'wa_order_ready' => [__('Order ready'), __('When the order is marked ready')],
+                    'wa_order_on_way' => [__('Order on the way'), __('Delivery orders leaving with the driver')],
+                    'wa_reservation_confirmed' => [__('Reservation confirmed'), __('When you confirm a table booking')],
+                    'wa_loyalty_reward' => [__('Loyalty reward earned'), __('When a guest\'s card reaches a reward')],
+                ];
+            @endphp
+            <div class="space-y-2">
+                @foreach ($waToggles as $key => [$label, $hint])
+                    <label class="flex items-start gap-3 rounded-xl border border-navy-100 p-3 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+                        <input type="checkbox" name="{{ $key }}" value="1" @checked($s[$key] === '1') class="mt-0.5 size-4 accent-brand-600">
+                        <span><span class="block text-sm font-semibold">{{ $label }}</span><span class="block text-xs text-navy-500">{{ $hint }}</span></span>
+                    </label>
+                @endforeach
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="field-label" for="wa_sender_name">{{ __('Sender name') }}</label>
+                    <input class="field" id="wa_sender_name" name="wa_sender_name" value="{{ old('wa_sender_name', $s['wa_sender_name']) }}" maxlength="40"
+                        placeholder="{{ $s['brand_name'] ?: tenant()->name }}" data-wa-sender-input>
+                    <p class="mt-1 text-xs text-navy-500">{{ __('How your place signs its messages. Empty = your restaurant name.') }}</p>
+                </div>
+                <div>
+                    <div class="field-label">{{ __('Preview') }}</div>
+                    @php
+                        $waLocale = \App\Services\WhatsApp\WhatsApp::locale();
+                        $waSample = \App\Services\WhatsApp\Templates::render('order_ready', \App\Services\WhatsApp\Templates::params('order_ready', [
+                            'name' => $waLocale === 'en' ? 'Ahmed' : 'أحمد', 'restaurant' => '{restaurant}', 'number' => '128',
+                            'link' => tenant()->url('o/…'),
+                        ]), $waLocale);
+                        $waSender = \App\Services\Notify\GuestNotifier::senderName();
+                    @endphp
+                    <div class="rounded-2xl bg-[#e5ddd5] p-3" dir="{{ $waLocale === 'en' ? 'ltr' : 'rtl' }}">
+                        <div class="max-w-sm rounded-xl rounded-ss-none bg-white p-3 text-sm leading-relaxed shadow-sm">
+                            {!! str_replace(e('{restaurant}'), '<b data-wa-sender>'.e($waSender).'</b>', e($waSample)) !!}
+                            <div class="mt-1 text-end text-[11px] text-navy-400" dir="ltr">12:30 ✓✓</div>
+                        </div>
+                    </div>
+                    <p class="mt-1 text-xs text-navy-500">{{ __('Messages are in your menu\'s default language.') }}
+                        @can('billing.manage')<a href="{{ route('dash.billing') }}#whatsapp-credits" class="text-brand-700 underline">{{ __('WhatsApp credits') }}</a>@endcan
+                    </p>
+                </div>
+            </div>
+            <script>
+                document.querySelector('[data-wa-sender-input]')?.addEventListener('input', (e) => {
+                    const el = document.querySelector('[data-wa-sender]');
+                    if (el) el.textContent = e.target.value.trim() || e.target.placeholder;
+                });
+            </script>
+        @else
+            <div class="rounded-xl bg-navy-50 p-3 text-sm lg:col-span-2">
+                {{ \App\Services\Entitlements::current()->upgradeMessage('whatsapp_notifications') }}
+                @can('billing.manage')<a href="{{ route('dash.billing') }}" class="font-semibold text-brand-700 underline">{{ __('Add-ons') }}</a>@endcan
+            </div>
+        @endif
+    </section>
+
     @if ($ai)
         <section class="card grid gap-4 sm:grid-cols-2 lg:grid-cols-3" id="ai">
             <div class="sm:col-span-2 lg:col-span-3">

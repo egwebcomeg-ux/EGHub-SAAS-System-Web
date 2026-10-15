@@ -106,6 +106,11 @@ final class Billing
         $amount = round($addon->priceFor($tenant) * $quantity * $months);
         $label = $addon->displayName().($quantity > 1 ? " × $quantity" : '').' — '
             .($paidPeriod ? __('until :date', ['date' => local_time($sub->current_period_end, 'Y/m/d')]) : cycle_label(1));
+        if ($addon->isCreditPack()) {
+            // message credits are bought once, whatever the subscription period
+            $amount = round((float) $addon->monthly_price * $quantity);
+            $label = $addon->displayName().($quantity > 1 ? " × $quantity" : '');
+        }
 
         return DB::transaction(function () use ($tenant, $addon, $quantity, $amount, $label) {
             Invoice::query()->where('tenant_id', $tenant->id)->where('status', 'open')->where('kind', 'addon')
@@ -184,10 +189,19 @@ final class Billing
         return $applied;
     }
 
-    /** A paid plan invoice: new period (or extension on renewal), restaurant back online. A paid add-on: switched on. */
+    /**
+     * A paid plan invoice: new period (or extension on renewal), restaurant back online. A paid add-on: switched on.
+     * A paid credit pack: its messages are added to the restaurant's WhatsApp credits.
+     */
     private function apply(Invoice $invoice): void
     {
         $tenant = $invoice->tenant;
+        if ($invoice->kind === 'addon' && ($pack = AddonPrice::query()->where('key', $invoice->meta['addon'] ?? '')->first())?->isCreditPack()) {
+            // WhatsApp credits go to the wallet; the subscription is not touched
+            app(Credits::class)->add($tenant, (int) $pack->credits * (int) ($invoice->meta['quantity'] ?? 1), 'purchase', $invoice->number);
+
+            return;
+        }
         if ($invoice->kind === 'addon') {
             $current = (int) $tenant->subscription()->first()?->addons()->where('key', $invoice->meta['addon'])->value('quantity');
             $price = AddonPrice::query()->where('key', $invoice->meta['addon'])->first();

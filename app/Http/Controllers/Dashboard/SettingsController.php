@@ -8,6 +8,7 @@ use App\Services\Entitlements;
 use App\Services\ImageService;
 use App\Services\Import\Ai\AiException;
 use App\Services\Import\Ai\AiProviders;
+use App\Services\Notify\GuestNotifier;
 use App\Services\Settings;
 use App\Support\BusinessType;
 use App\Support\Cities;
@@ -29,6 +30,7 @@ class SettingsController extends Controller
             's' => Settings::all(), 'fonts' => self::FONTS, 'branding' => Entitlements::current()->allows('full_branding'),
             'themes' => Entitlements::current()->allows('menu_themes'),
             'ai' => Entitlements::current()->allows('ai_import'), 'providers' => AiProviders::PROVIDERS, 'aiKey' => AiProviders::masked(),
+            'whatsapp' => Entitlements::current()->allows('whatsapp_notifications'),
         ]);
     }
 
@@ -66,6 +68,7 @@ class SettingsController extends Controller
             'ai_provider' => ['nullable', Rule::in(array_keys(AiProviders::PROVIDERS))],
             'ai_model' => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._:\/-]+$/'],
             'ai_key' => 'nullable|string|max:300',
+            'wa_sender_name' => 'nullable|string|max:40',
             'logo' => 'nullable|file|max:5120',
             'cover' => 'nullable|file|max:5120',
         ]);
@@ -87,6 +90,14 @@ class SettingsController extends Controller
         if (Entitlements::current()->allows('online_ordering')) {
             $values['online_takeaway'] = $request->boolean('online_takeaway') ? '1' : '0';
             $values['online_delivery'] = $request->boolean('online_delivery') ? '1' : '0';
+        }
+        // WhatsApp messages to guests: each toggle switches one message type on
+        if (Entitlements::current()->allows('whatsapp_notifications')) {
+            foreach (GuestNotifier::TOGGLES as $setting) {
+                $values[$setting] = $request->boolean($setting) ? '1' : '0';
+            }
+        } else {
+            unset($values['wa_sender_name']);
         }
         if (($values['online_prep_minutes'] ?? '') === '') {
             unset($values['online_prep_minutes']);

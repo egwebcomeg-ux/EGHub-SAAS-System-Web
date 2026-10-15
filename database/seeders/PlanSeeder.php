@@ -20,7 +20,7 @@ class PlanSeeder extends Seeder
         $starter = ['excel_import', 'feedback'];
         $basic = array_merge($starter, ['qr_ordering', 'order_board', 'full_branding']);
         $pro = array_merge($basic, ['online_ordering', 'scheduled_orders', 'daily_reports', 'menu_themes', 'printed_menu',
-            'offers', 'upsell', 'ai_import', 'customers', 'loyalty_stamps', 'custom_domain']);
+            'offers', 'upsell', 'ai_import', 'customers', 'loyalty_stamps', 'custom_domain', 'whatsapp_notifications']);
         // Business = every menu feature; operations (POS, kitchen, call center, inventory) are add-ons for every plan.
         $business = array_values(array_diff(array_keys(Plan::FEATURES), Plan::addonFeatures()));
 
@@ -107,6 +107,24 @@ class PlanSeeder extends Seeder
                 'features' => ['custom_domain']],
             ['key' => 'branches', 'type' => 'limit', 'monthly_price' => 99, 'sort_order' => 5, 'name' => 'فرع إضافي', 'name_en' => 'Extra branch'],
             ['key' => 'staff', 'type' => 'limit', 'monthly_price' => 25, 'sort_order' => 6, 'name' => 'مستخدم إضافي', 'name_en' => 'Extra staff account'],
+            ['key' => 'whatsapp_pack', 'type' => 'feature', 'monthly_price' => 99, 'sort_order' => 7,
+                'name' => 'رسائل واتساب للعملاء', 'name_en' => 'WhatsApp guest updates',
+                'description' => 'رسالة واتساب للعميل لما طلبه يوصل ويجهز ويخرج للتوصيل، وتأكيد الحجز والمكافآت (الرسائل من رصيد الواتساب)',
+                'description_en' => 'WhatsApp messages when an order is received, ready or on its way, plus bookings and rewards (messages use WhatsApp credits)',
+                'features' => ['whatsapp_notifications']],
+            ['key' => 'marketing_pack', 'type' => 'feature', 'monthly_price' => 199, 'sort_order' => 8,
+                'name' => 'حملات التسويق', 'name_en' => 'Marketing campaigns',
+                'description' => 'حملات واتساب لعملائك حسب آخر زيارة وعدد الزيارات وأعياد الميلاد، مع كوبونات خصم (الرسائل من رصيد الواتساب)',
+                'description_en' => 'WhatsApp campaigns to your guests by last visit, visits and birthdays, with discount coupons (messages use WhatsApp credits)',
+                'features' => ['campaigns', 'customers']],
+            ['key' => 'wa_500', 'type' => 'credits', 'credits' => 500, 'monthly_price' => 149, 'sort_order' => 9,
+                'name' => '٥٠٠ رسالة واتساب', 'name_en' => '500 WhatsApp messages',
+                'description' => 'رصيد ٥٠٠ رسالة لرسائل الطلبات والحملات، بيتدفع مرة واحدة ومالوش تاريخ انتهاء',
+                'description_en' => 'Credit for 500 order or campaign messages, paid once, never expires'],
+            ['key' => 'wa_2000', 'type' => 'credits', 'credits' => 2000, 'monthly_price' => 449, 'sort_order' => 10,
+                'name' => '٢٠٠٠ رسالة واتساب', 'name_en' => '2,000 WhatsApp messages',
+                'description' => 'رصيد ٢٠٠٠ رسالة (أوفر ٢٥٪)، بيتدفع مرة واحدة ومالوش تاريخ انتهاء',
+                'description_en' => 'Credit for 2,000 messages (save 25%), paid once, never expires'],
         ] as $a) {
             AddonPrice::query()->firstOrCreate(['key' => $a['key']], $a);
         }

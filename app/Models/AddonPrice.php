@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
  * Something sold on top of a plan:
  *   type=limit   — raises a plan limit by its quantity (extra branch, extra staff)
  *   type=feature — unlocks a set of features (POS pack, kitchen display, call center, inventory)
+ *   type=credits — a one-off pack of WhatsApp message credits (credits = messages); paid once, not monthly
  */
 class AddonPrice extends Model
 {
@@ -18,7 +19,7 @@ class AddonPrice extends Model
 
     protected function casts(): array
     {
-        return ['monthly_price' => 'float', 'is_active' => 'boolean', 'features' => 'array', 'per_branch' => 'boolean'];
+        return ['monthly_price' => 'float', 'is_active' => 'boolean', 'features' => 'array', 'per_branch' => 'boolean', 'credits' => 'integer'];
     }
 
     /** Monthly price for this restaurant: per-branch packs grow with its active branches. */
@@ -51,5 +52,10 @@ class AddonPrice extends Model
     public function isFeaturePack(): bool
     {
         return $this->type === 'feature';
+    }
+
+    public function isCreditPack(): bool
+    {
+        return $this->type === 'credits';
     }
 }

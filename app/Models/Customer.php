@@ -18,12 +18,13 @@ class Customer extends TenantModel
     protected function casts(): array
     {
         return [
-            'birthday'          => 'date',
-            'addresses'         => 'array',
-            'total_spent'       => 'float',
-            'credit_balance'    => 'float',
-            'marketing_opt_in'  => 'boolean',
-            'last_visit_at'     => 'datetime',
+            'birthday' => 'date',
+            'addresses' => 'array',
+            'total_spent' => 'float',
+            'credit_balance' => 'float',
+            'marketing_opt_in' => 'boolean',
+            'whatsapp_opt_out' => 'boolean',
+            'last_visit_at' => 'datetime',
             'last_contacted_at' => 'datetime',
         ];
     }

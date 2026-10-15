@@ -229,6 +229,13 @@ if (dataEl) {
     }
 
     // ---- send order (a scanned table, or online pickup / delivery) ----
+    // a coupon from a campaign link (?coupon=CODE) is kept for this visit and filled in the cart
+    try {
+        const fromLink = new URLSearchParams(location.search).get('coupon');
+        if (fromLink) sessionStorage.setItem('egm-coupon', fromLink.slice(0, 30));
+        const couponField = $('[data-coupon]');
+        if (couponField && !couponField.value) couponField.value = sessionStorage.getItem('egm-coupon') || '';
+    } catch {}
     const sendBtn = $('[data-send-order]');
     let clientUuid = null;
     sendBtn?.addEventListener('click', async () => {
@@ -255,6 +262,7 @@ if (dataEl) {
                     customer_name: $('[data-customer-name]').value.trim(),
                     customer_phone: $('[data-customer-phone]').value.trim(),
                     notes: $('[data-order-notes]').value.trim(),
+                    coupon: $('[data-coupon]')?.value.trim() || null,
                     ...(M.mode === 'online' ? {
                         type: otype, branch_id: O.branch, zone_id: currentZone()?.id ?? null,
                         address: $('[data-address]')?.value.trim() || null, scheduled_for: $('[data-scheduled]')?.value || null,

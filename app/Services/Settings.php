@@ -55,6 +55,13 @@ final class Settings
         'ai_provider' => '',
         'ai_model' => '',
         'ai_key' => '',
+        // WhatsApp messages to guests (feature whatsapp_notifications; each message costs one credit)
+        'wa_order_received' => '0',
+        'wa_order_ready' => '0',
+        'wa_order_on_way' => '0',
+        'wa_reservation_confirmed' => '0',
+        'wa_loyalty_reward' => '0',
+        'wa_sender_name' => '',
     ];
 
     /** @var array<string,array<string,string>> */

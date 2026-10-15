@@ -51,7 +51,7 @@
         @foreach ($addons as $a)
             <div class="card space-y-3">
                 <div class="flex items-center justify-between">
-                    <span class="badge {{ $a->isFeaturePack() ? 'bg-brand-100 text-brand-700' : 'bg-navy-100 text-navy-700' }}">{{ $a->isFeaturePack() ? __('Feature pack') : __('Extra limit') }}</span>
+                    <span class="badge {{ $a->isFeaturePack() ? 'bg-brand-100 text-brand-700' : 'bg-navy-100 text-navy-700' }}">{{ $a->isFeaturePack() ? __('Feature pack') : ($a->isCreditPack() ? __('WhatsApp credits').' · '.number_format((int) $a->credits) : __('Extra limit')) }}</span>
                     <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="addons[{{ $a->id }}][is_active]" value="1" @checked($a->is_active) class="size-4 accent-brand-600"> {{ __('On sale') }}</label>
                 </div>
                 <div class="grid gap-3 sm:grid-cols-3">

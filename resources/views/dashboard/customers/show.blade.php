@@ -36,6 +36,7 @@
             <input class="field" type="date" name="birthday" value="{{ $customer->birthday?->format('Y-m-d') }}">
             <textarea class="field min-h-20 py-2" name="notes" placeholder="{{ __('Notes, e.g. favorite table') }}" maxlength="1000">{{ $customer->notes }}</textarea>
             <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="marketing_opt_in" value="1" @checked($customer->marketing_opt_in) class="size-4 accent-brand-600"> {{ __('Accepts offers') }}</label>
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="whatsapp_opt_out" value="1" @checked($customer->whatsapp_opt_out) class="size-4 accent-brand-600"> {{ __('No WhatsApp campaigns (asked to stop)') }}</label>
             <button class="btn-primary w-full">{{ __('Save') }}</button>
         </form>
     </div>

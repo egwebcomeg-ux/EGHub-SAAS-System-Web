@@ -6,6 +6,7 @@ use App\Http\Controllers\Dashboard\BillingController;
 use App\Http\Controllers\Dashboard\BranchesController;
 use App\Http\Controllers\Dashboard\BranchMenuController;
 use App\Http\Controllers\Dashboard\CallCenterController;
+use App\Http\Controllers\Dashboard\CampaignsController;
 use App\Http\Controllers\Dashboard\CategoriesController;
 use App\Http\Controllers\Dashboard\CustomersController;
 use App\Http\Controllers\Dashboard\DeliveryZonesController;
@@ -57,7 +58,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::middleware('permission:billing.manage')->group(function () {
         Route::get('/billing', [BillingController::class, 'index'])->name('billing');
         Route::post('/billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
-        Route::post('/billing/addons/{key}', [BillingController::class, 'addon'])->where('key', '[a-z_]+')->name('billing.addon');
+        Route::post('/billing/addons/{key}', [BillingController::class, 'addon'])->where('key', '[a-z0-9_]+')->name('billing.addon');
         Route::get('/billing/invoices/{number}', [BillingController::class, 'invoice'])->name('billing.invoice');
         Route::post('/billing/invoices/{number}/claim', [BillingController::class, 'claim'])->middleware('throttle:10,1')->name('billing.claim');
     });
@@ -149,6 +150,15 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/marketing/popups', [MarketingController::class, 'savePopup'])->name('popups.store');
         Route::post('/marketing/popups/{popup}/toggle', [MarketingController::class, 'togglePopup'])->name('popups.toggle');
         Route::post('/marketing/popups/{popup}/delete', [MarketingController::class, 'deletePopup'])->name('popups.delete');
+    });
+
+    // ---- Marketing: WhatsApp campaigns with coupons ----
+    Route::middleware(['feature:campaigns', 'permission:marketing.manage'])->group(function () {
+        Route::get('/campaigns', [CampaignsController::class, 'index'])->name('campaigns');
+        Route::get('/campaigns/preview', [CampaignsController::class, 'preview'])->name('campaigns.preview');
+        Route::post('/campaigns', [CampaignsController::class, 'store'])->middleware('throttle:20,1')->name('campaigns.store');
+        Route::post('/campaigns/{campaign}/cancel', [CampaignsController::class, 'cancel'])->name('campaigns.cancel');
+        Route::post('/campaigns/{campaign}/resume', [CampaignsController::class, 'resume'])->name('campaigns.resume');
     });
 
     // ---- Guests: customers, loyalty card, feedback ----

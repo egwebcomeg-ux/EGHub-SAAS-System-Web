@@ -264,6 +264,9 @@
             <div class="mt-4 grid gap-3">
                 <input class="field" maxlength="100" data-customer-name placeholder="{{ $online ? __('Your name') : __('Your name (optional)') }}">
                 <input class="field" maxlength="20" inputmode="tel" dir="ltr" data-customer-phone placeholder="{{ $online ? __('Mobile number (required)') : __('Mobile (optional, for offers & loyalty)') }}">
+                @if (\App\Models\Coupon::query()->where('is_active', true)->exists())
+                    <input class="field uppercase" maxlength="30" dir="ltr" autocomplete="off" data-coupon placeholder="{{ __('Coupon code (optional)') }}">
+                @endif
                 <textarea class="field min-h-16 py-2" maxlength="500" data-order-notes placeholder="{{ __('Notes for the order') }}"></textarea>
             </div>
             <p class="mt-3 hidden rounded-xl bg-red-50 p-3 text-sm text-red-700" data-order-error></p>

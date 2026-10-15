@@ -28,6 +28,7 @@ Route::middleware('auth:admin')->group(function () {
     Route::get('/tenants/{tenant}', [TenantsController::class, 'show'])->name('tenants.show');
     Route::post('/tenants/{tenant}/subscription', [TenantsController::class, 'subscription'])->name('tenants.subscription');
     Route::post('/tenants/{tenant}/addons', [TenantsController::class, 'addons'])->name('tenants.addons');
+    Route::post('/tenants/{tenant}/credits', [TenantsController::class, 'credits'])->name('tenants.credits');
     Route::post('/tenants/{tenant}/suspend', [TenantsController::class, 'suspend'])->name('tenants.suspend');
     Route::post('/tenants/{tenant}/activate', [TenantsController::class, 'activate'])->name('tenants.activate');
     Route::post('/domains/{domain}', [DomainsController::class, 'update'])->name('domains.update');

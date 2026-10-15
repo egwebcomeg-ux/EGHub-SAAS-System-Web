@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Billing\Billing;
+use App\Billing\Credits;
 use App\Http\Controllers\Controller;
 use App\Models\AddonPrice;
+use App\Models\CreditTransaction;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Tenant;
@@ -41,20 +44,20 @@ class TenantsController extends Controller
     {
         $request->merge(['slug' => strtolower(trim((string) $request->input('slug'))), 'email' => strtolower(trim((string) $request->input('email')))]);
         $data = $request->validate([
-            'name'       => 'required|string|max:100',
-            'slug'       => 'required|string|max:30',
+            'name' => 'required|string|max:100',
+            'slug' => 'required|string|max:30',
             'owner_name' => 'required|string|max:100',
-            'email'      => 'required|email|max:120|unique:users,email',
-            'phone'      => 'nullable|string|max:20',
-            'password'   => 'required|string|min:8|max:200',
-            'plan'       => ['required', Rule::exists('plans', 'code')],
-            'trial'      => 'nullable|boolean',
+            'email' => 'required|email|max:120|unique:users,email',
+            'phone' => 'nullable|string|max:20',
+            'password' => 'required|string|min:8|max:200',
+            'plan' => ['required', Rule::exists('plans', 'code')],
+            'trial' => 'nullable|boolean',
         ]);
         if ($error = Tenant::slugError($data['slug'])) {
             return back()->withInput()->withErrors(['slug' => $error]);
         }
         $phone = $data['phone'] ? normalize_phone($data['phone']) : null;
-        if ($data['phone'] && (!$phone || User::query()->where('phone', $phone)->exists())) {
+        if ($data['phone'] && (! $phone || User::query()->where('phone', $phone)->exists())) {
             return back()->withInput()->withErrors(['phone' => __('Enter a valid, unused Egyptian mobile number.')]);
         }
 
@@ -77,12 +80,14 @@ class TenantsController extends Controller
 
         return view('admin.tenants.show', [
             'tenant' => $tenant,
-            'plans'  => Plan::query()->orderBy('sort_order')->get(),
-            'users'  => User::query()->where('tenant_id', $tenant->id)->with('roles')->get(),
-            'addons' => AddonPrice::query()->orderBy('sort_order')->get(),
+            'plans' => Plan::query()->orderBy('sort_order')->get(),
+            'users' => User::query()->where('tenant_id', $tenant->id)->with('roles')->get(),
+            'addons' => AddonPrice::query()->where('type', '!=', 'credits')->orderBy('sort_order')->get(),
+            'credits' => app(Credits::class)->balance($tenant),
+            'creditLog' => CreditTransaction::query()->where('tenant_id', $tenant->id)->latest('id')->limit(8)->get(),
             'myAddons' => $tenant->subscription?->addons()->pluck('quantity', 'key')->all() ?? [],
             'invoices' => $tenant->invoices()->latest('id')->limit(10)->get(),
-            'usage'  => $usage,
+            'usage' => $usage,
         ]);
     }
 
@@ -90,11 +95,11 @@ class TenantsController extends Controller
     public function subscription(Request $request, Tenant $tenant): RedirectResponse
     {
         $data = $request->validate([
-            'plan_id'            => ['required', Rule::exists('plans', 'id')],
-            'status'             => ['required', Rule::in(array_keys(Subscription::STATUSES))],
-            'cycle_months'       => ['required', Rule::in(Plan::CYCLES)],
+            'plan_id' => ['required', Rule::exists('plans', 'id')],
+            'status' => ['required', Rule::in(array_keys(Subscription::STATUSES))],
+            'cycle_months' => ['required', Rule::in(Plan::CYCLES)],
             'current_period_end' => 'nullable|date',
-            'trial_ends_at'      => 'nullable|date',
+            'trial_ends_at' => 'nullable|date',
         ]);
 
         Subscription::query()->updateOrCreate(['tenant_id' => $tenant->id], [
@@ -107,25 +112,37 @@ class TenantsController extends Controller
     }
 
     /** Grant / remove add-ons by hand (e.g. paid outside the system, or a free month). quantity 0 = off. */
-    public function addons(Request $request, Tenant $tenant, \App\Billing\Billing $billing): RedirectResponse
+    public function addons(Request $request, Tenant $tenant, Billing $billing): RedirectResponse
     {
         $data = $request->validate(['addons' => 'array', 'addons.*' => 'nullable|integer|min:0|max:50']);
-        foreach (AddonPrice::query()->get() as $addon) {
+        foreach (AddonPrice::query()->where('type', '!=', 'credits')->get() as $addon) {
             $qty = (int) ($data['addons'][$addon->key] ?? 0);
             $billing->setAddon($tenant, $addon->key, $addon->isFeaturePack() ? min(1, $qty) : $qty);
         }
+
         return back()->with('ok', __('Add-ons saved.'));
+    }
+
+    /** Adds or removes WhatsApp credits by hand (a gift, a correction, a transfer outside the invoices). */
+    public function credits(Request $request, Tenant $tenant, Credits $credits): RedirectResponse
+    {
+        $data = $request->validate(['delta' => 'required|integer|between:-100000,100000|not_in:0', 'note' => 'nullable|string|max:60']);
+        $credits->add($tenant, (int) $data['delta'], 'adjustment', trim('admin '.($data['note'] ?? '')));
+
+        return back()->with('ok', __('WhatsApp credits updated.'));
     }
 
     public function suspend(Tenant $tenant): RedirectResponse
     {
         $tenant->update(['status' => 'suspended', 'suspended_at' => now()]);
+
         return back()->with('ok', __('Restaurant suspended. Its menu is offline; the dashboard stays reachable.'));
     }
 
     public function activate(Tenant $tenant): RedirectResponse
     {
         $tenant->update(['status' => 'active', 'suspended_at' => null]);
+
         return back()->with('ok', __('Restaurant activated.'));
     }
 }

@@ -35,6 +35,7 @@ class OrderController extends Controller
             'notes' => 'nullable|string|max:500',
             'customer_name' => 'nullable|string|max:100',
             'customer_phone' => 'nullable|string|max:20',
+            'coupon' => 'nullable|string|max:30',
             // online ordering (no table)
             'type' => ['nullable', Rule::in(['takeaway', 'delivery'])],
             'branch_id' => 'nullable|integer',

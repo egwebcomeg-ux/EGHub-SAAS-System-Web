@@ -116,6 +116,43 @@
     </div>
 </div>
 
+<div class="card mt-4" id="credits">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <h2 class="text-lg font-bold">{{ __('WhatsApp credits') }}</h2>
+            <div class="text-3xl font-extrabold">{{ number_format($credits) }} <span class="text-base font-semibold text-navy-500">{{ __('messages') }}</span></div>
+        </div>
+        <form method="post" action="{{ route('admin.tenants.credits', $tenant) }}" class="flex flex-wrap items-end gap-2">
+            @csrf
+            <div>
+                <label class="field-label" for="credit-delta">{{ __('Add or remove (e.g. 100 or -20)') }}</label>
+                <input class="field w-40" id="credit-delta" name="delta" type="number" required dir="ltr">
+            </div>
+            <div>
+                <label class="field-label" for="credit-note">{{ __('Note') }}</label>
+                <input class="field w-48" id="credit-note" name="note" maxlength="60">
+            </div>
+            <button class="btn-primary">{{ __('Adjust credits') }}</button>
+        </form>
+    </div>
+    @error('delta')<div class="field-error">{{ $message }}</div>@enderror
+    @if ($creditLog->isNotEmpty())
+        <table class="table-base mt-3">
+            <tbody>
+            @foreach ($creditLog as $t)
+                <tr>
+                    <td>{{ local_time($t->created_at, 'Y/m/d h:i A') }}</td>
+                    <td>{{ $t->reasonLabel() }}</td>
+                    <td dir="ltr" class="text-start font-semibold {{ $t->delta < 0 ? 'text-red-700' : 'text-emerald-700' }}">{{ $t->delta > 0 ? '+' : '' }}{{ $t->delta }}</td>
+                    <td dir="ltr" class="text-start text-navy-500">{{ $t->reference }}</td>
+                    <td>{{ $t->balance_after }}</td>
+                </tr>
+            @endforeach
+            </tbody>
+        </table>
+    @endif
+</div>
+
 <div class="card mt-4 overflow-x-auto">
     <h2 class="mb-3 text-lg font-bold">{{ __('Staff') }}</h2>
     <table class="table-base">

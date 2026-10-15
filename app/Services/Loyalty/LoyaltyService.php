@@ -10,6 +10,7 @@ use App\Models\LoyaltyTransaction;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\Entitlements;
+use App\Services\Notify\GuestNotifier;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -25,11 +26,12 @@ final class LoyaltyService
     public function program(): ?LoyaltyProgram
     {
         $program = LoyaltyProgram::query()->where('is_active', true)->latest('id')->first();
-        if (!$program) {
+        if (! $program) {
             return null;
         }
         $rights = Entitlements::current();
         $allowed = $program->type === 'points' ? $rights->allows('loyalty_points') : $rights->allows('loyalty_stamps');
+
         return $allowed ? $program : null;
     }
 
@@ -41,10 +43,11 @@ final class LoyaltyService
             ->map(fn ($m) => ['at' => (int) $m['at'], 'type' => $m['type'] ?? 'free_item', 'value' => isset($m['value']) ? (float) $m['value'] : null, 'label' => (string) $m['label']]);
         if ($program->type !== 'points') {
             $list = $list->filter(fn ($m) => $m['at'] <= $program->stamps_required);
-            if (!$list->contains(fn ($m) => $m['at'] === (int) $program->stamps_required)) {
+            if (! $list->contains(fn ($m) => $m['at'] === (int) $program->stamps_required)) {
                 $list->push(['at' => (int) $program->stamps_required, 'type' => $program->reward_type, 'value' => $program->reward_value, 'label' => $program->reward_label]);
             }
         }
+
         return $list->sortBy('at')->unique('at')->values()->all();
     }
 
@@ -52,11 +55,13 @@ final class LoyaltyService
     public function enroll(string $phone, string $name = '', string $source = 'menu'): LoyaltyCard
     {
         $program = $this->program() ?? throw new \RuntimeException('No active loyalty program');
+
         return DB::transaction(function () use ($program, $phone, $name, $source) {
             $customer = Customer::query()->firstOrCreate(['phone' => $phone], ['name' => mb_substr($name, 0, 100), 'source' => $source]);
             if ($customer->name === '' && $name !== '') {
                 $customer->update(['name' => mb_substr($name, 0, 100)]);
             }
+
             return $this->card($program, $customer);
         });
     }
@@ -69,7 +74,7 @@ final class LoyaltyService
     /** Called when an order is paid or served. Safe to call twice. */
     public function orderCompleted(Order $order): void
     {
-        if ($order->loyalty_applied_at || $order->status === 'cancelled' || !$order->customer_id) {
+        if ($order->loyalty_applied_at || $order->status === 'cancelled' || ! $order->customer_id) {
             return;
         }
         DB::transaction(function () use ($order) {
@@ -84,7 +89,7 @@ final class LoyaltyService
             ])->save();
 
             $program = $this->program();
-            if (!$program) {
+            if (! $program) {
                 return;
             }
             $card = $this->card($program, $customer);
@@ -98,7 +103,7 @@ final class LoyaltyService
     /** Cancelled after it counted: take back the visit, spend and what the card earned from it. */
     public function orderReversed(Order $order): void
     {
-        if (!$order->loyalty_applied_at) {
+        if (! $order->loyalty_applied_at) {
             return;
         }
         DB::transaction(function () use ($order) {
@@ -119,6 +124,7 @@ final class LoyaltyService
     public function stamp(LoyaltyCard $card, int $count, User $by, ?int $branchId = null, string $note = ''): LoyaltyCard
     {
         $program = $card->program;
+
         return $this->add($card, max(1, min(20, $count)), $program->type === 'points' ? 'points' : 'stamp', null, $by, $branchId, $note);
     }
 
@@ -127,11 +133,13 @@ final class LoyaltyService
         if ($reward->status !== 'available') {
             throw new \RuntimeException(__('This reward was already used.'));
         }
+
         return DB::transaction(function () use ($reward, $by, $orderId) {
             $reward->update(['status' => 'redeemed', 'redeemed_at' => now(), 'redeemed_by' => $by->id, 'order_id' => $orderId]);
             $card = $reward->card;
             $card->forceFill(['rewards_available' => max(0, $card->rewards_available - 1), 'rewards_redeemed' => $card->rewards_redeemed + 1])->save();
             LoyaltyTransaction::query()->create(['loyalty_card_id' => $card->id, 'type' => 'redeem', 'amount' => 0, 'user_id' => $by->id, 'order_id' => $orderId, 'note' => $reward->label]);
+
             return $reward;
         });
     }
@@ -143,11 +151,13 @@ final class LoyaltyService
         if ($card->stamps < $m['at']) {
             throw new \RuntimeException(__('Not enough points.'));
         }
+
         return DB::transaction(function () use ($card, $m, $by) {
             $card->forceFill(['stamps' => $card->stamps - $m['at']])->save();
             LoyaltyTransaction::query()->create(['loyalty_card_id' => $card->id, 'type' => 'reward', 'amount' => -$m['at'], 'user_id' => $by->id, 'note' => $m['label']]);
             $reward = $card->rewards()->create(['tenant_id' => $card->tenant_id, 'label' => $m['label'], 'type' => $m['type'], 'value' => $m['value']]);
             $card->increment('rewards_available');
+
             return $this->redeem($reward, $by);
         });
     }
@@ -164,15 +174,17 @@ final class LoyaltyService
                     $n++;
                 });
         });
+
         return $n;
     }
 
     private function earned(LoyaltyProgram $program, LoyaltyCard $card, Order $order): int
     {
         return match ($program->type) {
-            'visits' => $order->subtotal >= $program->min_order && !($card->last_stamp_at?->isToday()) ? 1 : 0,
+            'visits' => $order->subtotal >= $program->min_order && ! ($card->last_stamp_at?->isToday()) ? 1 : 0,
             'items' => (int) $order->items->filter(function ($line) use ($program) {
                 $q = $program->qualifying_items ?? [];
+
                 return in_array($line->menu_item_id, array_map('intval', $q['items'] ?? []), true)
                     || in_array((int) $line->menuItem?->category_id, array_map('intval', $q['categories'] ?? []), true);
             })->sum('quantity'),
@@ -205,6 +217,8 @@ final class LoyaltyService
                         if ($m['at'] === $position) {
                             $card->rewards()->create(['tenant_id' => $card->tenant_id, 'label' => $m['label'], 'type' => $m['type'], 'value' => $m['value']]);
                             $card->rewards_available++;
+                            $label = $m['label'];
+                            DB::afterCommit(fn () => app(GuestNotifier::class)->rewardEarned($card->customer, $label)); // WhatsApp
                             LoyaltyTransaction::query()->create(['loyalty_card_id' => $card->id, 'type' => 'reward', 'amount' => 0, 'order_id' => $orderId, 'note' => $m['label']]);
                         }
                     }
@@ -213,6 +227,7 @@ final class LoyaltyService
             }
             $card->stamps = $after;
             $card->save();
+
             return $card;
         });
     }

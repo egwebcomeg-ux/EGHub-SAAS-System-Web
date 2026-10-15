@@ -44,6 +44,8 @@ class Plan extends Model
         'customers' => ['قاعدة بيانات العملاء', 'Customer database', 'marketing'],
         'loyalty_stamps' => ['كارت ولاء ديجيتال (أختام)', 'Digital stamp card', 'marketing'],
         'loyalty_points' => ['نقاط ولاء', 'Loyalty points', 'marketing'],
+        'whatsapp_notifications' => ['رسائل واتساب للعميل (استلام الطلب، جاهز، في الطريق)', 'WhatsApp updates to guests (order received, ready, on the way)', 'marketing'],
+        'campaigns' => ['حملات واتساب وكوبونات خصم', 'WhatsApp campaigns & coupons', 'marketing'],
         // management
         'daily_reports' => ['تقارير يومية', 'Daily reports', 'management'],
         'advanced_reports' => ['تقارير متقدمة', 'Advanced reports', 'management'],
