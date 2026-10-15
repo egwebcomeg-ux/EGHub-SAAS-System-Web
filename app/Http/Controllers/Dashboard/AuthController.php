@@ -28,10 +28,10 @@ class AuthController extends Controller
         // Central context: no tenant scope yet, the identifier is unique platform-wide.
         $user = User::query()->where(str_contains($login, '@') ? 'email' : 'phone', str_contains($login, '@') ? strtolower($login) : $phone)->first();
 
-        if (!$user || !Hash::check($data['password'], $user->password)) {
+        if (! $user || ! Hash::check($data['password'], $user->password)) {
             return back()->withInput(['login' => $login])->withErrors(['login' => __('Wrong login or password.')]);
         }
-        if (!$user->is_active || !Tenant::query()->whereKey($user->tenant_id)->exists()) {
+        if (! $user->is_active || ! Tenant::query()->whereKey($user->tenant_id)->exists()) {
             return back()->withInput(['login' => $login])->withErrors(['login' => __('Your account is not active.')]);
         }
 
@@ -50,6 +50,7 @@ class AuthController extends Controller
         Auth::guard('web')->login($owner, true);
         $request->session()->regenerate();
         $owner->forceFill(['last_login_at' => now()])->save();
+
         return redirect()->route('dash.home')->with('ok', __('Welcome to EgMenu! Your 14-day free trial has started.'));
     }
 
@@ -58,6 +59,7 @@ class AuthController extends Controller
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect()->route('dash.login');
     }
 
@@ -65,6 +67,7 @@ class AuthController extends Controller
     {
         $locale = $request->input('locale') === 'en' ? 'en' : 'ar';
         $request->user()->forceFill(['locale' => $locale])->save();
+
         return back();
     }
 }

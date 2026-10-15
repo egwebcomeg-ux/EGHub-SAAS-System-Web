@@ -18,6 +18,7 @@ use App\Services\Settings;
 use App\Services\Wallet\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -39,7 +40,7 @@ class PosController extends Controller
             'branch' => $branch,
             'branches' => $request->user()->branch_id ? collect([$branch]) : Branch::query()->where('is_active', true)->orderBy('sort_order')->get(),
             'shift' => $shift,
-            'needsShift' => Entitlements::current()->allows('shifts') && !$shift,
+            'needsShift' => Entitlements::current()->allows('shifts') && ! $shift,
             'data' => [
                 'currency' => tr($settings['currency'], $settings['currency_en']),
                 'service' => (float) $settings['service_percent'], 'tax' => (float) $settings['tax_percent'],
@@ -58,7 +59,7 @@ class PosController extends Controller
                 'categories' => $categories->map(fn (Category $c) => ['id' => $c->id, 'name' => tr($c->name, $c->name_en)])->values(),
                 'items' => $categories->flatMap(fn (Category $c) => $c->items->map(fn (MenuItem $i) => [
                     'id' => $i->id, 'category' => $c->id, 'name' => $i->displayName(), 'price' => (float) $i->price,
-                    'soldOut' => $i->is_sold_out, 'image' => $i->image ? '/storage/' . $i->image : null,
+                    'soldOut' => $i->is_sold_out, 'image' => $i->image ? '/storage/'.$i->image : null,
                     'groups' => $i->optionGroups->map(fn ($g) => [
                         'id' => $g->id, 'name' => tr($g->name, $g->name_en), 'type' => $g->type, 'required' => $g->is_required, 'max' => $g->max_choices,
                         'options' => $g->options->map(fn ($o) => ['id' => $o->id, 'name' => tr($o->name, $o->name_en), 'price' => (float) $o->price, 'soldOut' => $o->is_sold_out, 'default' => $o->is_default])->values(),
@@ -73,38 +74,39 @@ class PosController extends Controller
     {
         $branch = self::branch($request);
         $data = $request->validate([
-            'client_uuid'          => 'required|uuid',
-            'type'                 => ['required', Rule::in(['dine_in', 'takeaway'])],
-            'table_id'             => ['nullable', 'integer'],
-            'items'                => 'required|array|min:1|max:' . OrderService::MAX_LINES,
-            'items.*.item_id'      => 'required|integer',
-            'items.*.qty'          => 'required|integer|min:1|max:' . OrderService::MAX_QTY,
-            'items.*.option_ids'   => 'array|max:30',
+            'client_uuid' => 'required|uuid',
+            'type' => ['required', Rule::in(['dine_in', 'takeaway'])],
+            'table_id' => ['nullable', 'integer'],
+            'items' => 'required|array|min:1|max:'.OrderService::MAX_LINES,
+            'items.*.item_id' => 'required|integer',
+            'items.*.qty' => 'required|integer|min:1|max:'.OrderService::MAX_QTY,
+            'items.*.option_ids' => 'array|max:30',
             'items.*.option_ids.*' => 'integer',
-            'items.*.notes'        => 'nullable|string|max:200',
-            'notes'                => 'nullable|string|max:500',
-            'customer_name'        => 'nullable|string|max:100',
-            'customer_phone'       => 'nullable|string|max:20',
-            'discount'             => 'nullable|numeric|min:0',
-            'pay'                  => ['nullable', Rule::in(ShiftService::METHODS)],
+            'items.*.notes' => 'nullable|string|max:200',
+            'notes' => 'nullable|string|max:500',
+            'customer_name' => 'nullable|string|max:100',
+            'customer_phone' => 'nullable|string|max:20',
+            'discount' => 'nullable|numeric|min:0',
+            'pay' => ['nullable', Rule::in(ShiftService::METHODS)],
         ]);
-        if (($data['discount'] ?? 0) > 0 && !$request->user()->can('pos.discount')) {
+        if (($data['discount'] ?? 0) > 0 && ! $request->user()->can('pos.discount')) {
             return response()->json(['message' => __('You are not allowed to give discounts.')], 403);
         }
-        $table = $data['type'] === 'dine_in' && !empty($data['table_id'])
+        $table = $data['type'] === 'dine_in' && ! empty($data['table_id'])
             ? DiningTable::query()->where('branch_id', $branch->id)->find($data['table_id']) : null;
-        if ($data['type'] === 'dine_in' && !$table) {
+        if ($data['type'] === 'dine_in' && ! $table) {
             return response()->json(['message' => __('Choose a table.')], 422);
         }
 
         try {
             $order = $orders->place($data + ['source' => 'pos'], $branch, $table, $request->user());
-            if (!empty($data['pay']) && $order->payment_status !== 'paid') {
+            if (! empty($data['pay']) && $order->payment_status !== 'paid') {
                 $orders->pay($order, $data['pay'], $request->user(), $shifts->current($request->user()));
             }
         } catch (OrderException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
+
         return response()->json(['ok' => true, 'id' => $order->id, 'number' => $order->number, 'total' => $order->total, 'paid' => $order->payment_status === 'paid']);
     }
 
@@ -112,19 +114,26 @@ class PosController extends Controller
     {
         abort_if($request->user()->branch_id && $request->user()->branch_id !== $order->branch_id, 404);
         $data = $request->validate(['method' => ['required', Rule::in(ShiftService::METHODS)], 'phone' => 'nullable|string|max:20']);
+        $customer = null;
         // paying an open (table) order from the wallet: the cashier may name the guest now
         if ($data['method'] === WalletService::METHOD && ! $order->customer_id && ! empty($data['phone'])) {
             $customer = Customer::query()->where('phone', normalize_phone($data['phone']) ?? '')->first();
             if (! $customer) {
                 return response()->json(['message' => __('No wallet for this mobile number.')], 422);
             }
-            $order->update(['customer_id' => $customer->id, 'customer_phone' => $customer->phone, 'customer_name' => $order->customer_name ?: $customer->name]);
         }
         try {
-            $orders->pay($order, $data['method'], $request->user(), $shifts->current($request->user()));
+            // one transaction: a refused payment (not enough balance, already paid) leaves the order untouched
+            DB::transaction(function () use ($order, $customer, $data, $orders, $request, $shifts) {
+                if ($customer) {
+                    $order->update(['customer_id' => $customer->id, 'customer_phone' => $customer->phone, 'customer_name' => $order->customer_name ?: $customer->name]);
+                }
+                $orders->pay($order, $data['method'], $request->user(), $shifts->current($request->user()));
+            });
         } catch (OrderException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
+
         return response()->json(['ok' => true]);
     }
 
@@ -134,6 +143,7 @@ class PosController extends Controller
         $branch = self::branch($request);
         $orders = Order::query()->where('branch_id', $branch->id)->where('payment_status', 'unpaid')->where('status', '!=', 'cancelled')
             ->with('table')->latest('id')->limit(50)->get();
+
         return response()->json(['orders' => $orders->map(fn (Order $o) => [
             'id' => $o->id, 'number' => $o->number, 'table' => $o->table?->name, 'type' => $o->type, 'status' => $o->statusLabel(),
             'total' => (float) $o->total, 'time' => local_time($o->created_at, 'h:i A'),
@@ -155,6 +165,7 @@ class PosController extends Controller
             $request->session()->put('pos.branch', (int) $request->query('branch'));
         }
         $chosen = Branch::query()->where('is_active', true)->find((int) $request->session()->get('pos.branch'));
+
         return $chosen ?? MenuCatalog::defaultBranch();
     }
 }

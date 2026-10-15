@@ -25,7 +25,7 @@ class XlsxWriter
 
     public function save(string $path): void
     {
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             throw new RuntimeException(__('Could not create the Excel file.'));
         }

@@ -227,4 +227,52 @@ class CampaignsTest extends TenantTestCase
         $this->assertTrue($this->as($a, fn () => Customer::query()->find($c->id)->whatsapp_opt_out));
         $this->assertSame(0, $this->preview($a, 'all')['recipients']);
     }
+
+    public function test_cancelling_the_same_order_twice_gives_the_coupon_use_back_once(): void
+    {
+        $a = $this->restaurant('cafe-a', 'business');
+        $item = $this->item($a, 'Water', 15);
+        $this->as($a, fn () => Coupon::query()->create(['code' => 'TWICE', 'type' => 'amount', 'value' => 5, 'once_per_customer' => false, 'max_uses' => 10]));
+        $place = fn () => $this->as($a, fn () => app(OrderService::class)->place([
+            'items' => [['item_id' => $item->id, 'qty' => 1]], 'coupon' => 'twice', 'source' => 'pos',
+        ], Branch::query()->first()));
+        $place();
+        $order = $place();
+        $this->assertSame(2, $this->as($a, fn () => Coupon::query()->first()->uses));
+
+        // two screens hold the same order; both press "cancel"
+        $this->as($a, function () use ($order) {
+            $stale = Order::query()->find($order->id);
+            app(OrderService::class)->transition($order, 'cancelled');
+            try {
+                app(OrderService::class)->transition($stale, 'cancelled');
+                $this->fail('A cancelled order was cancelled again.');
+            } catch (OrderException) {
+            }
+        });
+        $this->assertSame(1, $this->as($a, fn () => Coupon::query()->first()->uses));
+    }
+
+    public function test_coupons_and_campaigns_never_cross_restaurants(): void
+    {
+        $a = $this->restaurant('cafe-a', 'business');
+        $b = $this->restaurant('cafe-b', 'business');
+        $item = $this->item($a, 'Water', 15);
+        $this->as($b, fn () => Coupon::query()->create(['code' => 'ONLYB', 'type' => 'amount', 'value' => 5, 'once_per_customer' => false]));
+        $campaign = $this->as($b, fn () => Campaign::query()->create(['name' => 'B', 'segment' => 'all', 'message' => 'Hi', 'status' => 'stopped']));
+
+        $this->expectExceptionObject(new OrderException(__('This coupon code is not valid.')));
+        try {
+            $owner = $this->owner($a);
+            $this->actingAs($owner)->post($this->dashUrl("/campaigns/{$campaign->id}/cancel"))->assertNotFound();
+            $this->actingAs($owner)->post($this->dashUrl("/campaigns/{$campaign->id}/resume"))->assertNotFound();
+            $this->assertSame('stopped', $this->as($b, fn () => $campaign->fresh()->status));
+            // B's code typed on A's menu
+            $this->as($a, fn () => app(OrderService::class)->place([
+                'items' => [['item_id' => $item->id, 'qty' => 1]], 'coupon' => 'onlyb', 'source' => 'pos',
+            ], Branch::query()->first()));
+        } finally {
+            $this->assertSame(0, $this->as($b, fn () => Coupon::query()->first()->uses));
+        }
+    }
 }

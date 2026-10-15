@@ -26,6 +26,7 @@ class KitchenController extends Controller
     public function screen(Request $request): View
     {
         $stations = Entitlements::current()->allows('kitchen_stations') ? KitchenStation::query()->orderBy('sort_order')->get() : collect();
+
         return view('dashboard.kitchen', [
             'stations' => $stations,
             'station' => $stations->firstWhere('id', (int) $request->query('station')),
@@ -47,6 +48,7 @@ class KitchenController extends Controller
             if ($lines->isEmpty()) {
                 return null;
             }
+
             return [
                 'id' => $o->id, 'number' => $o->number, 'status' => $o->status, 'type' => $o->type,
                 'type_label' => Order::TYPES[$o->type][app()->getLocale() === 'en' ? 1 : 0] ?? $o->type,
@@ -85,14 +87,16 @@ class KitchenController extends Controller
         } catch (OrderException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
+
         return response()->json(['ok' => true, 'status' => $order->fresh()->status]);
     }
 
     private function station(Request $request): ?KitchenStation
     {
-        if (!$request->filled('station') || !Entitlements::current()->allows('kitchen_stations')) {
+        if (! $request->filled('station') || ! Entitlements::current()->allows('kitchen_stations')) {
             return null;
         }
+
         return KitchenStation::query()->find((int) $request->input('station'));
     }
 }

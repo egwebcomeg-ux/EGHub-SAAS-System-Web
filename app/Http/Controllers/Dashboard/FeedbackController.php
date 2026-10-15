@@ -13,6 +13,7 @@ class FeedbackController extends Controller
     {
         $rating = (int) $request->query('rating');
         $base = Feedback::query()->when($request->user()->branch_id, fn ($q, $b) => $q->where('branch_id', $b));
+
         return view('dashboard.feedback', [
             'feedback' => (clone $base)->with(['branch', 'order'])->when($rating, fn ($q) => $q->where('rating', $rating))
                 ->latest('id')->paginate(30)->withQueryString(),

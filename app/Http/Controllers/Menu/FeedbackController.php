@@ -21,17 +21,17 @@ class FeedbackController extends Controller
     {
         abort_unless(Entitlements::current()->allows('feedback'), 404);
         $data = $request->validate([
-            'rating'  => 'required|integer|min:1|max:5',
+            'rating' => 'required|integer|min:1|max:5',
             'comment' => 'nullable|string|max:1000',
-            'order'   => 'nullable|string|size:24',
+            'order' => 'nullable|string|size:24',
         ]);
 
-        $ipHash = hash('sha256', client_ip() . '|' . tenant()->getTenantKey() . '|' . config('app.key'));
+        $ipHash = hash('sha256', client_ip().'|'.tenant()->getTenantKey().'|'.config('app.key'));
         if (Feedback::query()->where('ip_hash', $ipHash)->where('created_at', '>=', now()->subHour())->count() >= 3) {
             return response()->json(['message' => __('Thank you! You already sent your rating.')], 429);
         }
 
-        $order = !empty($data['order']) ? Order::query()->where('tracking_token', $data['order'])->with('table')->first() : null;
+        $order = ! empty($data['order']) ? Order::query()->where('tracking_token', $data['order'])->with('table')->first() : null;
         $table = MenuController::currentTable($request);
         Feedback::query()->create([
             'branch_id' => $order?->branch_id ?? $table?->branch_id ?? MenuCatalog::defaultBranch()->id,
@@ -41,6 +41,7 @@ class FeedbackController extends Controller
         ]);
 
         $google = Settings::get('google_review_url');
+
         return response()->json(['ok' => true, 'google' => $data['rating'] >= 4 && $google !== '' ? $google : null]);
     }
 }

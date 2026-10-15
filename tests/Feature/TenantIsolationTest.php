@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\DiningTable;
 use App\Models\MenuItem;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Tests\TenantTestCase;
 
 /** One restaurant must never see, change or collide with another restaurant's data. */
@@ -30,7 +31,7 @@ class TenantIsolationTest extends TenantTestCase
         $customer = $this->as($a, fn () => Customer::query()->create(['phone' => '01000000001']));
         $this->assertSame('cafe-a', $customer->tenant_id);
 
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(QueryException::class);
         Customer::query()->create(['phone' => '01000000002']); // no tenant → tenant_id NOT NULL fails
     }
 

@@ -26,12 +26,12 @@ class InvoicesController extends Controller
     public function markPaid(Request $request, Invoice $invoice, Billing $billing): RedirectResponse
     {
         $data = $request->validate([
-            'gateway'   => 'required|in:instapay,vodafone_cash,manual',
+            'gateway' => 'required|in:instapay,vodafone_cash,manual',
             'reference' => 'nullable|string|max:80',
-            'amount'    => 'required|numeric|min:0',
+            'amount' => 'required|numeric|min:0',
         ]);
         $applied = $billing->markPaid($invoice, $data['gateway'], $data['reference'] ?? null, (float) $data['amount'],
-            'admin:' . $invoice->id, $request->user('admin')->id);
+            'admin:'.$invoice->id, $request->user('admin')->id);
 
         return back()->with('ok', $applied ? __('Payment confirmed and plan activated.') : __('This invoice was already settled.'));
     }
@@ -41,6 +41,7 @@ class InvoicesController extends Controller
         if ($invoice->status === 'open') {
             $invoice->update(['status' => 'void']);
         }
+
         return back()->with('ok', __('Invoice voided.'));
     }
 }

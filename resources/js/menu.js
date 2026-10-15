@@ -367,9 +367,10 @@ if (dataEl) {
     const P = M.popup;
     if (P) {
         const key = `egmenu.popup.${M.tenant}.${P.id}`;
-        const store = P.frequency === 'session' ? sessionStorage : localStorage;
+        let store = null; // reading window.sessionStorage itself throws when the browser blocks site data
+        try { store = P.frequency === 'session' ? sessionStorage : localStorage; } catch {}
         let seen = null;
-        try { seen = store.getItem(key); } catch {}
+        try { seen = store?.getItem(key); } catch {}
         const due = P.frequency === 'always' || !seen || (P.frequency === 'day' && seen !== new Date().toDateString());
         if (due) {
             setTimeout(() => {
@@ -388,7 +389,7 @@ if (dataEl) {
                     if (P.item) openItem(P.item); else if (P.link) window.open(P.link, '_blank', 'noopener');
                 };
                 dlg.showModal();
-                try { store.setItem(key, new Date().toDateString()); } catch {}
+                try { store?.setItem(key, new Date().toDateString()); } catch {}
                 fetch(P.eventUrl.replace('__E__', 'view'), { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } }).catch(() => {});
             }, (P.delay || 0) * 1000);
         }

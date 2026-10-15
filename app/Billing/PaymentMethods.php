@@ -21,6 +21,7 @@ final class PaymentMethods
         if (PlatformSetting::get('pay_vodafone_enabled') === '1') {
             $out[] = ['key' => 'vodafone_cash', 'label' => __('Vodafone Cash'), 'account' => (string) PlatformSetting::get('pay_vodafone_number', '')];
         }
+
         return $out;
     }
 

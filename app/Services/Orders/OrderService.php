@@ -122,11 +122,12 @@ final class OrderService
                     app(StockService::class)->deductForOrder($order); // inventory pack only
                     DB::afterCommit(fn () => app(GuestNotifier::class)->orderPlaced($order)); // WhatsApp "we got your order"
 
-                    if (!empty($data['pay_wallet'])) {
+                    if (! empty($data['pay_wallet'])) {
                         app(WalletService::class)->payOrder($order, $by);
                         $order->update(['payment_status' => 'paid', 'payment_method' => WalletService::METHOD]);
                         app(LoyaltyService::class)->orderCompleted($order);
                     }
+
                     return $order;
                 });
             } catch (QueryException $e) {
@@ -168,6 +169,7 @@ final class OrderService
             }
             $order->update(['payment_status' => 'paid', 'payment_method' => $method, 'shift_id' => $shift?->id]);
             app(LoyaltyService::class)->orderCompleted($order);
+
             return $order;
         });
     }
@@ -180,6 +182,15 @@ final class OrderService
         }
 
         return DB::transaction(function () use ($order, $to, $by, $reason) {
+            // locked and re-read: two screens cancelling the same order at once must not give the coupon, stock,
+            // stamps or wallet money back twice (the second sees the order already cancelled)
+            $current = Order::query()->lockForUpdate()->whereKey($order->id)->value('status');
+            if ($current !== $order->status) {
+                $order->status = $current;
+                if (! $order->canMoveTo($to)) {
+                    throw new OrderException(__('This order can no longer be moved to ":status".', ['status' => Order::STATUSES[$to][app()->getLocale() === 'en' ? 1 : 0] ?? $to]));
+                }
+            }
             $from = $order->status;
             $order->status = $to;
             if ($column = self::STAMPS[$to] ?? null) {

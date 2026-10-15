@@ -57,7 +57,7 @@ class ReportsController extends Controller
             fwrite($out, "\xEF\xBB\xBF");
             fputcsv($out, $header);
             foreach ($rows as $row) {
-                fputcsv($out, $row);
+                fputcsv($out, csv_row($row));
             }
             fclose($out);
         }, 'sales-'.$from->format('Ymd').'-'.$to->format('Ymd').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
@@ -95,7 +95,7 @@ class ReportsController extends Controller
             fwrite($out, "\xEF\xBB\xBF");
             fputcsv($out, $header);
             foreach ($rows as $row) {
-                fputcsv($out, $row);
+                fputcsv($out, csv_row($row));
             }
             fclose($out);
         }, $table.'-'.$from->format('Ymd').'-'.$to->format('Ymd').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);

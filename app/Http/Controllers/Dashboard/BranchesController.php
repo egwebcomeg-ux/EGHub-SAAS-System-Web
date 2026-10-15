@@ -16,14 +16,14 @@ class BranchesController extends Controller
     {
         return view('dashboard.branches', [
             'branches' => Branch::query()->withCount('tables')->orderBy('sort_order')->orderBy('id')->get(),
-            'canAdd'   => Entitlements::current()->canAdd('branches'),
+            'canAdd' => Entitlements::current()->canAdd('branches'),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $rights = Entitlements::current();
-        if (!$rights->canAdd('branches')) {
+        if (! $rights->canAdd('branches')) {
             return back()->withErrors(['limit' => $rights->upgradeMessage('branches')]);
         }
         $data = $this->validated($request);
@@ -33,6 +33,7 @@ class BranchesController extends Controller
             $slug = "$base-$i";
         }
         Branch::query()->create($data + ['slug' => $slug, 'sort_order' => (int) Branch::query()->max('sort_order') + 1]);
+
         return back()->with('ok', __('Branch added.'));
     }
 
@@ -40,10 +41,11 @@ class BranchesController extends Controller
     {
         $data = $this->validated($request);
         $data['is_active'] = $request->boolean('is_active');
-        if (!$data['is_active'] && Branch::query()->where('is_active', true)->whereKeyNot($branch->id)->doesntExist()) {
+        if (! $data['is_active'] && Branch::query()->where('is_active', true)->whereKeyNot($branch->id)->doesntExist()) {
             return back()->withErrors(['branch' => __('Keep at least one active branch.')]);
         }
         $branch->update($data);
+
         return back()->with('ok', __('Branch saved.'));
     }
 
@@ -51,14 +53,15 @@ class BranchesController extends Controller
     private function validated(Request $request): array
     {
         $data = $request->validate([
-            'name'          => 'required|string|max:80',
-            'name_en'       => 'nullable|string|max:80',
-            'address'       => 'nullable|string|max:200',
-            'phone'         => 'nullable|string|max:20',
-            'whatsapp'      => 'nullable|string|max:20',
+            'name' => 'required|string|max:80',
+            'name_en' => 'nullable|string|max:80',
+            'address' => 'nullable|string|max:200',
+            'phone' => 'nullable|string|max:20',
+            'whatsapp' => 'nullable|string|max:20',
             'working_hours' => 'nullable|string|max:100',
-            'maps_url'      => 'nullable|url|max:300',
+            'maps_url' => 'nullable|url|max:300',
         ]);
+
         return array_map(fn ($v) => $v ?? '', $data) + ['whatsapp' => null, 'maps_url' => null];
     }
 }

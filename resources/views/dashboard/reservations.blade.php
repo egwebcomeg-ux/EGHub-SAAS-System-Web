@@ -18,7 +18,7 @@
         <h1 class="page-title">{{ __('Reservations') }}</h1>
         <p class="muted">
             @if ($settings['reservations_enabled'] === '1')
-                {{ __('Guests book from your menu link:') }} <a href="{{ $guestUrl }}" target="_blank" rel="noopener" class="font-semibold text-brand-700" dir="ltr">{{ $guestUrl }}</a>
+                {{ __('Guests book from your menu link:') }} <a href="{{ $guestUrl }}" target="_blank" rel="noopener" class="inline-block break-all font-semibold text-brand-700" dir="ltr">{{ $guestUrl }}</a>
             @else
                 <span class="font-semibold text-amber-700">{{ __('Online booking is off. Turn it on in the settings below; you can still add bookings by hand.') }}</span>
             @endif
@@ -26,14 +26,14 @@
     </div>
     <form class="flex flex-wrap items-end gap-2">
         @if ($branches->count() > 1)
-            <select name="branch" class="field min-h-10 w-auto" onchange="this.form.submit()">
+            <select name="branch" class="field min-h-11 w-auto" onchange="this.form.submit()">
                 @foreach ($branches as $b)<option value="{{ $b->id }}" @selected($b->id === $branch?->id)>{{ tr($b->name, $b->name_en) }}</option>@endforeach
             </select>
         @endif
-        <a href="{{ route('dash.reservations', $query(['date' => $date->copy()->subDay()->format('Y-m-d')])) }}" class="btn-ghost min-h-10 px-3" aria-label="{{ __('Previous day') }}">‹</a>
-        <input type="date" name="date" value="{{ $date->format('Y-m-d') }}" class="field min-h-10 w-auto" onchange="this.form.submit()">
-        <a href="{{ route('dash.reservations', $query(['date' => $date->copy()->addDay()->format('Y-m-d')])) }}" class="btn-ghost min-h-10 px-3" aria-label="{{ __('Next day') }}">›</a>
-        @unless ($date->isToday())<a href="{{ route('dash.reservations', array_filter(['branch' => $branch?->id])) }}" class="btn-ghost min-h-10 px-3">{{ __('Today') }}</a>@endunless
+        <a href="{{ route('dash.reservations', $query(['date' => $date->copy()->subDay()->format('Y-m-d')])) }}" class="btn-ghost min-h-11 px-3" aria-label="{{ __('Previous day') }}"><span class="inline-block rtl:rotate-180">‹</span></a>
+        <input type="date" name="date" value="{{ $date->format('Y-m-d') }}" class="field min-h-11 w-auto" onchange="this.form.submit()">
+        <a href="{{ route('dash.reservations', $query(['date' => $date->copy()->addDay()->format('Y-m-d')])) }}" class="btn-ghost min-h-11 px-3" aria-label="{{ __('Next day') }}"><span class="inline-block rtl:rotate-180">›</span></a>
+        @unless ($date->isToday())<a href="{{ route('dash.reservations', array_filter(['branch' => $branch?->id])) }}" class="btn-ghost min-h-11 px-3">{{ __('Today') }}</a>@endunless
     </form>
 </div>
 

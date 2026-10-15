@@ -16,7 +16,7 @@ class TranslationsTest extends TestCase
         foreach (['app', 'resources/views'] as $dir) {
             $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator("$root/$dir", \FilesystemIterator::SKIP_DOTS));
             foreach ($files as $file) {
-                if (!str_ends_with($file->getFilename(), '.php')) {
+                if (! str_ends_with($file->getFilename(), '.php')) {
                     continue;
                 }
                 // matches __('text') and __('it\'s') — the key is group 1
@@ -26,7 +26,7 @@ class TranslationsTest extends TestCase
                 $this->assertNotFalse($found, 'Translation key regex failed');
                 foreach ($m[1] as $key) {
                     $key = stripslashes($key);
-                    if (!array_key_exists($key, $ar)) {
+                    if (! array_key_exists($key, $ar)) {
                         $missing[$key] = str_replace($root, '', $file->getPathname());
                     }
                 }

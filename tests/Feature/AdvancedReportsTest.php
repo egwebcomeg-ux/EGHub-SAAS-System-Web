@@ -195,6 +195,10 @@ class AdvancedReportsTest extends TenantTestCase
         Notification::assertNotSentTo($this->owner($off), WeeklyReport::class);
         Notification::assertNotSentTo($this->owner($noFeature), WeeklyReport::class);
         Notification::assertCount(1);
+
+        // the command run again the same morning (manual rerun, overlapping cron) sends nothing new
+        $this->artisan('egmenu:weekly-report')->expectsOutputToContain('weekly reports sent: 0')->assertSuccessful();
+        Notification::assertCount(1);
     }
 
     public function test_the_weekly_email_is_switched_on_from_settings_and_scheduled_on_monday(): void

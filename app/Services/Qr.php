@@ -17,13 +17,14 @@ final class Qr
     {
         [$r, $g, $b] = sscanf(ltrim(is_hex_color($color) ? $color : '#000000', '#'), '%02x%02x%02x');
         $style = new RendererStyle($size, $margin, null, null, Fill::uniformColor(new Rgb(255, 255, 255), new Rgb($r, $g, $b)));
-        $svg = (new Writer(new ImageRenderer($style, new SvgImageBackEnd())))->writeString($data);
+        $svg = (new Writer(new ImageRenderer($style, new SvgImageBackEnd)))->writeString($data);
+
         return (string) preg_replace('/^<\?xml[^>]*>\s*/', '', $svg);
     }
 
     /** data: URL for an <img>. */
     public static function dataUrl(string $data, int $size = 400, string $color = '#000000'): string
     {
-        return 'data:image/svg+xml;base64,' . base64_encode(self::svg($data, $size, $color));
+        return 'data:image/svg+xml;base64,'.base64_encode(self::svg($data, $size, $color));
     }
 }

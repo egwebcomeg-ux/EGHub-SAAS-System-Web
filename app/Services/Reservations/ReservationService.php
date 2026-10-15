@@ -25,6 +25,9 @@ final class ReservationService
 {
     public const DEFAULT_SEATS = 20;
 
+    /** Upcoming bookings one mobile number may hold from the menu link (so one person can't fill the seats). */
+    public const MAX_PER_PHONE = 3;
+
     public function __construct(private ReservationNotifier $notifier) {}
 
     /** Reservations are on for guests: the plan / add-on allows them and the restaurant switched them on. */
@@ -190,6 +193,10 @@ final class ReservationService
         $reservation = DB::transaction(function () use ($data, $branch, $by, $staff, $c, $party, $phone, $name, $at) {
             // one booking at a time per branch, so two guests can never take the same last seats
             Branch::query()->whereKey($branch->id)->lockForUpdate()->first();
+            if (! $staff && Reservation::query()->where('phone', $phone)->whereIn('status', ['pending', 'confirmed'])
+                ->where('starts_at', '>', now())->count() >= self::MAX_PER_PHONE) {
+                throw new ReservationException(__('You already have :n upcoming bookings. Call the restaurant to book more.', ['n' => self::MAX_PER_PHONE]));
+            }
             if ($this->seatsLeft($branch, $at) < $party) {
                 throw new ReservationException(__('Sorry, there are not enough seats left at this time. Please choose another time.'));
             }

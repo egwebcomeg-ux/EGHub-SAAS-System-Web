@@ -37,6 +37,7 @@ class ShiftsController extends Controller
         } catch (OrderException $e) {
             return back()->withErrors(['shift' => $e->getMessage()]);
         }
+
         return redirect()->route('dash.pos')->with('ok', __('Shift opened.'));
     }
 
@@ -45,6 +46,7 @@ class ShiftsController extends Controller
         $data = $request->validate(['type' => 'required|in:in,out', 'amount' => 'required|numeric|gt:0|max:1000000', 'reason' => 'required|string|max:120']);
         $shift = $shifts->current($request->user()) ?? abort(422);
         $shifts->move($shift, $data['type'], (float) $data['amount'], $data['reason'], $request->user());
+
         return back()->with('ok', __('Saved.'));
     }
 
@@ -54,6 +56,7 @@ class ShiftsController extends Controller
         $shift = $shifts->current($request->user()) ?? abort(422);
         $shift = $shifts->close($shift, (float) $data['closing_cash'], $data['notes'] ?? null);
         $diff = $shifts->summary($shift)['difference'];
+
         return back()->with('ok', __('Shift closed. Difference: :diff', ['diff' => money($diff)]));
     }
 }

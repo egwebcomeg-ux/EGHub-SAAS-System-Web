@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Order;
 use App\Services\Entitlements;
+use App\Services\Menu\MenuCatalog;
 use App\Services\Settings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ class BoardController extends Controller
     public function show(Request $request): View
     {
         abort_unless(Entitlements::current()->allows('customer_display'), 404);
+
         return view('menu.board', ['settings' => Settings::all(), 'branch' => $this->branch($request)]);
     }
 
@@ -37,6 +39,6 @@ class BoardController extends Controller
     private function branch(Request $request): Branch
     {
         return Branch::query()->where('is_active', true)->where('slug', (string) $request->query('branch', ''))->first()
-            ?? \App\Services\Menu\MenuCatalog::defaultBranch();
+            ?? MenuCatalog::defaultBranch();
     }
 }

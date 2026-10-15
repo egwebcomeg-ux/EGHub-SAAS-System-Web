@@ -15,14 +15,14 @@ class DashboardController extends Controller
 
         return view('admin.home', [
             'counts' => [
-                'tenants'   => Tenant::query()->count(),
-                'trialing'  => $subs->where('status', 'trialing')->count(),
-                'active'    => $subs->where('status', 'active')->count(),
-                'past_due'  => $subs->where('status', 'past_due')->count(),
+                'tenants' => Tenant::query()->count(),
+                'trialing' => $subs->where('status', 'trialing')->count(),
+                'active' => $subs->where('status', 'active')->count(),
+                'past_due' => $subs->where('status', 'past_due')->count(),
                 'suspended' => Tenant::query()->where('status', 'suspended')->count(),
             ],
             // Monthly recurring revenue of paying restaurants (yearly cycles spread over 12 months).
-            'mrr'    => $subs->where('status', 'active')->sum(fn ($s) => $s->plan->priceFor($s->cycle_months) / max(1, $s->cycle_months)),
+            'mrr' => $subs->where('status', 'active')->sum(fn ($s) => $s->plan->priceFor($s->cycle_months) / max(1, $s->cycle_months)),
             'latest' => Tenant::query()->with('subscription.plan')->latest()->limit(8)->get(),
         ]);
     }

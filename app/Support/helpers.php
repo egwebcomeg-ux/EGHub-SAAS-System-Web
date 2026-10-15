@@ -134,3 +134,15 @@ function cycle_label(int $months): string
         default => __(':n months', ['n' => $months]),
     };
 }
+
+/**
+ * One CSV row with text cells made safe for Excel / Sheets: a cell starting with = + - @ (or a tab / CR) is read as
+ * a formula there, so it gets a leading apostrophe. Guests type their own names, so exports must never run them.
+ *
+ * @param  array<int, mixed>  $row
+ * @return array<int, mixed>
+ */
+function csv_row(array $row): array
+{
+    return array_map(fn ($v) => is_string($v) && $v !== '' && ! is_numeric($v) && str_contains("=+-@\t\r", $v[0]) ? "'".$v : $v, $row);
+}

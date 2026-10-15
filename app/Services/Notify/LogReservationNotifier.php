@@ -5,7 +5,7 @@ namespace App\Services\Notify;
 use App\Models\Reservation;
 use Illuminate\Support\Facades\Log;
 
-/** Default ReservationNotifier: writes what would be sent to the log (no WhatsApp / email channel yet). */
+/** Debug ReservationNotifier: writes the booking events to the log instead of messaging the guest (bind it by hand). */
 class LogReservationNotifier implements ReservationNotifier
 {
     public function created(Reservation $reservation): void

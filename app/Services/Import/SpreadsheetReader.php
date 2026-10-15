@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services\Import;
@@ -15,6 +16,7 @@ final class SpreadsheetReader
         if (filesize($path) > 6 * 1024 * 1024) {
             throw new \RuntimeException(__('The file is too large (max 6 MB).'));
         }
+
         return match ($ext) {
             'csv', 'txt' => self::csv($path),
             'xlsx' => self::xlsx($path),
@@ -27,7 +29,7 @@ final class SpreadsheetReader
     {
         $raw = (string) file_get_contents($path);
         $raw = preg_replace('/^\xEF\xBB\xBF/', '', $raw) ?? $raw;
-        if (!mb_check_encoding($raw, 'UTF-8')) {
+        if (! mb_check_encoding($raw, 'UTF-8')) {
             $raw = mb_convert_encoding($raw, 'UTF-8', 'Windows-1256');   // Excel "CSV" saved in Arabic Windows encoding
         }
         $first = strtok($raw, "\n") ?: '';
@@ -42,22 +44,23 @@ final class SpreadsheetReader
         rewind($fh);
         $rows = [];
         while (($r = fgetcsv($fh, 0, $delim, '"', '\\')) !== false && count($rows) <= self::MAX_ROWS) {
-            if ($r === [null] || !array_filter($r, static fn ($v) => trim((string) $v) !== '')) {
+            if ($r === [null] || ! array_filter($r, static fn ($v) => trim((string) $v) !== '')) {
                 continue;
             }
             $rows[] = array_map(static fn ($v) => trim((string) $v), $r);
         }
         fclose($fh);
+
         return $rows;
     }
 
     /** @return array<int,array<int,string>> */
     private static function xlsx(string $path): array
     {
-        if (!class_exists(\ZipArchive::class)) {
+        if (! class_exists(\ZipArchive::class)) {
             throw new \RuntimeException(__('Excel files are not supported on this server, upload a CSV file.'));
         }
-        $zip = new \ZipArchive();
+        $zip = new \ZipArchive;
         if ($zip->open($path) !== true) {
             throw new \RuntimeException(__('The Excel file is damaged.'));
         }
@@ -88,7 +91,7 @@ final class SpreadsheetReader
         }
         $zip->close();
         $sx = @simplexml_load_string($sheet, 'SimpleXMLElement', LIBXML_NONET);
-        if (!$sx || !isset($sx->sheetData)) {
+        if (! $sx || ! isset($sx->sheetData)) {
             throw new \RuntimeException(__('Could not read the first sheet of the file.'));
         }
         $rows = [];
@@ -104,7 +107,7 @@ final class SpreadsheetReader
                 };
                 $cells[$col] = trim($val);
             }
-            if (!$cells || !array_filter($cells, static fn ($v) => $v !== '')) {
+            if (! $cells || ! array_filter($cells, static fn ($v) => $v !== '')) {
                 continue;
             }
             $max = max(array_keys($cells));
@@ -117,6 +120,7 @@ final class SpreadsheetReader
                 break;
             }
         }
+
         return $rows;
     }
 
@@ -127,6 +131,7 @@ final class SpreadsheetReader
         foreach (str_split($m[1] ?? 'A') as $ch) {
             $n = $n * 26 + (ord($ch) - 64);
         }
+
         return $n - 1;
     }
 }

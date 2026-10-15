@@ -42,19 +42,22 @@ class MarketingController extends Controller
         ]);
         $values = $data + ['title_en' => '', 'days' => null, 'is_active' => $request->boolean('is_active', true)];
         $values['days'] = isset($data['days']) && count($data['days']) < 7 ? array_values(array_map('intval', $data['days'])) : null;
-        ($offer?->exists ? $offer : new Offer())->fill($values)->save();
+        ($offer?->exists ? $offer : new Offer)->fill($values)->save();
+
         return back()->with('ok', __('Offer saved.'));
     }
 
     public function toggleOffer(Offer $offer): RedirectResponse
     {
-        $offer->update(['is_active' => !$offer->is_active]);
+        $offer->update(['is_active' => ! $offer->is_active]);
+
         return back();
     }
 
     public function deleteOffer(Offer $offer): RedirectResponse
     {
         $offer->delete();
+
         return back()->with('ok', __('Offer deleted.'));
     }
 
@@ -72,7 +75,7 @@ class MarketingController extends Controller
             'starts_on' => 'nullable|date', 'ends_on' => 'nullable|date|after_or_equal:starts_on',
             'frequency' => ['required', Rule::in(Popup::FREQUENCIES)], 'delay_seconds' => 'nullable|integer|min:0|max:30',
         ]);
-        if ($data['type'] === 'image' && !$request->hasFile('image')) {
+        if ($data['type'] === 'image' && ! $request->hasFile('image')) {
             return back()->withErrors(['image' => __('Add a picture for the popup.')]);
         }
         $values = collect($data)->except('image')->map(fn ($v) => $v ?? null)->all();
@@ -84,12 +87,14 @@ class MarketingController extends Controller
             $values['image'] = $images->store($request->file('image'), 'cover');
         }
         Popup::query()->create($values);
+
         return back()->with('ok', __('Popup saved.'));
     }
 
     public function togglePopup(Popup $popup): RedirectResponse
     {
-        $popup->update(['is_active' => !$popup->is_active]);
+        $popup->update(['is_active' => ! $popup->is_active]);
+
         return back();
     }
 
@@ -97,6 +102,7 @@ class MarketingController extends Controller
     {
         $images->delete($popup->image);
         $popup->delete();
+
         return back()->with('ok', __('Popup deleted.'));
     }
 }

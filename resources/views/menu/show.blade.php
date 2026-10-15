@@ -45,10 +45,7 @@
         </div>
         @include('menu.partials.lang-switch')
         @if (! $table && \App\Services\Reservations\ReservationService::enabled())
-            <a href="{{ route('menu.reserve', $branches->count() > 1 ? ['branch' => $branch->id] : []) }}" class="m-primary shrink-0 rounded-full px-3 py-1.5 text-sm font-bold shadow" data-reserve-link>{{ __('Book a table') }}</a>
-        @endif
-        @if ($settings['english_enabled'] === '1')
-            <a href="?lang={{ app()->getLocale() === 'ar' ? 'en' : 'ar' }}" class="shrink-0 rounded-full border border-white/30 px-3 py-1.5 text-sm font-semibold">{{ app()->getLocale() === 'ar' ? 'EN' : 'ع' }}</a>
+            <a href="{{ route('menu.reserve', $branches->count() > 1 ? ['branch' => $branch->id] : []) }}" class="m-primary inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-sm font-bold shadow" data-reserve-link>{{ __('Book a table') }}</a>
         @endif
     </div>
     @if ($table)

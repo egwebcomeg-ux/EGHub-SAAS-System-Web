@@ -39,14 +39,15 @@ class BranchMenuController extends Controller
             foreach ((array) $request->input('items', []) as $itemId => $row) {
                 $row = (array) $row;
                 $itemId = (int) $itemId;
-                if (!in_array($itemId, $validIds, true)) {
+                if (! in_array($itemId, $validIds, true)) {
                     continue; // another restaurant's id, or a deleted item
                 }
                 $price = isset($row['price']) && $row['price'] !== '' ? (float) $row['price'] : null;
                 $available = $request->boolean("items.$itemId.available");
                 $soldOut = $request->boolean("items.$itemId.sold_out");
-                if ($price === null && $available && !$soldOut) {
+                if ($price === null && $available && ! $soldOut) {
                     BranchItem::query()->where('branch_id', $branch->id)->where('menu_item_id', $itemId)->delete();
+
                     continue;
                 }
                 BranchItem::query()->updateOrCreate(
@@ -55,6 +56,7 @@ class BranchMenuController extends Controller
                 );
             }
         });
+
         return back()->with('ok', __('Branch menu saved.'));
     }
 }

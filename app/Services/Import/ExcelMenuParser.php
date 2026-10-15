@@ -10,15 +10,15 @@ final class ExcelMenuParser
 {
     /** column => header words that identify it (lowercase) */
     public const COLUMNS = [
-        'category'       => ['القسم', 'category', 'section'],
-        'category_en'    => ['القسم (إنجليزي)', 'category (en)', 'category en', 'category_en'],
-        'name'           => ['الصنف', 'اسم الصنف', 'item', 'name', 'item name'],
-        'name_en'        => ['الصنف (إنجليزي)', 'item (en)', 'name (en)', 'name_en', 'english name'],
-        'price'          => ['السعر', 'price'],
-        'description'    => ['الوصف', 'description'],
+        'category' => ['القسم', 'category', 'section'],
+        'category_en' => ['القسم (إنجليزي)', 'category (en)', 'category en', 'category_en'],
+        'name' => ['الصنف', 'اسم الصنف', 'item', 'name', 'item name'],
+        'name_en' => ['الصنف (إنجليزي)', 'item (en)', 'name (en)', 'name_en', 'english name'],
+        'price' => ['السعر', 'price'],
+        'description' => ['الوصف', 'description'],
         'description_en' => ['الوصف (إنجليزي)', 'description (en)', 'description_en'],
-        'sizes'          => ['الأحجام', 'الاحجام', 'sizes', 'size'],
-        'extras'         => ['الإضافات', 'الاضافات', 'extras', 'add-ons', 'addons'],
+        'sizes' => ['الأحجام', 'الاحجام', 'sizes', 'size'],
+        'extras' => ['الإضافات', 'الاضافات', 'extras', 'add-ons', 'addons'],
     ];
 
     /** Header row of the downloadable template, in COLUMNS order. */
@@ -34,7 +34,7 @@ final class ExcelMenuParser
             throw new \RuntimeException(__('The file has no menu rows.'));
         }
         $map = self::map(array_shift($rows));
-        if (!isset($map['name'], $map['price'])) {
+        if (! isset($map['name'], $map['price'])) {
             throw new \RuntimeException(__('Columns "Item" and "Price" are required. Download the template to see the layout.'));
         }
 
@@ -59,6 +59,7 @@ final class ExcelMenuParser
                 'sizes' => MenuDraft::parseChoices($get('sizes')), 'extras' => MenuDraft::parseChoices($get('extras')),
             ];
         }
+
         return MenuDraft::normalize(['categories' => array_values($categories)]);
     }
 
@@ -70,12 +71,14 @@ final class ExcelMenuParser
             $cell = mb_strtolower(MenuDraft::clean($cell));
             // longest synonyms first so "القسم (إنجليزي)" isn't taken as "القسم"
             foreach (self::byLength() as [$col, $word]) {
-                if (!isset($map[$col]) && $cell === $word) {
+                if (! isset($map[$col]) && $cell === $word) {
                     $map[$col] = $i;
+
                     continue 2;
                 }
             }
         }
+
         return $map;
     }
 
@@ -88,6 +91,7 @@ final class ExcelMenuParser
             }
         }
         usort($pairs, fn ($a, $b) => mb_strlen($b[1]) <=> mb_strlen($a[1]));
+
         return $pairs;
     }
 }

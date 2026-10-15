@@ -17,13 +17,13 @@ class BladeViewsCompileTest extends TestCase
         $broken = [];
         $tmp = tempnam(sys_get_temp_dir(), 'blade');
         foreach (File::allFiles(resource_path('views')) as $file) {
-            if (!str_ends_with($file->getFilename(), '.blade.php')) {
+            if (! str_ends_with($file->getFilename(), '.blade.php')) {
                 continue;
             }
             file_put_contents($tmp, Blade::compileString($file->getContents()));
-            exec(escapeshellarg(PHP_BINARY) . ' -l ' . escapeshellarg($tmp) . ' 2>&1', $out, $code);
+            exec(escapeshellarg(PHP_BINARY).' -l '.escapeshellarg($tmp).' 2>&1', $out, $code);
             if ($code !== 0) {
-                $broken[] = $file->getRelativePathname() . ': ' . trim(implode(' ', array_slice($out, 0, 1)));
+                $broken[] = $file->getRelativePathname().': '.trim(implode(' ', array_slice($out, 0, 1)));
             }
             $out = [];
         }

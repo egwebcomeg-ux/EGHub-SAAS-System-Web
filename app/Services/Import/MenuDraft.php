@@ -81,6 +81,7 @@ final class MenuDraft
             }
             $out[] = ['name' => $name !== '' ? $name : __('Menu'), 'name_en' => self::text($cat['name_en'] ?? '', 80), 'items' => $items];
         }
+
         return ['categories' => $out];
     }
 
@@ -100,12 +101,13 @@ final class MenuDraft
             [$name, $price] = array_pad(preg_split('/\s*[:=]\s*/u', $part, 2) ?: [], 2, '0');
             $out[] = ['name' => $name, 'price' => $price];
         }
+
         return self::choices($out);
     }
 
     public static function choicesText(array $choices): string
     {
-        return implode(' | ', array_map(fn ($c) => $c['name'] . ':' . money($c['price']), $choices));
+        return implode(' | ', array_map(fn ($c) => $c['name'].':'.money($c['price']), $choices));
     }
 
     private static function choices(mixed $list): array
@@ -117,6 +119,7 @@ final class MenuDraft
                 $out[] = ['name' => $name, 'price' => self::price(is_array($c) ? ($c['price'] ?? 0) : 0)];
             }
         }
+
         return $out;
     }
 
@@ -129,6 +132,7 @@ final class MenuDraft
     public static function clean(mixed $v): string
     {
         $s = preg_replace('/[\x{FEFF}\x{200B}-\x{200F}\x{202A}-\x{202E}\x{2066}-\x{2069}]/u', '', (string) (is_scalar($v) ? $v : '')) ?? '';
+
         return trim(preg_replace('/\s+/u', ' ', $s) ?? '');
     }
 
@@ -137,6 +141,7 @@ final class MenuDraft
     {
         $s = strtr((string) (is_scalar($v) ? $v : '0'), ['٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4', '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9', '٫' => '.', ',' => '']);
         preg_match('/\d+(?:\.\d+)?/', $s, $m);
+
         return min(100000, max(0, round((float) ($m[0] ?? 0), 2)));
     }
 }

@@ -15,7 +15,7 @@ class AdminCommand extends Command
     public function handle(): int
     {
         $email = strtolower(trim($this->argument('email')));
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $this->error('Invalid email');
 
             return self::FAILURE;

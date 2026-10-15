@@ -20,9 +20,10 @@ class InitializeTenancyFromUser
         $user = Auth::guard('web')->user();
         $tenant = $user ? Tenant::query()->find($user->tenant_id) : null;
 
-        if (!$user || !$tenant || !$user->is_active) {
+        if (! $user || ! $tenant || ! $user->is_active) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
+
             return redirect()->route('dash.login')->withErrors(['login' => __('Your account is not active.')]);
         }
 

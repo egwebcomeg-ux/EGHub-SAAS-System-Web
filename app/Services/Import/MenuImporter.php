@@ -32,7 +32,7 @@ final class MenuImporter
             }
         }
         $rights = Entitlements::current();
-        if (!$rights->canAdd('menu_items', $toCreate)) {
+        if (! $rights->canAdd('menu_items', $toCreate)) {
             throw new \RuntimeException($rights->upgradeMessage('menu_items'));
         }
 
@@ -41,7 +41,7 @@ final class MenuImporter
             $order = (int) Category::query()->max('sort_order');
             foreach ($draft['categories'] as $cat) {
                 $category = $categories[mb_strtolower($cat['name'])] ?? null;
-                if (!$category) {
+                if (! $category) {
                     $category = Category::query()->create(['name' => $cat['name'], 'name_en' => $cat['name_en'], 'sort_order' => ++$order]);
                     $categories[mb_strtolower($cat['name'])] = $category;
                 }
@@ -60,12 +60,13 @@ final class MenuImporter
                         $item = MenuItem::query()->create($values + ['category_id' => $category->id, 'name' => $row['name'], 'sort_order' => ++$itemOrder]);
                         $created++;
                     }
-                    if ($row['sizes'] || $row['extras'] || !$item->wasRecentlyCreated) {
+                    if ($row['sizes'] || $row['extras'] || ! $item->wasRecentlyCreated) {
                         $this->options($item, $row);
                     }
                 }
             }
             $import->update(['status' => 'applied']);
+
             return ['created' => $created, 'updated' => $updated];
         });
     }
@@ -73,18 +74,19 @@ final class MenuImporter
     private function find($items, string $name): ?MenuItem
     {
         $needle = mb_strtolower(trim($name));
+
         return $items->first(fn (MenuItem $i) => mb_strtolower(trim($i->name)) === $needle);
     }
 
     /** Sizes → required single choice; extras → optional multiple choice. Replaces the item's groups. */
     private function options(MenuItem $item, array $row): void
     {
-        if (!$row['sizes'] && !$row['extras']) {
+        if (! $row['sizes'] && ! $row['extras']) {
             return; // keep options the owner made by hand
         }
         $item->optionGroups()->delete();
         foreach ([['sizes', 'الحجم', 'Size', 'single', true], ['extras', 'إضافات', 'Extras', 'multiple', false]] as $i => [$key, $ar, $en, $type, $required]) {
-            if (!$row[$key]) {
+            if (! $row[$key]) {
                 continue;
             }
             $group = $item->optionGroups()->create(['name' => $ar, 'name_en' => $en, 'type' => $type, 'is_required' => $required, 'sort_order' => $i]);

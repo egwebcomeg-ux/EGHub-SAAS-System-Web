@@ -20,10 +20,10 @@ final class ImageService
 
     /** profile => [dir, max width, max height, square crop] */
     private const PROFILES = [
-        'item'     => ['items', 900, 900, false],
+        'item' => ['items', 900, 900, false],
         'category' => ['categories', 900, 600, false],
-        'logo'     => ['brand', 400, 400, false],
-        'cover'    => ['brand', 1600, 700, false],
+        'logo' => ['brand', 400, 400, false],
+        'cover' => ['brand', 1600, 700, false],
     ];
 
     /** @return string path on the public disk, e.g. tenants/my-cafe/items/uuid.webp */
@@ -50,15 +50,16 @@ final class ImageService
         $bytes = (string) ob_get_clean();
         imagedestroy($dst);
 
-        $path = 'tenants/' . tenant()->getTenantKey() . "/$dir/" . Str::uuid() . '.webp';
+        $path = 'tenants/'.tenant()->getTenantKey()."/$dir/".Str::uuid().'.webp';
         Storage::disk('public')->put($path, $bytes);
+
         return $path;
     }
 
     /** Deletes a stored image, but only one inside the current restaurant's folder. */
     public function delete(?string $path): void
     {
-        if ($path && str_starts_with($path, 'tenants/' . tenant()->getTenantKey() . '/')) {
+        if ($path && str_starts_with($path, 'tenants/'.tenant()->getTenantKey().'/')) {
             Storage::disk('public')->delete($path);
         }
     }
@@ -67,20 +68,21 @@ final class ImageService
     {
         $fail = fn () => throw ValidationException::withMessages(['image' => __('Upload a JPG, PNG or WebP image up to 5 MB.')]);
 
-        if (!$file->isValid() || $file->getSize() > 5 * 1024 * 1024) {
+        if (! $file->isValid() || $file->getSize() > 5 * 1024 * 1024) {
             $fail();
         }
         $info = @getimagesize($file->getRealPath());
-        if (!$info || !in_array($info[2], self::ALLOWED, true) || $info[0] * $info[1] > self::MAX_PIXELS || min($info[0], $info[1]) < 20) {
+        if (! $info || ! in_array($info[2], self::ALLOWED, true) || $info[0] * $info[1] > self::MAX_PIXELS || min($info[0], $info[1]) < 20) {
             $fail();
         }
         $img = @imagecreatefromstring((string) file_get_contents($file->getRealPath()));
-        if (!$img) {
+        if (! $img) {
             $fail();
         }
-        if (!imageistruecolor($img)) {
+        if (! imageistruecolor($img)) {
             imagepalettetotruecolor($img);
         }
+
         return $img;
     }
 }

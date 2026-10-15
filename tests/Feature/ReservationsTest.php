@@ -234,4 +234,19 @@ class ReservationsTest extends TenantTestCase
         $this->assertTrue(Entitlements::for($this->restaurant('cafe-biz', 'business'))->allows('reservations'));
         $this->assertFalse(Entitlements::for($this->restaurant('cafe-starter', 'starter'))->allows('reservations'));
     }
+
+    public function test_one_mobile_number_cannot_hold_every_table(): void
+    {
+        $a = $this->bookable('cafe-a');
+        foreach (['18:00', '19:00', '20:00'] as $time) {
+            $this->book('cafe-a', $a, ['time' => $time])->assertSessionHasNoErrors();
+        }
+        $this->book('cafe-a', $a, ['time' => '21:00'])->assertSessionHasErrors('time');
+        $this->book('cafe-a', $a, ['time' => '21:00', 'phone' => '01111111111'])->assertSessionHasNoErrors();
+        // staff booking by hand for a regular are not capped
+        $this->actingAs($this->owner($a))->post($this->dashUrl('/reservations'), [
+            'branch_id' => $this->branchId($a), 'date' => '2026-10-20', 'time' => '21:00', 'party_size' => 2, 'name' => 'Mona', 'phone' => '01001234567',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame(5, $this->as($a, fn () => Reservation::query()->count()));
+    }
 }

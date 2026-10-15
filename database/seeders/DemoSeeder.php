@@ -3,9 +3,11 @@
 namespace Database\Seeders;
 
 use App\Models\Category;
+use App\Models\LoyaltyProgram;
 use App\Models\MenuItem;
 use App\Models\PlatformAdmin;
 use App\Models\Tenant;
+use App\Services\Settings;
 use App\Services\TenantProvisioner;
 use Illuminate\Database\Seeder;
 
@@ -49,16 +51,16 @@ class DemoSeeder extends Seeder
                     }
                 }
             }
-            \App\Models\LoyaltyProgram::query()->create([
+            LoyaltyProgram::query()->create([
                 'type' => 'visits', 'title' => 'كارت القهوة', 'title_en' => 'Coffee card', 'stamps_required' => 8,
                 'reward_label' => 'قهوة مجاناً', 'reward_label_en' => 'A free coffee',
                 'milestones' => [['at' => 4, 'type' => 'discount_percent', 'label' => 'خصم 20% على طلبك']],
                 'card_design' => ['bg' => '#B5451B', 'stamp_bg' => '#7A1F2B', 'icon' => 'cup'],
             ]);
-            \App\Services\Settings::put(['google_review_url' => 'https://g.page/r/demo-cafe/review']);
+            Settings::put(['google_review_url' => 'https://g.page/r/demo-cafe/review']);
         } finally {
             tenancy()->end();
-            \App\Services\Settings::flush();
+            Settings::flush();
         }
     }
 }

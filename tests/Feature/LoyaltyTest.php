@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Billing\Billing;
 use App\Models\Category;
 use App\Models\Customer;
 use App\Models\DiningTable;
@@ -37,12 +38,14 @@ class LoyaltyTest extends TenantTestCase
         $this->postJson($this->subUrl($t->id, 'order'), [
             'client_uuid' => (string) Str::uuid(), 'items' => [['item_id' => $item->id, 'qty' => $qty]], 'customer_phone' => $phone,
         ])->assertOk();
+
         return $this->as($t, function () {
             $order = Order::query()->latest('id')->first();
             $svc = app(OrderService::class);
             foreach (['preparing', 'ready', 'served'] as $s) {
                 $svc->transition($order->fresh(), $s);
             }
+
             return $order->fresh();
         });
     }
@@ -79,6 +82,7 @@ class LoyaltyTest extends TenantTestCase
         [$latte, $cake] = $this->as($a, function () {
             $coffee = Category::query()->create(['name' => 'Coffee']);
             $sweets = Category::query()->create(['name' => 'Sweets']);
+
             return [MenuItem::query()->create(['category_id' => $coffee->id, 'name' => 'Latte', 'price' => 60]),
                 MenuItem::query()->create(['category_id' => $sweets->id, 'name' => 'Cake', 'price' => 80])];
         });
@@ -127,7 +131,7 @@ class LoyaltyTest extends TenantTestCase
     public function test_paid_then_served_counts_once(): void
     {
         $a = $this->restaurant('cafe-a');
-        app(\App\Billing\Billing::class)->setAddon($a, 'pos_pack', 1);
+        app(Billing::class)->setAddon($a, 'pos_pack', 1);
         $this->program($a);
         $item = $this->item($a, 'Latte', 60);
         $owner = $this->owner($a);
@@ -181,6 +185,17 @@ class LoyaltyTest extends TenantTestCase
         $this->actingAs($owner)->post($this->dashUrl("/loyalty/cards/{$cardOfB->id}/stamp"), ['count' => 3])->assertNotFound();
         $this->actingAs($owner)->get($this->dashUrl('/loyalty?q=01077777777'))->assertOk()->assertSee(__('No card for this number. Create one?'));
         $this->assertStringNotContainsString('01077777777', $this->actingAs($owner)->get($this->dashUrl('/customers/export'))->streamedContent());
+    }
+
+    public function test_a_guest_typed_name_is_never_a_formula_in_the_customer_export(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $this->program($a);
+        $this->post($this->subUrl('cafe-a', 'card'), ['phone' => '01077777777', 'name' => '=HYPERLINK("http://x.test","Win")']);
+
+        $csv = $this->actingAs($this->owner($a))->get($this->dashUrl('/customers/export'))->streamedContent();
+        $this->assertStringContainsString("'=HYPERLINK", $csv);
+        $this->assertSame(["'=x", 5, '-3', 'Mona'], csv_row(['=x', 5, '-3', 'Mona']));
     }
 
     public function test_basic_plan_has_no_loyalty_or_customer_list(): void

@@ -29,6 +29,7 @@ class LoyaltyCardController extends Controller
                 return redirect()->route('menu.card', $token);
             }
         }
+
         return view('menu.card-join', ['program' => $program, 'settings' => Settings::all(), 'milestones' => $loyalty->milestones($program)]);
     }
 
@@ -37,19 +38,22 @@ class LoyaltyCardController extends Controller
         abort_unless($loyalty->program(), 404);
         $data = $request->validate(['phone' => 'required|string|max:20', 'name' => 'nullable|string|max:100', 'consent' => 'nullable|boolean']);
         $phone = normalize_phone($data['phone']);
-        if (!$phone) {
+        if (! $phone) {
             return back()->withInput()->withErrors(['phone' => __('Enter a valid Egyptian mobile number.')]);
         }
-        // A number that already holds a prepaid balance only opens from its own link (receipt QR, or this phone's
-        // cookie): typing someone's mobile must never give access to their money.
+        // A number that ever used the prepaid wallet only opens from its own link (receipt QR, or this phone's
+        // cookie): typing someone's mobile must never give access to their money nor show their wallet history,
+        // and the answer does not say whether there is money on it.
         $existing = Customer::query()->where('phone', $phone)->first();
-        if ($existing && $existing->credit_balance > 0 && $request->cookie($this->cookie()) !== $existing->card_token) {
-            return back()->withInput()->withErrors(['phone' => __('This number already has a card with a balance. Open it from the QR on your receipt, or ask the cashier.')]);
+        if ($existing && ($existing->credit_balance != 0 || $existing->walletTransactions()->exists())
+            && $request->cookie($this->cookie()) !== $existing->card_token) {
+            return back()->withInput()->withErrors(['phone' => __('This number already has a card. Open it from the QR on your receipt, or ask the cashier.')]);
         }
         $card = $loyalty->enroll($phone, $data['name'] ?? '');
         if ($request->boolean('consent')) {
             $card->customer->update(['marketing_opt_in' => true]);
         }
+
         return redirect()->route('menu.card', $card->customer->card_token)
             ->withCookie(cookie()->forever($this->cookie(), $card->customer->card_token));
     }
@@ -81,6 +85,6 @@ class LoyaltyCardController extends Controller
 
     private function cookie(): string
     {
-        return 'card_' . tenant()->getTenantKey();
+        return 'card_'.tenant()->getTenantKey();
     }
 }

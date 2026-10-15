@@ -16,7 +16,7 @@
         <x-flash />
         <form method="post" action="{{ route('menu.card.store') }}" class="space-y-3">
             @csrf
-            <input class="field" name="phone" value="{{ old('phone') }}" required inputmode="tel" dir="ltr" placeholder="{{ __('Mobile number') }} 01xxxxxxxxx" autocomplete="tel">
+            <input class="field" name="phone" value="{{ old('phone') }}" required inputmode="tel" dir="ltr" placeholder="01xxxxxxxxx" aria-label="{{ __('Mobile number') }}" autocomplete="tel">
             <input class="field" name="name" value="{{ old('name') }}" maxlength="100" placeholder="{{ __('Your name (optional)') }}" autocomplete="name">
             <label class="flex items-start gap-2 text-sm"><input type="checkbox" name="consent" value="1" class="mt-1 size-4 accent-brand-600"> {{ __('Send me offers on WhatsApp') }}</label>
             <button class="btn-primary w-full">{{ __('Get my card') }}</button>

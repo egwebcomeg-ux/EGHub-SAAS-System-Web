@@ -25,14 +25,12 @@ class ProcessMenuImport implements ShouldQueue
 
     public int $timeout = 180;
 
-    public function __construct(public int $importId)
-    {
-    }
+    public function __construct(public int $importId) {}
 
     public function handle(): void
     {
         $import = MenuImport::query()->find($this->importId);
-        if (!$import || $import->status !== 'pending') {
+        if (! $import || $import->status !== 'pending') {
             return;
         }
         $paths = json_decode($import->file, true) ?: [];

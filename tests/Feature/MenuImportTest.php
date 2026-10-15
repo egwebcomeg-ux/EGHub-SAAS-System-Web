@@ -21,13 +21,13 @@ class MenuImportTest extends TenantTestCase
 {
     private function csv(string $body): UploadedFile
     {
-        return UploadedFile::fake()->createWithContent('menu.csv', "\xEF\xBB\xBF" . $body);
+        return UploadedFile::fake()->createWithContent('menu.csv', "\xEF\xBB\xBF".$body);
     }
 
     private const SHEET = "القسم,القسم (إنجليزي),الصنف,الصنف (إنجليزي),السعر,الوصف,الأحجام,الإضافات\n"
-        . "قهوة ساخنة,Hot Coffee,لاتيه,Latte,٦٥ ج.م,,صغير:0 | كبير:15,شوت زيادة:10\n"
-        . ",,كابتشينو,Cappuccino,65,,,\n"
-        . "حلويات,Desserts,تشيز كيك,Cheesecake,90,كيك بالجبنة,,\n";
+        ."قهوة ساخنة,Hot Coffee,لاتيه,Latte,٦٥ ج.م,,صغير:0 | كبير:15,شوت زيادة:10\n"
+        .",,كابتشينو,Cappuccino,65,,,\n"
+        ."حلويات,Desserts,تشيز كيك,Cheesecake,90,كيك بالجبنة,,\n";
 
     /** Rows of the review form, as the browser would post them back unchanged. */
     private function rowsOf(MenuImport $import): array
@@ -39,6 +39,7 @@ class MenuImportTest extends TenantTestCase
                     'price' => $i['price'], 'description' => $i['description'], 'sizes' => MenuDraft::choicesText($i['sizes']), 'extras' => MenuDraft::choicesText($i['extras'])];
             }
         }
+
         return $rows;
     }
 

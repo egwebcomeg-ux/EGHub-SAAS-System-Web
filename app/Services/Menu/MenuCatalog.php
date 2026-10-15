@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\MenuItem;
 use App\Models\Offer;
 use App\Services\Entitlements;
+use Illuminate\Support\Collection;
 
 /**
  * The menu as one branch sees it: active categories/items with branch price, availability and sold-out overrides
@@ -19,19 +20,18 @@ final class MenuCatalog
     /** @var array<int, BranchItem>|null */
     private ?array $overrides = null;
 
-    /** @var \Illuminate\Support\Collection<int, Offer>|null offers running right now in this branch */
+    /** @var Collection<int, Offer>|null offers running right now in this branch */
     private $offers = null;
 
     private bool $withOffers = true;
 
-    public function __construct(public readonly Branch $branch)
-    {
-    }
+    public function __construct(public readonly Branch $branch) {}
 
     /** Regular prices only: for the printed menu, where a happy-hour price would be wrong most of the day. */
     public function withoutOffers(): self
     {
         $this->withOffers = false;
+
         return $this;
     }
 
@@ -45,7 +45,7 @@ final class MenuCatalog
         return Branch::query()->where('is_active', true)->orderBy('sort_order')->orderBy('id')->firstOrFail();
     }
 
-    /** @return \Illuminate\Support\Collection<int, Category> categories with only the items this branch offers */
+    /** @return Collection<int, Category> categories with only the items this branch offers */
     public function categories()
     {
         $categories = Category::query()->where('is_active', true)->orderBy('sort_order')->orderBy('id')
@@ -57,16 +57,18 @@ final class MenuCatalog
             $category->setRelation('items', $category->items->filter(fn (MenuItem $i) => $this->isAvailable($i))
                 ->each(fn (MenuItem $i) => $this->apply($i))->values());
         }
+
         return $categories->filter(fn (Category $c) => $c->items->isNotEmpty())->values();
     }
 
     public function isAvailable(MenuItem $item): bool
     {
-        if (!$item->is_active) {
+        if (! $item->is_active) {
             return false;
         }
         $o = $this->override($item);
-        return !$o || $o->is_available;
+
+        return ! $o || $o->is_available;
     }
 
     /**
@@ -90,32 +92,36 @@ final class MenuCatalog
             $item->price = round($item->price * (100 - $percent) / 100, 2);
         }
         $item->setAttribute('catalog_applied', true);
+
         return $item;
     }
 
     /** Best running offer for the item (whole-menu or its category), 0 when none. */
     public function offerPercent(MenuItem $item): int
     {
-        if (!$this->withOffers || !Entitlements::current()->allows('offers')) {
+        if (! $this->withOffers || ! Entitlements::current()->allows('offers')) {
             return 0;
         }
         $this->offers ??= Offer::query()->where('is_active', true)->get()->filter(fn (Offer $o) => $o->runsAt(now(), $this->branch->id))->values();
+
         return (int) $this->offers->filter(fn (Offer $o) => $o->category_id === null || $o->category_id === $item->category_id)->max('discount_percent');
     }
 
-    /** @return \Illuminate\Support\Collection<int, Offer> */
+    /** @return Collection<int, Offer> */
     public function runningOffers()
     {
-        $this->offerPercent(new MenuItem());
+        $this->offerPercent(new MenuItem);
+
         return $this->offers ?? collect();
     }
 
     private function override(MenuItem $item): ?BranchItem
     {
-        if (!Entitlements::current()->allows('branch_pricing')) {
+        if (! Entitlements::current()->allows('branch_pricing')) {
             return null;
         }
         $this->overrides ??= BranchItem::query()->where('branch_id', $this->branch->id)->get()->keyBy('menu_item_id')->all();
+
         return $this->overrides[$item->id] ?? null;
     }
 }

@@ -40,7 +40,7 @@
             <p class="mt-1 mb-4 text-sm text-navy-600">{{ __('Enter your mobile number: the amount goes to your wallet at :brand and you pay with it on your next order, in the shop or online.', ['brand' => $brand]) }}</p>
             <form method="post" action="{{ route('menu.gift.redeem', $card->code) }}" class="space-y-3">
                 @csrf
-                <input class="field" name="phone" value="{{ old('phone', $card->recipient_phone) }}" required inputmode="tel" dir="ltr" placeholder="{{ __('Mobile number') }} 01xxxxxxxxx" autocomplete="tel">
+                <input class="field" name="phone" value="{{ old('phone', $card->recipient_phone) }}" required inputmode="tel" dir="ltr" placeholder="01xxxxxxxxx" aria-label="{{ __('Mobile number') }}" autocomplete="tel">
                 <input class="field" name="name" value="{{ old('name') }}" maxlength="100" placeholder="{{ __('Your name (optional)') }}" autocomplete="name">
                 <button class="m-primary min-h-12 w-full rounded-2xl font-bold text-white" style="background: var(--menu-primary)">{{ __('Add it to my balance') }}</button>
             </form>

@@ -29,6 +29,7 @@ final class ShiftService
         if ($this->current($user)) {
             throw new OrderException(__('You already have an open shift.'));
         }
+
         return Shift::query()->create([
             'branch_id' => $branch->id, 'user_id' => $user->id, 'opening_cash' => round($openingCash, 2), 'opened_at' => now(),
         ]);
@@ -36,22 +37,25 @@ final class ShiftService
 
     public function move(Shift $shift, string $type, float $amount, string $reason, User $by): CashMovement
     {
-        if (!$shift->isOpen()) {
+        if (! $shift->isOpen()) {
             throw new OrderException(__('This shift is closed.'));
         }
+
         return $shift->movements()->create(['type' => $type === 'out' ? 'out' : 'in', 'amount' => round($amount, 2), 'reason' => $reason, 'user_id' => $by->id]);
     }
 
     public function close(Shift $shift, float $counted, ?string $notes): Shift
     {
-        if (!$shift->isOpen()) {
+        if (! $shift->isOpen()) {
             throw new OrderException(__('This shift is closed.'));
         }
+
         return DB::transaction(function () use ($shift, $counted, $notes) {
             $shift->update([
                 'expected_cash' => $this->summary($shift)['expected_cash'], 'closing_cash' => round($counted, 2),
                 'notes' => $notes, 'closed_at' => now(),
             ]);
+
             return $shift;
         });
     }

@@ -7,30 +7,30 @@ final class Permissions
 {
     /** key => [arabic, english] */
     public const ALL = [
-        'orders.view'       => ['عرض الطلبات', 'View orders'],
-        'orders.manage'     => ['تغيير حالة الطلبات', 'Update orders'],
-        'pos.use'           => ['تسجيل طلبات (كاشير / ويتر)', 'Take orders (POS / waiter)'],
-        'pos.discount'      => ['عمل خصم على الطلب', 'Give order discounts'],
-        'callcenter.use'    => ['شاشة الكول سنتر', 'Call-center screen'],
-        'shifts.manage'     => ['فتح وقفل الورديات والدرج', 'Open/close shifts & cash drawer'],
-        'delivery.manage'   => ['مناطق التوصيل', 'Delivery zones'],
-        'kitchen.view'      => ['شاشة المطبخ', 'Kitchen display'],
-        'menu.manage'       => ['إدارة المنيو والأقسام', 'Manage menu'],
+        'orders.view' => ['عرض الطلبات', 'View orders'],
+        'orders.manage' => ['تغيير حالة الطلبات', 'Update orders'],
+        'pos.use' => ['تسجيل طلبات (كاشير / ويتر)', 'Take orders (POS / waiter)'],
+        'pos.discount' => ['عمل خصم على الطلب', 'Give order discounts'],
+        'callcenter.use' => ['شاشة الكول سنتر', 'Call-center screen'],
+        'shifts.manage' => ['فتح وقفل الورديات والدرج', 'Open/close shifts & cash drawer'],
+        'delivery.manage' => ['مناطق التوصيل', 'Delivery zones'],
+        'kitchen.view' => ['شاشة المطبخ', 'Kitchen display'],
+        'menu.manage' => ['إدارة المنيو والأقسام', 'Manage menu'],
         'menu.availability' => ['تحديد الأصناف اللي خلصت', 'Mark items sold out'],
-        'inventory.manage'  => ['المخزون والوصفات', 'Inventory & recipes'],
-        'tables.manage'     => ['الترابيزات وأكواد QR', 'Tables & QR codes'],
-        'branches.manage'   => ['الفروع', 'Branches'],
-        'customers.view'    => ['العملاء', 'Customers'],
-        'loyalty.stamp'     => ['إضافة أختام وصرف مكافآت', 'Give stamps & redeem rewards'],
-        'loyalty.manage'    => ['إعداد برنامج الولاء', 'Loyalty program setup'],
-        'marketing.manage'  => ['العروض والتسويق', 'Offers & marketing'],
-        'reports.view'      => ['التقارير', 'Reports'],
-        'settings.manage'   => ['الإعدادات والهوية', 'Settings & branding'],
-        'users.manage'      => ['المستخدمين والصلاحيات', 'Users & roles'],
-        'billing.manage'    => ['الاشتراك والفواتير', 'Subscription & billing'],
-        'audit.view'        => ['سجل العمليات', 'Audit log'],
-        'wallet.manage'     => ['المحفظة وكروت الهدايا', 'Wallet & gift cards'],
-        'kiosk.manage'      => ['الكشك (طلب ذاتي)', 'Self-order kiosks'],
+        'inventory.manage' => ['المخزون والوصفات', 'Inventory & recipes'],
+        'tables.manage' => ['الترابيزات وأكواد QR', 'Tables & QR codes'],
+        'branches.manage' => ['الفروع', 'Branches'],
+        'customers.view' => ['العملاء', 'Customers'],
+        'loyalty.stamp' => ['إضافة أختام وصرف مكافآت', 'Give stamps & redeem rewards'],
+        'loyalty.manage' => ['إعداد برنامج الولاء', 'Loyalty program setup'],
+        'marketing.manage' => ['العروض والتسويق', 'Offers & marketing'],
+        'reports.view' => ['التقارير', 'Reports'],
+        'settings.manage' => ['الإعدادات والهوية', 'Settings & branding'],
+        'users.manage' => ['المستخدمين والصلاحيات', 'Users & roles'],
+        'billing.manage' => ['الاشتراك والفواتير', 'Subscription & billing'],
+        'audit.view' => ['سجل العمليات', 'Audit log'],
+        'wallet.manage' => ['المحفظة وكروت الهدايا', 'Wallet & gift cards'],
+        'kiosk.manage' => ['الكشك (طلب ذاتي)', 'Self-order kiosks'],
         'reservations.manage' => ['الحجوزات', 'Reservations'],
     ];
 
@@ -68,12 +68,14 @@ final class Permissions
     public static function label(string $permission): string
     {
         $l = self::ALL[$permission] ?? [$permission, $permission];
+
         return app()->getLocale() === 'en' ? $l[1] : $l[0];
     }
 
     public static function roleLabel(string $role): string
     {
         $l = self::ROLES[$role]['label'] ?? [$role, $role];
+
         return app()->getLocale() === 'en' ? $l[1] : $l[0];
     }
 
@@ -81,6 +83,7 @@ final class Permissions
     public static function of(string $role): array
     {
         $p = self::ROLES[$role]['permissions'] ?? [];
+
         return $p === '*' ? array_keys(self::ALL) : $p;
     }
 }

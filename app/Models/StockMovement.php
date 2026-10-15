@@ -10,10 +10,10 @@ class StockMovement extends TenantModel
 {
     public const TYPES = [
         'purchase' => ['استلام / شراء', 'Purchase'],
-        'sale'     => ['بيع', 'Sale'],
-        'return'   => ['رجوع طلب ملغي', 'Cancelled order returned'],
-        'waste'    => ['هالك', 'Waste'],
-        'count'    => ['جرد', 'Stock count'],
+        'sale' => ['بيع', 'Sale'],
+        'return' => ['رجوع طلب ملغي', 'Cancelled order returned'],
+        'waste' => ['هالك', 'Waste'],
+        'count' => ['جرد', 'Stock count'],
     ];
 
     protected function casts(): array
@@ -44,6 +44,7 @@ class StockMovement extends TenantModel
     public function typeLabel(): string
     {
         $l = self::TYPES[$this->type] ?? [$this->type, $this->type];
+
         return app()->getLocale() === 'en' ? $l[1] : $l[0];
     }
 }

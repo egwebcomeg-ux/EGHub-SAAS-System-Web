@@ -15,8 +15,8 @@ final class AiProviders
     /** key => [label, default model, where to get a key] */
     public const PROVIDERS = [
         'anthropic' => ['Claude (Anthropic)', 'claude-haiku-5-5', 'https://console.anthropic.com/settings/keys'],
-        'gemini'    => ['Google Gemini', 'gemini-3.1-flash-lite', 'https://aistudio.google.com/apikey'],
-        'openai'    => ['OpenAI', 'gpt-5-nano', 'https://platform.openai.com/api-keys'],
+        'gemini' => ['Google Gemini', 'gemini-3.1-flash-lite', 'https://aistudio.google.com/apikey'],
+        'openai' => ['OpenAI', 'gpt-5-nano', 'https://platform.openai.com/api-keys'],
     ];
 
     public static function configured(): bool
@@ -60,6 +60,7 @@ final class AiProviders
     public static function masked(): string
     {
         $key = self::key();
-        return $key ? mb_substr($key, 0, 4) . '…' . mb_substr($key, -4) : '';
+
+        return $key ? mb_substr($key, 0, 4).'…'.mb_substr($key, -4) : '';
     }
 }

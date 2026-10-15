@@ -12,11 +12,11 @@ class Shift extends TenantModel
     protected function casts(): array
     {
         return [
-            'opening_cash'  => 'float',
+            'opening_cash' => 'float',
             'expected_cash' => 'float',
-            'closing_cash'  => 'float',
-            'opened_at'     => 'datetime',
-            'closed_at'     => 'datetime',
+            'closing_cash' => 'float',
+            'opened_at' => 'datetime',
+            'closed_at' => 'datetime',
         ];
     }
 

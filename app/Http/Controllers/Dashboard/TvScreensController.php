@@ -26,6 +26,7 @@ class TvScreensController extends Controller
     public function store(Request $request): RedirectResponse
     {
         TvScreen::query()->create($this->validated($request) + ['token' => random_token(10)]);
+
         return back()->with('ok', __('Screen saved.'));
     }
 
@@ -33,6 +34,7 @@ class TvScreensController extends Controller
     {
         $screen->update($this->validated($request) + ['is_active' => $request->boolean('is_active')]);
         $screen->touch(); // the TV reloads on its next check even when only the layout changed
+
         return back()->with('ok', __('Screen saved.'));
     }
 
@@ -40,12 +42,14 @@ class TvScreensController extends Controller
     public function regenerate(TvScreen $screen): RedirectResponse
     {
         $screen->update(['token' => random_token(10)]);
+
         return back()->with('ok', __('New link created. Open it on the TV again.'));
     }
 
     public function destroy(TvScreen $screen): RedirectResponse
     {
         $screen->delete();
+
         return back()->with('ok', __('Screen deleted.'));
     }
 
@@ -65,6 +69,7 @@ class TvScreensController extends Controller
         ]);
         $data['category_ids'] = array_values(array_map('intval', $data['category_ids'] ?? [])) ?: null;
         $data['show_images'] = $request->boolean('show_images');
+
         return $data;
     }
 }

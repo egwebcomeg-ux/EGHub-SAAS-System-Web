@@ -24,8 +24,11 @@ final class WeeklyReportMailer
             tenancy()->initialize($tenant);
             try {
                 Settings::flush();
-                if (Settings::get('weekly_report_email') === '1' && Entitlements::for($tenant)->allows('advanced_reports')) {
-                    $sent += $this->send($tenant, $today) ? 1 : 0;
+                $week = $today->subWeek()->startOfWeek(CarbonImmutable::MONDAY)->toDateString();
+                if (Settings::get('weekly_report_email') === '1' && Settings::get('weekly_report_sent_for') !== $week
+                    && Entitlements::for($tenant)->allows('advanced_reports') && $this->send($tenant, $today)) {
+                    Settings::put(['weekly_report_sent_for' => $week]); // a rerun of the command never emails the same week twice
+                    $sent++;
                 }
             } finally {
                 tenancy()->end();

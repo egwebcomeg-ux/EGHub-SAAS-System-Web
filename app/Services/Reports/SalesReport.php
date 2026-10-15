@@ -20,8 +20,7 @@ final class SalesReport
         public readonly CarbonImmutable $from,
         public readonly CarbonImmutable $to,
         public readonly ?int $branchId = null,
-    ) {
-    }
+    ) {}
 
     /** @return array<string, mixed> */
     public function build(): array
@@ -92,6 +91,7 @@ final class SalesReport
     private function byBranch($orders): array
     {
         $names = Branch::query()->pluck('name', 'id');
+
         return collect($this->share($orders, 'branch_id'))->map(fn ($r) => $r + ['name' => $names[(int) $r['key']] ?? '—'])->all();
     }
 
@@ -101,6 +101,7 @@ final class SalesReport
         if ($orderIds->isEmpty()) {
             return [];
         }
+
         return OrderItem::query()->whereIn('order_id', $orderIds)
             ->selectRaw('name, SUM(quantity) as qty, SUM(line_total) as revenue')
             ->groupBy('name')->orderByDesc('qty')->limit(15)->get()

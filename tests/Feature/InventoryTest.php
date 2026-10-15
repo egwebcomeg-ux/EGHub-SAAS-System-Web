@@ -8,11 +8,10 @@ use App\Models\Ingredient;
 use App\Models\IngredientStock;
 use App\Models\ItemOption;
 use App\Models\ItemOptionGroup;
-use App\Models\MenuItem;
-use App\Models\Order;
 use App\Models\RecipeLine;
 use App\Models\StockMovement;
 use App\Models\Tenant;
+use App\Services\Inventory\StockService;
 use App\Services\Orders\OrderService;
 use Illuminate\Support\Str;
 use Tests\TenantTestCase;
@@ -23,6 +22,7 @@ class InventoryTest extends TenantTestCase
     {
         $tenant = $this->restaurant($slug, $plan);
         app(Billing::class)->setAddon($tenant, 'inventory_pack', 1);
+
         return $tenant;
     }
 
@@ -43,6 +43,7 @@ class InventoryTest extends TenantTestCase
             $coffee = Ingredient::query()->create(['name' => 'Coffee', 'unit' => 'g', 'cost_per_unit' => 0.8]);
             $group = ItemOptionGroup::query()->create(['menu_item_id' => $latte->id, 'name' => 'Size', 'type' => 'single']);
             $large = ItemOption::query()->create(['item_option_group_id' => $group->id, 'name' => 'Large', 'price' => 10]);
+
             return [$milk, $coffee, $large];
         });
 
@@ -73,7 +74,7 @@ class InventoryTest extends TenantTestCase
         $this->assertSame(2000.0, $this->stock($a, $milk));
         $this->assertSame(0.0, $this->stock($a, $coffee));
         // cancelling twice cannot give the stock back twice
-        $this->as($a, fn () => app(\App\Services\Inventory\StockService::class)->restoreForOrder($order->fresh()));
+        $this->as($a, fn () => app(StockService::class)->restoreForOrder($order->fresh()));
         $this->assertSame(2000.0, $this->stock($a, $milk));
 
         // a count sets the shelf quantity
@@ -84,7 +85,7 @@ class InventoryTest extends TenantTestCase
         // under its alert level: shown on the dashboard home
         $this->actingAs($owner)->get($this->dashUrl('/'))->assertSee('1 خامات قربت تخلص');
         $this->actingAs($owner)->get($this->dashUrl('/inventory/recipes'))->assertOk()->assertSee('Latte');
-        $this->actingAs($owner)->get($this->dashUrl('/inventory/movements'))->assertOk()->assertSee('#' . $order->number);
+        $this->actingAs($owner)->get($this->dashUrl('/inventory/movements'))->assertOk()->assertSee('#'.$order->number);
     }
 
     public function test_without_the_pack_nothing_is_deducted_and_pages_are_closed(): void

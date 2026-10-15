@@ -2,8 +2,8 @@
 
 use App\Http\Controllers\Menu\BoardController;
 use App\Http\Controllers\Menu\FeedbackController;
-use App\Http\Controllers\Menu\ItemViewController;
 use App\Http\Controllers\Menu\GiftController;
+use App\Http\Controllers\Menu\ItemViewController;
 use App\Http\Controllers\Menu\KioskController;
 use App\Http\Controllers\Menu\LoyaltyCardController;
 use App\Http\Controllers\Menu\MenuController;

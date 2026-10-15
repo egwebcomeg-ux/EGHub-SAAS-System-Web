@@ -19,7 +19,7 @@ class DoctorCommand extends Command
     {
         $this->failures = 0; // the command instance is reused when called twice in one process (tests)
         $this->check('APP_KEY set', filled(config('app.key')));
-        $this->check('APP_DEBUG is false', !config('app.debug'), 'set APP_DEBUG=false in production', warn: !app()->isProduction());
+        $this->check('APP_DEBUG is false', ! config('app.debug'), 'set APP_DEBUG=false in production', warn: ! app()->isProduction());
         $this->check('APP_ENV is production', app()->isProduction(), 'APP_ENV='.config('app.env'), warn: true);
 
         $dbOk = false;
@@ -41,7 +41,7 @@ class DoctorCommand extends Command
         $this->check('storage/logs writable', is_writable(storage_path('logs')));
 
         $mailer = config('mail.default');
-        $this->check('Mail configured (not log)', !in_array($mailer, ['log', 'array'], true), "MAIL_MAILER=$mailer");
+        $this->check('Mail configured (not log)', ! in_array($mailer, ['log', 'array'], true), "MAIL_MAILER=$mailer");
 
         $this->check('Scheduler ran in the last 10 minutes', $this->schedulerFresh(), 'is the cron line installed?', warn: true);
 
@@ -80,7 +80,7 @@ class DoctorCommand extends Command
     private function check(string $label, bool $ok, string $hint = '', bool $warn = false): void
     {
         if ($ok) {
-            $this->line("  <fg=green>OK</>    $label".($hint && !str_starts_with($hint, 'run') ? " ($hint)" : ''));
+            $this->line("  <fg=green>OK</>    $label".($hint && ! str_starts_with($hint, 'run') ? " ($hint)" : ''));
 
             return;
         }

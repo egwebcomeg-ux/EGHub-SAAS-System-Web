@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class TvScreen extends TenantModel
 {
     public const LAYOUTS = ['all', 'rotate'];
+
     public const THEMES = ['dark', 'light'];
 
     protected function casts(): array
@@ -23,6 +24,6 @@ class TvScreen extends TenantModel
 
     public function url(): string
     {
-        return tenant()->url('tv/' . $this->token);
+        return tenant()->url('tv/'.$this->token);
     }
 }

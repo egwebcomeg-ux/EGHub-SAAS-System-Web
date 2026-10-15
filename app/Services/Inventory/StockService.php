@@ -27,7 +27,7 @@ class StockService
     /** Takes the order's ingredients out of its branch stock. Safe to call twice. */
     public function deductForOrder(Order $order): void
     {
-        if (!$this->enabled() || $order->stock_deducted_at) {
+        if (! $this->enabled() || $order->stock_deducted_at) {
             return;
         }
         DB::transaction(function () use ($order) {
@@ -41,7 +41,7 @@ class StockService
     /** Cancelled order: puts back exactly what was taken for it. */
     public function restoreForOrder(Order $order): void
     {
-        if (!$order->stock_deducted_at) {
+        if (! $order->stock_deducted_at) {
             return;
         }
         DB::transaction(function () use ($order) {
@@ -118,6 +118,7 @@ class StockService
                 $add($part->id, $orderItem->quantity * max(1, (int) $part->pivot->quantity), []);
             }
         }
+
         return array_map(fn ($q) => round($q, 3), array_filter($use, fn ($q) => $q > 0));
     }
 

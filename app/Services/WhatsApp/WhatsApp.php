@@ -60,6 +60,12 @@ final class WhatsApp
         if ($message->status !== 'queued') {
             return $message;
         }
+        // claimed atomically: a job delivered twice (or a campaign batch racing it) never sends nor charges twice
+        $claimed = WhatsAppMessage::query()->whereKey($message->id)->where('status', 'queued')->update(['status' => 'sending']);
+        if ($claimed !== 1) {
+            return $message->refresh();
+        }
+        $message->status = 'sending';
         $reference = 'wa:'.$message->id;
         if (! $this->credits->spend($message->tenant_id, $reference)) {
             $message->update(['status' => 'failed', 'error' => WhatsAppMessage::NO_CREDITS]);

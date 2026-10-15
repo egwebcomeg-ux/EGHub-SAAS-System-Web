@@ -8,7 +8,8 @@ if (board) {
     const pollMs = Number(board.dataset.poll || 5) * 1000;
     let lastMaxId = null;
     let lastCallId = null;
-    let soundOn = localStorage.getItem('egmenu.sound') === '1';
+    let soundOn = false;
+    try { soundOn = localStorage.getItem('egmenu.sound') === '1'; } catch {}
     let audio = null;
 
     const soundBtn = document.querySelector('[data-sound]');

@@ -64,7 +64,7 @@ class WalletTest extends TenantTestCase
         $this->get($this->subUrl('cafe-a', 'gift/ABCDEFGHJKMN'))->assertNotFound();
 
         app(Billing::class)->setAddon($tenant, 'wallet_pack', 1);
-        $this->actingAs($owner)->get($this->dashUrl('/wallet'))->assertOk()->assertSee('المحفظة والهدايا');
+        $this->actingAs($owner)->get($this->dashUrl('/wallet'))->assertOk()->assertSee('المحفظة وكروت الهدايا');
         $this->actingAs($owner)->get($this->dashUrl('/pos'))->assertOk()->assertSee('data-topup-open', false)->assertSee('data-method="credit"', false);
         $waiter = $this->staff($tenant, 'waiter', 'w@a.test');
         $this->actingAs($waiter)->get($this->dashUrl('/wallet'))->assertForbidden();
@@ -216,9 +216,12 @@ class WalletTest extends TenantTestCase
         $this->assertSame(0.0, $this->balance($b));
         $this->assertSame('active', $this->as($a, fn () => GiftCard::query()->first()->status));
 
-        // voided from the dashboard: no longer redeemable
+        // voided from the dashboard (owner / manager only, a cashier can't destroy prepaid value): no longer redeemable
         $card = $this->as($a, fn () => GiftCard::query()->first());
-        $this->actingAs($cashierA)->post($this->dashUrl("/wallet/gift-cards/{$card->id}/void"))->assertSessionHasNoErrors();
+        $this->actingAs($cashierA)->post($this->dashUrl("/wallet/gift-cards/{$card->id}/void"))->assertForbidden();
+        $this->assertSame('active', $this->as($a, fn () => GiftCard::query()->first()->status));
+        $this->actingAs($this->staff($a, 'manager', 'm@a.test'))->post($this->dashUrl("/wallet/gift-cards/{$card->id}/void"))->assertSessionHasNoErrors();
+        $this->assertSame('void', $this->as($a, fn () => GiftCard::query()->first()->status));
         $this->post($this->subUrl('cafe-a', "gift/$code"), ['phone' => self::PHONE])->assertSessionHasErrors('phone');
 
         // expired
@@ -255,5 +258,21 @@ class WalletTest extends TenantTestCase
         $this->assertSame(24.5, $this->balance($a));
         $this->assertLedgerConsistent($a);
         $this->assertSame(24.5, $this->actingAs($owner)->getJson($this->dashUrl('/wallet/customer?phone='.self::PHONE))->json('balance'));
+    }
+
+    public function test_a_spent_wallet_still_does_not_open_to_whoever_types_the_number(): void
+    {
+        [$a, , $cashier] = $this->shop();
+        $this->as($a, fn () => LoyaltyProgram::query()->create([
+            'type' => 'visits', 'title' => 'Coffee card', 'stamps_required' => 5, 'reward_type' => 'free_item', 'reward_label' => 'Free latte', 'is_active' => true,
+        ]));
+        $this->actingAs($cashier)->postJson($this->dashUrl('/wallet/topup'), ['phone' => self::PHONE, 'amount' => 30, 'method' => 'cash'])->assertOk();
+        $customer = $this->as($a, fn () => Customer::query()->first());
+        $this->actingAs($this->owner($a))->post($this->dashUrl("/wallet/customers/{$customer->id}/adjust"), ['delta' => -30, 'note' => 'spent'])->assertSessionHasNoErrors();
+        $this->assertSame(0.0, $this->balance($a));
+
+        // balance 0, but the history (amounts, order numbers) is still private; the answer doesn't mention money
+        $this->post($this->subUrl('cafe-a', 'card'), ['phone' => self::PHONE])->assertSessionHasErrors('phone')->assertCookieMissing('card_cafe-a');
+        $this->assertStringNotContainsString('رصيد', session('errors')->first('phone'));
     }
 }

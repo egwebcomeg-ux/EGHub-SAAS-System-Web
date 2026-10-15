@@ -16,6 +16,7 @@ class AdminLocale
             $request->session()->put('locale', $lang);
         }
         app()->setLocale($request->session()->get('locale', 'ar'));
+
         return $next($request);
     }
 }

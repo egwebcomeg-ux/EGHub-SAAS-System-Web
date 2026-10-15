@@ -12,12 +12,14 @@ use App\Models\LoyaltyCard;
 use App\Models\LoyaltyProgram;
 use App\Models\Order;
 use App\Models\PlatformAdmin;
+use App\Models\Reservation;
 use App\Models\Tenant;
 use App\Models\WhatsAppMessage;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Notify\ReservationNotifier;
 use App\Services\Orders\OrderService;
 use App\Services\Settings;
+use App\Services\WhatsApp\WhatsApp;
 use App\Services\WhatsApp\WhatsAppException;
 use App\Services\WhatsApp\WhatsAppGateway;
 use Illuminate\Support\Collection;
@@ -269,8 +271,8 @@ class WhatsAppTest extends TenantTestCase
         $this->as($a, fn () => app(LoyaltyService::class)->stamp(LoyaltyCard::query()->find($card->id), 2, $this->owner($a)));
 
         $this->as($a, function () {
-            $reservation = \App\Models\Reservation::query()->create([
-                'branch_id' => \App\Models\Branch::query()->first()->id, 'name' => 'Omar', 'phone' => '01055556666', 'party_size' => 4,
+            $reservation = Reservation::query()->create([
+                'branch_id' => Branch::query()->first()->id, 'name' => 'Omar', 'phone' => '01055556666', 'party_size' => 4,
                 'starts_at' => '2026-10-20 20:00', 'ends_at' => '2026-10-20 21:30', 'status' => 'confirmed', 'source' => 'staff', 'token' => random_token(12),
             ]);
             app(ReservationNotifier::class)->created($reservation);
@@ -298,5 +300,19 @@ class WhatsAppTest extends TenantTestCase
             $this->assertSame('0', Settings::get('wa_order_received'));
             $this->assertSame('كافيه أ', Settings::get('wa_sender_name'));
         });
+    }
+
+    public function test_a_message_delivered_twice_is_sent_and_charged_once(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $this->credits()->add($a, 5, 'adjustment');
+        $this->as($a, function () {
+            $message = app(WhatsApp::class)->record('01012345678', 'campaign', ['text' => 'Hi']);
+            $stale = WhatsAppMessage::query()->find($message->id);
+            app(WhatsApp::class)->deliver($message);
+            $this->assertSame('sent', app(WhatsApp::class)->deliver($stale)->status);
+        });
+        $this->assertSame(4, $this->credits()->balance($a));
+        $this->assertSame(1, CreditTransaction::query()->where('tenant_id', 'cafe-a')->where('reason', 'message')->count());
     }
 }

@@ -34,9 +34,11 @@
                 <td>{{ $c->visits_count }}</td>
                 <td>{{ money($c->total_spent) }}</td>
                 <td>{{ $c->last_visit_at ? local_time($c->last_visit_at, 'Y/m/d') : '—' }}</td>
-                <td class="flex gap-3">
-                    <a href="{{ route('dash.customers.show', $c) }}" class="text-brand-700">{{ __('View') }}</a>
-                    <a href="https://wa.me/{{ whatsapp_number($c->phone) }}" target="_blank" rel="noopener" class="text-emerald-700">WhatsApp</a>
+                <td>
+                    <div class="flex gap-3">
+                        <a href="{{ route('dash.customers.show', $c) }}" class="text-brand-700">{{ __('View') }}</a>
+                        <a href="https://wa.me/{{ whatsapp_number($c->phone) }}" target="_blank" rel="noopener" class="text-emerald-700">WhatsApp</a>
+                    </div>
                 </td>
             </tr>
         @empty

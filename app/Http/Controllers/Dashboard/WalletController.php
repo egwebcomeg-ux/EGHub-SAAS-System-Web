@@ -138,8 +138,10 @@ class WalletController extends Controller
         ]);
     }
 
-    public function voidGift(GiftCard $card, WalletService $wallet): RedirectResponse
+    /** Voiding destroys prepaid value, so it is limited to owner / manager like a manual balance correction. */
+    public function voidGift(Request $request, GiftCard $card, WalletService $wallet): RedirectResponse
     {
+        abort_unless($request->user()->can('pos.discount'), 403);
         try {
             $wallet->voidGiftCard($card);
         } catch (OrderException $e) {

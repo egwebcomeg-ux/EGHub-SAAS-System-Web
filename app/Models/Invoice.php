@@ -30,7 +30,8 @@ class Invoice extends Model
         if ($this->kind === 'addon') {
             return (string) ($this->lines[0]['label'] ?? __('Add-on'));
         }
-        return trim(($this->plan?->displayName() ?? '') . ' · ' . cycle_label((int) $this->cycle_months), ' ·');
+
+        return trim(($this->plan?->displayName() ?? '').' · '.cycle_label((int) $this->cycle_months), ' ·');
     }
 
     public function tenant(): BelongsTo

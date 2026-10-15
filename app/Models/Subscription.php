@@ -11,7 +11,7 @@ class Subscription extends Model
 {
     public const STATUSES = [
         'trialing' => ['فترة تجريبية', 'Trial'],
-        'active'   => ['نشط', 'Active'],
+        'active' => ['نشط', 'Active'],
         'past_due' => ['متأخر السداد', 'Past due'],
         'canceled' => ['ملغي', 'Canceled'],
     ];
@@ -21,12 +21,12 @@ class Subscription extends Model
     protected function casts(): array
     {
         return [
-            'trial_ends_at'        => 'datetime',
+            'trial_ends_at' => 'datetime',
             'current_period_start' => 'datetime',
-            'current_period_end'   => 'datetime',
-            'grace_ends_at'        => 'datetime',
-            'reminded_at'          => 'datetime',
-            'period_value'         => 'float',
+            'current_period_end' => 'datetime',
+            'grace_ends_at' => 'datetime',
+            'reminded_at' => 'datetime',
+            'period_value' => 'float',
         ];
     }
 
@@ -48,6 +48,7 @@ class Subscription extends Model
     public function statusLabel(): string
     {
         $l = self::STATUSES[$this->status] ?? [$this->status, $this->status];
+
         return app()->getLocale() === 'en' ? $l[1] : $l[0];
     }
 
@@ -66,6 +67,7 @@ class Subscription extends Model
     public function daysLeft(): int
     {
         $end = $this->endsAt();
+
         return $end ? max(0, (int) ceil(now()->diffInSeconds($end, false) / 86400)) : 0;
     }
 }

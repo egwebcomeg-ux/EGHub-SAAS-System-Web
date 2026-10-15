@@ -28,6 +28,7 @@ class MenuImportController extends Controller
     public function index(): View
     {
         $rights = Entitlements::current();
+
         return view('dashboard.menu.import', [
             'excel' => $rights->allows('excel_import'),
             'ai' => $rights->allows('ai_import'),
@@ -39,14 +40,15 @@ class MenuImportController extends Controller
 
     public function template(): BinaryFileResponse
     {
-        $path = storage_path('app/private/menu-template-' . random_token(4) . '.xlsx');
+        $path = storage_path('app/private/menu-template-'.random_token(4).'.xlsx');
         @mkdir(dirname($path), 0775, true);
-        (new XlsxWriter())->addSheet('Menu', [
+        (new XlsxWriter)->addSheet('Menu', [
             ExcelMenuParser::templateHeader(),
             ['قهوة ساخنة', 'Hot Coffee', 'لاتيه', 'Latte', 65, 'إسبريسو ولبن', 'Espresso & milk', 'صغير:0 | كبير:15', 'شوت زيادة:10'],
             ['', '', 'كابتشينو', 'Cappuccino', 65, '', '', 'صغير:0 | كبير:15', ''],
             ['حلويات', 'Desserts', 'تشيز كيك', 'Cheesecake', 90, '', '', '', ''],
         ])->save($path);
+
         return response()->download($path, 'egmenu-menu-template.xlsx')->deleteFileAfterSend();
     }
 
@@ -65,6 +67,7 @@ class MenuImportController extends Controller
         }
         $import = MenuImport::query()->create(['source' => 'excel', 'file' => mb_substr($file->getClientOriginalName(), 0, 200),
             'status' => 'parsed', 'result' => $draft, 'user_id' => $request->user()->id]);
+
         return redirect()->route('dash.import.review', $import);
     }
 
@@ -72,10 +75,10 @@ class MenuImportController extends Controller
     {
         $rights = Entitlements::current();
         abort_unless($rights->allows('ai_import'), 403);
-        if (!AiProviders::configured()) {
+        if (! AiProviders::configured()) {
             return back()->withErrors(['files' => __('Add your AI API key in Settings first.')]);
         }
-        if (!$rights->canAdd('ai_imports_per_month')) {
+        if (! $rights->canAdd('ai_imports_per_month')) {
             return back()->withErrors(['files' => $rights->upgradeMessage('ai_imports_per_month')]);
         }
         $request->validate([
@@ -87,8 +90,8 @@ class MenuImportController extends Controller
             return back()->withErrors(['files' => __('Upload up to 5 photos, or one PDF.')]);
         }
 
-        $dir = 'tenants/' . tenant()->getTenantKey() . '/imports';
-        $paths = collect($request->file('files'))->map(fn ($f) => $f->storeAs($dir, random_token(8) . '.' . ($f->getMimeType() === 'application/pdf' ? 'pdf' : $f->extension()), 'local'))->all();
+        $dir = 'tenants/'.tenant()->getTenantKey().'/imports';
+        $paths = collect($request->file('files'))->map(fn ($f) => $f->storeAs($dir, random_token(8).'.'.($f->getMimeType() === 'application/pdf' ? 'pdf' : $f->extension()), 'local'))->all();
         $import = MenuImport::query()->create([
             'source' => $pdfs->isNotEmpty() ? 'pdf' : 'image', 'file' => json_encode($paths), 'status' => 'pending', 'user_id' => $request->user()->id,
         ]);
@@ -111,8 +114,8 @@ class MenuImportController extends Controller
     {
         abort_unless($import->status === 'parsed', 404);
         $data = $request->validate([
-            'mode'  => ['required', Rule::in(['add', 'update'])],
-            'rows'  => 'required|array|max:' . MenuDraft::MAX_ITEMS,
+            'mode' => ['required', Rule::in(['add', 'update'])],
+            'rows' => 'required|array|max:'.MenuDraft::MAX_ITEMS,
             'rows.*.category' => 'nullable|string|max:80', 'rows.*.category_en' => 'nullable|string|max:80',
             'rows.*.name' => 'nullable|string|max:100', 'rows.*.name_en' => 'nullable|string|max:100',
             'rows.*.price' => 'nullable', 'rows.*.description' => 'nullable|string|max:500',
@@ -139,6 +142,7 @@ class MenuImportController extends Controller
         } catch (\RuntimeException $e) {
             return back()->withErrors(['apply' => $e->getMessage()]);
         }
+
         return redirect()->route('dash.menu')->with('ok', __(':created items added, :updated updated.', $result));
     }
 }

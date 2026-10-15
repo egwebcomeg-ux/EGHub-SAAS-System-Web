@@ -9,10 +9,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Ingredient extends TenantModel
 {
     public const UNITS = [
-        'g'   => ['جرام', 'g'],
-        'kg'  => ['كيلو', 'kg'],
-        'ml'  => ['ملّي', 'ml'],
-        'l'   => ['لتر', 'L'],
+        'g' => ['جرام', 'g'],
+        'kg' => ['كيلو', 'kg'],
+        'ml' => ['ملّي', 'ml'],
+        'l' => ['لتر', 'L'],
         'pcs' => ['قطعة', 'pcs'],
     ];
 
@@ -29,6 +29,7 @@ class Ingredient extends TenantModel
     public function unitLabel(): string
     {
         $u = self::UNITS[$this->unit] ?? [$this->unit, $this->unit];
+
         return app()->getLocale() === 'en' ? $u[1] : $u[0];
     }
 }

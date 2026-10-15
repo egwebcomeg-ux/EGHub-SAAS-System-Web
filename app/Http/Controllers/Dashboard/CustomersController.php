@@ -62,7 +62,7 @@ class CustomersController extends Controller
             fputcsv($out, [__('Name'), __('Mobile'), __('Visits'), __('Total spent'), __('Last visit'), __('Birthday'), __('Accepts offers')]);
             $rows->chunk(500, function ($chunk) use ($out) {
                 foreach ($chunk as $c) {
-                    fputcsv($out, [$c->name, $c->phone, $c->visits_count, $c->total_spent, $c->last_visit_at?->format('Y-m-d'), $c->birthday?->format('Y-m-d'), $c->marketing_opt_in ? 1 : 0]);
+                    fputcsv($out, csv_row([$c->name, $c->phone, $c->visits_count, $c->total_spent, $c->last_visit_at?->format('Y-m-d'), $c->birthday?->format('Y-m-d'), $c->marketing_opt_in ? 1 : 0]));
                 }
             });
             fclose($out);

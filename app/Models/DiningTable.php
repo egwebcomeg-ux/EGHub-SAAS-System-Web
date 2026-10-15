@@ -27,6 +27,6 @@ class DiningTable extends TenantModel
 
     public function menuUrl(): string
     {
-        return tenant()->url('t/' . $this->qr_token);
+        return tenant()->url('t/'.$this->qr_token);
     }
 }

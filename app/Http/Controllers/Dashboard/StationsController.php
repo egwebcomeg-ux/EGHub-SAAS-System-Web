@@ -25,12 +25,14 @@ class StationsController extends Controller
     {
         $data = $request->validate(['name' => 'required|string|max:60', 'name_en' => 'nullable|string|max:60']);
         KitchenStation::query()->create(['name' => $data['name'], 'name_en' => $data['name_en'] ?? '', 'sort_order' => (int) KitchenStation::query()->max('sort_order') + 1]);
+
         return back()->with('ok', __('Station added.'));
     }
 
     public function destroy(KitchenStation $station): RedirectResponse
     {
         $station->delete(); // categories fall back to "all screens" (FK null on delete)
+
         return back()->with('ok', __('Station deleted.'));
     }
 
@@ -39,12 +41,13 @@ class StationsController extends Controller
     {
         $tenant = tenant()->getTenantKey();
         $data = $request->validate([
-            'stations'   => 'array',
+            'stations' => 'array',
             'stations.*' => ['nullable', Rule::exists('kitchen_stations', 'id')->where('tenant_id', $tenant)],
         ]);
         foreach ($data['stations'] ?? [] as $categoryId => $stationId) {
             Category::query()->whereKey((int) $categoryId)->update(['kitchen_station_id' => $stationId ?: null]);
         }
+
         return back()->with('ok', __('Saved.'));
     }
 }

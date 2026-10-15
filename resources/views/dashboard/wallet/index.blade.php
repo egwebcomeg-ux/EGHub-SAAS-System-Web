@@ -11,7 +11,7 @@
     <div class="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ $errors->first() }}</div>
 @endif
 
-<div class="mb-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+<div class="mb-4 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
     <div class="card"><div class="muted">{{ __('Balances owed to guests') }}</div><div class="text-2xl font-extrabold text-brand-700" data-liability>{{ money($totals['liability']) }}</div></div>
     <div class="card"><div class="muted">{{ __('Unused gift cards') }}</div><div class="text-2xl font-extrabold">{{ money($totals['gifts']) }}</div></div>
     <div class="card"><div class="muted">{{ __('Guests with a balance') }}</div><div class="text-2xl font-extrabold">{{ $totals['customers'] }}</div></div>
@@ -85,7 +85,7 @@
             <tbody>
             @forelse ($gifts as $g)
                 <tr>
-                    <td dir="ltr" class="text-start font-mono font-bold">{{ $g->formattedCode() }}</td>
+                    <td dir="ltr" class="whitespace-nowrap text-start font-mono font-bold">{{ $g->formattedCode() }}</td>
                     <td class="font-bold">{{ money($g->amount) }}</td>
                     <td>
                         <span @class(['badge', 'bg-emerald-100 text-emerald-800' => $g->statusKey() === 'active', 'bg-navy-100 text-navy-700' => $g->statusKey() === 'redeemed', 'bg-red-100 text-red-700' => in_array($g->statusKey(), ['void', 'expired'], true)])>{{ $g->statusLabel() }}</span>
@@ -94,14 +94,16 @@
                     <td dir="ltr" class="text-start">{{ $g->recipient_phone ?: '—' }}</td>
                     <td>{{ local_time($g->created_at, 'Y/m/d') }}<div class="text-xs text-navy-500">{{ $g->seller?->name }} · {{ \App\Billing\PaymentMethods::label($g->payment_method ?? 'cash') }}</div></td>
                     <td>{{ $g->expires_at ? local_time($g->expires_at, 'Y/m/d') : '—' }}</td>
-                    <td class="flex flex-wrap gap-3">
-                        <a href="{{ route('dash.wallet.gift.print', $g) }}" target="_blank" class="text-brand-700">{{ __('Print') }}</a>
-                        @if ($g->statusKey() === 'active')
-                            <form method="post" action="{{ route('dash.wallet.gift.void', $g) }}" onsubmit="return confirm(@js(__('Void this gift card? It can no longer be added to a wallet.')))">
-                                @csrf
-                                <button class="text-red-600">{{ __('Void') }}</button>
-                            </form>
-                        @endif
+                    <td>
+                        <div class="flex flex-wrap items-center gap-1">
+                            <a href="{{ route('dash.wallet.gift.print', $g) }}" target="_blank" class="inline-flex min-h-11 items-center px-2 text-brand-700">{{ __('Print') }}</a>
+                            @if ($canAdjust && $g->statusKey() === 'active')
+                                <form method="post" action="{{ route('dash.wallet.gift.void', $g) }}" onsubmit="return confirm(@js(__('Void this gift card? It can no longer be added to a wallet.')))">
+                                    @csrf
+                                    <button class="min-h-11 px-2 text-red-600">{{ __('Void card') }}</button>
+                                </form>
+                            @endif
+                        </div>
                     </td>
                 </tr>
             @empty

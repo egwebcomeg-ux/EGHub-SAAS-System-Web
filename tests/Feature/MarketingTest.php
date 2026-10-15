@@ -21,6 +21,7 @@ class MarketingTest extends TenantTestCase
     {
         $table = $this->as($t, fn () => DiningTable::query()->first());
         $this->get($this->subUrl($t->id, "t/{$table->qr_token}"));
+
         return $this->postJson($this->subUrl($t->id, 'order'), ['client_uuid' => (string) Str::uuid(), 'items' => $items]);
     }
 
@@ -99,6 +100,7 @@ class MarketingTest extends TenantTestCase
         $b = $this->restaurant('cafe-b');
         [$burger, $fries, $cola, $cat] = $this->as($a, function () {
             $cat = Category::query()->create(['name' => 'Meals']);
+
             return [MenuItem::query()->create(['category_id' => $cat->id, 'name' => 'Burger', 'price' => 120]),
                 MenuItem::query()->create(['category_id' => $cat->id, 'name' => 'Fries', 'price' => 40]),
                 MenuItem::query()->create(['category_id' => $cat->id, 'name' => 'Cola', 'price' => 30]), $cat];

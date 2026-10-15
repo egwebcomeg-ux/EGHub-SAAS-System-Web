@@ -205,7 +205,7 @@ final class WalletService
         if (! self::enabled()) {
             throw new OrderException(__('The wallet is not available.'));
         }
-        if ($amount <= 0 || $amount > self::MAX_AMOUNT) {
+        if ($amount < 1 || $amount > self::MAX_AMOUNT) {
             throw new OrderException(__('Enter an amount between 1 and :max.', ['max' => money(self::MAX_AMOUNT)]));
         }
 
