@@ -6,6 +6,7 @@ use App\Http\Middleware\IdentifyTenantByPath;
 use App\Http\Middleware\IdentifyTenantBySubdomain;
 use App\Http\Middleware\InitializeTenancyFromUser;
 use App\Http\Middleware\RequireFeature;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -26,6 +27,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // X-Forwarded-Host is deliberately not trusted: tenants are resolved from the Host header.
         // Every $request->ip() after this (rate limiters below, client_ip()) is the real client IP.
         $middleware->trustProxies(headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO);
+        // Clickjacking / sniffing / referrer / HSTS headers on every response (menus, dashboard, admin alike).
+        $middleware->append(SecurityHeaders::class);
         $middleware->alias([
             'tenant.path' => IdentifyTenantByPath::class,
             'tenant.subdomain' => IdentifyTenantBySubdomain::class,
