@@ -2,12 +2,20 @@
 @section('title', __('Loyalty card'))
 
 @section('content')
+@php($extras = $onSale->isNotEmpty() || $tier || $wallet !== null || $packages->isNotEmpty())
 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
     <h1 class="page-title">{{ __('Loyalty card') }} · {{ __('Counter') }}</h1>
-    @can('loyalty.manage')<a href="{{ route('dash.loyalty.setup') }}" class="btn-ghost">{{ __('Program settings') }}</a>@endcan
+    <div class="flex gap-2">
+        @can('loyalty.manage')
+            @if (\App\Services\Entitlements::current()->allows('cashback|prepaid_packages|membership'))<a href="{{ route('dash.cards') }}" class="btn-ghost">{{ __('Advanced cards') }}</a>@endif
+            @if (\App\Services\Entitlements::current()->allows('loyalty_stamps'))<a href="{{ route('dash.loyalty.setup') }}" class="btn-ghost">{{ __('Program settings') }}</a>@endif
+        @endcan
+    </div>
 </div>
 
-@if (!$program)
+@if ($errors->has('package'))<div class="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ $errors->first('package') }}</div>@endif
+
+@if (!$program && $onSale->isEmpty() && ! \App\Services\Entitlements::current()->allows('membership|cashback'))
     <div class="card max-w-lg">
         <p class="text-navy-700">{{ __('No active loyalty program yet.') }}</p>
         @can('loyalty.manage')<a href="{{ route('dash.loyalty.setup') }}" class="btn-primary mt-3">{{ __('Set up the loyalty card') }}</a>@endcan
@@ -25,7 +33,7 @@
                 <video class="hidden w-full rounded-xl" data-video playsinline muted></video>
             </form>
 
-            @if ($q !== '' && !$card)
+            @if ($q !== '' && !$customer)
                 <form method="post" action="{{ route('dash.loyalty.enroll') }}" class="card space-y-3">
                     @csrf
                     <p class="font-semibold">{{ __('No card for this number. Create one?') }}</p>
@@ -34,63 +42,106 @@
                     <button class="btn-primary w-full">{{ __('Create card') }}</button>
                 </form>
             @endif
+
+            @if ($customer && $onSale->isNotEmpty())
+                <form method="post" action="{{ route('dash.cards.packages.sell', $customer) }}" class="card space-y-3" data-sell>
+                    @csrf
+                    <h2 class="section-title">{{ __('Sell a package') }}</h2>
+                    <select class="field" name="package_id" required>
+                        @foreach ($onSale as $p)<option value="{{ $p->id }}">{{ $p->displayName() }} · {{ money($p->price) }} {{ __('EGP') }} · {{ __(':n uses', ['n' => $p->uses]) }} · {{ __(':d days', ['d' => $p->valid_days]) }}</option>@endforeach
+                    </select>
+                    <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        @foreach ($methods as $m)
+                            <label class="flex min-h-11 cursor-pointer items-center justify-center gap-1 rounded-xl border border-navy-200 text-sm font-semibold has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
+                                <input type="radio" name="method" value="{{ $m }}" class="sr-only" @checked($loop->first)>{{ ['cash' => __('Cash'), 'card' => __('Card'), 'instapay' => 'InstaPay', 'wallet' => __('Mobile wallet')][$m] }}
+                            </label>
+                        @endforeach
+                    </div>
+                    <button class="btn-primary w-full" onclick="return confirm(@js(__('Took the money? Sell the package.')))">{{ __('Sell') }}</button>
+                </form>
+            @endif
         </div>
 
-        @if ($card)
+        @if ($customer)
             <div class="space-y-4 lg:col-span-3">
                 <section class="card">
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                            <div class="text-xl font-extrabold">{{ $card->customer->name ?: __('Guest') }}</div>
-                            <div class="muted" dir="ltr">{{ $card->customer->phone }}</div>
-                            <div class="mt-1 text-sm">{{ __(':n visits', ['n' => $card->customer->visits_count]) }} · {{ money($card->customer->total_spent) }} {{ __('EGP') }}</div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="text-xl font-extrabold">{{ $customer->name ?: __('Guest') }}</span>
+                                @if ($tier)<span class="badge text-white" style="background: {{ $tier->color }}">★ {{ $tier->displayName() }}@if ($tier->discount_percent > 0) · {{ money($tier->discount_percent) }}%@endif</span>@endif
+                            </div>
+                            <div class="muted" dir="ltr">{{ $customer->phone }}</div>
+                            <div class="mt-1 text-sm">{{ __(':n visits', ['n' => $customer->visits_count]) }} · {{ money($customer->total_spent) }} {{ __('EGP') }}@if ($wallet !== null) · <b>{{ __('Balance') }}: {{ money($wallet) }}</b>@endif</div>
                         </div>
-                        <div class="text-end">
-                            <div class="muted">{{ $program->type === 'points' ? __('Points') : __('Stamps') }}</div>
-                            <div class="text-4xl font-extrabold text-brand-700">{{ $card->stamps }}@unless ($program->type === 'points')<span class="text-lg text-navy-500">/{{ $program->stamps_required }}</span>@endunless</div>
-                        </div>
+                        @if ($card)
+                            <div class="text-end">
+                                <div class="muted">{{ $program->type === 'points' ? __('Points') : __('Stamps') }}</div>
+                                <div class="text-4xl font-extrabold text-brand-700">{{ $card->stamps }}@unless ($program->type === 'points')<span class="text-lg text-navy-500">/{{ $program->stamps_required }}</span>@endunless</div>
+                            </div>
+                        @endif
                     </div>
 
-                    <form method="post" action="{{ route('dash.loyalty.stamp', $card) }}" class="mt-4 flex flex-wrap items-center gap-2">
-                        @csrf
-                        <input class="field w-20 text-center" name="count" type="number" min="1" max="20" value="1">
-                        <input class="field flex-1" name="note" maxlength="100" placeholder="{{ __('Note (optional)') }}">
-                        <button class="btn-primary">{{ $program->type === 'points' ? __('Add points') : __('Add stamp') }}</button>
-                    </form>
-                </section>
-
-                <section class="card">
-                    <h2 class="section-title mb-3">{{ __('Rewards to use') }}</h2>
-                    @forelse ($card->availableRewards as $r)
-                        <form method="post" action="{{ route('dash.loyalty.redeem', $r) }}" class="mb-2 flex items-center justify-between gap-3 rounded-xl bg-emerald-50 p-3">
+                    @if ($card)
+                        <form method="post" action="{{ route('dash.loyalty.stamp', $card) }}" class="mt-4 flex flex-wrap items-center gap-2">
                             @csrf
-                            <span class="font-bold text-emerald-900">🎁 {{ $r->label }}</span>
-                            <button class="btn-primary min-h-9 px-3" onclick="return confirm(@js(__('Give the guest: :label?', ['label' => $r->label])))">{{ __('Redeem') }}</button>
+                            <input class="field w-20 text-center" name="count" type="number" min="1" max="20" value="1">
+                            <input class="field flex-1" name="note" maxlength="100" placeholder="{{ __('Note (optional)') }}">
+                            <button class="btn-primary">{{ $program->type === 'points' ? __('Add points') : __('Add stamp') }}</button>
                         </form>
-                    @empty
-                        <p class="muted">{{ __('No rewards yet.') }}</p>
-                    @endforelse
-                    @if ($program->type === 'points')
-                        @foreach ($milestones as $i => $m)
-                            <form method="post" action="{{ route('dash.loyalty.claim', $card) }}" class="mt-2 flex items-center justify-between gap-3 rounded-xl bg-navy-50 p-3">
-                                @csrf<input type="hidden" name="milestone" value="{{ $i }}">
-                                <span>{{ $m['label'] }} · {{ __(':n points', ['n' => $m['at']]) }}</span>
-                                <button class="btn-ghost min-h-9 px-3" @disabled($card->stamps < $m['at'])>{{ __('Exchange') }}</button>
-                            </form>
-                        @endforeach
                     @endif
                 </section>
 
-                @if ($card->transactions->isNotEmpty())
+                @if ($packages->isNotEmpty())
                     <section class="card">
-                        <h2 class="section-title mb-2">{{ __('History') }}</h2>
-                        <ul class="space-y-1 text-sm">
-                            @foreach ($card->transactions as $t)
-                                @php($typeLabel = ['stamp' => __('Stamp'), 'points' => __('Points'), 'reward' => __('Reward'), 'redeem' => __('Redeemed'), 'reverse' => __('Reversed'), 'expire' => __('Expired')][$t->type] ?? $t->type)
-                                <li class="flex justify-between gap-3"><span>{{ $typeLabel }} {{ $t->amount ? ($t->amount > 0 ? '+' : '') . $t->amount : '' }} {{ $t->note }}</span><span class="muted">{{ local_time($t->created_at, 'm/d h:i A') }}</span></li>
-                            @endforeach
-                        </ul>
+                        <h2 class="section-title mb-3">{{ __('Packages') }}</h2>
+                        @foreach ($packages as $cp)
+                            <form method="post" action="{{ route('dash.cards.packages.use', $cp) }}" class="mb-2 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 p-3" data-package>
+                                @csrf
+                                <div>
+                                    <div class="font-bold text-amber-900">🎟 {{ $cp->name }}</div>
+                                    <div class="text-sm text-amber-800" dir="ltr">{{ $cp->uses_left }}/{{ $cp->uses_total }} · {{ __('until :date', ['date' => local_time($cp->expires_at, 'Y/m/d')]) }}</div>
+                                </div>
+                                <button class="btn-primary min-h-9 px-3" onclick="return confirm(@js(__('Take one use from :name?', ['name' => $cp->name])))">{{ __('Use one') }}</button>
+                            </form>
+                        @endforeach
                     </section>
+                @endif
+
+                @if ($card)
+                    <section class="card">
+                        <h2 class="section-title mb-3">{{ __('Rewards to use') }}</h2>
+                        @forelse ($card->availableRewards as $r)
+                            <form method="post" action="{{ route('dash.loyalty.redeem', $r) }}" class="mb-2 flex items-center justify-between gap-3 rounded-xl bg-emerald-50 p-3">
+                                @csrf
+                                <span class="font-bold text-emerald-900">🎁 {{ $r->label }}</span>
+                                <button class="btn-primary min-h-9 px-3" onclick="return confirm(@js(__('Give the guest: :label?', ['label' => $r->label])))">{{ __('Redeem') }}</button>
+                            </form>
+                        @empty
+                            <p class="muted">{{ __('No rewards yet.') }}</p>
+                        @endforelse
+                        @if ($program->type === 'points')
+                            @foreach ($milestones as $i => $m)
+                                <form method="post" action="{{ route('dash.loyalty.claim', $card) }}" class="mt-2 flex items-center justify-between gap-3 rounded-xl bg-navy-50 p-3">
+                                    @csrf<input type="hidden" name="milestone" value="{{ $i }}">
+                                    <span>{{ $m['label'] }} · {{ __(':n points', ['n' => $m['at']]) }}</span>
+                                    <button class="btn-ghost min-h-9 px-3" @disabled($card->stamps < $m['at'])>{{ __('Exchange') }}</button>
+                                </form>
+                            @endforeach
+                        @endif
+                    </section>
+
+                    @if ($card->transactions->isNotEmpty())
+                        <section class="card">
+                            <h2 class="section-title mb-2">{{ __('History') }}</h2>
+                            <ul class="space-y-1 text-sm">
+                                @foreach ($card->transactions as $t)
+                                    @php($typeLabel = ['stamp' => __('Stamp'), 'points' => __('Points'), 'reward' => __('Reward'), 'redeem' => __('Redeemed'), 'reverse' => __('Reversed'), 'expire' => __('Expired')][$t->type] ?? $t->type)
+                                    <li class="flex justify-between gap-3"><span>{{ $typeLabel }} {{ $t->amount ? ($t->amount > 0 ? '+' : '') . $t->amount : '' }} {{ $t->note }}</span><span class="muted">{{ local_time($t->created_at, 'm/d h:i A') }}</span></li>
+                                @endforeach
+                            </ul>
+                        </section>
+                    @endif
                 @endif
             </div>
         @endif

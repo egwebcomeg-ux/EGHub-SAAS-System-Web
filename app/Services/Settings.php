@@ -62,6 +62,9 @@ final class Settings
         'wa_reservation_confirmed' => '0',
         'wa_loyalty_reward' => '0',
         'wa_sender_name' => '',
+        // cashback (feature cashback): this share of every counted order goes back to the guest's wallet balance
+        'cashback_percent' => '0',
+        'cashback_min_order' => '0',
         // extra menu languages (feature extra_languages): JSON list of App\Support\MenuLocales codes
         'menu_locales' => '[]',
         // progress of the AI translation of the whole menu (App\Jobs\TranslateMenu), JSON

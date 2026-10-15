@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\WalletTransaction;
 use App\Services\Entitlements;
 use App\Services\Orders\OrderException;
+use App\Services\Settings;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -86,6 +87,43 @@ final class WalletService
             return $customer ? $this->move($customer, $owed, 'refund', [
                 'order_id' => $order->id, 'user_id' => $by?->id, 'note' => '#'.$order->number,
             ]) : null;
+        });
+    }
+
+    /**
+     * Cashback (feature `cashback`): a share of a counted order goes back to the guest's balance. Called once per
+     * order from LoyaltyService::orderCompleted (which guards against counting twice). Null when nothing is due.
+     */
+    public function cashback(Order $order): ?WalletTransaction
+    {
+        $percent = (float) Settings::get('cashback_percent');
+        $customer = $order->customer_id ? Customer::query()->find($order->customer_id) : null;
+        if (! $customer || $percent <= 0 || ! self::enabled() || ! Entitlements::current()->allows('cashback')
+            || $order->total < (float) Settings::get('cashback_min_order')) {
+            return null;
+        }
+        $amount = round($order->total * min(100, $percent) / 100, 2);
+        if ($amount < 0.01) {
+            return null;
+        }
+
+        return DB::transaction(fn () => $this->move($customer, $amount, 'cashback', ['order_id' => $order->id, 'note' => '#'.$order->number]));
+    }
+
+    /** A cancelled order takes its cashback back — as much of it as is still on the balance (never below zero). */
+    public function reverseCashback(Order $order): ?WalletTransaction
+    {
+        return DB::transaction(function () use ($order) {
+            $rows = WalletTransaction::query()->where('order_id', $order->id)->whereIn('kind', ['cashback', 'cashback_rev'])->lockForUpdate()->get();
+            $given = round($rows->sum('delta'), 2);
+            $cashback = $rows->firstWhere('kind', 'cashback');
+            if ($given <= 0 || ! $cashback) {
+                return null;
+            }
+            $customer = Customer::query()->lockForUpdate()->find($cashback->customer_id);
+            $take = $customer ? round(min($given, (float) $customer->credit_balance), 2) : 0.0;
+
+            return $take > 0 ? $this->move($customer, -$take, 'cashback_rev', ['order_id' => $order->id, 'note' => '#'.$order->number]) : null;
         });
     }
 

@@ -525,6 +525,38 @@ final class SiteModules
                 ],
                 'related' => ['loyalty', 'pos', 'campaigns'],
             ],
+            [
+                'slug' => 'advanced-cards', 'group' => 'customers', 'icon' => 'star', 'for' => ['cafe', 'restaurant'],
+                'name' => __('Advanced cards'),
+                'tagline' => __('Cashback, membership tiers and prepaid packages on the same card'),
+                'summary' => __('A 10-coffee pass, Gold members at 10% off, and 5% back on every order.'),
+                'feature' => 'membership', 'addons' => ['cards_pack'],
+                'shot' => 'cards', 'frame' => 'browser', 'url' => 'app.egmenu.app/loyalty/cards', 'phone' => 'm-member',
+                'gallery' => [['cards-desk', 'browser', 'app.egmenu.app/loyalty', __('The counter: the guest’s tier, balance, packages and stamps on one screen; sell a package or take a use.')]],
+                'benefits' => [
+                    ['wallet', __('Cashback to the wallet'), __('A share of every paid order goes back to the guest’s balance, to spend on the next visit. A cancelled order takes it back.')],
+                    ['star', __('Membership tiers'), __('Silver, Gold, VIP by visits or spend; the tier’s discount comes off every order placed with the guest’s number, automatically.')],
+                    ['cup', __('Prepaid packages'), __('“10 coffees for 150 EGP, valid 30 days”: paid once at the counter, the cashier takes one use per visit.')],
+                    ['shield', __('Nothing by hand'), __('Tiers are worked out from real visits, cashback from paid orders, and every package use is recorded with the staff member.')],
+                ],
+                'steps' => [
+                    [__('A package'), __('Mona buys a 10-coffee package for 150 EGP.')],
+                    [__('One use'), __('The cashier takes one use with her latte: 9 left.')],
+                    [__('Gold'), __('Her 5th visit makes her Gold: 10% off every order.')],
+                    [__('Cashback'), __('5% of her order lands in her balance.')],
+                ],
+                'who' => [
+                    'cafe' => __('A monthly coffee pass that is paid up front, and regulars who feel like members.'),
+                    'restaurant' => __('VIP guests with a standing discount, and cashback that brings families back.'),
+                ],
+                'faq' => [
+                    [__('Can I run stamps and cashback together?'), __('Yes. The stamp card, the tiers, the packages and the balance all sit on the one card the guest already has.')],
+                    [__('Does cashback expire?'), __('Not in this version: it stays as balance until the guest spends it. You set the percentage and a minimum order.')],
+                    [__('What if a package expires with uses left?'), __('It closes on its date and shows as expired; you can set the validity per package, from a week to two years.')],
+                    [__('Can a member discount be combined with a coupon?'), __('Yes. The coupon is applied first, then the tier’s percentage on what is left; both show on the order.')],
+                ],
+                'related' => ['loyalty', 'wallet', 'pos'],
+            ],
 
             // ---------------- operations (add-ons) ----------------
             [

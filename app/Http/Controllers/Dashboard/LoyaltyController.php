@@ -9,8 +9,12 @@ use App\Models\LoyaltyCard;
 use App\Models\LoyaltyProgram;
 use App\Models\LoyaltyReward;
 use App\Models\MenuItem;
+use App\Models\PrepaidPackage;
 use App\Services\Entitlements;
 use App\Services\Loyalty\LoyaltyService;
+use App\Services\Loyalty\Membership;
+use App\Services\Loyalty\Packages;
+use App\Services\Wallet\WalletService;
 use App\Support\BusinessType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -106,20 +110,28 @@ class LoyaltyController extends Controller
 
     // ---- counter desk ----
 
-    public function desk(Request $request, LoyaltyService $loyalty): View
+    /** Finds the guest (mobile or scanned card) and shows everything the counter can do: stamps, packages, tier, balance. */
+    public function desk(Request $request, LoyaltyService $loyalty, Membership $membership, Packages $packages): View
     {
         $q = trim((string) $request->query('q', ''));
-        $card = null;
-        if ($q !== '' && ($program = $loyalty->program())) {
+        $program = $loyalty->program();
+        $customer = $card = null;
+        if ($q !== '') {
             $token = preg_match('#([a-f0-9]{24})$#', $q, $m) ? $m[1] : null; // scanned card URL or token
             $customer = $token ? Customer::query()->where('card_token', $token)->first()
                 : Customer::query()->where('phone', normalize_phone($q) ?? $q)->first();
-            $card = $customer ? $loyalty->card($program, $customer)->load(['customer', 'availableRewards', 'transactions' => fn ($t) => $t->limit(10)]) : null;
+            $card = $customer && $program ? $loyalty->card($program, $customer)->load(['customer', 'availableRewards', 'transactions' => fn ($t) => $t->limit(10)]) : null;
         }
+        $rights = Entitlements::current();
 
         return view('dashboard.loyalty.desk', [
-            'program' => $loyalty->program(), 'q' => $q, 'card' => $card,
-            'milestones' => ($p = $loyalty->program()) ? $loyalty->milestones($p) : [],
+            'program' => $program, 'q' => $q, 'card' => $card, 'customer' => $customer,
+            'milestones' => $program ? $loyalty->milestones($program) : [],
+            'tier' => $customer && $rights->allows('membership') ? $membership->tierFor($customer) : null,
+            'wallet' => $customer && WalletService::enabled() ? round((float) $customer->credit_balance, 2) : null,
+            'packages' => $customer && $rights->allows('prepaid_packages') ? $packages->activeFor($customer) : collect(),
+            'onSale' => $rights->allows('prepaid_packages') ? PrepaidPackage::query()->where('is_active', true)->orderBy('sort_order')->get() : collect(),
+            'methods' => WalletService::TOPUP_METHODS,
         ]);
     }
 
@@ -130,8 +142,12 @@ class LoyaltyController extends Controller
         if (! $phone) {
             return back()->withErrors(['phone' => __('Enter a valid Egyptian mobile number.')]);
         }
-        abort_unless($loyalty->program(), 404);
-        $loyalty->enroll($phone, $data['name'] ?? '', 'pos');
+        if ($loyalty->program()) {
+            $loyalty->enroll($phone, $data['name'] ?? '', 'pos');
+        } else {
+            // no stamp program (advanced cards only): the guest still gets a customer record and a card link
+            Customer::query()->firstOrCreate(['phone' => $phone], ['name' => mb_substr($data['name'] ?? '', 0, 100), 'source' => 'pos']);
+        }
 
         return redirect()->route('dash.loyalty.desk', ['q' => $phone])->with('ok', __('Card created.'));
     }

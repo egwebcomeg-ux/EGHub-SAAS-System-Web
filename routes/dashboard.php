@@ -7,6 +7,7 @@ use App\Http\Controllers\Dashboard\BranchesController;
 use App\Http\Controllers\Dashboard\BranchMenuController;
 use App\Http\Controllers\Dashboard\CallCenterController;
 use App\Http\Controllers\Dashboard\CampaignsController;
+use App\Http\Controllers\Dashboard\CardsController;
 use App\Http\Controllers\Dashboard\CategoriesController;
 use App\Http\Controllers\Dashboard\CustomersController;
 use App\Http\Controllers\Dashboard\DeliveryZonesController;
@@ -183,12 +184,28 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/loyalty/setup', [LoyaltyController::class, 'update'])->name('loyalty.update');
         Route::post('/loyalty/restart', [LoyaltyController::class, 'restart'])->name('loyalty.restart');
     });
-    Route::middleware(['feature:loyalty_stamps', 'permission:loyalty.stamp'])->group(function () {
+    // The counter desk also serves the advanced cards (packages, tiers, cashback) when there is no stamp program.
+    Route::middleware(['feature:loyalty_stamps|prepaid_packages|membership|cashback', 'permission:loyalty.stamp'])->group(function () {
         Route::get('/loyalty', [LoyaltyController::class, 'desk'])->name('loyalty.desk');
         Route::post('/loyalty/enroll', [LoyaltyController::class, 'enroll'])->name('loyalty.enroll');
+    });
+    Route::middleware(['feature:loyalty_stamps', 'permission:loyalty.stamp'])->group(function () {
         Route::post('/loyalty/cards/{card}/stamp', [LoyaltyController::class, 'stamp'])->name('loyalty.stamp');
         Route::post('/loyalty/cards/{card}/claim', [LoyaltyController::class, 'claim'])->name('loyalty.claim');
         Route::post('/loyalty/rewards/{reward}/redeem', [LoyaltyController::class, 'redeem'])->name('loyalty.redeem');
+    });
+    // Advanced cards (cards pack / Business): cashback share, membership tiers, prepaid packages on sale
+    Route::middleware(['feature:cashback|prepaid_packages|membership', 'permission:loyalty.manage'])->group(function () {
+        Route::get('/loyalty/cards', [CardsController::class, 'index'])->name('cards');
+        Route::post('/loyalty/cards/cashback', [CardsController::class, 'cashback'])->name('cards.cashback');
+        Route::post('/loyalty/cards/tiers', [CardsController::class, 'tiers'])->name('cards.tiers');
+        Route::post('/loyalty/cards/packages', [CardsController::class, 'storePackage'])->name('cards.packages.store');
+        Route::post('/loyalty/cards/packages/{package}', [CardsController::class, 'updatePackage'])->whereNumber('package')->name('cards.packages.update');
+    });
+    Route::middleware(['feature:prepaid_packages', 'permission:loyalty.stamp'])->group(function () {
+        Route::post('/loyalty/customers/{customer}/packages', [CardsController::class, 'sellPackage'])->whereNumber('customer')->name('cards.packages.sell');
+        Route::post('/loyalty/packages/{copy}/use', [CardsController::class, 'usePackage'])->whereNumber('copy')->name('cards.packages.use');
+        Route::post('/loyalty/packages/{copy}/void', [CardsController::class, 'voidPackage'])->whereNumber('copy')->name('cards.packages.void');
     });
     Route::get('/feedback', [FeedbackController::class, 'index'])
         ->middleware(['feature:feedback', 'permission:reports.view|customers.view'])->name('feedback');

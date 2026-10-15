@@ -17,6 +17,8 @@ class WalletTransaction extends TenantModel
         'refund' => ['استرداد', 'Refund'],
         'gift_redeem' => ['كارت هدية', 'Gift card'],
         'adjustment' => ['تعديل يدوي', 'Adjustment'],
+        'cashback' => ['كاش باك', 'Cashback'],
+        'cashback_rev' => ['إلغاء كاش باك', 'Cashback reversed'],
     ];
 
     protected function casts(): array

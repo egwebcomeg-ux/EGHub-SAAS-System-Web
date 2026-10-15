@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\User;
 use App\Services\Entitlements;
 use App\Services\Notify\GuestNotifier;
+use App\Services\Wallet\WalletService;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -87,6 +88,7 @@ final class LoyaltyService
             $customer->forceFill([
                 'visits_count' => $customer->visits_count + 1, 'total_spent' => round($customer->total_spent + $order->total, 2), 'last_visit_at' => now(),
             ])->save();
+            app(WalletService::class)->cashback($order); // cashback feature: a share of the order back to the wallet
 
             $program = $this->program();
             if (! $program) {
@@ -111,6 +113,7 @@ final class LoyaltyService
             if ($customer = $order->customer) {
                 $customer->forceFill(['visits_count' => max(0, $customer->visits_count - 1), 'total_spent' => max(0, round($customer->total_spent - $order->total, 2))])->save();
             }
+            app(WalletService::class)->reverseCashback($order);
             foreach (LoyaltyTransaction::query()->where('order_id', $order->id)->whereIn('type', ['stamp', 'points'])->with('card')->get() as $t) {
                 $card = $t->card;
                 $take = min($card->stamps, $t->amount);

@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\Entitlements;
 use App\Services\Inventory\StockService;
 use App\Services\Loyalty\LoyaltyService;
+use App\Services\Loyalty\Membership;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Notify\GuestNotifier;
 use App\Services\Settings;
@@ -69,6 +70,9 @@ final class OrderService
             [$coupon, $off] = app(Coupons::class)->check((string) $data['coupon'], $subtotal - $discount, normalize_phone((string) ($data['customer_phone'] ?? '')));
             $discount = round($discount + $off, 2);
         }
+        // Membership tier of the guest behind the mobile number: its discount comes off what is left.
+        [$tier, $memberOff] = app(Membership::class)->discountFor(normalize_phone((string) ($data['customer_phone'] ?? '')), $subtotal - $discount);
+        $discount = round($discount + $memberOff, 2);
         $type = in_array($data['type'] ?? null, array_keys(Order::TYPES), true) ? $data['type'] : ($table ? 'dine_in' : 'takeaway');
         $service = $type === 'dine_in' ? round(($subtotal - $discount) * $this->percent('service_percent'), 2) : 0.0;
         $tax = round(($subtotal - $discount + $service) * $this->percent('tax_percent'), 2);
@@ -94,7 +98,7 @@ final class OrderService
 
         for ($attempt = 1; ; $attempt++) {
             try {
-                return DB::transaction(function () use ($data, $branch, $table, $by, $lines, $subtotal, $discount, $service, $tax, $type, $phone, $uuid, $zone, $deliveryFee, $coupon) {
+                return DB::transaction(function () use ($data, $branch, $table, $by, $lines, $subtotal, $discount, $service, $tax, $type, $phone, $uuid, $zone, $deliveryFee, $coupon, $tier, $memberOff) {
                     if ($coupon) {
                         app(Coupons::class)->redeem($coupon);
                     }
@@ -110,6 +114,7 @@ final class OrderService
                         'customer_phone' => $phone ?? '',
                         'notes' => mb_substr(trim((string) ($data['notes'] ?? '')), 0, 500) ?: null,
                         'subtotal' => $subtotal, 'discount' => $discount, 'service' => $service, 'tax' => $tax,
+                        'member_discount' => $memberOff, 'member_tier' => $memberOff > 0 ? mb_substr($tier->displayName(), 0, 40) : null,
                         'coupon_id' => $coupon?->id, 'coupon_code' => $coupon?->code,
                         'delivery_zone_id' => $zone?->id, 'delivery_fee' => $deliveryFee,
                         'delivery_address' => $type === 'delivery' ? ($data['delivery_address'] ?? null) : null,

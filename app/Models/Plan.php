@@ -50,6 +50,9 @@ class Plan extends Model
         'whatsapp_notifications' => ['رسائل واتساب للعميل (استلام الطلب، جاهز، في الطريق)', 'WhatsApp updates to guests (order received, ready, on the way)', 'marketing'],
         'campaigns' => ['حملات واتساب وكوبونات خصم', 'WhatsApp campaigns & coupons', 'marketing'],
         'wallet' => ['محفظة رصيد مسبق وكروت هدايا', 'Prepaid wallet & gift cards', 'marketing'],
+        'cashback' => ['كاش باك على المحفظة مع كل طلب', 'Cashback to the wallet on every order', 'marketing'],
+        'prepaid_packages' => ['باقات مسبقة الدفع (اشتراك ١٠ قهوة مثلاً)', 'Prepaid packages (e.g. a 10-coffee pass)', 'marketing'],
+        'membership' => ['مستويات عضوية بخصم تلقائي', 'Membership tiers with an automatic discount', 'marketing'],
         // management
         'daily_reports' => ['تقارير يومية', 'Daily reports', 'management'],
         'advanced_reports' => ['تقارير متقدمة', 'Advanced reports', 'management'],

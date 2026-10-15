@@ -76,7 +76,7 @@ final class ShiftService
         $in = (float) $shift->movements()->where('type', 'in')->sum('amount');
         $out = (float) $shift->movements()->where('type', 'out')->sum('amount');
         $prepaid = [];
-        foreach ($shift->movements()->whereIn('type', ['topup', 'gift'])->get(['method', 'amount']) as $m) {
+        foreach ($shift->movements()->whereIn('type', ['topup', 'gift', 'package'])->get(['method', 'amount']) as $m) {
             $prepaid[$m->method ?? 'cash'] = round(($prepaid[$m->method ?? 'cash'] ?? 0) + $m->amount, 2);
         }
         $expected = round($shift->opening_cash + $byMethod['cash'] + $in - $out + ($prepaid['cash'] ?? 0), 2);
