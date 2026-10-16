@@ -5,6 +5,7 @@ use App\Http\Controllers\Menu\FeedbackController;
 use App\Http\Controllers\Menu\GiftController;
 use App\Http\Controllers\Menu\ItemViewController;
 use App\Http\Controllers\Menu\KioskController;
+use App\Http\Controllers\Menu\LinksController;
 use App\Http\Controllers\Menu\LoyaltyCardController;
 use App\Http\Controllers\Menu\MenuController;
 use App\Http\Controllers\Menu\OrderController;
@@ -61,3 +62,6 @@ Route::post('/reserve', [ReservationController::class, 'store'])->middleware('th
 Route::get('/reserve/{token}', [ReservationController::class, 'show'])->where('token', '[a-f0-9]{24}')->name('reserve.show');
 Route::post('/reserve/{token}/cancel', [ReservationController::class, 'cancel'])->where('token', '[a-f0-9]{24}')
     ->middleware('throttle:10,1')->name('reserve.cancel');
+
+// The restaurant's links page (menu, order, book, WhatsApp, socials, map, hours): what a QR can open instead of the menu
+Route::get('/links', [LinksController::class, 'show'])->name('links');

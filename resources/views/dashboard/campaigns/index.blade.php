@@ -5,6 +5,17 @@
 <h1 class="page-title mb-1">{{ __('Campaigns') }}</h1>
 <p class="muted mb-4">{{ __('Send a WhatsApp message to a group of your guests, with a coupon if you like. Each message uses one credit.') }}</p>
 
+<nav class="mb-4 flex gap-2 overflow-x-auto" aria-label="{{ __('Campaigns') }}">
+    @foreach (['campaigns' => __('Campaigns'), 'automations' => __('Automations')] as $key => $label)
+        <a href="{{ route('dash.campaigns', $key === 'campaigns' ? [] : ['tab' => $key]) }}" data-tab="{{ $key }}"
+           @class(['flex min-h-11 shrink-0 items-center rounded-xl px-4 text-sm font-bold', 'bg-navy-900 text-white' => $tab === $key, 'bg-white text-navy-700 ring-1 ring-navy-100' => $tab !== $key])
+           @if ($tab === $key) aria-current="page" @endif>{{ $label }}</a>
+    @endforeach
+</nav>
+
+@if ($tab === 'automations')
+    @include('dashboard.campaigns.automations')
+@else
 <div class="grid gap-4 xl:grid-cols-5">
     <form method="post" action="{{ route('dash.campaigns.store') }}" class="card space-y-4 xl:col-span-3" data-campaign-form
         data-preview-url="{{ route('dash.campaigns.preview') }}">
@@ -34,7 +45,7 @@
                 <label class="field-label" for="c-segment">{{ __('Who gets it') }}</label>
                 <select class="field" id="c-segment" name="segment" data-segment>
                     @foreach (\App\Models\Campaign::SEGMENTS as $key => $segment)
-                        <option value="{{ $key }}" data-unit="{{ $segment[2] }}" @selected(old('segment', 'all') === $key)>{{ \App\Models\Campaign::segmentLabel($key) }}</option>
+                        <option value="{{ $key }}" data-unit="{{ $segment[2] }}" @selected(old('segment', request()->query('segment', 'all')) === $key)>{{ \App\Models\Campaign::segmentLabel($key) }}</option>
                     @endforeach
                 </select>
                 @error('segment')<div class="field-error">{{ $message }}</div>@enderror
@@ -227,4 +238,5 @@
     refreshMessage();
 })();
 </script>
+@endif
 @endsection

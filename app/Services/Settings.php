@@ -42,6 +42,12 @@ final class Settings
         'short_description' => '',
         'short_description_en' => '',
         'listed_in_directory' => '1',
+        // what the table and storefront QR open: the menu, or the links page egmenu.app/{slug}/links
+        'qr_target' => 'menu',
+        // ad tracking pixels on the public menu pages (feature offers|full_branding, App\Services\Marketing\TrackingPixels)
+        'meta_pixel_id' => '',
+        'ga4_measurement_id' => '',
+        'tiktok_pixel_id' => '',
         // ordering
         'ordering_enabled' => '1',
         'whatsapp_ordering' => '0',

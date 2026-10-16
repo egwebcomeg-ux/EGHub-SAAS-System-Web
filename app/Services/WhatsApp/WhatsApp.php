@@ -34,11 +34,11 @@ final class WhatsApp
     }
 
     /**
-     * Creates the queued row without sending it (campaigns send their batch themselves).
+     * Creates the queued row without sending it (campaigns and automations send their batch themselves).
      *
      * @param  array<string,mixed>  $values
      */
-    public function record(string $phone, string $templateKey, array $values, ?int $customerId = null, ?int $campaignId = null): ?WhatsAppMessage
+    public function record(string $phone, string $templateKey, array $values, ?int $customerId = null, ?int $campaignId = null, ?int $automationId = null): ?WhatsAppMessage
     {
         $local = normalize_phone($phone);
         if (! $local) {
@@ -48,7 +48,7 @@ final class WhatsApp
         $params = Templates::withDefaults(Templates::params($templateKey, $values), $locale);
 
         return WhatsAppMessage::query()->create([
-            'customer_id' => $customerId, 'campaign_id' => $campaignId, 'to' => whatsapp_number($local),
+            'customer_id' => $customerId, 'campaign_id' => $campaignId, 'automation_id' => $automationId, 'to' => whatsapp_number($local),
             'template' => $templateKey, 'locale' => $locale, 'params' => $params,
             'body' => Templates::render($templateKey, $params, $locale), 'status' => 'queued',
         ]);

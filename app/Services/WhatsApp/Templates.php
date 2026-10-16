@@ -16,6 +16,7 @@ final class Templates
         'reservation_confirmed' => ['name', 'restaurant', 'date', 'guests'],
         'loyalty_reward' => ['name', 'restaurant', 'reward', 'link'],
         'campaign' => ['text'],
+        'automation' => ['text'],
     ];
 
     private const TEXT = [
@@ -40,6 +41,7 @@ final class Templates
             'en' => 'Congrats {name} 🎁 you earned "{reward}" on your {restaurant} loyalty card. Show your card at the counter: {link}',
         ],
         'campaign' => ['ar' => '{text}', 'en' => '{text}'],
+        'automation' => ['ar' => '{text}', 'en' => '{text}'],
     ];
 
     /**

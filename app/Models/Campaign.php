@@ -16,6 +16,12 @@ class Campaign extends TenantModel
         'birthday' => ['عيد ميلادهم الأسبوع ده', 'Birthday this week', null],
         'loyalty' => ['معاهم كارت ولاء', 'Loyalty card holders', null],
         'spent' => ['صرفوا :n جنيه أو أكتر', 'Spent :n EGP or more', 'amount'],
+        // computed segments (App\Services\Customers\Segments)
+        'new' => ['العملاء الجداد (أول زيارة في آخر 30 يوم)', 'New guests (first visit in the last 30 days)', null],
+        'regular' => ['العملاء الدايمين (3 طلبات أو أكتر في 90 يوم)', 'Regulars (3+ orders in 90 days)', null],
+        'vip' => ['عملاء VIP (أعلى 10% صرف أو أعلى عضوية)', 'VIP guests (top 10% spend or top tier)', null],
+        'at_risk' => ['بيبعدوا (دايمين ومزاروش من 30 لـ 60 يوم)', 'At risk (regulars away 30 to 60 days)', null],
+        'lost' => ['راحوا (مزاروش من أكتر من 60 يوم)', 'Lost (no visit for more than 60 days)', null],
     ];
 
     public const STATUSES = [

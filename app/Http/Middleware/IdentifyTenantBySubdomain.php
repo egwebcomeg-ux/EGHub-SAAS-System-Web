@@ -64,7 +64,7 @@ class IdentifyTenantBySubdomain
     protected function markCanonical(Request $request, Tenant $tenant): void
     {
         $name = Str::after((string) $request->route()?->getName(), '.');
-        if (! in_array($name, ['show', 'about'], true)) {
+        if (! in_array($name, ['show', 'about', 'links'], true)) {
             $request->attributes->set('noindex', true);
 
             return;

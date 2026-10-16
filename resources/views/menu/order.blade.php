@@ -3,6 +3,10 @@
 
 @push('head')
 <style>:root { --menu-primary: {{ is_hex_color($settings['color_primary']) ? $settings['color_primary'] : '#E8642C' }}; }</style>
+@include('menu.partials.pixels', ['purchase' => $order->status === 'cancelled' ? null : [
+    'id' => $order->number, 'value' => round((float) $order->total, 2),
+    'items' => $order->items->map(fn ($i) => ['id' => $i->menu_item_id, 'name' => $i->name, 'quantity' => $i->quantity, 'price' => round((float) $i->unit_price, 2)])->values()->all(),
+]])
 @endpush
 
 @section('body')

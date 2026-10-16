@@ -47,10 +47,14 @@ if (dataEl) {
         $('[data-sheet-qty]', sheet).textContent = qty;
     }
 
+    // ad pixels of the restaurant (menu/partials/pixels): no-op when none is set
+    const track = (event, params) => { try { window.egmTrack?.(event, params); } catch {} };
+
     function openItem(id) {
         current = M.items[id];
         if (!current) return;
         qty = 1;
+        track('ViewContent', { content_ids: [String(current.id)], content_name: current.name, content_type: 'product', value: current.price });
         const img = $('[data-sheet-image]', sheet);
         img.classList.toggle('hidden', !current.image);
         if (current.image) img.src = current.image;
@@ -125,6 +129,7 @@ if (dataEl) {
         const same = cart.find((l) => l.item_id === current.id && l.notes === notes && l.option_ids.join() === ids.join());
         if (same) same.qty = Math.min(30, same.qty + qty);
         else cart.push({ item_id: current.id, option_ids: ids, qty, notes });
+        track('AddToCart', { content_ids: [String(current.id)], content_name: current.name, content_type: 'product', value: unitPrice(current, ids) * qty, num_items: qty });
         save();
         renderBar();
         sheet.close();

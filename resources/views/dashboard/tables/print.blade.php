@@ -24,7 +24,7 @@
             @if ($settings['logo'])<img src="/storage/{{ $settings['logo'] }}" alt="" class="mx-auto mb-2 h-12 object-contain">@endif
             <div class="font-extrabold">{{ $brand }}</div>
             <div class="my-3">{!! $menuQr !!}</div>
-            <div class="text-sm font-bold" style="color: {{ $settings['color_primary'] }}">{{ __('Scan to see the menu') }}</div>
+            <div class="text-sm font-bold" style="color: {{ $settings['color_primary'] }}">{{ $toLinks ? __('Scan for the menu, ordering and our links') : __('Scan to see the menu') }}</div>
         </div>
     @else
         @forelse ($cards as $c)
@@ -33,7 +33,7 @@
                 <div class="font-extrabold">{{ $brand }}</div>
                 <div class="my-3">{!! $c['qr'] !!}</div>
                 <div class="text-2xl font-extrabold" style="color: {{ $settings['color_primary'] }}">{{ __('Table :name', ['name' => $c['table']->name]) }}</div>
-                <div class="text-xs text-navy-500">{{ __('Scan to see the menu and order') }}</div>
+                <div class="text-xs text-navy-500">{{ $toLinks ? __('Scan for the menu, ordering and our links') : __('Scan to see the menu and order') }}</div>
             </div>
         @empty
             <p class="col-span-full text-center text-navy-500">{{ __('No tables yet.') }}</p>

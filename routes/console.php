@@ -4,6 +4,7 @@ use App\Billing\Lifecycle;
 use App\Models\Tenant;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Loyalty\Packages;
+use App\Services\Marketing\Automations;
 use App\Services\Marketing\Campaigns;
 use App\Services\Reports\WeeklyReportMailer;
 use App\Services\Wallet\WalletService;
@@ -45,3 +46,9 @@ Schedule::command('egmenu:weekly-report')->weeklyOn(1, '08:00')->withoutOverlapp
 Schedule::command('queue:work --stop-when-empty --max-time=55 --tries=1')->everyMinute()->withoutOverlapping();
 // heartbeat read by egmenu:doctor to confirm the cron line is installed
 Schedule::call(fn () => cache()->put('egmenu:scheduler_at', now()->timestamp, now()->addDay()))->everyMinute()->name('scheduler-heartbeat');
+
+// Marketing automations (welcome / winback / birthday): every 15 minutes, per restaurant, inside each one's send window
+Artisan::command('egmenu:automations', function (Automations $automations) {
+    $this->info('automation messages sent: '.$automations->runAll());
+})->purpose('Send the due welcome, winback and birthday WhatsApp messages of every restaurant');
+Schedule::command('egmenu:automations')->everyFifteenMinutes()->withoutOverlapping();

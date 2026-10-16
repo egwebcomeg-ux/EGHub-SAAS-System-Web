@@ -23,6 +23,7 @@ class TablesController extends Controller
         return view('dashboard.tables.index', [
             'branches' => Branch::query()->orderBy('sort_order')->with(['tables' => fn ($q) => $q->orderBy('sort_order')->orderBy('id')])->get(),
             'usage' => ['used' => $rights->usage('tables'), 'limit' => $rights->limit('tables')],
+            'qrTarget' => Settings::get('qr_target') === 'links' ? 'links' : 'menu',
         ]);
     }
 
@@ -89,12 +90,15 @@ class TablesController extends Controller
             $query->where('branch_id', (int) $request->query('branch'));
         }
         $color = Settings::get('color_secondary');
+        // the storefront QR encodes the chosen target; table QRs keep their /t/{token} link and are redirected on scan
+        $toLinks = Settings::get('qr_target') === 'links';
 
         return view('dashboard.tables.print', [
             'cards' => $query->get()->map(fn (DiningTable $t) => [
                 'table' => $t, 'url' => $t->menuUrl(), 'qr' => Qr::svg($t->menuUrl(), 300, $color),
             ]),
-            'menuQr' => Qr::svg(tenant()->url(), 300, $color),
+            'menuQr' => Qr::svg($toLinks ? tenant()->url('links') : tenant()->url(), 300, $color),
+            'toLinks' => $toLinks,
             'settings' => Settings::all(),
             'onlyMenu' => $request->boolean('menu'),
         ]);

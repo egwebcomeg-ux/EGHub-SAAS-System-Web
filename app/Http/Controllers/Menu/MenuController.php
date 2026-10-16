@@ -121,7 +121,8 @@ class MenuController extends Controller
         $table->increment('scans_count', 1, ['last_scanned_at' => now()]);
         MenuVisit::bump('scans');
 
-        return redirect()->route('menu.show');
+        // the owner chooses whether a scanned QR opens the menu or the links page (setting qr_target)
+        return redirect()->route(Settings::get('qr_target') === 'links' ? 'menu.links' : 'menu.show');
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Services\Entitlements;
 use App\Services\ImageService;
 use App\Services\Import\Ai\AiException;
 use App\Services\Import\Ai\AiProviders;
+use App\Services\Marketing\TrackingPixels;
 use App\Services\Notify\GuestNotifier;
 use App\Services\Settings;
 use App\Support\BusinessType;
@@ -35,11 +36,18 @@ class SettingsController extends Controller
             'ai' => Entitlements::current()->allows('ai_import|extra_languages'), 'providers' => AiProviders::PROVIDERS, 'aiKey' => AiProviders::masked(),
             'extraLanguages' => Entitlements::current()->allows('extra_languages'),
             'advancedReports' => Entitlements::current()->allows('advanced_reports'),
+            'pixels' => TrackingPixels::enabled(),
         ]);
     }
 
     public function update(Request $request, ImageService $images): RedirectResponse
     {
+        // pixel ids as the providers show them (upper-case, no spaces) before they are checked
+        foreach (array_keys(TrackingPixels::RULES) as $key) {
+            if ($request->has($key)) {
+                $request->merge([$key => strtoupper(trim((string) $request->input($key)))]);
+            }
+        }
         $data = $request->validate([
             'brand_name' => 'required|string|max:80',
             'brand_name_en' => 'nullable|string|max:80',
@@ -77,9 +85,26 @@ class SettingsController extends Controller
             'cover' => 'nullable|file|max:5120',
             'menu_locales' => 'nullable|array',
             'menu_locales.*' => [Rule::in(MenuLocales::codes())],
-        ]);
+            'qr_target' => ['nullable', Rule::in(['menu', 'links'])],
+            'meta_pixel_id' => ['nullable', 'string', TrackingPixels::RULES['meta_pixel_id']],
+            'ga4_measurement_id' => ['nullable', 'string', TrackingPixels::RULES['ga4_measurement_id']],
+            'tiktok_pixel_id' => ['nullable', 'string', TrackingPixels::RULES['tiktok_pixel_id']],
+        ], [], ['meta_pixel_id' => 'Meta Pixel ID', 'ga4_measurement_id' => 'GA4 Measurement ID', 'tiktok_pixel_id' => 'TikTok Pixel ID']);
 
         $values = collect($data)->except(['logo', 'cover', 'ai_key', 'cuisine', 'menu_locales'])->map(fn ($v) => (string) ($v ?? ''))->all();
+        if (($values['qr_target'] ?? '') === '') {
+            unset($values['qr_target']); // not sent: keep the current target
+        }
+        // tracking pixels are only saved with the feature (the form sends them then)
+        if (TrackingPixels::enabled() && $request->has('pixels_sent')) {
+            foreach (array_keys(TrackingPixels::RULES) as $key) {
+                $values[$key] = (string) ($data[$key] ?? '');
+            }
+        } else {
+            foreach (array_keys(TrackingPixels::RULES) as $key) {
+                unset($values[$key]);
+            }
+        }
         $values['cuisine'] = implode(',', array_values(array_unique($data['cuisine'] ?? [])));
         $values['listed_in_directory'] = $request->boolean('listed_in_directory') ? '1' : '0';
         // the key is only replaced when a new one is typed, and is stored encrypted

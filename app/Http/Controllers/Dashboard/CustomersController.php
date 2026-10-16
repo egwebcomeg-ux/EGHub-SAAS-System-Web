@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Order;
+use App\Services\Customers\Segments;
+use App\Services\Loyalty\Membership;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -13,14 +15,16 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 /** The restaurant's own guest list: everyone who left a phone with an order or joined the loyalty card. */
 class CustomersController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, Segments $segments): View
     {
         $q = trim((string) $request->query('q', ''));
+        $segment = Segments::is((string) $request->query('segment')) ? (string) $request->query('segment') : '';
         $sort = in_array($request->query('sort'), ['visits_count', 'total_spent', 'last_visit_at'], true) ? $request->query('sort') : 'last_visit_at';
-        $customers = $this->search($q)->orderByDesc($sort)->orderByDesc('id')->paginate(30)->withQueryString();
+        $customers = $segments->withRecentOrders($this->search($q, $segment))->orderByDesc($sort)->orderByDesc('id')->paginate(30)->withQueryString();
 
         return view('dashboard.customers.index', [
-            'customers' => $customers, 'q' => $q, 'sort' => $sort,
+            'customers' => $customers, 'q' => $q, 'sort' => $sort, 'segment' => $segment,
+            'segments' => $segments, 'segmentCounts' => $segments->counts(),
             'stats' => [
                 'total' => Customer::query()->count(),
                 'returning' => Customer::query()->where('visits_count', '>', 1)->count(),
@@ -53,25 +57,34 @@ class CustomersController extends Controller
     {
         // The file is written after the request handling returns, when the tenant scope may no longer be active:
         // pin the restaurant explicitly instead of relying on the global scope.
-        $rows = $this->search(trim((string) $request->query('q', '')))
-            ->withoutGlobalScopes()->where('tenant_id', tenant()->getTenantKey())->orderBy('id');
+        $segment = Segments::is((string) $request->query('segment')) ? (string) $request->query('segment') : '';
+        // the segment rules (VIP threshold, recent orders) are resolved now, while the tenant scope is still active
+        $ids = $this->search(trim((string) $request->query('q', '')), $segment)->pluck('id');
+        $rows = Customer::query()->withoutGlobalScopes()->where('tenant_id', tenant()->getTenantKey())->whereIn('id', $ids)->orderBy('id');
+        $segments = app(Segments::class);
+        $segments->vipThreshold();
+        $tier = Membership::enabled() ? app(Membership::class)->tiers()->first() : null;
 
-        return response()->streamDownload(function () use ($rows) {
+        return response()->streamDownload(function () use ($rows, $segments, $tier) {
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, [__('Name'), __('Mobile'), __('Visits'), __('Total spent'), __('Last visit'), __('Birthday'), __('Accepts offers')]);
-            $rows->chunk(500, function ($chunk) use ($out) {
+            fputcsv($out, [__('Name'), __('Mobile'), __('Visits'), __('Total spent'), __('Last visit'), __('Birthday'), __('Accepts offers'), __('Segment')]);
+            $rows->chunk(500, function ($chunk) use ($out, $segments, $tier) {
                 foreach ($chunk as $c) {
-                    fputcsv($out, csv_row([$c->name, $c->phone, $c->visits_count, $c->total_spent, $c->last_visit_at?->format('Y-m-d'), $c->birthday?->format('Y-m-d'), $c->marketing_opt_in ? 1 : 0]));
+                    $badge = $segments->ofExported($c, $tier);
+                    fputcsv($out, csv_row([$c->name, $c->phone, $c->visits_count, $c->total_spent, $c->last_visit_at?->format('Y-m-d'), $c->birthday?->format('Y-m-d'), $c->marketing_opt_in ? 1 : 0,
+                        $badge ? Segments::label($badge) : '']));
                 }
             });
             fclose($out);
         }, 'customers-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
-    private function search(string $q)
+    private function search(string $q, string $segment = '')
     {
-        return Customer::query()->when($q !== '', fn ($w) => $w->where(fn ($w) => $w->where('name', 'like', "%$q%")
+        $query = Customer::query()->when($q !== '', fn ($w) => $w->where(fn ($w) => $w->where('name', 'like', "%$q%")
             ->orWhere('phone', 'like', '%'.(normalize_phone($q) ?? $q).'%')));
+
+        return $segment !== '' ? app(Segments::class)->apply($query, $segment) : $query;
     }
 }

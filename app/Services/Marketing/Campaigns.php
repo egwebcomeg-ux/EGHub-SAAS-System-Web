@@ -8,6 +8,7 @@ use App\Models\Campaign;
 use App\Models\Customer;
 use App\Models\Tenant;
 use App\Models\WhatsAppMessage;
+use App\Services\Customers\Segments;
 use App\Services\Entitlements;
 use App\Services\Notify\GuestNotifier;
 use App\Services\WhatsApp\WhatsApp;
@@ -45,7 +46,7 @@ final class Campaigns
             'spent' => $q->where('total_spent', '>=', $n),
             'loyalty' => $q->whereHas('loyaltyCards'),
             'birthday' => $q->whereNotNull('birthday')->whereIn(DB::raw($this->monthDay('birthday')), $this->nextSevenDays()),
-            default => $q,
+            default => Segments::is($segment) ? app(Segments::class)->apply($q, $segment) : $q,
         };
     }
 

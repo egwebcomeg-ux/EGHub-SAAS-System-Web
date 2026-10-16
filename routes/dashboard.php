@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Dashboard\AuditController;
 use App\Http\Controllers\Dashboard\AuthController;
+use App\Http\Controllers\Dashboard\AutomationsController;
 use App\Http\Controllers\Dashboard\BillingController;
 use App\Http\Controllers\Dashboard\BranchesController;
 use App\Http\Controllers\Dashboard\BranchMenuController;
@@ -36,6 +37,7 @@ use App\Http\Controllers\Dashboard\TablesController;
 use App\Http\Controllers\Dashboard\TvScreensController;
 use App\Http\Controllers\Dashboard\UsersController;
 use App\Http\Controllers\Dashboard\WalletController;
+use App\Models\CampaignAutomation;
 use Illuminate\Support\Facades\Route;
 
 // app.<domain> — restaurant dashboard. The tenant is the logged-in user's restaurant (InitializeTenancyFromUser).
@@ -313,4 +315,12 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/reservations/settings', [ReservationsController::class, 'settings'])->name('reservations.settings');
         Route::post('/reservations/{reservation}/status', [ReservationsController::class, 'transition'])->name('reservations.status');
     });
+});
+
+// ---- Marketing: automations (the "Automations" tab of the campaigns page) ----
+Route::middleware(['auth:web', 'tenant.user', 'feature:campaigns', 'permission:marketing.manage'])->group(function () {
+    Route::post('/campaigns/automations/{kind}', [AutomationsController::class, 'update'])
+        ->whereIn('kind', array_keys(CampaignAutomation::KINDS))->name('automations.update');
+    Route::post('/campaigns/automations/{kind}/toggle', [AutomationsController::class, 'toggle'])
+        ->whereIn('kind', array_keys(CampaignAutomation::KINDS))->name('automations.toggle');
 });

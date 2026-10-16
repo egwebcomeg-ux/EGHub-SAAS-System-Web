@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Campaign;
 use App\Models\Coupon;
 use App\Services\Audit;
+use App\Services\Marketing\Automations;
 use App\Services\Marketing\Campaigns;
 use App\Services\Notify\GuestNotifier;
 use Illuminate\Http\JsonResponse;
@@ -19,13 +20,22 @@ use Illuminate\View\View;
 /** WhatsApp campaigns to a segment of the guest list, with an optional coupon (plan feature campaigns). */
 class CampaignsController extends Controller
 {
-    public function index(Campaigns $campaigns): View
+    /** Two tabs: the campaigns themselves and the automations (welcome / winback / birthday). */
+    public function index(Request $request, Campaigns $campaigns, Automations $automations): View
     {
+        $tab = $request->query('tab') === 'automations' ? 'automations' : 'campaigns';
+        $list = $tab === 'automations' ? $automations->all() : collect();
+
         return view('dashboard.campaigns.index', [
+            'tab' => $tab,
             'campaigns' => Campaign::query()->with('coupon')->latest('id')->limit(30)->get(),
             'preview' => $campaigns->preview('all'),
             'sender' => GuestNotifier::senderName(),
             'menuUrl' => tenant()->url(),
+            'automations' => $list,
+            'results' => $list->map(fn ($a) => $automations->results($a)),
+            'coupons' => $tab === 'automations' ? Coupon::query()->where('is_active', true)->orderBy('code')->get() : collect(),
+            'balance' => $automations->balance(),
         ]);
     }
 

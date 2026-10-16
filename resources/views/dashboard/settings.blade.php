@@ -194,6 +194,46 @@
         <label class="flex items-center gap-2 text-sm font-semibold sm:col-span-2"><input type="checkbox" name="listed_in_directory" value="1" @checked($s['listed_in_directory'] === '1') class="size-4 accent-brand-600"> {{ __('Show my place in the EgMenu restaurant directory') }}</label>
     </section>
 
+    <section class="card grid gap-4 sm:grid-cols-2" id="links-page">
+        <div class="sm:col-span-2">
+            <h2 class="text-lg font-bold">{{ __('Links page & QR') }}</h2>
+            <p class="text-sm text-navy-500">{{ __('One page with all your buttons: the menu, ordering, booking, WhatsApp, your social accounts, the map and your hours.') }}
+                <a href="{{ tenant()->url('links') }}" target="_blank" rel="noopener" class="font-semibold text-brand-700 underline" dir="ltr">{{ tenant()->url('links') }}</a></p>
+        </div>
+        <div class="sm:col-span-2">
+            <span class="field-label">{{ __('When a guest scans your QR, open') }}</span>
+            <div class="flex flex-wrap gap-2">
+                @foreach (['menu' => [__('The menu'), __('Straight to the items (default)')], 'links' => [__('The links page'), __('The buttons first, the menu one tap away')]] as $key => [$label, $hint])
+                    <label class="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-navy-100 px-4 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+                        <input type="radio" name="qr_target" value="{{ $key }}" class="accent-brand-600" @checked(old('qr_target', $s['qr_target']) === $key)>
+                        <span><span class="block text-sm font-semibold">{{ $label }}</span><span class="block text-xs text-navy-500">{{ $hint }}</span></span>
+                    </label>
+                @endforeach
+            </div>
+            <p class="mt-1 text-xs text-navy-500">{{ __('Applies to the table QR cards already printed and to the storefront QR you print next.') }}</p>
+        </div>
+    </section>
+
+    <section class="card grid gap-4 sm:grid-cols-3" id="tracking">
+        <div class="sm:col-span-3">
+            <h2 class="text-lg font-bold">{{ __('Ad tracking') }}</h2>
+            <p class="text-sm text-navy-500">{{ __('Measure your ads: your pixels load on your public menu pages only and send the standard events (page view, item viewed, added to cart, order placed with its value).') }}</p>
+        </div>
+        @if ($pixels)
+            <input type="hidden" name="pixels_sent" value="1">
+            <div><label class="field-label" for="meta_pixel_id">Meta Pixel ID</label><input class="field" id="meta_pixel_id" name="meta_pixel_id" value="{{ old('meta_pixel_id', $s['meta_pixel_id']) }}" dir="ltr" inputmode="numeric" placeholder="123456789012345">@error('meta_pixel_id')<div class="field-error">{{ $message }}</div>@enderror</div>
+            <div><label class="field-label" for="ga4_measurement_id">Google Analytics 4</label><input class="field" id="ga4_measurement_id" name="ga4_measurement_id" value="{{ old('ga4_measurement_id', $s['ga4_measurement_id']) }}" dir="ltr" placeholder="G-XXXXXXXXXX">@error('ga4_measurement_id')<div class="field-error">{{ $message }}</div>@enderror</div>
+            <div><label class="field-label" for="tiktok_pixel_id">TikTok Pixel ID</label><input class="field" id="tiktok_pixel_id" name="tiktok_pixel_id" value="{{ old('tiktok_pixel_id', $s['tiktok_pixel_id']) }}" dir="ltr" placeholder="CXXXXXXXXXXXXXXXXXXX">@error('tiktok_pixel_id')<div class="field-error">{{ $message }}</div>@enderror</div>
+            <p class="rounded-xl bg-navy-50 p-3 text-xs text-navy-600 sm:col-span-3">{{ __('Privacy: the pixels belong to your own ad accounts and only see what guests do on your menu pages, never their names or phone numbers. You are responsible for telling your guests about them, as described in the') }}
+                <a href="{{ route('privacy') }}" target="_blank" rel="noopener" class="font-semibold text-brand-700 underline">{{ __('Privacy policy') }}</a>.</p>
+        @else
+            <div class="rounded-xl bg-navy-50 p-3 text-sm sm:col-span-3">
+                {{ \App\Services\Entitlements::current()->upgradeMessage('full_branding') }}
+                @can('billing.manage')<a href="{{ route('dash.billing') }}" class="font-semibold text-brand-700 underline">{{ __('Upgrade') }}</a>@endcan
+            </div>
+        @endif
+    </section>
+
     <section class="card grid gap-4 lg:grid-cols-2" id="whatsapp">
         <div class="lg:col-span-2">
             <h2 class="section-title">{{ __('WhatsApp') }}</h2>
