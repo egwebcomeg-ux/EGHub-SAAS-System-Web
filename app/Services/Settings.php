@@ -25,7 +25,7 @@ final class Settings
         'color_bg' => '#FFFFFF',
         'font' => 'Cairo',
         'menu_theme' => 'classic',
-        'business_type' => 'cafe',          // cafe | restaurant | both (App\Support\BusinessType)
+        'business_type' => 'cafe',          // cafe | restaurant | both | shop (App\Support\BusinessType)
         'default_locale' => 'ar',
         'english_enabled' => '1',
         // contact

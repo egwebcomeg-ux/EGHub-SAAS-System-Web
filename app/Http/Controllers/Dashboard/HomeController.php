@@ -10,12 +10,13 @@ use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\Plan;
 use App\Services\Entitlements;
+use App\Services\MenuSetupRequest;
 use App\Support\BusinessType;
 use Illuminate\View\View;
 
 class HomeController extends Controller
 {
-    public function index(): View
+    public function index(MenuSetupRequest $menuSetup): View
     {
         $rights = Entitlements::current();
         $limits = [];
@@ -31,15 +32,19 @@ class HomeController extends Controller
                 ->distinct()->count('ingredient_stocks.ingredient_id')
             : 0;
 
+        $items = MenuItem::query()->count();
+        $canBuy = request()->user()->can('billing.manage');
+
         return view('dashboard.home', [
             'lowStock' => $lowStock,
             'businessType' => BusinessType::current(),
-            'suggestions' => request()->user()->can('billing.manage') ? array_slice(BusinessType::recommendations(), 0, 4) : [],
+            'suggestions' => $canBuy ? array_slice(BusinessType::recommendations(), 0, 4) : [],
+            'menuSetupUrl' => $canBuy && $menuSetup->shouldSuggest($items) ? MenuSetupRequest::url() : null,
             'subscription' => tenant()->subscription()->with('plan')->first(),
             'limits' => $limits,
             'stats' => [
                 'categories' => Category::query()->count(),
-                'items' => MenuItem::query()->count(),
+                'items' => $items,
                 'orders_today' => Order::query()->where('created_at', '>=', today())->count(),
                 'customers' => Customer::query()->count(),
             ],

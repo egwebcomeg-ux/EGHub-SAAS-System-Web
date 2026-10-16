@@ -10,13 +10,13 @@ final class MenuThemes
 {
     /** key => [item layout, best for (business types)] */
     public const ALL = [
-        'classic' => ['classic', ['cafe', 'restaurant', 'both']],
-        'grid' => ['grid', ['cafe', 'restaurant', 'both']],
-        'minimal' => ['minimal', ['restaurant']],
+        'classic' => ['classic', ['cafe', 'restaurant', 'both', 'shop']],
+        'grid' => ['grid', ['cafe', 'restaurant', 'both', 'shop']],
+        'minimal' => ['minimal', ['restaurant', 'shop']],
         'dark' => ['classic', ['cafe']],
         'cafe' => ['cafe', ['cafe', 'both']],
         'bistro' => ['bistro', ['restaurant']],
-        'fastfood' => ['grid', ['restaurant', 'both']],
+        'fastfood' => ['grid', ['restaurant', 'both', 'shop']],
         'oriental' => ['classic', ['restaurant', 'both']],
     ];
 

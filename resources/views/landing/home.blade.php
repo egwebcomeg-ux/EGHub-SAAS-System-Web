@@ -21,7 +21,7 @@
         [__('What happens after the :days days of Pro?', ['days' => $trial]), __('Nothing breaks. If you do not choose a plan, the account goes back to the free plan: the menu and QR codes keep working and everything you set up is kept.')],
         [__('Can I change prices myself?'), __('Yes, at any time from your dashboard. The QR menu, the printed menu and the TV screens all update.')],
         [__('How do I pay the subscription?'), __('By Vodafone Cash or InstaPay from your dashboard. Paying for 6 or 12 months gets a discount.')],
-        [__('I run a cafe, not a restaurant. Is EgMenu for me?'), __('Yes. When you sign up you choose cafe, restaurant or both, and EgMenu sets up the right categories, a bar screen instead of a kitchen and a stamp card ready to switch on.')],
+        [__('I run a cafe or a shop, not a restaurant. Is EgMenu for me?'), __('Yes. When you sign up you choose cafe, restaurant, both or a shop (a bakery, a butcher, a juice bar), and EgMenu sets up the right categories, a bar or prep screen instead of a kitchen and a loyalty card ready to switch on.')],
         [__('Is my data safe?'), __('Every restaurant’s data is kept separate and is visible only to its own staff, each with the permissions you give them.')],
     ];
 @endphp
@@ -78,6 +78,30 @@
         @endforeach
     </ul>
 </section>
+
+{{-- ============ WHO USES IT (only when enough listed places exist, see App\Services\Seo\SocialProof) ============ --}}
+@if ($proofPlaces)
+    <section data-social-proof class="border-b border-navy-100 bg-[var(--lp-paper)] py-8">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6">
+            <p class="text-center text-sm font-extrabold text-navy-500">{{ __('Restaurants and shops using EgMenu') }}</p>
+            <ul class="mt-4 flex flex-wrap justify-center gap-2">
+                @foreach ($proofPlaces as $place)
+                    <li class="max-w-full">
+                        <a href="{{ \App\Models\Tenant::pathUrl($place['slug']) }}" class="flex min-h-11 max-w-full items-center gap-2 rounded-full border border-navy-200 bg-white ps-1.5 pe-4 text-sm font-bold text-navy-800 hover:border-brand-300 hover:text-brand-700">
+                            @if ($place['logo'])
+                                <img src="{{ $place['logo'] }}" alt="" width="32" height="32" loading="lazy" class="size-8 shrink-0 rounded-full border border-navy-100 object-cover">
+                            @else
+                                <span aria-hidden="true" class="grid size-8 shrink-0 place-items-center rounded-full bg-navy-900 text-xs font-black text-white">{{ mb_substr(tr($place['name'], $place['name_en']), 0, 1) }}</span>
+                            @endif
+                            <span class="truncate">{{ tr($place['name'], $place['name_en']) }}</span>
+                        </a>
+                    </li>
+                @endforeach
+            </ul>
+            <p class="mt-4 text-center text-sm"><a href="{{ route('directory') }}" class="font-extrabold text-brand-700 hover:text-brand-600">{{ __('Browse the restaurant directory') }} <span aria-hidden="true" class="inline-block rtl:rotate-180">→</span></a></p>
+        </div>
+    </section>
+@endif
 
 {{-- ============ PICK YOUR PATH ============ --}}
 <section class="py-16 lg:py-24">
@@ -157,6 +181,33 @@
         <x-landing.shot name="print" url="app.egmenu.app/menu/print" :alt="__('The printed menu preview in the dashboard (real screen)')" data-reveal />
     </div>
 </section>
+
+{{-- ============ REAL NUMBERS (only above the floors in App\Services\Seo\SocialProof; never placeholders) ============ --}}
+@if ($proofCounters)
+    <section data-real-numbers class="border-b border-navy-100 bg-[var(--lp-paper)] py-12 lg:py-16">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <p class="lp-eyebrow">{{ __('Real numbers') }}</p>
+                    <h2 class="lp-h2 mt-2">{{ __('What is running on EgMenu right now') }}</h2>
+                </div>
+                <p class="text-sm text-navy-500">{{ __('Taken from the database, refreshed every 10 minutes.') }}</p>
+            </div>
+            <dl class="mt-8 grid gap-px overflow-hidden rounded-3xl border border-navy-200 bg-navy-200 sm:grid-cols-3">
+                @foreach ([
+                    ['restaurants', __('restaurants and shops live')],
+                    ['views', __('menu views')],
+                    ['orders', __('orders placed')],
+                ] as [$counterKey, $counterLabel])
+                    <div class="flex flex-col-reverse bg-white px-6 py-7 text-center">
+                        <dt class="mt-1 text-sm font-bold text-navy-500">{{ $counterLabel }}</dt>
+                        <dd class="text-4xl font-black text-navy-900" dir="ltr" data-counter="{{ $counterKey }}">{{ \App\Services\Seo\SocialProof::compact($proofCounters[$counterKey]) }}</dd>
+                    </div>
+                @endforeach
+            </dl>
+        </div>
+    </section>
+@endif
 
 {{-- ============ PRICING ============ --}}
 <section id="pricing" class="py-16 lg:py-24">

@@ -28,9 +28,14 @@ class LoyaltyController extends Controller
 
     public function edit(): View
     {
-        $program = LoyaltyProgram::query()->latest('id')->first() ?? new LoyaltyProgram([
+        // the type's defaults (a shop starts on points) win, unless the plan has no points programs
+        $defaults = BusinessType::loyaltyDefaults();
+        if (($defaults['type'] ?? 'visits') === 'points' && ! Entitlements::current()->allows('loyalty_points')) {
+            unset($defaults['type']);
+        }
+        $program = LoyaltyProgram::query()->latest('id')->first() ?? new LoyaltyProgram($defaults + [
             'type' => 'visits', 'title' => __('Loyalty card'), 'reward_type' => 'free_item', 'is_active' => true,
-        ] + BusinessType::loyaltyDefaults());
+        ]);
 
         return view('dashboard.loyalty.setup', [
             'program' => $program,

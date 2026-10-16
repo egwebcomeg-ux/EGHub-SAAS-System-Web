@@ -19,7 +19,7 @@ class SettingsController extends Controller
     public const KEYS = [
         'pay_instapay_enabled', 'pay_instapay_handle', 'pay_vodafone_enabled', 'pay_vodafone_number', 'pay_instructions',
         'gateway_paymob_enabled', 'gateway_kashier_enabled', 'gateway_geidea_enabled', 'support_whatsapp', 'support_email',
-        'server_ip', 'domain_cart_url',
+        'sales_whatsapp', 'contact_email', 'server_ip', 'domain_cart_url',
     ];
 
     public function edit(): View
@@ -51,6 +51,8 @@ class SettingsController extends Controller
             'pay_instructions' => 'nullable|string|max:2000',
             'support_whatsapp' => 'nullable|string|max:20',
             'support_email' => 'nullable|email|max:120',
+            'sales_whatsapp' => 'nullable|string|max:20',
+            'contact_email' => 'nullable|email|max:120',
             'server_ip' => 'nullable|ip',
             'domain_cart_url' => 'nullable|url|max:300',
         ]);

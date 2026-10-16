@@ -35,8 +35,11 @@
 
     <div class="card grid gap-4 sm:grid-cols-2">
         <h2 class="text-lg font-bold sm:col-span-2">{{ __('Support contact') }}</h2>
-        <div><label class="field-label">{{ __('WhatsApp') }}</label><input class="field" name="support_whatsapp" value="{{ $s['support_whatsapp'] }}" dir="ltr"></div>
-        <div><label class="field-label">{{ __('Email') }}</label><input class="field" name="support_email" type="email" value="{{ $s['support_email'] }}" dir="ltr"></div>
+        <div><label class="field-label">{{ __('Support WhatsApp') }}</label><input class="field" name="support_whatsapp" value="{{ $s['support_whatsapp'] }}" dir="ltr" placeholder="010xxxxxxxx"></div>
+        <div><label class="field-label">{{ __('Sales WhatsApp') }}</label><input class="field" name="sales_whatsapp" value="{{ $s['sales_whatsapp'] }}" dir="ltr" placeholder="010xxxxxxxx"></div>
+        <div><label class="field-label">{{ __('Support email') }}</label><input class="field" name="support_email" type="email" value="{{ $s['support_email'] }}" dir="ltr"></div>
+        <div><label class="field-label">{{ __('Public contact email (site footer)') }}</label><input class="field" name="contact_email" type="email" value="{{ $s['contact_email'] }}" dir="ltr" placeholder="hi@egmenu.app"></div>
+        <p class="text-xs text-navy-500 sm:col-span-2">{{ __('The site footer shows the sales and support numbers as WhatsApp links and the public email; empty fields are hidden.') }}</p>
     </div>
 
     <div class="card space-y-3" id="whatsapp-verification">

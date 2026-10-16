@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Platform;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\MenuSetupRequest;
 use App\Services\TenantProvisioner;
 use App\Support\BusinessType;
 use Illuminate\Http\JsonResponse;
@@ -62,6 +63,7 @@ class SignupController extends Controller
             'business_type' => $data['business_type'] ?? BusinessType::DEFAULT,
         ]);
         $owner = User::query()->where('tenant_id', $tenant->id)->firstOrFail();
+        app(MenuSetupRequest::class)->fromSignup($request, $tenant, $owner);
 
         return redirect()->away(URL::temporarySignedRoute('dash.welcome', now()->addMinutes(5), ['user' => $owner->id]));
     }

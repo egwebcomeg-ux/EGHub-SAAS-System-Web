@@ -47,15 +47,16 @@
             </div>
             <fieldset class="sm:col-span-2">
                 <legend class="field-label">{{ __('Type of place') }}</legend>
-                <div class="grid grid-cols-3 gap-2">
+                <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     @foreach (\App\Support\BusinessType::TYPES as $key => $label)
                         <label class="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-navy-100 px-2 text-center text-sm font-semibold has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
                             <input type="radio" name="business_type" value="{{ $key }}" required class="sr-only" @checked(old('business_type', 'cafe') === $key)>
-                            {{ $key === 'cafe' ? '☕' : ($key === 'restaurant' ? '🍽' : '☕🍽') }} {{ app()->getLocale() === 'en' ? $label[1] : $label[0] }}
+                            {{ \App\Support\BusinessType::emoji($key) }} {{ app()->getLocale() === 'en' ? $label[1] : $label[0] }}
                         </label>
                     @endforeach
                 </div>
             </fieldset>
+            @include('landing.partials.signup-menu-setup')
             <label class="flex items-start gap-2 text-sm sm:col-span-2"><input type="checkbox" name="terms" value="1" required class="mt-1 size-4 accent-brand-600"> {{ __('I agree to the EgMenu terms of service.') }}</label>
             <button class="btn-primary min-h-12 text-base shadow-lg shadow-brand-600/25 sm:col-span-2">{{ __('Create my menu') }}</button>
         </form>

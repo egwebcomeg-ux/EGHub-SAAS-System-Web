@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Platform;
 
 use App\Http\Controllers\Controller;
+use App\Services\Seo\SocialProof;
 use App\Support\SiteModules;
 use Illuminate\View\View;
 
@@ -11,7 +12,10 @@ class LandingController extends Controller
 {
     public function home(): View
     {
-        return view('landing.home', SiteModules::pricing());
+        return view('landing.home', SiteModules::pricing() + [
+            'proofPlaces' => SocialProof::places(),
+            'proofCounters' => SocialProof::counters(),
+        ]);
     }
 
     /** All plans side by side, with the add-ons. */

@@ -20,6 +20,11 @@
         </div>
     @endforeach
 </div>
+@if ($menuSetupUrl)
+    <a href="{{ $menuSetupUrl }}" target="_blank" rel="noopener" data-menu-setup-tip class="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-dashed border-brand-200 bg-brand-50/70 px-4 py-3 text-sm font-semibold text-navy-800">
+        <span>✍️ {{ __('No time to enter the menu? Our team does it for you.') }}</span><span class="shrink-0 text-brand-700 underline">{{ __('Menu setup service') }}</span>
+    </a>
+@endif
 
 <div class="mt-4 grid gap-4 lg:grid-cols-3">
     <div class="card lg:col-span-2">

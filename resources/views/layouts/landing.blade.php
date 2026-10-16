@@ -3,9 +3,18 @@
 
 @php
     $viteEntries = ['resources/css/landing.css', 'resources/js/landing.js'];
-    $whatsapp = preg_replace('/\D+/', '', (string) \App\Models\PlatformSetting::get('support_whatsapp'));
-    $whatsappUrl = $whatsapp ? 'https://wa.me/' . (str_starts_with($whatsapp, '0') ? '2' . $whatsapp : $whatsapp) : null;
-    $supportEmail = \App\Models\PlatformSetting::get('support_email');
+    // footer contact block: sales and support WhatsApp numbers and the public email, each shown only when set
+    $contacts = [];
+    foreach (['sales_whatsapp' => __('Sales'), 'support_whatsapp' => __('Support')] as $contactKey => $contactLabel) {
+        $contactNumber = trim((string) \App\Models\PlatformSetting::get($contactKey));
+        if ($contactNumber !== '') {
+            $contacts[] = ['label' => $contactLabel, 'text' => $contactNumber, 'href' => 'https://wa.me/' . whatsapp_number($contactNumber), 'icon' => 'chat'];
+        }
+    }
+    $contactEmail = trim((string) (\App\Models\PlatformSetting::get('contact_email') ?: \App\Models\PlatformSetting::get('support_email')));
+    if ($contactEmail !== '') {
+        $contacts[] = ['label' => __('Email'), 'text' => $contactEmail, 'href' => 'mailto:' . $contactEmail, 'icon' => null];
+    }
     $other = app()->getLocale() === 'ar' ? 'en' : 'ar';
     $home = route('landing');
     $siteGroups = \App\Support\SiteModules::groups();
@@ -132,6 +141,21 @@
                 <x-logo :size="34" :light="true" />
                 <p class="mt-4 max-w-xs text-sm leading-relaxed">{{ __('A QR menu, ordering and a loyalty card for cafes and restaurants in Egypt. Made by EgWeb.') }}</p>
                 <a href="{{ route('register') }}" class="btn-primary mt-5 min-h-11">{{ __('Start free') }}</a>
+                @if ($contacts)
+                    <ul data-footer-contacts class="mt-6 flex flex-wrap items-center gap-x-2 gap-y-2 text-sm" aria-label="{{ __('Contact us') }}">
+                        @foreach ($contacts as $contact)
+                            @unless ($loop->first)<li aria-hidden="true" class="text-white/30">·</li>@endunless
+                            <li class="min-w-0">
+                                <a href="{{ $contact['href'] }}" @if ($contact['icon']) target="_blank" rel="noopener" @endif class="inline-flex max-w-full items-center gap-1.5 text-white/80 hover:text-white">
+                                    @if ($contact['icon'])<x-landing.icon :name="$contact['icon']" class="size-4 shrink-0 text-emerald-400" />@endif
+                                    <span class="shrink-0">{{ $contact['label'] }}:</span>
+                                    <span class="truncate font-semibold" dir="ltr">{{ $contact['text'] }}</span>
+                                    @if ($contact['icon'])<span class="shrink-0 text-xs font-medium text-white/50">({{ __('WhatsApp') }})</span>@endif
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
             </div>
             <div class="grid grid-cols-2 gap-8 text-sm sm:grid-cols-3 lg:grid-cols-6">
                 @foreach ($siteGroups as $g => [$groupLabel, $groupIcon])
@@ -151,8 +175,6 @@
                         <li><a href="{{ route('services') }}" class="hover:text-white">{{ __('Services') }}</a></li>
                         <li><a href="{{ route('directory') }}" class="hover:text-white">{{ __('Restaurant directory') }}</a></li>
                         <li><a href="{{ platform_url('app', '/login') }}" class="hover:text-white">{{ __('Log in') }}</a></li>
-                        @if ($whatsappUrl)<li><a href="{{ $whatsappUrl }}" target="_blank" rel="noopener" class="hover:text-white">{{ __('WhatsApp') }}</a></li>@endif
-                        @if ($supportEmail)<li><a href="mailto:{{ $supportEmail }}" class="break-all hover:text-white" dir="ltr">{{ $supportEmail }}</a></li>@endif
                         <li><a href="{{ route('terms') }}" class="hover:text-white">{{ __('Terms of service') }}</a></li>
                         <li><a href="{{ route('privacy') }}" class="hover:text-white">{{ __('Privacy policy') }}</a></li>
                     </ul>

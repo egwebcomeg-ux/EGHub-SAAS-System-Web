@@ -19,12 +19,12 @@ class ServicesController extends Controller
 {
     public function index(Request $request): View
     {
-        $whatsapp = preg_replace('/\D+/', '', (string) PlatformSetting::get('support_whatsapp'));
+        $whatsapp = (string) PlatformSetting::get('support_whatsapp');
 
         return view('landing.services', [
             'services' => SiteServices::all(),
             'selected' => in_array($request->query('service'), SiteServices::keys(), true) ? $request->query('service') : null,
-            'whatsappUrl' => $whatsapp ? 'https://wa.me/'.(str_starts_with($whatsapp, '0') ? '2'.$whatsapp : $whatsapp) : null,
+            'whatsappUrl' => trim($whatsapp) !== '' ? 'https://wa.me/'.whatsapp_number($whatsapp) : null,
         ]);
     }
 
