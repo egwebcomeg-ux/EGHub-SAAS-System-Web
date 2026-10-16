@@ -9,6 +9,18 @@ return [
     // log (dev/tests: nothing leaves the server) | meta (WhatsApp Business Cloud API) | webhook (other providers)
     'driver' => env('WHATSAPP_DRIVER', 'log'),
 
+    /*
+     * The platform's own WhatsApp number (digits, international form: 2010xxxxxxxx). Owners confirm their mobile
+     * at signup by sending one prepared message to it (wa.me link). Falls back to the admin setting
+     * support_whatsapp; with neither set, phone confirmation is simply not offered.
+     */
+    'number' => env('WHATSAPP_NUMBER'),
+
+    // Inbound webhook (GET/POST /webhooks/whatsapp on the main domain): Meta's verify token and the app secret
+    // that signs every POST (X-Hub-Signature-256). Without the app secret every Meta payload is refused.
+    'verify_token' => env('WHATSAPP_VERIFY_TOKEN'),
+    'app_secret' => env('WHATSAPP_APP_SECRET'),
+
     'meta' => [
         'phone_id' => env('WHATSAPP_PHONE_ID'),
         'token' => env('WHATSAPP_TOKEN'),
@@ -18,7 +30,8 @@ return [
 
     'webhook' => [
         'url' => env('WHATSAPP_WEBHOOK_URL'),
-        // sent as the X-EgMenu-Secret header so the provider can reject anyone else
+        // sent as the X-EgMenu-Secret header so the provider can reject anyone else; the same header authenticates
+        // the provider's inbound POSTs {from, text} to /webhooks/whatsapp
         'secret' => env('WHATSAPP_WEBHOOK_SECRET'),
     ],
 

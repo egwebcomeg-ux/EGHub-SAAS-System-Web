@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\WhatsApp\PhoneVerification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -50,8 +51,10 @@ class AuthController extends Controller
         Auth::guard('web')->login($owner, true);
         $request->session()->regenerate();
         $owner->forceFill(['last_login_at' => now()])->save();
+        // first stop: confirm the mobile on WhatsApp when the platform has a number (skippable, never a gate)
+        $first = PhoneVerification::pendingFor($owner) ? 'dash.phone' : 'dash.home';
 
-        return redirect()->route('dash.home')->with('ok', __('Welcome to EgMenu! Your 14-day free trial has started.'));
+        return redirect()->route($first)->with('ok', __('Welcome to EgMenu! Your 14-day free trial has started.'));
     }
 
     public function logout(Request $request): RedirectResponse

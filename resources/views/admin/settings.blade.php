@@ -39,6 +39,50 @@
         <div><label class="field-label">{{ __('Email') }}</label><input class="field" name="support_email" type="email" value="{{ $s['support_email'] }}" dir="ltr"></div>
     </div>
 
+    <div class="card space-y-3" id="whatsapp-verification">
+        <h2 class="text-lg font-bold">{{ __('WhatsApp phone confirmation') }}</h2>
+        <p class="text-sm text-navy-500">{{ __('Owners confirm their mobile by sending one ready message (EGMENU + code) to the platform number. These values come from .env and are shown here so you can paste them into Meta.') }}</p>
+        <dl class="grid gap-3 text-sm sm:grid-cols-[auto_1fr] sm:gap-x-6">
+            <dt class="font-semibold">{{ __('Platform WhatsApp number') }}</dt>
+            <dd dir="ltr" class="text-start">
+                @if ($whatsapp['number'])
+                    +{{ $whatsapp['number'] }}
+                    <span class="text-navy-500">({{ $whatsapp['source'] === 'env' ? 'WHATSAPP_NUMBER' : __('the support WhatsApp above') }})</span>
+                @else
+                    <span class="text-amber-700">{{ __('Not set — owners are not asked to confirm their number.') }}</span>
+                @endif
+            </dd>
+            <dt class="font-semibold">{{ __('Webhook URL') }}</dt>
+            <dd class="flex flex-wrap items-center gap-2" dir="ltr">
+                <code class="rounded bg-navy-50 px-2 py-1">{{ $whatsapp['webhook_url'] }}</code>
+                <button type="button" class="btn-ghost min-h-8 px-2 text-xs" data-copy="{{ $whatsapp['webhook_url'] }}">{{ __('Copy') }}</button>
+            </dd>
+            <dt class="font-semibold">{{ __('Verify token') }} <span class="font-normal text-navy-500">(WHATSAPP_VERIFY_TOKEN)</span></dt>
+            <dd class="flex flex-wrap items-center gap-2" dir="ltr">
+                @if ($whatsapp['verify_token'] !== '')
+                    <code class="rounded bg-navy-50 px-2 py-1">{{ $whatsapp['verify_token'] }}</code>
+                    <button type="button" class="btn-ghost min-h-8 px-2 text-xs" data-copy="{{ $whatsapp['verify_token'] }}">{{ __('Copy') }}</button>
+                @else
+                    <span class="text-amber-700">{{ __('Not set') }}</span>
+                @endif
+            </dd>
+            <dt class="font-semibold">{{ __('App secret') }} <span class="font-normal text-navy-500">(WHATSAPP_APP_SECRET)</span></dt>
+            <dd>
+                @if ($whatsapp['app_secret_set'])
+                    <span class="badge bg-emerald-100 text-emerald-800">{{ __('Set') }}</span>
+                @else
+                    <span class="badge bg-red-100 text-red-700">{{ __('Missing — every Meta payload is refused') }}</span>
+                @endif
+            </dd>
+            <dt class="font-semibold">{{ __('Provider secret') }} <span class="font-normal text-navy-500">(WHATSAPP_WEBHOOK_SECRET)</span></dt>
+            <dd>
+                <span class="badge {{ $whatsapp['provider_secret_set'] ? 'bg-emerald-100 text-emerald-800' : 'bg-navy-100 text-navy-600' }}">{{ $whatsapp['provider_secret_set'] ? __('Set') : __('Not set') }}</span>
+                <span class="text-navy-500">{{ __('Only for a non-Meta provider posting {from, text} with the X-EgMenu-Secret header.') }}</span>
+            </dd>
+        </dl>
+        <p class="text-xs text-navy-500">{{ __('In Meta for Developers: WhatsApp → Configuration → Webhook: paste the URL and the verify token, then subscribe to the "messages" field. Edit .env and run php artisan config:clear to change these.') }}</p>
+    </div>
+
     <div class="card grid gap-4 sm:grid-cols-2">
         <h2 class="text-lg font-bold sm:col-span-2">{{ __('Custom domains') }}</h2>
         <div><label class="field-label">{{ __('Server IP (restaurants point their domain here)') }}</label><input class="field" name="server_ip" value="{{ $s['server_ip'] }}" dir="ltr" placeholder="54.36.13.152"></div>
@@ -47,4 +91,9 @@
 
     <button class="btn-primary">{{ __('Save') }}</button>
 </form>
+<script>
+    document.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = @js(__('Copied')); } catch (e) { prompt('', b.dataset.copy); }
+    }));
+</script>
 @endsection

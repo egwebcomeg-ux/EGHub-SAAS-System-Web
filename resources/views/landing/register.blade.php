@@ -30,7 +30,8 @@
             </div>
             <div>
                 <label class="field-label" for="phone">{{ __('Mobile') }}</label>
-                <input class="field" id="phone" name="phone" value="{{ old('phone') }}" required inputmode="tel" dir="ltr" placeholder="01xxxxxxxxx">
+                <input class="field" id="phone" name="phone" value="{{ old('phone') }}" required inputmode="tel" dir="ltr" placeholder="01xxxxxxxxx" autocomplete="tel">
+                <p class="mt-1 text-xs text-navy-500">{{ __('Confirmed on WhatsApp with one ready message — no codes to type.') }}</p>
             </div>
             <div class="sm:col-span-2">
                 <label class="field-label" for="email">{{ __('Email') }}</label>
@@ -60,7 +61,7 @@
         </form>
     </div>
     <ul class="mt-5 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-navy-600">
-        @foreach ([__('No card'), __('No commission'), __('Pay by InstaPay or Vodafone Cash')] as $point)
+        @foreach ([__('No card'), __('No commission'), __('Confirm by WhatsApp, no codes'), __('Pay by InstaPay or Vodafone Cash')] as $point)
             <li class="flex items-center gap-1.5"><x-landing.icon name="check" class="size-4 text-emerald-600" />{{ $point }}</li>
         @endforeach
     </ul>

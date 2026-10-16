@@ -6,6 +6,7 @@ use App\Http\Controllers\Platform\LandingController;
 use App\Http\Controllers\Platform\SeoController;
 use App\Http\Controllers\Platform\ServicesController;
 use App\Http\Controllers\Platform\SignupController;
+use App\Http\Controllers\Platform\WhatsAppWebhookController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -52,6 +53,9 @@ Route::domain($domain)->group(function () use ($slug) {
     });
     Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('sitemap');
     Route::get('/robots.txt', [SeoController::class, 'robots'])->name('robots');
+    // Inbound WhatsApp (Meta Cloud API handshake + signed payloads, or another provider with X-EgMenu-Secret).
+    Route::get('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify'])->name('webhooks.whatsapp');
+    Route::post('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive'])->middleware('throttle:600,1');
 
     // The canonical menu address egmenu.app/{tenant}/... (IdentifyTenantByPath). Platform paths above win;
     // reserved slugs (Tenant::RESERVED) can never be registered as restaurants.

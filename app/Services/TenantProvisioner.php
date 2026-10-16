@@ -10,6 +10,7 @@ use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\WhatsApp\PhoneVerification;
 use App\Support\BusinessType;
 use Illuminate\Support\Facades\DB;
 
@@ -59,6 +60,7 @@ final class TenantProvisioner
 
                 $owner = User::query()->create([
                     'name' => $d['owner_name'], 'email' => strtolower($d['email']), 'phone' => $d['phone'] ?? null,
+                    'phone_verification_code' => ($d['phone'] ?? null) ? PhoneVerification::code() : null,
                     'password' => $d['password'], 'is_active' => true,
                 ]);
                 $owner->assignRole('owner');

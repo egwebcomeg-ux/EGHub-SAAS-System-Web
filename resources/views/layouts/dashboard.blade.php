@@ -122,6 +122,7 @@
                 </div>
             @endif
             @include('dashboard.partials.whatsapp-banner')
+            @include('dashboard.partials.phone-banner')
             <x-flash />
             @yield('content')
         </main>

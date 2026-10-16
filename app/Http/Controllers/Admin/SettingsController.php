@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\PlatformSetting;
+use App\Services\WhatsApp\PhoneVerification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -28,7 +29,18 @@ class SettingsController extends Controller
             $values[$key] = PlatformSetting::get($key, '');
         }
 
-        return view('admin.settings', ['s' => $values]);
+        return view('admin.settings', [
+            's' => $values,
+            // read-only: the .env side of WhatsApp phone confirmation, shown so the admin can paste it into Meta
+            'whatsapp' => [
+                'number' => PhoneVerification::number(),
+                'source' => PhoneVerification::numberSource(),
+                'webhook_url' => route('webhooks.whatsapp'),
+                'verify_token' => (string) config('whatsapp.verify_token'),
+                'app_secret_set' => trim((string) config('whatsapp.app_secret')) !== '',
+                'provider_secret_set' => trim((string) config('whatsapp.webhook.secret')) !== '',
+            ],
+        ]);
     }
 
     public function update(Request $request): RedirectResponse

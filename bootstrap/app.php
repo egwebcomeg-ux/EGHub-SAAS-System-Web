@@ -29,6 +29,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO);
         // Clickjacking / sniffing / referrer / HSTS headers on every response (menus, dashboard, admin alike).
         $middleware->append(SecurityHeaders::class);
+        // Inbound WhatsApp (Meta / provider) is server-to-server: authenticated by signature or shared secret, not CSRF.
+        $middleware->validateCsrfTokens(except: ['webhooks/whatsapp']);
         $middleware->alias([
             'tenant.path' => IdentifyTenantByPath::class,
             'tenant.subdomain' => IdentifyTenantBySubdomain::class,

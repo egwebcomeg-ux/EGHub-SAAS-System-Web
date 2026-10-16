@@ -111,6 +111,16 @@ After editing `.env` always run `php artisan config:clear && php artisan optimiz
 - Real visitor IPs arrive in `CF-Connecting-IP`; if rate limiting or logs show Cloudflare IPs, configure trusted proxies in `bootstrap/app.php`.
 - Custom restaurant domains (CNAME to your host) need "Cloudflare for SaaS"/manual handling; not covered here.
 
+### WhatsApp inbound webhook (phone confirmation at signup)
+
+Owners confirm their mobile by sending one prepared message (`EGMENU <code>`) to the platform's WhatsApp number; the webhook matches sender + code and stamps `users.phone_verified_at`. Nothing blocks the dashboard if this is not set up.
+
+1. `.env`: `WHATSAPP_NUMBER=2010xxxxxxxx` (the number owners write to; empty falls back to the admin setting "support WhatsApp"), `WHATSAPP_VERIFY_TOKEN=<any long random string>`, `WHATSAPP_APP_SECRET=<Meta App → Settings → Basic → App secret>`. Then `php artisan config:clear && php artisan optimize`.
+2. Meta for Developers → your app → WhatsApp → Configuration → Webhook: callback URL `https://egmenu.app/webhooks/whatsapp`, verify token = `WHATSAPP_VERIFY_TOKEN`, click Verify (Meta sends `GET` with `hub.challenge`; the app answers it when the token matches). Subscribe to the **messages** field. The admin Settings page shows the URL and token ready to copy.
+3. Every `POST` must carry a valid `X-Hub-Signature-256` (HMAC of the raw body with the app secret). Without `WHATSAPP_APP_SECRET` every payload is refused with 403 (logged once a day). Message status updates (sent/delivered/read/failed) in the same payloads update `whatsapp_messages.status` by `provider_id`.
+4. Another provider instead of Meta: have it `POST {"from": "2010xxxxxxxx", "text": "..."}` to the same URL with header `X-EgMenu-Secret: <WHATSAPP_WEBHOOK_SECRET>`.
+5. The route is on the main domain only and excluded from CSRF; Cloudflare must not cache or challenge `/webhooks/*` (add a WAF skip rule if bot protection is on).
+
 ## 6. Updating
 
 ```bash

@@ -156,12 +156,30 @@
 <div class="card mt-4 overflow-x-auto">
     <h2 class="mb-3 text-lg font-bold">{{ __('Staff') }}</h2>
     <table class="table-base">
-        <thead><tr><th>{{ __('Name') }}</th><th>{{ __('Login') }}</th><th>{{ __('Role') }}</th><th>{{ __('Last login') }}</th></tr></thead>
+        <thead><tr><th>{{ __('Name') }}</th><th>{{ __('Login') }}</th><th>{{ __('Mobile') }}</th><th>{{ __('Role') }}</th><th>{{ __('Last login') }}</th></tr></thead>
         <tbody>
         @foreach ($users as $u)
             <tr>
                 <td>{{ $u->name }}</td>
                 <td dir="ltr" class="text-start">{{ $u->email ?? $u->phone }}</td>
+                <td>
+                    @if ($u->phone)
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span dir="ltr">{{ $u->phone }}</span>
+                            @if ($u->hasVerifiedPhone())
+                                <span class="badge bg-emerald-100 text-emerald-800" title="{{ local_time($u->phone_verified_at) }}">✓ {{ __('Phone confirmed') }}</span>
+                            @else
+                                <span class="badge bg-amber-100 text-amber-800">{{ __('Not confirmed') }}</span>
+                                @if ($u->phone_verification_code)
+                                    <code class="rounded bg-navy-50 px-1.5 py-0.5 text-xs" dir="ltr" title="{{ __('Pending code') }}">{{ \App\Services\WhatsApp\PhoneVerification::message($u->phone_verification_code) }}</code>
+                                @endif
+                                <form method="post" action="{{ route('admin.tenants.verify-phone', [$tenant, $u->id]) }}">@csrf<button class="btn-ghost min-h-8 px-2 text-xs">{{ __('Mark as confirmed') }}</button></form>
+                            @endif
+                        </div>
+                    @else
+                        —
+                    @endif
+                </td>
                 <td>{{ $u->roleName() }}</td>
                 <td>{{ local_time($u->last_login_at) }}</td>
             </tr>

@@ -24,6 +24,7 @@ use App\Http\Controllers\Dashboard\MenuImportController;
 use App\Http\Controllers\Dashboard\MenuTranslationController;
 use App\Http\Controllers\Dashboard\OrdersController;
 use App\Http\Controllers\Dashboard\PasswordResetController;
+use App\Http\Controllers\Dashboard\PhoneVerificationController;
 use App\Http\Controllers\Dashboard\PosController;
 use App\Http\Controllers\Dashboard\PrintMenuController;
 use App\Http\Controllers\Dashboard\ReportsController;
@@ -53,6 +54,11 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::post('/locale', [AuthController::class, 'locale'])->name('locale');
 
     Route::get('/', [HomeController::class, 'index'])->name('home');
+
+    // Confirm the account's mobile on WhatsApp (one prepared message, no codes to type). Never blocks anything.
+    Route::get('/phone', [PhoneVerificationController::class, 'show'])->name('phone');
+    Route::post('/phone', [PhoneVerificationController::class, 'update'])->middleware('throttle:10,1')->name('phone.update');
+    Route::get('/phone/status', [PhoneVerificationController::class, 'status'])->middleware('throttle:60,1')->name('phone.status');
 
     Route::middleware('permission:users.manage')->group(function () {
         Route::get('/users', [UsersController::class, 'index'])->name('users');

@@ -132,6 +132,18 @@ class TenantsController extends Controller
         return back()->with('ok', __('WhatsApp credits updated.'));
     }
 
+    /** Confirms a staff member's mobile by hand (the owner called, or WhatsApp is not set up yet). */
+    public function verifyPhone(Tenant $tenant, int $user): RedirectResponse
+    {
+        $staff = User::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->findOrFail($user);
+        if (! $staff->phone) {
+            return back()->withErrors(['phone' => __('This user has no mobile number.')]);
+        }
+        $staff->markPhoneVerified();
+
+        return back()->with('ok', __('Mobile number marked as confirmed.'));
+    }
+
     public function suspend(Tenant $tenant): RedirectResponse
     {
         $tenant->update(['status' => 'suspended', 'suspended_at' => now()]);

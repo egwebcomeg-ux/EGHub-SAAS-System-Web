@@ -44,10 +44,22 @@ class User extends Authenticatable implements HasLocalePreference
     {
         return [
             'email_verified_at' => 'datetime',
+            'phone_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function hasVerifiedPhone(): bool
+    {
+        return $this->phone !== null && $this->phone_verified_at !== null;
+    }
+
+    /** Stamps the phone as confirmed and retires the one-time code (by the WhatsApp webhook or an EgWeb admin). */
+    public function markPhoneVerified(): void
+    {
+        $this->forceFill(['phone_verified_at' => now(), 'phone_verification_code' => null])->save();
     }
 
     public function branch(): BelongsTo

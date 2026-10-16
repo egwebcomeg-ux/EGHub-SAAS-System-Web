@@ -32,6 +32,7 @@ Route::middleware('auth:admin')->group(function () {
     Route::post('/tenants/{tenant}/credits', [TenantsController::class, 'credits'])->name('tenants.credits');
     Route::post('/tenants/{tenant}/suspend', [TenantsController::class, 'suspend'])->name('tenants.suspend');
     Route::post('/tenants/{tenant}/activate', [TenantsController::class, 'activate'])->name('tenants.activate');
+    Route::post('/tenants/{tenant}/users/{user}/verify-phone', [TenantsController::class, 'verifyPhone'])->whereNumber('user')->name('tenants.verify-phone');
     Route::post('/domains/{domain}', [DomainsController::class, 'update'])->name('domains.update');
 
     Route::get('/plans', [PlansController::class, 'index'])->name('plans');
