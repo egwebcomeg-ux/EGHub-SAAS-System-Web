@@ -64,10 +64,15 @@ class Subscription extends Model
         return $this->status === 'past_due' || ($this->endsAt() && $this->endsAt()->lte(now()->addDays(3)));
     }
 
+    /** Calendar days until the end, a started day counting as one (DST changes don't add a day). */
     public function daysLeft(): int
     {
         $end = $this->endsAt();
+        if (! $end || $end->isPast()) {
+            return 0;
+        }
+        $diff = now()->diff($end);
 
-        return $end ? max(0, (int) ceil(now()->diffInSeconds($end, false) / 86400)) : 0;
+        return $diff->days + (($diff->h || $diff->i || $diff->s) ? 1 : 0);
     }
 }

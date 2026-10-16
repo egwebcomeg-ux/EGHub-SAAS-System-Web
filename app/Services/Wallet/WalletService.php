@@ -106,8 +106,40 @@ final class WalletService
         if ($amount < 0.01) {
             return null;
         }
+        $days = (int) Settings::get('cashback_expire_days');
 
-        return DB::transaction(fn () => $this->move($customer, $amount, 'cashback', ['order_id' => $order->id, 'note' => '#'.$order->number]));
+        return DB::transaction(fn () => $this->move($customer, $amount, 'cashback', [
+            'order_id' => $order->id, 'note' => '#'.$order->number, 'expires_at' => $days > 0 ? now()->addDays($days)->endOfDay() : null,
+        ]));
+    }
+
+    /**
+     * Daily: cashback lines past their date that were not settled are taken back — as much as is still on the
+     * balance (what the guest already spent is simply spent). Returns how many lines were closed.
+     */
+    public function expireCashback(): int
+    {
+        $n = 0;
+        WalletTransaction::query()->where('kind', 'cashback')->whereNull('settled_at')->where('expires_at', '<', now())
+            ->orderBy('id')->chunkById(200, function ($rows) use (&$n) {
+                foreach ($rows as $row) {
+                    DB::transaction(function () use ($row, &$n) {
+                        $line = WalletTransaction::query()->lockForUpdate()->find($row->id);
+                        if (! $line || $line->settled_at) {
+                            return;
+                        }
+                        $customer = Customer::query()->lockForUpdate()->find($line->customer_id);
+                        $take = $customer ? round(min((float) $line->delta, (float) $customer->credit_balance), 2) : 0.0;
+                        if ($take > 0) {
+                            $this->move($customer, -$take, 'cashback_exp', ['order_id' => $line->order_id, 'note' => $line->note]);
+                        }
+                        $line->forceFill(['settled_at' => now()])->save();
+                        $n++;
+                    });
+                }
+            });
+
+        return $n;
     }
 
     /** A cancelled order takes its cashback back — as much of it as is still on the balance (never below zero). */
@@ -122,6 +154,7 @@ final class WalletService
             }
             $customer = Customer::query()->lockForUpdate()->find($cashback->customer_id);
             $take = $customer ? round(min($given, (float) $customer->credit_balance), 2) : 0.0;
+            $cashback->forceFill(['settled_at' => now()])->save(); // the expiry job leaves it alone from now on
 
             return $take > 0 ? $this->move($customer, -$take, 'cashback_rev', ['order_id' => $order->id, 'note' => '#'.$order->number]) : null;
         });

@@ -17,6 +17,7 @@ use App\Services\Loyalty\Packages;
 use App\Services\Orders\OrderService;
 use App\Services\Orders\ShiftService;
 use App\Services\Settings;
+use App\Services\Wallet\WalletService;
 use Tests\TenantTestCase;
 
 /** Advanced cards: cashback to the wallet, membership tiers with a discount, prepaid packages sold and used at the counter. */
@@ -199,6 +200,34 @@ class CardServicesTest extends TenantTestCase
         // the guest's card no longer lists it
         $token = $this->as($tenant, fn () => Customer::query()->where('phone', self::PHONE)->value('card_token'));
         $this->get($this->subUrl('cafe-a', "card/$token"))->assertOk()->assertDontSee('data-packages', false);
+    }
+
+    public function test_cashback_expires_after_the_days_set_taking_back_only_what_is_still_on_the_balance(): void
+    {
+        [$tenant, $item, $cashier] = $this->shop();
+        $this->actingAs($this->owner($tenant))->post($this->dashUrl('/loyalty/cards/cashback'), ['percent' => 10, 'min_order' => 0, 'expire_days' => 30])->assertSessionHasNoErrors();
+        $this->assertSame('30', $this->as($tenant, fn () => Settings::get('cashback_expire_days')));
+
+        $this->paidOrder($tenant, $item, $cashier);                       // +6 cashback, expires in 30 days
+        $this->as($tenant, function () use ($cashier) {
+            $customer = Customer::query()->where('phone', self::PHONE)->firstOrFail();
+            app(WalletService::class)->topUp($customer, 10, 'cash', $cashier, app(ShiftService::class)->current($cashier));
+            app(WalletService::class)->adjust($customer, -12, $cashier, 'spent'); // 16 → 4 left
+        });
+
+        $this->travel(10)->days();
+        $this->assertSame(0, $this->as($tenant, fn () => app(WalletService::class)->expireCashback()));
+        $this->travel(25)->days();
+        $this->assertSame(1, $this->as($tenant, fn () => app(WalletService::class)->expireCashback()));
+        $this->as($tenant, function () {
+            $customer = Customer::query()->where('phone', self::PHONE)->firstOrFail();
+            // only 4 of the 6 were still on the balance; the line is settled and is not taken twice
+            $this->assertSame(0.0, round((float) $customer->credit_balance, 2));
+            $this->assertSame(-4.0, (float) WalletTransaction::query()->where('kind', 'cashback_exp')->value('delta'));
+            $this->assertNotNull(WalletTransaction::query()->where('kind', 'cashback')->value('settled_at'));
+            $this->assertSame(0, app(WalletService::class)->expireCashback());
+            $this->assertSame(0.0, round((float) WalletTransaction::query()->where('customer_id', $customer->id)->sum('delta'), 2));
+        });
     }
 
     public function test_packages_and_tiers_stay_inside_their_restaurant(): void

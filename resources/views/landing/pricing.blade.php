@@ -12,7 +12,7 @@
     $isOps = fn ($a) => array_intersect($a->features ?? [], $opsFeatures) !== [];
     $addonGroups = [
         'operations' => [__('Operations'), __('The cashier, the kiosk, kitchen screens, the call center and stock. Priced per branch.'), $addons->filter(fn ($a) => $a->isFeaturePack() && $isOps($a))->values()],
-        'growth' => [__('Growth'), __('More orders, more returning guests and better numbers, on top of your plan.'), $addons->filter(fn ($a) => $a->isFeaturePack() && !$isOps($a))->values()],
+        'growth' => [__('Modules on their own'), __('Every module can be bought by itself, on top of any plan — the free one included. Ordering only, the loyalty card only, offers only.'), $addons->filter(fn ($a) => $a->isFeaturePack() && !$isOps($a))->values()],
         'credits' => [__('Credits'), __('WhatsApp messages for order updates and campaigns. One message is one credit.'), $addons->filter(fn ($a) => $a->isCreditPack())->values()],
     ];
     // the first module page that sells each add-on

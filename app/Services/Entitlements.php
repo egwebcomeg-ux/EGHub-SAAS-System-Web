@@ -55,9 +55,11 @@ final class Entitlements
             ?? throw new \RuntimeException('Plans are missing — run the PlanSeeder.');
         $e = $plan->entitlements();
         $packs = AddonPrice::query()->where('type', 'feature')->pluck('features', 'key');
+        // a limit add-on adds `credits` units per pack bought (1 branch, 1 staff account, 50 items, 10 tables)
+        $units = AddonPrice::query()->where('type', 'limit')->pluck('credits', 'key');
         foreach ($sub?->addons ?? [] as $addon) {
             if (array_key_exists($addon->key, $e['limits']) && $e['limits'][$addon->key] !== null) {
-                $e['limits'][$addon->key] += $addon->quantity;
+                $e['limits'][$addon->key] += $addon->quantity * max(1, (int) ($units[$addon->key] ?? 1));
             }
             // feature packs (POS, kitchen display, ...) switch their features on, whatever the plan
             foreach ((array) ($packs[$addon->key] ?? []) as $feature) {

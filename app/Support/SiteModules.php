@@ -200,7 +200,7 @@ final class SiteModules
                 'name' => __('Printed menu'),
                 'tagline' => __('A print-ready paper menu, without a designer'),
                 'summary' => __('Your online menu as an A4 PDF, in your colours.'),
-                'feature' => 'printed_menu', 'addons' => [],
+                'feature' => 'printed_menu', 'addons' => ['branding_pack'],
                 'shot' => 'print', 'frame' => 'browser', 'url' => 'app.egmenu.app/menu/print', 'phone' => null,
                 'benefits' => [
                     ['file', __('From the same menu'), __('The paper menu is built from the items you already have. Nothing to type twice.')],
@@ -229,7 +229,7 @@ final class SiteModules
                 'name' => __('TV menu screens'),
                 'tagline' => __('Your menu on the shop TVs, always with today’s prices'),
                 'summary' => __('Any smart TV becomes a menu board that updates itself.'),
-                'feature' => 'tv_screens', 'addons' => [],
+                'feature' => 'tv_screens', 'addons' => ['tv_pack'],
                 'shot' => 'tv', 'frame' => 'tv', 'url' => '', 'phone' => null,
                 'benefits' => [
                     ['tv', __('Any smart TV'), __('Open the screen link in the TV browser once. No box, no USB stick.')],
@@ -289,7 +289,7 @@ final class SiteModules
                 'name' => __('Table ordering'),
                 'tagline' => __('Guests order from the table. You hear it ring.'),
                 'summary' => __('Orders from the table QR straight to a live board.'),
-                'feature' => 'qr_ordering', 'addons' => [],
+                'feature' => 'qr_ordering', 'addons' => ['ordering_pack'],
                 'shot' => 'orders', 'frame' => 'browser', 'url' => 'app.egmenu.app/orders', 'phone' => 'm-cartbar',
                 'benefits' => [
                     ['bell', __('A ring for every order'), __('New orders appear on the board with a sound, with the table number on top.')],
@@ -382,7 +382,7 @@ final class SiteModules
                 'name' => __('Loyalty card'),
                 'tagline' => __('A stamp card on the guest’s phone that brings them back'),
                 'summary' => __('“Every 8 coffees, one free”, with no paper and no app.'),
-                'feature' => 'loyalty_stamps', 'addons' => [],
+                'feature' => 'loyalty_stamps', 'addons' => ['loyalty_pack'],
                 'shot' => 'loyalty-desk', 'frame' => 'browser', 'url' => 'app.egmenu.app/loyalty', 'phone' => 'm-card',
                 'benefits' => [
                     ['stamp', __('Stamps or points'), __('A stamp per visit or per item, or points on every pound spent.')],
@@ -411,7 +411,7 @@ final class SiteModules
                 'name' => __('Offers and popups'),
                 'tagline' => __('Happy hour, popups and combos that run on their own'),
                 'summary' => __('Timed discounts that switch on and off by themselves.'),
-                'feature' => 'offers', 'addons' => [],
+                'feature' => 'offers', 'addons' => ['offers_pack'],
                 'shot' => 'marketing', 'frame' => 'browser', 'url' => 'app.egmenu.app/marketing', 'phone' => 'menu-cafe',
                 'benefits' => [
                     ['clock', __('Happy hour'), __('20% off cold drinks from 3 to 6, on the days you choose. It starts and stops by itself.')],
@@ -551,7 +551,7 @@ final class SiteModules
                 ],
                 'faq' => [
                     [__('Can I run stamps and cashback together?'), __('Yes. The stamp card, the tiers, the packages and the balance all sit on the one card the guest already has.')],
-                    [__('Does cashback expire?'), __('Not in this version: it stays as balance until the guest spends it. You set the percentage and a minimum order.')],
+                    [__('Does cashback expire?'), __('Your choice: it can stay as balance until spent, or expire after the number of days you set. You also set the percentage and a minimum order.')],
                     [__('What if a package expires with uses left?'), __('It closes on its date and shows as expired; you can set the validity per package, from a week to two years.')],
                     [__('Can a member discount be combined with a coupon?'), __('Yes. The coupon is applied first, then the tier’s percentage on what is left; both show on the order.')],
                 ],
@@ -715,7 +715,7 @@ final class SiteModules
                 'name' => __('Reports'),
                 'tagline' => __('Sales, busy hours and best sellers, in plain numbers'),
                 'summary' => __('What sold, when, and from where.'),
-                'feature' => 'daily_reports', 'addons' => [],
+                'feature' => 'daily_reports', 'addons' => ['team_pack', 'reports_pack'],
                 'shot' => 'reports', 'frame' => 'browser', 'url' => 'app.egmenu.app/reports', 'phone' => null,
                 'benefits' => [
                     ['chart', __('The day at a glance'), __('Sales, number of orders and the average order, for today, yesterday or the week.')],
@@ -775,7 +775,7 @@ final class SiteModules
                 'name' => __('Branches'),
                 'tagline' => __('One menu for all branches, with each branch’s own prices'),
                 'summary' => __('Per-branch prices, availability, staff and stock.'),
-                'feature' => 'branch_pricing', 'addons' => ['branches'],
+                'feature' => 'branch_pricing', 'addons' => ['multibranch_pack', 'branches'],
                 'shot' => 'branches', 'frame' => 'browser', 'url' => 'app.egmenu.app/branches', 'phone' => null,
                 'benefits' => [
                     ['layers', __('One menu'), __('Edit an item once and every branch gets it.')],

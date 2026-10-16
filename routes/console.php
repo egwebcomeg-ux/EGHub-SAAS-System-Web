@@ -6,6 +6,7 @@ use App\Services\Loyalty\LoyaltyService;
 use App\Services\Loyalty\Packages;
 use App\Services\Marketing\Campaigns;
 use App\Services\Reports\WeeklyReportMailer;
+use App\Services\Wallet\WalletService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
@@ -14,17 +15,18 @@ Artisan::command('egmenu:billing', function (Lifecycle $lifecycle) {
     $this->info("past_due: {$r['past_due']} · downgraded to free: {$r['downgraded']} · reminded: {$r['reminded']}");
 })->purpose('Daily subscription lifecycle: trial/period end → grace → suspension, reminders');
 
-Artisan::command('egmenu:loyalty-expire', function (LoyaltyService $loyalty, Packages $packages) {
+Artisan::command('egmenu:loyalty-expire', function (LoyaltyService $loyalty, Packages $packages, WalletService $wallet) {
     // runs per restaurant so the tenant scope and plan rights apply
-    $n = $p = 0;
+    $n = $p = $c = 0;
     foreach (Tenant::query()->where('status', 'active')->get() as $tenant) {
         tenancy()->initialize($tenant);
         $n += $loyalty->expireStamps();
         $p += $packages->expire();
+        $c += $wallet->expireCashback();
         tenancy()->end();
     }
-    $this->info("expired cards: $n · expired packages: $p");
-})->purpose('Clear loyalty stamps older than each program allows and close prepaid packages past their date');
+    $this->info("expired cards: $n · expired packages: $p · expired cashback lines: $c");
+})->purpose('Clear loyalty stamps older than each program allows, close prepaid packages past their date, take back expired cashback');
 
 Artisan::command('egmenu:campaigns', function (Campaigns $campaigns) {
     $this->info('campaigns started: '.$campaigns->startDue());

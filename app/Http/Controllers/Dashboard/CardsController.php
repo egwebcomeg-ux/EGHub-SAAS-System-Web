@@ -37,7 +37,7 @@ class CardsController extends Controller
         return view('dashboard.loyalty.cards', [
             'can' => ['cashback' => $rights->allows('cashback'), 'packages' => $rights->allows('prepaid_packages'), 'membership' => $rights->allows('membership')],
             'wallet' => WalletService::enabled(),
-            'cashback' => ['percent' => Settings::get('cashback_percent'), 'min_order' => Settings::get('cashback_min_order'),
+            'cashback' => ['percent' => Settings::get('cashback_percent'), 'min_order' => Settings::get('cashback_min_order'), 'expire_days' => Settings::get('cashback_expire_days'),
                 'month' => round((float) WalletTransaction::query()->where('kind', 'cashback')->where('created_at', '>=', now()->startOfMonth())->sum('delta'), 2)],
             'tiers' => MembershipTier::query()->orderBy('min_spent')->orderBy('min_visits')->orderBy('sort_order')->get(),
             'members' => $rights->allows('membership') ? $this->memberCounts() : [],
@@ -51,8 +51,9 @@ class CardsController extends Controller
     public function cashback(Request $request): RedirectResponse
     {
         abort_unless(Entitlements::current()->allows('cashback'), 403);
-        $data = $request->validate(['percent' => 'required|numeric|min:0|max:50', 'min_order' => 'nullable|numeric|min:0|max:100000']);
-        Settings::put(['cashback_percent' => (string) round((float) $data['percent'], 2), 'cashback_min_order' => (string) round((float) ($data['min_order'] ?? 0), 2)]);
+        $data = $request->validate(['percent' => 'required|numeric|min:0|max:50', 'min_order' => 'nullable|numeric|min:0|max:100000', 'expire_days' => 'nullable|integer|min:0|max:730']);
+        Settings::put(['cashback_percent' => (string) round((float) $data['percent'], 2), 'cashback_min_order' => (string) round((float) ($data['min_order'] ?? 0), 2),
+            'cashback_expire_days' => (string) (int) ($data['expire_days'] ?? 0)]);
         Audit::record('cards.cashback', (string) $data['percent']);
 
         return back()->with('ok', __('Cashback saved.'));

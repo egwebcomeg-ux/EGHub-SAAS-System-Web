@@ -84,7 +84,7 @@
         </div>
         <div class="border-t border-navy-100 bg-navy-50/60">
             <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3 text-sm">
-                <span class="text-navy-500">{{ __('The menu is free. Ordering, loyalty and the rest come with the paid plans; operations are add-ons.') }}</span>
+                <span class="text-navy-500">{{ __('The menu is free. Every module is sold on its own on top of any plan — or take a plan and save.') }}</span>
                 <a href="{{ route('features') }}" class="font-extrabold text-brand-700 hover:text-brand-600">{{ __('All features') }} <span aria-hidden="true" class="rtl:inline-block rtl:rotate-180">→</span></a>
             </div>
         </div>

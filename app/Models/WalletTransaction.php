@@ -19,11 +19,12 @@ class WalletTransaction extends TenantModel
         'adjustment' => ['تعديل يدوي', 'Adjustment'],
         'cashback' => ['كاش باك', 'Cashback'],
         'cashback_rev' => ['إلغاء كاش باك', 'Cashback reversed'],
+        'cashback_exp' => ['انتهاء كاش باك', 'Cashback expired'],
     ];
 
     protected function casts(): array
     {
-        return ['delta' => 'float', 'balance_after' => 'float', 'created_at' => 'datetime'];
+        return ['delta' => 'float', 'balance_after' => 'float', 'created_at' => 'datetime', 'expires_at' => 'datetime', 'settled_at' => 'datetime'];
     }
 
     public function customer(): BelongsTo

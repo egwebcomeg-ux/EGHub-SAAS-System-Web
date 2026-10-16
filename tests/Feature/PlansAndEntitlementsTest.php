@@ -53,7 +53,6 @@ class PlansAndEntitlementsTest extends TenantTestCase
 
     public function test_new_restaurant_gets_a_14_day_pro_trial(): void
     {
-        $this->travelTo(now()->setTime(12, 0)); // daysLeft() rounds up the hours left today; late in the day that read 15
         $tenant = app(TenantProvisioner::class)->create([
             'slug' => 'trial-cafe', 'name' => 'Trial', 'owner_name' => 'O', 'email' => 'o@trial.test', 'password' => 'Secret-pass-123',
         ]);

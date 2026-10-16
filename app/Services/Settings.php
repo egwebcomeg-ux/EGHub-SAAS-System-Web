@@ -65,6 +65,7 @@ final class Settings
         // cashback (feature cashback): this share of every counted order goes back to the guest's wallet balance
         'cashback_percent' => '0',
         'cashback_min_order' => '0',
+        'cashback_expire_days' => '0',      // 0 = cashback never expires; else unspent cashback is taken back after N days
         // extra menu languages (feature extra_languages): JSON list of App\Support\MenuLocales codes
         'menu_locales' => '[]',
         // progress of the AI translation of the whole menu (App\Jobs\TranslateMenu), JSON

@@ -2579,5 +2579,11 @@
     "days": "يوم",
     "5th visit: Mona is now Gold, 10% off every order": "الزيارة الخامسة: منى بقت جولد، خصم ١٠٪ على كل طلب",
     "Order #92 · 130 EGP → 6.50 EGP cashback added to the balance": "طلب #92 · ١٣٠ ج.م ← كاش باك ٦٫٥٠ ج.م اتضاف للرصيد",
-    "The counter: the guest’s tier, balance, packages and stamps on one screen; sell a package or take a use.": "الكاونتر: مستوى العميل ورصيده وباقاته وأختامه في شاشة واحدة؛ بيع باقة أو اخصم استخدام."
+    "The counter: the guest’s tier, balance, packages and stamps on one screen; sell a package or take a use.": "الكاونتر: مستوى العميل ورصيده وباقاته وأختامه في شاشة واحدة؛ بيع باقة أو اخصم استخدام.",
+    "Expires after (days)": "ينتهي بعد (يوم)",
+    "Expiry 0 = it never expires; otherwise unspent cashback is taken back after that many days.": "الانتهاء ٠ = مبينتهيش أبداً؛ غير كده الكاش باك اللي ماتصرفش بيتخصم بعد عدد الأيام ده.",
+    "Modules on their own": "الموديولات لوحدها",
+    "Every module can be bought by itself, on top of any plan — the free one included. Ordering only, the loyalty card only, offers only.": "أي موديول ينفع يتشري لوحده فوق أي باقة — حتى المجانية. الطلب بس، أو كارت الولاء بس، أو العروض بس.",
+    "The menu is free. Every module is sold on its own on top of any plan — or take a plan and save.": "المنيو مجاني. أي موديول بيتباع لوحده فوق أي باقة — أو خد باقة ووفّر.",
+    "Your choice: it can stay as balance until spent, or expire after the number of days you set. You also set the percentage and a minimum order.": "على حسب اختيارك: يفضل رصيد لحد ما يتصرف، أو ينتهي بعد عدد الأيام اللي تحددها. وانت كمان بتحدد النسبة والحد الأدنى للطلب."
 }
