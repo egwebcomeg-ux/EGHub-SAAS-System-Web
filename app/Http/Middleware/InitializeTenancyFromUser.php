@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Tenant;
+use App\Services\Auth\TwoFactor;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,6 +30,12 @@ class InitializeTenancyFromUser
 
         tenancy()->initialize($tenant);
         app()->setLocale(in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar');
+
+        // The owner requires two-factor authentication of all staff: until it is set up, only the security page
+        // (and leaving) is reachable.
+        if (TwoFactor::setupRequired($user) && ! $request->routeIs('dash.security*', 'dash.logout', 'dash.locale', 'dash.manifest', 'dash.sw')) {
+            return redirect()->route('dash.security');
+        }
 
         return $next($request);
     }

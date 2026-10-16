@@ -93,6 +93,12 @@ final class Settings
         'reservation_horizon_days' => '30',
         'reservation_hours' => '',               // json {0..6 (Sunday = 0): {open, close}}; empty = the branch working hours
         'reservation_seats' => '',               // json {branch id: seats per slot}; missing = 20
+        // security: the owner can require two-factor authentication of every staff member (App\Services\Auth\TwoFactor)
+        'require_2fa' => '0',
+        // onboarding checklist on the dashboard home (App\Services\Onboarding)
+        'qr_printed_at' => '',                   // set when the QR cards print page is opened
+        'ordering_decided' => '0',               // the settings form was saved at least once (ordering on/off chosen)
+        'onboarding' => '',                      // json {skipped: [step keys], dismissed: bool}
     ];
 
     /** @var array<string,array<string,string>> */

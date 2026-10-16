@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\PlatformAdmin;
+use App\Services\Auth\TwoFactor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class AuthController extends Controller
@@ -18,11 +21,20 @@ class AuthController extends Controller
     public function login(Request $request): RedirectResponse
     {
         $data = $request->validate(['email' => 'required|email|max:120', 'password' => 'required|string|max:200']);
-        if (! Auth::guard('admin')->attempt(['email' => strtolower($data['email']), 'password' => $data['password']], $request->boolean('remember'))) {
+        $admin = PlatformAdmin::query()->where('email', strtolower($data['email']))->first();
+        if (! $admin || ! Hash::check($data['password'], $admin->password)) {
             return back()->withInput(['email' => $data['email']])->withErrors(['email' => __('Wrong login or password.')]);
         }
+        // second step: the code from the authenticator app, unless this browser was remembered within 30 days
+        if ($admin->hasTwoFactorEnabled() && ! TwoFactor::isRemembered($request, 'admin', $admin)) {
+            TwoFactor::challenge($request, 'admin', $admin, $request->boolean('remember'));
+
+            return redirect()->route('admin.two-factor');
+        }
+
+        Auth::guard('admin')->login($admin, $request->boolean('remember'));
         $request->session()->regenerate();
-        Auth::guard('admin')->user()->forceFill(['last_login_at' => now()])->save();
+        $admin->forceFill(['last_login_at' => now()])->save();
 
         return redirect()->intended(route('admin.home'));
     }

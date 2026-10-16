@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasTwoFactor;
 use App\Notifications\ResetPasswordLink;
 use App\Support\Permissions;
 use Illuminate\Contracts\Translation\HasLocalePreference;
@@ -18,7 +19,7 @@ use Stancl\Tenancy\Database\Concerns\BelongsToTenant;
  */
 class User extends Authenticatable implements HasLocalePreference
 {
-    use BelongsToTenant, HasFactory, HasRoles, Notifiable;
+    use BelongsToTenant, HasFactory, HasRoles, HasTwoFactor, Notifiable;
 
     protected $guarded = ['id', 'tenant_id'];
 

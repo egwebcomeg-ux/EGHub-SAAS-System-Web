@@ -147,6 +147,13 @@ class SettingsController extends Controller
             $values['weekly_report_email'] = $request->boolean('weekly_report_email') ? '1' : '0';
         }
 
+        // two-factor for every staff member: only the owner decides (managers reach this page too)
+        if ($request->user()->isOwner() && $request->has('require_2fa')) {
+            $values['require_2fa'] = $request->boolean('require_2fa') ? '1' : '0';
+        }
+        // the onboarding checklist counts "ordering on/off decided" once this form was saved
+        $values['ordering_decided'] = '1';
+
         if (! Entitlements::current()->allows('menu_themes')) {
             unset($values['menu_theme']);
         }

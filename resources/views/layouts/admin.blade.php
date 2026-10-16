@@ -6,7 +6,7 @@
         <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
             <a href="{{ route('admin.home') }}" class="flex items-center gap-2"><x-logo :light="true" :size="28" /><span class="badge bg-brand-600 text-white">Admin</span></a>
             <nav class="flex flex-1 flex-wrap gap-1 text-sm font-semibold">
-                @foreach ([['admin.home', __('Overview')], ['admin.tenants', __('Restaurants')], ['admin.invoices', __('Invoices')], ['admin.plans', __('Plans & features')], ['admin.settings', __('Payment settings')], ['admin.services', __('Service requests')]] as [$route, $label])
+                @foreach ([['admin.home', __('Overview')], ['admin.tenants', __('Restaurants')], ['admin.invoices', __('Invoices')], ['admin.plans', __('Plans & features')], ['admin.settings', __('Payment settings')], ['admin.services', __('Service requests')], ['admin.security', __('Security')]] as [$route, $label])
                     <a href="{{ route($route) }}" @class(['rounded-lg px-3 py-2', 'bg-white/10' => request()->routeIs($route . '*'), 'text-white/70 hover:text-white' => !request()->routeIs($route . '*')])>{{ $label }}</a>
                 @endforeach
             </nav>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Auth\TwoFactor;
 use App\Services\WhatsApp\PhoneVerification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,6 +35,12 @@ class AuthController extends Controller
         }
         if (! $user->is_active || ! Tenant::query()->whereKey($user->tenant_id)->exists()) {
             return back()->withInput(['login' => $login])->withErrors(['login' => __('Your account is not active.')]);
+        }
+        // second step: the code from the authenticator app, unless this browser was remembered within 30 days
+        if ($user->hasTwoFactorEnabled() && ! TwoFactor::isRemembered($request, 'web', $user)) {
+            TwoFactor::challenge($request, 'web', $user, $request->boolean('remember'));
+
+            return redirect()->route('dash.two-factor');
         }
 
         Auth::guard('web')->login($user, $request->boolean('remember'));

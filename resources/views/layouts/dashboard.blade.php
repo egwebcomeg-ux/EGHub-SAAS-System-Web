@@ -80,7 +80,7 @@
         <header class="flex items-center justify-between gap-3 border-b border-navy-100 bg-white px-4 py-3 sm:px-6">
             <div class="min-w-0">
                 <div class="truncate font-bold">{{ tenant()->name }}</div>
-                <div class="text-xs text-navy-500">{{ $user->name }} · {{ $user->roleName() }}</div>
+                <div class="text-xs text-navy-500"><a href="{{ route('dash.security') }}" class="hover:underline" title="{{ __('Account security') }}">{{ $user->name }}</a> · {{ $user->roleName() }}</div>
             </div>
             <div class="flex items-center gap-2">
                 @if ($sub)

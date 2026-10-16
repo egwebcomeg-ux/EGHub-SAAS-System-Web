@@ -11,6 +11,7 @@ use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Audit;
 use App\Services\Entitlements;
 use App\Services\TenantProvisioner;
 use Illuminate\Http\RedirectResponse;
@@ -142,6 +143,24 @@ class TenantsController extends Controller
         $staff->markPhoneVerified();
 
         return back()->with('ok', __('Mobile number marked as confirmed.'));
+    }
+
+    /** Support case: the staff member lost their phone and recovery codes. Written to the restaurant's audit trail. */
+    public function resetTwoFactor(Request $request, Tenant $tenant, int $user): RedirectResponse
+    {
+        $staff = User::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->findOrFail($user);
+        if ($staff->two_factor_secret === null) {
+            return back()->withErrors(['two_factor' => __('This user has no two-factor authentication.')]);
+        }
+        $staff->disableTwoFactor();
+        tenancy()->initialize($tenant);
+        try {
+            Audit::record('two_factor.reset_by_platform', $staff->name, ['id' => $staff->id, 'admin' => $request->user('admin')->email]);
+        } finally {
+            tenancy()->end();
+        }
+
+        return back()->with('ok', __('Two-factor authentication reset for :name. They can sign in with their password and set it up again.', ['name' => $staff->name]));
     }
 
     public function suspend(Tenant $tenant): RedirectResponse

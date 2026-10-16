@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasTwoFactor;
 use App\Notifications\ResetPasswordLink;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -11,7 +12,7 @@ class PlatformAdmin extends Authenticatable
 {
     protected $guarded = ['id'];
 
-    use Notifiable;
+    use HasTwoFactor, Notifiable;
 
     protected $hidden = ['password', 'remember_token'];
 

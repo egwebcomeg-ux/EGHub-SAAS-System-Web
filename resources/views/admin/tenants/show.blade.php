@@ -156,7 +156,7 @@
 <div class="card mt-4 overflow-x-auto">
     <h2 class="mb-3 text-lg font-bold">{{ __('Staff') }}</h2>
     <table class="table-base">
-        <thead><tr><th>{{ __('Name') }}</th><th>{{ __('Login') }}</th><th>{{ __('Mobile') }}</th><th>{{ __('Role') }}</th><th>{{ __('Last login') }}</th></tr></thead>
+        <thead><tr><th>{{ __('Name') }}</th><th>{{ __('Login') }}</th><th>{{ __('Mobile') }}</th><th>{{ __('Role') }}</th><th>{{ __('Two-factor') }}</th><th>{{ __('Last login') }}</th></tr></thead>
         <tbody>
         @foreach ($users as $u)
             <tr>
@@ -181,6 +181,18 @@
                     @endif
                 </td>
                 <td>{{ $u->roleName() }}</td>
+                <td>
+                    @if ($u->hasTwoFactorEnabled())
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="badge bg-emerald-100 text-emerald-800">✓ {{ __('Turned on') }}</span>
+                            <form method="post" action="{{ route('admin.tenants.reset-2fa', [$tenant, $u->id]) }}" onsubmit="return confirm(@js(__('Reset two-factor authentication for this user? They will sign in with their password only until they set it up again.')))">
+                                @csrf<button class="btn-ghost min-h-8 px-2 text-xs">{{ __('Reset 2FA') }}</button>
+                            </form>
+                        </div>
+                    @else
+                        <span class="badge bg-navy-100 text-navy-500">{{ __('Turned off') }}</span>
+                    @endif
+                </td>
                 <td>{{ local_time($u->last_login_at) }}</td>
             </tr>
         @endforeach

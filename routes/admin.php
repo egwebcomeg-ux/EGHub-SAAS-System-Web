@@ -6,9 +6,11 @@ use App\Http\Controllers\Admin\DomainsController;
 use App\Http\Controllers\Admin\InvoicesController;
 use App\Http\Controllers\Admin\PasswordResetController;
 use App\Http\Controllers\Admin\PlansController;
+use App\Http\Controllers\Admin\SecurityController;
 use App\Http\Controllers\Admin\ServicesController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\TenantsController;
+use App\Http\Controllers\Admin\TwoFactorController;
 use Illuminate\Support\Facades\Route;
 
 // admin.<domain> — EgWeb super admin. Guard "admin" = platform_admins table, never restaurant staff.
@@ -49,4 +51,15 @@ Route::middleware('auth:admin')->group(function () {
 
     Route::get('/services', [ServicesController::class, 'index'])->name('services');
     Route::post('/services/{serviceRequest}', [ServicesController::class, 'update'])->whereNumber('serviceRequest')->name('services.update');
+});
+
+// ---- Two-factor authentication: second login step, the admin's own security page, 2FA reset of a tenant user (support) ----
+Route::get('/two-factor', [TwoFactorController::class, 'show'])->name('two-factor');
+Route::post('/two-factor', [TwoFactorController::class, 'verify'])->middleware('throttle:5,1')->name('two-factor.verify');
+Route::middleware('auth:admin')->group(function () {
+    Route::get('/security', [SecurityController::class, 'show'])->name('security');
+    Route::post('/security/two-factor', [SecurityController::class, 'enable'])->name('security.enable');
+    Route::post('/security/two-factor/confirm', [SecurityController::class, 'confirm'])->middleware('throttle:10,1')->name('security.confirm');
+    Route::post('/security/two-factor/disable', [SecurityController::class, 'disable'])->middleware('throttle:10,1')->name('security.disable');
+    Route::post('/tenants/{tenant}/users/{user}/reset-2fa', [TenantsController::class, 'resetTwoFactor'])->whereNumber('user')->name('tenants.reset-2fa');
 });

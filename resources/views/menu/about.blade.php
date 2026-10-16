@@ -13,8 +13,8 @@
 
 @push('head')
 @include('menu.partials.seo-head', ['profile' => $profile, 'schemas' => $schemas])
-<meta name="theme-color" content="{{ $color('color_secondary', '#1E2D4F') }}">
 @include('menu.partials.pixels')
+{{-- theme-color, manifest and the home-screen icon come from partials.pwa-head (layouts.base) --}}
 <style>
     :root { --menu-primary: {{ $color('color_primary', '#E8642C') }}; --menu-secondary: {{ $color('color_secondary', '#1E2D4F') }}; }
     .m-primary { background: var(--menu-primary); color: #fff; }

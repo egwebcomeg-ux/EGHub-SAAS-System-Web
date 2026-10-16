@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\Plan;
 use App\Services\Entitlements;
 use App\Services\MenuSetupRequest;
+use App\Services\Onboarding;
 use App\Support\BusinessType;
 use Illuminate\View\View;
 
@@ -36,6 +37,7 @@ class HomeController extends Controller
         $canBuy = request()->user()->can('billing.manage');
 
         return view('dashboard.home', [
+            'onboarding' => Onboarding::visibleTo(request()->user()) ? Onboarding::status(request()->user()) : null,
             'lowStock' => $lowStock,
             'businessType' => BusinessType::current(),
             'suggestions' => $canBuy ? array_slice(BusinessType::recommendations(), 0, 4) : [],

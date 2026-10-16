@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\DiningTable;
 use App\Services\Entitlements;
+use App\Services\Onboarding;
 use App\Services\Qr;
 use App\Services\Settings;
 use Illuminate\Http\RedirectResponse;
@@ -92,6 +93,7 @@ class TablesController extends Controller
         $color = Settings::get('color_secondary');
         // the storefront QR encodes the chosen target; table QRs keep their /t/{token} link and are redirected on scan
         $toLinks = Settings::get('qr_target') === 'links';
+        Onboarding::markQrPrinted();
 
         return view('dashboard.tables.print', [
             'cards' => $query->get()->map(fn (DiningTable $t) => [

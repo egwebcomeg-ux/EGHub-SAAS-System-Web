@@ -24,18 +24,22 @@ use App\Http\Controllers\Dashboard\MarketingController;
 use App\Http\Controllers\Dashboard\MenuExportController;
 use App\Http\Controllers\Dashboard\MenuImportController;
 use App\Http\Controllers\Dashboard\MenuTranslationController;
+use App\Http\Controllers\Dashboard\OnboardingController;
 use App\Http\Controllers\Dashboard\OrdersController;
 use App\Http\Controllers\Dashboard\PasswordResetController;
 use App\Http\Controllers\Dashboard\PhoneVerificationController;
 use App\Http\Controllers\Dashboard\PosController;
 use App\Http\Controllers\Dashboard\PrintMenuController;
+use App\Http\Controllers\Dashboard\PwaController;
 use App\Http\Controllers\Dashboard\ReportsController;
 use App\Http\Controllers\Dashboard\ReservationsController;
+use App\Http\Controllers\Dashboard\SecurityController;
 use App\Http\Controllers\Dashboard\SettingsController;
 use App\Http\Controllers\Dashboard\ShiftsController;
 use App\Http\Controllers\Dashboard\StationsController;
 use App\Http\Controllers\Dashboard\TablesController;
 use App\Http\Controllers\Dashboard\TvScreensController;
+use App\Http\Controllers\Dashboard\TwoFactorController;
 use App\Http\Controllers\Dashboard\UsersController;
 use App\Http\Controllers\Dashboard\WalletController;
 use App\Models\CampaignAutomation;
@@ -342,3 +346,26 @@ Route::middleware(['auth:web', 'tenant.user', 'feature:campaigns', 'permission:m
     Route::post('/campaigns/automations/{kind}/toggle', [AutomationsController::class, 'toggle'])
         ->whereIn('kind', array_keys(CampaignAutomation::KINDS))->name('automations.toggle');
 });
+
+// ---- Two-factor authentication: second login step (guest, session-scoped) and the account security page ----
+Route::middleware('admin.locale')->group(function () {
+    Route::get('/two-factor', [TwoFactorController::class, 'show'])->name('two-factor');
+    Route::post('/two-factor', [TwoFactorController::class, 'verify'])->middleware('throttle:5,1')->name('two-factor.verify');
+});
+Route::middleware(['auth:web', 'tenant.user'])->group(function () {
+    Route::get('/security', [SecurityController::class, 'show'])->name('security');
+    Route::post('/security/two-factor', [SecurityController::class, 'enable'])->name('security.enable');
+    Route::post('/security/two-factor/confirm', [SecurityController::class, 'confirm'])->middleware('throttle:10,1')->name('security.confirm');
+    Route::post('/security/two-factor/disable', [SecurityController::class, 'disable'])->middleware('throttle:10,1')->name('security.disable');
+});
+
+// ---- Onboarding checklist on the home page (App\Services\Onboarding) and the illustrated tutorial ----
+Route::middleware(['auth:web', 'tenant.user'])->group(function () {
+    Route::post('/onboarding/skip', [OnboardingController::class, 'skip'])->name('onboarding.skip');
+    Route::post('/onboarding/dismiss', [OnboardingController::class, 'dismiss'])->name('onboarding.dismiss');
+    Route::get('/help', [OnboardingController::class, 'help'])->name('help');
+});
+
+// ---- The dashboard as an installable app (App\Services\Pwa): manifest and a static-files-only service worker ----
+Route::get('/manifest.webmanifest', [PwaController::class, 'manifest'])->name('manifest');
+Route::get('/sw.js', [PwaController::class, 'serviceWorker'])->name('sw');

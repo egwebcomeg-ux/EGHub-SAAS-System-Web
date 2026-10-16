@@ -10,6 +10,7 @@ use App\Http\Controllers\Menu\LoyaltyCardController;
 use App\Http\Controllers\Menu\MenuController;
 use App\Http\Controllers\Menu\OrderController;
 use App\Http\Controllers\Menu\ProfileController;
+use App\Http\Controllers\Menu\PwaController;
 use App\Http\Controllers\Menu\ReservationController;
 use App\Http\Controllers\Menu\TableCallController;
 use App\Http\Controllers\Menu\TvController;
@@ -65,3 +66,8 @@ Route::post('/reserve/{token}/cancel', [ReservationController::class, 'cancel'])
 
 // The restaurant's links page (menu, order, book, WhatsApp, socials, map, hours): what a QR can open instead of the menu
 Route::get('/links', [LinksController::class, 'show'])->name('links');
+// The menu as an installable app (App\Services\Pwa): manifest, icons from the logo, service worker scoped to the menu, offline page
+Route::get('/manifest.webmanifest', [PwaController::class, 'manifest'])->name('manifest');
+Route::get('/sw.js', [PwaController::class, 'serviceWorker'])->name('sw');
+Route::get('/offline', [PwaController::class, 'offline'])->name('offline');
+Route::get('/icon-{size}.png', [PwaController::class, 'icon'])->whereIn('size', ['192', '512'])->name('icon');

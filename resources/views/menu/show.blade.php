@@ -14,8 +14,8 @@
 
 @push('head')
 @include('menu.partials.seo-head', ['profile' => $profile, 'schemas' => $schemas])
-<meta name="theme-color" content="{{ $color('color_secondary', '#1E2D4F') }}">
 @include('menu.partials.pixels')
+{{-- theme-color, manifest and the home-screen icon come from partials.pwa-head (layouts.base) --}}
 @if ($settings['font'] !== 'Cairo')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family={{ urlencode($settings['font']) }}:wght@400;600;700;800&display=swap">

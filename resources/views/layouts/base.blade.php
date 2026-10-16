@@ -6,6 +6,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'EgMenu')</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    @php
+        $pwa = \App\Services\Pwa\Pwa::forRequest();
+    @endphp
+    @include('partials.pwa-head')
     @if (request()->attributes->get('canonical'))
         <link rel="canonical" href="{{ request()->attributes->get('canonical') }}">
     @endif
@@ -18,6 +22,7 @@
 </head>
 <body class="@yield('body_class', 'bg-navy-50 text-navy-900') min-h-screen font-sans antialiased">
     @yield('body')
+    @include('partials.pwa-scripts')
     @stack('scripts')
 </body>
 </html>

@@ -123,7 +123,15 @@
         </section>
     @endif
 
-    <section class="card grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    @if (auth()->user()->isOwner())
+        <section class="card" id="security">
+            <h2 class="text-lg font-bold">{{ __('Security') }}</h2>
+            <label class="mt-2 flex items-center gap-2 text-sm font-semibold"><input type="hidden" name="require_2fa" value="0"><input type="checkbox" name="require_2fa" value="1" @checked($s['require_2fa'] === '1') class="size-4 accent-brand-600"> {{ __('Require two-factor authentication from every staff member') }}</label>
+            <p class="mt-1 text-sm text-navy-500">{{ __('Staff without it are taken to the setup page when they sign in.') }} <a href="{{ route('dash.security') }}" class="text-brand-700 underline">{{ __('Your own account security') }}</a></p>
+        </section>
+    @endif
+
+    <section class="card grid gap-4 sm:grid-cols-2 lg:grid-cols-4" id="ordering">
         <h2 class="text-lg font-bold sm:col-span-2 lg:col-span-4">{{ __('Ordering') }}</h2>
         <label class="flex items-center gap-2 text-sm font-semibold sm:col-span-2 lg:col-span-4"><input type="checkbox" name="ordering_enabled" value="1" @checked($s['ordering_enabled'] === '1') class="size-4 accent-brand-600"> {{ __('Guests can order from the table QR') }}</label>
         @if (\App\Services\Entitlements::current()->allows('online_ordering'))
