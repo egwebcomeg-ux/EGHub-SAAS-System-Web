@@ -25,6 +25,7 @@ final class ImageService
         'logo' => ['brand', 400, 400, false],
         'cover' => ['brand', 1600, 700, false],
         'banner' => ['banners', 1600, 700, false],
+        'post' => ['blog', 1600, 900, false],            // platform blog covers (no tenant)
     ];
 
     /** @return string path on the public disk, e.g. tenants/my-cafe/items/uuid.webp */
@@ -51,18 +52,24 @@ final class ImageService
         $bytes = (string) ob_get_clean();
         imagedestroy($dst);
 
-        $path = 'tenants/'.tenant()->getTenantKey()."/$dir/".Str::uuid().'.webp';
+        $path = self::base()."/$dir/".Str::uuid().'.webp';
         Storage::disk('public')->put($path, $bytes);
 
         return $path;
     }
 
-    /** Deletes a stored image, but only one inside the current restaurant's folder. */
+    /** Deletes a stored image, but only one inside the current restaurant's folder (or the platform folder outside tenancy). */
     public function delete(?string $path): void
     {
-        if ($path && str_starts_with($path, 'tenants/'.tenant()->getTenantKey().'/')) {
+        if ($path && str_starts_with($path, self::base().'/')) {
             Storage::disk('public')->delete($path);
         }
+    }
+
+    /** Images of the current restaurant live under tenants/{id}; platform images (the blog) under platform/. */
+    private static function base(): string
+    {
+        return tenant() ? 'tenants/'.tenant()->getTenantKey() : 'platform';
     }
 
     private function decode(UploadedFile $file): \GdImage

@@ -26,18 +26,22 @@
     <script>document.documentElement.classList.add('js')</script>
     <meta name="description" content="@yield('description', $description)">
     <meta name="theme-color" content="#ffffff">
-    <link rel="canonical" href="{{ url()->current() }}">
-    <meta property="og:type" content="website">
+    <link rel="canonical" href="@yield('canonical', url()->current())">
+    <link rel="alternate" type="application/rss+xml" title="EgMenu" href="{{ route('blog.rss') }}">
+    <meta property="og:type" content="@yield('og_type', 'website')">
     <meta property="og:site_name" content="EgMenu">
     <meta property="og:locale" content="{{ app()->getLocale() === 'ar' ? 'ar_EG' : 'en_US' }}">
     <meta property="og:title" content="@yield('title', 'EgMenu')">
     <meta property="og:description" content="@yield('description', $description)">
-    <meta property="og:url" content="{{ url()->current() }}">
-    <meta property="og:image" content="{{ asset('og-image.png') }}">
+    <meta property="og:url" content="@yield('canonical', url()->current())">
+    <meta property="og:image" content="@yield('og_image', asset('og-image.png'))">
+    @hasSection('og_image')
+    @else
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
+    @endif
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="{{ asset('og-image.png') }}">
+    <meta name="twitter:image" content="@yield('og_image', asset('og-image.png'))">
     <link rel="preload" as="image" href="{{ asset('img/site/orders-sm.webp') }}" media="(min-width: 1024px)">
 @endpush
 
@@ -55,6 +59,7 @@
             </button>
             <a href="{{ route('pricing') }}" class="flex min-h-11 items-center rounded-lg px-3 hover:bg-navy-50 hover:text-navy-900">{{ __('Pricing') }}</a>
             <a href="{{ route('services') }}" class="flex min-h-11 items-center rounded-lg px-3 hover:bg-navy-50 hover:text-navy-900">{{ __('Services') }}</a>
+            <a href="{{ route('blog') }}" class="flex min-h-11 items-center rounded-lg px-3 hover:bg-navy-50 hover:text-navy-900">{{ __('Blog') }}</a>
             <a href="{{ $home }}#faq" class="flex min-h-11 items-center rounded-lg px-3 hover:bg-navy-50 hover:text-navy-900">{{ __('FAQ') }}</a>
         </nav>
 
@@ -120,6 +125,7 @@
         <a href="{{ route('features') }}" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-extrabold text-navy-900">{{ __('All features') }}</a>
         <a href="{{ route('pricing') }}" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-extrabold text-navy-900">{{ __('Pricing') }}</a>
         <a href="{{ route('services') }}" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-extrabold text-navy-900">{{ __('Services') }}</a>
+        <a href="{{ route('blog') }}" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-extrabold text-navy-900">{{ __('Blog') }}</a>
         <a href="{{ $home }}#faq" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-extrabold text-navy-900">{{ __('FAQ') }}</a>
         <a href="{{ platform_url('app', '/login') }}" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-bold text-navy-600">{{ __('Log in') }}</a>
         <a href="?lang={{ $other }}" class="flex min-h-13 items-center px-1 text-base font-bold text-navy-600" lang="{{ $other }}">{{ $other === 'en' ? 'English' : 'عربي' }}</a>
@@ -173,6 +179,7 @@
                     <ul class="space-y-2">
                         <li><a href="{{ route('pricing') }}" class="hover:text-white">{{ __('Pricing') }}</a></li>
                         <li><a href="{{ route('services') }}" class="hover:text-white">{{ __('Services') }}</a></li>
+                        <li><a href="{{ route('blog') }}" class="hover:text-white">{{ __('Blog') }}</a></li>
                         <li><a href="{{ route('directory') }}" class="hover:text-white">{{ __('Restaurant directory') }}</a></li>
                         <li><a href="{{ platform_url('app', '/login') }}" class="hover:text-white">{{ __('Log in') }}</a></li>
                         <li><a href="{{ route('terms') }}" class="hover:text-white">{{ __('Terms of service') }}</a></li>

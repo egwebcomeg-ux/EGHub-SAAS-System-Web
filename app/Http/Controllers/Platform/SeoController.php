@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Platform;
 
 use App\Http\Controllers\Controller;
+use App\Models\Post;
 use App\Services\Seo\Directory;
 use App\Support\SiteModules;
 use Illuminate\Http\Response;
@@ -25,6 +26,14 @@ class SeoController extends Controller
             }
             foreach (array_keys(SiteModules::all()) as $slug) {
                 $urls[] = [route('features.show', $slug), null];
+            }
+            // blog: the index and every published article (lastmod = last edit)
+            $posts = Post::query()->published()->get(['slug', 'updated_at', 'published_at']);
+            if ($posts->isNotEmpty()) {
+                $urls[] = [route('blog'), $posts->max('updated_at')?->toDateString()];
+                foreach ($posts as $post) {
+                    $urls[] = [route('blog.show', $post->slug), max($post->updated_at, $post->published_at)->toDateString()];
+                }
             }
             foreach (array_keys(Directory::cityCounts()) as $city) {
                 $urls[] = [route('directory.city', $city), null];

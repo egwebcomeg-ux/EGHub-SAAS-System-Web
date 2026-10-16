@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AuthController;
+use App\Http\Controllers\Admin\BlogController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DomainsController;
 use App\Http\Controllers\Admin\InvoicesController;
@@ -51,6 +52,15 @@ Route::middleware('auth:admin')->group(function () {
 
     Route::get('/services', [ServicesController::class, 'index'])->name('services');
     Route::post('/services/{serviceRequest}', [ServicesController::class, 'update'])->whereNumber('serviceRequest')->name('services.update');
+
+    // Blog of the marketing site (egmenu.app/blog): Markdown articles, covers, publish/unpublish
+    Route::get('/blog', [BlogController::class, 'index'])->name('blog');
+    Route::get('/blog/create', [BlogController::class, 'create'])->name('blog.create');
+    Route::post('/blog', [BlogController::class, 'store'])->name('blog.store');
+    Route::get('/blog/{post}/edit', [BlogController::class, 'edit'])->whereNumber('post')->name('blog.edit');
+    Route::post('/blog/{post}', [BlogController::class, 'update'])->whereNumber('post')->name('blog.update');
+    Route::post('/blog/{post}/publish', [BlogController::class, 'publish'])->whereNumber('post')->name('blog.publish');
+    Route::post('/blog/{post}/delete', [BlogController::class, 'destroy'])->whereNumber('post')->name('blog.delete');
 });
 
 // ---- Two-factor authentication: second login step, the admin's own security page, 2FA reset of a tenant user (support) ----

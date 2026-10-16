@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Platform\BlogController;
 use App\Http\Controllers\Platform\DirectoryController;
 use App\Http\Controllers\Platform\FeaturesController;
 use App\Http\Controllers\Platform\LandingController;
@@ -40,6 +41,10 @@ Route::domain($domain)->group(function () use ($slug) {
         Route::post('/services', [ServicesController::class, 'store'])->middleware('throttle:5,1')->name('services.request');
         Route::get('/features', [FeaturesController::class, 'index'])->name('features');
         Route::get('/features/{slug}', [FeaturesController::class, 'show'])->where('slug', '[a-z-]{2,40}')->name('features.show');
+        // blog for cafe and restaurant owners (App\Models\Post), plus its RSS feed
+        Route::get('/blog', [BlogController::class, 'index'])->name('blog');
+        Route::get('/blog/{slug}', [BlogController::class, 'show'])->where('slug', '[a-z0-9-]{2,120}')->name('blog.show');
+        Route::get('/rss.xml', [BlogController::class, 'rss'])->name('blog.rss');
         Route::get('/terms', [LandingController::class, 'terms'])->name('terms');
         Route::get('/privacy', [LandingController::class, 'privacy'])->name('privacy');
         Route::get('/register', [SignupController::class, 'show'])->name('register');
