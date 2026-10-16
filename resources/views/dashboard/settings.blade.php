@@ -259,6 +259,7 @@
                     'wa_order_on_way' => [__('Order on the way'), __('Delivery orders leaving with the driver')],
                     'wa_reservation_confirmed' => [__('Reservation confirmed'), __('When you confirm a table booking')],
                     'wa_loyalty_reward' => [__('Loyalty reward earned'), __('When a guest\'s card reaches a reward')],
+                    'wa_order_to_staff' => [__('New orders to your own WhatsApp'), __('Table, online and kiosk orders go to each branch\'s WhatsApp number (or the restaurant\'s) as well as the order board')],
                 ];
             @endphp
             <div class="space-y-2">

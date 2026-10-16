@@ -46,6 +46,8 @@ return [
         'reservation_confirmed' => env('WHATSAPP_TPL_RESERVATION_CONFIRMED', 'egmenu_reservation_confirmed'),
         'loyalty_reward' => env('WHATSAPP_TPL_LOYALTY_REWARD', 'egmenu_loyalty_reward'),
         'campaign' => env('WHATSAPP_TPL_CAMPAIGN', 'egmenu_campaign'),
+        'automation' => env('WHATSAPP_TPL_AUTOMATION', 'egmenu_campaign'),       // free text {{1}}, same template as campaigns
+        'order_staff' => env('WHATSAPP_TPL_ORDER_STAFF', 'egmenu_campaign'),     // new-order alert to the restaurant, free text {{1}}
     ],
 
     // Meta template language per restaurant language

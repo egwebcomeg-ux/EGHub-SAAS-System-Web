@@ -17,6 +17,7 @@ final class Templates
         'loyalty_reward' => ['name', 'restaurant', 'reward', 'link'],
         'campaign' => ['text'],
         'automation' => ['text'],
+        'order_staff' => ['text'],     // new-order alert to the branch's / restaurant's own WhatsApp number
     ];
 
     private const TEXT = [
@@ -42,6 +43,7 @@ final class Templates
         ],
         'campaign' => ['ar' => '{text}', 'en' => '{text}'],
         'automation' => ['ar' => '{text}', 'en' => '{text}'],
+        'order_staff' => ['ar' => '{text}', 'en' => '{text}'],
     ];
 
     /**

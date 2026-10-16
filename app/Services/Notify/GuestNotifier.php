@@ -23,10 +23,14 @@ final class GuestNotifier
         'order_on_way' => 'wa_order_on_way',
         'reservation_confirmed' => 'wa_reservation_confirmed',
         'loyalty_reward' => 'wa_loyalty_reward',
+        'order_staff' => 'wa_order_to_staff',
     ];
 
     /** Orders the guest placed without staff in front of them get a "we received it" message. */
     public const RECEIVED_SOURCES = ['online', 'callcenter', 'kiosk'];
+
+    /** Orders nobody at the counter typed in: the branch's WhatsApp gets a "new order" alert (setting wa_order_to_staff). */
+    public const STAFF_ALERT_SOURCES = ['qr', 'online', 'whatsapp', 'kiosk'];
 
     public function __construct(private WhatsApp $whatsapp) {}
 
@@ -49,6 +53,36 @@ final class GuestNotifier
         if (in_array($order->source, self::RECEIVED_SOURCES, true)) {
             $this->order($order, 'order_received');
         }
+        if (in_array($order->source, self::STAFF_ALERT_SOURCES, true)) {
+            $this->orderToStaff($order);
+        }
+    }
+
+    /**
+     * "New order" alert to the restaurant itself: the branch's WhatsApp number, else the restaurant's. The order
+     * also shows on the branch's live board; this is for the owner who is not in front of a screen.
+     */
+    public function orderToStaff(Order $order): void
+    {
+        $phone = (string) ($order->branch?->whatsapp ?: Settings::get('whatsapp'));
+        $this->send('order_staff', $phone, function () use ($order) {
+            $order->loadMissing(['items', 'table', 'branch']);
+            $en = WhatsApp::locale() === 'en';
+            $type = Order::TYPES[$order->type][$en ? 1 : 0] ?? $order->type;
+            $where = $order->table ? ($en ? 'Table '.$order->table->name : 'ترابيزة '.$order->table->name) : $type;
+            $lines = $order->items->map(fn ($i) => $i->quantity.'× '.$i->name)->implode($en ? ', ' : '، ');
+            $who = trim($order->customer_name.' '.$order->customer_phone);
+            $text = ($en ? "New order #{$order->number} · {$where}" : "طلب جديد #{$order->number} · {$where}")
+                .($order->branch ? ' · '.tr($order->branch->name, $order->branch->name_en) : '')
+                ."\n{$lines}"
+                ."\n".($en ? 'Total: ' : 'الإجمالي: ').money($order->total).' '.($en ? 'EGP' : 'ج.م')
+                .($who !== '' ? "\n".($en ? 'Guest: ' : 'العميل: ').$who : '')
+                .($order->delivery_address ? "\n📍 ".trim(($order->delivery_address['zone'] ?? '').' - '.($order->delivery_address['text'] ?? ''), ' -') : '')
+                .($order->notes ? "\n📝 ".$order->notes : '')
+                ."\n".platform_url('app', 'orders');
+
+            return ['text' => $text];
+        }, null);
     }
 
     public function orderMoved(Order $order, string $to): void
