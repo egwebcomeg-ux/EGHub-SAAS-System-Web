@@ -32,6 +32,9 @@
         @endif
 
         <div class="mt-6 text-lg font-bold" data-status-label>{{ $order->statusLabel() }}</div>
+        @if ($order->status === 'cancelled' && ($why = $order->cancelReasonLabel()))
+            <p class="mt-2 rounded-xl bg-red-50 p-3 text-sm text-red-800" data-cancel-reason>{{ $why }}</p>
+        @endif
         @if ($order->status !== 'cancelled')
             <ol class="mt-4 flex items-center justify-between gap-1" data-steps>
                 @foreach ($steps as $i => $s)

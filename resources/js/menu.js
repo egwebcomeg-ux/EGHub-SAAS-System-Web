@@ -61,6 +61,14 @@ if (dataEl) {
         $('[data-sheet-name]', sheet).textContent = current.name;
         $('[data-sheet-desc]', sheet).textContent = current.description || '';
         $('[data-sheet-cal]', sheet).textContent = current.calories ? T.cal.replace('__N__', current.calories) : '';
+        const allergenBox = $('[data-sheet-allergens]', sheet);
+        if (allergenBox) {
+            const chips = (current.allergens || []).map((a) => `<span class="rounded-full bg-amber-50 px-2 py-0.5 font-semibold text-amber-900 ring-1 ring-amber-200">${esc(a.icon)} ${esc(a.label)}</span>`);
+            if (current.spicy) chips.unshift(`<span class="rounded-full bg-red-50 px-2 py-0.5 font-semibold text-red-700 ring-1 ring-red-200">${esc(current.spicy)} ${esc(T.spicy)}</span>`);
+            allergenBox.innerHTML = chips.length ? (current.allergens?.length ? `<span class="text-navy-500">${esc(T.contains)}</span>` : '') + chips.join('') : '';
+            allergenBox.classList.toggle('hidden', !chips.length);
+            allergenBox.classList.toggle('flex', chips.length > 0);
+        }
         const comboBox = $('[data-sheet-combo]', sheet);
         comboBox.classList.toggle('hidden', !current.combo);
         if (current.combo) {

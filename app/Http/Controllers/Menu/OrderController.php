@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\DeliveryZone;
 use App\Models\Order;
 use App\Services\Menu\MenuCatalog;
+use App\Services\Orders\BusyMode;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use App\Services\Settings;
@@ -76,6 +77,9 @@ class OrderController extends Controller
     private function placeOnline(array $data, OrderService $orders): Order
     {
         $branch = Branch::query()->where('is_active', true)->find($data['branch_id'] ?? 0) ?? MenuCatalog::defaultBranch();
+        if (BusyMode::isBusy()) {
+            throw new OrderException(BusyMode::message()); // the restaurant paused online ordering for a while
+        }
         $online = MenuController::onlineOptions($branch, Settings::all());
         $type = $data['type'] ?? 'takeaway';
         if (! $online || ! $online[$type]) {

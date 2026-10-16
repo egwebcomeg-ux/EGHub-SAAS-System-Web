@@ -44,6 +44,27 @@
                     @endforeach
                 </div>
             </fieldset>
+            <fieldset>
+                <legend class="field-label">{{ __('Spicy level') }}</legend>
+                <div class="flex flex-wrap gap-2">
+                    @foreach (range(0, \App\Models\MenuItem::MAX_SPICY) as $level)
+                        <label class="flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full border border-navy-100 px-3 text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+                            <input type="radio" name="spicy_level" value="{{ $level }}" class="sr-only" @checked((int) old('spicy_level', $item->spicy_level ?? 0) === $level)> {{ $level === 0 ? __('Not spicy') : str_repeat('🌶', $level) }}
+                        </label>
+                    @endforeach
+                </div>
+            </fieldset>
+            <fieldset class="sm:col-span-2">
+                <legend class="field-label">{{ __('Allergens') }}</legend>
+                <p class="mb-2 text-xs text-navy-500">{{ __('Shown to guests when they open the item. Tick everything the dish contains.') }}</p>
+                <div class="flex flex-wrap gap-2">
+                    @foreach (\App\Models\MenuItem::ALLERGENS as $key => [$icon, $ar, $en])
+                        <label class="flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full border border-navy-100 px-3 text-sm has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50">
+                            <input type="checkbox" name="allergens[]" value="{{ $key }}" class="sr-only" @checked(in_array($key, old('allergens', $item->allergens ?? []), true))> {{ $icon }} {{ app()->getLocale() === 'en' ? $en : $ar }}
+                        </label>
+                    @endforeach
+                </div>
+            </fieldset>
         </section>
 
         <section class="card">
@@ -97,7 +118,18 @@
         @endif
         <section class="card space-y-2 text-sm">
             <label class="flex min-h-9 items-center gap-2"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', $item->is_active ?? true)) class="size-4 accent-brand-600"> {{ __('Visible on the menu') }}</label>
-            <label class="flex min-h-9 items-center gap-2"><input type="checkbox" name="is_sold_out" value="1" @checked(old('is_sold_out', $item->is_sold_out)) class="size-4 accent-brand-600"> {{ __('Sold out') }}</label>
+            @php($soldOutUntil = $item->exists ? $item->soldOutUntil() : null)
+            <label class="flex min-h-9 items-center gap-2"><input type="checkbox" name="is_sold_out" value="1" @checked(old('is_sold_out', $item->exists ? $item->isSoldOutNow() : false)) class="size-4 accent-brand-600" data-sold-out-check> {{ __('Sold out') }}</label>
+            <div class="space-y-2 ps-6" data-sold-out-fields>
+                <select class="field min-h-9 py-1" name="sold_out_until" data-sold-out-until>
+                    <option value="" @selected(old('sold_out_until', $soldOutUntil ? 'custom' : '') === '')>{{ __('Until I say so') }}</option>
+                    <option value="end_of_day" @selected(old('sold_out_until') === 'end_of_day')>{{ __('Back at the end of today') }}</option>
+                    <option value="tomorrow" @selected(old('sold_out_until') === 'tomorrow')>{{ __('Back tomorrow morning (6 AM)') }}</option>
+                    <option value="hours_2" @selected(old('sold_out_until') === 'hours_2')>{{ __('Back in 2 hours') }}</option>
+                    <option value="custom" @selected(old('sold_out_until', $soldOutUntil ? 'custom' : '') === 'custom')>{{ __('Back at a time I pick…') }}</option>
+                </select>
+                <input type="datetime-local" class="field min-h-9 py-1" name="sold_out_until_at" value="{{ old('sold_out_until_at', $soldOutUntil ? local_time($soldOutUntil, 'Y-m-d\TH:i') : '') }}" dir="ltr" data-sold-out-until-at>
+            </div>
             <label class="flex min-h-9 items-center gap-2"><input type="checkbox" name="is_featured" value="1" @checked(old('is_featured', $item->is_featured)) class="size-4 accent-brand-600"> {{ __('Featured') }}</label>
         </section>
         <button class="btn-primary w-full">{{ __('Save item') }}</button>

@@ -53,6 +53,9 @@ final class MenuImporter
                         'description' => $row['description'] ?: ($item->description ?? null),
                         'description_en' => $row['description_en'] ?: ($item->description_en ?? null),
                     ];
+                    if ($row['allergens'] !== []) {
+                        $values['allergens'] = $row['allergens'];
+                    }
                     if ($item) {
                         $item->update($values);
                         $updated++;

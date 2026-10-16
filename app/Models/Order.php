@@ -46,6 +46,23 @@ class Order extends TenantModel
         'delivery' => ['توصيل', 'Delivery'],
     ];
 
+    /** Orders guests place themselves (the board alarm rings for these until someone accepts them). */
+    public const GUEST_SOURCES = ['qr', 'online', 'whatsapp'];
+
+    /** cancel_reason written by egmenu:auto-cancel (shown translated to the guest). */
+    public const REASON_NOT_ACCEPTED = 'not accepted in time';
+
+    /** The cancel reason as the guest should read it. */
+    public function cancelReasonLabel(): ?string
+    {
+        if (! $this->cancel_reason) {
+            return null;
+        }
+
+        return $this->cancel_reason === self::REASON_NOT_ACCEPTED
+            ? __('Sorry, the restaurant could not accept your order in time, so it was cancelled.') : $this->cancel_reason;
+    }
+
     protected function casts(): array
     {
         return [

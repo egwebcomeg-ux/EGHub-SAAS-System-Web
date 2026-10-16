@@ -55,6 +55,10 @@ final class Settings
         'online_takeaway' => '1',
         'online_delivery' => '0',
         'online_prep_minutes' => '20',
+        'online_auto_cancel_minutes' => '0',  // 0 = off; else online orders nobody accepted in N minutes are cancelled (egmenu:auto-cancel)
+        // busy mode (orders board): until this moment online/takeaway/delivery ordering is paused; table orders go on
+        'busy_until' => '',                   // ISO datetime or empty
+        'busy_message' => '',
         'service_percent' => '0',
         'tax_percent' => '0',
         // AI menu import with the restaurant's own key (ai_key is encrypted, see AiProviders)

@@ -10,6 +10,7 @@ use App\Services\Import\Ai\AiException;
 use App\Services\Import\Ai\AiProviders;
 use App\Services\Marketing\TrackingPixels;
 use App\Services\Notify\GuestNotifier;
+use App\Services\Orders\AutoCancel;
 use App\Services\Settings;
 use App\Support\BusinessType;
 use App\Support\Cities;
@@ -76,6 +77,7 @@ class SettingsController extends Controller
             'short_description_en' => 'nullable|string|max:160',
             'service_percent' => 'nullable|numeric|min:0|max:30',
             'online_prep_minutes' => 'nullable|integer|min:5|max:240',
+            'online_auto_cancel_minutes' => 'nullable|integer|min:0|max:'.AutoCancel::MAX_MINUTES,
             'tax_percent' => 'nullable|numeric|min:0|max:30',
             'ai_provider' => ['nullable', Rule::in(array_keys(AiProviders::PROVIDERS))],
             'ai_model' => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._:\/-]+$/'],
@@ -121,6 +123,9 @@ class SettingsController extends Controller
         if (Entitlements::current()->allows('online_ordering')) {
             $values['online_takeaway'] = $request->boolean('online_takeaway') ? '1' : '0';
             $values['online_delivery'] = $request->boolean('online_delivery') ? '1' : '0';
+            $values['online_auto_cancel_minutes'] = (string) (int) ($data['online_auto_cancel_minutes'] ?? 0);
+        } else {
+            unset($values['online_auto_cancel_minutes']);
         }
         // WhatsApp messages to guests: each toggle switches one message type on
         if (Entitlements::current()->allows('whatsapp_notifications')) {

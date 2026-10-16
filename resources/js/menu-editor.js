@@ -40,13 +40,38 @@ document.querySelectorAll('[data-sortable]').forEach((list) => {
     });
 });
 
+// "Sold out until" preset next to the list (remembered on this device); custom shows a date-time field.
+const untilSelect = document.querySelector('[data-sold-out-until]:not(select[name])');
+const untilAt = document.querySelector('[data-sold-out-until-at]:not(input[name])');
+if (untilSelect) {
+    try { untilSelect.value = localStorage.getItem('egmenu.soldOutUntil') || ''; } catch {}
+    const syncUntil = () => {
+        untilAt?.classList.toggle('hidden', untilSelect.value !== 'custom');
+        try { localStorage.setItem('egmenu.soldOutUntil', untilSelect.value); } catch {}
+    };
+    untilSelect.addEventListener('change', syncUntil);
+    syncUntil();
+}
+
 // Quick toggles: sold out / visible.
 document.querySelectorAll('[data-toggle]').forEach((btn) => {
     btn.addEventListener('click', async () => {
         btn.disabled = true;
         try {
-            const { value } = await post(btn.dataset.toggle, { field: btn.dataset.field });
+            const body = { field: btn.dataset.field };
+            if (btn.dataset.field === 'sold_out' && untilSelect) {
+                body.until = untilSelect.value;
+                if (untilSelect.value === 'custom') body.until_at = untilAt?.value || null;
+            }
+            const { value, until } = await post(btn.dataset.toggle, body);
             btn.textContent = value ? btn.dataset.on : btn.dataset.off;
+            if (value && until && btn.dataset.untilLabel) {
+                const span = document.createElement('span');
+                span.className = 'font-normal';
+                span.dir = 'ltr';
+                span.textContent = ' · ' + btn.dataset.untilLabel.replace('__T__', until);
+                btn.append(span);
+            }
             if (btn.dataset.field === 'sold_out') {
                 btn.classList.toggle('bg-red-100', value);
                 btn.classList.toggle('text-red-700', value);
@@ -63,6 +88,21 @@ document.querySelectorAll('[data-toggle]').forEach((btn) => {
         }
     });
 });
+
+// Item form: the "sold out until" fields only matter while the item is sold out.
+const soldOutCheck = document.querySelector('[data-sold-out-check]');
+if (soldOutCheck) {
+    const fields = document.querySelector('[data-sold-out-fields]');
+    const select = fields.querySelector('select[data-sold-out-until]');
+    const at = fields.querySelector('input[data-sold-out-until-at]');
+    const sync = () => {
+        fields.classList.toggle('hidden', !soldOutCheck.checked);
+        at.classList.toggle('hidden', select.value !== 'custom');
+    };
+    soldOutCheck.addEventListener('change', sync);
+    select.addEventListener('change', sync);
+    sync();
+}
 
 // Sizes & extras editor. Inputs carry data-name; names are rebuilt as groups[i][...] before submit.
 const groupsBox = document.querySelector('[data-groups]');

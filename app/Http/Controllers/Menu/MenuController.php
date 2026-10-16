@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Menu;
 
 use App\Http\Controllers\Controller;
+use App\Models\Banner;
 use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Customer;
@@ -14,9 +15,11 @@ use App\Models\Popup;
 use App\Services\Entitlements;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Menu\MenuCatalog;
+use App\Services\Orders\BusyMode;
 use App\Services\Seo\RestaurantProfile;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
+use App\Support\OpeningHours;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,6 +50,10 @@ class MenuController extends Controller
         $popup = Entitlements::current()->allows('offers')
             ? Popup::query()->where('is_active', true)->with('item')->latest('id')->get()->first(fn ($p) => $p->isLive($branch->id) && (! $p->menu_item_id || $available->has($p->menu_item_id)))
             : null;
+        $banners = Entitlements::current()->allows('offers')
+            ? Banner::query()->where('is_active', true)->orderBy('sort_order')->orderBy('id')->get()->filter(fn (Banner $b) => $b->isLive())->take(Banner::MAX_ACTIVE)->values()
+            : collect();
+        $shownCategories = $categories->keyBy('id');
 
         $loyalty = app(LoyaltyService::class)->program();
         $profile = new RestaurantProfile;
@@ -70,6 +77,11 @@ class MenuController extends Controller
             'online' => $online,
             'offers' => $catalog->runningOffers(),
             'popup' => $popup,
+            'banners' => $banners,
+            'shownCategories' => $shownCategories,
+            'available' => $available,
+            'busy' => $table === null ? BusyMode::state() : null,
+            'openNow' => OpeningHours::isOpenAt($branch->working_hours, now()),
             'data' => [
                 'popup' => $popup ? [
                     'id' => $popup->id, 'type' => $popup->type, 'frequency' => $popup->frequency, 'delay' => $popup->delay_seconds,
@@ -100,6 +112,7 @@ class MenuController extends Controller
                     ] : null,
                     'description' => tx($i, 'description'), 'image' => $i->image ? '/storage/'.$i->image : null,
                     'calories' => $i->calories,
+                    'allergens' => $i->allergenList(), 'spicy' => $i->spicyIcons(),
                     'groups' => $i->optionGroups->map(fn ($g) => [
                         'id' => $g->id, 'name' => tx($g, 'name'), 'type' => $g->type, 'required' => $g->is_required,
                         'max' => $g->max_choices,
@@ -132,7 +145,7 @@ class MenuController extends Controller
      */
     public static function onlineOptions(Branch $branch, array $settings): ?array
     {
-        if (! Entitlements::current()->allows('online_ordering') || $settings['ordering_enabled'] !== '1') {
+        if (! Entitlements::current()->allows('online_ordering') || $settings['ordering_enabled'] !== '1' || BusyMode::isBusy()) {
             return null;
         }
         $zones = $settings['online_delivery'] === '1'

@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use Carbon\CarbonInterface;
+
 /**
  * Turns the free-text working hours of a branch ("9 AM – 1 AM", "٩ ص - ٢ م", "08:00 - 23:30") into schema.org
  * openingHours ("Mo-Su 09:00-01:00"). Text it cannot read with certainty gives null, so nothing wrong is published.
@@ -27,6 +29,39 @@ final class OpeningHours
         $to = self::clock((int) $m[4], ($m[5] ?? '') !== '' ? (int) $m[5] : null, $m[6] ?? '');
 
         return $from && $to ? "Mo-Su $from-$to" : null;
+    }
+
+    /**
+     * The daily window as ["20:00", "03:00"] (close may be earlier than open: the place closes after midnight),
+     * or null when the text cannot be read. "24 hours" gives ["00:00", "23:59"].
+     *
+     * @return array{0:string, 1:string}|null
+     */
+    public static function window(?string $text): ?array
+    {
+        return preg_match('/(\d{2}:\d{2})-(\d{2}:\d{2})$/', (string) self::toSchema($text), $m) ? [$m[1], $m[2]] : null;
+    }
+
+    /**
+     * Open at $at (restaurant local time)? An overnight window (20:00–03:00) is open after midnight too.
+     * Null when the working hours are not set or not readable, so nothing wrong is shown.
+     */
+    public static function isOpenAt(?string $text, CarbonInterface $at): ?bool
+    {
+        $window = self::window($text);
+        if (! $window) {
+            return null;
+        }
+        [$open, $close] = $window;
+        if ($close === '23:59' && $open === '00:00') {
+            return true;
+        }
+        $now = $at->format('H:i');
+        if ($open <= $close) {
+            return $now >= $open && $now < $close;
+        }
+
+        return $now >= $open || $now < $close;
     }
 
     /** 9, null, "pm" → "21:00"; without am/pm only a 24-hour time (with minutes, or 13-23) is accepted. */

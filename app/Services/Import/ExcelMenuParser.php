@@ -2,6 +2,8 @@
 
 namespace App\Services\Import;
 
+use App\Models\MenuItem;
+
 /**
  * Reads the menu template (or any sheet with similar headers) into a MenuDraft.
  * Columns are found by their header in Arabic or English, so owners can reorder or drop optional columns.
@@ -19,12 +21,13 @@ final class ExcelMenuParser
         'description_en' => ['الوصف (إنجليزي)', 'description (en)', 'description_en'],
         'sizes' => ['الأحجام', 'الاحجام', 'sizes', 'size'],
         'extras' => ['الإضافات', 'الاضافات', 'extras', 'add-ons', 'addons'],
+        'allergens' => ['الحساسية', 'مسببات الحساسية', 'allergens', 'allergen'],
     ];
 
     /** Header row of the downloadable template, in COLUMNS order. */
     public static function templateHeader(): array
     {
-        return ['القسم', 'القسم (إنجليزي)', 'الصنف', 'الصنف (إنجليزي)', 'السعر', 'الوصف', 'الوصف (إنجليزي)', 'الأحجام', 'الإضافات'];
+        return ['القسم', 'القسم (إنجليزي)', 'الصنف', 'الصنف (إنجليزي)', 'السعر', 'الوصف', 'الوصف (إنجليزي)', 'الأحجام', 'الإضافات', 'الحساسية'];
     }
 
     /** @param array<int, array<int, string>> $rows first row = header */
@@ -57,6 +60,7 @@ final class ExcelMenuParser
                 'name' => $get('name'), 'name_en' => $get('name_en'), 'price' => $get('price'),
                 'description' => $get('description'), 'description_en' => $get('description_en'),
                 'sizes' => MenuDraft::parseChoices($get('sizes')), 'extras' => MenuDraft::parseChoices($get('extras')),
+                'allergens' => MenuItem::allergenKeys($get('allergens')),
             ];
         }
 

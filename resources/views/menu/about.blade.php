@@ -104,7 +104,10 @@
                         @if ($branches->count() > 1)<h3 class="mb-2 font-extrabold">{{ tr($b->name, $b->name_en) }}</h3>@endif
                         <dl class="space-y-1.5 text-sm">
                             @if ($b->address)<div class="flex gap-2"><dt class="w-20 shrink-0 text-navy-500">{{ __('Address') }}</dt><dd>{{ $b->address }}</dd></div>@endif
-                            @if ($b->working_hours)<div class="flex gap-2"><dt class="w-20 shrink-0 text-navy-500">{{ __('Hours') }}</dt><dd>{{ $b->working_hours }}</dd></div>@endif
+                            @if ($b->working_hours)<div class="flex gap-2"><dt class="w-20 shrink-0 text-navy-500">{{ __('Hours') }}</dt><dd>{{ $b->working_hours }}
+                                @php($open = \App\Support\OpeningHours::isOpenAt($b->working_hours, now()))
+                                @if ($open !== null)<span @class(['badge ms-1', 'bg-emerald-100 text-emerald-800' => $open, 'bg-navy-100 text-navy-500' => ! $open])>{{ $open ? __('Open now') : __('Closed now') }}</span>@endif
+                            </dd></div>@endif
                             @if ($b->phone)<div class="flex gap-2"><dt class="w-20 shrink-0 text-navy-500">{{ __('Phone') }}</dt><dd><a href="tel:{{ $b->phone }}" dir="ltr" class="font-semibold">{{ $b->phone }}</a></dd></div>@endif
                         </dl>
                         <div class="mt-3 flex flex-wrap gap-2">

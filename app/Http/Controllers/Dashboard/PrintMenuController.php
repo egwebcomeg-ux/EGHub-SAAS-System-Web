@@ -37,7 +37,7 @@ class PrintMenuController extends Controller
             default => [$lang, null],
         };
         $branch = isset($opts['branch']) ? Branch::query()->find($opts['branch']) : null;
-        $catalog = MenuCatalog::forBranch($branch)->withoutOffers();
+        $catalog = MenuCatalog::forBranch($branch)->withoutOffers()->allDay();
         $settings = Settings::all();
 
         return view('dashboard.menu.print', [

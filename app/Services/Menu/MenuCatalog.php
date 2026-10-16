@@ -25,7 +25,17 @@ final class MenuCatalog
 
     private bool $withOffers = true;
 
+    private bool $withDayparts = true;
+
     public function __construct(public readonly Branch $branch) {}
+
+    /** Every category whatever the hour: for staff screens (POS) and the printed menu. Guests get the dayparts. */
+    public function allDay(): self
+    {
+        $this->withDayparts = false;
+
+        return $this;
+    }
 
     /** Regular prices only: for the printed menu, where a happy-hour price would be wrong most of the day. */
     public function withoutOffers(): self
@@ -52,6 +62,10 @@ final class MenuCatalog
             ->with(['items' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order')->orderBy('id')
                 ->with(['optionGroups.options', 'pairings', 'comboParts'])])
             ->get();
+        if ($this->withDayparts) {
+            $now = now();
+            $categories = $categories->filter(fn (Category $c) => $c->isVisibleAt($now))->values();
+        }
 
         foreach ($categories as $category) {
             $category->setRelation('items', $category->items->filter(fn (MenuItem $i) => $this->isAvailable($i))
@@ -72,14 +86,15 @@ final class MenuCatalog
     }
 
     /**
-     * Applies the branch override and a running timed offer to the model in memory (never saved).
-     * With an offer, `offer_from` keeps the price before it and `offer_percent` the discount.
+     * Applies the branch override, a timed sold-out that already ended and a running timed offer to the model in
+     * memory (never saved). With an offer, `offer_from` keeps the price before it and `offer_percent` the discount.
      */
     public function apply(MenuItem $item): MenuItem
     {
         if ($item->getAttribute('catalog_applied')) {
             return $item;
         }
+        $item->is_sold_out = $item->isSoldOutNow();
         if ($o = $this->override($item)) {
             if ($o->price !== null) {
                 $item->price = $o->price;

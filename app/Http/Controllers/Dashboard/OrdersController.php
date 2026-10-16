@@ -8,6 +8,7 @@ use App\Models\Reservation;
 use App\Models\TableCall;
 use App\Services\Audit;
 use App\Services\Entitlements;
+use App\Services\Orders\BusyMode;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use App\Services\Settings;
@@ -26,7 +27,7 @@ class OrdersController extends Controller
 
     public function board(): View
     {
-        return view('dashboard.orders.board', ['poll' => self::POLL_SECONDS]);
+        return view('dashboard.orders.board', ['poll' => self::POLL_SECONDS, 'busy' => BusyMode::state()]);
     }
 
     public function feed(Request $request): JsonResponse
@@ -42,6 +43,7 @@ class OrdersController extends Controller
 
         return response()->json([
             'max_id' => (int) $this->scoped($request)->max('id'),
+            'busy' => BusyMode::state(),
             'orders' => $orders->map(fn (Order $o) => $this->present($o))->values(),
             'calls' => $calls->map(fn (TableCall $c) => [
                 'id' => $c->id, 'kind' => $c->kind, 'label' => $c->kindLabel(), 'table' => $c->table?->name,
@@ -65,6 +67,35 @@ class OrdersController extends Controller
                 'id' => $r->id, 'name' => $r->name, 'phone' => $r->phone, 'party' => $r->party_size, 'notes' => $r->notes,
                 'when' => local_time($r->starts_at, $r->starts_at->isToday() ? 'h:i A' : 'd/m h:i A'),
             ])->values()->all();
+    }
+
+    /**
+     * Busy mode from the board: `mode` off | minutes (30, 60…) | time ("21:00" today, or tomorrow when past), with an
+     * optional message guests read on the menu. While busy, online / takeaway / delivery ordering is paused.
+     */
+    public function busy(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'mode' => ['required', Rule::in(['off', 'minutes', 'time'])],
+            'minutes' => 'required_if:mode,minutes|nullable|integer|min:5|max:'.(BusyMode::MAX_HOURS * 60),
+            'time' => 'required_if:mode,time|nullable|date_format:H:i',
+            'message' => 'nullable|string|max:200',
+        ]);
+        if ($data['mode'] === 'off') {
+            BusyMode::stop();
+            Audit::record('busy.off');
+        } else {
+            $until = $data['mode'] === 'minutes'
+                ? now()->addMinutes((int) $data['minutes'])
+                : now()->setTimeFromTimeString($data['time'].':00');
+            if ($until->lte(now())) {
+                $until->addDay();
+            }
+            BusyMode::start($until, (string) ($data['message'] ?? ''));
+            Audit::record('busy.on', local_time($until), ['until' => $until->toIso8601String()]);
+        }
+
+        return response()->json(['ok' => true, 'busy' => BusyMode::state()]);
     }
 
     /** A waiter answered the table: the call disappears from every screen. */
@@ -130,6 +161,7 @@ class OrdersController extends Controller
             'address' => $o->delivery_address ? trim(($o->delivery_address['zone'] ?? '').' — '.($o->delivery_address['text'] ?? ''), ' —') : null,
             'total' => money($o->total), 'created_at' => $o->created_at->toIso8601String(),
             'time' => local_time($o->created_at, 'h:i A'),
+            'reason' => $o->status === 'cancelled' ? $o->cancelReasonLabel() : null,
             'next' => array_values(array_filter(Order::TRANSITIONS[$o->status] ?? [], fn ($s) => $o->canMoveTo($s))),
             'items' => $o->items->map(fn ($i) => [
                 'name' => $i->name, 'qty' => $i->quantity, 'notes' => $i->notes,

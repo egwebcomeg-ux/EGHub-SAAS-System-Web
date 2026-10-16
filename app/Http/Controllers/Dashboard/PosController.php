@@ -31,7 +31,7 @@ class PosController extends Controller
     public function screen(Request $request, ShiftService $shifts): View
     {
         $branch = self::branch($request);
-        $catalog = MenuCatalog::forBranch($branch);
+        $catalog = MenuCatalog::forBranch($branch)->allDay(); // the cashier sells breakfast items at any hour
         $categories = $catalog->categories();
         $settings = Settings::all();
         $shift = $shifts->current($request->user());

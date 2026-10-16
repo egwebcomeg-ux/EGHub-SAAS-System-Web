@@ -24,6 +24,7 @@ final class ImageService
         'category' => ['categories', 900, 600, false],
         'logo' => ['brand', 400, 400, false],
         'cover' => ['brand', 1600, 700, false],
+        'banner' => ['banners', 1600, 700, false],
     ];
 
     /** @return string path on the public disk, e.g. tenants/my-cafe/items/uuid.webp */

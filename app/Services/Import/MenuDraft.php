@@ -2,10 +2,13 @@
 
 namespace App\Services\Import;
 
+use App\Models\MenuItem;
+
 /**
  * The one shape every import source (spreadsheet, AI from a photo/PDF) is turned into before the owner reviews it:
  *   ['categories' => [['name', 'name_en', 'items' => [['name', 'name_en', 'description', 'description_en', 'price',
- *     'sizes' => [['name', 'price']], 'extras' => [['name', 'price']]]]]]]
+ *     'sizes' => [['name', 'price']], 'extras' => [['name', 'price']], 'allergens' => ['gluten', …]]]]]]
+ * Allergens are keys of MenuItem::ALLERGENS (a sheet may hold them as keys or labels); the AI never fills them.
  * Everything is clamped here, so neither a messy sheet nor a model's output can push oversized or odd values in.
  */
 final class MenuDraft
@@ -73,6 +76,7 @@ final class MenuDraft
                     'description' => self::text($item['description'] ?? '', 500), 'description_en' => self::text($item['description_en'] ?? '', 500),
                     'price' => self::price($item['price'] ?? 0),
                     'sizes' => self::choices($item['sizes'] ?? []), 'extras' => self::choices($item['extras'] ?? []),
+                    'allergens' => self::allergens($item['allergens'] ?? []),
                 ];
                 $count++;
             }
@@ -108,6 +112,16 @@ final class MenuDraft
     public static function choicesText(array $choices): string
     {
         return implode(' | ', array_map(fn ($c) => $c['name'].':'.money($c['price']), $choices));
+    }
+
+    /** @return list<string> keys of MenuItem::ALLERGENS */
+    private static function allergens(mixed $list): array
+    {
+        if (is_string($list)) {
+            return MenuItem::allergenKeys($list);
+        }
+
+        return array_values(array_filter(array_unique(array_map(fn ($k) => is_string($k) ? $k : '', (array) $list)), fn ($k) => isset(MenuItem::ALLERGENS[$k])));
     }
 
     private static function choices(mixed $list): array

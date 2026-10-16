@@ -49,6 +49,11 @@
             <a href="{{ route('menu.reserve', $branches->count() > 1 ? ['branch' => $branch->id] : []) }}" class="m-primary inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-sm font-bold shadow" data-reserve-link>{{ __('Book a table') }}</a>
         @endif
     </div>
+    @if ($openNow !== null)
+        <div class="mx-auto max-w-2xl px-4 pb-3">
+            <span @class(['rounded-full px-3 py-1 text-xs font-bold', 'bg-emerald-500/90 text-white' => $openNow, 'bg-white/20 text-white/90' => ! $openNow]) data-open-now>{{ $openNow ? __('Open now') : __('Closed now') }}@if ($branch->working_hours) · <span dir="auto">{{ $branch->working_hours }}</span>@endif</span>
+        </div>
+    @endif
     @if ($table)
         <div class="mx-auto max-w-2xl px-4 pb-4">
             <span class="m-primary rounded-full px-3 py-1 text-sm font-bold">{{ __('Table :name', ['name' => $table->name]) }}@if ($branches->count() > 1) · {{ tr($branch->name, $branch->name_en) }}@endif</span>
@@ -61,6 +66,53 @@
         </div>
     @endif
 </header>
+
+@if ($busy)
+    <div class="mx-auto max-w-2xl px-4 pt-4" data-busy-notice>
+        <div class="flex items-start gap-3 rounded-2xl bg-amber-50 p-3 text-amber-900 ring-1 ring-amber-200">
+            <span class="text-xl">⏳</span>
+            <div class="text-sm">
+                <b class="block">{{ __("We're busy right now") }} · {{ __('until :time', ['time' => $busy['until']]) }}</b>
+                <span>{{ $busy['message'] }}</span>
+            </div>
+        </div>
+    </div>
+@endif
+
+@if ($banners->isNotEmpty())
+    {{-- swipeable picture strip: CSS scroll-snap, no script --}}
+    <section class="mx-auto max-w-2xl px-4 pt-4" data-banners aria-label="{{ __('Highlights') }}">
+        <div class="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            @foreach ($banners as $banner)
+                @php
+                    $title = tr($banner->title, $banner->title_en);
+                    $type = $banner->linkType();
+                    $itemOk = $type === 'item' && $available->has($banner->menu_item_id);
+                    $categoryOk = $type === 'category' && $shownCategories->has($banner->category_id);
+                    $classes = 'relative block w-[85%] shrink-0 snap-start overflow-hidden rounded-2xl bg-black/5 text-start shadow-sm sm:w-[70%]';
+                @endphp
+                @if ($itemOk)
+                    <button type="button" class="{{ $classes }}" data-item="{{ $banner->menu_item_id }}" data-banner="{{ $banner->id }}">
+                @elseif ($categoryOk)
+                    <a href="#cat-{{ $banner->category_id }}" class="{{ $classes }}" data-banner="{{ $banner->id }}">
+                @elseif ($type === 'url')
+                    <a href="{{ $banner->link_url }}" target="_blank" rel="noopener" class="{{ $classes }}" data-banner="{{ $banner->id }}">
+                @else
+                    <div class="{{ $classes }}" data-banner="{{ $banner->id }}">
+                @endif
+                        <img src="/storage/{{ $banner->image }}" alt="{{ $title }}" loading="{{ $loop->first ? 'eager' : 'lazy' }}" decoding="async" class="aspect-[16/7] w-full object-cover">
+                        @if ($title)<span class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-8 text-sm font-extrabold text-white">{{ $title }}</span>@endif
+                @if ($itemOk)
+                    </button>
+                @elseif ($categoryOk || $type === 'url')
+                    </a>
+                @else
+                    </div>
+                @endif
+            @endforeach
+        </div>
+    </section>
+@endif
 
 @if ($categories->isNotEmpty())
     <nav class="sticky top-0 z-20 border-b border-black/5 bg-white/95 backdrop-blur" data-cat-nav>
@@ -165,6 +217,7 @@
             </div>
             <p class="mt-1 text-navy-500" data-sheet-desc></p>
             <p class="mt-1 text-xs text-navy-500" data-sheet-cal></p>
+            <div class="mt-2 hidden flex-wrap items-center gap-1.5 text-xs" data-sheet-allergens></div>
             <div class="mt-3 hidden rounded-xl bg-brand-50 p-3 text-sm" data-sheet-combo></div>
             <div class="mt-4 space-y-5" data-sheet-groups></div>
             <label class="mt-5 block">
@@ -299,6 +352,7 @@
         'chooseZone' => __('Choose your area'), 'enterAddress' => __('Write the delivery address.'),
         'phoneRequired' => __('Enter your mobile number so the restaurant can reach you.'),
         'payFromBalance' => __('Pay from my balance'), 'notEnoughBalance' => __('Not enough balance for this order.'),
+        'contains' => __('Contains:'), 'spicy' => __('Spicy'),
     ];
 @endphp
 <script type="application/json" id="menu-i18n">{!! json_encode($i18n, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>

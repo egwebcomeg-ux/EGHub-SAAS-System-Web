@@ -67,15 +67,31 @@ class CategoriesController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    /** @return array<string,mixed> */
+    /**
+     * Name, texts and the optional daypart (visible_from–visible_until on chosen weekdays; both times or none).
+     *
+     * @return array<string,mixed>
+     */
     private function validated(Request $request): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'name' => 'required|string|max:80',
             'name_en' => 'nullable|string|max:80',
             'description' => 'nullable|string|max:200',
             'description_en' => 'nullable|string|max:200',
             'image' => 'nullable|file|max:5120',
-        ]) + ['name_en' => '', 'description' => '', 'description_en' => ''];
+            'visible_from' => 'nullable|date_format:H:i|required_with:visible_until',
+            'visible_until' => 'nullable|date_format:H:i|required_with:visible_from',
+            'visible_days' => 'nullable|array',
+            'visible_days.*' => 'integer|between:0,6',
+        ]);
+        unset($data['image']);
+        $days = array_values(array_unique(array_map('intval', $data['visible_days'] ?? [])));
+        sort($days);
+        $data['visible_from'] = ($data['visible_from'] ?? null) ?: null;
+        $data['visible_until'] = ($data['visible_until'] ?? null) ?: null;
+        $data['visible_days'] = $days !== [] && count($days) < 7 ? $days : null;
+
+        return $data + ['name_en' => '', 'description' => '', 'description_en' => ''];
     }
 }

@@ -114,16 +114,31 @@ class ItemsController extends Controller
         return redirect()->route('dash.menu')->with('ok', __('Item deleted.'));
     }
 
-    /** Quick toggles from the menu list (also allowed with menu.availability only): sold_out | active. */
+    /**
+     * Quick toggles from the menu list (also allowed with menu.availability only): sold_out | active.
+     * Marking sold out takes an optional `until` preset (end_of_day | tomorrow | hours_2 | custom + until_at) after
+     * which the item comes back by itself; an ended timed sold-out counts as available, so the toggle marks it again.
+     */
     public function toggle(Request $request, MenuItem $item): JsonResponse
     {
         $field = $request->input('field') === 'active' ? 'is_active' : 'is_sold_out';
         if ($field === 'is_active' && ! $request->user()->can('menu.manage')) {
             abort(403);
         }
-        $item->update([$field => ! $item->{$field}]);
+        if ($field === 'is_active') {
+            $item->update(['is_active' => ! $item->is_active]);
 
-        return response()->json(['ok' => true, 'value' => $item->{$field}]);
+            return response()->json(['ok' => true, 'value' => $item->is_active]);
+        }
+        $data = $request->validate(['until' => ['nullable', Rule::in(MenuItem::SOLD_OUT_UNTIL)], 'until_at' => 'nullable|date']);
+        $soldOut = ! $item->isSoldOutNow();
+        $from = $soldOut ? MenuItem::availableFromPreset((string) ($data['until'] ?? ''), $data['until_at'] ?? null) : null;
+        if ($from && $from->isPast()) {
+            $from = null;
+        }
+        $item->update(['is_sold_out' => $soldOut, 'available_from' => $from]);
+
+        return response()->json(['ok' => true, 'value' => $soldOut, 'until' => $from ? local_time($from, $from->isToday() ? 'h:i A' : 'd/m h:i A') : null]);
     }
 
     /** {ids: [...]} in the new order, inside one category. */
@@ -149,6 +164,11 @@ class ItemsController extends Controller
             'calories' => 'nullable|integer|min:0|max:10000',
             'tags' => 'array|max:8',
             'tags.*' => [Rule::in(array_keys(MenuItem::TAGS))],
+            'allergens' => 'array|max:12',
+            'allergens.*' => [Rule::in(array_keys(MenuItem::ALLERGENS))],
+            'spicy_level' => 'nullable|integer|min:0|max:'.MenuItem::MAX_SPICY,
+            'sold_out_until' => ['nullable', Rule::in(MenuItem::SOLD_OUT_UNTIL)],
+            'sold_out_until_at' => 'nullable|date',
             'image' => 'nullable|file|max:5120',
             'groups' => 'array|max:10',
             'groups.*.name' => 'required|string|max:60',
@@ -176,9 +196,14 @@ class ItemsController extends Controller
                 'description' => $data['description'] ?? null, 'description_en' => $data['description_en'] ?? null,
                 'price' => $data['price'], 'calories' => $data['calories'] ?? null,
                 'badges' => array_values(array_unique($data['tags'] ?? [])) ?: null,
+                'allergens' => array_values(array_unique($data['allergens'] ?? [])) ?: null,
+                'spicy_level' => (int) ($data['spicy_level'] ?? 0),
                 'is_active' => $request->boolean('is_active'), 'is_sold_out' => $request->boolean('is_sold_out'),
                 'is_featured' => $request->boolean('is_featured'),
             ]);
+            // sold out until: the form shows a running end as "custom" with its time, so saving keeps it; unticking clears it
+            $from = $item->is_sold_out ? MenuItem::availableFromPreset((string) ($data['sold_out_until'] ?? ''), $data['sold_out_until_at'] ?? null) : null;
+            $item->available_from = $from && $from->isFuture() ? $from : null;
             if ($request->hasFile('image')) {
                 $images->delete($item->image);
                 $item->image = $images->store($request->file('image'), 'item');

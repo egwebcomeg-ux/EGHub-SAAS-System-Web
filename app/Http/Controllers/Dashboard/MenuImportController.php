@@ -44,9 +44,9 @@ class MenuImportController extends Controller
         @mkdir(dirname($path), 0775, true);
         (new XlsxWriter)->addSheet('Menu', [
             ExcelMenuParser::templateHeader(),
-            ['قهوة ساخنة', 'Hot Coffee', 'لاتيه', 'Latte', 65, 'إسبريسو ولبن', 'Espresso & milk', 'صغير:0 | كبير:15', 'شوت زيادة:10'],
-            ['', '', 'كابتشينو', 'Cappuccino', 65, '', '', 'صغير:0 | كبير:15', ''],
-            ['حلويات', 'Desserts', 'تشيز كيك', 'Cheesecake', 90, '', '', '', ''],
+            ['قهوة ساخنة', 'Hot Coffee', 'لاتيه', 'Latte', 65, 'إسبريسو ولبن', 'Espresso & milk', 'صغير:0 | كبير:15', 'شوت زيادة:10', 'dairy'],
+            ['', '', 'كابتشينو', 'Cappuccino', 65, '', '', 'صغير:0 | كبير:15', '', 'dairy'],
+            ['حلويات', 'Desserts', 'تشيز كيك', 'Cheesecake', 90, '', '', '', '', 'gluten | dairy | eggs'],
         ])->save($path);
 
         return response()->download($path, 'egmenu-menu-template.xlsx')->deleteFileAfterSend();
@@ -120,6 +120,7 @@ class MenuImportController extends Controller
             'rows.*.name' => 'nullable|string|max:100', 'rows.*.name_en' => 'nullable|string|max:100',
             'rows.*.price' => 'nullable', 'rows.*.description' => 'nullable|string|max:500',
             'rows.*.sizes' => 'nullable|string|max:500', 'rows.*.extras' => 'nullable|string|max:500',
+            'rows.*.allergens' => 'nullable|string|max:300',
             'rows.*.keep' => 'nullable',
         ]);
 
@@ -135,6 +136,7 @@ class MenuImportController extends Controller
                 'name' => $row['name'], 'name_en' => $row['name_en'] ?? '', 'price' => $row['price'] ?? 0,
                 'description' => $row['description'] ?? '', 'description_en' => '',
                 'sizes' => MenuDraft::parseChoices((string) ($row['sizes'] ?? '')), 'extras' => MenuDraft::parseChoices((string) ($row['extras'] ?? '')),
+                'allergens' => (string) ($row['allergens'] ?? ''),
             ];
         }
         try {

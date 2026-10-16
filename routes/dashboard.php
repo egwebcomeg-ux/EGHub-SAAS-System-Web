@@ -21,6 +21,7 @@ use App\Http\Controllers\Dashboard\KiosksController;
 use App\Http\Controllers\Dashboard\KitchenController;
 use App\Http\Controllers\Dashboard\LoyaltyController;
 use App\Http\Controllers\Dashboard\MarketingController;
+use App\Http\Controllers\Dashboard\MenuExportController;
 use App\Http\Controllers\Dashboard\MenuImportController;
 use App\Http\Controllers\Dashboard\MenuTranslationController;
 use App\Http\Controllers\Dashboard\OrdersController;
@@ -314,6 +315,23 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/reservations', [ReservationsController::class, 'store'])->name('reservations.store');
         Route::post('/reservations/settings', [ReservationsController::class, 'settings'])->name('reservations.settings');
         Route::post('/reservations/{reservation}/status', [ReservationsController::class, 'transition'])->name('reservations.status');
+    });
+
+    // ---- Order & menu operations ----
+
+    // the whole menu as a sheet in the import layout (Excel or CSV), so it can be edited and imported back
+    Route::get('/menu/export.{format}', [MenuExportController::class, 'download'])->whereIn('format', ['xlsx', 'csv'])
+        ->middleware('permission:menu.manage')->name('menu.export');
+
+    // busy mode from the orders board: pauses online / takeaway / delivery ordering until a time
+    Route::post('/orders/busy', [OrdersController::class, 'busy'])
+        ->middleware(['feature:order_board', 'permission:orders.manage'])->name('orders.busy');
+
+    // menu banners (picture strip under the menu header), managed from the offers page
+    Route::middleware(['feature:offers', 'permission:marketing.manage'])->group(function () {
+        Route::post('/marketing/banners', [MarketingController::class, 'saveBanner'])->name('banners.store');
+        Route::post('/marketing/banners/{banner}/toggle', [MarketingController::class, 'toggleBanner'])->name('banners.toggle');
+        Route::post('/marketing/banners/{banner}/delete', [MarketingController::class, 'deleteBanner'])->name('banners.delete');
     });
 });
 

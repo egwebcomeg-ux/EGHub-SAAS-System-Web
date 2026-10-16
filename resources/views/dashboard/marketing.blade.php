@@ -4,6 +4,7 @@
 @section('content')
 @php
     $days = [__('Sun'), __('Mon'), __('Tue'), __('Wed'), __('Thu'), __('Fri'), __('Sat')];
+    $liveBanners = $banners->filter(fn ($b) => $b->is_active && (! $b->ends_on || $b->ends_on->gte(today())))->count();
 @endphp
 <h1 class="page-title mb-1">{{ __('Offers & popups') }}</h1>
 <p class="muted mb-4">{{ __('Offers lower prices automatically on the menu and at the cashier during their hours.') }}</p>
@@ -56,6 +57,36 @@
             </div>
         @empty
             <p class="card muted">{{ __('No popups yet. A popup greets guests when they open the menu.') }}</p>
+        @endforelse
+
+        <h2 class="section-title pt-4">{{ __('Menu banners') }} <span class="badge bg-navy-100 text-navy-700">{{ $liveBanners }} / {{ $maxBanners }}</span></h2>
+        <p class="muted -mt-2">{{ __('A swipeable strip of pictures under the menu header. Up to :n active at a time; each may open an item, a category or a link.', ['n' => $maxBanners]) }}</p>
+        @error('banners')<p class="rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ $message }}</p>@enderror
+        @forelse ($banners as $b)
+            <div class="card flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <img src="/storage/{{ $b->image }}" alt="" class="h-14 w-24 rounded-lg object-cover">
+                    <div>
+                        <b>{{ $b->title ?: __('Banner') }}</b>
+                        @unless ($b->is_active)<span class="badge bg-navy-100 text-navy-500">{{ __('Paused') }}</span>@endunless
+                        <div class="text-sm text-navy-500">
+                            @switch($b->linkType())
+                                @case('item') → {{ $b->item?->name }} @break
+                                @case('category') → {{ $b->category?->name }} @break
+                                @case('url') → <span dir="ltr">{{ $b->link_url }}</span> @break
+                                @default {{ __('No link') }}
+                            @endswitch
+                            @if ($b->starts_on || $b->ends_on) · {{ $b->starts_on?->format('Y/m/d') }} – {{ $b->ends_on?->format('Y/m/d') }}@endif
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <form method="post" action="{{ route('dash.banners.toggle', $b) }}">@csrf<button class="btn-ghost min-h-9 px-3">{{ $b->is_active ? __('Pause') : __('Resume') }}</button></form>
+                    <form method="post" action="{{ route('dash.banners.delete', $b) }}" onsubmit="return confirm(@js(__('Delete this banner?')))">@csrf<button class="btn-ghost min-h-9 px-3 text-red-600">{{ __('Delete') }}</button></form>
+                </div>
+            </div>
+        @empty
+            <p class="card muted">{{ __('No banners yet. A wide picture (1600×700) works best.') }}</p>
         @endforelse
     </section>
 
@@ -118,6 +149,30 @@
             </div>
             <button class="btn-primary w-full">{{ __('Save popup') }}</button>
         </form>
+
+        <form method="post" action="{{ route('dash.banners.store') }}" enctype="multipart/form-data" class="card space-y-3">
+            @csrf
+            <h2 class="section-title">{{ __('New banner') }}</h2>
+            <input class="field py-2" type="file" name="image" accept="image/jpeg,image/png,image/webp" required>
+            <div class="grid grid-cols-2 gap-2">
+                <input class="field" name="title" maxlength="80" placeholder="{{ __('Title (optional)') }}">
+                <input class="field" name="title_en" maxlength="80" placeholder="{{ __('Title (English)') }}" dir="ltr">
+            </div>
+            <select class="field" name="link_type" data-banner-link>
+                <option value="none">{{ __('No link') }}</option>
+                <option value="item">{{ __('Opens a menu item') }}</option>
+                <option value="category">{{ __('Jumps to a category') }}</option>
+                <option value="url">{{ __('Opens a link') }}</option>
+            </select>
+            <select class="field hidden" name="menu_item_id" data-banner-for="item"><option value="">{{ __('Choose an item') }}</option>@foreach ($items as $i)<option value="{{ $i->id }}">{{ $i->name }}</option>@endforeach</select>
+            <select class="field hidden" name="category_id" data-banner-for="category"><option value="">{{ __('Choose a category') }}</option>@foreach ($categories as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach</select>
+            <input class="field hidden" name="link_url" placeholder="https://…" dir="ltr" data-banner-for="url">
+            <div class="grid grid-cols-2 gap-2">
+                <div><label class="field-label">{{ __('Starts on (optional)') }}</label><input class="field" name="starts_on" type="date"></div>
+                <div><label class="field-label">{{ __('Ends on (optional)') }}</label><input class="field" name="ends_on" type="date"></div>
+            </div>
+            <button class="btn-primary w-full">{{ __('Save banner') }}</button>
+        </form>
     </div>
 </div>
 <script>
@@ -126,6 +181,10 @@
         const sync = () => document.querySelectorAll('[data-for]').forEach((el) => el.classList.toggle('hidden', el.dataset.for !== sel.value));
         sel.addEventListener('change', sync);
         sync();
+        const link = document.querySelector('[data-banner-link]');
+        const syncLink = () => document.querySelectorAll('[data-banner-for]').forEach((el) => el.classList.toggle('hidden', el.dataset.bannerFor !== link.value));
+        link.addEventListener('change', syncLink);
+        syncLink();
     })();
 </script>
 @endsection

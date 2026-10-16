@@ -57,6 +57,7 @@
                             <input class="field min-h-9" name="rows[{{ $i }}][category]" value="{{ $r['category'] }}">
                             <input type="hidden" name="rows[{{ $i }}][category_en]" value="{{ $r['category_en'] }}">
                             <input type="hidden" name="rows[{{ $i }}][description]" value="{{ $r['description'] }}">
+                            <input type="hidden" name="rows[{{ $i }}][allergens]" value="{{ implode(' | ', $r['allergens'] ?? []) }}">
                         </td>
                         <td><input class="field min-h-9" name="rows[{{ $i }}][name]" value="{{ $r['name'] }}"></td>
                         <td><input class="field min-h-9" name="rows[{{ $i }}][name_en]" value="{{ $r['name_en'] }}" dir="ltr"></td>

@@ -54,6 +54,10 @@ final class OrderService
         if ($table && $table->branch_id !== $branch->id) {
             throw new OrderException(__('This table belongs to another branch.'));
         }
+        // busy mode pauses the orders guests place without a table; the tables, POS and call center go on
+        if (BusyMode::blocks((string) ($data['source'] ?? 'qr'), $table !== null)) {
+            throw new OrderException(BusyMode::message());
+        }
 
         $uuid = $data['client_uuid'] ?? null;
         if ($uuid && ($existing = Order::query()->where('client_uuid', $uuid)->first())) {

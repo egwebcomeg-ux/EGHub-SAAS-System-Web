@@ -134,6 +134,10 @@
                     <label class="flex items-center gap-2"><input type="checkbox" name="online_delivery" value="1" @checked($s['online_delivery'] === '1') class="size-4 accent-brand-600"> {{ __('Delivery (uses your delivery zones)') }}</label>
                     <label class="flex items-center gap-2">{{ __('Ready in') }} <input class="field min-h-9 w-20" name="online_prep_minutes" type="number" min="5" max="240" value="{{ $s['online_prep_minutes'] }}"> {{ __('minutes') }}</label>
                 </div>
+                <label class="mt-3 flex flex-wrap items-center gap-2 text-sm">{{ __('Cancel an online order nobody accepted after') }}
+                    <input class="field min-h-9 w-20" name="online_auto_cancel_minutes" type="number" min="0" max="{{ \App\Services\Orders\AutoCancel::MAX_MINUTES }}" value="{{ $s['online_auto_cancel_minutes'] }}"> {{ __('minutes') }}
+                    <span class="text-xs text-navy-500">{{ __('0 = never. Money paid from a wallet goes back to the guest; the guest sees why on the tracking page.') }}</span>
+                </label>
             </div>
         @endif
         <div><label class="field-label">{{ __('Service %') }}</label><input class="field" name="service_percent" type="number" step="0.5" min="0" max="30" value="{{ $s['service_percent'] }}"></div>

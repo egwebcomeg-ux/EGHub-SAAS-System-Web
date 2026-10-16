@@ -141,6 +141,7 @@
                             <div class="sizes">@foreach ($prices as [$size, $price]){{ $size }} <b class="price">{{ money($price) }}</b>@if (!$loop->last) · @endif @endforeach</div>
                         @endif
                         @if ($desc && ($d = $text($item, 'description', $mainLang)))<div class="desc">{{ $d }}</div>@endif
+                        @if ($desc && ($item->allergenList() || $item->spicyIcons()))<div class="desc">{{ $item->spicyIcons() }} {{ implode(' · ', array_map(fn ($a) => $a['icon'].' '.$a['label'], $item->allergenList())) }}</div>@endif
                     </div>
                 </div>
             @endforeach

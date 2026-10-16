@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Models\Banner;
 use App\Models\Branch;
 use App\Models\Category;
 use App\Models\MenuItem;
@@ -14,7 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
-/** Timed offers ("happy hour") and popups shown on the public menu. */
+/** Timed offers ("happy hour"), popups and the banner strip shown on the public menu. */
 class MarketingController extends Controller
 {
     public function index(): View
@@ -22,6 +23,8 @@ class MarketingController extends Controller
         return view('dashboard.marketing', [
             'offers' => Offer::query()->with(['category', 'branch'])->latest('id')->get(),
             'popups' => Popup::query()->with('item')->latest('id')->get(),
+            'banners' => Banner::query()->with(['item', 'category'])->orderBy('sort_order')->orderBy('id')->get(),
+            'maxBanners' => Banner::MAX_ACTIVE,
             'categories' => Category::query()->orderBy('sort_order')->get(),
             'branches' => Branch::query()->orderBy('sort_order')->get(),
             'items' => MenuItem::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
@@ -89,6 +92,61 @@ class MarketingController extends Controller
         Popup::query()->create($values);
 
         return back()->with('ok', __('Popup saved.'));
+    }
+
+    /** A new banner: picture (required), optional title and one optional link (item, category or address). */
+    public function saveBanner(Request $request, ImageService $images): RedirectResponse
+    {
+        $tenant = tenant()->getTenantKey();
+        $data = $request->validate([
+            'image' => 'required|file|max:5120',
+            'title' => 'nullable|string|max:80', 'title_en' => 'nullable|string|max:80',
+            'link_type' => ['required', Rule::in(['none', 'item', 'category', 'url'])],
+            'menu_item_id' => ['nullable', 'required_if:link_type,item', Rule::exists('menu_items', 'id')->where('tenant_id', $tenant)],
+            'category_id' => ['nullable', 'required_if:link_type,category', Rule::exists('categories', 'id')->where('tenant_id', $tenant)],
+            'link_url' => ['nullable', 'required_if:link_type,url', 'url', 'max:300'],
+            'starts_on' => 'nullable|date', 'ends_on' => 'nullable|date|after_or_equal:starts_on',
+            'sort_order' => 'nullable|integer|min:0|max:99',
+        ]);
+        if ($this->liveBanners() >= Banner::MAX_ACTIVE) {
+            return back()->withErrors(['banners' => __('Up to :n banners can be active at a time. Pause or delete one first.', ['n' => Banner::MAX_ACTIVE])]);
+        }
+        Banner::query()->create([
+            'image' => $images->store($request->file('image'), 'banner'),
+            'title' => (string) ($data['title'] ?? ''), 'title_en' => (string) ($data['title_en'] ?? ''),
+            'menu_item_id' => $data['link_type'] === 'item' ? (int) $data['menu_item_id'] : null,
+            'category_id' => $data['link_type'] === 'category' ? (int) $data['category_id'] : null,
+            'link_url' => $data['link_type'] === 'url' ? $data['link_url'] : null,
+            'starts_on' => $data['starts_on'] ?? null, 'ends_on' => $data['ends_on'] ?? null,
+            'sort_order' => (int) ($data['sort_order'] ?? ((int) Banner::query()->max('sort_order') + 1)),
+        ]);
+
+        return back()->with('ok', __('Banner saved.'));
+    }
+
+    public function toggleBanner(Banner $banner): RedirectResponse
+    {
+        if (! $banner->is_active && $this->liveBanners() >= Banner::MAX_ACTIVE) {
+            return back()->withErrors(['banners' => __('Up to :n banners can be active at a time. Pause or delete one first.', ['n' => Banner::MAX_ACTIVE])]);
+        }
+        $banner->update(['is_active' => ! $banner->is_active]);
+
+        return back();
+    }
+
+    public function deleteBanner(Banner $banner, ImageService $images): RedirectResponse
+    {
+        $images->delete($banner->image);
+        $banner->delete();
+
+        return back()->with('ok', __('Banner deleted.'));
+    }
+
+    /** Banners switched on and not yet ended (a future start still counts towards the limit). */
+    private function liveBanners(): int
+    {
+        return Banner::query()->where('is_active', true)
+            ->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', today()))->count();
     }
 
     public function togglePopup(Popup $popup): RedirectResponse
