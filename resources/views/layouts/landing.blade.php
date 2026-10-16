@@ -197,11 +197,34 @@
     </div>
 </footer>
 
+@php
+    // "Ask us": the website assistant when a key is set, else the sales WhatsApp directly
+    $asstOn = \App\Services\Assistant::enabled();
+    $asstWaNumber = \App\Services\Assistant::salesWhatsApp();
+    $askHref = $asstOn ? '#asst' : ($asstWaNumber !== '' ? 'https://wa.me/'.$asstWaNumber : null);
+@endphp
+
 {{-- mobile: one action always in reach --}}
 <div data-bottom-bar class="lp-bottom fixed inset-x-0 bottom-0 z-30 border-t border-navy-100 bg-white/95 px-4 pt-3 pb-[max(.75rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
     <div class="flex gap-2">
         <a href="{{ route('register') }}" class="btn-primary min-h-12 flex-1 text-base">{{ __('Start free') }}</a>
         <a href="{{ route('pricing') }}" class="btn-ghost min-h-12 px-5 text-base">{{ __('Pricing') }}</a>
+        @if ($askHref)
+            <a href="{{ $askHref }}" @if ($asstOn) data-assistant-open @else target="_blank" rel="noopener" @endif class="btn-ghost min-h-12 px-4 text-base" aria-label="{{ __('Ask us') }}">
+                <x-landing.icon name="chat" class="size-5" />
+            </a>
+        @endif
     </div>
 </div>
+
+{{-- desktop: "Ask us" floating at the bottom corner --}}
+@if ($askHref)
+    <a href="{{ $askHref }}" @if ($asstOn) data-assistant-open @else target="_blank" rel="noopener" @endif
+       class="lp-ask fixed bottom-6 end-6 z-30 hidden min-h-12 items-center gap-2 rounded-full bg-navy-900 px-5 font-extrabold text-white shadow-lg transition hover:bg-navy-800 lg:inline-flex">
+        <x-landing.icon name="chat" class="size-5 text-brand-500" />{{ $asstOn ? __('Ask us') : __('Chat on WhatsApp') }}
+    </a>
+@endif
+@if ($asstOn)
+    @include('landing.partials.assistant')
+@endif
 @endsection

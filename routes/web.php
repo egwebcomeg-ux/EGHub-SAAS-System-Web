@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Platform\AssistantController;
 use App\Http\Controllers\Platform\BlogController;
 use App\Http\Controllers\Platform\DirectoryController;
 use App\Http\Controllers\Platform\FeaturesController;
@@ -45,6 +46,8 @@ Route::domain($domain)->group(function () use ($slug) {
         Route::get('/blog', [BlogController::class, 'index'])->name('blog');
         Route::get('/blog/{slug}', [BlogController::class, 'show'])->where('slug', '[a-z0-9-]{2,120}')->name('blog.show');
         Route::get('/rss.xml', [BlogController::class, 'rss'])->name('blog.rss');
+        // the website assistant ("اسألنا"): one chat turn per request, costs money → its own limiter
+        Route::post('/assistant', [AssistantController::class, 'chat'])->middleware('throttle:assistant')->name('assistant');
         Route::get('/terms', [LandingController::class, 'terms'])->name('terms');
         Route::get('/privacy', [LandingController::class, 'privacy'])->name('privacy');
         Route::get('/register', [SignupController::class, 'show'])->name('register');

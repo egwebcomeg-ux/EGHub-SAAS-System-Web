@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AssistantController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\BlogController;
 use App\Http\Controllers\Admin\DashboardController;
@@ -61,6 +62,9 @@ Route::middleware('auth:admin')->group(function () {
     Route::post('/blog/{post}', [BlogController::class, 'update'])->whereNumber('post')->name('blog.update');
     Route::post('/blog/{post}/publish', [BlogController::class, 'publish'])->whereNumber('post')->name('blog.publish');
     Route::post('/blog/{post}/delete', [BlogController::class, 'destroy'])->whereNumber('post')->name('blog.delete');
+
+    // What visitors asked the website assistant ("اسألنا") and where it handed over to WhatsApp
+    Route::get('/assistant', [AssistantController::class, 'index'])->name('assistant');
 });
 
 // ---- Two-factor authentication: second login step, the admin's own security page, 2FA reset of a tenant user (support) ----

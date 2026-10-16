@@ -148,3 +148,6 @@ body.lp-locked { overflow: hidden; }
 .lp-prose th, .lp-prose td { border: 1px solid #e3e8f2; padding: .5rem .75rem; text-align: start; }
 .lp-prose th { background: #f6f8fb; font-weight: 800; }
 .lp-prose strong { font-weight: 800; color: #1E2D4F; }
+
+/* website assistant open: the floating "Ask us" button and the mobile bar step aside */
+.asst-open .lp-ask, .asst-open .lp-bottom { visibility: hidden; }
