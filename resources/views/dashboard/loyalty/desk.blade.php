@@ -108,6 +108,33 @@
                     </section>
                 @endif
 
+                @if ($vouchersOn)
+                    <section class="card" data-vouchers>
+                        <h2 class="section-title mb-3">{{ __('Vouchers') }}</h2>
+                        @foreach ($vouchers as $v)
+                            <div class="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-brand-50 p-3">
+                                <div>
+                                    <div class="font-bold text-brand-800">🏷 {{ $v->headline() }}</div>
+                                    <div class="text-xs text-navy-600">{{ $v->conditions() }}@if ($v->expires_at) · {{ __('until :date', ['date' => local_time($v->expires_at, 'Y/m/d')]) }}@endif</div>
+                                </div>
+                                <code class="rounded-lg bg-white px-2 py-1 font-mono text-sm font-bold tracking-wider" dir="ltr">{{ $v->code }}</code>
+                            </div>
+                        @endforeach
+                        @if ($vouchers->isEmpty())<p class="muted mb-3">{{ __('No vouchers for this guest yet.') }}</p>@endif
+                        <form method="post" action="{{ route('dash.vouchers.give', $customer) }}" class="mt-3 grid grid-cols-2 gap-2 border-t border-navy-100 pt-3 sm:grid-cols-4" data-give-voucher>
+                            @csrf
+                            <p class="col-span-2 font-semibold sm:col-span-4">{{ __('Give a voucher') }}</p>
+                            <select class="field" name="type" aria-label="{{ __('Discount type') }}">
+                                <option value="percent">{{ __('Percent %') }}</option>
+                                <option value="amount">{{ __('Amount (EGP)') }}</option>
+                            </select>
+                            <input class="field" name="value" type="number" min="1" step="0.5" required placeholder="{{ __('Value') }}" aria-label="{{ __('Value') }}" dir="ltr">
+                            <label class="flex items-center gap-1 text-sm"><input class="field" name="days" type="number" min="1" max="365" value="30" required dir="ltr" aria-label="{{ __('Valid for (days)') }}"><span class="shrink-0 text-navy-500">{{ __('days') }}</span></label>
+                            <button class="btn-primary" onclick="return confirm(@js(__('Give this guest the voucher?')))">{{ __('Give') }}</button>
+                        </form>
+                    </section>
+                @endif
+
                 @if ($card)
                     <section class="card">
                         <h2 class="section-title mb-3">{{ __('Rewards to use') }}</h2>

@@ -45,6 +45,7 @@ class PosController extends Controller
                 'currency' => tr($settings['currency'], $settings['currency_en']),
                 'service' => (float) $settings['service_percent'], 'tax' => (float) $settings['tax_percent'],
                 'canDiscount' => $request->user()->can('pos.discount'),
+                'coupons' => self::couponsAllowed(),
                 'shifts' => Entitlements::current()->allows('shifts'),
                 // prepaid wallet: anyone at the POS can take a payment from the balance; top-ups and gift cards need wallet.manage
                 'wallet' => WalletService::enabled(),
@@ -52,7 +53,7 @@ class PosController extends Controller
                 'urls' => [
                     'order' => route('dash.pos.order'), 'pay' => url('/pos/orders/__ID__/pay'), 'open' => route('dash.pos.open'),
                     'receipt' => url('/orders/__ID__/receipt'), 'display' => route('dash.pos.display'),
-                ] + (WalletService::enabled() ? [
+                ] + (self::couponsAllowed() ? ['coupon' => route('dash.pos.coupon')] : []) + (WalletService::enabled() ? [
                     'walletLookup' => route('dash.wallet.lookup'), 'topup' => route('dash.wallet.topup'), 'giftSell' => route('dash.wallet.gift.sell'),
                 ] : []),
                 'tables' => DiningTable::query()->where('branch_id', $branch->id)->where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
@@ -87,10 +88,14 @@ class PosController extends Controller
             'customer_name' => 'nullable|string|max:100',
             'customer_phone' => 'nullable|string|max:20',
             'discount' => 'nullable|numeric|min:0',
+            'coupon' => 'nullable|string|max:30',
             'pay' => ['nullable', Rule::in(ShiftService::METHODS)],
         ]);
         if (($data['discount'] ?? 0) > 0 && ! $request->user()->can('pos.discount')) {
             return response()->json(['message' => __('You are not allowed to give discounts.')], 403);
+        }
+        if (trim((string) ($data['coupon'] ?? '')) !== '' && ! self::couponsAllowed()) {
+            return response()->json(['message' => __('Vouchers are not in your plan.')], 403);
         }
         $table = $data['type'] === 'dine_in' && ! empty($data['table_id'])
             ? DiningTable::query()->where('branch_id', $branch->id)->find($data['table_id']) : null;
@@ -108,6 +113,32 @@ class PosController extends Controller
         }
 
         return response()->json(['ok' => true, 'id' => $order->id, 'number' => $order->number, 'total' => $order->total, 'paid' => $order->payment_status === 'paid']);
+    }
+
+    /** Checks a voucher / coupon code against the cart (same rules as placing the order) and returns its discount. */
+    public function coupon(Request $request, OrderService $orders): JsonResponse
+    {
+        $data = $request->validate([
+            'coupon' => 'required|string|max:30',
+            'items' => 'required|array|min:1|max:'.OrderService::MAX_LINES,
+            'items.*.item_id' => 'required|integer',
+            'items.*.qty' => 'required|integer|min:1|max:'.OrderService::MAX_QTY,
+            'items.*.option_ids' => 'array|max:30',
+            'items.*.option_ids.*' => 'integer',
+            'customer_phone' => 'nullable|string|max:20',
+            'discount' => 'nullable|numeric|min:0',
+        ]);
+        try {
+            return response()->json($orders->quoteCoupon($data, self::branch($request)));
+        } catch (OrderException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    /** Staff can take voucher / coupon codes at the POS when the restaurant has the loyalty card or campaigns. */
+    public static function couponsAllowed(): bool
+    {
+        return Entitlements::current()->allows('loyalty_stamps|campaigns');
     }
 
     public function pay(Request $request, Order $order, OrderService $orders, ShiftService $shifts): JsonResponse

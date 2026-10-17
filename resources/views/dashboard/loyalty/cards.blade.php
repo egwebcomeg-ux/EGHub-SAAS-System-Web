@@ -7,7 +7,10 @@
         <h1 class="page-title">{{ __('Advanced cards') }}</h1>
         <p class="muted">{{ __('Cashback, membership tiers and prepaid packages — all on the same card the guest already has.') }}</p>
     </div>
-    <a href="{{ route('dash.loyalty.desk') }}" class="btn-ghost">{{ __('Counter') }}</a>
+    <div class="flex gap-2">
+        @if (\App\Services\Entitlements::current()->allows('loyalty_stamps'))<a href="{{ route('dash.vouchers') }}" class="btn-ghost">{{ __('Vouchers') }}</a>@endif
+        <a href="{{ route('dash.loyalty.desk') }}" class="btn-ghost">{{ __('Counter') }}</a>
+    </div>
 </div>
 
 @if ($errors->any())<div class="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ $errors->first() }}</div>@endif

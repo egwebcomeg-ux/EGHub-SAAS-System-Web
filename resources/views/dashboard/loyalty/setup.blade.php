@@ -13,6 +13,7 @@
         <p class="muted">{{ __('A digital stamp card on the guest’s phone. Stamps come only from paid orders or from your staff.') }}</p>
     </div>
     <div class="flex gap-2">
+        <a href="{{ route('dash.vouchers') }}" class="btn-ghost">{{ __('Vouchers') }}</a>
         @if ($program->exists)<a href="{{ tenant()->url('card') }}" target="_blank" rel="noopener" class="btn-ghost">{{ __('Open the guest page') }}</a>@endif
         @can('loyalty.stamp')<a href="{{ route('dash.loyalty.desk') }}" class="btn-primary">{{ __('Counter: stamp a card') }}</a>@endcan
     </div>

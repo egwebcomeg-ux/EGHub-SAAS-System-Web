@@ -25,7 +25,7 @@ class AutomationsController extends Controller
             'days' => ['nullable', Rule::requiredIf($kind === 'winback'), 'integer', 'min:7', 'max:365'],
             'send_from' => 'required|integer|min:0|max:23',
             'send_to' => 'required|integer|min:1|max:24|gt:send_from',
-            'coupon_id' => ['nullable', 'integer', Rule::exists('coupons', 'id')->where('tenant_id', tenant()->getTenantKey())],
+            'coupon_id' => ['nullable', 'integer', Rule::exists('coupons', 'id')->where('tenant_id', tenant()->getTenantKey())->whereNull('customer_id')],
             'coupon_code' => ['nullable', 'string', 'max:30', 'regex:/^[A-Z0-9_-]{3,30}$/',
                 Rule::unique('coupons', 'code')->where('tenant_id', tenant()->getTenantKey())],
             'coupon_type' => ['nullable', 'required_with:coupon_code', Rule::in(['percent', 'amount'])],
@@ -37,7 +37,7 @@ class AutomationsController extends Controller
             if (($data['coupon_code'] ?? '') !== '') {
                 // a new coupon made here: reusable by every guest of the automation, once each, never expiring
                 $couponId = Coupon::query()->create([
-                    'code' => $data['coupon_code'], 'type' => $data['coupon_type'], 'value' => $data['coupon_value'],
+                    'code' => $data['coupon_code'], 'source' => 'automation', 'type' => $data['coupon_type'], 'value' => $data['coupon_value'],
                     'min_order' => 0, 'max_uses' => null, 'expires_at' => null, 'once_per_customer' => true,
                 ])->id;
             }

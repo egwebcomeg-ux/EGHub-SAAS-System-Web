@@ -68,6 +68,7 @@ class Order extends TenantModel
         return [
             'subtotal' => 'float',
             'discount' => 'float',
+            'coupon_discount' => 'float',
             'service' => 'float',
             'tax' => 'float',
             'total' => 'float',

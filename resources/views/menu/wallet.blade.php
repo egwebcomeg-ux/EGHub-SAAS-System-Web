@@ -19,6 +19,7 @@
         @include('menu.partials.wallet-balance')
     @endif
     @include('menu.partials.member-packages')
+    @include('menu.partials.member-vouchers')
     <a href="{{ route('menu.show') }}" class="btn-ghost mt-6 w-full">{{ __('Open the menu') }}</a>
 </main>
 @endsection

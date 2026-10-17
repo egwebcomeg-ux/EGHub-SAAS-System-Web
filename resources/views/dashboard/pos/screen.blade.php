@@ -107,6 +107,16 @@
                         <select class="field min-h-9 w-20" data-discount-kind><option value="amount">{{ __('EGP') }}</option><option value="percent">%</option></select>
                     </div>
                 @endif
+                @if (! $cc && ! empty($data['coupons']))
+                    <div class="space-y-1" data-coupon-box>
+                        <div class="flex items-center gap-2">
+                            <span class="text-navy-500">{{ __('Voucher') }}</span>
+                            <input class="field min-h-9 flex-1 uppercase" data-coupon maxlength="30" dir="ltr" autocomplete="off" placeholder="{{ __('Voucher code') }}">
+                            <button type="button" class="btn-ghost min-h-9 px-3" data-coupon-apply>{{ __('Apply') }}</button>
+                        </div>
+                        <p class="hidden text-xs" data-coupon-info></p>
+                    </div>
+                @endif
                 <div class="space-y-0.5" data-totals></div>
                 @if ($cc)
                     <button type="button" class="btn-primary w-full" data-send>{{ __('Place order') }}</button>
@@ -265,6 +275,7 @@
         'balance' => __('Balance: :amount', ['amount' => '__A__']), 'noWallet' => __('No wallet for this mobile number.'),
         'notEnough' => __('Not enough balance: the wallet has :balance.', ['balance' => '__A__']), 'newGuest' => __('New guest, the wallet is created with the top-up.'),
         'topupDone' => __('Added. New balance: :amount', ['amount' => '__A__']), 'printSlip' => __('Print slip'),
+        'voucher' => __('Voucher :code', ['code' => '__C__']), 'voucherRemoved' => __('Voucher removed: the cart changed, apply it again.'),
         'chooseMethod' => __('Choose a payment method.'), 'enterAmount' => __('Enter an amount.'), 'enterPhone' => __('Enter the guest\'s mobile to see the balance.'),
     ];
 @endphp

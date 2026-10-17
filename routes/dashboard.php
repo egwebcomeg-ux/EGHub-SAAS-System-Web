@@ -41,6 +41,7 @@ use App\Http\Controllers\Dashboard\TablesController;
 use App\Http\Controllers\Dashboard\TvScreensController;
 use App\Http\Controllers\Dashboard\TwoFactorController;
 use App\Http\Controllers\Dashboard\UsersController;
+use App\Http\Controllers\Dashboard\VouchersController;
 use App\Http\Controllers\Dashboard\WalletController;
 use App\Models\CampaignAutomation;
 use Illuminate\Support\Facades\Route;
@@ -198,7 +199,17 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/loyalty/setup', [LoyaltyController::class, 'edit'])->name('loyalty.setup');
         Route::post('/loyalty/setup', [LoyaltyController::class, 'update'])->name('loyalty.update');
         Route::post('/loyalty/restart', [LoyaltyController::class, 'restart'])->name('loyalty.restart');
+        // discount vouchers of the loyalty card: single, held by a guest, printed batches
+        Route::get('/loyalty/vouchers', [VouchersController::class, 'index'])->name('vouchers');
+        Route::post('/loyalty/vouchers', [VouchersController::class, 'store'])->name('vouchers.store');
+        Route::post('/loyalty/vouchers/batch', [VouchersController::class, 'batch'])->middleware('throttle:20,1')->name('vouchers.batch');
+        Route::post('/loyalty/vouchers/batch/toggle', [VouchersController::class, 'toggleBatch'])->name('vouchers.batch.toggle');
+        Route::get('/loyalty/vouchers/export', [VouchersController::class, 'export'])->name('vouchers.export');
+        Route::get('/loyalty/vouchers/print', [VouchersController::class, 'print'])->name('vouchers.print');
+        Route::post('/loyalty/vouchers/{voucher}/toggle', [VouchersController::class, 'toggle'])->whereNumber('voucher')->name('vouchers.toggle');
     });
+    Route::post('/loyalty/customers/{customer}/vouchers', [VouchersController::class, 'give'])
+        ->middleware(['feature:loyalty_stamps', 'permission:loyalty.stamp'])->whereNumber('customer')->name('vouchers.give');
     // The counter desk also serves the advanced cards (packages, tiers, cashback) when there is no stamp program.
     Route::middleware(['feature:loyalty_stamps|prepaid_packages|membership|cashback', 'permission:loyalty.stamp'])->group(function () {
         Route::get('/loyalty', [LoyaltyController::class, 'desk'])->name('loyalty.desk');
@@ -231,6 +242,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::middleware(['feature:pos', 'permission:pos.use'])->group(function () {
         Route::get('/pos', [PosController::class, 'screen'])->name('pos');
         Route::post('/pos/orders', [PosController::class, 'store'])->name('pos.order');
+        Route::post('/pos/coupon', [PosController::class, 'coupon'])->middleware(['feature:loyalty_stamps|campaigns', 'throttle:60,1'])->name('pos.coupon');
         Route::post('/pos/orders/{order}/pay', [PosController::class, 'pay'])->name('pos.pay');
         Route::get('/pos/open', [PosController::class, 'open'])->name('pos.open');
         Route::get('/pos/display', [PosController::class, 'display'])->name('pos.display');

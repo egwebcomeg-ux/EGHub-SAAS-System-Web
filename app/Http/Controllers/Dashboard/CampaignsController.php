@@ -34,7 +34,7 @@ class CampaignsController extends Controller
             'menuUrl' => tenant()->url(),
             'automations' => $list,
             'results' => $list->map(fn ($a) => $automations->results($a)),
-            'coupons' => $tab === 'automations' ? Coupon::query()->where('is_active', true)->orderBy('code')->get() : collect(),
+            'coupons' => $tab === 'automations' ? Coupon::query()->where('is_active', true)->whereNull('customer_id')->orderBy('code')->get() : collect(),
             'balance' => $automations->balance(),
         ]);
     }

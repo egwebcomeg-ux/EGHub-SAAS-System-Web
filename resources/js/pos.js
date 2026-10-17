@@ -115,12 +115,56 @@ if (dataEl) {
     function totals() {
         const subtotal = state.lines.reduce((s, l) => s + unit(l) * l.qty, 0);
         const raw = Number($('[data-discount]')?.value || 0);
-        const discount = Math.min(subtotal, $('[data-discount-kind]')?.value === 'percent' ? subtotal * raw / 100 : raw);
+        const staff = Math.round(Math.min(subtotal, $('[data-discount-kind]')?.value === 'percent' ? subtotal * raw / 100 : raw) * 100) / 100;
+        // the voucher's discount as the server priced it for this exact cart (re-checked when the cart changes)
+        const voucher = state.coupon && state.coupon.key === couponKey(staff) ? Math.min(subtotal - staff, state.coupon.off) : 0;
+        const discount = staff + voucher;
         const service = state.type === 'dine_in' ? (subtotal - discount) * D.service / 100 : 0;
         const tax = (subtotal - discount + service) * D.tax / 100;
         const zone = CC && state.type === 'delivery' ? zones[$('[data-zone]').value] : null;
         const delivery = zone ? zone.fee : 0;
-        return { subtotal, discount: Math.round(discount * 100) / 100, service, tax, delivery, zone, total: subtotal - discount + service + tax + delivery };
+        return { subtotal, staff, voucher, discount: Math.round(discount * 100) / 100, service, tax, delivery, zone, total: subtotal - discount + service + tax + delivery };
+    }
+
+    // ---- voucher / coupon code (loyalty vouchers, campaign coupons): checked by the server, never priced here ----
+    const phoneValue = () => $('[data-customer-phone]')?.value.trim() || '';
+    function couponKey(staff) {
+        return JSON.stringify([state.lines, phoneValue(), staff]);
+    }
+    function couponInfo(text, ok) {
+        const info = $('[data-coupon-info]');
+        if (!info) return;
+        info.textContent = text || '';
+        info.classList.toggle('hidden', !text);
+        info.classList.toggle('text-emerald-700', !!ok);
+        info.classList.toggle('text-red-600', !ok);
+    }
+    let couponTimer = null;
+    async function applyCoupon(code) {
+        if (!D.urls.coupon) return;
+        code = (code || '').trim().toUpperCase();
+        if (!code) { state.coupon = null; couponInfo(''); render(); return; }
+        if (!state.lines.length) return;
+        const staff = totals().staff;
+        const key = couponKey(staff);
+        try {
+            const r = await api(D.urls.coupon, { coupon: code, items: state.lines, customer_phone: phoneValue() || null, discount: staff });
+            state.coupon = { code: r.code, off: r.discount, key };
+            couponInfo(`${r.code} · ${r.label} · −${fmt(r.discount)}`, true);
+        } catch (e) {
+            state.coupon = null;
+            couponInfo(e.message, false);
+        }
+        render();
+    }
+    $('[data-coupon-apply]')?.addEventListener('click', () => applyCoupon($('[data-coupon]').value));
+    $('[data-coupon]')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); applyCoupon(e.target.value); } });
+    $('[data-customer-phone]')?.addEventListener('change', () => { if (state.coupon) applyCoupon(state.coupon.code); });
+    // the cart changed under an applied voucher: price it again for the new cart
+    function recheckCoupon() {
+        if (!state.coupon || state.coupon.key === couponKey(totals().staff)) return;
+        clearTimeout(couponTimer);
+        couponTimer = setTimeout(() => (state.lines.length ? applyCoupon(state.coupon.code) : ((state.coupon = null), couponInfo(T.voucherRemoved, false), render())), 400);
     }
     function render() {
         $$('[data-type]').forEach((b) => {
@@ -146,7 +190,8 @@ if (dataEl) {
         const t = totals();
         const row = (label, v, cls = '') => `<div class="flex justify-between ${cls}"><span>${esc(label)}</span><span>${fmt(v)}</span></div>`;
         $('[data-totals]').innerHTML = (t.discount || t.service || t.tax ? row(T.subtotal, t.subtotal) : '')
-            + (t.discount ? row(T.discount, -t.discount, 'text-emerald-700') : '') + (t.service ? row(T.service, t.service) : '')
+            + (t.staff ? row(T.discount, -t.staff, 'text-emerald-700') : '')
+            + (t.voucher ? row(T.voucher.replace('__C__', state.coupon.code), -t.voucher, 'text-emerald-700') : '') + (t.service ? row(T.service, t.service) : '')
             + (t.tax ? row(T.tax, t.tax) : '') + (t.delivery ? row(T.deliveryFee, t.delivery) : '') + row(T.total, t.total, 'text-lg font-extrabold');
         if (CC) {
             const short = t.zone && t.zone.min > 0 && t.subtotal - t.discount < t.zone.min;
@@ -154,6 +199,7 @@ if (dataEl) {
             $('[data-min-warning]').classList.toggle('hidden', !short);
         }
         display?.postMessage({ lines: state.lines.map((l) => ({ name: items[l.item_id].name, qty: l.qty, amount: unit(l) * l.qty })), totals: t, currency: D.currency });
+        recheckCoupon();
     }
     $('[data-lines]').addEventListener('click', (e) => {
         const b = e.target.closest('[data-step]');
@@ -173,8 +219,10 @@ if (dataEl) {
     $('[data-clear]').addEventListener('click', () => { if (state.lines.length && confirm(T.clearAsk)) reset(); });
 
     function reset() {
-        state = { ...state, lines: [], table: '' };
+        state = { ...state, lines: [], table: '', coupon: null };
         if ($('[data-table]')) $('[data-table]').value = '';
+        if ($('[data-coupon]')) $('[data-coupon]').value = '';
+        couponInfo('');
         ['[data-customer-name]', '[data-customer-phone]', '[data-notes]', '[data-phone2]', '[data-zone]', '[data-address]', '[data-address-label]']
             .forEach((sel) => { if ($(sel)) $(sel).value = ''; });
         if (CC) {
@@ -190,10 +238,11 @@ if (dataEl) {
     function payload(pay) {
         const p = {
             client_uuid: uuid(), type: state.type, table_id: state.type === 'dine_in' ? Number(state.table) || null : null,
-            items: state.lines, discount: totals().discount, pay: pay || null,
+            items: state.lines, discount: totals().staff, pay: pay || null,
             customer_name: $('[data-customer-name]').value.trim(), customer_phone: $('[data-customer-phone]').value.trim(), notes: $('[data-notes]').value.trim(),
         };
         if (CC) p.phone_2 = $('[data-phone2]').value.trim();
+        if (state.coupon) p.coupon = state.coupon.code;
         if (CC && state.type === 'delivery') {
             Object.assign(p, { zone_id: Number($('[data-zone]').value) || null, address: $('[data-address]').value.trim(), address_label: $('[data-address-label]').value.trim() });
             if (ccPoint()) Object.assign(p, { lat: ccPoint()[0], lng: ccPoint()[1] });

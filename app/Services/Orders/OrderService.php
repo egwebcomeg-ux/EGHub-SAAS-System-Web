@@ -68,11 +68,12 @@ final class OrderService
         $subtotal = round(array_sum(array_column($lines, 'line_total')), 2);
         // Only staff (POS) can discount; the caller checks the permission. Never more than the order itself.
         $discount = round(min($subtotal, max(0.0, (float) ($data['discount'] ?? 0))), 2);
-        // A guest's coupon code (campaigns): validated now, counted inside the transaction below.
+        // A guest's coupon code (campaigns, loyalty vouchers): validated now, counted inside the transaction below.
         $coupon = null;
+        $couponOff = 0.0;
         if (trim((string) ($data['coupon'] ?? '')) !== '') {
-            [$coupon, $off] = app(Coupons::class)->check((string) $data['coupon'], $subtotal - $discount, normalize_phone((string) ($data['customer_phone'] ?? '')));
-            $discount = round($discount + $off, 2);
+            [$coupon, $couponOff] = app(Coupons::class)->check((string) $data['coupon'], $subtotal - $discount, normalize_phone((string) ($data['customer_phone'] ?? '')), $lines);
+            $discount = round($discount + $couponOff, 2);
         }
         // Membership tier of the guest behind the mobile number: its discount comes off what is left.
         [$tier, $memberOff] = app(Membership::class)->discountFor(normalize_phone((string) ($data['customer_phone'] ?? '')), $subtotal - $discount);
@@ -102,7 +103,7 @@ final class OrderService
 
         for ($attempt = 1; ; $attempt++) {
             try {
-                return DB::transaction(function () use ($data, $branch, $table, $by, $lines, $subtotal, $discount, $service, $tax, $type, $phone, $uuid, $zone, $deliveryFee, $coupon, $tier, $memberOff) {
+                return DB::transaction(function () use ($data, $branch, $table, $by, $lines, $subtotal, $discount, $service, $tax, $type, $phone, $uuid, $zone, $deliveryFee, $coupon, $couponOff, $tier, $memberOff) {
                     if ($coupon) {
                         app(Coupons::class)->redeem($coupon);
                     }
@@ -119,7 +120,7 @@ final class OrderService
                         'notes' => mb_substr(trim((string) ($data['notes'] ?? '')), 0, 500) ?: null,
                         'subtotal' => $subtotal, 'discount' => $discount, 'service' => $service, 'tax' => $tax,
                         'member_discount' => $memberOff, 'member_tier' => $memberOff > 0 ? mb_substr($tier->displayName(), 0, 40) : null,
-                        'coupon_id' => $coupon?->id, 'coupon_code' => $coupon?->code,
+                        'coupon_id' => $coupon?->id, 'coupon_code' => $coupon?->code, 'coupon_discount' => $couponOff,
                         'delivery_zone_id' => $zone?->id, 'delivery_fee' => $deliveryFee,
                         'delivery_address' => $type === 'delivery' ? ($data['delivery_address'] ?? null) : null,
                         'total' => round($subtotal - $discount + $service + $tax + $deliveryFee, 2), 'created_by' => $by?->id,
@@ -149,6 +150,24 @@ final class OrderService
                 }
             }
         }
+    }
+
+    /**
+     * What a coupon takes off a cart before it is placed (POS preview), priced exactly like place() does.
+     *
+     * @param  array{items:array<int,array{item_id:int, qty:int, option_ids?:int[]}>, coupon:string, customer_phone?:string, discount?:float}  $data
+     * @return array{code:string, discount:float, label:string}
+     *
+     * @throws OrderException
+     */
+    public function quoteCoupon(array $data, Branch $branch): array
+    {
+        $lines = $this->priceLines($data['items'] ?? [], MenuCatalog::forBranch($branch));
+        $subtotal = round(array_sum(array_column($lines, 'line_total')), 2);
+        $discount = round(min($subtotal, max(0.0, (float) ($data['discount'] ?? 0))), 2);
+        [$coupon, $off] = app(Coupons::class)->check((string) $data['coupon'], $subtotal - $discount, normalize_phone((string) ($data['customer_phone'] ?? '')), $lines);
+
+        return ['code' => $coupon->code, 'discount' => $off, 'label' => $coupon->headline()];
     }
 
     /** Collects the money of an order (POS). Cash goes into the cashier's open shift drawer. */

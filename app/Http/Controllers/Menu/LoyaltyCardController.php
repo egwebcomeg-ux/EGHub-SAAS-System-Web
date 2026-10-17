@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Menu;
 
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use App\Models\Coupon;
 use App\Models\Customer;
+use App\Services\Entitlements;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Loyalty\Membership;
 use App\Services\Loyalty\Packages;
@@ -72,9 +74,11 @@ class LoyaltyCardController extends Controller
         // advanced cards: the membership tier and the prepaid packages still good to use
         $membership = app(Membership::class);
         $packages = Packages::enabled() ? app(Packages::class)->activeFor($customer) : collect();
-        abort_unless($program || $wallet || $packages->isNotEmpty() || Membership::enabled(), 404);
+        // the discount vouchers this guest holds (only theirs: customer_id), to use with their mobile when ordering
+        $vouchers = Entitlements::current()->allows('loyalty_stamps') ? Coupon::heldBy($customer) : collect();
+        abort_unless($program || $wallet || $packages->isNotEmpty() || $vouchers->isNotEmpty() || Membership::enabled(), 404);
         $shared = [
-            'customer' => $customer, 'settings' => Settings::all(), 'wallet' => $wallet,
+            'customer' => $customer, 'settings' => Settings::all(), 'wallet' => $wallet, 'vouchers' => $vouchers,
             'tier' => $membership->tierFor($customer), 'nextTier' => $membership->nextFor($customer), 'packages' => $packages,
             'qr' => Qr::svg(route('menu.card', $token), 220, '#111111'),
             'branches' => Branch::query()->where('is_active', true)->orderBy('sort_order')->get(),

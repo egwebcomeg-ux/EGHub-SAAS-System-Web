@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\LoyaltyCard;
 use App\Models\LoyaltyProgram;
@@ -137,6 +138,9 @@ class LoyaltyController extends Controller
             'packages' => $customer && $rights->allows('prepaid_packages') ? $packages->activeFor($customer) : collect(),
             'onSale' => $rights->allows('prepaid_packages') ? PrepaidPackage::query()->where('is_active', true)->orderBy('sort_order')->get() : collect(),
             'methods' => WalletService::TOPUP_METHODS,
+            // discount vouchers held by this guest (loyalty card feature); the counter can give one more
+            'vouchersOn' => $rights->allows('loyalty_stamps'),
+            'vouchers' => $customer && $rights->allows('loyalty_stamps') ? Coupon::heldBy($customer) : collect(),
         ]);
     }
 
