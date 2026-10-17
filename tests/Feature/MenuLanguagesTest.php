@@ -218,7 +218,7 @@ class MenuLanguagesTest extends TenantTestCase
     {
         $a = $this->restaurant('cafe-a', 'business');
         $this->actingAs($this->owner($a))->post($this->dashUrl('/settings'), [
-            'brand_name' => 'X', 'currency' => 'ج.م', 'currency_en' => 'EGP', 'color_primary' => '#E8642C', 'color_secondary' => '#1E2D4F',
+            'brand_name' => 'X', 'currency' => 'ج.م', 'currency_en' => 'EGP', 'color_primary' => '#F26522', 'color_secondary' => '#0A2540',
             'color_bg' => '#FFFFFF', 'font' => 'Cairo', 'default_locale' => 'ar', 'menu_locales_sent' => '1', 'menu_locales' => ['zh', 'fr'],
         ])->assertSessionHasNoErrors();
         $this->as($a, fn () => $this->assertSame(['fr', 'zh'], MenuLocales::parse(Settings::get('menu_locales'))));

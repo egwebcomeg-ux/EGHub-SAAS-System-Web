@@ -7,8 +7,8 @@
     @fonts
     @vite(['resources/css/app.css'])
     @php
-        $primary = is_hex_color($settings['color_primary']) ? $settings['color_primary'] : '#E8642C';
-        $secondary = is_hex_color($settings['color_secondary']) ? $settings['color_secondary'] : '#1E2D4F';
+        $primary = is_hex_color($settings['color_primary']) ? $settings['color_primary'] : '#F26522';
+        $secondary = is_hex_color($settings['color_secondary']) ? $settings['color_secondary'] : '#0A2540';
         $currency = $mainLang === 'ar' ? $settings['currency'] : ($settings['currency_en'] ?: $settings['currency']);
         // a menu row in one language: Arabic as typed; English (name falls back to Arabic); an extra language (then English, then Arabic)
         $text = function ($model, string $field, ?string $locale) {

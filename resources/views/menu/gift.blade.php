@@ -3,7 +3,7 @@
 @section('body_class', 'bg-navy-50 text-navy-900')
 
 @php
-    $primary = is_hex_color($settings['color_primary']) ? $settings['color_primary'] : '#E8642C';
+    $primary = is_hex_color($settings['color_primary']) ? $settings['color_primary'] : '#F26522';
     $brand = tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name;
     $status = $card->statusKey();
 @endphp
@@ -16,7 +16,7 @@
 
 @section('body')
 <main class="mx-auto max-w-md px-4 py-6">
-    <div class="relative overflow-hidden rounded-3xl p-6 text-white shadow-lg" style="background: linear-gradient(135deg, var(--menu-primary), #141f38)">
+    <div class="relative overflow-hidden rounded-3xl p-6 text-white shadow-lg" style="background: linear-gradient(135deg, var(--menu-primary), #061a2e)">
         <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
                 @if ($settings['logo'])<img src="/storage/{{ $settings['logo'] }}" alt="" class="size-11 rounded-xl bg-white object-contain p-1">@endif

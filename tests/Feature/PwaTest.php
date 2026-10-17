@@ -48,7 +48,7 @@ class PwaTest extends TenantTestCase
 
         // another restaurant, its own name and defaults
         $this->get($this->pathUrl('cafe-b', 'manifest.webmanifest'))->assertOk()
-            ->assertJsonPath('name', 'Restaurant cafe-b')->assertJsonPath('theme_color', '#1E2D4F')->assertJsonPath('start_url', '/cafe-b/?source=pwa');
+            ->assertJsonPath('name', 'Restaurant cafe-b')->assertJsonPath('theme_color', '#0A2540')->assertJsonPath('start_url', '/cafe-b/?source=pwa');
 
         $this->get($this->menuUrl('no-such-cafe/manifest.webmanifest'))->assertNotFound();
     }
@@ -57,14 +57,14 @@ class PwaTest extends TenantTestCase
     {
         Storage::fake('public');
         $a = $this->restaurant('cafe-a');
-        $this->as($a, fn () => Settings::put(['brand_name' => 'Rosto', 'color_primary' => '#E8642C']));
+        $this->as($a, fn () => Settings::put(['brand_name' => 'Rosto', 'color_primary' => '#F26522']));
 
         // no logo yet: a letter on the brand color
         $response = $this->get($this->pathUrl('cafe-a', 'icon-192.png'))->assertOk()->assertHeader('Content-Type', 'image/png');
         $this->assertStringStartsWith("\x89PNG", $response->getContent());
         $img = imagecreatefromstring($response->getContent());
         $this->assertSame([192, 192], [imagesx($img), imagesy($img)]);
-        $this->assertSame(0xE8642C, imagecolorat($img, 4, 4));   // brand color fills the corners (maskable safe)
+        $this->assertSame(0xF26522, imagecolorat($img, 4, 4));   // brand color fills the corners (maskable safe)
         $etag = $response->headers->get('ETag');
         $this->assertNotEmpty($etag);
         $this->get($this->pathUrl('cafe-a', 'icon-192.png'), ['If-None-Match' => $etag])->assertStatus(304);
@@ -124,7 +124,7 @@ class PwaTest extends TenantTestCase
 
         $this->get($this->dashUrl('/manifest.webmanifest'))->assertOk()
             ->assertJsonPath('name', 'EgMenu')->assertJsonPath('short_name', 'EgMenu')->assertJsonPath('display', 'standalone')
-            ->assertJsonPath('start_url', '/?source=pwa')->assertJsonPath('theme_color', '#1E2D4F')->assertJsonPath('background_color', '#FFFFFF')
+            ->assertJsonPath('start_url', '/?source=pwa')->assertJsonPath('theme_color', '#0A2540')->assertJsonPath('background_color', '#FFFFFF')
             ->assertJsonPath('icons.0.src', versioned_asset('icons/egmenu-192.png'))->assertJsonPath('icons.1.src', versioned_asset('icons/egmenu-512.png'))
             ->assertJsonPath('icons.2.purpose', 'maskable');
         foreach (['egmenu-192.png' => 192, 'egmenu-512.png' => 512, 'egmenu-maskable-192.png' => 192, 'egmenu-maskable-512.png' => 512] as $file => $size) {

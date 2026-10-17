@@ -302,7 +302,7 @@ if (dataEl) {
             if (map || !window.L || box.classList.contains('hidden')) return;
             map = L.map(box).setView(drawn[0]?.polygon[0] || [30.0444, 31.2357], 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
-            drawn.forEach((z) => L.polygon(z.polygon, { color: '#1E2D4F', weight: 1, fillOpacity: 0.08 }).bindTooltip(z.name).addTo(map));
+            drawn.forEach((z) => L.polygon(z.polygon, { color: '#0A2540', weight: 1, fillOpacity: 0.08 }).bindTooltip(z.name).addTo(map));
             if (drawn.length) map.fitBounds(drawn.flatMap((z) => z.polygon));
             map.on('click', (e) => setPoint([+e.latlng.lat.toFixed(6), +e.latlng.lng.toFixed(6)]));
             setPoint(point, false);

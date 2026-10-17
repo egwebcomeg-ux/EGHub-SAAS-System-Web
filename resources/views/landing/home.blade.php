@@ -34,7 +34,7 @@
             <p class="inline-flex items-center gap-2 rounded-full bg-emerald-600/10 px-3 py-1.5 text-sm font-bold text-emerald-800">
                 <x-landing.icon name="check" class="size-4" />{{ __('Free forever for your menu') }}
             </p>
-            <h1 class="mt-5 text-[2.35rem] leading-[1.22] font-black tracking-tight text-navy-900 sm:text-[3.4rem]">{{ __('Your menu online today, for free.') }}</h1>
+            <h1 class="mt-5 text-[2.35rem] leading-[1.22] font-black tracking-tight text-navy-900 sm:text-[3.4rem]">{{ __('Your menu online today,') }} <span class="text-brand-gradient">{{ __('for free.') }}</span></h1>
             <p class="lp-lead mt-5 max-w-xl text-lg">{{ __('A QR menu for your cafe or restaurant that costs nothing. When you are ready, add table ordering, online orders with no commission and a loyalty card.') }}</p>
             <div class="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a href="{{ route('register') }}" class="btn-primary min-h-13 px-7 text-base">{{ __('Start free') }}</a>

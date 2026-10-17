@@ -14,8 +14,8 @@ use Tests\TenantTestCase;
 class OnboardingTest extends TenantTestCase
 {
     private const SETTINGS = [
-        'brand_name' => 'Cafe A', 'currency' => 'ج.م', 'currency_en' => 'EGP', 'color_primary' => '#E8642C',
-        'color_secondary' => '#1E2D4F', 'color_bg' => '#FFFFFF', 'font' => 'Cairo', 'default_locale' => 'ar',
+        'brand_name' => 'Cafe A', 'currency' => 'ج.م', 'currency_en' => 'EGP', 'color_primary' => '#F26522',
+        'color_secondary' => '#0A2540', 'color_bg' => '#FFFFFF', 'font' => 'Cairo', 'default_locale' => 'ar',
     ];
 
     /** @return array<string,string> step key => todo | done | skipped, as the home page renders it */

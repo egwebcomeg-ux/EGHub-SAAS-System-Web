@@ -2,9 +2,9 @@
     $color = fn ($k, $d) => is_hex_color($settings[$k]) ? $settings[$k] : $d;
 @endphp
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="{{ $color('color_secondary', '#1E2D4F') }}">
+<meta name="theme-color" content="{{ $color('color_secondary', '#0A2540') }}">
 <style>
-    :root { --menu-primary: {{ $color('color_primary', '#E8642C') }}; --menu-secondary: {{ $color('color_secondary', '#1E2D4F') }}; }
+    :root { --menu-primary: {{ $color('color_primary', '#F26522') }}; --menu-secondary: {{ $color('color_secondary', '#0A2540') }}; }
     .m-primary { background: var(--menu-primary); color: #fff; }
     .m-primary-text { color: var(--menu-primary); }
     .m-secondary { background: var(--menu-secondary); color: #fff; }

@@ -204,7 +204,7 @@ class AdvancedReportsTest extends TenantTestCase
     public function test_the_weekly_email_is_switched_on_from_settings_and_scheduled_on_monday(): void
     {
         $a = $this->restaurant('cafe-a', 'business');
-        $form = ['brand_name' => 'X', 'currency' => 'ج.م', 'currency_en' => 'EGP', 'color_primary' => '#E8642C', 'color_secondary' => '#1E2D4F',
+        $form = ['brand_name' => 'X', 'currency' => 'ج.م', 'currency_en' => 'EGP', 'color_primary' => '#F26522', 'color_secondary' => '#0A2540',
             'color_bg' => '#FFFFFF', 'font' => 'Cairo', 'default_locale' => 'ar'];
         $this->actingAs($this->owner($a))->get($this->dashUrl('/settings'))->assertOk()->assertSee('name="weekly_report_email"', false);
         $this->actingAs($this->owner($a))->post($this->dashUrl('/settings'), $form + ['weekly_report_email' => '1'])->assertSessionHasNoErrors();

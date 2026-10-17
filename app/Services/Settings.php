@@ -20,8 +20,8 @@ final class Settings
         'currency' => 'ج.م',
         'currency_en' => 'EGP',
         // look
-        'color_primary' => '#E8642C',
-        'color_secondary' => '#1E2D4F',
+        'color_primary' => '#F26522',
+        'color_secondary' => '#0A2540',
         'color_bg' => '#FFFFFF',
         'font' => 'Cairo',
         'menu_theme' => 'classic',

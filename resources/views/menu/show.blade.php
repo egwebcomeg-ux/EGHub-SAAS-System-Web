@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family={{ urlencode($settings['font']) }}:wght@400;600;700;800&display=swap">
 @endif
 <style>
-    :root { --menu-primary: {{ $color('color_primary', '#E8642C') }}; --menu-secondary: {{ $color('color_secondary', '#1E2D4F') }}; --menu-bg: {{ $color('color_bg', '#FFFFFF') }}; }
+    :root { --menu-primary: {{ $color('color_primary', '#F26522') }}; --menu-secondary: {{ $color('color_secondary', '#0A2540') }}; --menu-bg: {{ $color('color_bg', '#FFFFFF') }}; }
     body { background: var(--menu-bg); font-family: '{{ $settings['font'] }}', 'Cairo', system-ui, sans-serif; }
     @include('menu.themes.styles', ['theme' => $theme])
     .m-primary { background: var(--menu-primary); color: #fff; }

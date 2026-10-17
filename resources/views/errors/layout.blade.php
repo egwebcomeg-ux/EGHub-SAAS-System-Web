@@ -8,13 +8,13 @@
     {{-- Static on purpose: no Vite, no database, no tenant lookups, so it still renders when the app is down. --}}
     <style>
         *{box-sizing:border-box}
-        body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#f4f6fb;color:#1E2D4F;font-family:Tahoma,"Segoe UI",system-ui,-apple-system,sans-serif;line-height:1.7}
+        body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#f4f6fb;color:#0A2540;font-family:Tahoma,"Segoe UI",system-ui,-apple-system,sans-serif;line-height:1.7}
         .card{width:100%;max-width:480px;background:#fff;border-radius:20px;padding:40px 28px;text-align:center;box-shadow:0 10px 40px rgba(30,45,79,.08)}
-        .code{margin:24px 0 4px;font-size:56px;font-weight:800;color:#E8642C;line-height:1}
+        .code{margin:24px 0 4px;font-size:56px;font-weight:800;color:#F26522;line-height:1}
         h1{margin:8px 0 6px;font-size:22px}
         p{margin:0;color:#5b6786}
         .en{margin-top:14px;font-size:14px;direction:ltr}
-        a.btn{display:inline-block;margin-top:24px;padding:10px 22px;border-radius:12px;background:#E8642C;color:#fff;text-decoration:none;font-weight:700}
+        a.btn{display:inline-block;margin-top:24px;padding:10px 22px;border-radius:12px;background:#F26522;color:#fff;text-decoration:none;font-weight:700}
     </style>
 </head>
 <body>

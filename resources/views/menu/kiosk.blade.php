@@ -17,7 +17,7 @@
 @push('head')
 <meta name="robots" content="noindex">
 <style>
-    :root { --k-primary: {{ $color('color_primary', '#E8642C') }}; --k-secondary: {{ $color('color_secondary', '#1E2D4F') }}; }
+    :root { --k-primary: {{ $color('color_primary', '#F26522') }}; --k-secondary: {{ $color('color_secondary', '#0A2540') }}; }
     body { font-family: '{{ $settings['font'] }}', 'Cairo', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     .k-primary { background: var(--k-primary); color: #fff; }
     .k-primary-text { color: var(--k-primary); }

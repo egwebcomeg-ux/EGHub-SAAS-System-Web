@@ -92,13 +92,13 @@ class AutoCancelTest extends TenantTestCase
     {
         $a = $this->restaurant('cafe-a', 'pro');
         $this->actingAs($this->owner($a))->post($this->dashUrl('/settings'), [
-            'brand_name' => 'Cafe A', 'currency' => 'ج.م', 'currency_en' => 'EGP', 'color_primary' => '#E8642C', 'color_secondary' => '#1E2D4F',
+            'brand_name' => 'Cafe A', 'currency' => 'ج.م', 'currency_en' => 'EGP', 'color_primary' => '#F26522', 'color_secondary' => '#0A2540',
             'color_bg' => '#FFFFFF', 'font' => 'Cairo', 'default_locale' => 'ar', 'online_auto_cancel_minutes' => 20,
         ])->assertRedirect();
         $this->assertSame('20', $this->as($a, fn () => Settings::get('online_auto_cancel_minutes')));
 
         $this->actingAs($this->owner($a))->post($this->dashUrl('/settings'), [
-            'brand_name' => 'Cafe A', 'currency' => 'ج.م', 'currency_en' => 'EGP', 'color_primary' => '#E8642C', 'color_secondary' => '#1E2D4F',
+            'brand_name' => 'Cafe A', 'currency' => 'ج.م', 'currency_en' => 'EGP', 'color_primary' => '#F26522', 'color_secondary' => '#0A2540',
             'color_bg' => '#FFFFFF', 'font' => 'Cairo', 'default_locale' => 'ar', 'online_auto_cancel_minutes' => 999,
         ])->assertSessionHasErrors('online_auto_cancel_minutes');
     }

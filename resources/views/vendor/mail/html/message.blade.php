@@ -2,7 +2,7 @@
 {{-- Header --}}
 <x-slot:header>
 <x-mail::header :url="platform_url(null)">
-<span style="font-size: 24px; font-weight: 800; color: #1E2D4F;">eg<span style="color: #E8642C;">menu</span></span>
+<span style="font-size: 24px; font-weight: 800; color: #0A2540;">eg<span style="color: #F26522;">menu</span></span>
 </x-mail::header>
 </x-slot:header>
 

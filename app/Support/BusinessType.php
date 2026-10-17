@@ -101,7 +101,7 @@ final class BusinessType
     public static function loyaltyDefaults(?string $type = null): array
     {
         return match ($type ?? self::current()) {
-            'restaurant' => ['stamps_required' => 8, 'reward_label' => __('A free dessert'), 'card_design' => ['bg' => '#1E2D4F', 'stamp_bg' => '#0F172A', 'icon' => 'star']],
+            'restaurant' => ['stamps_required' => 8, 'reward_label' => __('A free dessert'), 'card_design' => ['bg' => '#0A2540', 'stamp_bg' => '#0F172A', 'icon' => 'star']],
             'shop' => ['type' => 'points', 'points_per_egp' => 1, 'stamps_required' => 10, 'reward_label' => __('10 EGP off'), 'card_design' => ['bg' => '#0F766E', 'stamp_bg' => '#115E59', 'icon' => 'star']],
             default => ['stamps_required' => 10, 'reward_label' => __('A free drink'), 'card_design' => ['bg' => '#B5451B', 'stamp_bg' => '#7A1F2B', 'icon' => 'cup']],
         };

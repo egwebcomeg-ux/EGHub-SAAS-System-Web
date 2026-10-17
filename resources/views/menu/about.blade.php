@@ -16,7 +16,7 @@
 @include('menu.partials.pixels')
 {{-- theme-color, manifest and the home-screen icon come from partials.pwa-head (layouts.base) --}}
 <style>
-    :root { --menu-primary: {{ $color('color_primary', '#E8642C') }}; --menu-secondary: {{ $color('color_secondary', '#1E2D4F') }}; }
+    :root { --menu-primary: {{ $color('color_primary', '#F26522') }}; --menu-secondary: {{ $color('color_secondary', '#0A2540') }}; }
     .m-primary { background: var(--menu-primary); color: #fff; }
     .m-primary-text { color: var(--menu-primary); }
     .m-secondary { background: var(--menu-secondary); color: #fff; }

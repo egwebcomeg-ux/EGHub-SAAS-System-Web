@@ -5,7 +5,7 @@ const dataEl = document.getElementById('zones-map-data');
 if (dataEl && window.L) {
     const D = JSON.parse(dataEl.textContent);
     const $ = (s) => document.querySelector(s);
-    const colors = ['#E8642C', '#1E2D4F', '#0E9F6E', '#7E3AF2', '#C81E1E', '#0694A2', '#B45309'];
+    const colors = ['#F26522', '#0A2540', '#0E9F6E', '#7E3AF2', '#C81E1E', '#0694A2', '#B45309'];
     const map = L.map('zones-map').setView(D.center || [30.0444, 31.2357], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19, attribution: '&copy; OpenStreetMap',
@@ -24,12 +24,12 @@ if (dataEl && window.L) {
     // ---- drawing ----
     let points = [];
     let zoneId = null;
-    const draft = L.polygon([], { color: '#E8642C', weight: 3, dashArray: '6 4', fillOpacity: 0.25 }).addTo(map);
+    const draft = L.polygon([], { color: '#F26522', weight: 3, dashArray: '6 4', fillOpacity: 0.25 }).addTo(map);
     const dots = L.layerGroup().addTo(map);
     function redraw() {
         draft.setLatLngs(points);
         dots.clearLayers();
-        points.forEach((p) => L.circleMarker(p, { radius: 5, color: '#E8642C', fillOpacity: 1 }).addTo(dots));
+        points.forEach((p) => L.circleMarker(p, { radius: 5, color: '#F26522', fillOpacity: 1 }).addTo(dots));
         $('[data-points]').textContent = points.length;
         $('[data-save-area]').disabled = !zoneId || (points.length > 0 && points.length < 3);
     }

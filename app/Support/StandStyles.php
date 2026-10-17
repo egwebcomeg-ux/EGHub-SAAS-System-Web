@@ -78,7 +78,7 @@ final class StandStyles
             $options[$key] = is_bool($default) ? (bool) $value : mb_substr((string) $value, 0, 40);
         }
         if (! is_hex_color($options['accent'])) {
-            $options['accent'] = is_hex_color(Settings::get('color_primary')) ? Settings::get('color_primary') : '#E8642C';
+            $options['accent'] = is_hex_color(Settings::get('color_primary')) ? Settings::get('color_primary') : '#F26522';
         }
 
         return [

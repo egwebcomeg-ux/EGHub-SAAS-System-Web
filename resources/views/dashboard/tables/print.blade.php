@@ -114,7 +114,7 @@
                     <span class="field-label">{{ __('Accent color (frames and text)') }}</span>
                     <span class="flex items-center gap-2">
                         <input type="color" name="accent" value="{{ $options['accent'] }}" class="h-11 w-16 cursor-pointer rounded-lg border border-navy-200 bg-white p-1">
-                        @foreach (array_unique([$settings['color_primary'], $settings['color_secondary'], '#E8642C', '#0F766E', '#B45309']) as $swatch)
+                        @foreach (array_unique([$settings['color_primary'], $settings['color_secondary'], '#F26522', '#0F766E', '#B45309']) as $swatch)
                             @if (is_hex_color($swatch))
                                 <button type="button" class="size-8 rounded-full border-2 border-white shadow ring-1 ring-navy-200" style="background: {{ $swatch }}" data-accent="{{ $swatch }}" aria-label="{{ $swatch }}"></button>
                             @endif

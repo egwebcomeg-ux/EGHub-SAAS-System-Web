@@ -68,7 +68,7 @@ class StaffOrderWhatsAppTest extends TenantTestCase
 
         $owner = $this->owner($tenant);
         $this->actingAs($owner)->get($this->dashUrl('/settings'))->assertOk()->assertSee('name="wa_order_to_staff"', false);
-        $form = ['brand_name' => 'Cafe A', 'currency' => 'ج.م', 'currency_en' => 'EGP', 'color_primary' => '#E8642C', 'color_secondary' => '#1E2D4F',
+        $form = ['brand_name' => 'Cafe A', 'currency' => 'ج.م', 'currency_en' => 'EGP', 'color_primary' => '#F26522', 'color_secondary' => '#0A2540',
             'color_bg' => '#FFFFFF', 'font' => 'Cairo', 'default_locale' => 'ar'];
         $this->actingAs($owner)->post($this->dashUrl('/settings'), $form + ['wa_order_to_staff' => 1, 'whatsapp' => '01000000001'])->assertSessionHasNoErrors();
         $this->assertSame('1', $this->as($tenant, fn () => Settings::get('wa_order_to_staff')));

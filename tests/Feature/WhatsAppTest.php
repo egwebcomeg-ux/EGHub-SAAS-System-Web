@@ -292,7 +292,7 @@ class WhatsAppTest extends TenantTestCase
         $owner = $this->owner($a);
         $this->actingAs($owner)->get($this->dashUrl('/settings'))->assertOk()->assertSee('wa_sender_name');
         $this->actingAs($owner)->post($this->dashUrl('/settings'), [
-            'brand_name' => 'Cafe A', 'currency' => 'ج.م', 'currency_en' => 'EGP', 'color_primary' => '#E8642C', 'color_secondary' => '#1E2D4F',
+            'brand_name' => 'Cafe A', 'currency' => 'ج.م', 'currency_en' => 'EGP', 'color_primary' => '#F26522', 'color_secondary' => '#0A2540',
             'color_bg' => '#FFFFFF', 'font' => 'Cairo', 'default_locale' => 'ar', 'wa_order_ready' => '1', 'wa_sender_name' => 'كافيه أ',
         ])->assertSessionHasNoErrors();
         $this->as($a, function () {

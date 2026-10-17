@@ -21,8 +21,8 @@ use Tests\TenantTestCase;
 class TwoFactorTest extends TenantTestCase
 {
     private const SETTINGS = [
-        'brand_name' => 'Cafe A', 'currency' => 'ج.م', 'currency_en' => 'EGP', 'color_primary' => '#E8642C',
-        'color_secondary' => '#1E2D4F', 'color_bg' => '#FFFFFF', 'font' => 'Cairo', 'default_locale' => 'ar',
+        'brand_name' => 'Cafe A', 'currency' => 'ج.م', 'currency_en' => 'EGP', 'color_primary' => '#F26522',
+        'color_secondary' => '#0A2540', 'color_bg' => '#FFFFFF', 'font' => 'Cairo', 'default_locale' => 'ar',
     ];
 
     /** Turns 2FA on for $user straight away; returns [secret, recovery codes]. */

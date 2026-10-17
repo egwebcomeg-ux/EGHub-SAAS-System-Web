@@ -12,8 +12,8 @@
 
 @section('body')
 <style>
-    :root { --tv-primary: {{ $color('color_primary', '#E8642C') }}; }
-    body { background: {{ $dark ? '#0f1420' : '#ffffff' }}; color: {{ $dark ? '#f3f4f6' : '#1E2D4F' }}; }
+    :root { --tv-primary: {{ $color('color_primary', '#F26522') }}; }
+    body { background: {{ $dark ? '#0f1420' : '#ffffff' }}; color: {{ $dark ? '#f3f4f6' : '#0A2540' }}; }
     .tv-muted { color: {{ $dark ? '#9aa3b5' : '#64708a' }}; }
     .tv-card { background: {{ $dark ? 'rgba(255,255,255,.04)' : '#f6f7fa' }}; }
     .tv-price { color: var(--tv-primary); }

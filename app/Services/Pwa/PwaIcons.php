@@ -32,7 +32,7 @@ final class PwaIcons
     {
         $s = Settings::all();
         $bg = is_hex_color($s['color_bg']) ? $s['color_bg'] : '#FFFFFF';
-        $primary = is_hex_color($s['color_primary']) ? $s['color_primary'] : '#E8642C';
+        $primary = is_hex_color($s['color_primary']) ? $s['color_primary'] : '#F26522';
 
         if ($s['logo'] !== '') {
             $path = Storage::disk('public')->path($s['logo']);

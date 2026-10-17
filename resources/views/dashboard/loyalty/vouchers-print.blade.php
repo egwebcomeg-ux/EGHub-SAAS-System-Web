@@ -5,7 +5,7 @@
 @php
     $brand = tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name;
     $logo = $settings['logo'] ? '/storage/' . $settings['logo'] : null;
-    $accent = is_hex_color($settings['color_primary'] ?? '') ? $settings['color_primary'] : '#E8642C';
+    $accent = is_hex_color($settings['color_primary'] ?? '') ? $settings['color_primary'] : '#F26522';
     $perSheet = $layout === 'a4' ? 8 : 1;
 @endphp
 

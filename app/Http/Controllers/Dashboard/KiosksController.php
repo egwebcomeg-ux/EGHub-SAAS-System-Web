@@ -22,7 +22,7 @@ class KiosksController extends Controller
 
         return view('dashboard.kiosks', [
             'kiosks' => $kiosks,
-            'qrs' => $kiosks->mapWithKeys(fn (Kiosk $k) => [$k->id => Qr::svg($k->url(), 160, is_hex_color($color) ? $color : '#1E2D4F')]),
+            'qrs' => $kiosks->mapWithKeys(fn (Kiosk $k) => [$k->id => Qr::svg($k->url(), 160, is_hex_color($color) ? $color : '#0A2540')]),
             'branches' => Branch::query()->where('is_active', true)->orderBy('sort_order')->get(),
         ]);
     }

@@ -11,7 +11,7 @@ use App\Services\Settings;
  */
 final class Pwa
 {
-    public const THEME = '#1E2D4F';
+    public const THEME = '#0A2540';
 
     public const BACKGROUND = '#FFFFFF';
 

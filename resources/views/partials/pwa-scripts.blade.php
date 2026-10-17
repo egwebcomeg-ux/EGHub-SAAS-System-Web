@@ -19,7 +19,7 @@
                 </div>
                 <button type="button" class="-m-1 p-1 text-xl leading-none text-navy-500" data-pwa-dismiss aria-label="{{ __('Close') }}">×</button>
             </div>
-            <button type="button" class="mt-3 hidden min-h-10 w-full rounded-xl text-sm font-bold text-white" style="background: var(--menu-primary, #E8642C)" data-pwa-install>{{ __('Add') }}</button>
+            <button type="button" class="mt-3 hidden min-h-10 w-full rounded-xl text-sm font-bold text-white" style="background: var(--menu-primary, #F26522)" data-pwa-install>{{ __('Add') }}</button>
         </div>
     @endif
     <script>

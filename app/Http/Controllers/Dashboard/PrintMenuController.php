@@ -52,7 +52,7 @@ class PrintMenuController extends Controller
             'secondLang' => $secondLang,
             'extraLocales' => $extra,
             'desc' => (bool) ($opts['desc'] ?? true),
-            'qr' => Qr::svg(tenant()->url(), 240, is_hex_color($settings['color_secondary']) ? $settings['color_secondary'] : '#1E2D4F'),
+            'qr' => Qr::svg(tenant()->url(), 240, is_hex_color($settings['color_secondary']) ? $settings['color_secondary'] : '#0A2540'),
         ]);
     }
 }
