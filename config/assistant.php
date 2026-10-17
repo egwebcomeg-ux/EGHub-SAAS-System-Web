@@ -14,7 +14,7 @@ return [
 
     'gemini' => [
         'key' => env('GEMINI_API_KEY', ''),
-        'model' => env('ASSISTANT_GEMINI_MODEL', 'gemini-3.1-flash-lite'),
+        'model' => env('ASSISTANT_GEMINI_MODEL', 'gemini-3.8-flash'),   // the lite tier ignored the reference and answered in formal Arabic
     ],
 
     'max_tokens' => (int) env('ASSISTANT_MAX_TOKENS', 900),
