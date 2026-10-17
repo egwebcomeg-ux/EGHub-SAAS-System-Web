@@ -97,6 +97,16 @@
     </div>
 </section>
 
+{{-- what it saves, from the visitor's own numbers --}}
+<section id="calculator" class="border-t border-navy-100 py-14 lg:py-16">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6">
+        <p class="lp-eyebrow">{{ __('Savings calculator') }}</p>
+        <h2 class="lp-h2 mt-2 max-w-2xl">{{ __('Work out what EgMenu saves you') }}</h2>
+        <p class="lp-lead mt-3 max-w-2xl">{{ __('Put in your own numbers: what printing menus costs you and what the delivery apps take. The total updates as you type.') }}</p>
+        <div class="mt-8">@include('landing.partials.savings-calculator')</div>
+    </div>
+</section>
+
 {{-- add-ons --}}
 @if ($addons->isNotEmpty())
     <section id="addons" class="bg-[var(--lp-paper)] py-14 lg:py-16">

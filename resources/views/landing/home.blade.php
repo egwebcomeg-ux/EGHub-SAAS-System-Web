@@ -103,6 +103,16 @@
     </section>
 @endif
 
+{{-- ============ TRY IT: a live demo in the browser ============ --}}
+<section id="demo" class="border-b border-navy-100 bg-[var(--lp-paper)] py-16 lg:py-24">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6">
+        <p class="lp-eyebrow">{{ __('Try it here') }}</p>
+        <h2 class="lp-h2 mt-2 max-w-2xl">{{ __('Change a price, and the menu on the phone changes with it') }}</h2>
+        <p class="lp-lead mt-3 max-w-2xl">{{ __('This is your dashboard next to a guest’s phone at table 4. Edit a price or mark an item sold out, then order from the phone and watch the order reach you.') }}</p>
+        <div class="mt-10">@include('landing.partials.live-demo')</div>
+    </div>
+</section>
+
 {{-- ============ PICK YOUR PATH ============ --}}
 <section class="py-16 lg:py-24">
     <div class="mx-auto max-w-7xl px-4 sm:px-6">
@@ -218,7 +228,10 @@
         <div class="mt-10">@include('landing.partials.plans')</div>
         <div class="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-navy-200 p-5">
             <p class="text-navy-600">{{ __('POS, the self-order kiosk, kitchen display, call center and inventory are add-ons you switch on when you need them; WhatsApp credits are paid once.') }}</p>
-            <a href="{{ route('pricing') }}#compare" class="btn-ghost min-h-11">{{ __('Compare all plans and add-ons') }}</a>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('pricing') }}#calculator" class="btn-ghost min-h-11">{{ __('Work out what you save') }}</a>
+                <a href="{{ route('pricing') }}#compare" class="btn-ghost min-h-11">{{ __('Compare all plans and add-ons') }}</a>
+            </div>
         </div>
     </div>
 </section>

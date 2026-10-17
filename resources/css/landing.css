@@ -110,6 +110,11 @@ body.lp-locked { overflow: hidden; }
 .lp-pop { animation: lp-pop .3s ease; }
 @keyframes lp-pop { 50% { transform: scale(1.08); } }
 
+/* home: live demo (price flash on the guest's phone, a soft ring around a new order) */
+.dm-flash { animation: sc-flash 1.2s ease; }
+.dm-pulse { animation: dm-pulse 1.6s ease-out 2; }
+@keyframes dm-pulse { 0% { box-shadow: 0 0 0 0 rgba(232, 100, 44, .45); } 100% { box-shadow: 0 0 0 12px rgba(232, 100, 44, 0); } }
+
 /* FAQ */
 .lp-faq summary::-webkit-details-marker { display: none; }
 .lp-faq[open] .lp-faq-icon { transform: rotate(45deg); }

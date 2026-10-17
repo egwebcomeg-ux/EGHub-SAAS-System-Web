@@ -76,6 +76,39 @@ class MarketingSiteTest extends TenantTestCase
         $this->get($this->menuUrl('features/loyalty?lang=en'))->assertOk()->assertSee('412')->assertSee('In Pro');
     }
 
+    public function test_pricing_calculator_uses_the_plan_and_online_pack_prices_from_the_database(): void
+    {
+        Plan::query()->where('code', 'pro')->update(['monthly_price' => 412]);
+        AddonPrice::query()->where('key', 'online_pack')->update(['monthly_price' => 263]);
+
+        $this->get($this->menuUrl('pricing'))->assertOk()
+            ->assertSeeInOrder(['id="compare"', 'data-savings-calculator', 'id="addons"'], false)
+            ->assertSee('"code":"pro","monthly":412,')
+            ->assertSee('data-online-pack="263"', false)
+            ->assertSee('<option value="pro" selected', false)
+            ->assertSee('الحساب من الأرقام اللي انت كتبتها بس');
+    }
+
+    public function test_pricing_calculator_marks_which_plans_include_online_ordering(): void
+    {
+        $page = $this->get($this->menuUrl('pricing?lang=en'))->assertOk()->assertSee('Savings calculator');
+
+        $this->assertMatchesRegularExpression('/data-plans="[^"]*&quot;code&quot;:&quot;free&quot;,&quot;monthly&quot;:0,&quot;online&quot;:false/', $page->getContent());
+        $this->assertMatchesRegularExpression('/data-plans="[^"]*&quot;code&quot;:&quot;business&quot;,&quot;monthly&quot;:799,&quot;online&quot;:true/', $page->getContent());
+    }
+
+    public function test_home_shows_the_live_demo_in_arabic_and_english(): void
+    {
+        $this->get($this->menuUrl())->assertOk()
+            ->assertSee('data-live-demo', false)
+            ->assertSee('خلصان النهاردة')
+            ->assertSee(route('pricing').'#calculator', false);
+        $this->get($this->menuUrl('?lang=en'))->assertOk()
+            ->assertSee('data-live-demo', false)
+            ->assertSee('Sold out today')
+            ->assertSee('Iced Spanish latte');
+    }
+
     public function test_pricing_page_puts_the_free_plan_first_and_compares_all_plans(): void
     {
         $this->get($this->menuUrl('pricing'))->assertOk()
