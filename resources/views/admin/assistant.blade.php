@@ -7,11 +7,11 @@
         <h1 class="text-2xl font-extrabold">{{ __('Assistant questions') }}</h1>
         <p class="text-sm text-navy-500">{{ __('What visitors asked the website assistant and what it answered. Hand-offs are the chats it sent to the sales WhatsApp.') }}</p>
     </div>
-    <span class="badge {{ $enabled ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800' }}">{{ $enabled ? __('On · :model', ['model' => $model]) : __('Off: set ANTHROPIC_API_KEY on the server') }}</span>
+    <span class="badge {{ $enabled ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800' }}">{{ $enabled ? __('On · :provider · :model', ['provider' => $provider, 'model' => $model]) : __('Off: no API key on the server') }}</span>
 </div>
 
 @if (! $enabled)
-    <div class="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{{ __('Without a key the “Ask us” button opens the sales WhatsApp directly. Add ANTHROPIC_API_KEY (and optionally ASSISTANT_MODEL) to .env, then run php artisan optimize.') }}</div>
+    <div class="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{{ __('Without a key the “Ask us” button opens the sales WhatsApp directly. In .env set ASSISTANT_PROVIDER=anthropic with ANTHROPIC_API_KEY, or ASSISTANT_PROVIDER=gemini with GEMINI_API_KEY, then run php artisan optimize.') }}</div>
 @endif
 
 <div class="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">

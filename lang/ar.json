@@ -2939,5 +2939,8 @@
     "No questions yet.": "مفيش أسئلة لسه.",
     "Ask us": "اسألنا",
     "Chat on WhatsApp": "كلّمنا على واتساب",
-    "Assistant": "المساعد"
+    "Assistant": "المساعد",
+    "On · :provider · :model": "شغال · :provider · :model",
+    "Off: no API key on the server": "مقفول: مفيش مفتاح API على السيرفر",
+    "Without a key the “Ask us” button opens the sales WhatsApp directly. In .env set ASSISTANT_PROVIDER=anthropic with ANTHROPIC_API_KEY, or ASSISTANT_PROVIDER=gemini with GEMINI_API_KEY, then run php artisan optimize.": "من غير مفتاح زرار «اسألنا» بيفتح واتساب المبيعات مباشرة. في .env حط ASSISTANT_PROVIDER=anthropic مع ANTHROPIC_API_KEY، أو ASSISTANT_PROVIDER=gemini مع GEMINI_API_KEY، وبعدين شغّل php artisan optimize."
 }

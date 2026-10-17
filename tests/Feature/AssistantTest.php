@@ -98,6 +98,35 @@ class AssistantTest extends TenantTestCase
         $this->assertSame(0, AssistantMessage::query()->count());
     }
 
+    public function test_gemini_answers_when_it_is_the_chosen_provider(): void
+    {
+        config(['assistant.provider' => 'gemini', 'assistant.key' => '', 'assistant.gemini.key' => 'g-key', 'assistant.gemini.model' => 'gemini-3.1-flash-lite']);
+        $this->assertTrue(Assistant::enabled());
+        Http::fake(['generativelanguage.googleapis.com/*' => Http::response([
+            'candidates' => [['content' => ['parts' => [['text' => 'الباقة المجانية فيها المنيو والـQR.']], 'role' => 'model'], 'finishReason' => 'STOP']],
+            'usageMetadata' => ['promptTokenCount' => 3000, 'candidatesTokenCount' => 25],
+        ])]);
+
+        $this->postJson($this->menuUrl('assistant'), ['messages' => [
+            ['role' => 'user', 'content' => 'إيه الباقات؟'], ['role' => 'assistant', 'content' => 'عندنا خمس باقات.'], ['role' => 'user', 'content' => 'والمجانية؟'],
+        ]])->assertOk()->assertJsonPath('reply', 'الباقة المجانية فيها المنيو والـQR.')->assertJsonPath('handoff', false);
+
+        Http::assertSent(function ($request) {
+            $body = $request->data();
+
+            return str_contains($request->url(), 'models/gemini-3.1-flash-lite:generateContent')
+                && $request->hasHeader('x-goog-api-key', 'g-key')
+                && str_contains($body['system_instruction']['parts'][0]['text'], '399')
+                && $body['contents'][1]['role'] === 'model'
+                && $body['contents'][2]['parts'][0]['text'] === 'والمجانية؟';
+        });
+        $this->assertSame([3000, 25], [AssistantMessage::query()->value('tokens_in'), AssistantMessage::query()->value('tokens_out')]);
+
+        // the Anthropic key alone does not switch Gemini on
+        config(['assistant.gemini.key' => '', 'assistant.key' => 'a-key']);
+        $this->assertFalse(Assistant::enabled());
+    }
+
     public function test_admin_sees_the_log_and_the_stats(): void
     {
         AssistantMessage::query()->create(['conversation' => 'c1', 'lang' => 'ar', 'question' => 'الباقات بكام', 'answer' => '399', 'handoff' => false, 'tokens_in' => 10, 'tokens_out' => 5]);

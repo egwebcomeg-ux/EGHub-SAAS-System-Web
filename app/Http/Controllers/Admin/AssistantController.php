@@ -29,7 +29,8 @@ class AssistantController extends Controller
                 'handoff' => AssistantMessage::query()->where('created_at', '>=', $since)->where('handoff', true)->count(),
                 'tokens' => (int) AssistantMessage::query()->where('created_at', '>=', $since)->sum('tokens_in') + (int) AssistantMessage::query()->where('created_at', '>=', $since)->sum('tokens_out'),
             ],
-            'only' => $only, 'q' => $q, 'enabled' => Assistant::enabled(), 'model' => config('assistant.model'),
+            'only' => $only, 'q' => $q, 'enabled' => Assistant::enabled(), 'model' => Assistant::model(),
+            'provider' => Assistant::provider() === 'gemini' ? 'Google Gemini' : 'Claude',
         ]);
     }
 }

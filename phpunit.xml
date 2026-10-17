@@ -35,6 +35,8 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="ANTHROPIC_API_KEY" value=""/>
+        <env name="ASSISTANT_PROVIDER" value="anthropic"/>
+        <env name="GEMINI_API_KEY" value=""/>
         <env name="WHATSAPP_NUMBER" value=""/>
     </php>
 </phpunit>

@@ -24,9 +24,20 @@ final class Assistant
 
     public const MAX_CHARS = 600;
 
+    /** anthropic | gemini — whichever ASSISTANT_PROVIDER names. */
+    public static function provider(): string
+    {
+        return config('assistant.provider') === 'gemini' ? 'gemini' : 'anthropic';
+    }
+
+    public static function model(): string
+    {
+        return (string) (self::provider() === 'gemini' ? config('assistant.gemini.model') : config('assistant.model'));
+    }
+
     public static function enabled(): bool
     {
-        return trim((string) config('assistant.key')) !== '';
+        return trim((string) (self::provider() === 'gemini' ? config('assistant.gemini.key') : config('assistant.key'))) !== '';
     }
 
     /** Sales WhatsApp in wa.me form (digits with country code), or '' when none is set. */
@@ -44,6 +55,25 @@ final class Assistant
      * @throws \RuntimeException when the model cannot be reached or answers nothing
      */
     public static function reply(array $messages, string $lang): array
+    {
+        [$text, $truncated, $in, $out] = self::provider() === 'gemini' ? self::gemini($messages, $lang) : self::anthropic($messages, $lang);
+        if ($truncated) {
+            // cut off mid-sentence: keep the answer up to its last full line or sentence
+            $cut = max((int) mb_strrpos($text, "\n"), (int) mb_strrpos($text, '.'), (int) mb_strrpos($text, '؟'), (int) mb_strrpos($text, '!'));
+            $text = $cut > 0 ? mb_substr($text, 0, $cut + 1) : $text;
+        }
+        $asked = (string) end($messages)['content'];
+        $handoff = str_contains($text, self::HANDOFF) || self::wantsPerson($asked);
+        $text = self::plain(str_replace(self::HANDOFF, '', $text));
+        if ($text === '') {
+            throw new \RuntimeException('assistant: empty answer');
+        }
+
+        return ['text' => $text, 'handoff' => $handoff, 'in' => $in, 'out' => $out];
+    }
+
+    /** @return array{0:string,1:bool,2:int,3:int} text, cut off by max_tokens, tokens in, tokens out */
+    private static function anthropic(array $messages, string $lang): array
     {
         $res = Http::withHeaders([
             'x-api-key' => (string) config('assistant.key'),
@@ -69,24 +99,32 @@ final class Assistant
                 $text .= $block['text'];
             }
         }
-        if ($res->json('stop_reason') === 'max_tokens') {
-            // cut off mid-sentence: keep the answer up to its last full line or sentence
-            $cut = max((int) mb_strrpos($text, "\n"), (int) mb_strrpos($text, '.'), (int) mb_strrpos($text, '؟'), (int) mb_strrpos($text, '!'));
-            $text = $cut > 0 ? mb_substr($text, 0, $cut + 1) : $text;
-        }
-        $asked = (string) end($messages)['content'];
-        $handoff = str_contains($text, self::HANDOFF) || self::wantsPerson($asked);
-        $text = self::plain(str_replace(self::HANDOFF, '', $text));
-        if ($text === '') {
-            throw new \RuntimeException('assistant: empty answer');
-        }
         $u = (array) $res->json('usage', []);
 
-        return [
-            'text' => $text, 'handoff' => $handoff,
-            'in' => (int) ($u['input_tokens'] ?? 0) + (int) ($u['cache_read_input_tokens'] ?? 0) + (int) ($u['cache_creation_input_tokens'] ?? 0),
-            'out' => (int) ($u['output_tokens'] ?? 0),
-        ];
+        return [$text, $res->json('stop_reason') === 'max_tokens',
+            (int) ($u['input_tokens'] ?? 0) + (int) ($u['cache_read_input_tokens'] ?? 0) + (int) ($u['cache_creation_input_tokens'] ?? 0),
+            (int) ($u['output_tokens'] ?? 0)];
+    }
+
+    /** Same conversation through Google Gemini's generateContent (roles: user / model). @return array{0:string,1:bool,2:int,3:int} */
+    private static function gemini(array $messages, string $lang): array
+    {
+        $model = rawurlencode((string) config('assistant.gemini.model'));
+        $res = Http::withHeaders(['x-goog-api-key' => (string) config('assistant.gemini.key')])
+            ->timeout((int) config('assistant.timeout', 40))
+            ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent", [
+                'system_instruction' => ['parts' => [['text' => self::instructions($lang)."\n\n".self::knowledge($lang)."\n\n".self::reminder()]]],
+                'contents' => array_map(fn ($m) => ['role' => $m['role'] === 'assistant' ? 'model' : 'user', 'parts' => [['text' => $m['content']]]], $messages),
+                'generationConfig' => ['maxOutputTokens' => (int) config('assistant.max_tokens', 900), 'temperature' => 0.4],
+            ]);
+        if (! $res->successful()) {
+            throw new \RuntimeException('assistant gemini http '.$res->status().': '.mb_substr($res->body(), 0, 300));
+        }
+        $text = implode('', array_column((array) $res->json('candidates.0.content.parts', []), 'text'));
+        $u = (array) $res->json('usageMetadata', []);
+
+        return [$text, $res->json('candidates.0.finishReason') === 'MAX_TOKENS',
+            (int) ($u['promptTokenCount'] ?? 0), (int) ($u['candidatesTokenCount'] ?? 0)];
     }
 
     /** The visitor asked for a person: the WhatsApp card shows whatever the model said. */
