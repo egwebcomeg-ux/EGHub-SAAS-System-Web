@@ -127,6 +127,33 @@ class AssistantTest extends TenantTestCase
         $this->assertFalse(Assistant::enabled());
     }
 
+    public function test_gemini_high_demand_is_retried_then_falls_back_to_the_second_model(): void
+    {
+        config(['assistant.provider' => 'gemini', 'assistant.gemini.key' => 'g-key', 'assistant.gemini.model' => 'gemini-3.8-flash', 'assistant.gemini.fallback' => 'gemini-3.5-flash']);
+        $calls = [];
+        Http::fake(function ($request) use (&$calls) {
+            $calls[] = $request->url();
+            if (str_contains($request->url(), 'gemini-3.8-flash')) {
+                return Http::response(['error' => ['code' => 503, 'status' => 'UNAVAILABLE', 'message' => 'high demand']], 503);
+            }
+
+            return Http::response(['candidates' => [['content' => ['parts' => [['text' => 'تمام من الموديل الاحتياطي.']]], 'finishReason' => 'STOP']]]);
+        });
+
+        $this->postJson($this->menuUrl('assistant'), ['messages' => [['role' => 'user', 'content' => 'الباقات بكام؟']]])
+            ->assertOk()->assertJsonPath('reply', 'تمام من الموديل الاحتياطي.');
+        $this->assertCount(3, $calls); // main model twice, then the fallback once
+        $this->assertStringContainsString('gemini-3.5-flash', $calls[2]);
+    }
+
+    public function test_a_bad_gemini_key_is_not_retried(): void
+    {
+        config(['assistant.provider' => 'gemini', 'assistant.gemini.key' => 'bad', 'assistant.gemini.model' => 'gemini-3.8-flash', 'assistant.gemini.fallback' => 'gemini-3.5-flash']);
+        Http::fake(fn () => Http::response(['error' => ['code' => 400, 'message' => 'API key not valid']], 400));
+        $this->postJson($this->menuUrl('assistant'), ['messages' => [['role' => 'user', 'content' => 'hi']]])->assertStatus(502);
+        Http::assertSentCount(1);
+    }
+
     public function test_admin_sees_the_log_and_the_stats(): void
     {
         AssistantMessage::query()->create(['conversation' => 'c1', 'lang' => 'ar', 'question' => 'الباقات بكام', 'answer' => '399', 'handoff' => false, 'tokens_in' => 10, 'tokens_out' => 5]);

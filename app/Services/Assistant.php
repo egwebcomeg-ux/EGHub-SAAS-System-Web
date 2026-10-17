@@ -106,25 +106,43 @@ final class Assistant
             (int) ($u['output_tokens'] ?? 0)];
     }
 
-    /** Same conversation through Google Gemini's generateContent (roles: user / model). @return array{0:string,1:bool,2:int,3:int} */
+    /**
+     * Same conversation through Google Gemini's generateContent (roles: user / model). A "high demand" 503, a 429 or
+     * a 5xx is retried once after a short pause, then tried on the fallback model; the visitor only sees an error
+     * when both models are down. @return array{0:string,1:bool,2:int,3:int}
+     */
     private static function gemini(array $messages, string $lang): array
     {
-        $model = rawurlencode((string) config('assistant.gemini.model'));
-        $res = Http::withHeaders(['x-goog-api-key' => (string) config('assistant.gemini.key')])
-            ->timeout((int) config('assistant.timeout', 40))
-            ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent", [
-                'system_instruction' => ['parts' => [['text' => self::instructions($lang)."\n\n".self::knowledge($lang)."\n\n".self::reminder()]]],
-                'contents' => array_map(fn ($m) => ['role' => $m['role'] === 'assistant' ? 'model' : 'user', 'parts' => [['text' => $m['content']]]], $messages),
-                'generationConfig' => ['maxOutputTokens' => (int) config('assistant.max_tokens', 900), 'temperature' => 0.4],
-            ]);
-        if (! $res->successful()) {
-            throw new \RuntimeException('assistant gemini http '.$res->status().': '.mb_substr($res->body(), 0, 300));
-        }
-        $text = implode('', array_column((array) $res->json('candidates.0.content.parts', []), 'text'));
-        $u = (array) $res->json('usageMetadata', []);
+        $payload = [
+            'system_instruction' => ['parts' => [['text' => self::instructions($lang)."\n\n".self::knowledge($lang)."\n\n".self::reminder()]]],
+            'contents' => array_map(fn ($m) => ['role' => $m['role'] === 'assistant' ? 'model' : 'user', 'parts' => [['text' => $m['content']]]], $messages),
+            'generationConfig' => ['maxOutputTokens' => (int) config('assistant.max_tokens', 900), 'temperature' => 0.4],
+        ];
+        $models = array_values(array_unique(array_filter([(string) config('assistant.gemini.model'), (string) config('assistant.gemini.fallback')])));
+        $last = null;
+        foreach ($models as $i => $model) {
+            foreach ([0, 1] as $attempt) {
+                if ($attempt === 1 || $i > 0) {
+                    usleep(700_000);
+                }
+                $res = Http::withHeaders(['x-goog-api-key' => (string) config('assistant.gemini.key')])
+                    ->timeout((int) config('assistant.timeout', 40))
+                    ->post('https://generativelanguage.googleapis.com/v1beta/models/'.rawurlencode($model).':generateContent', $payload);
+                if ($res->successful()) {
+                    $text = implode('', array_column((array) $res->json('candidates.0.content.parts', []), 'text'));
+                    $u = (array) $res->json('usageMetadata', []);
 
-        return [$text, $res->json('candidates.0.finishReason') === 'MAX_TOKENS',
-            (int) ($u['promptTokenCount'] ?? 0), (int) ($u['candidatesTokenCount'] ?? 0)];
+                    return [$text, $res->json('candidates.0.finishReason') === 'MAX_TOKENS',
+                        (int) ($u['promptTokenCount'] ?? 0), (int) ($u['candidatesTokenCount'] ?? 0)];
+                }
+                $last = 'assistant gemini '.$model.' http '.$res->status().': '.mb_substr($res->body(), 0, 300);
+                if ($res->status() !== 429 && $res->status() < 500) {
+                    throw new \RuntimeException($last); // a bad key or request: retrying cannot help
+                }
+            }
+        }
+
+        throw new \RuntimeException((string) $last);
     }
 
     /** The visitor asked for a person: the WhatsApp card shows whatever the model said. */
