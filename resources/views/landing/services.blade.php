@@ -78,6 +78,96 @@
     </div>
 </section>
 
+@php
+    $studioOptions = ['accent' => '#E8642C', 'waiter' => true, 'payment' => true, 'wifi_name' => '', 'wifi_password' => '', 'url' => false];
+    $studioDefaults = ['stand' => 'white', 'accent' => '#E8642C', 'restaurant' => '', 'table' => '5'];
+@endphp
+@include('partials.stand-card-css')
+<section id="stand-studio" class="scroll-mt-20 border-t border-navy-100 py-14 lg:py-20" data-stand-studio>
+    <div class="mx-auto grid max-w-7xl gap-x-10 gap-y-6 px-4 sm:px-6 lg:grid-cols-[1.15fr_1fr]">
+        <div class="lg:col-start-1 lg:row-start-1">
+            <p class="lp-eyebrow">{{ __('Stand studio') }}</p>
+            <h2 class="lp-h2 mt-3">{{ __('Design your table stand') }}</h2>
+            <p class="mt-3 max-w-xl text-navy-600">{{ __('Write your name and pick the material and the color, and see the stand right away. This is a preview: the printed stand carries the real QR of your menu.') }}</p>
+        </div>
+        <div class="order-last lg:order-none lg:col-start-1 lg:row-start-2">
+            <form class="grid gap-4 sm:grid-cols-2" data-studio-form onsubmit="return false">
+                <label class="block">
+                    <span class="field-label">{{ __('Restaurant or cafe') }}</span>
+                    <input name="restaurant" class="field" maxlength="60" placeholder="{{ __('Your cafe') }}" autocomplete="organization">
+                </label>
+                <label class="block">
+                    <span class="field-label">{{ __('Table number') }}</span>
+                    <input name="table" class="field" maxlength="12" value="5" inputmode="numeric">
+                </label>
+                <fieldset class="sm:col-span-2">
+                    <legend class="field-label">{{ __('Stand material') }}</legend>
+                    <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        @foreach (\App\Support\StandStyles::STYLES as $key => $p)
+                            <label class="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-navy-200 bg-white p-2 text-sm font-bold has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
+                                <input type="radio" name="stand" value="{{ $key }}" @checked($key === 'white') class="sr-only">
+                                <span class="size-7 shrink-0 rounded-lg border border-navy-200" style="background: linear-gradient(165deg, {{ $p['bg1'] }}, {{ $p['bg2'] }})"></span>
+                                {{ \App\Support\StandStyles::label($key) }}
+                            </label>
+                        @endforeach
+                    </div>
+                </fieldset>
+                <fieldset class="sm:col-span-2">
+                    <legend class="field-label">{{ __('Accent color') }}</legend>
+                    <div class="flex flex-wrap items-center gap-2">
+                        @foreach (['#E8642C', '#1E2D4F', '#0F766E', '#B45309', '#BE123C'] as $swatch)
+                            <label class="cursor-pointer">
+                                <input type="radio" name="accent" value="{{ $swatch }}" @checked($loop->first) class="peer sr-only">
+                                <span class="block size-9 rounded-full border-2 border-white shadow ring-1 ring-navy-200 peer-checked:ring-2 peer-checked:ring-navy-900" style="background: {{ $swatch }}"><span class="sr-only">{{ $swatch }}</span></span>
+                            </label>
+                        @endforeach
+                        <label class="ms-1 flex items-center gap-2 text-sm text-navy-600">
+                            <input type="color" value="#E8642C" class="h-9 w-12 cursor-pointer rounded-lg border border-navy-200 bg-white p-1" data-custom-accent>
+                            {{ __('Your color') }}
+                        </label>
+                    </div>
+                </fieldset>
+                <div class="flex flex-wrap gap-x-5 gap-y-2 text-sm sm:col-span-2">
+                    <label class="flex min-h-11 items-center gap-2"><input type="checkbox" name="waiter" checked class="size-4 accent-brand-600"> {{ __('Call the waiter from your phone') }}</label>
+                    <label class="flex min-h-11 items-center gap-2"><input type="checkbox" name="payment" checked class="size-4 accent-brand-600"> {{ __('Pay cash or InstaPay') }}</label>
+                </div>
+            </form>
+
+            <div class="mt-6 flex flex-wrap items-center gap-4">
+                <a href="{{ route('services', $studioDefaults) }}#request" class="btn-primary min-h-12 px-6 text-base" data-studio-cta>{{ __('Order the stands printed') }}</a>
+                @if ($standPrices)
+                    <div class="text-sm text-navy-600" data-stand-prices>
+                        @foreach ($standPrices as [$product, $size, $price])
+                            <div>{{ $product }} <span dir="ltr">{{ $size }}</span>: {{ __('From') }} <b class="text-navy-900">{{ money($price) }} {{ __('EGP') }}</b></div>
+                        @endforeach
+                    </div>
+                @elseif ($printService && $printService['price'] !== null)
+                    <div class="text-sm text-navy-600" data-stand-prices>{{ __('From') }} <b class="text-navy-900">{{ money($printService['price']) }} {{ __('EGP') }}</b> {{ $printService['unit'] }}</div>
+                @endif
+            </div>
+            @if ($standPrices)
+                <p class="mt-2 text-xs text-navy-500">{{ __('The prices are for acrylic stands. For wood or frosted we tell you the price when we call you.') }}</p>
+            @endif
+        </div>
+
+        <div class="mx-auto w-full max-w-md lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:max-w-none lg:self-center">
+            <div class="stand-scene">
+                <div class="stand mx-auto max-w-[230px] sm:max-w-[300px]" data-stand data-style="white">
+                    <div class="stand__card">
+                        @include('partials.stand-card', [
+                            'style' => 'white', 'options' => $studioOptions, 'brand' => __('Your cafe'), 'logo' => null, 'waiter' => true,
+                            'headline' => __('Scan the code and order'), 'table' => __('Table :name', ['name' => 5]), 'qr' => $sampleQr,
+                            'url' => null, 'sample' => true,
+                        ])
+                    </div>
+                    <div class="stand__base"></div>
+                </div>
+            </div>
+            <p class="mt-3 text-center text-xs text-navy-500">{{ __('Sample QR: it opens egmenu.app. Your stand gets the QR of your own menu.') }}</p>
+        </div>
+    </div>
+</section>
+
 <section id="request" class="scroll-mt-20 border-t border-navy-100 bg-[var(--lp-paper)] py-14 lg:py-20">
     <div class="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[1fr_1.3fr]">
         <div>
@@ -124,7 +214,7 @@
                     </label>
                     <label class="block">
                         <span class="field-label">{{ __('Restaurant or cafe') }}</span>
-                        <input name="restaurant" value="{{ old('restaurant') }}" class="field" required maxlength="120" autocomplete="organization">
+                        <input name="restaurant" value="{{ old('restaurant', $prefill['restaurant']) }}" class="field" required maxlength="120" autocomplete="organization">
                     </label>
                     <label class="block">
                         <span class="field-label">{{ __('Mobile number') }}</span>
@@ -140,7 +230,7 @@
                     </label>
                     <label class="block sm:col-span-2">
                         <span class="field-label">{{ __('Details (optional)') }}</span>
-                        <textarea name="notes" class="field min-h-24 py-2" maxlength="1000" placeholder="{{ __('Sizes, number of items or dishes, your area, the best time to call...') }}">{{ old('notes') }}</textarea>
+                        <textarea name="notes" class="field min-h-24 py-2" maxlength="1000" placeholder="{{ __('Sizes, number of items or dishes, your area, the best time to call...') }}">{{ old('notes', $prefill['notes']) }}</textarea>
                     </label>
                     <div class="hidden" aria-hidden="true"><input name="website" tabindex="-1" autocomplete="off"></div>
                     <button class="btn-primary min-h-12 text-base sm:col-span-2">{{ __('Send the request') }}</button>
@@ -161,5 +251,44 @@
         setTimeout(() => select.form.querySelector('[name="name"]').focus({ preventScroll: true }), 400);
     }));
     if (document.querySelector('[data-errors]')) document.getElementById('request').scrollIntoView();
+
+    // stand studio: live preview, and "Order the stands printed" carries the design into the request form
+    (() => {
+        const form = document.querySelector('[data-studio-form]');
+        if (!form) return;
+        const card = document.querySelector('[data-stand-studio] [data-stand-card]');
+        const stand = document.querySelector('[data-stand-studio] [data-stand]');
+        const cta = document.querySelector('[data-studio-cta]');
+        const custom = form.querySelector('[data-custom-accent]');
+        const tableLabel = @json(__('Table :name'));
+        const defaultName = @json(__('Your cafe'));
+        let accent = '#E8642C';
+        const apply = () => {
+            const data = new FormData(form);
+            const style = data.get('stand');
+            const name = String(data.get('restaurant') || '').trim();
+            const table = String(data.get('table') || '').trim();
+            card.dataset.style = style;
+            stand.dataset.style = style;
+            card.style.setProperty('--accent', accent);
+            card.querySelector('[data-card-brand]').textContent = name || defaultName;
+            card.querySelector('[data-card-table]').textContent = tableLabel.replace(':name', table || '5');
+            card.querySelector('[data-line="waiter"]').hidden = !data.get('waiter');
+            card.querySelector('[data-line="payment"]').hidden = !data.get('payment');
+            const url = new URL(cta.href);
+            url.search = new URLSearchParams({ stand: style, accent, restaurant: name, table }).toString();
+            cta.href = url.toString();
+        };
+        form.addEventListener('change', (e) => {
+            if (e.target.name === 'accent') accent = e.target.value;
+            apply();
+        });
+        form.addEventListener('input', apply);
+        custom.addEventListener('input', () => {
+            accent = custom.value;
+            form.querySelectorAll('[name="accent"]').forEach((r) => { r.checked = false; });
+            apply();
+        });
+    })();
 </script>
 @endsection

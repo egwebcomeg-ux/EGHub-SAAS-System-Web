@@ -7,7 +7,9 @@ use App\Models\PlatformAdmin;
 use App\Models\PlatformSetting;
 use App\Models\ServiceRequest;
 use App\Notifications\ServiceRequested;
+use App\Services\Qr;
 use App\Support\SiteServices;
+use App\Support\StandStyles;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
@@ -17,15 +19,47 @@ use Illuminate\View\View;
 /** Marketing site: EgWeb's one-time services (/services) and the request form, emailed to the platform admins. */
 class ServicesController extends Controller
 {
+    /** The stand studio's sample QR opens the EgMenu site: a real restaurant gets its own menu QR on the printed stand. */
+    private const SAMPLE_URL = 'https://egmenu.app';
+
     public function index(Request $request): View
     {
         $whatsapp = (string) PlatformSetting::get('support_whatsapp');
+        $prefill = $this->standPrefill($request);
+        $print = SiteServices::find('print');
 
         return view('landing.services', [
             'services' => SiteServices::all(),
-            'selected' => in_array($request->query('service'), SiteServices::keys(), true) ? $request->query('service') : null,
+            'selected' => $prefill ? 'print' : (in_array($request->query('service'), SiteServices::keys(), true) ? $request->query('service') : null),
             'whatsappUrl' => trim($whatsapp) !== '' ? 'https://wa.me/'.whatsapp_number($whatsapp) : null,
+            'prefill' => $prefill ?? ['restaurant' => '', 'notes' => ''],
+            'sampleQr' => Qr::svg(self::SAMPLE_URL, 300, '#000000', 2),
+            'standPrices' => $print ? array_values(array_filter($print['items'], fn (array $item) => $item[0] === __('Acrylic QR table stand'))) : [],
+            'printService' => $print,
         ]);
+    }
+
+    /**
+     * "Order printed stands" from the stand studio: the request form opens on the print service with the chosen design
+     * written into the details.
+     *
+     * @return array{restaurant:string, notes:string}|null
+     */
+    private function standPrefill(Request $request): ?array
+    {
+        $style = (string) $request->query('stand');
+        if (! in_array($style, StandStyles::keys(), true)) {
+            return null;
+        }
+        $accent = (string) $request->query('accent');
+        $table = mb_substr(trim((string) $request->query('table')), 0, 20);
+
+        return [
+            'restaurant' => mb_substr(trim((string) $request->query('restaurant')), 0, 120),
+            'notes' => __('QR table stands, :style design, accent color :accent.', [
+                'style' => StandStyles::label($style), 'accent' => is_hex_color($accent) ? strtoupper($accent) : '-',
+            ]).($table !== '' ? ' '.__('Sample table number: :table.', ['table' => $table]) : ''),
+        ];
     }
 
     public function store(Request $request): RedirectResponse

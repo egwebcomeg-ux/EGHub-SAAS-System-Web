@@ -44,6 +44,10 @@ final class Settings
         'listed_in_directory' => '1',
         // what the table and storefront QR open: the menu, or the links page egmenu.app/{slug}/links
         'qr_target' => 'menu',
+        // printed table QR cards / stands (App\Support\StandStyles): material look, print layout, optional lines (JSON)
+        'stand_style' => 'white',           // white | navy | wood | frosted
+        'stand_layout' => 'classic',        // classic (9 small cards per A4) | a6 (one per page) | a4 (four A6 per A4)
+        'stand_options' => '',              // json {accent, waiter, payment, wifi_name, wifi_password, url}
         // ad tracking pixels on the public menu pages (feature offers|full_branding, App\Services\Marketing\TrackingPixels)
         'meta_pixel_id' => '',
         'ga4_measurement_id' => '',

@@ -135,6 +135,8 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::middleware('permission:tables.manage')->group(function () {
         Route::get('/tables', [TablesController::class, 'index'])->name('tables');
         Route::get('/tables/print', [TablesController::class, 'print'])->name('tables.print');
+        Route::post('/tables/design', [TablesController::class, 'design'])->name('tables.design');
+        Route::get('/tables/{table}/svg', [TablesController::class, 'svg'])->name('tables.svg');
         Route::post('/tables', [TablesController::class, 'store'])->name('tables.store');
         Route::post('/tables/{table}', [TablesController::class, 'update'])->name('tables.update');
         Route::post('/tables/{table}/rotate', [TablesController::class, 'rotate'])->name('tables.rotate');

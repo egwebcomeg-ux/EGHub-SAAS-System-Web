@@ -9,8 +9,12 @@ use App\Services\Entitlements;
 use App\Services\Onboarding;
 use App\Services\Qr;
 use App\Services\Settings;
+use App\Support\StandStyles;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -81,7 +85,7 @@ class TablesController extends Controller
         return back()->with('ok', __('Table deleted.'));
     }
 
-    /** Printable A4 sheet of QR cards: all tables of a branch, or one table. */
+    /** Printable QR cards (all tables of a branch, or one table) in the saved stand design, with the design panel. */
     public function print(Request $request): View
     {
         $query = DiningTable::query()->where('is_active', true)->with('branch')->orderBy('branch_id')->orderBy('sort_order');
@@ -90,19 +94,110 @@ class TablesController extends Controller
         } elseif ($request->filled('branch')) {
             $query->where('branch_id', (int) $request->query('branch'));
         }
-        $color = Settings::get('color_secondary');
+        $settings = Settings::all();
+        $qrColor = StandStyles::qrColor($settings['color_secondary']);
         // the storefront QR encodes the chosen target; table QRs keep their /t/{token} link and are redirected on scan
-        $toLinks = Settings::get('qr_target') === 'links';
+        $toLinks = $settings['qr_target'] === 'links';
+        $canCallWaiter = StandStyles::canCallWaiter();
         Onboarding::markQrPrinted();
 
         return view('dashboard.tables.print', [
             'cards' => $query->get()->map(fn (DiningTable $t) => [
-                'table' => $t, 'url' => $t->menuUrl(), 'qr' => Qr::svg($t->menuUrl(), 300, $color),
+                'table' => $t, 'url' => $t->menuUrl(), 'qr' => Qr::svg($t->menuUrl(), 300, $qrColor, 2),
             ]),
-            'menuQr' => Qr::svg($toLinks ? tenant()->url('links') : tenant()->url(), 300, $color),
+            'menuQr' => Qr::svg($toLinks ? tenant()->url('links') : tenant()->url(), 300, $qrColor, 2),
             'toLinks' => $toLinks,
-            'settings' => Settings::all(),
+            'settings' => $settings,
             'onlyMenu' => $request->boolean('menu'),
+            'design' => StandStyles::current(),
+            'canCallWaiter' => $canCallWaiter,
+            'tableHeadline' => $this->tableHeadline($toLinks, $canCallWaiter),
+            'shortUrl' => $this->shortUrl(tenant()->url()),
         ]);
+    }
+
+    /** Saves the stand design (material, print layout, optional lines) used by the print page and the SVG download. */
+    public function design(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'stand_style' => ['required', Rule::in(StandStyles::keys())],
+            'stand_layout' => ['required', Rule::in(StandStyles::LAYOUTS)],
+            'accent' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'wifi_name' => 'nullable|string|max:40',
+            'wifi_password' => 'nullable|string|max:40',
+        ]);
+        Settings::put([
+            'stand_style' => $data['stand_style'],
+            'stand_layout' => $data['stand_layout'],
+            'stand_options' => json_encode([
+                'accent' => strtoupper($data['accent']),
+                'waiter' => $request->boolean('waiter'),
+                'payment' => $request->boolean('payment'),
+                'wifi_name' => trim((string) ($data['wifi_name'] ?? '')),
+                'wifi_password' => trim((string) ($data['wifi_password'] ?? '')),
+                'url' => $request->boolean('url'),
+            ], JSON_UNESCAPED_UNICODE),
+        ]);
+
+        return back()->with('ok', __('Stand design saved.'));
+    }
+
+    /** One table's card as a vector SVG file (A6, QR embedded) for a print shop or a design program. */
+    public function svg(DiningTable $table): Response
+    {
+        $settings = Settings::all();
+        $design = StandStyles::current();
+        $options = $design['options'];
+        $canCallWaiter = StandStyles::canCallWaiter();
+        $wifi = $options['wifi_name'] === '' ? null
+            : 'Wi-Fi: '.$options['wifi_name'].($options['wifi_password'] !== '' ? ' · '.__('Password').': '.$options['wifi_password'] : '');
+
+        $svg = '<?xml version="1.0" encoding="UTF-8"?>'."\n".view('dashboard.tables.card-svg', [
+            'design' => $design,
+            'palette' => StandStyles::palette($design['style']),
+            'brand' => tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name,
+            'logo' => $this->logoDataUrl($settings['logo']),
+            'headline' => $this->tableHeadline($settings['qr_target'] === 'links', $canCallWaiter),
+            'tableLabel' => __('Table :name', ['name' => $table->name]),
+            'qr' => Qr::svg($table->menuUrl(), 300, StandStyles::qrColor($settings['color_secondary']), 2),
+            'lines' => array_values(array_filter([
+                $canCallWaiter && $options['waiter'] ? __('Call the waiter from your phone') : null,
+                $options['payment'] ? __('Pay cash or InstaPay') : null,
+                $wifi,
+            ])),
+            'url' => $options['url'] ? $this->shortUrl(tenant()->url()) : null,
+        ])->render();
+        $filename = 'table-'.(Str::slug($table->name) ?: $table->id).'-qr.svg';
+
+        return response($svg, 200, [
+            'Content-Type' => 'image/svg+xml; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
+    }
+
+    private function tableHeadline(bool $toLinks, bool $canOrder): string
+    {
+        return match (true) {
+            $toLinks => __('Scan for the menu, ordering and our links'),
+            $canOrder => __('Scan the code and order'),
+            default => __('Scan to see the menu'),
+        };
+    }
+
+    /** egmenu.app/rosto: the menu address without the scheme, short enough to type. */
+    private function shortUrl(string $url): string
+    {
+        return (string) preg_replace('#^https?://#', '', rtrim($url, '/'));
+    }
+
+    /** The logo inlined as a data: URL so the downloaded SVG works on its own. */
+    private function logoDataUrl(string $path): ?string
+    {
+        $disk = Storage::disk('public');
+        if ($path === '' || ! $disk->exists($path) || $disk->size($path) > 2_000_000) {
+            return null;
+        }
+
+        return 'data:'.$disk->mimeType($path).';base64,'.base64_encode((string) $disk->get($path));
     }
 }

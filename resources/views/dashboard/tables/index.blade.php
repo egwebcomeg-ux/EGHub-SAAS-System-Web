@@ -48,7 +48,10 @@
                     <div @class(['rounded-xl border p-3', 'border-navy-100' => $t->is_active, 'border-dashed border-navy-200 opacity-60' => !$t->is_active])>
                         <div class="mb-2 flex items-center justify-between">
                             <span class="text-lg font-extrabold">{{ __('Table :name', ['name' => $t->name]) }}</span>
-                            <a href="{{ route('dash.tables.print', ['table' => $t->id]) }}" target="_blank" class="text-sm text-brand-700">QR</a>
+                            <span class="flex gap-3 text-sm">
+                                <a href="{{ route('dash.tables.print', ['table' => $t->id]) }}" target="_blank" class="text-brand-700">QR</a>
+                                <a href="{{ route('dash.tables.svg', $t) }}" class="text-navy-500" title="{{ __('Download SVG') }}">SVG</a>
+                            </span>
                         </div>
                         <details>
                             <summary class="cursor-pointer text-sm text-navy-500">{{ __('Edit') }}</summary>
