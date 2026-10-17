@@ -172,7 +172,13 @@ class VouchersTest extends TenantTestCase
         $this->voucher($a, ['code' => 'EVERYONE']);
 
         $this->actingAs($cashier)->get($this->dashUrl('/loyalty/vouchers'))->assertForbidden();      // setup needs loyalty.manage
+        // only a manager (or anyone given vouchers.give) hands out vouchers; a cashier sees them and redeems them
+        $this->actingAs($cashier)->get($this->dashUrl('/loyalty?q=01011112222'))->assertOk()->assertDontSee('data-give-voucher', false);
         $this->actingAs($cashier)->post($this->dashUrl("/loyalty/customers/{$mona->id}/vouchers"), ['type' => 'amount', 'value' => 30, 'days' => 7])
+            ->assertForbidden();
+        $manager = $this->staff($a, 'manager', 'manager@cafe-a.test');
+        $this->actingAs($manager)->get($this->dashUrl('/loyalty?q=01011112222'))->assertOk()->assertSee('data-give-voucher', false);
+        $this->actingAs($manager)->post($this->dashUrl("/loyalty/customers/{$mona->id}/vouchers"), ['type' => 'amount', 'value' => 30, 'days' => 7])
             ->assertRedirect()->assertSessionHasNoErrors();
         $given = $this->as($a, fn () => Coupon::query()->where('customer_id', $mona->id)->sole());
         $this->assertSame(1, $given->max_uses);

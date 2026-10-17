@@ -209,7 +209,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/loyalty/vouchers/{voucher}/toggle', [VouchersController::class, 'toggle'])->whereNumber('voucher')->name('vouchers.toggle');
     });
     Route::post('/loyalty/customers/{customer}/vouchers', [VouchersController::class, 'give'])
-        ->middleware(['feature:loyalty_stamps', 'permission:loyalty.stamp'])->whereNumber('customer')->name('vouchers.give');
+        ->middleware(['feature:loyalty_stamps', 'permission:vouchers.give'])->whereNumber('customer')->name('vouchers.give');
     // The counter desk also serves the advanced cards (packages, tiers, cashback) when there is no stamp program.
     Route::middleware(['feature:loyalty_stamps|prepaid_packages|membership|cashback', 'permission:loyalty.stamp'])->group(function () {
         Route::get('/loyalty', [LoyaltyController::class, 'desk'])->name('loyalty.desk');

@@ -15,7 +15,7 @@
 
 @if ($errors->has('package'))<div class="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ $errors->first('package') }}</div>@endif
 
-@if (!$program && $onSale->isEmpty() && ! \App\Services\Entitlements::current()->allows('membership|cashback'))
+@if (!$program && $onSale->isEmpty() && ! $vouchersOn && ! \App\Services\Entitlements::current()->allows('membership|cashback'))
     <div class="card max-w-lg">
         <p class="text-navy-700">{{ __('No active loyalty program yet.') }}</p>
         @can('loyalty.manage')<a href="{{ route('dash.loyalty.setup') }}" class="btn-primary mt-3">{{ __('Set up the loyalty card') }}</a>@endcan
@@ -121,6 +121,7 @@
                             </div>
                         @endforeach
                         @if ($vouchers->isEmpty())<p class="muted mb-3">{{ __('No vouchers for this guest yet.') }}</p>@endif
+                        @can('vouchers.give')
                         <form method="post" action="{{ route('dash.vouchers.give', $customer) }}" class="mt-3 grid grid-cols-2 gap-2 border-t border-navy-100 pt-3 sm:grid-cols-4" data-give-voucher>
                             @csrf
                             <p class="col-span-2 font-semibold sm:col-span-4">{{ __('Give a voucher') }}</p>
@@ -132,6 +133,7 @@
                             <label class="flex items-center gap-1 text-sm"><input class="field" name="days" type="number" min="1" max="365" value="30" required dir="ltr" aria-label="{{ __('Valid for (days)') }}"><span class="shrink-0 text-navy-500">{{ __('days') }}</span></label>
                             <button class="btn-primary" onclick="return confirm(@js(__('Give this guest the voucher?')))">{{ __('Give') }}</button>
                         </form>
+                        @endcan
                     </section>
                 @endif
 

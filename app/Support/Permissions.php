@@ -23,6 +23,7 @@ final class Permissions
         'customers.view' => ['العملاء', 'Customers'],
         'loyalty.stamp' => ['إضافة أختام وصرف مكافآت', 'Give stamps & redeem rewards'],
         'loyalty.manage' => ['إعداد برنامج الولاء', 'Loyalty program setup'],
+        'vouchers.give' => ['إدّي فاوتشرات خصم للعملاء', 'Give discount vouchers to guests'],
         'marketing.manage' => ['العروض والتسويق', 'Offers & marketing'],
         'reports.view' => ['التقارير', 'Reports'],
         'settings.manage' => ['الإعدادات والهوية', 'Settings & branding'],
@@ -44,7 +45,7 @@ final class Permissions
             'label' => ['مدير', 'Manager'],
             'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'pos.discount', 'callcenter.use', 'shifts.manage',
                 'kitchen.view', 'menu.manage', 'menu.availability', 'inventory.manage', 'tables.manage', 'branches.manage', 'delivery.manage',
-                'customers.view', 'loyalty.stamp', 'loyalty.manage', 'marketing.manage', 'reports.view', 'settings.manage', 'audit.view',
+                'customers.view', 'loyalty.stamp', 'loyalty.manage', 'vouchers.give', 'marketing.manage', 'reports.view', 'settings.manage', 'audit.view',
                 'wallet.manage', 'kiosk.manage', 'reservations.manage'],
         ],
         'cashier' => [
