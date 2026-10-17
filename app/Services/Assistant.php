@@ -6,6 +6,7 @@ use App\Models\AddonPrice;
 use App\Models\Plan;
 use App\Models\PlatformSetting;
 use App\Support\SiteModules;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
@@ -123,11 +124,18 @@ final class Assistant
         foreach ($models as $i => $model) {
             foreach ([0, 1] as $attempt) {
                 if ($attempt === 1 || $i > 0) {
-                    usleep(700_000);
+                    usleep(500_000);
                 }
-                $res = Http::withHeaders(['x-goog-api-key' => (string) config('assistant.gemini.key')])
-                    ->timeout((int) config('assistant.timeout', 40))
-                    ->post('https://generativelanguage.googleapis.com/v1beta/models/'.rawurlencode($model).':generateContent', $payload);
+                try {
+                    // a model that hangs must not hold the visitor: short wait per try, then the next try / model
+                    $res = Http::withHeaders(['x-goog-api-key' => (string) config('assistant.gemini.key')])
+                        ->connectTimeout(5)->timeout((int) config('assistant.gemini.timeout', 18))
+                        ->post('https://generativelanguage.googleapis.com/v1beta/models/'.rawurlencode($model).':generateContent', $payload);
+                } catch (ConnectionException $e) {
+                    $last = 'assistant gemini '.$model.' timeout: '.mb_substr($e->getMessage(), 0, 160);
+
+                    continue 2; // a hung model: go straight to the fallback model rather than waiting on it again
+                }
                 if ($res->successful()) {
                     $text = implode('', array_column((array) $res->json('candidates.0.content.parts', []), 'text'));
                     $u = (array) $res->json('usageMetadata', []);

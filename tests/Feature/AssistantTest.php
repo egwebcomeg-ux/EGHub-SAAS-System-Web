@@ -6,6 +6,7 @@ use App\Models\AssistantMessage;
 use App\Models\PlatformAdmin;
 use App\Models\PlatformSetting;
 use App\Services\Assistant;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Tests\TenantTestCase;
 
@@ -144,6 +145,24 @@ class AssistantTest extends TenantTestCase
             ->assertOk()->assertJsonPath('reply', 'تمام من الموديل الاحتياطي.');
         $this->assertCount(3, $calls); // main model twice, then the fallback once
         $this->assertStringContainsString('gemini-3.5-flash', $calls[2]);
+    }
+
+    public function test_a_hung_gemini_model_moves_to_the_fallback_at_once(): void
+    {
+        config(['assistant.provider' => 'gemini', 'assistant.gemini.key' => 'g-key', 'assistant.gemini.model' => 'gemini-3.8-flash', 'assistant.gemini.fallback' => 'gemini-3.5-flash']);
+        $calls = [];
+        Http::fake(function ($request) use (&$calls) {
+            $calls[] = $request->url();
+            if (str_contains($request->url(), 'gemini-3.8-flash')) {
+                throw new ConnectionException('cURL error 28: Operation timed out');
+            }
+
+            return Http::response(['candidates' => [['content' => ['parts' => [['text' => 'رد من الاحتياطي.']]], 'finishReason' => 'STOP']]]);
+        });
+
+        $this->postJson($this->menuUrl('assistant'), ['messages' => [['role' => 'user', 'content' => 'ينفع أشتري موديول واحد بس؟']]])
+            ->assertOk()->assertJsonPath('reply', 'رد من الاحتياطي.');
+        $this->assertCount(2, $calls); // the hung model once, then straight to the fallback
     }
 
     public function test_a_bad_gemini_key_is_not_retried(): void

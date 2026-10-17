@@ -17,6 +17,7 @@ return [
         'model' => env('ASSISTANT_GEMINI_MODEL', 'gemini-3.8-flash'),   // the lite tier ignored the reference and answered in formal Arabic
         // tried when the main model answers 429/5xx ("high demand") twice in a row
         'fallback' => env('ASSISTANT_GEMINI_FALLBACK', 'gemini-3.5-flash'),
+        'timeout' => (int) env('ASSISTANT_GEMINI_TIMEOUT', 18),   // seconds per try; a hung model moves on to the fallback
     ],
 
     'max_tokens' => (int) env('ASSISTANT_MAX_TOKENS', 900),
