@@ -26,7 +26,7 @@ final class Pwa
         if (str_starts_with($name, 'dash.')) {
             return [
                 'manifest' => route('dash.manifest'), 'sw' => route('dash.sw'), 'scope' => '/', 'theme' => self::THEME,
-                'icon' => asset('icons/egmenu-192.png'), 'title' => 'EgMenu', 'key' => 'dashboard', 'install' => false,
+                'icon' => versioned_asset('icons/egmenu-192.png'), 'title' => 'EgMenu', 'key' => 'dashboard', 'install' => false,
             ];
         }
         if (! tenant() || ! preg_match('/^(menu|path|custom)\.(show|about)$/', $name)) {
@@ -92,10 +92,10 @@ final class Pwa
             'background_color' => self::BACKGROUND,
             'theme_color' => self::THEME,
             'icons' => [
-                ['src' => asset('icons/egmenu-192.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
-                ['src' => asset('icons/egmenu-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
-                ['src' => asset('icons/egmenu-maskable-192.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'maskable'],
-                ['src' => asset('icons/egmenu-maskable-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
+                ['src' => versioned_asset('icons/egmenu-192.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+                ['src' => versioned_asset('icons/egmenu-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+                ['src' => versioned_asset('icons/egmenu-maskable-192.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'maskable'],
+                ['src' => versioned_asset('icons/egmenu-maskable-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
             ],
         ];
     }

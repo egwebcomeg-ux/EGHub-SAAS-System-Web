@@ -146,3 +146,15 @@ function csv_row(array $row): array
 {
     return array_map(fn ($v) => is_string($v) && $v !== '' && ! is_numeric($v) && str_contains("=+-@\t\r", $v[0]) ? "'".$v : $v, $row);
 }
+
+/**
+ * URL of a file in public/ with a version stamp (?v=<last change>), so browsers and the Cloudflare cache fetch the new
+ * file as soon as it changes — screenshots, icons and the share image keep their names across updates.
+ */
+function versioned_asset(string $path): string
+{
+    $path = ltrim($path, '/');
+    $file = public_path($path);
+
+    return asset($path).(is_file($file) ? '?v='.base_convert((string) filemtime($file), 10, 36) : '');
+}

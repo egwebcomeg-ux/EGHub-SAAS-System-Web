@@ -35,7 +35,7 @@
                 </div>
             </div>
             @if ($image)
-                <img src="/img/site/{{ $image }}-sm.webp" srcset="/img/site/{{ $image }}.webp 2x" alt="" loading="lazy" class="mt-3 w-full rounded-xl border border-navy-100 object-cover">
+                <img src="{{ versioned_asset('img/site/'.$image.'-sm.webp') }}" srcset="{{ versioned_asset('img/site/'.$image.'.webp') }} 2x" alt="" loading="lazy" class="mt-3 w-full rounded-xl border border-navy-100 object-cover">
             @endif
             @if (! $permission || auth()->user()->can($permission))
                 @if (\Illuminate\Support\Facades\Route::has($route))

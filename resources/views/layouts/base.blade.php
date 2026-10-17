@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'EgMenu')</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="{{ versioned_asset('favicon.svg') }}" type="image/svg+xml">
     @php
         $pwa = \App\Services\Pwa\Pwa::forRequest();
     @endphp

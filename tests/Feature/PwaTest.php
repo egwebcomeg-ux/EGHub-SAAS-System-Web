@@ -125,7 +125,7 @@ class PwaTest extends TenantTestCase
         $this->get($this->dashUrl('/manifest.webmanifest'))->assertOk()
             ->assertJsonPath('name', 'EgMenu')->assertJsonPath('short_name', 'EgMenu')->assertJsonPath('display', 'standalone')
             ->assertJsonPath('start_url', '/?source=pwa')->assertJsonPath('theme_color', '#1E2D4F')->assertJsonPath('background_color', '#FFFFFF')
-            ->assertJsonPath('icons.0.src', $this->dashUrl('/icons/egmenu-192.png'))->assertJsonPath('icons.1.src', $this->dashUrl('/icons/egmenu-512.png'))
+            ->assertJsonPath('icons.0.src', versioned_asset('icons/egmenu-192.png'))->assertJsonPath('icons.1.src', versioned_asset('icons/egmenu-512.png'))
             ->assertJsonPath('icons.2.purpose', 'maskable');
         foreach (['egmenu-192.png' => 192, 'egmenu-512.png' => 512, 'egmenu-maskable-192.png' => 192, 'egmenu-maskable-512.png' => 512] as $file => $size) {
             $this->assertFileExists(public_path("icons/$file"));

@@ -98,7 +98,7 @@ final class RestaurantProfile
     /** Preview image: the cover, else the logo, else the EgMenu card. */
     public function shareImage(): string
     {
-        return $this->imageUrl($this->settings['cover'] ?: $this->settings['logo']) ?? asset('og-image.png');
+        return $this->imageUrl($this->settings['cover'] ?: $this->settings['logo']) ?? versioned_asset('og-image.png');
     }
 
     /** @return array{avg: float, count: int}|null average guest rating, only with the feedback feature */

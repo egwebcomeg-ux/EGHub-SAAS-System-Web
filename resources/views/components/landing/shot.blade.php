@@ -11,8 +11,8 @@
         'tablet' => [1600, 1200],
         default => [1600, 1007],
     };
-    $small = asset("img/site/{$name}-sm.webp");
-    $big = asset("img/site/{$name}.webp");
+    $small = versioned_asset("img/site/{$name}-sm.webp");
+    $big = versioned_asset("img/site/{$name}.webp");
     $srcset = $small . ' ' . ($w / 2) . 'w, ' . $big . ' ' . $w . 'w';
     $sizes ??= $mobile ? '(min-width: 1024px) 300px, 70vw' : '(min-width: 1024px) 760px, 100vw';
 @endphp
