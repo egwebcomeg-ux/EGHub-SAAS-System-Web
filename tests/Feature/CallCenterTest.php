@@ -97,6 +97,20 @@ class CallCenterTest extends TenantTestCase
         $this->actingAs($agent)->getJson($this->dashUrl('/call-center/customer?phone=01111111111'))->assertJsonPath('found', false);
     }
 
+    public function test_the_call_center_does_not_wire_wallet_top_ups_it_has_no_dialogs_for(): void
+    {
+        // Business includes the wallet: the POS gets the top-up dialogs, the call center must not ask pos.js for them
+        $tenant = $this->restaurant('cc-biz', 'business');
+        app(Billing::class)->setAddon($tenant, 'callcenter_pack', 1);
+        $page = $this->actingAs($this->owner($tenant))->get($this->dashUrl('/call-center'))->assertOk();
+        $page->assertDontSee('data-topup-open', false);
+        preg_match('#<script type="application/json" id="pos-data">(.*?)</script>#s', $page->getContent(), $m);
+        $data = json_decode($m[1] ?? '{}', true);
+        $this->assertSame('callcenter', $data['mode'] ?? null);
+        $this->assertFalse($data['walletManage']);
+        $this->assertTrue($data['wallet']); // paying from the balance stays available
+    }
+
     public function test_no_access_without_pack_or_permission(): void
     {
         $plain = $this->restaurant('cafe-plain', 'pro');

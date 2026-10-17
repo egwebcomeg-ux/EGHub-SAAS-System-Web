@@ -28,6 +28,8 @@ class CallCenterController extends Controller
         $branch = $view->getData()['branch'];
         $data = $view->getData()['data'];
         $data['mode'] = 'callcenter';
+        // top-ups and gift-card sales are counter actions: their dialogs are not on this screen, so pos.js must not wire them
+        $data['walletManage'] = false;
         $data['urls']['order'] = route('dash.callcenter.order');
         $data['urls']['lookup'] = route('dash.callcenter.lookup');
         $data['zones'] = DeliveryZone::query()->where('branch_id', $branch->id)->where('is_active', true)->with('parent')
