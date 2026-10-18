@@ -2,10 +2,10 @@
 @section('title', __('Branch menu') . ' · ' . $branch->name)
 
 @section('content')
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+<div class="dash-head">
     <div>
         <h1 class="page-title">{{ __('Branch menu') }}: {{ $branch->name }}</h1>
-        <p class="muted">{{ __('Leave the price empty to use the main menu price. Untick "Sold here" to hide an item in this branch only.') }}</p>
+        <p class="dash-help">{{ __('Leave the price empty to use the main menu price. Untick "Sold here" to hide an item in this branch only.') }}</p>
     </div>
     <a href="{{ route('dash.branches') }}" class="btn-ghost">{{ __('Back') }}</a>
 </div>

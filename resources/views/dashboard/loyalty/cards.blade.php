@@ -2,12 +2,12 @@
 @section('title', __('Advanced cards'))
 
 @section('content')
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+<div class="dash-head">
     <div>
         <h1 class="page-title">{{ __('Advanced cards') }}</h1>
-        <p class="muted">{{ __('Cashback, membership tiers and prepaid packages — all on the same card the guest already has.') }}</p>
+        <p class="dash-help">{{ __('Cashback, membership tiers and prepaid packages — all on the same card the guest already has.') }}</p>
     </div>
-    <div class="flex gap-2">
+    <div class="dash-head-actions">
         @if (\App\Services\Entitlements::current()->allows('loyalty_stamps'))<a href="{{ route('dash.vouchers') }}" class="btn-ghost">{{ __('Vouchers') }}</a>@endif
         <a href="{{ route('dash.loyalty.desk') }}" class="btn-ghost">{{ __('Counter') }}</a>
     </div>
@@ -65,7 +65,7 @@
                             <input class="field" name="tiers[{{ $i }}][min_spent]" type="number" min="0" step="1" value="{{ (int) $t->min_spent }}" dir="ltr">
                             <input class="field" name="tiers[{{ $i }}][discount_percent]" type="number" min="0" max="50" step="0.5" value="{{ $t->discount_percent }}" dir="ltr">
                             <input class="field min-h-11 p-1" name="tiers[{{ $i }}][color]" type="color" value="{{ $t->color }}">
-                            <button type="button" class="text-navy-400 hover:text-red-600" data-remove aria-label="{{ __('Remove') }}">✕</button>
+                            <button type="button" class="grid size-10 place-items-center rounded-lg text-navy-400 hover:bg-navy-50 hover:text-red-600" data-remove aria-label="{{ __('Remove') }}">✕</button>
                             @if (($members[$t->id] ?? 0) > 0)<span class="col-span-2 text-xs text-navy-500 sm:col-span-7">{{ __(':n guests on this tier today', ['n' => $members[$t->id]]) }}</span>@endif
                         </div>
                     @endforeach
@@ -78,7 +78,7 @@
                         <input class="field" name="tiers[__i__][min_spent]" type="number" min="0" step="1" value="0" dir="ltr">
                         <input class="field" name="tiers[__i__][discount_percent]" type="number" min="0" max="50" step="0.5" value="5" dir="ltr">
                         <input class="field min-h-11 p-1" name="tiers[__i__][color]" type="color" value="#C9A227">
-                        <button type="button" class="text-navy-400 hover:text-red-600" data-remove aria-label="{{ __('Remove') }}">✕</button>
+                        <button type="button" class="grid size-10 place-items-center rounded-lg text-navy-400 hover:bg-navy-50 hover:text-red-600" data-remove aria-label="{{ __('Remove') }}">✕</button>
                     </div>
                 </template>
                 <div class="flex flex-wrap gap-2 pt-1">

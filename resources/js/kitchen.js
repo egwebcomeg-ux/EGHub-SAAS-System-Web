@@ -82,7 +82,7 @@ if (kds) {
         kds.innerHTML = shown.map((t) => {
             const split = KINDS.filter((k) => t.items.some((i) => i.kind === k)).length > 1;
             const m = minutes(t.since);
-            const tone = m >= 20 ? 'bg-red-600 animate-pulse' : m >= 10 ? 'bg-amber-500' : t.status === 'new' ? 'bg-sky-600' : 'bg-emerald-600';
+            const tone = m >= 20 ? 'bg-brand-600 motion-safe:animate-pulse' : m >= 10 ? 'bg-amber-500' : t.status === 'new' ? 'bg-sky-600' : 'bg-emerald-600';
             const where = t.table ? T.table.replace('__N__', t.table) : t.type_label;
             return `<article class="flex flex-col overflow-hidden rounded-2xl bg-white text-navy-900">
                 <header class="${tone} flex items-center justify-between px-4 py-2 text-white">
@@ -94,7 +94,7 @@ if (kds) {
                 <ul class="flex-1 space-y-2 p-4 text-lg">${t.items.map((i) => `
                     <li class="${i.done ? 'line-through opacity-40' : ''}">${split ? `<span class="me-1">${ICON[i.kind] || ''}</span>` : ''}<b>${i.qty}×</b> ${esc(i.name)}
                         ${i.options ? `<div class="text-sm text-navy-500">${esc(i.options)}</div>` : ''}
-                        ${i.notes ? `<div class="text-sm font-bold text-red-600">⚠ ${esc(i.notes)}</div>` : ''}</li>`).join('')}</ul>
+                        ${i.notes ? `<div class="text-sm font-bold text-amber-700">⚠ ${esc(i.notes)}</div>` : ''}</li>`).join('')}</ul>
                 ${t.notes ? `<p class="mx-4 mb-3 rounded-lg bg-amber-100 p-2 text-sm font-bold text-amber-900">⚠ ${esc(t.notes)}</p>` : ''}
                 ${t.status === 'new' ? `<div class="px-3 pb-2"><button class="min-h-12 w-full rounded-xl bg-sky-100 text-lg font-bold text-sky-900" data-bump="${t.id}" data-action="start">${esc(T.start)}</button></div>` : ''}
                 <div class="grid ${split ? 'grid-cols-2' : 'grid-cols-1'} gap-2 p-3 pt-0">${readyButtons(t)}</div>

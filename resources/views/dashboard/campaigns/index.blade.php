@@ -2,8 +2,7 @@
 @section('title', __('Campaigns'))
 
 @section('content')
-<h1 class="page-title mb-1">{{ __('Campaigns') }}</h1>
-<p class="muted mb-4">{{ __('Send a WhatsApp message to a group of your guests, with a coupon if you like. Each message uses one credit.') }}</p>
+<x-dash.page-header :title="__('Campaigns')" :help="__('Send a WhatsApp message to a group of your guests, with a coupon if you like. Each message uses one credit.')" />
 
 <nav class="mb-4 flex gap-2 overflow-x-auto" aria-label="{{ __('Campaigns') }}">
     @foreach (['campaigns' => __('Campaigns'), 'automations' => __('Automations')] as $key => $label)
@@ -152,7 +151,7 @@
                 <div class="flex flex-wrap items-center gap-2">
                     <b>{{ $c->name }}</b>
                     <span @class(['badge', 'bg-emerald-100 text-emerald-800' => $c->status === 'sent', 'bg-brand-100 text-brand-700' => in_array($c->status, ['sending', 'scheduled'], true),
-                        'bg-red-100 text-red-700' => $c->status === 'stopped', 'bg-navy-100 text-navy-500' => $c->status === 'cancelled'])>{{ $c->statusLabel() }}</span>
+                        'bg-amber-100 text-amber-800' => $c->status === 'stopped', 'bg-navy-100 text-navy-500' => $c->status === 'cancelled'])>{{ $c->statusLabel() }}</span>
                     @if ($c->coupon)<span class="badge bg-navy-800 text-white" dir="ltr">{{ $c->coupon->code }} · -{{ $c->coupon->label() }}</span>@endif
                 </div>
                 <div class="mt-1 text-sm text-navy-500">
@@ -175,7 +174,7 @@
             </div>
         </div>
     @empty
-        <p class="card muted">{{ __('No campaigns yet. Example: a 20% coupon to everyone who has not visited for 30 days.') }}</p>
+        <p class="empty-state">{{ __('No campaigns yet. Example: a 20% coupon to everyone who has not visited for 30 days.') }}</p>
     @endforelse
 </section>
 

@@ -1,4 +1,4 @@
-@extends('layouts.base', ['viteEntries' => array_merge(['resources/js/notifications.js'], $viteEntries ?? [])])
+@extends('layouts.base', ['viteEntries' => array_merge(['resources/js/notifications.js', 'resources/js/dash-ui.js'], $viteEntries ?? [])])
 
 @php
     $user = auth()->user();
@@ -64,123 +64,136 @@
 @endphp
 
 @section('body')
-<div class="flex min-h-screen">
-    <aside class="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-navy-800 text-white lg:flex">
-        <div class="px-5 py-5"><x-logo :light="true" /></div>
-        <nav class="flex-1 space-y-4 overflow-y-auto px-3 pb-4 [scrollbar-color:rgba(255,255,255,.15)_transparent] [scrollbar-width:thin]">
+@php
+    $navLink = 'relative flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition lg:min-h-10';
+    $navOn = 'bg-white/10 text-white before:absolute before:inset-y-2 before:start-0 before:w-1 before:rounded-full before:bg-brand-600';
+    $isActive = fn (string $route) => request()->routeIs($route) || ($route !== 'dash.home' && request()->routeIs($route.'.*')) || ($route === 'dash.menu' && request()->routeIs('dash.items.*'));
+    $currentLabel = collect(array_merge($nav, $more))->first(fn ($i) => $isActive($i[0]))[1] ?? null;
+@endphp
+<div class="dash-app flex min-h-screen">
+    {{-- Sidebar: sticky on desktop, an off-canvas drawer under 1024px (resources/js/dash-ui.js). --}}
+    <div class="dash-nav-backdrop fixed inset-0 z-40 bg-navy-900/50 backdrop-blur-[2px] lg:hidden" data-dash-nav-backdrop aria-hidden="true"></div>
+    <aside id="dash-nav" class="dash-nav fixed inset-y-0 start-0 z-50 flex w-72 max-w-[85vw] flex-col bg-navy-800 text-white shadow-2xl lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:w-64 lg:max-w-none lg:shadow-none"
+           data-dash-nav aria-label="{{ __('Dashboard') }}">
+        <div class="flex items-center justify-between gap-2 px-5 py-4 lg:py-5">
+            <a href="{{ route('dash.home') }}" class="rounded-lg"><x-logo :light="true" /></a>
+            <button type="button" class="grid size-11 place-items-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white lg:hidden" data-dash-nav-close aria-label="{{ __('Close') }}">
+                <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <nav class="flex-1 space-y-4 overflow-y-auto overscroll-contain px-3 pb-4 [scrollbar-color:rgba(255,255,255,.15)_transparent] [scrollbar-width:thin]">
             @foreach ($groups as [$title, $items])
                 <div class="space-y-0.5">
                     @if ($title)<div class="px-3 pb-1 text-[11px] font-bold tracking-wide text-white/40">{{ $title }}</div>@endif
                     @foreach ($items as [$route, $label, $icon])
-                        @php
-                            $active = request()->routeIs($route) || ($route !== 'dash.home' && request()->routeIs($route.'.*')) || ($route === 'dash.menu' && request()->routeIs('dash.items.*'));
-                        @endphp
-                        <a href="{{ route($route) }}" @class(['flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition',
-                            'bg-white/10 text-white' => $active, 'text-white/70 hover:bg-white/5 hover:text-white' => !$active])>
-                            <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $icon }}"/></svg>
-                            {{ $label }}
+                        @php($active = $isActive($route))
+                        <a href="{{ route($route) }}" @if ($active) aria-current="page" @endif @class([$navLink, $navOn => $active, 'text-white/70 hover:bg-white/5 hover:text-white' => ! $active])>
+                            <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ $icon }}"/></svg>
+                            <span class="truncate">{{ $label }}</span>
                         </a>
                     @endforeach
                 </div>
             @endforeach
             @if ($more !== [])
                 <details class="group/more" data-nav-more @if ($inMore) open @endif>
-                    <summary class="flex min-h-10 cursor-pointer list-none items-center gap-3 rounded-xl px-3 text-sm font-semibold text-white/60 hover:bg-white/5 hover:text-white [&::-webkit-details-marker]:hidden">
-                        <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>
+                    <summary class="{{ $navLink }} cursor-pointer list-none text-white/60 hover:bg-white/5 hover:text-white [&::-webkit-details-marker]:hidden">
+                        <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>
                         {{ __('More modules') }}
                         <span class="ms-auto rounded-full bg-white/10 px-2 text-xs">{{ count($more) }}</span>
-                        <svg class="size-4 shrink-0 transition group-open/more:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        <svg class="size-4 shrink-0 transition group-open/more:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                     </summary>
                     <div class="ms-5 mt-0.5 space-y-0.5 border-s border-white/10 ps-2">
                         @foreach ($more as [$route, $label, $icon])
-                            @php
-                                $active = request()->routeIs($route) || request()->routeIs($route.'.*');
-                            @endphp
-                            <a href="{{ route($route) }}" data-nav-more-item="{{ $route }}" @class(['flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition',
-                                'bg-white/10 text-white' => $active, 'text-white/60 hover:bg-white/5 hover:text-white' => !$active])>
-                                <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $icon }}"/></svg>
-                                {{ $label }}
+                            @php($active = request()->routeIs($route) || request()->routeIs($route.'.*'))
+                            <a href="{{ route($route) }}" data-nav-more-item="{{ $route }}" @if ($active) aria-current="page" @endif @class([$navLink, $navOn => $active, 'text-white/60 hover:bg-white/5 hover:text-white' => ! $active])>
+                                <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ $icon }}"/></svg>
+                                <span class="truncate">{{ $label }}</span>
                             </a>
                         @endforeach
                     </div>
                 </details>
             @endif
             @if ($canPickModules)
-                <a href="{{ route('dash.modules') }}" data-nav-modules @class(['flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition',
-                    'bg-white/10 text-white' => request()->routeIs('dash.modules'), 'text-white/50 hover:bg-white/5 hover:text-white' => !request()->routeIs('dash.modules')])>
-                    <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>
+                <a href="{{ route('dash.modules') }}" data-nav-modules @if (request()->routeIs('dash.modules')) aria-current="page" @endif @class([$navLink, $navOn => request()->routeIs('dash.modules'), 'text-white/50 hover:bg-white/5 hover:text-white' => ! request()->routeIs('dash.modules')])>
+                    <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>
                     {{ __('Your modules') }}
                 </a>
             @endif
         </nav>
-        <div class="border-t border-white/10 p-4 text-xs text-white/50">EgMenu · by EgWeb</div>
+        {{-- account: on phones the language and log out live here; the bottom keeps clear of the home indicator --}}
+        <div class="border-t border-white/10 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <a href="{{ route('dash.security') }}" class="flex min-h-11 items-center gap-3 rounded-xl px-2 hover:bg-white/5" title="{{ __('Account security') }}">
+                <span class="grid size-9 shrink-0 place-items-center rounded-full bg-white/10 text-sm font-bold">{{ mb_substr($user->name, 0, 1) }}</span>
+                <span class="min-w-0 leading-tight">
+                    <span class="block truncate text-sm font-semibold">{{ $user->name }}</span>
+                    <span class="block truncate text-xs text-white/50">{{ $user->roleName() }}</span>
+                </span>
+            </a>
+            <div class="mt-2 grid grid-cols-2 gap-2 lg:hidden">
+                <form method="post" action="{{ route('dash.locale') }}">
+                    @csrf
+                    <input type="hidden" name="locale" value="{{ app()->getLocale() === 'ar' ? 'en' : 'ar' }}">
+                    <button class="flex min-h-11 w-full items-center justify-center rounded-xl bg-white/10 px-3 text-sm font-semibold hover:bg-white/15">{{ app()->getLocale() === 'ar' ? 'English' : 'عربي' }}</button>
+                </form>
+                <form method="post" action="{{ route('dash.logout') }}">
+                    @csrf
+                    <button class="flex min-h-11 w-full items-center justify-center rounded-xl bg-white/10 px-3 text-sm font-semibold hover:bg-white/15">{{ __('Log out') }}</button>
+                </form>
+            </div>
+            <div class="mt-2 hidden px-2 text-xs text-white/40 lg:block">EgMenu · by EgWeb</div>
+        </div>
     </aside>
 
     <div class="flex min-w-0 flex-1 flex-col">
-        <header class="flex items-center justify-between gap-3 border-b border-navy-100 bg-white px-4 py-3 sm:px-6">
-            <div class="min-w-0">
-                <div class="truncate font-bold">{{ tenant()->name }}</div>
-                <div class="text-xs text-navy-500"><a href="{{ route('dash.security') }}" class="hover:underline" title="{{ __('Account security') }}">{{ $user->name }}</a> · {{ $user->roleName() }}</div>
+        <header class="sticky top-0 z-30 flex min-h-14 items-center justify-between gap-2 border-b border-navy-100 bg-white/95 px-3 py-2 backdrop-blur sm:px-6 lg:static lg:min-h-16 lg:bg-white lg:py-3 lg:backdrop-blur-none">
+            <div class="flex min-w-0 items-center gap-2">
+                <button type="button" class="grid size-11 shrink-0 place-items-center rounded-xl text-navy-800 hover:bg-navy-50 lg:hidden" data-dash-nav-toggle aria-controls="dash-nav" aria-expanded="false" aria-label="{{ __('Main menu') }}">
+                    <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+                </button>
+                <div class="min-w-0 leading-tight">
+                    <div class="truncate font-bold">{{ tenant()->name }}</div>
+                    <div class="truncate text-xs text-navy-500">
+                        <span class="lg:hidden">{{ $currentLabel ?? $user->roleName() }}</span>
+                        <span class="hidden lg:inline"><a href="{{ route('dash.security') }}" class="hover:underline" title="{{ __('Account security') }}">{{ $user->name }}</a> · {{ $user->roleName() }}</span>
+                    </div>
+                </div>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex shrink-0 items-center gap-2">
                 @if (\App\Http\Controllers\Dashboard\NotificationsController::visibleFor($user))
                     {{-- the bell: new / ready orders, waiter calls, bookings, low stock (polled, see notifications.js) --}}
                     <div class="relative" data-notifications data-feed="{{ route('dash.notifications') }}" data-seen="{{ route('dash.notifications.seen') }}"
                          data-empty="{{ __('Nothing new in the last hours.') }}">
-                        <button type="button" class="btn-ghost relative min-h-9 px-2.5" data-bell aria-haspopup="true" aria-expanded="false" title="{{ __('Notifications') }}">
+                        <button type="button" class="btn-ghost relative min-h-10 px-2.5" data-bell aria-haspopup="true" aria-expanded="false" title="{{ __('Notifications') }}">
                             <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg>
                             <span class="sr-only">{{ __('Notifications') }}</span>
                             <span class="absolute -end-1 -top-1 hidden min-w-5 rounded-full bg-brand-600 px-1 text-center text-[11px] font-bold leading-5 text-white" data-bell-count></span>
                         </button>
-                        <div class="absolute end-0 z-30 mt-2 hidden w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-navy-100" data-bell-panel>
+                        <div class="fixed inset-x-3 top-16 z-40 mt-0 hidden overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-navy-100 sm:absolute sm:inset-x-auto sm:end-0 sm:top-auto sm:mt-2 sm:w-[22rem]" data-bell-panel>
                             <div class="flex items-center justify-between border-b border-navy-100 px-4 py-2.5">
                                 <span class="font-bold">{{ __('Notifications') }}</span>
                                 <span class="text-xs text-navy-500">{{ __('Last :n hours', ['n' => \App\Http\Controllers\Dashboard\NotificationsController::WINDOW_HOURS]) }}</span>
                             </div>
-                            <ul class="max-h-[60dvh] divide-y divide-navy-50 overflow-y-auto" data-bell-list></ul>
+                            <ul class="max-h-[min(60dvh,32rem)] divide-y divide-navy-50 overflow-y-auto overscroll-contain" data-bell-list></ul>
                         </div>
                     </div>
                 @endif
                 @if ($sub)
-                    <span class="badge {{ $sub->status === 'trialing' ? 'bg-brand-100 text-brand-700' : 'bg-navy-100 text-navy-700' }}">
+                    <span class="badge hidden sm:inline-flex {{ $sub->status === 'trialing' ? 'bg-brand-100 text-brand-700' : 'bg-navy-100 text-navy-700' }}">
                         {{ $sub->plan->displayName() }}@if ($sub->status === 'trialing') · {{ __(':days days left', ['days' => $sub->daysLeft()]) }}@endif
                     </span>
                 @endif
-                <form method="post" action="{{ route('dash.locale') }}">
+                <form method="post" action="{{ route('dash.locale') }}" class="hidden lg:block">
                     @csrf
                     <input type="hidden" name="locale" value="{{ app()->getLocale() === 'ar' ? 'en' : 'ar' }}">
-                    <button class="btn-ghost min-h-9 px-3">{{ app()->getLocale() === 'ar' ? 'English' : 'عربي' }}</button>
+                    <button class="btn-ghost min-h-10 px-3">{{ app()->getLocale() === 'ar' ? 'English' : 'عربي' }}</button>
                 </form>
-                <form method="post" action="{{ route('dash.logout') }}">
+                <form method="post" action="{{ route('dash.logout') }}" class="hidden lg:block">
                     @csrf
-                    <button class="btn-ghost min-h-9 px-3">{{ __('Log out') }}</button>
+                    <button class="btn-ghost min-h-10 px-3">{{ __('Log out') }}</button>
                 </form>
             </div>
         </header>
-        {{-- Phones/tablets: the sidebar becomes a scrollable strip. --}}
-        <nav class="flex gap-1 overflow-x-auto border-b border-navy-100 bg-white px-3 py-2 lg:hidden">
-            @foreach ($nav as [$route, $label])
-                <a href="{{ route($route) }}" @class(['shrink-0 rounded-lg px-3 py-2 text-sm font-semibold', 'bg-navy-800 text-white' => request()->routeIs($route), 'text-navy-700' => !request()->routeIs($route)])>{{ $label }}</a>
-            @endforeach
-        </nav>
-        @if ($more !== [])
-            <details class="group/more border-b border-navy-100 bg-white px-3 lg:hidden" data-nav-more-mobile @if ($inMore) open @endif>
-                <summary class="flex min-h-10 cursor-pointer list-none items-center gap-2 text-sm font-semibold text-navy-600 [&::-webkit-details-marker]:hidden">
-                    {{ __('More modules') }}
-                    <span class="rounded-full bg-navy-50 px-2 text-xs">{{ count($more) }}</span>
-                    <svg class="size-4 transition group-open/more:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                </summary>
-                <div class="flex flex-wrap gap-1 pb-2">
-                    @foreach ($more as [$route, $label])
-                        <a href="{{ route($route) }}" @class(['rounded-lg px-3 py-2 text-sm font-semibold', 'bg-navy-800 text-white' => request()->routeIs($route), 'bg-navy-50 text-navy-700' => !request()->routeIs($route)])>{{ $label }}</a>
-                    @endforeach
-                    @if ($canPickModules)
-                        <a href="{{ route('dash.modules') }}" class="rounded-lg px-3 py-2 text-sm font-semibold text-brand-700">{{ __('Change your modules') }}</a>
-                    @endif
-                </div>
-            </details>
-        @endif
-        <main class="flex-1 p-4 sm:p-6">
+        <main class="mx-auto w-full max-w-[100rem] flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
             @if ($sub && $sub->needsAttention() && $user->can('billing.manage') && !request()->routeIs('dash.billing*'))
                 <div @class(['mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-semibold',
                     'bg-red-50 text-red-800' => $sub->status === 'past_due', 'bg-amber-50 text-amber-800' => $sub->status !== 'past_due'])>

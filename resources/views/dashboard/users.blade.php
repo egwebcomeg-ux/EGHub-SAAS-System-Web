@@ -2,9 +2,7 @@
 @section('title', __('Users & roles'))
 
 @section('content')
-<div class="mb-4 flex items-center justify-between">
-    <h1 class="text-2xl font-extrabold">{{ __('Users & roles') }}</h1>
-</div>
+<x-dash.page-header :title="__('Users & roles')" :help="__('Add your team and choose what each one can see and do.')" />
 
 <div class="grid gap-4 xl:grid-cols-3">
     <div class="card overflow-x-auto xl:col-span-2">

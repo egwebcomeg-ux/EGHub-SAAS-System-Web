@@ -4,7 +4,7 @@
 @php
     $tones = [
         'pending' => 'bg-amber-100 text-amber-800', 'confirmed' => 'bg-emerald-100 text-emerald-800', 'seated' => 'bg-sky-100 text-sky-800',
-        'cancelled' => 'bg-red-100 text-red-700', 'no_show' => 'bg-navy-100 text-navy-600',
+        'cancelled' => 'bg-navy-100 text-navy-500', 'no_show' => 'bg-navy-100 text-navy-600',
     ];
     $actions = ['confirmed' => __('Confirm'), 'seated' => __('Seated'), 'no_show' => __('No-show'), 'cancelled' => __('Cancel')];
     $query = fn (array $extra) => array_filter(['branch' => $branch?->id, 'date' => $date->format('Y-m-d')] + $extra);
@@ -13,10 +13,10 @@
 @endphp
 
 @section('content')
-<div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+<div class="dash-head">
     <div>
         <h1 class="page-title">{{ __('Reservations') }}</h1>
-        <p class="muted">
+        <p class="dash-help">
             @if ($settings['reservations_enabled'] === '1')
                 {{ __('Guests book from your menu link:') }} <a href="{{ $guestUrl }}" target="_blank" rel="noopener" class="inline-block break-all font-semibold text-brand-700" dir="ltr">{{ $guestUrl }}</a>
             @else

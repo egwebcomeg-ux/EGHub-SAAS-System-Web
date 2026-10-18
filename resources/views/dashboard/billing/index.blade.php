@@ -2,7 +2,7 @@
 @section('title', __('Subscription'))
 
 @section('content')
-<h1 class="mb-4 text-2xl font-extrabold">{{ __('Subscription') }}</h1>
+<x-dash.page-header :title="__('Subscription')" :help="__('Your plan, add-ons, WhatsApp credits and invoices.')" />
 
 @if ($subscription)
     <section class="card mb-6 flex flex-wrap items-center justify-between gap-4">

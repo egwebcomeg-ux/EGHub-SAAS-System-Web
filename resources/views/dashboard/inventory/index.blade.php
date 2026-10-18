@@ -2,17 +2,16 @@
 @section('title', __('Inventory'))
 
 @section('content')
-<h1 class="page-title mb-1">{{ __('Inventory') }}</h1>
-<p class="muted mb-4">{{ __('Each order takes its recipe out of the branch stock, and a cancelled order puts it back. Receive goods, record waste and enter your counts here.') }}</p>
+<x-dash.page-header :title="__('Inventory')" :help="__('Each order takes its recipe out of the branch stock, and a cancelled order puts it back. Receive goods, record waste and enter your counts here.')" />
 @include('dashboard.inventory.tabs')
 
 @php
     $low = $ingredients->where('is_low', true);
 @endphp
-<div class="mb-4 grid gap-3 sm:grid-cols-3">
-    <div class="card"><div class="muted text-sm">{{ __('Ingredients') }}</div><div class="text-2xl font-extrabold">{{ $ingredients->where('is_active', true)->count() }}</div></div>
-    <div class="card"><div class="muted text-sm">{{ __('Stock value') }}</div><div class="text-2xl font-extrabold">{{ money($stockValue) }}</div></div>
-    <div @class(['card', 'ring-2 ring-red-200' => $low->isNotEmpty()])><div class="muted text-sm">{{ __('Running low') }}</div><div @class(['text-2xl font-extrabold', 'text-red-600' => $low->isNotEmpty()])>{{ $low->count() }}</div></div>
+<div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+    <div class="stat-card"><div class="stat-label">{{ __('Ingredients') }}</div><div class="stat-value">{{ $ingredients->where('is_active', true)->count() }}</div></div>
+    <div class="stat-card"><div class="stat-label">{{ __('Stock value') }}</div><div class="stat-value">{{ money($stockValue) }}</div></div>
+    <div @class(['stat-card col-span-2 sm:col-span-1', 'ring-2 ring-amber-200' => $low->isNotEmpty()])><div class="stat-label">{{ __('Running low') }}</div><div @class(['stat-value', 'text-amber-700' => $low->isNotEmpty()])>{{ $low->count() }}</div></div>
 </div>
 
 <div class="grid gap-4 xl:grid-cols-3">
@@ -24,9 +23,9 @@
                 <tr @class(['opacity-50' => !$i->is_active])>
                     <td class="font-semibold">{{ $i->name }}</td>
                     <td>
-                        <span @class(['font-bold', 'text-red-600' => $i->is_low])>{{ rtrim(rtrim(number_format($i->on_hand, 3, '.', ''), '0'), '.') }}</span>
+                        <span @class(['font-bold', 'text-amber-700' => $i->is_low])>{{ rtrim(rtrim(number_format($i->on_hand, 3, '.', ''), '0'), '.') }}</span>
                         <span class="text-xs text-navy-500">{{ $i->unitLabel() }}</span>
-                        @if ($i->is_low)<span class="badge bg-red-100 text-red-700">{{ __('Low') }}</span>@endif
+                        @if ($i->is_low)<span class="badge bg-amber-100 text-amber-800">{{ __('Low') }}</span>@endif
                     </td>
                     <td class="text-navy-500">{{ $i->min_stock > 0 ? rtrim(rtrim(number_format($i->min_stock, 3, '.', ''), '0'), '.') : '—' }}</td>
                     <td class="text-navy-500" dir="ltr">{{ rtrim(rtrim(number_format($i->cost_per_unit, 4, '.', ''), '0'), '.') }}</td>

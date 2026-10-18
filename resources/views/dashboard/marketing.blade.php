@@ -6,8 +6,7 @@
     $days = [__('Sun'), __('Mon'), __('Tue'), __('Wed'), __('Thu'), __('Fri'), __('Sat')];
     $liveBanners = $banners->filter(fn ($b) => $b->is_active && (! $b->ends_on || $b->ends_on->gte(today())))->count();
 @endphp
-<h1 class="page-title mb-1">{{ __('Offers & popups') }}</h1>
-<p class="muted mb-4">{{ __('Offers lower prices automatically on the menu and at the cashier during their hours.') }}</p>
+<x-dash.page-header :title="__('Offers & popups')" :help="__('Offers lower prices automatically on the menu and at the cashier during their hours.')" />
 
 <div class="grid gap-4 xl:grid-cols-5">
     <section class="space-y-3 xl:col-span-3">
@@ -36,7 +35,7 @@
                 </div>
             </div>
         @empty
-            <p class="card muted">{{ __('No offers yet. Example: 20% off cold drinks every day 3–6 PM.') }}</p>
+            <p class="empty-state">{{ __('No offers yet. Example: 20% off cold drinks every day 3–6 PM.') }}</p>
         @endforelse
 
         <h2 class="section-title pt-4">{{ __('Popups') }}</h2>
@@ -56,7 +55,7 @@
                 </div>
             </div>
         @empty
-            <p class="card muted">{{ __('No popups yet. A popup greets guests when they open the menu.') }}</p>
+            <p class="empty-state">{{ __('No popups yet. A popup greets guests when they open the menu.') }}</p>
         @endforelse
 
         <h2 class="section-title pt-4">{{ __('Menu banners') }} <span class="badge bg-navy-100 text-navy-700">{{ $liveBanners }} / {{ $maxBanners }}</span></h2>
@@ -95,7 +94,7 @@
                 </div>
             </div>
         @empty
-            <p class="card muted">{{ __('No banners yet. A wide picture (1600×700) works best.') }}</p>
+            <p class="empty-state">{{ __('No banners yet. A wide picture (1600×700) works best.') }}</p>
         @endforelse
 
         {{-- cart goal: "add X more and get Y free", applied by the server when the order is placed --}}
@@ -172,7 +171,7 @@
                 </div>
             </div>
         @empty
-            <p class="card muted">{{ __('No seasons yet. When two overlap, the one that starts last is shown.') }}</p>
+            <p class="empty-state">{{ __('No seasons yet. When two overlap, the one that starts last is shown.') }}</p>
         @endforelse
     </section>
 

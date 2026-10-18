@@ -2,8 +2,7 @@
 @section('title', __('Delivery zones'))
 
 @section('content')
-<h1 class="page-title mb-1">{{ __('Delivery zones') }}</h1>
-<p class="muted mb-4">{{ __('Where you deliver and for how much. The guest ordering online (and the call center) picks the area: its fee is added and its minimum order is checked. A sub-area left empty uses its main area’s values.') }}</p>
+<x-dash.page-header :title="__('Delivery zones')" :help="__('Where you deliver and for how much. The guest ordering online (and the call center) picks the area: its fee is added and its minimum order is checked. A sub-area left empty uses its main area’s values.')" />
 
 {{-- how the areas are set: typed by hand (default, simplest) or drawn on the map --}}
 <form method="post" action="{{ route('dash.zones.mode') }}" class="mb-4 grid gap-3 sm:grid-cols-2" data-zone-mode>
@@ -73,7 +72,7 @@
                                         <button class="btn-primary w-full">{{ __('Save') }}</button>
                                     </form>
                                 </details>
-                                <form method="post" action="{{ route('dash.zones.delete', $z) }}" class="mt-1" onsubmit="return confirm(@js(__('Delete this zone?')))">@csrf<button class="text-xs text-red-600">{{ __('Delete') }}</button></form>
+                                <form method="post" action="{{ route('dash.zones.delete', $z) }}" class="mt-1" onsubmit="return confirm(@js(__('Delete this zone?')))">@csrf<button class="min-h-10 px-1 text-xs text-red-600">{{ __('Delete') }}</button></form>
                             </td>
                         </tr>
                         @if ($mode === 'manual' && ! $z->parent_id)

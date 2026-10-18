@@ -2,12 +2,12 @@
 @section('title', $customer->name ?: $customer->phone)
 
 @section('content')
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+<div class="dash-head">
     <div>
         <h1 class="page-title">{{ $customer->name ?: __('Guest') }}</h1>
-        <div class="muted" dir="ltr">{{ $customer->phone }}</div>
+        <div class="dash-help" dir="ltr">{{ $customer->phone }}</div>
     </div>
-    <div class="flex gap-2">
+    <div class="dash-head-actions">
         <a href="https://wa.me/{{ whatsapp_number($customer->phone) }}" target="_blank" rel="noopener" class="btn-ghost">WhatsApp</a>
         <a href="{{ route('dash.customers') }}" class="btn-ghost">{{ __('Back') }}</a>
     </div>

@@ -17,7 +17,7 @@
     $cur = __('EGP');
 @endphp
 
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+<div class="dash-head">
     <h1 class="page-title">{{ __('Reports') }}</h1>
     @if ($advanced)
         <a href="{{ route('dash.reports.export', request()->query()) }}" class="btn-ghost">⬇ {{ __('Export orders (CSV)') }}</a>
@@ -28,7 +28,7 @@
 <form class="card mb-4 flex flex-wrap items-end gap-2">
     <div class="flex flex-wrap gap-1" role="radiogroup" aria-label="{{ __('Period') }}">
         @foreach ($presets as $key => $label)
-            <a href="?{{ http_build_query(array_filter(['range' => $key, 'branch' => $branchId])) }}" @class(['rounded-lg px-3 py-2 text-sm font-semibold', 'bg-navy-800 text-white' => $preset === $key, 'bg-navy-50 text-navy-700' => $preset !== $key])>{{ $label }}</a>
+            <a href="?{{ http_build_query(array_filter(['range' => $key, 'branch' => $branchId])) }}" @class(['flex min-h-10 items-center rounded-lg px-3 text-sm font-semibold', 'bg-navy-800 text-white' => $preset === $key, 'bg-navy-50 text-navy-700' => $preset !== $key])>{{ $label }}</a>
         @endforeach
     </div>
     @if ($advanced)
@@ -48,16 +48,16 @@
 </form>
 
 {{-- headline numbers: stat tiles, not charts --}}
-<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+<div class="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
     @foreach ([
         [__('Sales'), money($report['revenue']) . ' ' . $cur, $report['discounts'] > 0 ? __('after :amount discounts', ['amount' => money($report['discounts'])]) : null],
         [__('Orders'), $report['orders'], $report['cancelled'] ? __(':n cancelled', ['n' => $report['cancelled']]) : null],
         [__('Average order'), money($report['average']) . ' ' . $cur, null],
         [__('Not paid yet'), money($report['unpaid']) . ' ' . $cur, null],
     ] as [$label, $value, $sub])
-        <div class="card">
-            <div class="muted">{{ $label }}</div>
-            <div class="mt-1 text-2xl font-extrabold text-navy-900">{{ $value }}</div>
+        <div class="stat-card">
+            <div class="stat-label">{{ $label }}</div>
+            <div class="stat-value">{{ $value }}</div>
             @if ($sub)<div class="mt-0.5 text-xs text-navy-500">{{ $sub }}</div>@endif
         </div>
     @endforeach

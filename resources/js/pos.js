@@ -182,8 +182,8 @@ if (dataEl) {
                 <div class="min-w-0 flex-1"><div class="font-semibold">${esc(item.name)}</div>
                     ${opts ? `<div class="text-xs text-navy-500">${esc(opts)}</div>` : ''}${l.notes ? `<div class="text-xs text-brand-700">${esc(l.notes)}</div>` : ''}</div>
                 <div class="flex items-center rounded-lg border border-navy-100">
-                    <button type="button" class="size-8" data-step="-1" data-i="${i}">−</button><b class="w-6 text-center">${l.qty}</b>
-                    <button type="button" class="size-8" data-step="1" data-i="${i}">+</button></div>
+                    <button type="button" class="size-10 md:size-9" data-step="-1" data-i="${i}">−</button><b class="w-6 text-center">${l.qty}</b>
+                    <button type="button" class="size-10 md:size-9" data-step="1" data-i="${i}">+</button></div>
                 <div class="w-16 text-end text-sm font-bold">${Math.round(unit(l) * l.qty * 100) / 100}</div>
             </li>`;
         }).join('') : `<li class="py-10 text-center text-sm text-navy-500">${esc(T.empty)}</li>`;
@@ -197,6 +197,12 @@ if (dataEl) {
             const short = t.zone && t.zone.min > 0 && t.subtotal - t.discount < t.zone.min;
             $('[data-min-warning]').textContent = short ? T.minOrder.replace('__A__', fmt(t.zone.min)) : '';
             $('[data-min-warning]').classList.toggle('hidden', !short);
+        }
+        // phones: the bar under the menu shows how many items the order has and its total
+        const bar = $('[data-ticket-bar]');
+        if (bar) {
+            $('[data-ticket-count]', bar).textContent = state.lines.reduce((n, l) => n + l.qty, 0);
+            $('[data-ticket-total]', bar).textContent = fmt(t.total);
         }
         display?.postMessage({ lines: state.lines.map((l) => ({ name: items[l.item_id].name, qty: l.qty, amount: unit(l) * l.qty })), totals: t, currency: D.currency });
         recheckCoupon();
@@ -576,6 +582,18 @@ if (dataEl) {
         window.open(D.urls.display, 'egmenu-display', 'width=900,height=600');
         setTimeout(render, 800);
     });
+
+    // phones: the ticket is a sheet over the menu, opened from the bottom bar
+    const ticket = $('[data-ticket]');
+    const ticketBackdrop = $('[data-ticket-backdrop]');
+    const setTicket = (open) => {
+        ticket?.toggleAttribute('data-open', open);
+        ticketBackdrop?.toggleAttribute('data-open', open);
+        $('[data-ticket-open]')?.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    $('[data-ticket-open]')?.addEventListener('click', () => setTicket(true));
+    $$('[data-ticket-close]').forEach((b) => b.addEventListener('click', () => setTicket(false)));
+    ticketBackdrop?.addEventListener('click', () => setTicket(false));
 
     renderCats();
     renderItems();

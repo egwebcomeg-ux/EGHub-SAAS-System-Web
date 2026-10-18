@@ -73,8 +73,8 @@ document.querySelectorAll('[data-toggle]').forEach((btn) => {
                 btn.append(span);
             }
             if (btn.dataset.field === 'sold_out') {
-                btn.classList.toggle('bg-red-100', value);
-                btn.classList.toggle('text-red-700', value);
+                btn.classList.toggle('bg-amber-100', value);
+                btn.classList.toggle('text-amber-800', value);
                 btn.classList.toggle('bg-emerald-100', !value);
                 btn.classList.toggle('text-emerald-800', !value);
             } else {

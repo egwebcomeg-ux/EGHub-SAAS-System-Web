@@ -26,15 +26,18 @@
         ['food', '🍽 '.__('Food')], ['drinks', '☕ '.__('Drinks')],
     ];
 @endphp
-@include('dashboard.orders.partials.tabs')
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-    <h1 class="text-2xl font-extrabold">{{ __('Orders') }}</h1>
-    <div class="flex flex-wrap items-center gap-3 text-sm">
+<div class="dash-head">
+    <div class="min-w-0">
+        <h1 class="page-title">{{ __('Orders') }}</h1>
+        <p class="dash-help">{{ __('New orders appear here by themselves; move each one along until it is served.') }}</p>
+    </div>
+    <div class="dash-head-actions text-sm">
         <span class="flex items-center gap-2 text-navy-500"><span class="size-2 animate-pulse rounded-full bg-emerald-500" data-live-dot></span> {{ __('Live') }}</span>
         <button type="button" class="btn-ghost min-h-9 px-3" data-sound>🔔 {{ __('Enable sound') }}</button>
         <button type="button" class="btn-ghost min-h-9 px-3" data-alarm-mute title="{{ __('The alarm repeats while a new online or QR order waits to be accepted.') }}">🚨 {{ __('Alarm on') }}</button>
     </div>
 </div>
+@include('dashboard.orders.partials.tabs')
 
 {{-- browsers only play sound after the first tap on the page --}}
 <div class="mb-4 hidden items-center gap-3 rounded-2xl bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900 ring-1 ring-amber-200" data-audio-hint>

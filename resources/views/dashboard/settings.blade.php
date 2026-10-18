@@ -2,10 +2,11 @@
 @section('title', __('Settings'))
 
 @section('content')
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-    <h1 class="text-2xl font-extrabold">{{ __('Settings') }}</h1>
-    <a href="{{ route('dash.modules') }}" class="btn-ghost" data-settings-modules>🧩 {{ __('Modules') }}</a>
-</div>
+<x-dash.page-header :title="__('Settings')" :help="__('Your restaurant identity, menu design, ordering and messages.')">
+    <x-slot:actions>
+        <a href="{{ route('dash.modules') }}" class="btn-ghost" data-settings-modules>🧩 {{ __('Modules') }}</a>
+    </x-slot:actions>
+</x-dash.page-header>
 
 <form method="post" action="{{ route('dash.settings.update') }}" enctype="multipart/form-data" class="space-y-4">
     @csrf
@@ -459,7 +460,9 @@
         </section>
     @endif
 
-    <button class="btn-primary">{{ __('Save settings') }}</button>
+    <div class="sticky bottom-0 z-20 -mx-4 border-t border-navy-100 bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8" data-settings-save>
+        <div class="flex justify-end"><button class="btn-primary min-w-40">{{ __('Save settings') }}</button></div>
+    </div>
 </form>
 
 @if ($ai && $aiKey)

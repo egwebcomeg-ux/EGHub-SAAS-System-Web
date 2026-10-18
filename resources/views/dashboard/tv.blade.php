@@ -2,8 +2,7 @@
 @section('title', __('TV screens'))
 
 @section('content')
-<h1 class="page-title mb-1">{{ __('TV screens') }}</h1>
-<p class="muted mb-4">{{ __('Open the screen link once in the TV browser (or a TV stick) and leave it. It updates by itself within a minute when you change a price, an item or an offer.') }}</p>
+<x-dash.page-header :title="__('TV screens')" :help="__('Open the screen link once in the TV browser (or a TV stick) and leave it. It updates by itself within a minute when you change a price, an item or an offer.')" />
 
 <div class="grid gap-4 xl:grid-cols-3">
     <div class="space-y-4 xl:col-span-2">
@@ -26,13 +25,13 @@
                         <div class="sm:col-span-2"><button class="btn-primary">{{ __('Save') }}</button></div>
                     </form>
                     <div class="mt-3 flex flex-wrap gap-3 border-t border-navy-100 pt-3 text-sm">
-                        <form method="post" action="{{ route('dash.tv.regenerate', $s) }}" onsubmit="return confirm(@js(__('The current link will stop working. Continue?')))">@csrf<button class="text-navy-600 underline">{{ __('New link') }}</button></form>
-                        <form method="post" action="{{ route('dash.tv.delete', $s) }}" onsubmit="return confirm(@js(__('Delete this screen?')))">@csrf<button class="text-red-600">{{ __('Delete') }}</button></form>
+                        <form method="post" action="{{ route('dash.tv.regenerate', $s) }}" onsubmit="return confirm(@js(__('The current link will stop working. Continue?')))">@csrf<button class="min-h-10 px-2 text-navy-600 underline">{{ __('New link') }}</button></form>
+                        <form method="post" action="{{ route('dash.tv.delete', $s) }}" onsubmit="return confirm(@js(__('Delete this screen?')))">@csrf<button class="min-h-10 px-2 text-red-600">{{ __('Delete') }}</button></form>
                     </div>
                 </details>
             </section>
         @empty
-            <div class="card py-10 text-center text-navy-500">{{ __('No screens yet. Add your first TV screen.') }}</div>
+            <div class="empty-state">{{ __('No screens yet. Add your first TV screen.') }}</div>
         @endforelse
     </div>
     <form method="post" action="{{ route('dash.tv.store') }}" class="card grid h-fit gap-3">

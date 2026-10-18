@@ -3586,5 +3586,14 @@
     "Growth & content": "النمو والمحتوى",
     "Close menu": "اقفل القايمة",
     "Admin menu": "قايمة الإدارة",
-    "Security & two-factor": "الأمان والتحقق بخطوتين"
+    "Security & two-factor": "الأمان والتحقق بخطوتين",
+    "Main menu": "القايمة الرئيسية",
+    "Your day at a glance: orders, the menu and what is left to set up.": "يومك في نظرة: الطلبات والمنيو واللي فاضل تجهّزه.",
+    "Your plan, add-ons, WhatsApp credits and invoices.": "باقتك والإضافات ورصيد الواتساب والفواتير.",
+    "Each branch has its own address, phone and tables.": "كل فرع ليه عنوانه وتليفونه وترابيزاته.",
+    "Your restaurant identity, menu design, ordering and messages.": "هوية مطعمك وتصميم المنيو والطلبات والرسايل.",
+    "Print a QR card for each table; guests scan it to open the menu.": "اطبع كارت QR لكل ترابيزة؛ الزبون يمسحه ويفتح المنيو.",
+    "Add your team and choose what each one can see and do.": "ضيف فريقك واختار كل واحد يشوف ويعمل إيه.",
+    "New orders appear here by themselves; move each one along until it is served.": "الطلبات الجديدة بتظهر هنا لوحدها؛ حرّك كل طلب لحد ما يتسلّم.",
+    "The order": "الطلب"
 }

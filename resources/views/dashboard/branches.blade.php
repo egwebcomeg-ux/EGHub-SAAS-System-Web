@@ -2,16 +2,16 @@
 @section('title', __('Branches'))
 
 @section('content')
-<h1 class="mb-4 text-2xl font-extrabold">{{ __('Branches') }}</h1>
+<x-dash.page-header :title="__('Branches')" :help="__('Each branch has its own address, phone and tables.')" />
 
 <div class="grid gap-4 xl:grid-cols-3">
     <div class="space-y-4 xl:col-span-2">
         @foreach ($branches as $b)
             <form method="post" action="{{ route('dash.branches.update', $b) }}" class="card grid gap-3 sm:grid-cols-2">
                 @csrf
-                <div class="flex items-center justify-between sm:col-span-2">
+                <div class="flex flex-wrap items-center justify-between gap-2 sm:col-span-2">
                     <h2 class="text-lg font-bold">{{ $b->name }} <span class="text-sm font-normal text-navy-500">· {{ __(':n tables', ['n' => $b->tables_count]) }}</span></h2>
-                    <div class="flex items-center gap-3">
+                    <div class="flex flex-wrap items-center gap-3 whitespace-nowrap">
                         @if (\App\Services\Entitlements::current()->allows('branch_pricing'))<a href="{{ route('dash.branches.menu', $b) }}" class="btn-ghost min-h-9 px-3">{{ __('Prices & availability') }}</a>@endif
                         <a href="{{ tenant()->url('?branch=' . $b->slug) }}" target="_blank" rel="noopener" class="text-sm text-brand-700" dir="ltr">?branch={{ $b->slug }}</a>
                     </div>

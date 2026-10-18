@@ -2,34 +2,31 @@
 @section('title', __('Menu'))
 
 @section('content')
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-    <div>
-        <h1 class="text-2xl font-extrabold">{{ __('Menu') }}</h1>
-        <p class="text-sm text-navy-500" dir="auto">{{ __('Items') }}: {{ $usage['used'] }} / {{ $usage['limit'] ?? '∞' }} · {{ __('Drag to reorder.') }}</p>
-    </div>
-    <div class="flex flex-wrap gap-2">
-        <form class="flex gap-2"><input class="field max-w-56" name="q" value="{{ $q }}" placeholder="{{ __('Search items') }}"></form>
+<x-dash.page-header :title="__('Menu')">
+    <p class="dash-help" dir="auto">{{ __('Items') }}: {{ $usage['used'] }} / {{ $usage['limit'] ?? '∞' }} · {{ __('Drag to reorder.') }}</p>
+    <x-slot:actions>
+        @if ($canAdd && $categories->isNotEmpty())<a href="{{ route('dash.items.create') }}" class="btn-primary">+ {{ __('Add item') }}</a>@endif
         <a href="{{ tenant()->url() }}" target="_blank" rel="noopener" class="btn-ghost">{{ __('Preview menu') }}</a>
         <a href="{{ route('dash.import') }}" class="btn-ghost">⬆ {{ __('Import menu') }}</a>
         <details class="relative">
             <summary class="btn-ghost cursor-pointer list-none">⬇ {{ __('Export menu') }}</summary>
-            <div class="card absolute end-0 z-10 mt-2 w-56 space-y-1 p-2 text-sm">
-                <a href="{{ route('dash.menu.export', 'xlsx') }}" class="block rounded-lg px-3 py-2 hover:bg-navy-50">{{ __('Excel (.xlsx)') }}</a>
-                <a href="{{ route('dash.menu.export', 'csv') }}" class="block rounded-lg px-3 py-2 hover:bg-navy-50">{{ __('CSV') }}</a>
+            <div class="card absolute end-0 z-20 mt-2 w-56 space-y-1 p-2 text-sm">
+                <a href="{{ route('dash.menu.export', 'xlsx') }}" class="flex min-h-11 items-center rounded-lg px-3 hover:bg-navy-50">{{ __('Excel (.xlsx)') }}</a>
+                <a href="{{ route('dash.menu.export', 'csv') }}" class="flex min-h-11 items-center rounded-lg px-3 hover:bg-navy-50">{{ __('CSV') }}</a>
                 <p class="px-3 pb-1 text-xs text-navy-500">{{ __('Same layout as the import, so you can edit and import it back.') }}</p>
             </div>
         </details>
         @if (\App\Services\Entitlements::current()->allows('printed_menu'))<a href="{{ route('dash.menu.print') }}" target="_blank" class="btn-ghost">🖨 {{ __('Printed menu') }}</a>@endif
-        @if ($canAdd && $categories->isNotEmpty())<a href="{{ route('dash.items.create') }}" class="btn-primary">+ {{ __('Add item') }}</a>@endif
-    </div>
-</div>
+    </x-slot:actions>
+</x-dash.page-header>
+<form class="mb-4 sm:max-w-sm"><input type="search" class="field" name="q" value="{{ $q }}" placeholder="{{ __('Search items') }}" aria-label="{{ __('Search items') }}"></form>
 
 @if ($extraLocales)
     @include('dashboard.menu.partials.translate-banner')
 @endif
 
 @if ($categories->isNotEmpty())
-    <div class="mb-4 flex flex-wrap items-center gap-2 text-sm text-navy-700">
+    <div class="mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm text-navy-700 ring-1 ring-navy-100">
         <label for="sold-out-until" class="font-semibold">{{ __('When I mark an item sold out, it comes back:') }}</label>
         <select id="sold-out-until" class="field min-h-9 w-auto py-1" data-sold-out-until>
             <option value="">{{ __('When I say so') }}</option>
@@ -76,9 +73,15 @@
                 <div class="flex gap-2">
                     @if ($canAdd)<a href="{{ route('dash.items.create', ['category' => $category->id]) }}" class="btn-ghost min-h-9 px-3">+ {{ __('Item') }}</a>@endif
                     <details class="relative">
-                        <summary class="btn-ghost min-h-9 cursor-pointer list-none px-3">{{ __('Edit') }}</summary>
-                        <form method="post" action="{{ route('dash.categories.update', $category) }}" enctype="multipart/form-data" class="card absolute end-0 z-10 mt-2 w-80 space-y-3">
+                        <summary class="dash-sheet-toggle btn-ghost min-h-9 cursor-pointer list-none px-3">{{ __('Edit') }}</summary>
+                        <form method="post" action="{{ route('dash.categories.update', $category) }}" enctype="multipart/form-data" class="card z-40 max-h-[80dvh] space-y-3 overflow-y-auto max-sm:fixed max-sm:inset-x-3 max-sm:bottom-3 max-sm:shadow-2xl sm:absolute sm:end-0 sm:z-20 sm:mt-2 sm:w-80">
                             @csrf
+                            <div class="-mt-1 flex items-center justify-between gap-2 sm:hidden">
+                                <b class="truncate">{{ __('Edit') }} · {{ $category->name }}</b>
+                                <button type="button" class="grid size-11 shrink-0 place-items-center rounded-xl text-navy-500 hover:bg-navy-50" onclick="this.closest('details').open = false" aria-label="{{ __('Close') }}">
+                                    <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                </button>
+                            </div>
                             <input class="field" name="name" value="{{ $category->name }}" required maxlength="80">
                             <input class="field" name="name_en" value="{{ $category->name_en }}" maxlength="80" dir="ltr" placeholder="{{ __('Name (English)') }}">
                             <input class="field py-2" type="file" name="image" accept="image/jpeg,image/png,image/webp">
@@ -141,7 +144,7 @@
                         @php($soldOutNow = $item->isSoldOutNow())
                         <button type="button" data-toggle="{{ route('dash.items.toggle', $item) }}" data-field="sold_out"
                             data-on="{{ __('Sold out') }}" data-off="{{ __('Available') }}" data-until-label="{{ __('until :time', ['time' => '__T__']) }}"
-                            @class(['badge min-h-9 px-3', 'bg-red-100 text-red-700' => $soldOutNow, 'bg-emerald-100 text-emerald-800' => !$soldOutNow])>
+                            @class(['badge min-h-9 px-3', 'bg-amber-100 text-amber-800' => $soldOutNow, 'bg-emerald-100 text-emerald-800' => !$soldOutNow])>
                             {{ $soldOutNow ? __('Sold out') : __('Available') }}@if ($until = $item->soldOutUntil()) <span class="font-normal" dir="ltr">· {{ __('until :time', ['time' => local_time($until, $until->isToday() ? 'h:i A' : 'd/m h:i A')]) }}</span>@endif
                         </button>
                         <button type="button" data-toggle="{{ route('dash.items.toggle', $item) }}" data-field="active"

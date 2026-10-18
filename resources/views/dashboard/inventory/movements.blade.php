@@ -2,7 +2,7 @@
 @section('title', __('Stock movements'))
 
 @section('content')
-<h1 class="page-title mb-4">{{ __('Stock movements') }}</h1>
+<x-dash.page-header :title="__('Stock movements')" />
 @include('dashboard.inventory.tabs')
 
 <form class="mb-3 flex flex-wrap gap-2">
@@ -27,7 +27,7 @@
                 <td class="whitespace-nowrap text-navy-500">{{ local_time($m->created_at, 'd/m h:i A') }}</td>
                 <td class="font-semibold">{{ $m->ingredient?->name }}</td>
                 <td>{{ $m->typeLabel() }}@if ($m->order) <span class="text-xs text-navy-500">#{{ $m->order->number }}</span>@endif</td>
-                <td dir="ltr" @class(['text-end font-bold', 'text-emerald-700' => $m->quantity > 0, 'text-red-600' => $m->quantity < 0])>{{ $m->quantity > 0 ? '+' : '' }}{{ rtrim(rtrim(number_format($m->quantity, 3, '.', ''), '0'), '.') }} {{ $m->ingredient?->unitLabel() }}</td>
+                <td dir="ltr" @class(['text-end font-bold', 'text-emerald-700' => $m->quantity > 0, 'text-navy-700' => $m->quantity < 0])>{{ $m->quantity > 0 ? '+' : '' }}{{ rtrim(rtrim(number_format($m->quantity, 3, '.', ''), '0'), '.') }} {{ $m->ingredient?->unitLabel() }}</td>
                 <td class="text-navy-500">{{ $m->user?->name ?? '—' }}</td>
                 <td class="text-navy-500">{{ $m->note }}</td>
             </tr>

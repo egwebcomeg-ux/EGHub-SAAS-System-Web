@@ -11,22 +11,22 @@
     ];
     $chips = [['all', __('All')], ['dine_in', __('Dine-in')], ['takeaway', __('Takeaway')], ['delivery', __('Delivery')], ['food', '🍽 '.__('Food')], ['drinks', '☕ '.__('Drinks')]];
 @endphp
-<div class="flex min-h-dvh flex-col">
+<div class="dash-app flex min-h-dvh flex-col">
     <header class="flex flex-wrap items-center gap-3 border-b border-white/10 px-4 py-3">
-        <a href="{{ route('dash.home') }}" class="text-white/60 hover:text-white">←</a>
+        <a href="{{ route('dash.home') }}" class="grid size-11 place-items-center rounded-xl text-lg text-white/60 hover:bg-white/10 hover:text-white" aria-label="{{ __('Dashboard') }}">←</a>
         <h1 class="text-xl font-extrabold">{{ \App\Support\BusinessType::prepScreen() }}{{ $station ? ' · ' . tr($station->name, $station->name_en) : '' }}</h1>
         @if ($stations->isNotEmpty())
             <nav class="flex flex-wrap gap-1 text-sm">
-                <a href="?" @class(['rounded-lg px-3 py-1.5', 'bg-white text-navy-900' => !$station, 'bg-white/10' => $station])>{{ __('All') }}</a>
+                <a href="?" @class(['flex min-h-10 items-center rounded-lg px-3', 'bg-white text-navy-900' => !$station, 'bg-white/10' => $station])>{{ __('All') }}</a>
                 @foreach ($stations as $s)
-                    <a href="?station={{ $s->id }}" @class(['rounded-lg px-3 py-1.5', 'bg-white text-navy-900' => $station?->id === $s->id, 'bg-white/10' => $station?->id !== $s->id])>{{ tr($s->name, $s->name_en) }}</a>
+                    <a href="?station={{ $s->id }}" @class(['flex min-h-10 items-center rounded-lg px-3', 'bg-white text-navy-900' => $station?->id === $s->id, 'bg-white/10' => $station?->id !== $s->id])>{{ tr($s->name, $s->name_en) }}</a>
                 @endforeach
             </nav>
         @endif
         <div class="ms-auto flex items-center gap-2 text-sm">
             <span class="badge bg-white/10 text-white" data-count>0</span>
-            <button type="button" class="rounded-lg bg-white/10 px-3 py-1.5" data-sound>🔔 {{ __('Enable sound') }}</button>
-            <button type="button" class="rounded-lg bg-white/10 px-3 py-1.5" data-fullscreen>⛶ {{ __('Full screen') }}</button>
+            <button type="button" class="min-h-10 rounded-lg bg-white/10 px-3 font-semibold hover:bg-white/15" data-sound>🔔 {{ __('Enable sound') }}</button>
+            <button type="button" class="min-h-10 rounded-lg bg-white/10 px-3 font-semibold hover:bg-white/15" data-fullscreen>⛶ {{ __('Full screen') }}</button>
         </div>
     </header>
     {{-- quick filters: order type, or only the food / only the drinks of every ticket (remembered on this screen) --}}

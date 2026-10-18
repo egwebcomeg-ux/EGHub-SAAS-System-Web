@@ -2,7 +2,7 @@
 @section('title', __('Review import'))
 
 @section('content')
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+<div class="dash-head">
     <h1 class="page-title">{{ __('Review import') }}</h1>
     <a href="{{ route('dash.import') }}" class="btn-ghost">{{ __('Back') }}</a>
 </div>

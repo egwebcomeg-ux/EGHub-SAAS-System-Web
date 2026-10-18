@@ -101,7 +101,7 @@ if (board) {
     function card(o) {
         const mins = minutesAgo(o.created_at);
         // Same thresholds idea as the Filetto kitchen screen: amber after 10 minutes, red after 20.
-        const age = ['served', 'cancelled'].includes(o.status) ? '' : mins >= 20 ? 'ring-2 ring-red-400' : mins >= 10 ? 'ring-2 ring-amber-300' : '';
+        const age = ['served', 'cancelled'].includes(o.status) ? '' : mins >= 20 ? 'ring-2 ring-brand-500' : mins >= 10 ? 'ring-2 ring-amber-300' : '';
         const waiting = o.status === 'new' && GUEST_SOURCES.includes(o.source) ? 'animate-pulse' : '';
         const where = o.table ? t.table.replace('__N__', esc(o.table)) : esc(o.type_label);
         // an order with food and drinks: a badge per part, and its own "ready" button while preparing
@@ -186,7 +186,7 @@ if (board) {
         const allNew = orders.filter((o) => o.status === 'new');
         const waiting = allNew.length;
         waitingGuestOrders = allNew.filter((o) => GUEST_SOURCES.includes(o.source)).length;
-        board.querySelector('[data-section="new"]')?.classList.toggle('ring-red-400', waitingGuestOrders > 0);
+        board.querySelector('[data-section="new"]')?.classList.toggle('ring-brand-500', waitingGuestOrders > 0);
         board.querySelector('[data-section="new"]')?.classList.toggle('ring-2', waitingGuestOrders > 0);
         document.title = waiting ? `${t.newOrdersTitle.replace('__N__', waiting)} · ${baseTitle}` : baseTitle;
     }
@@ -195,11 +195,11 @@ if (board) {
     const busyBox = document.querySelector('[data-busy-box]');
     function renderBusy(busy) {
         if (!busyBox) return;
-        busyBox.querySelector('[data-busy-icon]').textContent = busy ? '🔴' : '🟢';
+        busyBox.querySelector('[data-busy-icon]').textContent = busy ? '🟠' : '🟢';
         busyBox.querySelector('[data-busy-label]').textContent = busy ? t.busyUntil.replace('__T__', busy.until) : t.busyOff;
-        busyBox.classList.toggle('bg-red-50', !!busy);
+        busyBox.classList.toggle('bg-amber-50', !!busy);
         busyBox.classList.toggle('ring-1', !!busy);
-        busyBox.classList.toggle('ring-red-200', !!busy);
+        busyBox.classList.toggle('ring-amber-200', !!busy);
         busyBox.querySelector('[data-busy-presets]')?.classList.toggle('hidden', !!busy);
         busyBox.querySelector('[data-busy="off"]')?.classList.toggle('hidden', !busy);
         const msg = busyBox.querySelector('[data-busy-message]');
@@ -392,7 +392,7 @@ if (grid) {
             <span class="badge bg-brand-600 text-white">${esc(t.minutes.replace('__N__', minutes(s.opened_at)))}</span></div>
             ${table.branch ? `<div class="text-xs text-navy-500">${esc(table.branch)}</div>` : ''}
             <div class="mt-1 text-lg font-extrabold text-navy-800">${esc(s.total)} <span class="text-xs font-semibold">${esc(t.currency)}</span></div>
-            <div class="text-xs text-navy-600">${esc(t.orders.replace('__N__', s.orders))}${s.unpaid ? ` · <b class="text-red-700">${esc(t.unpaid.replace('__N__', s.unpaid))}</b>` : ''}</div>
+            <div class="text-xs text-navy-600">${esc(t.orders.replace('__N__', s.orders))}${s.unpaid ? ` · <b class="text-brand-700">${esc(t.unpaid.replace('__N__', s.unpaid))}</b>` : ''}</div>
             <div class="mt-auto flex flex-wrap gap-1 pt-2">
                 ${s.in_kitchen ? `<span class="badge bg-amber-100 text-amber-800">🍳 ${esc(t.inKitchen.replace('__N__', s.in_kitchen))}</span>` : ''}
                 ${s.ready ? `<span class="badge bg-emerald-100 text-emerald-800">✅ ${esc(t.readyCount.replace('__N__', s.ready))}</span>` : ''}

@@ -5,27 +5,27 @@
 @php
     $stateStyles = [
         'active' => 'bg-emerald-100 text-emerald-800', 'paused' => 'bg-navy-100 text-navy-700', 'used' => 'bg-sky-100 text-sky-800',
-        'expired' => 'bg-red-100 text-red-700', 'scheduled' => 'bg-amber-100 text-amber-800',
+        'expired' => 'bg-navy-100 text-navy-500', 'scheduled' => 'bg-amber-100 text-amber-800',
     ];
     $openForm = old('count') !== null ? 'batch' : (old('type') !== null ? 'single' : '');
 @endphp
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+<div class="dash-head">
     <div>
         <h1 class="page-title">{{ __('Vouchers') }}</h1>
-        <p class="muted">{{ __('Discount codes on the loyalty card: one for a guest, or a printed batch to hand out. Guests type the code in the cart or scan its QR.') }}</p>
+        <p class="dash-help">{{ __('Discount codes on the loyalty card: one for a guest, or a printed batch to hand out. Guests type the code in the cart or scan its QR.') }}</p>
     </div>
-    <div class="flex flex-wrap gap-2">
+    <div class="dash-head-actions">
         <a href="{{ route('dash.loyalty.setup') }}" class="btn-ghost">{{ __('Program settings') }}</a>
         @can('loyalty.stamp')<a href="{{ route('dash.loyalty.desk') }}" class="btn-ghost">{{ __('Counter') }}</a>@endcan
     </div>
 </div>
 
-<div class="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-5">
-    <div class="card"><div class="muted">{{ __('Vouchers') }}</div><div class="text-2xl font-extrabold">{{ number_format($stats['total']) }}</div></div>
-    <div class="card"><div class="muted">{{ __('Active') }}</div><div class="text-2xl font-extrabold">{{ number_format($stats['active']) }}</div></div>
-    <div class="card"><div class="muted">{{ __('Orders with a voucher') }}</div><div class="text-2xl font-extrabold">{{ number_format($stats['orders']) }}</div></div>
-    <div class="card"><div class="muted">{{ __('Their sales') }}</div><div class="text-2xl font-extrabold">{{ money($stats['revenue']) }} <span class="text-sm">{{ __('EGP') }}</span></div></div>
-    <div class="card col-span-2 lg:col-span-1"><div class="muted">{{ __('Discount given') }}</div><div class="text-2xl font-extrabold">{{ money($stats['discount']) }} <span class="text-sm">{{ __('EGP') }}</span></div></div>
+<div class="mb-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
+    <div class="stat-card"><div class="stat-label">{{ __('Vouchers') }}</div><div class="stat-value">{{ number_format($stats['total']) }}</div></div>
+    <div class="stat-card"><div class="stat-label">{{ __('Active') }}</div><div class="stat-value">{{ number_format($stats['active']) }}</div></div>
+    <div class="stat-card"><div class="stat-label">{{ __('Orders with a voucher') }}</div><div class="stat-value">{{ number_format($stats['orders']) }}</div></div>
+    <div class="stat-card"><div class="stat-label">{{ __('Their sales') }}</div><div class="stat-value">{{ money($stats['revenue']) }} <span class="text-sm">{{ __('EGP') }}</span></div></div>
+    <div class="stat-card col-span-2 lg:col-span-1"><div class="stat-label">{{ __('Discount given') }}</div><div class="stat-value">{{ money($stats['discount']) }} <span class="text-sm">{{ __('EGP') }}</span></div></div>
 </div>
 
 <div class="mb-4 grid items-start gap-4 xl:grid-cols-2">

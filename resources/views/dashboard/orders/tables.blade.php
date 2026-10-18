@@ -19,17 +19,17 @@
     ];
     $methodLabels = collect($methods)->mapWithKeys(fn ($m) => [$m => \App\Billing\PaymentMethods::label($m)]);
 @endphp
-@include('dashboard.orders.partials.tabs')
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-    <div>
-        <h1 class="text-2xl font-extrabold">{{ __('Tables') }}</h1>
-        <p class="text-sm text-navy-500">{{ __('Every order of a table joins one bill until you close the table.') }}</p>
+<div class="dash-head">
+    <div class="min-w-0">
+        <h1 class="page-title">{{ __('Tables') }}</h1>
+        <p class="dash-help">{{ __('Every order of a table joins one bill until you close the table.') }}</p>
     </div>
-    <div class="flex flex-wrap items-center gap-2 text-sm font-semibold">
+    <div class="dash-head-actions gap-4 text-sm font-semibold">
         <span class="flex items-center gap-1.5"><span class="size-3 rounded-full bg-emerald-500"></span> {{ __('Table free') }} <b data-free-count>0</b></span>
         <span class="flex items-center gap-1.5"><span class="size-3 rounded-full bg-brand-600"></span> {{ __('Occupied') }} <b data-busy-count>0</b></span>
     </div>
 </div>
+@include('dashboard.orders.partials.tabs')
 
 <div id="tables-grid" class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6"
      data-feed="{{ route('dash.orders.tables.feed') }}"

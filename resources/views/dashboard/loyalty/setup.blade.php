@@ -7,12 +7,12 @@
     $q = $program->qualifying_items ?? [];
     $milestones = array_values($program->milestones ?? []);
 @endphp
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+<div class="dash-head">
     <div>
         <h1 class="page-title">{{ __('Loyalty card') }}</h1>
-        <p class="muted">{{ __('A digital stamp card on the guest’s phone. Stamps come only from paid orders or from your staff.') }}</p>
+        <p class="dash-help">{{ __('A digital stamp card on the guest’s phone. Stamps come only from paid orders or from your staff.') }}</p>
     </div>
-    <div class="flex gap-2">
+    <div class="dash-head-actions">
         <a href="{{ route('dash.vouchers') }}" class="btn-ghost">{{ __('Vouchers') }}</a>
         @if ($program->exists)<a href="{{ tenant()->url('card') }}" target="_blank" rel="noopener" class="btn-ghost">{{ __('Open the guest page') }}</a>@endif
         @can('loyalty.stamp')<a href="{{ route('dash.loyalty.desk') }}" class="btn-primary">{{ __('Counter: stamp a card') }}</a>@endcan
@@ -20,10 +20,10 @@
 </div>
 
 @if ($stats)
-    <div class="mb-4 grid gap-4 sm:grid-cols-3">
-        <div class="card"><div class="muted">{{ __('Cards') }}</div><div class="text-2xl font-extrabold">{{ $stats['cards'] }}</div></div>
-        <div class="card"><div class="muted">{{ __('Rewards reached') }}</div><div class="text-2xl font-extrabold">{{ $stats['rewards'] }}</div></div>
-        <div class="card"><div class="muted">{{ __('Rewards redeemed') }}</div><div class="text-2xl font-extrabold">{{ $stats['redeemed'] }}</div></div>
+    <div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+        <div class="stat-card"><div class="stat-label">{{ __('Cards') }}</div><div class="stat-value">{{ $stats['cards'] }}</div></div>
+        <div class="stat-card"><div class="stat-label">{{ __('Rewards reached') }}</div><div class="stat-value">{{ $stats['rewards'] }}</div></div>
+        <div class="stat-card"><div class="stat-label">{{ __('Rewards redeemed') }}</div><div class="stat-value">{{ $stats['redeemed'] }}</div></div>
     </div>
 @endif
 
@@ -119,7 +119,7 @@
     </div>
 
     <div class="lg:col-span-2">
-        <div class="sticky top-4 space-y-3">
+        <div class="space-y-3 lg:sticky lg:top-4">
             <div class="muted text-center">{{ __('Preview') }}</div>
             @include('partials.loyalty-card', ['stamps' => min(3, max(0, (int) $program->stamps_required - 1)), 'settings' => \App\Services\Settings::all(),
                 'milestones' => app(\App\Services\Loyalty\LoyaltyService::class)->milestones($program->exists ? $program : $program->fill(['milestones' => $milestones]))])

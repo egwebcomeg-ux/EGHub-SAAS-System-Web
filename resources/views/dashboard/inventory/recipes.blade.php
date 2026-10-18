@@ -2,8 +2,7 @@
 @section('title', __('Recipes & cost'))
 
 @section('content')
-<h1 class="page-title mb-1">{{ __('Recipes & cost') }}</h1>
-<p class="muted mb-4">{{ __('Food cost is the ingredient cost of one plain portion compared with its menu price. Around 25–35% is usual for cafes.') }}</p>
+<x-dash.page-header :title="__('Recipes & cost')" :help="__('Food cost is the ingredient cost of one plain portion compared with its menu price. Around 25–35% is usual for cafes.')" />
 @include('dashboard.inventory.tabs')
 
 @foreach ($categories as $c)
@@ -24,7 +23,7 @@
                     <td>{{ $cost !== null ? money($cost) : '—' }}</td>
                     <td>
                         @if ($pct !== null)
-                            <span dir="ltr" @class(['badge', 'bg-emerald-100 text-emerald-800' => $pct <= 35, 'bg-amber-100 text-amber-800' => $pct > 35 && $pct <= 45, 'bg-red-100 text-red-700' => $pct > 45])>{{ $pct }}%</span>
+                            <span dir="ltr" @class(['badge', 'bg-emerald-100 text-emerald-800' => $pct <= 35, 'bg-amber-100 text-amber-800' => $pct > 35 && $pct <= 45, 'bg-brand-100 text-brand-700' => $pct > 45])>{{ $pct }}%</span>
                         @else
                             <span class="text-xs text-navy-400">{{ __('No recipe') }}</span>
                         @endif

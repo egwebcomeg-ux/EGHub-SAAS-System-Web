@@ -5,7 +5,7 @@
 @php
     $methods = ['cash' => __('Cash'), 'card' => __('Card'), 'instapay' => 'InstaPay', 'wallet' => __('Mobile wallet'), 'credit' => __('Wallet balance')];
 @endphp
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+<div class="dash-head">
     <h1 class="page-title">{{ __('Shifts') }}</h1>
     @can('pos.use')<a href="{{ route('dash.pos') }}" class="btn-primary">{{ __('Go to POS') }}</a>@endcan
 </div>
@@ -41,7 +41,7 @@
                     <tr><td>{{ __('Wallet top-ups & gift cards') }} · {{ $methods[$key] ?? $key }}</td><td class="text-end font-semibold text-emerald-700">+{{ money($amount) }}</td></tr>
                 @endforeach
                 <tr><td>{{ __('Cash in') }}</td><td class="text-end font-semibold text-emerald-700">+{{ money($summary['cash_in']) }}</td></tr>
-                <tr><td>{{ __('Cash out') }}</td><td class="text-end font-semibold text-red-600">−{{ money($summary['cash_out']) }}</td></tr>
+                <tr><td>{{ __('Cash out') }}</td><td class="text-end font-semibold text-navy-700">−{{ money($summary['cash_out']) }}</td></tr>
                 </tbody>
             </table>
             @if ($movements->isNotEmpty())

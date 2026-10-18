@@ -2,10 +2,10 @@
 @section('title', __('Import menu'))
 
 @section('content')
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+<div class="dash-head">
     <div>
         <h1 class="page-title">{{ __('Import menu') }}</h1>
-        <p class="muted">{{ __('Nothing is added until you review the rows and confirm.') }}</p>
+        <p class="dash-help">{{ __('Nothing is added until you review the rows and confirm.') }}</p>
     </div>
     <a href="{{ route('dash.menu') }}" class="btn-ghost">{{ __('Back to menu') }}</a>
 </div>

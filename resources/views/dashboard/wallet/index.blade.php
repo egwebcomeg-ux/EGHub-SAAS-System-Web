@@ -2,7 +2,7 @@
 @section('title', __('Wallet & gift cards'))
 
 @section('content')
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+<div class="dash-head">
     <h1 class="page-title">{{ __('Wallet & gift cards') }}</h1>
     @can('pos.use')<a href="{{ route('dash.pos') }}" class="btn-primary">{{ __('Top up or sell a gift card from the POS') }}</a>@endcan
 </div>
@@ -12,10 +12,10 @@
 @endif
 
 <div class="mb-4 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-    <div class="card"><div class="muted">{{ __('Balances owed to guests') }}</div><div class="text-2xl font-extrabold text-brand-700" data-liability>{{ money($totals['liability']) }}</div></div>
-    <div class="card"><div class="muted">{{ __('Unused gift cards') }}</div><div class="text-2xl font-extrabold">{{ money($totals['gifts']) }}</div></div>
-    <div class="card"><div class="muted">{{ __('Guests with a balance') }}</div><div class="text-2xl font-extrabold">{{ $totals['customers'] }}</div></div>
-    <div class="card"><div class="muted">{{ __('Top-ups this month') }}</div><div class="text-2xl font-extrabold">{{ money($totals['month_topups']) }}</div></div>
+    <div class="stat-card"><div class="stat-label">{{ __('Balances owed to guests') }}</div><div class="stat-value text-brand-700" data-liability>{{ money($totals['liability']) }}</div></div>
+    <div class="stat-card"><div class="stat-label">{{ __('Unused gift cards') }}</div><div class="stat-value">{{ money($totals['gifts']) }}</div></div>
+    <div class="stat-card"><div class="stat-label">{{ __('Guests with a balance') }}</div><div class="stat-value">{{ $totals['customers'] }}</div></div>
+    <div class="stat-card"><div class="stat-label">{{ __('Top-ups this month') }}</div><div class="stat-value">{{ money($totals['month_topups']) }}</div></div>
 </div>
 <p class="muted mb-4">{{ __('Balances and unused gift cards are money guests already paid you: they come back to you as orders. Paid at the counter, they are in the shift report.') }}</p>
 
@@ -68,7 +68,7 @@
                     <td>{{ local_time($t->created_at, 'Y/m/d h:i A') }}</td>
                     <td>{{ $t->customer?->name ?: '' }} <span dir="ltr">{{ $t->customer?->phone }}</span></td>
                     <td>{{ $t->kindLabel() }}@if ($t->method) · {{ \App\Billing\PaymentMethods::label($t->method) }}@endif</td>
-                    <td @class(['font-bold', 'text-emerald-700' => $t->delta > 0, 'text-red-600' => $t->delta < 0])><bdi dir="ltr">{{ $t->delta > 0 ? '+' : '' }}{{ money($t->delta) }}</bdi></td>
+                    <td @class(['font-bold', 'text-emerald-700' => $t->delta > 0, 'text-navy-700' => $t->delta < 0])><bdi dir="ltr">{{ $t->delta > 0 ? '+' : '' }}{{ money($t->delta) }}</bdi></td>
                     <td>{{ money($t->balance_after) }}</td>
                     <td>{{ $t->user?->name ?? '—' }}</td>
                     <td>{{ $t->note }}</td>

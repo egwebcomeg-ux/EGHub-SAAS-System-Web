@@ -148,3 +148,164 @@
 .m-cart-empty [data-pay-wallet] {
     display: none !important;
 }
+
+/*
+ * Restaurant dashboard UI system (layouts/dashboard.blade.php + resources/js/dash-ui.js).
+ * One page header, calm cards, tables that become stacked cards on phones, an off-canvas sidebar under 1024px.
+ */
+@utility dash-head {
+    @apply mb-5 flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between;
+}
+
+@utility dash-head-actions {
+    @apply flex flex-wrap items-center gap-2;
+}
+
+@utility dash-help {
+    @apply mt-1 max-w-3xl text-sm leading-relaxed text-navy-500;
+}
+
+@utility stat-card {
+    @apply rounded-card border border-navy-100/80 bg-white p-4 shadow-[0_1px_2px_rgba(20,31,56,.04)] sm:p-5;
+}
+
+@utility stat-label {
+    @apply text-xs font-semibold text-navy-500 sm:text-sm;
+}
+
+@utility stat-value {
+    @apply mt-1 text-xl font-black tabular-nums sm:text-2xl;
+}
+
+@utility empty-state {
+    @apply flex flex-col items-center justify-center gap-2 rounded-card border border-dashed border-navy-200 bg-white/60 px-6 py-10 text-center text-sm text-navy-500;
+}
+
+@utility tab-pill {
+    @apply flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-4 text-sm font-bold transition;
+}
+
+@layer base {
+    /* dialogs always fit the visible screen (phone toolbars and the keyboard included) and scroll inside */
+    dialog {
+        max-height: calc(100dvh - 1.5rem);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+}
+
+/* the sidebar is a drawer under 1024px: off-screen on the start side until the menu button opens it */
+@media (max-width: 1023.98px) {
+    .dash-nav {
+        transform: translateX(100%);
+        visibility: hidden;
+        transition: transform 0.22s ease, visibility 0s linear 0.22s;
+    }
+    [dir="ltr"] .dash-nav { transform: translateX(-100%); }
+    .dash-nav[data-open] {
+        transform: none;
+        visibility: visible;
+        transition: transform 0.22s ease, visibility 0s;
+    }
+    .dash-nav-backdrop {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+    }
+    .dash-nav-backdrop[data-open] {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    html.dash-nav-lock { overflow: hidden; }
+}
+
+/* phones: a <details> popover that opens as a bottom sheet gets a dimmed backdrop; tapping it closes the sheet
+   (the backdrop belongs to the summary, so the tap toggles the details) */
+@media (max-width: 639.98px) {
+    details[open] > .dash-sheet-toggle::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: 39;
+        background: rgb(6 26 46 / 0.45);
+        cursor: default;
+    }
+}
+
+/* POS on phones: the ticket is a bottom sheet over the item grid (resources/js/pos.js opens it from the bar) */
+@media (max-width: 767.98px) {
+    .pos-ticket {
+        transform: translateY(100%);
+        visibility: hidden;
+        transition: transform 0.25s ease, visibility 0s linear 0.25s;
+    }
+    .pos-ticket[data-open] {
+        transform: none;
+        visibility: visible;
+        transition: transform 0.25s ease, visibility 0s;
+    }
+    .pos-ticket-backdrop { opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+    .pos-ticket-backdrop[data-open] { opacity: 1; pointer-events: auto; }
+}
+
+/* phones: every dashboard table turns into stacked cards; resources/js/dash-ui.js copies each column title into
+   data-label. A table that must stay a grid sits in a scroll box with data-table-scroll. */
+@media (max-width: 639.98px) {
+    main .table-base:not([data-table-scroll]),
+    main .table-base:not([data-table-scroll]) tbody,
+    main .table-base:not([data-table-scroll]) tfoot,
+    main .table-base:not([data-table-scroll]) tr,
+    main .table-base:not([data-table-scroll]) td,
+    main .table-base:not([data-table-scroll]) tbody th {
+        display: block;
+        width: 100%;
+    }
+    main .table-base:not([data-table-scroll]) thead { display: none; }
+    main .table-base:not([data-table-scroll]) tr {
+        margin-bottom: 0.5rem;
+        border: 1px solid var(--color-navy-100);
+        border-radius: 0.875rem;
+        background: #fff;
+        padding: 0.375rem 0.875rem;
+    }
+    main .table-base:not([data-table-scroll]) td,
+    main .table-base:not([data-table-scroll]) tbody th {
+        display: flow-root;
+        border: 0;
+        border-bottom: 1px dashed var(--color-navy-50);
+        padding: 0.5rem 0;
+        text-align: left;
+    }
+    main .table-base:not([data-table-scroll]) tr > :last-child { border-bottom: 0; }
+    main .table-base:not([data-table-scroll]) td:not([data-label]) { text-align: right; }
+    /* sides follow the page (not the cell): a left-to-right cell (phone, code) keeps its label on the start side */
+    main .table-base:not([data-table-scroll]) td[data-label]::before {
+        content: attr(data-label);
+        float: right;
+        margin-left: 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1.9;
+        color: var(--color-navy-500);
+    }
+    main .table-base:not([data-table-scroll]) td:empty { display: none; }
+    main .table-base:not([data-table-scroll]) td[colspan] { text-align: center; }
+    /* a cell holding fields: the title above, the fields full width */
+    main .table-base:not([data-table-scroll]) td[data-label]:has(input:not([type="hidden"]), select, textarea) { text-align: right; }
+    main .table-base:not([data-table-scroll]) td[data-label]:has(input:not([type="hidden"]), select, textarea)::before { float: none; display: block; margin: 0 0 0.25rem; }
+    [dir="ltr"] main .table-base:not([data-table-scroll]) td { text-align: right; }
+    [dir="ltr"] main .table-base:not([data-table-scroll]) td:not([data-label]) { text-align: left; }
+    [dir="ltr"] main .table-base:not([data-table-scroll]) td[data-label]::before { float: left; margin-left: 0; margin-right: 0.75rem; }
+}
+
+/* touch screens: buttons and fields stay at least 44px tall even where a compact size was asked for */
+@media (pointer: coarse) {
+    .btn, .btn-primary, .btn-ghost, .btn-navy, .btn-danger, .field, .tab-pill, main a.badge, main button.badge { min-height: 2.75rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dash-nav, .dash-nav-backdrop, .pos-ticket, .pos-ticket-backdrop, .dash-app, .dash-app *, .dash-app ::before, .dash-app ::after {
+        transition: none !important;
+        animation: none !important;
+    }
+}

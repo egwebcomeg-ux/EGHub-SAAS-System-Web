@@ -2,8 +2,7 @@
 @section('title', __('Audit log'))
 
 @section('content')
-<h1 class="page-title mb-1">{{ __('Audit log') }}</h1>
-<p class="muted mb-4">{{ __('The last 200 actions: who changed what, and when.') }}</p>
+<x-dash.page-header :title="__('Audit log')" :help="__('The last 200 actions: who changed what, and when.')" />
 
 <form class="mb-3 flex flex-wrap gap-2">
     <select name="user" class="field min-h-9 w-auto py-0" onchange="this.form.submit()">

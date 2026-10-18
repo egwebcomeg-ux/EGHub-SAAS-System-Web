@@ -3,9 +3,9 @@
 
 @section('content')
 @php($extras = $onSale->isNotEmpty() || $tier || $wallet !== null || $packages->isNotEmpty())
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+<div class="dash-head">
     <h1 class="page-title">{{ __('Loyalty card') }} · {{ __('Counter') }}</h1>
-    <div class="flex gap-2">
+    <div class="dash-head-actions">
         @can('loyalty.manage')
             @if (\App\Services\Entitlements::current()->allows('cashback|prepaid_packages|membership'))<a href="{{ route('dash.cards') }}" class="btn-ghost">{{ __('Advanced cards') }}</a>@endif
             @if (\App\Services\Entitlements::current()->allows('loyalty_stamps'))<a href="{{ route('dash.loyalty.setup') }}" class="btn-ghost">{{ __('Program settings') }}</a>@endif

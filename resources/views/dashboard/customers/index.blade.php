@@ -2,21 +2,21 @@
 @section('title', __('Customers'))
 
 @section('content')
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+<div class="dash-head">
     <h1 class="page-title">{{ __('Customers') }}</h1>
     <a href="{{ route('dash.customers.export', array_filter(['q' => $q, 'segment' => $segment])) }}" class="btn-ghost">⬇ {{ __('Export to Excel (CSV)') }}</a>
 </div>
 
-<div class="mb-4 grid gap-4 sm:grid-cols-3">
-    <div class="card"><div class="muted">{{ __('All customers') }}</div><div class="text-2xl font-extrabold">{{ $stats['total'] }}</div></div>
-    <div class="card"><div class="muted">{{ __('Came back more than once') }}</div><div class="text-2xl font-extrabold">{{ $stats['returning'] }}</div></div>
-    <div class="card"><div class="muted">{{ __('New this month') }}</div><div class="text-2xl font-extrabold">{{ $stats['new_month'] }}</div></div>
+<div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+    <div class="stat-card"><div class="stat-label">{{ __('All customers') }}</div><div class="stat-value">{{ $stats['total'] }}</div></div>
+    <div class="stat-card"><div class="stat-label">{{ __('Came back more than once') }}</div><div class="stat-value">{{ $stats['returning'] }}</div></div>
+    <div class="stat-card"><div class="stat-label">{{ __('New this month') }}</div><div class="stat-value">{{ $stats['new_month'] }}</div></div>
 </div>
 
 @php
     $segmentStyles = [
         'new' => 'bg-sky-100 text-sky-800', 'regular' => 'bg-emerald-100 text-emerald-800', 'vip' => 'bg-amber-100 text-amber-800',
-        'at_risk' => 'bg-orange-100 text-orange-800', 'lost' => 'bg-red-100 text-red-700',
+        'at_risk' => 'bg-orange-100 text-orange-800', 'lost' => 'bg-navy-100 text-navy-500',
     ];
     $segmentHints = [
         'new' => __('First visit in the last 30 days'), 'regular' => __('3 or more orders in 90 days'), 'vip' => __('Top 10% by spend, or the highest membership tier'),

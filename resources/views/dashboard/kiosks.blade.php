@@ -2,8 +2,7 @@
 @section('title', __('Kiosk'))
 
 @section('content')
-<h1 class="page-title mb-1">{{ __('Kiosk') }}</h1>
-<p class="muted mb-4">{{ __('Put a tablet at the counter and open the kiosk link on it once. Guests order by themselves, get their order number and pay at the cashier; the order shows on the order board and the kitchen screen right away.') }}</p>
+<x-dash.page-header :title="__('Kiosk')" :help="__('Put a tablet at the counter and open the kiosk link on it once. Guests order by themselves, get their order number and pay at the cashier; the order shows on the order board and the kitchen screen right away.')" />
 
 <div class="grid gap-4 xl:grid-cols-3">
     <div class="space-y-4 xl:col-span-2">
@@ -26,7 +25,7 @@
                             {{ tr($k->branch?->name, $k->branch?->name_en) }} ·
                             {{ collect($o['order_types'])->map(fn ($t) => $t === 'takeaway' ? __('Takeaway') : __('Dine-in'))->implode(' / ') }} ·
                             {{ __('Back to start after :n seconds', ['n' => $o['idle_seconds']]) }}
-                            @unless ($k->is_active) · <span class="font-bold text-red-600">{{ __('Stopped') }}</span>@endunless
+                            @unless ($k->is_active) · <span class="font-bold text-amber-700">{{ __('Stopped') }}</span>@endunless
                         </div>
                         <div class="rounded-lg bg-navy-50 px-3 py-2 text-xs break-all text-navy-600" dir="ltr">{{ $k->url() }}</div>
                     </div>
@@ -40,13 +39,13 @@
                         <div class="sm:col-span-2"><button class="btn-primary">{{ __('Save') }}</button></div>
                     </form>
                     <div class="mt-3 flex flex-wrap gap-3 border-t border-navy-100 pt-3 text-sm">
-                        <form method="post" action="{{ route('dash.kiosks.regenerate', $k) }}" onsubmit="return confirm(@js(__('The current link will stop working. Continue?')))">@csrf<button class="text-navy-600 underline">{{ __('New link') }}</button></form>
-                        <form method="post" action="{{ route('dash.kiosks.delete', $k) }}" onsubmit="return confirm(@js(__('Delete this kiosk?')))">@csrf<button class="text-red-600">{{ __('Delete') }}</button></form>
+                        <form method="post" action="{{ route('dash.kiosks.regenerate', $k) }}" onsubmit="return confirm(@js(__('The current link will stop working. Continue?')))">@csrf<button class="min-h-10 px-2 text-navy-600 underline">{{ __('New link') }}</button></form>
+                        <form method="post" action="{{ route('dash.kiosks.delete', $k) }}" onsubmit="return confirm(@js(__('Delete this kiosk?')))">@csrf<button class="min-h-10 px-2 text-red-600">{{ __('Delete') }}</button></form>
                     </div>
                 </details>
             </section>
         @empty
-            <div class="card py-10 text-center text-navy-500">{{ __('No kiosks yet. Add your first kiosk.') }}</div>
+            <div class="empty-state">{{ __('No kiosks yet. Add your first kiosk.') }}</div>
         @endforelse
     </div>
     <form method="post" action="{{ route('dash.kiosks.store') }}" class="card grid h-fit gap-3">

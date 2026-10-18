@@ -2,7 +2,7 @@
 @section('title', __('Ratings'))
 
 @section('content')
-<h1 class="page-title mb-4">{{ __('Ratings') }}</h1>
+<x-dash.page-header :title="__('Ratings')" />
 
 <div class="mb-4 grid gap-4 md:grid-cols-3">
     <div class="card text-center">
@@ -36,7 +36,7 @@
             </div>
         </div>
     @empty
-        <p class="card text-center text-navy-500">{{ __('No ratings yet. Guests can rate from the menu and after their order.') }}</p>
+        <p class="empty-state">{{ __('No ratings yet. Guests can rate from the menu and after their order.') }}</p>
     @endforelse
     {{ $feedback->links() }}
 </div>

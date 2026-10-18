@@ -9,10 +9,11 @@
 @endphp
 
 @section('content')
-<div class="mb-4 flex items-center justify-between">
-    <h1 class="text-2xl font-extrabold">{{ $item->exists ? __('Edit item') : __('Add item') }}</h1>
-    <a href="{{ route('dash.menu') }}" class="btn-ghost">{{ __('Back to menu') }}</a>
-</div>
+<x-dash.page-header :title="$item->exists ? __('Edit item') : __('Add item')">
+    <x-slot:actions>
+        <a href="{{ route('dash.menu') }}" class="btn-ghost">{{ __('Back to menu') }}</a>
+    </x-slot:actions>
+</x-dash.page-header>
 
 <form method="post" action="{{ $item->exists ? route('dash.items.update', $item) : route('dash.items.store') }}" enctype="multipart/form-data" class="grid gap-4 lg:grid-cols-3">
     @csrf

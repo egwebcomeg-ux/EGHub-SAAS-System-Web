@@ -2,8 +2,7 @@
 @section('title', __('Confirm your number on WhatsApp'))
 
 @section('content')
-<h1 class="page-title mb-1">{{ __('Confirm your number on WhatsApp') }}</h1>
-<p class="muted mb-4">{{ __('One ready message from your phone, no codes to type. Your account is confirmed the moment it arrives.') }}</p>
+<x-dash.page-header :title="__('Confirm your number on WhatsApp')" :help="__('One ready message from your phone, no codes to type. Your account is confirmed the moment it arrives.')" />
 
 <div class="grid max-w-5xl gap-4 lg:grid-cols-5" data-phone-verify data-status-url="{{ route('dash.phone.status') }}" data-verified="{{ $user->hasVerifiedPhone() ? '1' : '0' }}">
     <section class="card space-y-4 lg:col-span-3">

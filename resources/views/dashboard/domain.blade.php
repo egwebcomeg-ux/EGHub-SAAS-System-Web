@@ -2,8 +2,7 @@
 @section('title', __('Your own domain'))
 
 @section('content')
-<h1 class="page-title mb-1">{{ __('Your own domain') }}</h1>
-<p class="muted mb-4">{{ __('Show your menu on your own address, like mycafe.com, instead of the EgMenu link. Every QR code switches to it, and QR codes you already printed keep working.') }}</p>
+<x-dash.page-header :title="__('Your own domain')" :help="__('Show your menu on your own address, like mycafe.com, instead of the EgMenu link. Every QR code switches to it, and QR codes you already printed keep working.')" />
 
 @if (! $allowed)
     <div class="card max-w-2xl">

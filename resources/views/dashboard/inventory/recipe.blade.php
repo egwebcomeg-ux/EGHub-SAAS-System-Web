@@ -2,10 +2,10 @@
 @section('title', __('Recipe') . ' · ' . $item->name)
 
 @section('content')
-<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+<div class="dash-head">
     <div>
         <h1 class="page-title">{{ __('Recipe') }}: {{ $item->name }}</h1>
-        <p class="muted">{{ __('What one portion uses. Lines tied to an option (e.g. Large) are taken only when the guest picks it.') }}</p>
+        <p class="dash-help">{{ __('What one portion uses. Lines tied to an option (e.g. Large) are taken only when the guest picks it.') }}</p>
     </div>
     <a href="{{ route('dash.inventory.recipes') }}" class="btn-ghost">{{ __('Back') }}</a>
 </div>

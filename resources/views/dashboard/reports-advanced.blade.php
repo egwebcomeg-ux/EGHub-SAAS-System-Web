@@ -7,7 +7,7 @@
         if ($d === null) {
             return ['—', 'text-navy-500', ''];
         }
-        return [($d > 0 ? '▲ +' : ($d < 0 ? '▼ ' : '')) . $d . '%', $d > 0 ? 'text-emerald-700' : ($d < 0 ? 'text-red-700' : 'text-navy-500'), ''];
+        return [($d > 0 ? '▲ +' : ($d < 0 ? '▼ ' : '')) . $d . '%', $d > 0 ? 'text-emerald-700' : ($d < 0 ? 'text-brand-700' : 'text-navy-500'), ''];
     };
     $heat = $x['heatmap'];
 @endphp

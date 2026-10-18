@@ -6,7 +6,7 @@
 @section('body_class', 'bg-navy-50 text-navy-900 overflow-hidden')
 
 @section('body')
-<div class="flex h-dvh flex-col">
+<div class="dash-app flex h-dvh flex-col">
     {{-- top bar --}}
     <header class="flex flex-wrap items-center gap-2 border-b border-navy-100 bg-white px-3 py-2">
         <a href="{{ route('dash.home') }}" class="btn-ghost min-h-9 px-3">← {{ __('Dashboard') }}</a>
@@ -18,9 +18,9 @@
                 </select>
             </form>
         @endif
-        <div class="ms-auto flex flex-wrap items-center gap-2">
+        <div class="ms-auto flex flex-wrap items-center gap-2 whitespace-nowrap max-md:-mx-3 max-md:w-full max-md:flex-nowrap max-md:overflow-x-auto max-md:px-3 max-md:pb-1 max-md:[scrollbar-width:none] [&>*]:shrink-0">
             @if ($data['shifts'] && !$cc)
-                <a href="{{ route('dash.shifts') }}" @class(['badge min-h-9 px-3', 'bg-emerald-100 text-emerald-800' => $shift, 'bg-red-100 text-red-700' => !$shift])>
+                <a href="{{ route('dash.shifts') }}" @class(['badge min-h-9 px-3', 'bg-emerald-100 text-emerald-800' => $shift, 'bg-amber-100 text-amber-800' => !$shift])>
                     {{ $shift ? __('Shift open since :time', ['time' => local_time($shift->opened_at, 'h:i A')]) : __('No open shift') }}
                 </a>
             @endif
@@ -46,10 +46,24 @@
             <div class="flex gap-2 overflow-x-auto border-b border-navy-100 bg-white px-3 py-2" data-cats></div>
             <div class="p-3"><input type="search" class="field" placeholder="{{ __('Search items') }}" data-search></div>
             <div class="grid flex-1 auto-rows-min grid-cols-2 gap-2 overflow-y-auto p-3 pt-0 sm:grid-cols-3 xl:grid-cols-5" data-items></div>
+            {{-- phones: the order opens as a sheet from this bar --}}
+            <div class="border-t border-navy-100 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden" data-ticket-bar>
+                <button type="button" class="btn-primary w-full justify-between" data-ticket-open aria-controls="pos-ticket" aria-expanded="false">
+                    <span class="flex items-center gap-2">🧾 {{ __('The order') }} <span class="badge bg-white/20 text-white" data-ticket-count>0</span></span>
+                    <span class="font-extrabold" data-ticket-total></span>
+                </button>
+            </div>
         </section>
+        <div class="pos-ticket-backdrop fixed inset-0 z-30 bg-navy-900/50 md:hidden" data-ticket-backdrop aria-hidden="true"></div>
 
         {{-- ticket --}}
-        <aside class="flex w-[22rem] shrink-0 flex-col overflow-y-auto border-s border-navy-100 bg-white">
+        <aside id="pos-ticket" class="pos-ticket flex w-[22rem] shrink-0 flex-col overflow-y-auto border-s border-navy-100 bg-white max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-40 max-md:max-h-[88dvh] max-md:w-full max-md:rounded-t-3xl max-md:border-s-0 max-md:shadow-2xl lg:w-[24rem]" data-ticket>
+            <div class="flex items-center justify-between border-b border-navy-100 px-4 py-2 md:hidden">
+                <span class="font-extrabold">🧾 {{ __('The order') }}</span>
+                <button type="button" class="grid size-11 place-items-center rounded-xl text-navy-600 hover:bg-navy-50" data-ticket-close aria-label="{{ __('Close') }}">
+                    <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
             @if ($cc)
                 {{-- caller: lookup by mobile, saved addresses, last orders --}}
                 <div class="space-y-2 border-b border-navy-100 p-3 text-sm">
@@ -126,7 +140,7 @@
                         <button type="button" class="btn-primary" data-pay>{{ __('Pay') }}</button>
                     </div>
                 @endif
-                <button type="button" class="w-full text-center text-xs text-red-600" data-clear>{{ __('Clear') }}</button>
+                <button type="button" class="min-h-10 w-full text-center text-xs font-semibold text-red-600" data-clear>{{ __('Clear') }}</button>
             </div>
         </aside>
     </div>
@@ -240,9 +254,9 @@
     <form method="dialog" class="p-5">
         <div class="mb-3 flex items-center justify-between">
             <h3 class="text-lg font-extrabold">{{ __('Open orders') }}</h3>
-            <button value="cancel" class="text-2xl leading-none text-navy-500">×</button>
+            <button value="cancel" class="grid size-11 place-items-center rounded-xl text-2xl leading-none text-navy-500 hover:bg-navy-50" aria-label="{{ __('Close') }}">×</button>
         </div>
-        <ul class="max-h-[60vh] divide-y divide-navy-50 overflow-y-auto" data-open-list></ul>
+        <ul class="max-h-[60dvh] divide-y divide-navy-50 overflow-y-auto" data-open-list></ul>
     </form>
 </dialog>
 

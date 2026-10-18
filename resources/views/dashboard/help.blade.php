@@ -16,10 +16,10 @@
 @endphp
 
 @section('content')
-<div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+<div class="dash-head">
     <div>
         <h1 class="page-title">{{ __('Dashboard tutorial') }}</h1>
-        <p class="muted">{{ __('Eight short steps from an empty account to a menu guests scan every day.') }}</p>
+        <p class="dash-help">{{ __('Eight short steps from an empty account to a menu guests scan every day.') }}</p>
     </div>
     <a href="{{ route('dash.home') }}" class="btn-ghost">{{ __('Back to home') }}</a>
 </div>

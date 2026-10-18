@@ -82,7 +82,7 @@
             </aside>
         </div>
 
-        <div class="sticky bottom-0 z-20 -mx-4 mt-6 border-t border-navy-100 bg-white/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+        <div class="sticky bottom-0 z-20 -mx-4 mt-6 border-t border-navy-100 bg-white/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
             <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
                 <span class="text-sm text-navy-600">{!! __('You picked :n modules', ['n' => '<b class="text-navy-900" data-modules-count>'.count($selected).'</b>']) !!}</span>
                 <div class="flex flex-1 items-center justify-end gap-2 sm:flex-none">

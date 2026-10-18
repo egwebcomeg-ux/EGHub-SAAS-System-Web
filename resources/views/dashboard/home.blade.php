@@ -2,21 +2,27 @@
 @section('title', __('Home') . ' · ' . tenant()->name)
 
 @section('content')
+<x-dash.page-header :title="__('Welcome, :name', ['name' => \Illuminate\Support\Str::of(auth()->user()->name)->before(' ')])" :help="__('Your day at a glance: orders, the menu and what is left to set up.')">
+    <x-slot:actions>
+        <a href="{{ tenant()->url() }}" target="_blank" rel="noopener" class="btn-primary">{{ __('Open menu') }}</a>
+        @can('orders.view')<a href="{{ route('dash.orders') }}" class="btn-ghost">{{ __('Orders') }}</a>@endcan
+    </x-slot:actions>
+</x-dash.page-header>
 @if ($lowStock)
-    <a href="{{ route('dash.inventory') }}" class="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-        <span>⚠ {{ __(':n ingredients are running low.', ['n' => $lowStock]) }}</span><span class="underline">{{ __('Inventory') }}</span>
+    <a href="{{ route('dash.inventory') }}" class="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+        <span>⚠ {{ __(':n ingredients are running low.', ['n' => $lowStock]) }}</span><span class="shrink-0 underline">{{ __('Inventory') }}</span>
     </a>
 @endif
-<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+<div class="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
     @foreach ([
         [__('Categories'), $stats['categories']],
         [__('Menu items'), $stats['items']],
         [__('Orders today'), $stats['orders_today']],
         [__('Customers'), $stats['customers']],
     ] as [$label, $value])
-        <div class="card">
-            <div class="text-sm text-navy-500">{{ $label }}</div>
-            <div class="mt-1 text-3xl font-extrabold">{{ $value }}</div>
+        <div class="stat-card">
+            <div class="stat-label">{{ $label }}</div>
+            <div class="stat-value">{{ $value }}</div>
         </div>
     @endforeach
 </div>
@@ -75,17 +81,19 @@
         </div>
         <ul class="mt-3 divide-y divide-navy-50">
             @foreach ($onboarding['steps'] as $step)
-                <li class="flex items-center gap-3 py-2" data-onboarding-step="{{ $step['key'] }}" data-state="{{ $step['done'] ? 'done' : ($step['skipped'] ? 'skipped' : 'todo') }}">
+                <li class="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 sm:flex-nowrap" data-onboarding-step="{{ $step['key'] }}" data-state="{{ $step['done'] ? 'done' : ($step['skipped'] ? 'skipped' : 'todo') }}">
                     <span @class(['grid size-6 shrink-0 place-items-center rounded-full text-xs font-bold', 'bg-emerald-500 text-white' => $step['done'], 'bg-navy-100 text-navy-500' => ! $step['done']])>{{ $step['done'] ? '✓' : ($step['skipped'] ? '–' : $loop->iteration) }}</span>
-                    <div class="min-w-0 flex-1">
+                    <div class="min-w-0 flex-1 basis-48">
                         <div @class(['text-sm font-semibold', 'text-navy-400 line-through' => $step['done'] || $step['skipped']])>{{ $step['title'] }}</div>
                         @if (! $step['done'] && ! $step['skipped'])<div class="text-xs text-navy-500">{{ $step['text'] }}</div>@endif
                     </div>
                     @if (! $step['done'] && ! $step['skipped'])
-                        @if ($step['url'])<a href="{{ $step['url'] }}" class="btn-primary min-h-8 px-3 text-xs">{{ __('Go') }}</a>@endif
-                        <form method="post" action="{{ route('dash.onboarding.skip') }}">
-                            @csrf<input type="hidden" name="step" value="{{ $step['key'] }}"><button class="btn-ghost min-h-8 px-2 text-xs">{{ __('Skip') }}</button>
-                        </form>
+                        <div class="ms-9 flex shrink-0 items-center gap-2 sm:ms-0">
+                            @if ($step['url'])<a href="{{ $step['url'] }}" class="btn-primary min-h-9 px-4 text-xs">{{ __('Go') }}</a>@endif
+                            <form method="post" action="{{ route('dash.onboarding.skip') }}">
+                                @csrf<input type="hidden" name="step" value="{{ $step['key'] }}"><button class="btn-ghost min-h-9 px-3 text-xs">{{ __('Skip') }}</button>
+                            </form>
+                        </div>
                     @endif
                 </li>
             @endforeach
