@@ -98,6 +98,7 @@ class SettingsController extends Controller
             }],
             'dine_in_notice' => 'nullable|string|max:200',
             'menu_intro' => ['nullable', Rule::in(MenuIntro::STYLES)],
+            'menu_intro_repeat' => ['nullable', Rule::in(['always', 'session'])],
             'meta_pixel_id' => ['nullable', 'string', TrackingPixels::RULES['meta_pixel_id']],
             'ga4_measurement_id' => ['nullable', 'string', TrackingPixels::RULES['ga4_measurement_id']],
             'tiktok_pixel_id' => ['nullable', 'string', TrackingPixels::RULES['tiktok_pixel_id']],
@@ -145,6 +146,9 @@ class SettingsController extends Controller
         }
         if (! empty($data['menu_intro'])) {
             $values['menu_intro'] = $data['menu_intro'];
+        }
+        if (! empty($data['menu_intro_repeat'])) {
+            $values['menu_intro_repeat'] = $data['menu_intro_repeat'];
         }
         if (Entitlements::current()->allows('online_ordering')) {
             $values['online_takeaway'] = $request->boolean('online_takeaway') ? '1' : '0';

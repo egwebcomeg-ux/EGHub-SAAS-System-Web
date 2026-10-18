@@ -1,11 +1,13 @@
 {{--
-    Before the first paint: decide whether the intro plays (once per browser session, never under reduced motion or
-    without sessionStorage) and whether the "how will you order?" screen opens (no choice remembered yet), so the
+    Before the first paint: decide whether the intro plays (every time the menu is opened, or once per browser session — setting menu_intro_repeat; never under reduced motion) and whether the "how will you order?" screen opens (no choice remembered yet), so the
     menu never flashes before them. The overlays fade out on their own in CSS even if the menu script fails.
 --}}
 @php
     $introKey = 'egmenu.intro.' . tenant()->getTenantKey();
     $wayKey = 'egmenu.way.' . tenant()->getTenantKey();
+    // "always": every time the menu is opened (a scan, a link, a new tab) — but not when coming back from another page
+    // of the same menu (order tracking, card); "session": once per browser session
+    $introAlways = \App\Services\Settings::get('menu_intro_repeat') !== 'session';
 @endphp
 <script>
     (function () {
@@ -14,9 +16,12 @@
         var read = function (key) { try { return store ? store.getItem(key) : null; } catch (e) { return null; } };
         @if ($intro !== 'off')
         var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (store && !calm && !read(@json($introKey))) {
+        var internal = false;
+        try { internal = !!document.referrer && new URL(document.referrer).host === location.host; } catch (e) {}
+        var again = @json($introAlways) ? !internal : (store && !read(@json($introKey)));
+        if (!calm && again) {
             root.classList.add('intro-open');
-            try { store.setItem(@json($introKey), '1'); } catch (e) {}
+            try { if (store) { store.setItem(@json($introKey), '1'); } } catch (e) {}
         }
         @endif
         @if ($choice)

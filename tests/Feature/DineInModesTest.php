@@ -152,6 +152,11 @@ class DineInModesTest extends TenantTestCase
 
         $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('data-intro', false)->assertSee('m-intro--logo', false)
             ->assertSee('Coffee with a view')->assertSee('egmenu.intro.cafe-a', false)->assertSee('اضغط للتخطي');
+        // plays every time the menu is opened by default; "once per visit" when the owner picks it
+        $this->get($this->subUrl('cafe-a'))->assertSee('var again = true ?', false);
+        $this->as($a, fn () => Settings::put(['menu_intro_repeat' => 'session']));
+        $this->get($this->subUrl('cafe-a'))->assertSee('var again = false ?', false);
+
         $this->withHeader('User-Agent', 'Mozilla/5.0 (compatible; Googlebot/2.1)')->get($this->subUrl('cafe-a'))->assertOk()->assertDontSee('data-intro', false);
 
         $this->as($a, fn () => Settings::put(['menu_intro' => 'full']));

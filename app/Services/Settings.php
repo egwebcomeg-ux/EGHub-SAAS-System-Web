@@ -72,6 +72,7 @@ final class Settings
         'order_type_prompt' => '1',
         // branded splash on the first open per session (App\Support\MenuIntro): off | logo | full
         'menu_intro' => 'logo',
+        'menu_intro_repeat' => 'always',  // always (every time the menu is opened) | session (once per browser session)
         'service_percent' => '0',
         'tax_percent' => '0',
         // AI menu import with the restaurant's own key (ai_key is encrypted, see AiProviders)

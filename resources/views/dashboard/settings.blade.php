@@ -85,7 +85,11 @@
                     <option value="{{ $key }}" @selected($s['menu_intro'] === $key)>{{ $label }}</option>
                 @endforeach
             </select>
-            <p class="mt-1 text-xs text-navy-500">{{ __('About 2 seconds, once per visit; the guest can tap to skip it.') }}</p>
+            <select class="field mt-2" name="menu_intro_repeat" aria-label="{{ __('When it plays') }}">
+                <option value="always" @selected($s['menu_intro_repeat'] !== 'session')>{{ __('Every time the menu is opened') }}</option>
+                <option value="session" @selected($s['menu_intro_repeat'] === 'session')>{{ __('Once per visit') }}</option>
+            </select>
+            <p class="mt-1 text-xs text-navy-500">{{ __('About 2 seconds; the guest can tap to skip it.') }}</p>
         </div>
     </section>
 

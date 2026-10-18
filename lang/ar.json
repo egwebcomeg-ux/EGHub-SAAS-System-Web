@@ -3163,5 +3163,8 @@
     "Tap to skip": "اضغط للتخطي",
     "How will you order?": "هتطلب إزاي؟",
     "Choose how you want your order to continue.": "اختار نوع الطلب عشان تكمل.",
-    "You can change it later from your cart.": "تقدر تغيّره بعدين من السلة."
+    "You can change it later from your cart.": "تقدر تغيّره بعدين من السلة.",
+    "When it plays": "إمتى يظهر",
+    "Every time the menu is opened": "كل مرة المنيو يتفتح",
+    "About 2 seconds; the guest can tap to skip it.": "حوالي ثانيتين، والعميل يقدر يتخطاه بلمسة."
 }
