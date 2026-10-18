@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Models\MenuItem;
 use App\Services\Audit;
 use App\Services\Entitlements;
 use App\Services\ImageService;
@@ -16,7 +17,9 @@ use App\Support\BusinessType;
 use App\Support\Cities;
 use App\Support\Cuisines;
 use App\Support\DineIn;
+use App\Support\ItemBadges;
 use App\Support\MenuIntro;
+use App\Support\MenuLayouts;
 use App\Support\MenuLocales;
 use App\Support\MenuThemes;
 use Illuminate\Http\RedirectResponse;
@@ -100,12 +103,16 @@ class SettingsController extends Controller
             'menu_intro' => ['nullable', Rule::in(MenuIntro::STYLES)],
             'menu_intro_repeat' => ['nullable', Rule::in(['always', 'session'])],
             'logo_background' => ['nullable', Rule::in(['auto', 'white', 'none'])],
+            'menu_layout' => ['nullable', Rule::in(MenuLayouts::CHOICES)],
+            'menu_display' => ['nullable', Rule::in(['simple', 'pro'])],
+            'menu_badge_filters' => 'nullable|array|max:'.ItemBadges::MAX_FILTERS,
+            'menu_badge_filters.*' => [Rule::in(array_keys(MenuItem::TAGS))],
             'meta_pixel_id' => ['nullable', 'string', TrackingPixels::RULES['meta_pixel_id']],
             'ga4_measurement_id' => ['nullable', 'string', TrackingPixels::RULES['ga4_measurement_id']],
             'tiktok_pixel_id' => ['nullable', 'string', TrackingPixels::RULES['tiktok_pixel_id']],
         ], [], ['meta_pixel_id' => 'Meta Pixel ID', 'ga4_measurement_id' => 'GA4 Measurement ID', 'tiktok_pixel_id' => 'TikTok Pixel ID']);
 
-        $values = collect($data)->except(['logo', 'cover', 'ai_key', 'cuisine', 'menu_locales'])->map(fn ($v) => (string) ($v ?? ''))->all();
+        $values = collect($data)->except(['logo', 'cover', 'ai_key', 'cuisine', 'menu_locales', 'menu_badge_filters'])->map(fn ($v) => (string) ($v ?? ''))->all();
         if (($values['qr_target'] ?? '') === '') {
             unset($values['qr_target']); // not sent: keep the current target
         }
@@ -192,6 +199,16 @@ class SettingsController extends Controller
         // the onboarding checklist counts "ordering on/off decided" once this form was saved
         $values['ordering_decided'] = '1';
 
+        // the item layout and the display mode are picked with the design (same plan feature); not sent: keep them
+        foreach (['menu_layout', 'menu_display'] as $key) {
+            if (! Entitlements::current()->allows('menu_themes') || ($values[$key] ?? '') === '') {
+                unset($values[$key]);
+            }
+        }
+        // badge filter chips of the menu (sent with the design section); none ticked = off
+        if ($request->boolean('badge_filters_sent')) {
+            $values['menu_badge_filters'] = json_encode(array_values(array_unique($data['menu_badge_filters'] ?? [])));
+        }
         if (! Entitlements::current()->allows('menu_themes')) {
             unset($values['menu_theme']);
         }

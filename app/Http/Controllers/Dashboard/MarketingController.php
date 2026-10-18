@@ -13,8 +13,10 @@ use App\Models\Season;
 use App\Services\ImageService;
 use App\Services\Orders\CartGoal;
 use App\Services\Settings;
+use App\Support\MenuTicker;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -178,6 +180,48 @@ class MarketingController extends Controller
         ]);
 
         return back()->with('ok', __('Cart goal saved.'));
+    }
+
+    /**
+     * The owner's lines of the menu ticker (up to five; empty lines are dropped), each with an optional link to one
+     * of this restaurant's items or categories.
+     */
+    public function saveTicker(Request $request): RedirectResponse
+    {
+        $tenant = tenant()->getTenantKey();
+        $data = $request->validate([
+            'lines' => 'nullable|array|max:'.MenuTicker::MAX_OWNER_LINES,
+            'lines.*.text' => 'nullable|string|max:'.MenuTicker::MAX_LENGTH,
+            'lines.*.text_en' => 'nullable|string|max:'.MenuTicker::MAX_LENGTH,
+            'lines.*.link' => ['nullable', 'string', 'max:30', function (string $attribute, mixed $value, \Closure $fail) use ($tenant) {
+                [$type, $id] = array_pad(explode(':', (string) $value, 2), 2, '');
+                $table = ['item' => 'menu_items', 'category' => 'categories'][$type] ?? null;
+                $ok = $table !== null && ctype_digit($id)
+                    && DB::table($table)->where('tenant_id', $tenant)->where('id', (int) $id)->exists();
+                if (! $ok) {
+                    $fail(__('Choose an item or a category of your menu.'));
+                }
+            }],
+        ]);
+        $lines = collect($data['lines'] ?? [])
+            ->map(fn (array $line) => [
+                'text' => trim((string) ($line['text'] ?? '')),
+                'text_en' => trim((string) ($line['text_en'] ?? '')),
+                'link' => (string) ($line['link'] ?? ''),
+            ])
+            ->filter(fn (array $line) => $line['text'] !== '' || $line['text_en'] !== '')
+            ->values()->all();
+        Settings::put(['menu_ticker_lines' => $lines === [] ? '' : json_encode($lines, JSON_UNESCAPED_UNICODE)]);
+
+        return back()->with('ok', __('Ticker saved.'));
+    }
+
+    /** The banner strip as a slideshow (autoplay) or a strip the guest swipes. */
+    public function saveBannerAutoplay(Request $request): RedirectResponse
+    {
+        Settings::put(['banner_autoplay' => $request->boolean('banner_autoplay') ? '1' : '0']);
+
+        return back()->with('ok', __('Settings saved.'));
     }
 
     /** A seasonal look; empty greeting / accent take the preset's defaults. */

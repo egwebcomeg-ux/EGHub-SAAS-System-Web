@@ -94,6 +94,57 @@
                 </label>
             @endforeach
         </div>
+        {{-- the item layout, apart from the colors of the design (App\Support\MenuLayouts) --}}
+        <fieldset data-layout-picker>
+            <legend class="field-label">{{ __('How the items are laid out') }}</legend>
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                @foreach (\App\Support\MenuLayouts::CHOICES as $key)
+                    @php
+                        [$label, $hint] = \App\Support\MenuLayouts::label($key);
+                        $layoutOn = $themes ? $s['menu_layout'] : 'auto';
+                    @endphp
+                    <label @class(['cursor-pointer rounded-xl border border-navy-100 p-2 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50', 'opacity-50' => !$themes && $key !== 'auto'])>
+                        <input type="radio" name="menu_layout" value="{{ $key }}" class="sr-only" @checked($layoutOn === $key) @disabled(!$themes && $key !== 'auto')>
+                        @include('dashboard.partials.layout-thumb', ['layout' => $key])
+                        <span class="mt-1.5 block text-sm font-bold">{{ $label }}</span>
+                        <span class="block text-xs text-navy-500">{{ $hint }}</span>
+                    </label>
+                @endforeach
+            </div>
+            <p class="mt-1 text-xs text-navy-500">{{ __('The colors stay those of the design. Each category can have its own layout from the menu page.') }}</p>
+        </fieldset>
+        {{-- what a tap on an item opens: the bottom sheet (simple) or a full item page with its own link (pro) --}}
+        <fieldset data-display-picker>
+            <legend class="field-label">{{ __('When the guest taps an item') }}</legend>
+            <div class="grid gap-2 sm:grid-cols-2">
+                @foreach (['simple' => [__('Simple'), __('A sheet opens from the bottom of the screen, quick and light.')], 'pro' => [__('Professional'), __('A full page for the item: big photo, all details and its own link to share.')]] as $key => [$label, $hint])
+                    <label @class(['flex cursor-pointer items-start gap-2 rounded-xl border border-navy-100 p-3 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50', 'opacity-50' => !$themes && $key === 'pro'])>
+                        <input type="radio" name="menu_display" value="{{ $key }}" class="mt-1 accent-brand-600" @checked(($themes ? $s['menu_display'] : 'simple') === $key) @disabled(!$themes && $key === 'pro')>
+                        <span><span class="block font-bold">{{ $label }}</span><span class="block text-xs text-navy-500">{{ $hint }}</span></span>
+                    </label>
+                @endforeach
+            </div>
+        </fieldset>
+        {{-- badges as quick filter chips on the menu (App\Support\ItemBadges) --}}
+        <fieldset data-badge-filters>
+            <input type="hidden" name="badge_filters_sent" value="1">
+            <legend class="field-label">{{ __('Quick filters on the menu (optional)') }}</legend>
+            <p class="mb-2 text-xs text-navy-500">{{ __('Pick up to :n labels; guests tap one to see only those items (e.g. Healthy). A filter shows only while some item has its label.', ['n' => \App\Support\ItemBadges::MAX_FILTERS]) }}</p>
+            @php
+                $chosenFilters = old('menu_badge_filters', \App\Support\ItemBadges::filters($s));
+            @endphp
+            <div class="flex flex-wrap gap-2">
+                @foreach (\App\Support\ItemBadges::forBusiness($s['business_type'])[0] as $key)
+                    @php
+                        $badge = \App\Support\ItemBadges::badge($key);
+                    @endphp
+                    <label class="flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full border border-navy-100 px-3 text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+                        <input type="checkbox" name="menu_badge_filters[]" value="{{ $key }}" class="sr-only" @checked(in_array($key, $chosenFilters, true))> {{ $badge['icon'] }} {{ $badge['label'] }}
+                    </label>
+                @endforeach
+            </div>
+            @error('menu_badge_filters')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+        </fieldset>
         <div class="max-w-md">
             <label class="field-label" for="menu_intro">{{ __('Opening animation of the menu') }}</label>
             <select class="field" name="menu_intro" id="menu_intro">

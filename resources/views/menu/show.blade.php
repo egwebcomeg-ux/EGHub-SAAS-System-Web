@@ -1,5 +1,14 @@
 @extends('layouts.base', ['viteEntries' => ['resources/js/menu.js']])
-@section('title', $profile->title())
+@php
+    // the shareable link of one item: its name, description and photo in the title and the link preview
+    $share = $opened ? [
+        'title' => $opened->displayName() . ' | ' . (tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name),
+        'description' => (string) tx($opened, 'description'),
+        'image' => $profile->imageUrl($opened->image),
+    ] : null;
+    $pro = $display === 'pro';
+@endphp
+@section('title', $share['title'] ?? $profile->title())
 @section('body_class', 'm-text')
 
 @php
@@ -7,7 +16,6 @@
     $brand = tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name;
     $currency = tr($settings['currency'], $settings['currency_en']);
     $featured = $categories->flatMap->items->where('is_featured', true)->take(8);
-    $layout = \App\Support\MenuThemes::layout($theme);
     // the order-type chip and sheet: the general link with more than one way to order
     $waysMenu = ! $table && count($ways) > 1;
     $wayChips = ['dine' => '🍽 ' . __('In the place'), 'takeaway' => '🛍 ' . __('Takeaway'), 'delivery' => '🛵 ' . __('Delivery')];
@@ -15,7 +23,7 @@
 @endphp
 
 @push('head')
-@include('menu.partials.seo-head', ['profile' => $profile, 'schemas' => $schemas])
+@include('menu.partials.seo-head', ['profile' => $profile, 'schemas' => $schemas, 'share' => $share])
 @include('menu.partials.pixels')
 {{-- theme-color, manifest and the home-screen icon come from partials.pwa-head (layouts.base) --}}
 @if ($settings['font'] !== 'Cairo')
@@ -33,6 +41,41 @@
         font-size: .85rem; font-weight: 800; background: rgba(255, 255, 255, .14); color: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28); }
     .m-goal-track { height: .55rem; border-radius: 999px; background: var(--menu-surface-2); box-shadow: inset 0 0 0 1px var(--menu-border); overflow: hidden; }
     .m-goal-fill { height: 100%; border-radius: inherit; background: var(--menu-accent); transition: width .4s ease; }
+    .m-tag { background: color-mix(in srgb, var(--menu-text) 8%, transparent); }
+    .m-filter { background: var(--menu-surface); color: var(--menu-text); box-shadow: inset 0 0 0 1px var(--menu-border); }
+    .m-filter[aria-pressed="true"] { background: var(--menu-accent); color: var(--menu-accent-text); box-shadow: none; }
+    /* professional display: the item sheet as a full page */
+    .m-item-page { height: 100dvh; max-height: none; width: 100%; max-width: none; margin: 0; border: 0; }
+    /* the scrollable rows (category chips, banners, recommended) without a scrollbar line */
+    .m-noscroll { scrollbar-width: none; }
+    .m-noscroll::-webkit-scrollbar { display: none; }
+    /* ticker under the header: one short line at a time (App\Support\MenuTicker) */
+    .m-ticker-bar { background: color-mix(in srgb, var(--menu-accent) 10%, var(--menu-bg)); color: var(--menu-text); border-bottom: 1px solid var(--menu-border); }
+    .m-ticker-line { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: .4rem; padding: 0 .75rem; width: 100%;
+        font-size: .85rem; font-weight: 700; color: inherit; opacity: 0; transform: translateY(45%); pointer-events: none; transition: opacity .5s ease, transform .5s ease; }
+    .m-ticker-line.is-on { opacity: 1; transform: none; pointer-events: auto; }
+    .m-ticker-line.is-out { transform: translateY(-45%); }
+    .m-ticker-go, .m-ticker-next { color: var(--menu-accent); }
+    [dir="rtl"] .m-ticker-go svg, [dir="rtl"] .m-ticker-next svg { transform: scaleX(-1); }
+    /* banner slideshow dots */
+    .m-dot { display: grid; place-items: center; min-width: 1.5rem; height: 1.5rem; }
+    .m-dot span { width: .45rem; height: .45rem; border-radius: 999px; background: color-mix(in srgb, var(--menu-muted) 50%, transparent); transition: width .3s ease, background-color .3s ease; }
+    .m-dot[aria-current="true"] span { width: 1.1rem; background: var(--menu-accent); }
+    /* quick "+" on the items, the cart count bump and the small toast after adding */
+    .m-qa { box-shadow: 0 2px 8px rgba(0, 0, 0, .2), 0 0 0 2px var(--menu-surface); transition: transform .15s ease; }
+    .m-qa::before { content: ''; position: absolute; inset: -6px; }
+    .m-qa:active { transform: scale(.9); }
+    .m-quick-off .m-qa { display: none; }
+    .m-bump { animation: m-bump .4s ease; }
+    @keyframes m-bump { 40% { transform: scale(1.3); } }
+    .m-toast { position: fixed; inset-inline: 0; bottom: 6.25rem; z-index: 40; margin-inline: auto; width: max-content; max-width: calc(100% - 2rem);
+        border-radius: 999px; padding: .55rem 1rem; font-size: .85rem; font-weight: 700; background: var(--menu-text); color: var(--menu-bg);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, .25); opacity: 0; transform: translateY(.5rem); pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
+    .m-toast.is-on { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) {
+        .m-ticker-line, .m-toast, .m-dot span { transition: none; }
+        .m-bump { animation: none; }
+    }
 </style>
 @if ($season)
     @include('menu.partials.season-style', ['season' => $season])
@@ -86,9 +129,43 @@
         </div>
     @endif
 </header>
-@if ($season && $season->greetingText() !== '')
-    <div class="m-primary" data-season-strip>
-        <div class="mx-auto max-w-2xl px-4 py-2 text-center text-sm font-extrabold tracking-wide">{{ $season->icon() }} {{ $season->greetingText() }}</div>
+@if ($ticker)
+    {{-- one short line at a time: offers, cart goal, the owner's lines, the season greeting (App\Support\MenuTicker) --}}
+    <div class="m-ticker-bar" role="region" aria-label="{{ __('News of the place') }}" data-ticker data-ticker-mode="{{ $tickerMoves ? 'rotate' : 'static' }}" data-ticker-seconds="{{ \App\Support\MenuTicker::SECONDS }}">
+        <div class="mx-auto flex max-w-2xl items-center">
+            <div class="relative h-9 min-w-0 flex-1 overflow-hidden">
+                @foreach ($ticker as $line)
+                    @php
+                        $lineAttrs = 'data-ticker-line="' . e($line['kind']) . '"' . ($loop->first ? '' : ' aria-hidden="true" tabindex="-1"');
+                        $lineClass = 'm-ticker-line' . ($loop->first ? ' is-on' : '');
+                        $linked = $line['item'] || $line['category'];
+                    @endphp
+                    @if ($line['item'])
+                        <button type="button" class="{{ $lineClass }}" data-item="{{ $line['item'] }}" {!! $lineAttrs !!}>
+                    @elseif ($line['category'])
+                        <a href="#cat-{{ $line['category'] }}" class="{{ $lineClass }}" {!! $lineAttrs !!}>
+                    @else
+                        <span class="{{ $lineClass }}" {!! $lineAttrs !!}>
+                    @endif
+                        <span aria-hidden="true">{{ $line['icon'] }}</span>
+                        <span class="truncate">{{ $line['text'] }}</span>
+                        @if ($linked)<span class="m-ticker-go shrink-0" aria-hidden="true"><svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>@endif
+                    @if ($line['item'])
+                        </button>
+                    @elseif ($line['category'])
+                        </a>
+                    @else
+                        </span>
+                    @endif
+                @endforeach
+            </div>
+            @if (count($ticker) > 1)
+                {{-- standing still (the slideshow moves, or reduced motion): the guest steps through the lines --}}
+                <button type="button" @class(['m-ticker-next grid h-9 w-10 shrink-0 place-items-center', 'hidden' => $tickerMoves]) data-ticker-next aria-label="{{ __('Next line') }}">
+                    <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+                </button>
+            @endif
+        </div>
     </div>
 @endif
 
@@ -105,25 +182,33 @@
 @endif
 
 @if ($banners->isNotEmpty())
-    {{-- swipeable picture strip: CSS scroll-snap, no script --}}
-    <section class="mx-auto max-w-2xl px-4 pt-4" data-banners aria-label="{{ __('Highlights') }}">
-        <div class="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    {{--
+        Banner slideshow: CSS scroll-snap (swipe), dots, and with 2+ banners an autoplay (setting banner_autoplay) that
+        pauses while touched, hovered, focused, off screen or in a hidden tab, and never runs under reduced motion
+        (resources/js/menu.js). While it autoplays the ticker stands still (App\Support\MenuTicker).
+    --}}
+    @php
+        $bannerCount = $banners->count();
+    @endphp
+    <section class="mx-auto max-w-2xl px-4 pt-4" data-banners aria-roledescription="carousel" aria-label="{{ __('Highlights') }}" @if ($bannerAutoplay) data-banner-autoplay="{{ \App\Support\MenuTicker::BANNER_SECONDS }}" @endif>
+        <div class="m-noscroll flex snap-x snap-mandatory gap-3 overflow-x-auto" data-banner-track>
             @foreach ($banners as $banner)
                 @php
                     $title = tr($banner->title, $banner->title_en);
                     $type = $banner->linkType();
                     $itemOk = $type === 'item' && $available->has($banner->menu_item_id);
                     $categoryOk = $type === 'category' && $shownCategories->has($banner->category_id);
-                    $classes = 'relative block w-[85%] shrink-0 snap-start overflow-hidden rounded-2xl bg-black/5 text-start shadow-sm sm:w-[70%]';
+                    $classes = 'relative block shrink-0 snap-start overflow-hidden rounded-2xl bg-black/5 text-start shadow-sm ' . ($bannerCount > 1 ? 'w-[88%] sm:w-[70%]' : 'w-full');
+                    $slideAttrs = 'data-banner-slide aria-roledescription="slide" aria-label="' . e(__(':n of :total', ['n' => $loop->iteration, 'total' => $bannerCount])) . '"';
                 @endphp
                 @if ($itemOk)
-                    <button type="button" class="{{ $classes }}" data-item="{{ $banner->menu_item_id }}" data-banner="{{ $banner->id }}">
+                    <button type="button" class="{{ $classes }}" data-item="{{ $banner->menu_item_id }}" data-banner="{{ $banner->id }}" {!! $slideAttrs !!}>
                 @elseif ($categoryOk)
-                    <a href="#cat-{{ $banner->category_id }}" class="{{ $classes }}" data-banner="{{ $banner->id }}">
+                    <a href="#cat-{{ $banner->category_id }}" class="{{ $classes }}" data-banner="{{ $banner->id }}" {!! $slideAttrs !!}>
                 @elseif ($type === 'url')
-                    <a href="{{ $banner->link_url }}" target="_blank" rel="noopener" class="{{ $classes }}" data-banner="{{ $banner->id }}">
+                    <a href="{{ $banner->link_url }}" target="_blank" rel="noopener" class="{{ $classes }}" data-banner="{{ $banner->id }}" {!! $slideAttrs !!}>
                 @else
-                    <div class="{{ $classes }}" data-banner="{{ $banner->id }}">
+                    <div class="{{ $classes }}" data-banner="{{ $banner->id }}" {!! $slideAttrs !!}>
                 @endif
                         <img src="/storage/{{ $banner->image }}" alt="{{ $title }}" loading="{{ $loop->first ? 'eager' : 'lazy' }}" decoding="async" class="aspect-[16/7] w-full object-cover">
                         @if ($title)<span class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-8 text-sm font-extrabold text-white">{{ $title }}</span>@endif
@@ -136,41 +221,43 @@
                 @endif
             @endforeach
         </div>
+        @if ($bannerCount > 1)
+            <div class="mt-1 flex justify-center" data-banner-dots>
+                @foreach ($banners as $banner)
+                    <button type="button" class="m-dot" data-banner-dot="{{ $loop->index }}" aria-label="{{ __('Banner :n of :total', ['n' => $loop->iteration, 'total' => $bannerCount]) }}" @if ($loop->first) aria-current="true" @endif><span></span></button>
+                @endforeach
+            </div>
+        @endif
     </section>
-@endif
-
-@if ($goal && ($canOrder || $hall['mode'] === 'list'))
-    <div class="mx-auto max-w-2xl px-4 pt-4" data-goal-strip>
-        <div class="m-surface-2 m-border flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm font-bold"><span aria-hidden="true">🎁</span> <span>{{ $goal['label'] }}</span></div>
-    </div>
 @endif
 
 @if ($categories->isNotEmpty())
     <nav class="sticky top-0 z-20 border-b m-border bg-white/95 backdrop-blur" data-cat-nav>
-        <div class="mx-auto flex max-w-2xl gap-2 overflow-x-auto px-4 py-3">
+        <div class="m-noscroll mx-auto flex max-w-2xl gap-2 overflow-x-auto px-4 pt-3 pb-1" data-cat-chips>
             @foreach ($categories as $c)
                 <a href="#cat-{{ $c->id }}" data-cat-link="cat-{{ $c->id }}" class="shrink-0 rounded-full m-surface-2 px-4 py-2 text-sm font-semibold transition">{{ tx($c, 'name') }}</a>
             @endforeach
         </div>
-        <div class="mx-auto max-w-2xl px-4 pb-3">
+        <div class="mx-auto max-w-2xl px-4 pt-2.5 pb-3">
             <input type="search" class="field" placeholder="{{ __('Search the menu') }}" data-search>
         </div>
+        @if ($badgeChips)
+            {{-- the owner's quick filters (App\Support\ItemBadges): one tap shows only the items with that label --}}
+            <div class="m-noscroll mx-auto -mt-1 flex max-w-2xl gap-2 overflow-x-auto px-4 pb-3" role="group" aria-label="{{ __('Filter the menu') }}" data-badge-chips>
+                @foreach ($badgeChips as $chip)
+                    <button type="button" class="m-filter shrink-0 rounded-full px-3 py-1.5 text-xs font-bold" data-badge-filter="{{ $chip['key'] }}" aria-pressed="false">{{ $chip['icon'] }} {{ $chip['label'] }}</button>
+                @endforeach
+            </div>
+        @endif
     </nav>
 @endif
 
-<main class="mx-auto max-w-2xl px-4 pt-5 pb-32">
-    @foreach ($offers as $offer)
-        <div class="mb-3 flex items-center gap-3 rounded-2xl bg-emerald-50 p-3 text-emerald-900 ring-1 ring-emerald-200">
-            <span class="rounded-xl bg-emerald-600 px-2.5 py-1 text-sm font-extrabold text-white" dir="ltr">-{{ $offer->discount_percent }}%</span>
-            <span class="text-sm font-semibold">{{ tr($offer->title, $offer->title_en) }}
-                @if ($offer->ends_at)<span class="font-normal text-emerald-800">· {{ __('until :time', ['time' => local_time(today()->setTimeFromTimeString($offer->ends_at), 'h:i A')]) }}</span>@endif
-            </span>
-        </div>
-    @endforeach
+{{-- running offers show in the ticker under the header; m-quick-off hides the quick "+" while the cart cannot order --}}
+<main @class(['mx-auto max-w-2xl px-4 pt-5 pb-32', 'm-quick-off' => ! $quickOn]) data-menu-main>
     @if ($featured->isNotEmpty())
         <section class="mb-6" data-featured>
             <h2 class="mb-3 text-lg font-extrabold">⭐ {{ __('Recommended') }}</h2>
-            <div class="flex gap-3 overflow-x-auto pb-2">
+            <div class="m-noscroll flex gap-3 overflow-x-auto pb-2">
                 @foreach ($featured as $item)
                     <button type="button" data-item="{{ $item->id }}" class="w-36 shrink-0 overflow-hidden rounded-2xl border m-border m-surface text-start shadow-sm">
                         @include('menu.items.photo', ['class' => 'aspect-square w-full', 'iconClass' => 'size-[38%]', 'phIcon' => $settings['business_type'] === 'cafe' ? 'cup' : 'plate'])
@@ -188,12 +275,24 @@
         <section id="cat-{{ $c->id }}" class="mb-8 scroll-mt-36" data-category>
             <h2 class="mb-1 text-xl font-extrabold" style="color: var(--menu-secondary)">{{ tx($c, 'name') }}</h2>
             @if ($d = tx($c, 'description'))<p class="mb-3 text-sm m-muted">{{ $d }}</p>@endif
-            <div @class(['mt-3', 'grid grid-cols-2 gap-3' => $layout === 'grid', 'divide-y m-divide' => $layout === 'minimal', 'space-y-3' => in_array($layout, ['classic', 'cafe'], true)])>
-                @php
-                    $phIcon = \App\Support\ItemPlaceholder::icon($c->name . ' ' . $c->name_en, $settings['business_type']);
-                @endphp
+            @php
+                // the layout of this category: its own, the menu setting or the theme's (App\Support\MenuLayouts)
+                $catLayout = $layouts[$c->id];
+                $layoutView = \App\Support\MenuLayouts::view($catLayout);
+                $phIcon = \App\Support\ItemPlaceholder::icon($c->name . ' ' . $c->name_en, $settings['business_type']);
+            @endphp
+            <div class="mt-3 {{ $layoutView['wrapper'] }}" data-layout="{{ $catLayout }}">
                 @foreach ($c->items as $item)
-                    @include('menu.items.' . $layout, ['item' => $item, 'phIcon' => $phIcon])
+                    @php
+                        $qa = $quickAdd ? \App\Support\MenuLayouts::quickAdd($item) : null;
+                        $qaSpot = $qa ? \App\Support\MenuLayouts::quickSpot($catLayout, $item, $placeholders) : null;
+                    @endphp
+                    <div class="relative" data-search-text="{{ mb_strtolower($item->name . ' ' . $item->name_en . ' ' . $item->description . ' ' . $item->displayName()) }}" data-badges="{{ implode(' ', $item->badgeKeys()) }}">
+                        @include('menu.items.' . $layoutView['blade'], $layoutView['vars'] + ['item' => $item, 'phIcon' => $phIcon, 'qaPad' => $qaSpot === 'row' ? 'pe-12' : ''])
+                        @if ($qa)
+                            @include('menu.items.quick-add', ['item' => $item, 'qa' => $qa, 'spot' => $qaSpot])
+                        @endif
+                    </div>
                 @endforeach
             </div>
         </section>
@@ -242,39 +341,61 @@
         <span data-cart-total></span>
     </button>
 </div>
+{{-- "added" feedback of the quick "+" --}}
+<div class="m-toast" role="status" aria-live="polite" data-toast></div>
 
-{{-- Item sheet --}}
-<dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/50 sm:m-auto sm:max-w-lg" data-item-sheet>
-    <form method="dialog" class="m-surface max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl" data-item-form>
-        <div class="relative" data-sheet-media>
-            <img alt="" class="hidden aspect-video w-full object-cover" data-sheet-image>
+{{--
+    Item sheet. Simple display: a sheet from the bottom. Professional display (setting menu_display = pro): the same
+    dialog as a full page — big photo, back and share on top, the add bar fixed at the bottom — with its own address
+    /item/{id} (resources/js/menu.js pushes it, the browser back closes it and the menu keeps its scroll).
+--}}
+<dialog @class(['m-0 w-full max-w-none p-0', 'mt-auto bg-transparent backdrop:bg-black/50 sm:m-auto sm:max-w-lg' => ! $pro, 'm-item-page m-surface h-dvh max-h-none backdrop:bg-black' => $pro]) data-item-sheet @if ($pro) data-item-page @endif aria-labelledby="sheet-name">
+    <form method="dialog" @class(['m-surface', 'max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl' => ! $pro, 'h-full overflow-y-auto' => $pro]) data-item-form>
+        @if ($pro)
+            <div class="pointer-events-none fixed inset-x-0 top-0 z-10 mx-auto flex max-w-2xl items-center justify-between p-3">
+                <button value="cancel" class="pointer-events-auto grid size-11 place-items-center rounded-full bg-black/45 text-white backdrop-blur" aria-label="{{ __('Back to the menu') }}" data-sheet-back>
+                    <svg viewBox="0 0 24 24" class="size-5 rtl:-scale-x-100" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
+                </button>
+                <button type="button" class="pointer-events-auto grid size-11 place-items-center rounded-full bg-black/45 text-white backdrop-blur" aria-label="{{ __('Share this item') }}" data-sheet-share>
+                    <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/></svg>
+                </button>
+            </div>
+        @endif
+        <div @class(['relative', 'mx-auto max-w-2xl' => $pro]) data-sheet-media>
+            <img alt="" @class(['hidden w-full object-cover', 'aspect-video' => ! $pro, 'aspect-[4/3] max-h-[55vh] sm:rounded-b-3xl' => $pro]) data-sheet-image>
             {{-- item video (uploads: muted loop inline, poster = photo; links: embed loaded on tap) --}}
             <div class="hidden aspect-video w-full bg-black" data-sheet-video></div>
             <button type="button" class="m-primary absolute bottom-3 start-3 hidden min-h-10 items-center gap-2 rounded-full px-4 text-sm font-extrabold shadow-lg" data-sheet-video-play>▶ {{ __('Watch the video') }}</button>
         </div>
-        <div class="p-5">
+        <div @class(['p-5', 'mx-auto max-w-2xl pb-28' => $pro]) data-sheet-body>
             <div class="flex items-start justify-between gap-3">
-                <h3 class="text-xl font-extrabold" data-sheet-name></h3>
-                <button value="cancel" class="m-muted text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
+                <h3 id="sheet-name" @class(['font-extrabold', 'text-xl' => ! $pro, 'text-2xl' => $pro]) data-sheet-name></h3>
+                @unless ($pro)
+                    <button value="cancel" class="m-muted text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
+                @endunless
             </div>
-            <p class="m-muted mt-1" data-sheet-desc></p>
+            <p class="m-primary-text mt-1 flex flex-wrap items-center gap-2 text-lg font-extrabold" data-sheet-price></p>
+            <div class="mt-2 hidden flex-wrap gap-1" data-sheet-badges></div>
+            <p @class(['m-muted mt-2', 'leading-relaxed' => $pro]) data-sheet-desc></p>
             <p class="m-muted mt-1 text-xs" data-sheet-cal></p>
             <div class="mt-2 hidden flex-wrap items-center gap-1.5 text-xs" data-sheet-allergens></div>
             <div class="mt-3 hidden rounded-xl bg-brand-50 p-3 text-sm" data-sheet-combo></div>
             <div class="mt-4 space-y-5" data-sheet-groups></div>
-            <label class="mt-5 block">
+            <label class="mt-5 block" data-sheet-notes-box>
                 <span class="field-label">{{ __('Notes for the kitchen') }}</span>
                 <input class="field" maxlength="200" data-sheet-notes placeholder="{{ __('e.g. no sugar') }}">
             </label>
-            <div class="mt-5 flex items-center gap-3">
-                <div class="m-border flex items-center rounded-xl border">
-                    <button type="button" class="size-11 text-xl" data-qty="-1">−</button>
-                    <span class="w-8 text-center font-bold" data-sheet-qty>1</span>
-                    <button type="button" class="size-11 text-xl" data-qty="1">+</button>
+            <div @class(['flex items-center gap-3', 'mt-5' => ! $pro, 'm-surface m-border fixed inset-x-0 bottom-0 z-10 border-t px-5 py-3' => $pro]) data-sheet-actions>
+                <div @class(['flex w-full items-center gap-3', 'mx-auto max-w-2xl' => $pro])>
+                    <div class="m-border flex items-center rounded-xl border">
+                        <button type="button" class="size-11 text-xl" data-qty="-1" aria-label="−">−</button>
+                        <span class="w-8 text-center font-bold" data-sheet-qty>1</span>
+                        <button type="button" class="size-11 text-xl" data-qty="1" aria-label="+">+</button>
+                    </div>
+                    <button type="button" class="m-primary min-h-12 flex-1 rounded-xl font-bold" data-add-to-cart>
+                        {{ __('Add') }} · <span data-sheet-total></span>
+                    </button>
                 </div>
-                <button type="button" class="m-primary min-h-12 flex-1 rounded-xl font-bold" data-add-to-cart>
-                    {{ __('Add') }} · <span data-sheet-total></span>
-                </button>
             </div>
             <p class="mt-3 hidden text-center font-bold text-red-600" data-sheet-soldout>{{ __('Sold out') }}</p>
         </div>
@@ -583,6 +704,8 @@
         'openNow' => $branchPicker ? __('Open now') : '', 'closedNow' => $branchPicker ? __('Closed now') : '', 'onMap' => __('Map'), 'km' => __(':n km', ['n' => '__N__']),
         'locating' => __('Finding your location…'), 'noLocation' => __('We could not get your location. Choose the branch from the list.'),
         'choose' => __('Choose'),
+        'added' => __('Added to your order: :name', ['name' => '__N__']),
+        'linkCopied' => __('Link copied'),
         'splitNote' => __('An estimate to help you split. The restaurant\'s receipt is the official bill; service and tax follow what each one ate.'),
     ];
 @endphp

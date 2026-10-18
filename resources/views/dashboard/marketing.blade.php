@@ -62,6 +62,15 @@
         <h2 class="section-title pt-4">{{ __('Menu banners') }} <span class="badge bg-navy-100 text-navy-700">{{ $liveBanners }} / {{ $maxBanners }}</span></h2>
         <p class="muted -mt-2">{{ __('A swipeable strip of pictures under the menu header. Up to :n active at a time; each may open an item, a category or a link.', ['n' => $maxBanners]) }}</p>
         @error('banners')<p class="rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ $message }}</p>@enderror
+        <form method="post" action="{{ route('dash.banners.autoplay') }}" class="card flex flex-wrap items-center justify-between gap-3" data-banner-autoplay-form>
+            @csrf
+            <label class="flex items-center gap-2 text-sm font-semibold">
+                <input type="checkbox" name="banner_autoplay" value="1" @checked($settings['banner_autoplay'] !== '0') class="size-4 accent-brand-600">
+                {{ __('Play the banners as a slideshow (every 4–5 seconds)') }}
+            </label>
+            <button class="btn-ghost min-h-9 px-3">{{ __('Save') }}</button>
+            <p class="w-full text-xs text-navy-500">{{ __('It stops while the guest touches it. While the slideshow plays, the ticker stands still so only one thing moves.') }}</p>
+        </form>
         @forelse ($banners as $b)
             <div class="card flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
@@ -110,6 +119,33 @@
             <div class="sm:col-span-2"><label class="field-label">{{ __('Text on the menu (written for you, you can edit it)') }}</label><input class="field" name="cart_goal_label" maxlength="120" value="{{ $settings['cart_goal_label'] }}" data-goal-label></div>
             <label class="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" name="cart_goal_with_coupon" value="1" @checked($settings['cart_goal_with_coupon'] === '1') class="size-4 accent-brand-600"> {{ __('Also with a coupon code (off by default: a coupon replaces the gift)') }}</label>
             <div class="sm:col-span-2"><button class="btn-primary">{{ __('Save cart goal') }}</button></div>
+        </form>
+
+        {{-- the ticker under the menu header (App\Support\MenuTicker): offers, cart goal and season come by themselves --}}
+        <h2 class="section-title pt-4" id="ticker">{{ __('Menu ticker') }}</h2>
+        <p class="muted -mt-2">{{ __('A thin line under the menu header that shows one short sentence at a time. Running offers, the cart goal and the season greeting are added by themselves; write up to :n lines of your own.', ['n' => \App\Support\MenuTicker::MAX_OWNER_LINES]) }}</p>
+        {{-- one-line php statements only on this page: a php block would swallow the one-line ones above it --}}
+        @php($tickerLines = \App\Support\MenuTicker::ownerLines($settings))
+        <form method="post" action="{{ route('dash.ticker.update') }}" class="card space-y-3" data-ticker-form>
+            @csrf
+            @error('lines.*')<p class="rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ $message }}</p>@enderror
+            @for ($n = 0; $n < \App\Support\MenuTicker::MAX_OWNER_LINES; $n++)
+                @php($line = $tickerLines[$n] ?? ['text' => '', 'text_en' => '', 'link' => ''])
+                <div class="grid gap-2 sm:grid-cols-3" data-ticker-row>
+                    <input class="field" name="lines[{{ $n }}][text]" maxlength="{{ \App\Support\MenuTicker::MAX_LENGTH }}" value="{{ $line['text'] }}" placeholder="{{ $n === 0 ? __('e.g. Free delivery all week') : __('Line :n', ['n' => $n + 1]) }}">
+                    <input class="field" name="lines[{{ $n }}][text_en]" maxlength="{{ \App\Support\MenuTicker::MAX_LENGTH }}" value="{{ $line['text_en'] }}" placeholder="{{ __('In English (optional)') }}" dir="ltr">
+                    <select class="field" name="lines[{{ $n }}][link]" aria-label="{{ __('Opens when tapped') }}">
+                        <option value="">{{ __('No link') }}</option>
+                        <optgroup label="{{ __('An item') }}">
+                            @foreach ($items as $i)<option value="item:{{ $i->id }}" @selected($line['link'] === 'item:' . $i->id)>{{ $i->name }}</option>@endforeach
+                        </optgroup>
+                        <optgroup label="{{ __('A category') }}">
+                            @foreach ($categories as $c)<option value="category:{{ $c->id }}" @selected($line['link'] === 'category:' . $c->id)>{{ $c->name }}</option>@endforeach
+                        </optgroup>
+                    </select>
+                </div>
+            @endfor
+            <button class="btn-primary">{{ __('Save ticker') }}</button>
         </form>
 
         {{-- seasonal looks of the menu --}}

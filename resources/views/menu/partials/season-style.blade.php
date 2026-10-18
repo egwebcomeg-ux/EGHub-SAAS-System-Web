@@ -13,7 +13,7 @@
 <style>
     .m-season-deco { position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: .22;
         background-image: url("data:image/svg+xml,{{ rawurlencode($seasonSvg) }}"); background-repeat: repeat; }
-    [data-season-strip] { box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .08); }
+    .m-ticker-bar { box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .08); }
     @media (prefers-reduced-motion: no-preference) {
         .m-season-deco[data-season-deco="snow"] { animation: m-season-snow 18s linear infinite; }
         @keyframes m-season-snow { from { background-position: 0 0; } to { background-position: 0 560px; } }

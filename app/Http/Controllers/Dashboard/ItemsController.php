@@ -164,7 +164,7 @@ class ItemsController extends Controller
             'description_en' => 'nullable|string|max:500',
             'price' => 'required|numeric|min:0|max:100000',
             'calories' => 'nullable|integer|min:0|max:10000',
-            'tags' => 'array|max:8',
+            'tags' => 'array|max:12',
             'tags.*' => [Rule::in(array_keys(MenuItem::TAGS))],
             'allergens' => 'array|max:12',
             'allergens.*' => [Rule::in(array_keys(MenuItem::ALLERGENS))],

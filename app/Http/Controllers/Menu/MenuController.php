@@ -23,8 +23,11 @@ use App\Services\Seo\RestaurantProfile;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
 use App\Support\DineIn;
+use App\Support\ItemBadges;
 use App\Support\MenuIntro;
+use App\Support\MenuLayouts;
 use App\Support\MenuThemes;
+use App\Support\MenuTicker;
 use App\Support\OpeningHours;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -34,7 +37,17 @@ use Illuminate\Http\Response;
 /** Public menu of the current restaurant (tenancy initialised from the URL). */
 class MenuController extends Controller
 {
-    public function show(Request $request): Response
+    /**
+     * The shareable link of one item (/item/{id}): the menu with that item opened (the full item page in the
+     * professional display, the sheet in the simple one), with the item's name, description and photo in the link
+     * preview. An item that is not on the menu now goes to the menu.
+     */
+    public function item(Request $request, int $item): Response|RedirectResponse
+    {
+        return $this->show($request, $item);
+    }
+
+    public function show(Request $request, ?int $openItem = null): Response|RedirectResponse
     {
         $table = self::currentTable($request);
         // one visit per browser session and day
@@ -75,10 +88,14 @@ class MenuController extends Controller
             $online && $online['takeaway'] ? 'takeaway' : null,
             $online && $online['delivery'] ? 'delivery' : null,
         ]));
-        $choice = $table === null && $settings['order_type_prompt'] === '1' && $ways[0] === 'dine' && $online !== null;
+        $choice = $table === null && $settings['order_type_prompt'] === '1' && ($ways[0] ?? null) === 'dine' && $online !== null;
         $calls = $table !== null && Entitlements::current()->allows('qr_ordering');
         $upsell = Entitlements::current()->allows('upsell');
         $available = $categories->flatMap(fn (Category $c) => $c->items)->keyBy('id');
+        $opened = $openItem !== null ? $available->get($openItem) : null;
+        if ($openItem !== null && $opened === null) {
+            return redirect()->route('menu.show');
+        }
         $popup = Entitlements::current()->allows('offers')
             ? Popup::query()->where('is_active', true)->with('item')->latest('id')->get()->first(fn ($p) => $p->isLive($branch->id) && (! $p->menu_item_id || $available->has($p->menu_item_id)))
             : null;
@@ -95,8 +112,24 @@ class MenuController extends Controller
             ? Customer::query()->where('card_token', $cardCookie)->first() : null;
 
         $zonesDrawn = $online && collect($online['zones'])->contains(fn ($z) => $z['polygon'] !== null);
+        $display = MenuLayouts::display($settings);
+        $cartMode = $tableOrder ? 'table' : ($online ? 'online' : self::hallCart($hall['mode']));
+        // the top of the menu: banner slideshow and ticker, only one of them moves (App\Support\MenuTicker)
+        $bannerAutoplay = MenuTicker::bannerAutoplay($banners->count(), $settings);
+        $ticker = MenuTicker::lines($catalog->runningOffers(), $goal && ($canOrder || $hall['mode'] === 'list') ? $goal : null,
+            $season, $settings, $available, $shownCategories, $currency);
         $response = response()->view('menu.show', [
             'theme' => $theme,
+            'display' => $display,
+            'opened' => $opened,
+            'badgeChips' => ItemBadges::chips($settings, $available),
+            'layouts' => $categories->mapWithKeys(fn (Category $c) => [$c->id => MenuLayouts::forCategory($c, $theme, $settings)]),
+            'bannerAutoplay' => $bannerAutoplay,
+            'ticker' => $ticker,
+            'tickerMoves' => MenuTicker::moves(count($ticker), $bannerAutoplay),
+            // the quick "+" of the items: whenever the guest can build a cart with prices (an order, or the hall list)
+            'quickAdd' => $canOrder || ($hall['mode'] === 'list' && $hall['prices']),
+            'quickOn' => in_array($cartMode, ['table', 'online'], true) || ($cartMode === 'list' && $hall['prices']),
             'season' => $season,
             'goal' => $goal,
             'branchPicker' => $branchPicker,
@@ -137,6 +170,11 @@ class MenuController extends Controller
                 ] : null,
                 'tenant' => tenant()->getTenantKey(),
                 'goal' => $goal,
+                // professional display: an item opens as a full page with its own address; /item/{id} opens it first
+                'display' => $display,
+                'openItem' => $opened?->id,
+                'itemUrl' => route('menu.item', ['item' => 0]),
+                'menuUrl' => route('menu.show'),
                 // branch switcher (2+ branches, no table): coordinates for "nearest branch", open now, map link
                 'branch' => $branch->id,
                 'branchChosen' => $chosenBranch !== null,
@@ -149,7 +187,7 @@ class MenuController extends Controller
                 'whatsapp' => ($wa = (string) ($branch->whatsapp ?: $settings['whatsapp'] ?: $branch->phone)) !== '' ? whatsapp_number($wa) : null,
                 'canOrder' => $canOrder,
                 // first mode of the cart; on the general link the guest's choice (sessionStorage) switches hall <-> online
-                'mode' => $tableOrder ? 'table' : ($online ? 'online' : self::hallCart($hall['mode'])),
+                'mode' => $cartMode,
                 'hall' => $hall,
                 'ways' => $ways,
                 'choice' => $choice,
@@ -174,6 +212,7 @@ class MenuController extends Controller
                     'video' => $videos ? self::video($i) : null,
                     'calories' => $i->calories,
                     'allergens' => $i->allergenList(), 'spicy' => $i->spicyIcons(),
+                    'badges' => array_values(array_filter($i->tags(), fn ($t) => ! ($i->spicyIcons() && $t['key'] === 'spicy'))),
                     'groups' => $i->optionGroups->map(fn ($g) => [
                         'id' => $g->id, 'name' => tx($g, 'name'), 'type' => $g->type, 'required' => $g->is_required,
                         'max' => $g->max_choices,

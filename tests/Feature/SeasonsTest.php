@@ -37,7 +37,7 @@ class SeasonsTest extends TenantTestCase
         $this->assertStringStartsWith('tenants/cafe-a/', $season->logo);
 
         $this->get($this->subUrl('cafe-a'))->assertOk()
-            ->assertSee('data-season-strip', false)->assertSee('رمضان كريم')
+            ->assertSee('data-ticker-line="season"', false)->assertSee('رمضان كريم')
             ->assertSee('data-season-deco="crescent"', false)->assertSee('data-season-banner', false)
             ->assertSee('/storage/'.$season->logo, false)
             ->assertSee('--menu-accent: #0F6B4F;', false)->assertSee('--menu-accent-text: #FFFFFF;', false);
@@ -64,7 +64,7 @@ class SeasonsTest extends TenantTestCase
 
         // paused or ended: nothing, the theme accent is back
         $this->as($a, fn () => Season::query()->update(['is_active' => false]));
-        $this->get($this->subUrl('cafe-a'))->assertOk()->assertDontSee('data-season-strip', false)->assertSee('--menu-accent: #F26522;', false);
+        $this->get($this->subUrl('cafe-a'))->assertOk()->assertDontSee('data-ticker-line="season"', false)->assertSee('--menu-accent: #F26522;', false);
     }
 
     public function test_dark_themes_keep_their_surfaces_and_the_feature_gates_seasons(): void
@@ -80,7 +80,7 @@ class SeasonsTest extends TenantTestCase
         $b = $this->restaurant('cafe-b', 'basic');
         $this->item($b);
         $this->as($b, fn () => Season::query()->create(['name' => 'R', 'preset' => 'ramadan', 'starts_on' => today()->toDateString(), 'ends_on' => today()->toDateString(), 'greeting' => 'رمضان كريم', 'accent' => '#0F6B4F']));
-        $this->get($this->subUrl('cafe-b'))->assertOk()->assertDontSee('data-season-strip', false)->assertDontSee('#0F6B4F', false);
+        $this->get($this->subUrl('cafe-b'))->assertOk()->assertDontSee('data-ticker-line="season"', false)->assertDontSee('#0F6B4F', false);
         $this->actingAs($this->owner($b))->post($this->dashUrl('/marketing/seasons'), ['name' => 'X', 'preset' => 'eid', 'starts_on' => '2026-01-01', 'ends_on' => '2026-01-02'])->assertForbidden();
     }
 }

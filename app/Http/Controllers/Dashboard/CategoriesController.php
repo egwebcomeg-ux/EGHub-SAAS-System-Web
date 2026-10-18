@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Services\ImageService;
 use App\Services\Menu\MenuTranslations;
+use App\Support\MenuLayouts;
 use App\Support\PrepKind;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -87,9 +88,14 @@ class CategoriesController extends Controller
             'visible_days' => 'nullable|array',
             'visible_days.*' => 'integer|between:0,6',
             'prep_kind' => ['nullable', Rule::in(array_keys(PrepKind::KINDS))],
+            'menu_layout' => ['nullable', Rule::in(MenuLayouts::OVERRIDES)],
         ]);
         if (empty($data['prep_kind'])) {
             unset($data['prep_kind']); // a new category guesses it from its name (Category::booted)
+        }
+        // its own layout on the menu, or (empty) the menu setting; untouched when the form does not send it
+        if ($request->has('menu_layout')) {
+            $data['menu_layout'] = ($data['menu_layout'] ?? null) ?: null;
         }
         unset($data['image']);
         $days = array_values(array_unique(array_map('intval', $data['visible_days'] ?? [])));

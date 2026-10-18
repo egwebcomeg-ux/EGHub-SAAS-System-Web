@@ -375,6 +375,9 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     // menu banners (picture strip under the menu header), managed from the offers page
     Route::middleware(['feature:offers', 'permission:marketing.manage'])->group(function () {
         Route::post('/marketing/banners', [MarketingController::class, 'saveBanner'])->name('banners.store');
+        Route::post('/marketing/banners/autoplay', [MarketingController::class, 'saveBannerAutoplay'])->name('banners.autoplay');
+        // the ticker under the menu header: the owner's own short lines
+        Route::post('/marketing/ticker', [MarketingController::class, 'saveTicker'])->name('ticker.update');
         Route::post('/marketing/banners/{banner}/toggle', [MarketingController::class, 'toggleBanner'])->name('banners.toggle');
         Route::post('/marketing/banners/{banner}/delete', [MarketingController::class, 'deleteBanner'])->name('banners.delete');
         // cart goal ("add X and get Y free") and seasonal looks of the menu (Ramadan, Eid…)

@@ -78,6 +78,16 @@ final class Settings
         'logo_background' => 'auto',
         // items without a photo show a themed placeholder tile (icon from the category) instead of nothing
         'item_placeholder' => '1',
+        // item layout apart from the theme colors (App\Support\MenuLayouts): auto (the theme's own) | list | grid | cards | text
+        'menu_layout' => 'auto',
+        // tapping an item: simple (the bottom sheet) | pro (a full item page with its own link; plan feature menu_themes)
+        'menu_display' => 'simple',
+        // badges shown as quick filter chips on the menu (App\Support\ItemBadges): JSON list of keys, empty = off
+        'menu_badge_filters' => '',
+        // the banner strip plays as a slideshow (2+ banners); the ticker then stands still (App\Support\MenuTicker)
+        'banner_autoplay' => '1',
+        // the owner's own ticker lines under the menu header: JSON [{text, text_en, link: "item:12"|"category:3"|""}], up to 5
+        'menu_ticker_lines' => '',
         // cart goal of the public menu (feature offers, App\Services\Orders\CartGoal): "add X more and get Y free"
         'cart_goal_enabled' => '0',
         'cart_goal_amount' => '0',            // threshold on the order's food, in the restaurant's currency

@@ -66,6 +66,19 @@ class MenuItem extends TenantModel
         'gluten_free' => ['🌾', 'خالي من الجلوتين', 'Gluten-free'],
         'nuts' => ['🥜', 'فيه مكسرات', 'Contains nuts'],
         'sugar_free' => ['🍃', 'من غير سكر', 'Sugar-free'],
+        // added with the badge sets per business type (App\Support\ItemBadges); the keys above stay as stored
+        'chef_pick' => ['👨‍🍳', 'اختيار الشيف', "Chef's pick"],
+        'healthy' => ['🥗', 'هيلثي', 'Healthy'],
+        'high_protein' => ['💪', 'بروتين عالي', 'High protein'],
+        'low_fat' => ['🪶', 'قليل الدهون', 'Low fat'],
+        'sharing' => ['👨‍👩‍👧', 'يكفي شخصين أو أكتر', 'For sharing'],
+        'barista_pick' => ['☕', 'اختيار الباريستا', "Barista's pick"],
+        'iced' => ['🧊', 'ساقع', 'Iced'],
+        'hot' => ['♨️', 'سخن', 'Hot'],
+        'plant_milk' => ['🥥', 'متاح بلبن نباتي', 'Plant milk available'],
+        'decaf' => ['🌙', 'ديكاف', 'Decaf'],
+        'strong' => ['⚡', 'كافيين عالي', 'Extra caffeine'],
+        'seasonal' => ['🍂', 'موسمي', 'Seasonal'],
     ];
 
     /** The fixed allergen list (stored as keys in `allergens`): key => [icon, arabic, english]. */
@@ -97,6 +110,21 @@ class MenuItem extends TenantModel
 
         return collect($this->badges ?? [])->filter(fn ($k) => isset(self::TAGS[$k]))->values()
             ->map(fn ($k) => ['key' => $k, 'icon' => self::TAGS[$k][0], 'label' => self::TAGS[$k][$en ? 2 : 1]])->all();
+    }
+
+    /**
+     * Badge keys the menu filters by: the chosen badges, plus "spicy" for any hotness level.
+     *
+     * @return list<string>
+     */
+    public function badgeKeys(): array
+    {
+        $keys = array_column($this->tags(), 'key');
+        if ((int) $this->spicy_level > 0 && ! in_array('spicy', $keys, true)) {
+            $keys[] = 'spicy';
+        }
+
+        return $keys;
     }
 
     /** @return list<array{key:string, icon:string, label:string}> */

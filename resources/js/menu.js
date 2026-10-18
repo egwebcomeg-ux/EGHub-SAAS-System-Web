@@ -68,10 +68,30 @@ if (dataEl) {
     // ad pixels of the restaurant (menu/partials/pixels): no-op when none is set
     const track = (event, params) => { try { window.egmTrack?.(event, params); } catch {} };
 
-    function openItem(id) {
+    // professional display: the sheet is a full item page with its own address (/item/{id}); back closes it
+    const PRO = M.display === 'pro';
+    const itemHref = (id) => M.itemUrl.replace(/\/0$/, `/${id}`);
+    let pushedItem = false; // the page pushed a history entry for the open item
+    let landedOnItem = false; // the guest opened a shared /item/{id} link
+    let closingFromHistory = false;
+
+    function openItem(id, { fromHistory = false } = {}) {
         current = M.items[id];
         if (!current) return;
         qty = 1;
+        if (PRO && !fromHistory && !landedOnItem) {
+            history.pushState({ egmItem: current.id }, '', itemHref(current.id));
+            pushedItem = true;
+        }
+        const price = $('[data-sheet-price]', sheet);
+        price.innerHTML = hidePrices() ? '' : `<span>${esc(fmt(current.price))}</span>`
+            + (current.offerFrom ? `<span class="m-muted text-sm font-semibold line-through">${esc(fmt(current.offerFrom))}</span>` : '');
+        const badgeBox = $('[data-sheet-badges]', sheet);
+        badgeBox.innerHTML = (current.badges || []).map((b) => `<span class="m-tag rounded-full px-2.5 py-0.5 text-xs font-semibold">${esc(b.icon)} ${esc(b.label)}</span>`).join('');
+        badgeBox.classList.toggle('hidden', !current.badges?.length);
+        badgeBox.classList.toggle('flex', !!current.badges?.length);
+        // the full page without a photo: room for the back / share buttons on top
+        $('[data-sheet-body]', sheet).classList.toggle('pt-20', PRO && !current.image);
         track('ViewContent', { content_ids: [String(current.id)], content_name: current.name, content_type: 'product', value: current.price });
         const img = $('[data-sheet-image]', sheet);
         img.classList.toggle('hidden', !current.image);
@@ -115,10 +135,45 @@ if (dataEl) {
         const soldOut = current.soldOut || mode === 'none';
         $('[data-sheet-soldout]', sheet).classList.toggle('hidden', !current.soldOut);
         $('[data-add-to-cart]', sheet).classList.toggle('hidden', soldOut);
+        // nothing to add: no quantity, notes or add bar either
+        $('[data-sheet-actions]', sheet).classList.toggle('hidden', soldOut);
+        $('[data-sheet-notes-box]', sheet).classList.toggle('hidden', soldOut);
         refreshSheetTotal();
-        sheet.showModal();
-        countView(id);
+        if (!sheet.open) sheet.showModal();
+        if (PRO) $('[data-item-form]', sheet).scrollTop = 0;
+        countView(current.id);
     }
+
+    sheet.addEventListener('close', () => {
+        if (pushedItem) {
+            pushedItem = false;
+            if (!closingFromHistory) history.back();
+        } else if (landedOnItem) {
+            // a shared item link: closing it leaves the guest on the menu's own address
+            landedOnItem = false;
+            history.replaceState(null, '', M.menuUrl);
+        }
+        closingFromHistory = false;
+    });
+    window.addEventListener('popstate', (e) => {
+        const id = e.state?.egmItem;
+        if (sheet.open && !id) {
+            closingFromHistory = true;
+            sheet.close();
+        } else if (PRO && id && !sheet.open) {
+            openItem(id, { fromHistory: true });
+            pushedItem = true;
+        }
+    });
+    // share the item page: the phone's share sheet, else copy the link
+    $('[data-sheet-share]', sheet)?.addEventListener('click', async () => {
+        const url = new URL(itemHref(current.id), location.href).href;
+        if (navigator.share) {
+            try { await navigator.share({ title: current.name, url }); } catch {}
+            return;
+        }
+        try { await navigator.clipboard.writeText(url); toast(T.linkCopied); } catch {}
+    });
 
     // ---- item video: a "watch" button; uploads play muted and looping inline, links load their embed on tap ----
     const videoBox = $('[data-sheet-video]', sheet);
@@ -188,15 +243,55 @@ if (dataEl) {
             alert(T.pickRequired.replace('__G__', missing.name));
             return;
         }
-        const notes = $('[data-sheet-notes]', sheet).value.trim();
-        const same = cart.find((l) => l.item_id === current.id && l.notes === notes && l.option_ids.join() === ids.join());
-        if (same) same.qty = Math.min(30, same.qty + qty);
-        else cart.push({ item_id: current.id, option_ids: ids, qty, notes });
-        track('AddToCart', { content_ids: [String(current.id)], content_name: current.name, content_type: 'product', value: unitPrice(current, ids) * qty, num_items: qty });
-        save();
-        renderBar();
+        addLine(current, ids, qty, $('[data-sheet-notes]', sheet).value.trim());
         sheet.close();
         showPairings(current);
+    });
+
+    // the one way a line enters the cart (item sheet, "goes well with", quick "+"): same item, options and notes add up
+    function addLine(item, optionIds, count, notes = '') {
+        const same = cart.find((l) => l.item_id === item.id && l.notes === notes && l.option_ids.join() === optionIds.join());
+        if (same) same.qty = Math.min(30, same.qty + count);
+        else cart.push({ item_id: item.id, option_ids: optionIds, qty: count, notes });
+        track('AddToCart', { content_ids: [String(item.id)], content_name: item.name, content_type: 'product', value: unitPrice(item, optionIds) * count, num_items: count });
+        save();
+        renderBar();
+    }
+
+    // ---- quick "+" on the items: one tap adds one; a size or a required choice opens the sheet instead ----
+    // shown while the cart can order: a table or online order, or the hall list with prices (App\Support\MenuLayouts)
+    const quickOn = () => mode === 'table' || mode === 'online' || (mode === 'list' && H.prices);
+    const syncQuick = () => $('[data-menu-main]')?.classList.toggle('m-quick-off', !quickOn());
+    const toastEl = $('[data-toast]');
+    let toastTimer = null;
+    function toast(text) {
+        if (!toastEl) return;
+        // over an open item page the toast must live inside the dialog (top layer)
+        const host = sheet.open ? sheet : document.body;
+        if (toastEl.parentElement !== host) host.append(toastEl);
+        toastEl.textContent = text;
+        toastEl.classList.add('is-on');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl.classList.remove('is-on'), 1800);
+    }
+    function bumpCount() {
+        const count = $('[data-cart-count]');
+        count.classList.remove('m-bump');
+        void count.offsetWidth; // restart the animation
+        count.classList.add('m-bump');
+    }
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-quick-add]');
+        if (!btn) return;
+        const item = M.items[btn.dataset.quickItem];
+        if (!item || item.soldOut || !quickOn()) return;
+        if (btn.dataset.quickAdd === 'sheet' || item.groups.some((g) => g.required || g.type === 'single')) {
+            openItem(item.id);
+            return;
+        }
+        addLine(item, [], 1);
+        bumpCount();
+        toast(T.added.replace('__N__', item.name));
     });
 
     // ---- "goes well with" ----
@@ -217,10 +312,7 @@ if (dataEl) {
         if (!b) return;
         const p = M.items[b.dataset.pairAdd];
         if (p.groups.some((g) => g.required)) { pairSheet.close(); openItem(p.id); return; }
-        const same = cart.find((l) => l.item_id === p.id && !l.notes && !l.option_ids.length);
-        if (same) same.qty++; else cart.push({ item_id: p.id, option_ids: [], qty: 1, notes: '' });
-        save();
-        renderBar();
+        addLine(p, [], 1);
         b.disabled = true;
         b.textContent = '✓';
     });
@@ -381,6 +473,7 @@ if (dataEl) {
             const zone = way === 'delivery' ? currentZone() : null;
             chip.textContent = T.wayChips[way] + (zone ? ` · ${zone.name.split('› ').pop()}` : '');
         }
+        syncQuick();
         renderBar();
         if (cartSheet.open) renderCart();
     }
@@ -738,24 +831,34 @@ if (dataEl) {
         intro.addEventListener('animationend', (e) => { if (e.target === intro) end(); });
     }
 
-    // ---- search & active category chip ----
+    // ---- search, badge filter chips (all picked labels must match) & active category chip ----
     const search = $('[data-search]');
-    search?.addEventListener('input', () => {
-        const q = search.value.trim().toLowerCase();
+    const pickedBadges = new Set();
+    function applyFilter() {
+        const q = search ? search.value.trim().toLowerCase() : '';
         let any = false;
         document.querySelectorAll('[data-category]').forEach((sec) => {
             let shown = 0;
             sec.querySelectorAll('[data-search-text]').forEach((el) => {
-                const hit = !q || el.dataset.searchText.includes(q);
+                const badges = (el.dataset.badges || '').split(' ');
+                const hit = (!q || el.dataset.searchText.includes(q)) && [...pickedBadges].every((b) => badges.includes(b));
                 el.classList.toggle('hidden', !hit);
                 shown += hit ? 1 : 0;
             });
             sec.classList.toggle('hidden', shown === 0);
             any ||= shown > 0;
         });
-        $('[data-featured]')?.classList.toggle('hidden', !!q);
+        $('[data-featured]')?.classList.toggle('hidden', !!q || pickedBadges.size > 0);
         $('[data-no-results]').classList.toggle('hidden', any);
-    });
+    }
+    search?.addEventListener('input', applyFilter);
+    document.querySelectorAll('[data-badge-filter]').forEach((chip) => chip.addEventListener('click', () => {
+        const key = chip.dataset.badgeFilter;
+        const on = !pickedBadges.has(key);
+        if (on) pickedBadges.add(key); else pickedBadges.delete(key);
+        chip.setAttribute('aria-pressed', on ? 'true' : 'false');
+        applyFilter();
+    }));
 
     const links = [...document.querySelectorAll('[data-cat-link]')];
     const observer = new IntersectionObserver((entries) => {
@@ -770,6 +873,81 @@ if (dataEl) {
         });
     }, { rootMargin: '-40% 0px -55% 0px' });
     document.querySelectorAll('[data-category]').forEach((s) => observer.observe(s));
+
+    // ---- the top of the menu: banner slideshow and ticker. Only one of them moves by itself (the server decides,
+    // App\Support\MenuTicker); nothing moves on its own under reduced motion. Both stop while held, hovered,
+    // focused or in a hidden tab, and go on afterwards. ----
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    function autoplay(box, seconds, step) {
+        let timer = null;
+        let held = false;
+        let onScreen = true;
+        const stop = () => { clearInterval(timer); timer = null; };
+        const start = () => { stop(); if (!held && onScreen && !document.hidden) timer = setInterval(step, seconds * 1000); };
+        const hold = () => { held = true; stop(); };
+        const release = () => { held = false; start(); };
+        // a real mouse hovering, a finger on it, or keyboard focus inside (a tap's focus does not hold it)
+        box.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') hold(); });
+        box.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') release(); });
+        box.addEventListener('touchstart', hold, { passive: true });
+        ['touchend', 'touchcancel', 'focusout'].forEach((ev) => box.addEventListener(ev, release, { passive: true }));
+        box.addEventListener('focusin', (e) => { if (e.target.matches?.(':focus-visible')) hold(); });
+        document.addEventListener('visibilitychange', start);
+        new IntersectionObserver(([entry]) => { onScreen = entry.isIntersecting; start(); }).observe(box);
+        return start;
+    }
+
+    const bannerBox = $('[data-banners]');
+    const slides = bannerBox ? [...bannerBox.querySelectorAll('[data-banner-slide]')] : [];
+    if (slides.length > 1) {
+        const strip = $('[data-banner-track]', bannerBox);
+        const dots = [...bannerBox.querySelectorAll('[data-banner-dot]')];
+        const rtl = getComputedStyle(strip).direction === 'rtl';
+        let slideAt = 0;
+        const goTo = (i) => {
+            const slide = slides[(i + slides.length) % slides.length];
+            const s = slide.getBoundingClientRect();
+            const t = strip.getBoundingClientRect();
+            strip.scrollBy({ left: rtl ? s.right - t.right : s.left - t.left, behavior: reducedMotion ? 'auto' : 'smooth' });
+        };
+        // the dot follows the slide in view, whether swiped, played or tapped
+        const inView = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) return;
+                slideAt = slides.indexOf(entry.target);
+                dots.forEach((d, n) => d.setAttribute('aria-current', n === slideAt ? 'true' : 'false'));
+            });
+        }, { root: strip, threshold: 0.6 });
+        slides.forEach((s) => inView.observe(s));
+        const seconds = Number(bannerBox.dataset.bannerAutoplay || 0);
+        const restart = seconds && !reducedMotion ? autoplay(bannerBox, seconds, () => goTo(slideAt + 1)) : () => {};
+        dots.forEach((d) => d.addEventListener('click', () => { goTo(Number(d.dataset.bannerDot)); restart(); }));
+    }
+
+    const ticker = $('[data-ticker]');
+    const tickerLines = ticker ? [...ticker.querySelectorAll('[data-ticker-line]')] : [];
+    if (tickerLines.length > 1) {
+        let lineAt = 0;
+        const showLine = (i) => {
+            const prev = tickerLines[lineAt];
+            lineAt = (i + tickerLines.length) % tickerLines.length;
+            const next = tickerLines[lineAt];
+            prev.classList.replace('is-on', 'is-out');
+            prev.setAttribute('aria-hidden', 'true');
+            prev.tabIndex = -1;
+            next.classList.remove('is-out');
+            next.classList.add('is-on');
+            next.removeAttribute('aria-hidden');
+            next.removeAttribute('tabindex');
+            setTimeout(() => { if (!prev.classList.contains('is-on')) prev.classList.remove('is-out'); }, 600);
+        };
+        const nextBtn = $('[data-ticker-next]', ticker);
+        const rotates = ticker.dataset.tickerMode === 'rotate' && !reducedMotion;
+        // standing still: the guest steps through the lines
+        if (!rotates) nextBtn?.classList.remove('hidden');
+        nextBtn?.addEventListener('click', () => showLine(lineAt + 1));
+        if (rotates) autoplay(ticker, Number(ticker.dataset.tickerSeconds || 4), () => showLine(lineAt + 1));
+    }
 
     // ---- popup: shown once per always/session/day/once, counted (views & clicks only) ----
     const P = M.popup;
@@ -878,5 +1056,11 @@ if (dataEl) {
         }
     }
 
+    syncQuick();
     renderBar();
+    // a shared item link (/item/{id}) opens that item over the menu
+    if (M.openItem && M.items[M.openItem]) {
+        landedOnItem = true;
+        openItem(M.openItem, { fromHistory: true });
+    }
 }

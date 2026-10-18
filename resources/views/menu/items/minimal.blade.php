@@ -1,7 +1,9 @@
-{{-- Minimal: like a printed menu, name … price, with a small thumbnail (photo or placeholder) on the side. --}}
-<button type="button" data-item="{{ $item->id }}" data-search-text="{{ mb_strtolower($item->name . ' ' . $item->name_en . ' ' . $item->description . ' ' . $item->displayName()) }}"
-    @class(['flex w-full items-start gap-3 py-3 text-start', 'opacity-60' => $item->is_sold_out])>
-    @include('menu.items.photo', ['class' => 'size-12 shrink-0 rounded-lg'])
+{{-- Minimal: like a printed menu, name … price, with a small thumbnail (photo or placeholder) on the side. With $noPhoto ("text" layout): a price list without any image. --}}
+<button type="button" data-item="{{ $item->id }}"
+    @class(['flex w-full items-start gap-3 py-3 text-start', $qaPad ?? '', 'opacity-60' => $item->is_sold_out])>
+    @unless ($noPhoto ?? false)
+        @include('menu.items.photo', ['class' => 'size-12 shrink-0 rounded-lg'])
+    @endunless
     <div class="min-w-0 flex-1">
     <div class="flex items-baseline gap-2">
         <span class="font-bold">{{ $item->displayName() }}</span>

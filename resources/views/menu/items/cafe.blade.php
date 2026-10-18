@@ -1,6 +1,6 @@
 {{-- Cozy cafe: round photo on the start side, name and a soft price pill. --}}
-<button type="button" data-item="{{ $item->id }}" data-search-text="{{ mb_strtolower($item->name . ' ' . $item->name_en . ' ' . $item->description . ' ' . $item->displayName()) }}"
-    @class(['m-card flex w-full items-center gap-4 rounded-3xl border p-3 text-start transition active:scale-[.99]', 'opacity-60' => $item->is_sold_out])>
+<button type="button" data-item="{{ $item->id }}"
+    @class(['m-card flex w-full items-center gap-4 rounded-3xl border p-3 text-start transition active:scale-[.99]', $qaPad ?? '', 'opacity-60' => $item->is_sold_out])>
     @if ($item->image || ($placeholders ?? true))
         @include('menu.items.photo', ['class' => 'size-20 shrink-0 rounded-full ring-4 ring-[var(--menu-surface)]'])
     @else

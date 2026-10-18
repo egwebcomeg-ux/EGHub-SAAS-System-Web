@@ -48,7 +48,7 @@ class CartGoalTest extends TenantTestCase
     {
         $this->setUpGoal();
         $this->get($this->subUrl('cafe-a'))->assertOk()
-            ->assertSee('data-goal-strip', false)->assertSee('data-goal-box', false)
+            ->assertSee('data-ticker-line="goal"', false)->assertSee('data-goal-box', false)
             ->assertSee('اطلب بـ 150 ج.م وخد Croissant ببلاش')
             ->assertSee('"goal":{"amount":150', false)->assertSee('"reward":"item"', false);
     }

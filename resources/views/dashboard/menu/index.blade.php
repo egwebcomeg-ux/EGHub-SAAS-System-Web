@@ -94,6 +94,15 @@
                                     @endforeach
                                 </select>
                             </label>
+                            <label class="block text-sm">
+                                <span class="mb-1 block text-xs font-semibold text-navy-500">{{ __('Layout of this category on the menu') }}</span>
+                                <select class="field min-h-9" name="menu_layout" data-category-layout>
+                                    <option value="">{{ __('Like the rest of the menu') }}</option>
+                                    @foreach (\App\Support\MenuLayouts::OVERRIDES as $layoutKey)
+                                        <option value="{{ $layoutKey }}" @selected($category->menu_layout === $layoutKey)>{{ \App\Support\MenuLayouts::label($layoutKey)[0] }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
                             <fieldset class="space-y-2 rounded-xl bg-navy-50 p-2 text-sm">
                                 <legend class="px-1 text-xs font-semibold text-navy-500">🕒 {{ __('Shown only during (optional)') }}</legend>
                                 <div class="grid grid-cols-2 gap-2">
