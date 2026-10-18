@@ -3680,5 +3680,6 @@
     "goes into the notes": "بيتحط في الملاحظات",
     "first :n rows": "أول :n صف",
     "matched with your delivery zones by name": "بنطابقها مع مناطق التوصيل بالاسم",
-    "they will not be imported": "مش هيتستوردوا"
+    "they will not be imported": "مش هيتستوردوا",
+    "The name is copied. EgWeb opens with it ready; if the search box is empty there, paste it (Ctrl+V or long press) and tap Search.": "الاسم اتنسخ. EgWeb هيفتح والاسم جاهز؛ لو خانة البحث هناك فاضية، الصقه (Ctrl+V أو ضغطة طويلة) ودوس Search."
 }

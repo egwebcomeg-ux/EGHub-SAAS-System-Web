@@ -47,13 +47,23 @@
     @endif
 
     <div class="grid max-w-5xl gap-4 lg:grid-cols-2">
-        <form method="post" action="{{ route('dash.domain.book') }}" target="_blank" class="card space-y-3">
+        <form method="post" action="{{ route('dash.domain.book') }}" target="_blank" class="card space-y-3" data-domain-book>
             @csrf
             <h2 class="section-title">{{ __('Book a new domain') }}</h2>
             <p class="text-sm text-navy-500">{{ __('Search and pay on egweb.com.eg (the domain price is paid there, yearly). EgWeb registers it and links it to your menu.') }}</p>
             <input class="field" name="domain" required dir="ltr" placeholder="mycafe.com" value="{{ old('domain') }}">
             <button class="btn-primary w-full">{{ __('Search and book on EgWeb') }}</button>
+            <p class="hidden rounded-xl bg-navy-50 p-3 text-sm text-navy-700" data-domain-copied>{{ __('The name is copied. EgWeb opens with it ready; if the search box is empty there, paste it (Ctrl+V or long press) and tap Search.') }}</p>
         </form>
+        <script>
+            // the booking opens on egweb.com.eg in a new tab: copy the name as a fallback, then refresh this page to show the request
+            document.querySelector('[data-domain-book]')?.addEventListener('submit', (event) => {
+                const name = event.target.querySelector('[name=domain]').value.trim();
+                try { navigator.clipboard?.writeText(name); } catch (e) {}
+                event.target.querySelector('[data-domain-copied]').classList.remove('hidden');
+                setTimeout(() => window.location.reload(), 4000);
+            });
+        </script>
         <form method="post" action="{{ route('dash.domain.connect') }}" class="card space-y-3">
             @csrf
             <h2 class="section-title">{{ __('I already have a domain') }}</h2>
