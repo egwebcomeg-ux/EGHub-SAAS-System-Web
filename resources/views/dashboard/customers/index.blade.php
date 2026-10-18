@@ -4,7 +4,7 @@
 @section('content')
 <x-dash.page-header :title="__('Customers')">
     <x-slot:actions>
-        @can('customers.view')<a href="{{ route('dash.customers.import') }}" class="btn-ghost" data-customers-import>⬆ {{ __('Import customers') }}</a>@endcan
+        @can('customers.import')<a href="{{ route('dash.customers.import') }}" class="btn-ghost" data-customers-import>⬆ {{ __('Import customers') }}</a>@endcan
         <a href="{{ route('dash.customers.export', array_filter(['q' => $q, 'segment' => $segment])) }}" class="btn-ghost">⬇ {{ __('Export to Excel (CSV)') }}</a>
     </x-slot:actions>
 </x-dash.page-header>

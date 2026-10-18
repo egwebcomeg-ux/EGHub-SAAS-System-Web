@@ -21,6 +21,7 @@ final class Permissions
         'tables.manage' => ['الترابيزات وأكواد QR', 'Tables & QR codes'],
         'branches.manage' => ['الفروع', 'Branches'],
         'customers.view' => ['العملاء', 'Customers'],
+        'customers.import' => ['استيراد عملاء من ملف', 'Import customers from a file'],
         'loyalty.stamp' => ['إضافة أختام وصرف مكافآت', 'Give stamps & redeem rewards'],
         'loyalty.manage' => ['إعداد برنامج الولاء', 'Loyalty program setup'],
         'vouchers.give' => ['إدّي فاوتشرات خصم للعملاء', 'Give discount vouchers to guests'],
@@ -45,7 +46,7 @@ final class Permissions
             'label' => ['مدير', 'Manager'],
             'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'pos.discount', 'callcenter.use', 'shifts.manage',
                 'kitchen.view', 'menu.manage', 'menu.availability', 'inventory.manage', 'tables.manage', 'branches.manage', 'delivery.manage',
-                'customers.view', 'loyalty.stamp', 'loyalty.manage', 'vouchers.give', 'marketing.manage', 'reports.view', 'settings.manage', 'audit.view',
+                'customers.view', 'customers.import', 'loyalty.stamp', 'loyalty.manage', 'vouchers.give', 'marketing.manage', 'reports.view', 'settings.manage', 'audit.view',
                 'wallet.manage', 'kiosk.manage', 'reservations.manage'],
         ],
         'cashier' => [

@@ -223,13 +223,15 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::middleware(['feature:customers', 'permission:customers.view'])->group(function () {
         Route::get('/customers', [CustomersController::class, 'index'])->name('customers');
         Route::get('/customers/export', [CustomersController::class, 'export'])->name('customers.export');
-        // import a guest list (CSV / Excel): upload, review, save
-        Route::get('/customers/import', [CustomerImportController::class, 'create'])->name('customers.import');
-        Route::get('/customers/import/template', [CustomerImportController::class, 'template'])->name('customers.import.template');
-        Route::post('/customers/import', [CustomerImportController::class, 'store'])->middleware('throttle:20,1')->name('customers.import.store');
-        Route::post('/customers/import/cancel', [CustomerImportController::class, 'cancel'])->name('customers.import.cancel');
-        Route::get('/customers/import/{token}', [CustomerImportController::class, 'review'])->where('token', '[A-Za-z0-9]+')->name('customers.import.review');
-        Route::post('/customers/import/{token}', [CustomerImportController::class, 'apply'])->where('token', '[A-Za-z0-9]+')->name('customers.import.apply');
+        // import a guest list (CSV / Excel): upload, review, save (owner and manager only: customers.import)
+        Route::middleware('permission:customers.import')->group(function () {
+            Route::get('/customers/import', [CustomerImportController::class, 'create'])->name('customers.import');
+            Route::get('/customers/import/template', [CustomerImportController::class, 'template'])->name('customers.import.template');
+            Route::post('/customers/import', [CustomerImportController::class, 'store'])->middleware('throttle:20,1')->name('customers.import.store');
+            Route::post('/customers/import/cancel', [CustomerImportController::class, 'cancel'])->name('customers.import.cancel');
+            Route::get('/customers/import/{token}', [CustomerImportController::class, 'review'])->where('token', '[A-Za-z0-9]+')->name('customers.import.review');
+            Route::post('/customers/import/{token}', [CustomerImportController::class, 'apply'])->where('token', '[A-Za-z0-9]+')->name('customers.import.apply');
+        });
         Route::get('/customers/{customer}', [CustomersController::class, 'show'])->name('customers.show');
         Route::post('/customers/{customer}', [CustomersController::class, 'update'])->name('customers.update');
     });

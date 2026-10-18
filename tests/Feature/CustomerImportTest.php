@@ -221,6 +221,19 @@ class CustomerImportTest extends TenantTestCase
         $this->actingAs($this->owner($a))->get($this->dashUrl('/customers'))->assertOk()->assertSee(__('Import customers'));
     }
 
+    public function test_only_the_owner_and_manager_import_while_the_cashier_still_sees_customers(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $cashier = $this->staff($a, 'cashier', 'cashier@a.test');
+
+        $this->actingAs($cashier)->get($this->dashUrl('/customers'))->assertOk()->assertDontSee('data-customers-import', false);
+        $this->actingAs($cashier)->get($this->dashUrl('/customers/import'))->assertForbidden();
+        $this->actingAs($cashier)->post($this->dashUrl('/customers/import'), ['file' => $this->csv("Mobile\n01012345678\n")])->assertForbidden();
+
+        $manager = $this->staff($a, 'manager', 'manager@a.test');
+        $this->actingAs($manager)->get($this->dashUrl('/customers/import'))->assertOk();
+    }
+
     public function test_a_file_over_2_mb_is_refused(): void
     {
         $a = $this->restaurant('cafe-a');
