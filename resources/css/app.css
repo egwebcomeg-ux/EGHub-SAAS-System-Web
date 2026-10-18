@@ -298,13 +298,77 @@
     [dir="ltr"] main .table-base:not([data-table-scroll]) td[data-label]::before { float: left; margin-left: 0; margin-right: 0.75rem; }
 }
 
+/*
+ * Menu editor workflow (dashboard/menu/index + item, resources/js/menu-editor.js):
+ * one-tap status toggles that look like switches, the tap-to-edit price, category chips, the found-item flash.
+ */
+@utility dash-toggle {
+    @apply inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-xs font-bold shadow-sm transition select-none hover:shadow active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-wait disabled:opacity-60;
+}
+
+/* sold out: pressed = sold out (amber), not pressed = available (green) */
+.dash-toggle[data-field="sold_out"][aria-pressed="false"] { @apply border-emerald-200 bg-emerald-50 text-emerald-800 hover:border-emerald-400; }
+.dash-toggle[data-field="sold_out"][aria-pressed="true"] { @apply border-amber-300 bg-amber-100 text-amber-900 hover:border-amber-500; }
+/* visibility: pressed = shown on the menu, not pressed = hidden (dark) */
+.dash-toggle[data-field="active"][aria-pressed="true"] { @apply border-navy-200 bg-white text-navy-700 hover:border-navy-400; }
+.dash-toggle[data-field="active"][aria-pressed="false"] { @apply border-navy-800 bg-navy-800 text-white hover:bg-navy-900; }
+.dash-toggle[aria-pressed="true"] .dash-toggle-off,
+.dash-toggle[aria-pressed="false"] .dash-toggle-on { display: none; }
+
+@utility dash-price {
+    @apply inline-flex min-h-8 items-center gap-1 rounded-lg whitespace-nowrap border border-dashed border-transparent px-1.5 text-sm font-semibold text-navy-700 tabular-nums transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 focus-visible:outline-2 focus-visible:outline-brand-500;
+}
+
+.dash-price-input {
+    @apply w-28 rounded-lg border border-brand-500 bg-white px-2 py-1 font-semibold text-navy-900 tabular-nums ring-2 ring-brand-200 outline-none;
+    font-size: 16px;
+}
+
+.dash-chips { scrollbar-width: none; }
+.dash-chips::-webkit-scrollbar { display: none; }
+.dash-chips a[aria-current="true"] { @apply border-brand-500 bg-brand-50 text-brand-700; }
+
+/* the item just saved / jumped to: a short highlight so the eye finds it */
+@keyframes dash-found {
+    0%, 60% { background-color: var(--color-brand-100); }
+    100% { background-color: transparent; }
+}
+.dash-found { animation: dash-found 2.4s ease-out; border-radius: 0.5rem; }
+
+/* sticky save bar at the bottom of long forms (settings, item form); clears the phone home indicator */
+@utility dash-savebar {
+    @apply sticky bottom-0 z-20 -mx-4 border-t border-navy-100 bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8;
+}
+
+/* toasts (flash "ok" messages and quick-edit results): top center under the top bar, hide by themselves */
+.dash-toasts {
+    position: fixed;
+    inset-inline: 0.75rem;
+    top: calc(4.25rem + env(safe-area-inset-top));
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    pointer-events: none;
+}
+.dash-toast {
+    @apply flex max-w-full items-center gap-3 rounded-xl bg-navy-800 py-2 ps-4 pe-2 text-sm font-semibold text-white shadow-xl shadow-navy-900/20;
+    pointer-events: auto;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.dash-toast[data-kind="error"] { @apply bg-red-700; }
+.dash-toast[data-leaving] { opacity: 0; transform: translateY(-0.5rem); }
+.dash-toast a { @apply rounded-lg bg-white/15 px-3 py-1 text-white underline-offset-2 hover:bg-white/25; }
+.dash-toast button { @apply grid size-8 shrink-0 place-items-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white; }
+
 /* touch screens: buttons and fields stay at least 44px tall even where a compact size was asked for */
 @media (pointer: coarse) {
-    .btn, .btn-primary, .btn-ghost, .btn-navy, .btn-danger, .field, .tab-pill, main a.badge, main button.badge { min-height: 2.75rem; }
+    .btn, .btn-primary, .btn-ghost, .btn-navy, .btn-danger, .field, .tab-pill, main a.badge, main button.badge, .dash-toggle, .dash-price { min-height: 2.75rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .dash-nav, .dash-nav-backdrop, .pos-ticket, .pos-ticket-backdrop, .dash-app, .dash-app *, .dash-app ::before, .dash-app ::after {
+    .dash-nav, .dash-nav-backdrop, .pos-ticket, .pos-ticket-backdrop, .dash-toast, .dash-app, .dash-app *, .dash-app ::before, .dash-app ::after {
         transition: none !important;
         animation: none !important;
     }

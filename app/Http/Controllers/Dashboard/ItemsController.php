@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\TranslateMenu;
+use App\Models\BranchItem;
 use App\Models\Category;
 use App\Models\ItemOption;
 use App\Models\MenuItem;
@@ -30,6 +31,7 @@ class ItemsController extends Controller
         $q = trim((string) $request->query('q', ''));
         $categories = Category::query()->orderBy('sort_order')->orderBy('id')
             ->with(['items' => fn ($w) => $w->when($q !== '', fn ($w) => $w->where(fn ($w) => $w->where('name', 'like', "%$q%")->orWhere('name_en', 'like', "%$q%")))
+                ->withCount(['optionGroups as sizes_count' => fn ($g) => $g->where('type', 'single')])
                 ->orderBy('sort_order')->orderBy('id')])
             ->get();
 
@@ -45,6 +47,9 @@ class ItemsController extends Controller
                 ->groupBy('translatable_id')->map(fn ($rows) => $rows->mapWithKeys(fn ($t) => [$t->locale => ['name' => $t->name, 'description' => (string) $t->description]])->all())->all() : [],
             'translation' => $extraLocales ? TranslateMenu::status() : null,
             'aiReady' => AiProviders::configured(),
+            // items with their own price in some branch: the inline price edit says it changes the main menu only
+            'branchPriced' => $rights->allows('branch_pricing')
+                ? BranchItem::query()->whereNotNull('price')->distinct()->pluck('menu_item_id')->flip()->all() : [],
         ]);
     }
 
@@ -87,7 +92,13 @@ class ItemsController extends Controller
         $this->save($request, $item, $images);
         Audit::record('item.created', $item->name, ['id' => $item->id, 'price' => (float) $item->price]);
 
-        return redirect()->route('dash.menu')->with('ok', __('Item added.'));
+        // "save and add another": a fresh form in the same category
+        if ($request->input('then') === 'another' && $rights->canAdd('menu_items')) {
+            return redirect()->route('dash.items.create', ['category' => $item->category_id])->with('ok', __('Item added.'))
+                ->with('ok_action', [__('Back to menu'), route('dash.menu').'#item-'.$item->id]);
+        }
+
+        return redirect()->route('dash.menu')->with('ok', __('Item added.'))->with('focus_item', $item->id);
     }
 
     public function update(Request $request, MenuItem $item, ImageService $images): RedirectResponse
@@ -99,7 +110,27 @@ class ItemsController extends Controller
             Audit::record('item.price_changed', $item->name, ['id' => $item->id, 'from' => $oldPrice, 'to' => (float) $item->price]);
         }
 
-        return redirect()->route('dash.menu')->with('ok', __('Item saved.'));
+        return redirect()->route('dash.menu')->with('ok', __('Item saved.'))->with('focus_item', $item->id);
+    }
+
+    /**
+     * Inline price edit from the menu list: the main menu price only (branch prices and size prices stay as they are).
+     * Validated like the item form's price.
+     */
+    public function price(Request $request, MenuItem $item): JsonResponse
+    {
+        $data = $request->validate(['price' => 'required|numeric|min:0|max:100000'], ['price.*' => __('Enter a price from 0 to 100,000.')]);
+        $oldPrice = (float) $item->price;
+        $item->update(['price' => $data['price']]);
+        if ($oldPrice !== (float) $item->price) {
+            Audit::record('item.price_changed', $item->name, ['id' => $item->id, 'from' => $oldPrice, 'to' => (float) $item->price]);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'price' => (float) $item->price,
+            'formatted' => money($item->price).' '.__('EGP'),
+        ]);
     }
 
     public function destroy(MenuItem $item, ImageService $images): RedirectResponse

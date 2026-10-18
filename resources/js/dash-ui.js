@@ -73,3 +73,176 @@ if (main) {
         }
     }).observe(main, { childList: true, subtree: true });
 }
+
+/*
+ * Toasts: the flash "ok" message (components/flash.blade.php with :toast) and window.dashToast(message, {kind, action})
+ * for scripts (inline price edit). Each one hides by itself; hovering or focusing it keeps it open.
+ */
+const toastBox = document.querySelector('[data-dash-toasts]');
+
+function dismissToast(toast) {
+    if (!toast.isConnected || toast.hasAttribute('data-leaving')) {
+        return;
+    }
+    toast.setAttribute('data-leaving', '');
+    setTimeout(() => toast.remove(), 260);
+}
+
+function armToast(toast, ms = 4500) {
+    let timer = setTimeout(() => dismissToast(toast), ms);
+    const hold = () => clearTimeout(timer);
+    const release = () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => dismissToast(toast), 2000);
+    };
+    toast.addEventListener('mouseenter', hold);
+    toast.addEventListener('focusin', hold);
+    toast.addEventListener('mouseleave', release);
+    toast.addEventListener('focusout', release);
+    toast.querySelector('[data-toast-close]')?.addEventListener('click', () => dismissToast(toast));
+}
+
+/** Shows a toast; kind 'ok' | 'error'; action {label, href} adds a link. */
+function dashToast(message, { kind = 'ok', action = null } = {}) {
+    if (!toastBox) {
+        return;
+    }
+    const toast = document.createElement('div');
+    toast.className = 'dash-toast';
+    toast.dataset.kind = kind;
+    toast.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+    const text = document.createElement('span');
+    text.textContent = message;
+    toast.append(text);
+    if (action) {
+        const link = document.createElement('a');
+        link.href = action.href;
+        link.textContent = action.label;
+        link.className = 'shrink-0';
+        toast.append(link);
+    }
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.setAttribute('data-toast-close', '');
+    close.setAttribute('aria-label', toastBox.dataset.closeLabel || 'Close');
+    close.textContent = '×';
+    toast.append(close);
+    toastBox.append(toast);
+    armToast(toast, kind === 'error' ? 7000 : 3500);
+}
+
+window.dashToast = dashToast;
+toastBox?.querySelectorAll('[data-flash-toast]').forEach((toast) => armToast(toast, toast.querySelector('[data-flash-action]') ? 8000 : 4500));
+
+/*
+ * Small dropdowns ([data-dropdown] > [data-dropdown-toggle] + [data-dropdown-panel]), e.g. "More" on the menu page:
+ * closes on an outside click, Escape (focus back on the button) or picking a link; arrow keys move between links.
+ */
+document.querySelectorAll('[data-dropdown]').forEach((box) => {
+    const button = box.querySelector('[data-dropdown-toggle]');
+    const panel = box.querySelector('[data-dropdown-panel]');
+    if (!button || !panel) {
+        return;
+    }
+    const links = () => [...panel.querySelectorAll('a[href], button:not([disabled])')];
+    const setOpen = (open, focusFirst = false) => {
+        panel.classList.toggle('hidden', !open);
+        button.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open && focusFirst) {
+            links()[0]?.focus();
+        }
+    };
+    button.addEventListener('click', () => setOpen(panel.classList.contains('hidden')));
+    button.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setOpen(true, true);
+        }
+    });
+    panel.addEventListener('keydown', (e) => {
+        const all = links();
+        const at = all.indexOf(document.activeElement);
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            all[(at + (e.key === 'ArrowDown' ? 1 : all.length - 1)) % all.length]?.focus();
+        }
+    });
+    panel.addEventListener('click', (e) => e.target.closest('a') && setOpen(false));
+    document.addEventListener('click', (e) => !box.contains(e.target) && setOpen(false));
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !panel.classList.contains('hidden')) {
+            setOpen(false);
+            button.focus();
+        }
+    });
+});
+
+/*
+ * Unsaved changes ([data-unsaved-guard] forms: settings, item form): after the first edit, leaving the page
+ * (closing the tab, a link, another form such as log out) asks first. Submitting the form itself never asks.
+ * [data-unsaved-note] inside the form shows while there are changes.
+ */
+const guarded = document.querySelector('form[data-unsaved-guard]');
+if (guarded) {
+    const leaveMessage = guarded.dataset.unsavedGuard || 'Leave without saving?';
+    let dirty = false;
+    let leaving = false;
+    const markDirty = () => {
+        if (dirty) {
+            return;
+        }
+        dirty = true;
+        guarded.querySelectorAll('[data-unsaved-note]').forEach((n) => n.removeAttribute('hidden'));
+    };
+    guarded.addEventListener('input', (e) => e.isTrusted && markDirty());
+    guarded.addEventListener('change', (e) => e.isTrusted && markDirty());
+    // adding / removing rows (sizes & extras) changes the form too
+    guarded.addEventListener('click', (e) => e.isTrusted && e.target.closest('button[type="button"]') && markDirty());
+    guarded.addEventListener('submit', () => {
+        leaving = true;
+    });
+    window.addEventListener('beforeunload', (e) => {
+        if (dirty && !leaving) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+    document.addEventListener('click', (e) => {
+        const link = e.target.closest('a[href]');
+        if (!dirty || leaving || !link || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+            return;
+        }
+        const url = new URL(link.href, location.href);
+        if (link.target === '_blank' || link.hasAttribute('download') || (url.pathname === location.pathname && url.search === location.search && url.hash)) {
+            return;
+        }
+        if (confirm(leaveMessage)) {
+            leaving = true; // already asked; the browser must not ask again
+        } else {
+            e.preventDefault();
+        }
+    });
+    document.addEventListener('submit', (e) => {
+        if (e.target === guarded || e.target.hasAttribute('onsubmit') || !dirty || leaving) {
+            return;
+        }
+        if (confirm(leaveMessage)) {
+            leaving = true;
+        } else {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+        }
+    }, true);
+}
+
+/* Ctrl/Cmd+S saves the page's main form ([data-save-shortcut]) through its main button, with the usual checks. */
+const shortcutForm = document.querySelector('form[data-save-shortcut]');
+if (shortcutForm) {
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 's') {
+            e.preventDefault();
+            const primary = shortcutForm.querySelector('[data-primary-save]');
+            primary ? shortcutForm.requestSubmit(primary) : shortcutForm.requestSubmit();
+        }
+    });
+}

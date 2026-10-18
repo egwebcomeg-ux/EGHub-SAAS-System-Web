@@ -8,7 +8,8 @@
     </x-slot:actions>
 </x-dash.page-header>
 
-<form method="post" action="{{ route('dash.settings.update') }}" enctype="multipart/form-data" class="space-y-4">
+<form method="post" action="{{ route('dash.settings.update') }}" enctype="multipart/form-data" class="space-y-4"
+    data-unsaved-guard="{{ __('You have changes that are not saved. Leave without saving?') }}" data-save-shortcut>
     @csrf
     <section class="card grid gap-4 sm:grid-cols-2">
         <h2 class="text-lg font-bold sm:col-span-2">{{ __('Restaurant identity') }}</h2>
@@ -460,8 +461,11 @@
         </section>
     @endif
 
-    <div class="sticky bottom-0 z-20 -mx-4 border-t border-navy-100 bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8" data-settings-save>
-        <div class="flex justify-end"><button class="btn-primary min-w-40">{{ __('Save settings') }}</button></div>
+    <div class="dash-savebar" data-settings-save>
+        <div class="flex flex-wrap items-center justify-end gap-2">
+            <span class="me-auto text-xs font-semibold text-amber-700" data-unsaved-note hidden>● {{ __('Changes not saved yet') }}</span>
+            <button class="btn-primary min-w-40" data-primary-save>{{ __('Save settings') }}</button>
+        </div>
     </div>
 </form>
 

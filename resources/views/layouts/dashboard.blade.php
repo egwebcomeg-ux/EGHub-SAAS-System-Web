@@ -211,7 +211,7 @@
             @endif
             @include('dashboard.partials.whatsapp-banner')
             @include('dashboard.partials.phone-banner')
-            <x-flash />
+            <x-flash :toast="true" />
             @yield('content')
         </main>
     </div>

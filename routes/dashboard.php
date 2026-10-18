@@ -47,7 +47,10 @@ use App\Http\Controllers\Dashboard\UsersController;
 use App\Http\Controllers\Dashboard\VouchersController;
 use App\Http\Controllers\Dashboard\WalletController;
 use App\Models\CampaignAutomation;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 // app.<domain> — restaurant dashboard. The tenant is the logged-in user's restaurant (InitializeTenancyFromUser).
 Route::middleware('admin.locale')->group(function () {
@@ -109,6 +112,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/menu/items/{item}', [ItemsController::class, 'edit'])->name('items.edit');
         Route::post('/menu/items/{item}', [ItemsController::class, 'update'])->name('items.update');
         Route::post('/menu/items/{item}/delete', [ItemsController::class, 'destroy'])->name('items.delete');
+        Route::post('/menu/items/{item}/price', [ItemsController::class, 'price'])->name('items.price');
         Route::post('/menu/items-order', [ItemsController::class, 'reorder'])->name('items.reorder');
         Route::post('/menu/categories', [CategoriesController::class, 'store'])->name('categories.store');
         Route::post('/menu/categories/{category}', [CategoriesController::class, 'update'])->name('categories.update');
@@ -417,4 +421,8 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
 
 // ---- The dashboard as an installable app (App\Services\Pwa): manifest and a static-files-only service worker ----
 Route::get('/manifest.webmanifest', [PwaController::class, 'manifest'])->name('manifest');
-Route::get('/sw.js', [PwaController::class, 'serviceWorker'])->name('sw');
+// without the session: the browser re-checks sw.js while it navigates, and a session there used up the flash
+// message ("Item saved.") meant for the page being opened
+Route::get('/sw.js', [PwaController::class, 'serviceWorker'])->name('sw')->withoutMiddleware([
+    StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class,
+]);

@@ -7,36 +7,74 @@
     <x-slot:actions>
         @if ($canAdd && $categories->isNotEmpty())<a href="{{ route('dash.items.create') }}" class="btn-primary">+ {{ __('Add item') }}</a>@endif
         <a href="{{ tenant()->url() }}" target="_blank" rel="noopener" class="btn-ghost">{{ __('Preview menu') }}</a>
-        <a href="{{ route('dash.import') }}" class="btn-ghost">⬆ {{ __('Import menu') }}</a>
-        <details class="relative">
-            <summary class="btn-ghost cursor-pointer list-none">⬇ {{ __('Export menu') }}</summary>
-            <div class="card absolute end-0 z-20 mt-2 w-56 space-y-1 p-2 text-sm">
+        {{-- secondary actions under "more", so the header stays one row on phones (dropdown: resources/js/dash-ui.js) --}}
+        <div class="relative" data-dropdown data-menu-more>
+            <button type="button" class="btn-ghost" data-dropdown-toggle aria-haspopup="true" aria-expanded="false" aria-controls="menu-more-panel">
+                <svg class="size-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+                {{ __('More actions') }}
+            </button>
+            <div id="menu-more-panel" class="card absolute end-0 z-30 mt-2 hidden w-64 space-y-1 p-2 text-sm" data-dropdown-panel>
+                <a href="{{ route('dash.import') }}" class="flex min-h-11 items-center gap-2 rounded-lg px-3 font-semibold hover:bg-navy-50">⬆ {{ __('Import menu') }}</a>
+                <div class="border-t border-navy-50 px-3 pt-2 text-xs font-bold text-navy-500">⬇ {{ __('Export menu') }}</div>
                 <a href="{{ route('dash.menu.export', 'xlsx') }}" class="flex min-h-11 items-center rounded-lg px-3 hover:bg-navy-50">{{ __('Excel (.xlsx)') }}</a>
                 <a href="{{ route('dash.menu.export', 'csv') }}" class="flex min-h-11 items-center rounded-lg px-3 hover:bg-navy-50">{{ __('CSV') }}</a>
                 <p class="px-3 pb-1 text-xs text-navy-500">{{ __('Same layout as the import, so you can edit and import it back.') }}</p>
+                @if (\App\Services\Entitlements::current()->allows('printed_menu'))
+                    <a href="{{ route('dash.menu.print') }}" target="_blank" class="flex min-h-11 items-center gap-2 rounded-lg border-t border-navy-50 px-3 font-semibold hover:bg-navy-50">🖨 {{ __('Printed menu') }}</a>
+                @endif
             </div>
-        </details>
-        @if (\App\Services\Entitlements::current()->allows('printed_menu'))<a href="{{ route('dash.menu.print') }}" target="_blank" class="btn-ghost">🖨 {{ __('Printed menu') }}</a>@endif
+        </div>
     </x-slot:actions>
 </x-dash.page-header>
-<form class="mb-4 sm:max-w-sm"><input type="search" class="field" name="q" value="{{ $q }}" placeholder="{{ __('Search items') }}" aria-label="{{ __('Search items') }}"></form>
 
-@if ($extraLocales)
-    @include('dashboard.menu.partials.translate-banner')
+{{-- the search filters the list as you type (resources/js/menu-editor.js); Enter still searches on the server --}}
+<form class="mb-3 sm:max-w-sm" role="search">
+    <input type="search" class="field" name="q" value="{{ $q }}" placeholder="{{ __('Search items') }}" aria-label="{{ __('Search items') }}" data-menu-search autocomplete="off">
+</form>
+<span hidden data-price-strings data-hint="{{ __('Enter saves · Esc cancels') }}" data-saving="{{ __('Saving…') }}" data-saved="{{ __('Saved') }}"
+    data-error="{{ __('Not saved, try again.') }}" data-toast="{{ __('Price of :name is now :price') }}"></span>
+
+@if ($categories->count() > 1)
+    {{-- jump to a category: sticky under the top bar, scrolls sideways --}}
+    <nav class="dash-chips sticky top-14 z-20 -mx-4 mb-3 flex gap-2 overflow-x-auto bg-navy-50/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:top-0 lg:-mx-8 lg:px-8" aria-label="{{ __('Categories') }}" data-category-chips>
+        @foreach ($categories as $category)
+            <a href="#cat-{{ $category->id }}" class="flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-navy-100 bg-white px-3 text-sm font-semibold text-navy-800 hover:border-brand-500 hover:text-brand-700" data-chip="{{ $category->id }}">
+                {{ $category->name }} <span class="text-xs font-normal text-navy-500" data-chip-count>{{ $category->items->count() }}</span>
+            </a>
+        @endforeach
+    </nav>
 @endif
 
-@if ($categories->isNotEmpty())
-    <div class="mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm text-navy-700 ring-1 ring-navy-100">
-        <label for="sold-out-until" class="font-semibold">{{ __('When I mark an item sold out, it comes back:') }}</label>
-        <select id="sold-out-until" class="field min-h-9 w-auto py-1" data-sold-out-until>
-            <option value="">{{ __('When I say so') }}</option>
-            <option value="end_of_day">{{ __('End of today') }}</option>
-            <option value="tomorrow">{{ __('Tomorrow morning (6 AM)') }}</option>
-            <option value="hours_2">{{ __('In 2 hours') }}</option>
-            <option value="custom">{{ __('At a time I pick…') }}</option>
-        </select>
-        <input type="datetime-local" class="field hidden min-h-9 w-auto py-1" data-sold-out-until-at dir="ltr">
-    </div>
+@php
+    $translateNeedsYou = $extraLocales && ($errors->has('translate') || \App\Jobs\TranslateMenu::isRunning() || ($translation['state'] ?? null) === 'failed');
+@endphp
+@if ($extraLocales || $categories->isNotEmpty())
+    {{-- menu settings, closed by default so the items come first; remembers open/closed on this device --}}
+    <details class="card group/settings mb-4 p-0" data-menu-settings @if ($translateNeedsYou) open data-force-open @endif>
+        <summary class="flex min-h-12 cursor-pointer list-none items-center gap-2 rounded-card px-4 py-2 sm:px-5 [&::-webkit-details-marker]:hidden">
+            <span class="font-bold">⚙ {{ __('Menu settings') }}</span>
+            <span class="hidden truncate text-xs text-navy-500 sm:inline">{{ collect([$extraLocales ? __('Extra languages') : null, $categories->isNotEmpty() ? __('Sold-out items coming back') : null])->filter()->implode(' · ') }}</span>
+            <svg class="ms-auto size-4 shrink-0 text-navy-500 transition group-open/settings:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </summary>
+        <div class="space-y-3 border-t border-navy-50 p-4 sm:p-5">
+            @if ($extraLocales)
+                @include('dashboard.menu.partials.translate-banner', ['embedded' => true])
+            @endif
+            @if ($categories->isNotEmpty())
+                <div class="flex flex-wrap items-center gap-2 text-sm text-navy-700">
+                    <label for="sold-out-until" class="font-semibold">{{ __('When I mark an item sold out, it comes back:') }}</label>
+                    <select id="sold-out-until" class="field min-h-9 w-auto py-1" data-sold-out-until>
+                        <option value="">{{ __('When I say so') }}</option>
+                        <option value="end_of_day">{{ __('End of today') }}</option>
+                        <option value="tomorrow">{{ __('Tomorrow morning (6 AM)') }}</option>
+                        <option value="hours_2">{{ __('In 2 hours') }}</option>
+                        <option value="custom">{{ __('At a time I pick…') }}</option>
+                    </select>
+                    <input type="datetime-local" class="field hidden min-h-9 w-auto py-1" data-sold-out-until-at dir="ltr">
+                </div>
+            @endif
+        </div>
+    </details>
 @endif
 
 @if ($categories->isEmpty())
@@ -57,9 +95,11 @@
     </form>
 </details>
 
+<p class="empty-state mb-4 hidden" data-search-empty>{{ __('No items match your search.') }}</p>
+
 <div class="space-y-4" data-sortable data-url="{{ route('dash.categories.reorder') }}">
     @foreach ($categories as $category)
-        <section class="card" data-id="{{ $category->id }}">
+        <section class="card scroll-mt-28 lg:scroll-mt-16" id="cat-{{ $category->id }}" data-id="{{ $category->id }}" data-category-section>
             <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center gap-2">
                     <span class="cursor-grab text-navy-500" data-handle title="{{ __('Drag to reorder.') }}">⋮⋮</span>
@@ -130,28 +170,50 @@
 
             <ul class="divide-y divide-navy-50" data-sortable data-url="{{ route('dash.items.reorder') }}">
                 @forelse ($category->items as $item)
-                    <li class="flex flex-wrap items-center gap-3 py-2" data-id="{{ $item->id }}">
+                    @php($soldOutNow = $item->isSoldOutNow())
+                    <li class="flex flex-wrap items-center gap-x-3 gap-y-2 py-2 scroll-mt-32 lg:scroll-mt-20" id="item-{{ $item->id }}" data-id="{{ $item->id }}"
+                        data-item-row data-search="{{ $item->name }} {{ $item->name_en }}" @if ((int) session('focus_item') === $item->id) data-focus @endif>
                         <span class="cursor-grab text-navy-500" data-handle>⋮⋮</span>
-                        @if ($item->image)
-                            <img src="/storage/{{ $item->image }}" alt="" class="size-12 rounded-lg object-cover">
-                        @else
-                            <span class="size-12 rounded-lg bg-navy-50"></span>
-                        @endif
-                        <a href="{{ route('dash.items.edit', $item) }}" class="min-w-0 flex-1">
-                            <div class="font-semibold">{{ $item->name }}</div>
-                            <div class="text-sm text-navy-500">{{ money($item->price) }} {{ __('EGP') }}</div>
+                        <a href="{{ route('dash.items.edit', $item) }}" class="shrink-0" tabindex="-1" aria-hidden="true">
+                            @if ($item->image)
+                                <img src="/storage/{{ $item->image }}" alt="" class="size-12 rounded-lg object-cover">
+                            @else
+                                <span class="block size-12 rounded-lg bg-navy-50"></span>
+                            @endif
                         </a>
-                        @php($soldOutNow = $item->isSoldOutNow())
-                        <button type="button" data-toggle="{{ route('dash.items.toggle', $item) }}" data-field="sold_out"
-                            data-on="{{ __('Sold out') }}" data-off="{{ __('Available') }}" data-until-label="{{ __('until :time', ['time' => '__T__']) }}"
-                            @class(['badge min-h-9 px-3', 'bg-amber-100 text-amber-800' => $soldOutNow, 'bg-emerald-100 text-emerald-800' => !$soldOutNow])>
-                            {{ $soldOutNow ? __('Sold out') : __('Available') }}@if ($until = $item->soldOutUntil()) <span class="font-normal" dir="ltr">· {{ __('until :time', ['time' => local_time($until, $until->isToday() ? 'h:i A' : 'd/m h:i A')]) }}</span>@endif
-                        </button>
-                        <button type="button" data-toggle="{{ route('dash.items.toggle', $item) }}" data-field="active"
-                            data-on="{{ __('Visible') }}" data-off="{{ __('Hidden') }}"
-                            @class(['badge min-h-9 px-3', 'bg-navy-100 text-navy-700' => $item->is_active, 'bg-navy-800 text-white' => !$item->is_active])>
-                            {{ $item->is_active ? __('Visible') : __('Hidden') }}
-                        </button>
+                        <div class="min-w-0 flex-1 basis-40">
+                            <a href="{{ route('dash.items.edit', $item) }}" class="block truncate font-semibold hover:text-brand-700 hover:underline">{{ $item->name }}</a>
+                            {{-- inline price: tap, type, Enter (resources/js/menu-editor.js → dash.items.price) --}}
+                            <div class="flex flex-wrap items-center gap-x-2 gap-y-1" data-price-cell>
+                                <button type="button" class="dash-price" data-price-edit="{{ route('dash.items.price', $item) }}" data-price="{{ (float) $item->price }}"
+                                    aria-label="{{ __('Change the price of :name', ['name' => $item->name]) }}"
+                                    title="{{ isset($branchPriced[$item->id]) ? __('Changes the main menu price only; branches with their own price keep it.') : __('Tap to change the price') }}">
+                                    <span data-price-text>{{ money($item->price) }} {{ __('EGP') }}</span>
+                                    <svg class="size-3.5 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4z"/></svg>
+                                </button>
+                                @if ($item->sizes_count)<span class="text-xs text-navy-500" title="{{ __('This is the base price; size prices are added on top of it.') }}">+ {{ __('sizes') }}</span>@endif
+                                @if (isset($branchPriced[$item->id]))<span class="badge bg-sky-50 text-sky-800" title="{{ __('Changes the main menu price only; branches with their own price keep it.') }}">{{ __('Has branch prices') }}</span>@endif
+                                <span class="text-xs font-semibold" data-price-status aria-live="polite"></span>
+                            </div>
+                        </div>
+                        <div class="flex shrink-0 items-center gap-2 max-sm:w-full max-sm:ps-[4.75rem]">
+                            <button type="button" class="dash-toggle" data-toggle="{{ route('dash.items.toggle', $item) }}" data-field="sold_out"
+                                data-on="{{ __('Sold out') }}" data-off="{{ __('Available') }}" data-until-label="{{ __('until :time', ['time' => '__T__']) }}"
+                                data-title-on="{{ __('Tap to mark it available again') }}" data-title-off="{{ __('Tap to mark it sold out') }}"
+                                aria-pressed="{{ $soldOutNow ? 'true' : 'false' }}" title="{{ $soldOutNow ? __('Tap to mark it available again') : __('Tap to mark it sold out') }}">
+                                <svg class="dash-toggle-on size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.7 5.7l12.6 12.6"/></svg>
+                                <svg class="dash-toggle-off size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+                                <span data-toggle-label>{{ $soldOutNow ? __('Sold out') : __('Available') }}</span>@if ($until = $item->soldOutUntil())<span class="font-normal" dir="ltr" data-toggle-until>· {{ __('until :time', ['time' => local_time($until, $until->isToday() ? 'h:i A' : 'd/m h:i A')]) }}</span>@endif
+                            </button>
+                            <button type="button" class="dash-toggle" data-toggle="{{ route('dash.items.toggle', $item) }}" data-field="active"
+                                data-on="{{ __('Visible') }}" data-off="{{ __('Hidden') }}"
+                                data-title-on="{{ __('Tap to hide it from the menu') }}" data-title-off="{{ __('Tap to show it on the menu') }}"
+                                aria-pressed="{{ $item->is_active ? 'true' : 'false' }}" title="{{ $item->is_active ? __('Tap to hide it from the menu') : __('Tap to show it on the menu') }}">
+                                <svg class="dash-toggle-on size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+                                <svg class="dash-toggle-off size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 3.9M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+                                <span data-toggle-label>{{ $item->is_active ? __('Visible') : __('Hidden') }}</span>
+                            </button>
+                        </div>
                     </li>
                 @empty
                     <li class="py-4 text-sm text-navy-500">{{ __('No items in this category yet.') }}</li>

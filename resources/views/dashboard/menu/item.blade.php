@@ -11,11 +11,12 @@
 @section('content')
 <x-dash.page-header :title="$item->exists ? __('Edit item') : __('Add item')">
     <x-slot:actions>
-        <a href="{{ route('dash.menu') }}" class="btn-ghost">{{ __('Back to menu') }}</a>
+        <a href="{{ route('dash.menu') }}{{ $item->exists ? '#item-'.$item->id : '' }}" class="btn-ghost">{{ __('Back to menu') }}</a>
     </x-slot:actions>
 </x-dash.page-header>
 
-<form method="post" action="{{ $item->exists ? route('dash.items.update', $item) : route('dash.items.store') }}" enctype="multipart/form-data" class="grid gap-4 lg:grid-cols-3">
+<form method="post" action="{{ $item->exists ? route('dash.items.update', $item) : route('dash.items.store') }}" enctype="multipart/form-data" class="grid gap-4 lg:grid-cols-3"
+    data-item-form data-unsaved-guard="{{ __('You have changes that are not saved. Leave without saving?') }}" data-save-shortcut>
     @csrf
     <div class="space-y-4 lg:col-span-2">
         <section class="card grid gap-4 sm:grid-cols-2">
@@ -167,7 +168,18 @@
             </div>
             <label class="flex min-h-9 items-center gap-2"><input type="checkbox" name="is_featured" value="1" @checked(old('is_featured', $item->is_featured)) class="size-4 accent-brand-600"> {{ __('Featured') }}</label>
         </section>
-        <button class="btn-primary w-full">{{ __('Save item') }}</button>
+    </div>
+
+    {{-- sticky save bar (desktop and phone); the main button comes first so Enter in a field saves the item --}}
+    <div class="dash-savebar lg:col-span-3" data-item-save>
+        <div class="flex flex-wrap items-center gap-2">
+            <button class="btn-primary min-w-40 max-sm:flex-1" data-primary-save>{{ __('Save item') }}</button>
+            @unless ($item->exists)
+                <button class="btn-ghost max-sm:flex-1" name="then" value="another" data-save-another>{{ __('Save and add another') }}</button>
+            @endunless
+            <span class="text-xs font-semibold text-amber-700" data-unsaved-note hidden>● {{ __('Changes not saved yet') }}</span>
+            <span class="ms-auto hidden text-xs text-navy-500 lg:inline" dir="ltr">Ctrl / ⌘ + S</span>
+        </div>
     </div>
 </form>
 

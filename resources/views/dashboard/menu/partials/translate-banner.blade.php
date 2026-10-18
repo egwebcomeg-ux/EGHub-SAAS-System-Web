@@ -1,9 +1,10 @@
-{{-- Extra languages on the menu page: "Translate with AI" and the progress of a running translation (polled). --}}
+{{-- Extra languages on the menu page: "Translate with AI" and the progress of a running translation (polled).
+     $embedded: drawn inside the "menu settings" panel instead of as its own card. --}}
 @php
     $running = \App\Jobs\TranslateMenu::isRunning();
     $percent = $translation && $translation['total'] > 0 ? (int) floor($translation['done'] * 100 / $translation['total']) : 0;
 @endphp
-<section class="card mb-4 space-y-3" id="ai-translate" data-translate data-status-url="{{ route('dash.menu.translate.status') }}" @if ($running) data-running @endif>
+<section @class(['space-y-3', 'card mb-4' => ! ($embedded ?? false), 'rounded-xl bg-navy-50/60 p-4' => $embedded ?? false]) id="ai-translate" data-translate data-status-url="{{ route('dash.menu.translate.status') }}" @if ($running) data-running @endif>
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="min-w-0">
             <h2 class="font-bold">{{ __('Extra languages') }}:
