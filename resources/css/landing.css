@@ -3,32 +3,100 @@
  * header and mega menu, device frames around the real screenshots, the workflow scene player, pricing and FAQ.
  * Everything that moves stops under prefers-reduced-motion.
  */
-:root { --lp-paper: #f3f7fc; --lp-line: #dce6f1; --lp-ink: #0a2540; }
+:root { --lp-paper: #f3f7fc; --lp-line: #dce6f1; --lp-ink: #0a2540; --lp-hdr: 72px; interpolate-size: allow-keywords; }
 html { scroll-behavior: smooth; }
-section[id] { scroll-margin-top: 80px; }
+section[id] { scroll-margin-top: 92px; }
 body { text-rendering: optimizeLegibility; }
 
-/* ---------- header ---------- */
-.lp-header-row { min-height: 68px; transition: min-height .2s ease; }
-.lp-header.is-compact { border-color: #e1e7f1; box-shadow: 0 1px 0 #e1e7f1; }
-.lp-header.is-compact .lp-header-row { min-height: 58px; }
-.lp-mega { opacity: 0; transform: translateY(-4px); pointer-events: none; transition: opacity .16s ease, transform .16s ease; }
+/* ---------- header: a floating white pill; its box keeps one height, so nothing below it moves ---------- */
+.lp-header { height: var(--lp-hdr); padding: 12px 12px 0; }
+@media (min-width: 640px) { .lp-header { padding-inline: 20px; } }
+.lp-header-row {
+    height: 60px; border-radius: 999px; background: rgba(255, 255, 255, .94);
+    box-shadow: 0 0 0 1px rgba(10, 37, 64, .07), 0 10px 28px -20px rgba(10, 37, 64, .35);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    transition: height .35s ease-out, box-shadow .35s ease-out, transform .35s ease-out;
+}
+.lp-header.is-compact .lp-header-row { height: 54px; transform: translateY(-4px); box-shadow: 0 0 0 1px rgba(10, 37, 64, .08), 0 14px 32px -18px rgba(10, 37, 64, .45); }
+.lp-header.is-open::before { content: ''; position: fixed; inset: 0; z-index: -1; background: rgba(6, 26, 46, .35); }
+.lp-mega { opacity: 0; transform: translateY(-6px); pointer-events: none; transition: opacity .25s ease-out, transform .25s ease-out; }
 .lp-mega.is-open { opacity: 1; transform: none; pointer-events: auto; }
 [data-mega-toggle][aria-expanded="true"] .lp-chev { transform: rotate(180deg); }
-.lp-chev { transition: transform .2s ease; }
+.lp-chev { transition: transform .3s ease-out; }
 .lp-acc summary::-webkit-details-marker { display: none; }
 .lp-acc[open] .lp-chev { transform: rotate(180deg); }
 body.lp-locked { overflow: hidden; }
 
-/* mobile bottom bar: appears after the hero */
-.lp-bottom { transform: translateY(110%); transition: transform .3s ease; }
+/* mobile bottom bar: a floating card that appears after the hero and steps aside for the calculator and the footer */
+.lp-bottom { bottom: max(12px, env(safe-area-inset-bottom)); transform: translateY(calc(100% + 24px)); transition: transform .4s ease-out; }
 .lp-bottom.is-on { transform: none; }
+.lp-calc-on .lp-bottom.is-on { transform: translateY(calc(100% + 24px)); }
+/* the calculator's own sticky total fades out once the full result card is on screen */
+[data-calc-mini] { transition: opacity .3s ease-out, transform .3s ease-out; }
+.lp-result-on [data-calc-mini] { opacity: 0; transform: translateY(8px); pointer-events: none; }
+
+/* ---------- hero: a soft tinted rounded container; the header pill floats over its top ---------- */
+.lp-hero {
+    position: relative; isolation: isolate; overflow: clip;
+    margin: calc(8px - var(--lp-hdr)) 8px 0; padding-top: var(--lp-hdr);
+    border-radius: 28px; border: 1px solid #e1ebf5;
+    background: linear-gradient(180deg, #e8f1fb 0%, #f3f7fc 55%, #fbfdff 100%);
+}
+@media (min-width: 640px) { .lp-hero { margin-inline: 12px; border-radius: 36px; } }
+/* two slow glows behind the hero, brand blue and orange; transforms only, so nothing shifts */
+.lp-glow::before, .lp-glow::after { content: ''; position: absolute; z-index: -1; width: 70vmax; height: 70vmax; border-radius: 50%; pointer-events: none; will-change: transform; }
+.lp-glow::before { top: -38vmax; inset-inline-end: -26vmax; background: radial-gradient(closest-side, rgba(0, 91, 166, .17), rgba(0, 91, 166, 0)); animation: lp-drift 22s ease-in-out infinite alternate; }
+.lp-glow::after { bottom: -46vmax; inset-inline-start: -30vmax; background: radial-gradient(closest-side, rgba(242, 101, 34, .13), rgba(242, 101, 34, 0)); animation: lp-drift 26s ease-in-out -11s infinite alternate-reverse; }
+@keyframes lp-drift { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(6%, 8%, 0) scale(1.1); } }
+
+/* a tinted rounded band for calm sections (demo, pricing teaser, closing call) */
+.lp-band { position: relative; isolation: isolate; overflow: clip; margin-inline: 8px; border-radius: 28px; background: var(--lp-paper); border: 1px solid #e1ebf5; }
+@media (min-width: 640px) { .lp-band { margin-inline: 12px; border-radius: 36px; } }
 
 /* ---------- headings ---------- */
-.lp-eyebrow { display: inline-flex; align-items: center; gap: .5rem; font-size: .8125rem; font-weight: 800; color: #005ba6; letter-spacing: .01em; }
-.lp-eyebrow::before { content: ''; width: 18px; height: 2px; background: currentColor; border-radius: 2px; }
-.lp-h2 { font-size: clamp(1.65rem, 1.2rem + 1.6vw, 2.5rem); line-height: 1.3; font-weight: 900; color: var(--lp-ink); letter-spacing: -.01em; }
-.lp-lead { font-size: 1.0625rem; line-height: 1.85; color: #3e5f80; }
+/* pill label above a section title (blue tint); its parent centers it or keeps it at the start */
+.lp-eyebrow { display: inline-flex; align-items: center; gap: .4rem; min-height: 30px; padding: .2rem .9rem; border-radius: 999px; border: 1px solid rgba(0, 91, 166, .2); background: #eaf3fc; color: #005ba6; font-size: .8125rem; font-weight: 800; line-height: 1.4; letter-spacing: .01em; }
+.lp-h2 { font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.5rem); line-height: 1.3; font-weight: 900; color: var(--lp-ink); letter-spacing: -.01em; }
+.lp-h2, .lp-hero h1 { text-wrap: balance; }
+.lp-lead { text-wrap: pretty; font-size: 1.0625rem; line-height: 1.85; color: #3e5f80; }
+
+/* ---------- one idea per card ---------- */
+.lp-idea { display: flex; flex-direction: column; align-items: center; text-align: center; border-radius: 28px; background: var(--lp-paper); border: 1px solid #e1ebf5; padding: 2rem 1.5rem; }
+.lp-idea-icon { display: grid; place-items: center; flex-shrink: 0; width: 56px; height: 56px; border-radius: 50%; background: #fff; color: #f26522; box-shadow: 0 0 0 1px #e1ebf5, 0 10px 22px -14px rgba(10, 37, 64, .4); }
+
+/* hover lift + soft shadow (pointer devices only) */
+.lp-lift { transition: transform .35s cubic-bezier(.2, .7, .2, 1), box-shadow .35s ease-out, border-color .35s ease-out; }
+@media (hover: hover) {
+    .lp-lift:hover { transform: translateY(-4px); box-shadow: 0 24px 44px -28px rgba(10, 37, 64, .45); border-color: #c3d5e8; }
+}
+
+/* buttons: a small press */
+:where(.btn, .btn-primary, .btn-ghost, .btn-navy):active { scale: .97; }
+@media (hover: hover) { .btn-primary:hover { translate: 0 -1px; } }
+
+/* ---------- "Show all": phones and tablets show the first items, the rest one tap away ---------- */
+@media (max-width: 1023px) {
+    [data-more]:not(.is-all) [data-more-item] { display: none; }
+    [data-more].is-all [data-more-item] { animation: lp-in .45s ease-out both; }
+}
+@media (min-width: 1024px) { [data-more-btn] { display: none !important; } }
+[data-more-btn][aria-expanded="true"] .lp-chev, [data-collapse-btn][aria-expanded="true"] .lp-chev { transform: rotate(180deg); }
+@keyframes lp-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* collapsible region (the live demo's dashboard on phones): grid rows animate from 0 to the content height */
+@media (max-width: 1023px) {
+    .lp-collapse { display: grid; grid-template-rows: 0fr; opacity: 0; visibility: hidden; transition: grid-template-rows .45s ease-out, opacity .45s ease-out, visibility .45s; }
+    .lp-collapse.is-open { grid-template-rows: 1fr; opacity: 1; visibility: visible; }
+    .lp-collapse > * { min-height: 0; overflow: hidden; }
+}
+
+/* details open and close smoothly where the browser can animate to auto height */
+.lp-acc::details-content, .lp-faq::details-content { block-size: 0; overflow: hidden; transition: block-size .4s ease-out, content-visibility .4s allow-discrete; }
+.lp-acc[open]::details-content, .lp-faq[open]::details-content { block-size: auto; }
+/* plan details and the comparison stay open on wide screens from the first paint */
+@media (min-width: 1024px) {
+    details[data-open-wide]::details-content { content-visibility: visible; block-size: auto; }
+}
 
 /* ---------- frames around real screenshots ---------- */
 .lp-browser { border-radius: 14px; background: #fff; border: 1px solid #d9dfe9; box-shadow: 0 1px 2px rgba(20, 31, 56, .06), 0 24px 48px -28px rgba(20, 31, 56, .35); overflow: hidden; }
@@ -57,8 +125,9 @@ body.lp-locked { overflow: hidden; }
 @keyframes lp-ring { 0%, 18% { transform: none; } 20% { transform: rotate(16deg); } 23% { transform: rotate(-13deg); } 26% { transform: rotate(8deg); } 29%, 100% { transform: none; } }
 
 /* scroll reveal: hidden only when JS runs, so the page is complete without it */
-.js [data-reveal] { opacity: 0; transform: translateY(14px); transition: opacity .55s ease, transform .55s cubic-bezier(.2, .7, .2, 1); transition-delay: var(--d, 0ms); }
+.js [data-reveal] { opacity: 0; transform: translateY(16px); transition: opacity .6s ease-out, transform .6s cubic-bezier(.2, .7, .2, 1); transition-delay: var(--d, 0ms); }
 .js [data-reveal].is-in { opacity: 1; transform: none; }
+.js [data-reveal].is-done { transition: transform .35s cubic-bezier(.2, .7, .2, 1), box-shadow .35s ease-out, border-color .35s ease-out, background-color .35s ease-out; }
 
 /* ---------- workflow scene player ---------- */
 .sc-wrap { position: relative; overflow: hidden; border-radius: 20px; background: var(--lp-paper); border: 1px solid var(--lp-line); }
@@ -125,6 +194,10 @@ body.lp-locked { overflow: hidden; }
     *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
     .js [data-reveal] { opacity: 1; transform: none; }
     .lp-ping { opacity: 1; transform: none; }
+    .lp-glow::before, .lp-glow::after { animation: none; }
+    .lp-lift:hover, .btn-primary:hover { transform: none; translate: none; }
+    :where(.btn, .btn-primary, .btn-ghost, .btn-navy):active { scale: none; }
+    [data-more].is-all [data-more-item] { animation: none; }
 }
 
 /* phones: the scene uses the full screen width, its captions stay inside the gutter */
@@ -156,3 +229,7 @@ body.lp-locked { overflow: hidden; }
 
 /* website assistant open: the floating "Ask us" button and the mobile bar step aside */
 .asst-open .lp-ask, .asst-open .lp-bottom { visibility: hidden; }
+
+/* real numbers count up once (landing.js); tabular figures keep their width */
+[data-counter] { font-variant-numeric: tabular-nums; }
+

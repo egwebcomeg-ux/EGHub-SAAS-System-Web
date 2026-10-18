@@ -50,17 +50,106 @@ if (header) {
     const panel = $('[data-mobile-nav]');
     const setPanel = (open) => {
         panel.hidden = !open;
+        header.classList.toggle('is-open', open);
         toggle.setAttribute('aria-expanded', String(open));
         document.body.classList.toggle('lp-locked', open);
         $$('[data-menu-icon]', toggle).forEach((i) => { i.hidden = (i.dataset.menuIcon === 'open') === open; });
     };
     toggle?.addEventListener('click', () => setPanel(panel.hidden));
     panel?.addEventListener('click', (e) => { if (e.target.closest('a')) { setPanel(false); } });
+    // a tap on the dimmed page around the drawer closes it
+    header.addEventListener('click', (e) => { if (e.target === header && panel && !panel.hidden) { setPanel(false); } });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && panel && !panel.hidden) { setPanel(false); toggle.focus(); } });
+}
+
+/*
+ * ---------- "Show all" ----------
+ * <ul data-more id="x"> with [data-more-item] children past the first few, and a
+ * <button data-more-btn aria-controls="x" data-all="Show all" data-less="Show less">. Phones and tablets only (CSS).
+ */
+$$('[data-more-btn]').forEach((btn) => {
+    const list = document.getElementById(btn.getAttribute('aria-controls'));
+    if (!list) { return; }
+    const label = $('[data-more-label]', btn) || btn;
+    btn.addEventListener('click', () => {
+        const all = !list.classList.contains('is-all');
+        list.classList.toggle('is-all', all);
+        btn.setAttribute('aria-expanded', String(all));
+        label.textContent = all ? btn.dataset.less : btn.dataset.all;
+        if (all) {
+            $('[data-more-item] a, [data-more-item] summary, [data-more-item][href]', list)?.focus({ preventScroll: true });
+        } else if (list.getBoundingClientRect().top < 0) {
+            list.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' });
+        }
+    });
+});
+
+/* ---------- collapsible region: <button data-collapse-btn aria-controls="x"> + <div class="lp-collapse" id="x"> ---------- */
+$$('[data-collapse-btn]').forEach((btn) => {
+    const box = document.getElementById(btn.getAttribute('aria-controls'));
+    if (!box) { return; }
+    const label = $('[data-collapse-label]', btn) || btn;
+    btn.addEventListener('click', () => {
+        const open = !box.classList.contains('is-open');
+        box.classList.toggle('is-open', open);
+        btn.setAttribute('aria-expanded', String(open));
+        label.textContent = open ? btn.dataset.close : btn.dataset.open;
+    });
+});
+
+/* ---------- real numbers count up once when they come into view ("1.4K+" counts 0 → 1.4 and keeps "K+") ---------- */
+const counters = $$('[data-counter]');
+if (counters.length && !still && 'IntersectionObserver' in window) {
+    const countUp = (el) => {
+        const m = el.textContent.trim().match(/^([\d.,]+)(.*)$/);
+        if (!m) { return; }
+        const target = Number(m[1].replace(/,/g, ''));
+        const decimals = (m[1].split('.')[1] || '').length;
+        const final = el.textContent;
+        const start = performance.now();
+        const step = (now) => {
+            const t = Math.min(1, (now - start) / 900);
+            const eased = 1 - (1 - t) ** 3;
+            el.textContent = t < 1 ? (target * eased).toFixed(decimals) + m[2] : final;
+            if (t < 1) { requestAnimationFrame(step); }
+        };
+        requestAnimationFrame(step);
+    };
+    const co = new IntersectionObserver((entries) => {
+        entries.forEach((en) => {
+            if (!en.isIntersecting) { return; }
+            co.unobserve(en.target);
+            countUp(en.target);
+        });
+    }, { threshold: 0.6 });
+    counters.forEach((el) => co.observe(el));
+}
+
+/* ---------- savings calculator on screen: the bottom bar steps aside for its own sticky total ---------- */
+const calculator = $('[data-savings-calculator]');
+if (calculator && 'IntersectionObserver' in window) {
+    new IntersectionObserver(([en]) => {
+        document.body.classList.toggle('lp-calc-on', en.isIntersecting);
+    }).observe(calculator);
+    const result = $('#calc-result', calculator);
+    if (result) {
+        new IntersectionObserver(([en]) => {
+            calculator.classList.toggle('lp-result-on', en.isIntersecting);
+        }, { threshold: 0.25 }).observe(result);
+    }
 }
 
 /* ---------- plan details: open on wide screens, one tap away on phones ---------- */
 if (window.matchMedia('(min-width: 1024px)').matches) {
     $$('details[data-open-wide]').forEach((d) => { d.open = true; });
+}
+
+/* ---------- pricing: a link to #compare opens the comparison ---------- */
+const compare = $('details[data-compare]');
+if (compare) {
+    const openCompare = () => { if (location.hash === '#compare') { compare.open = true; } };
+    openCompare();
+    window.addEventListener('hashchange', openCompare);
 }
 
 /* ---------- scroll reveal ---------- */
@@ -70,6 +159,8 @@ if ('IntersectionObserver' in window) {
             if (!en.isIntersecting) { return; }
             en.target.classList.add('is-in');
             io.unobserve(en.target);
+            // once in, hover and press transitions run without the stagger delay
+            en.target.addEventListener('transitionend', () => en.target.classList.add('is-done'), { once: true });
         });
     }, { rootMargin: '0px 0px -6% 0px', threshold: 0.06 });
     $$('[data-reveal]').forEach((el) => io.observe(el));

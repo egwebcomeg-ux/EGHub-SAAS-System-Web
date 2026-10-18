@@ -1,6 +1,6 @@
 @extends('layouts.base')
 @section('title', __('Create your free account') . ' · EgMenu')
-@section('body_class', 'bg-gradient-to-b from-brand-50 via-white to-navy-50 text-navy-900')
+@section('body_class', 'bg-gradient-to-b from-navy-50 via-white to-navy-50 text-navy-900')
 
 @section('body')
 <div class="mx-auto max-w-xl px-4 py-10">

@@ -48,8 +48,8 @@
 @section('body')
 <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:start-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-white focus:px-3 focus:py-2">{{ __('Skip to content') }}</a>
 
-<header data-header class="lp-header sticky top-0 z-40 border-b border-transparent bg-white/95 backdrop-blur">
-    <div class="lp-header-row mx-auto flex max-w-7xl items-center gap-3 px-4 sm:px-6">
+<header data-header class="lp-header sticky top-0 z-40">
+    <div class="lp-header-row mx-auto flex max-w-7xl items-center gap-2 ps-4 pe-2 sm:ps-6">
         <a href="{{ $home }}" aria-label="EgMenu" class="shrink-0"><x-logo :size="32" /></a>
 
         <nav class="ms-6 hidden items-center gap-1 text-[0.95rem] font-bold text-navy-700 lg:flex" aria-label="{{ __('Main') }}">
@@ -66,8 +66,8 @@
         <div class="ms-auto flex items-center gap-1 text-sm font-bold">
             <a href="?lang={{ $other }}" class="hidden min-h-11 items-center rounded-lg px-2.5 text-navy-600 hover:bg-navy-50 sm:flex" lang="{{ $other }}">{{ $other === 'en' ? 'English' : 'عربي' }}</a>
             <a href="{{ platform_url('app', '/login') }}" class="hidden min-h-11 items-center rounded-lg px-3 text-navy-700 hover:bg-navy-50 lg:flex">{{ __('Log in') }}</a>
-            <a href="{{ route('register') }}" class="btn-primary min-h-11 px-4">{{ __('Start free') }}</a>
-            <button type="button" data-menu-toggle class="grid size-11 place-items-center rounded-lg text-navy-800 hover:bg-navy-50 lg:hidden" aria-expanded="false" aria-controls="mobile-nav" aria-label="{{ __('Menu') }}">
+            <a href="{{ route('register') }}" class="btn-primary min-h-11 rounded-full px-5">{{ __('Start free') }}</a>
+            <button type="button" data-menu-toggle class="grid size-11 place-items-center rounded-full text-navy-800 hover:bg-navy-50 lg:hidden" aria-expanded="false" aria-controls="mobile-nav" aria-label="{{ __('Menu') }}">
                 <x-landing.icon name="menu" class="size-6" data-menu-icon="open" />
                 <x-landing.icon name="x" class="size-6" data-menu-icon="close" hidden />
             </button>
@@ -75,7 +75,7 @@
     </div>
 
     {{-- desktop mega menu --}}
-    <div id="mega" data-mega class="lp-mega absolute inset-x-0 top-full hidden border-y border-navy-100 bg-white shadow-[0_24px_40px_-30px_rgba(20,31,56,.45)] lg:block">
+    <div id="mega" data-mega class="lp-mega absolute inset-x-5 top-full mx-auto mt-2 hidden max-w-7xl overflow-hidden rounded-[28px] border border-navy-100 bg-white shadow-[0_30px_60px_-34px_rgba(10,37,64,.5)] lg:block">
         <div class="mx-auto grid max-w-7xl grid-cols-5 gap-6 px-6 py-7">
             @foreach ($siteGroups as $g => [$groupLabel, $groupIcon])
                 <div>
@@ -105,7 +105,7 @@
     </div>
 
     {{-- mobile drawer --}}
-    <nav id="mobile-nav" data-mobile-nav hidden class="h-[calc(100dvh-58px)] overflow-y-auto border-t border-navy-100 bg-white px-4 pt-2 pb-28 lg:hidden" aria-label="{{ __('Main') }}">
+    <nav id="mobile-nav" data-mobile-nav hidden class="absolute inset-x-3 top-full mt-2 max-h-[calc(100dvh-var(--lp-hdr)-20px)] overflow-y-auto overscroll-contain rounded-[28px] border border-navy-100 bg-white px-4 pt-2 pb-6 shadow-[0_30px_60px_-30px_rgba(10,37,64,.55)] sm:inset-x-5 lg:hidden" aria-label="{{ __('Main') }}">
         <p class="px-1 pt-2 pb-1 text-xs font-extrabold text-navy-400">{{ __('Features') }}</p>
         @foreach ($siteGroups as $g => [$groupLabel, $groupIcon])
             <details class="lp-acc border-b border-navy-100" @if ($loop->first) open @endif>
@@ -163,9 +163,10 @@
                     </ul>
                 @endif
             </div>
+            {{-- phones: the module lists live in the menu drawer, so the footer keeps only the EgMenu links --}}
             <div class="grid grid-cols-2 gap-8 text-sm sm:grid-cols-3 lg:grid-cols-6">
                 @foreach ($siteGroups as $g => [$groupLabel, $groupIcon])
-                    <div>
+                    <div class="max-sm:hidden">
                         <div class="mb-3 font-extrabold text-white">{{ $groupLabel }}</div>
                         <ul class="space-y-2">
                             @foreach ($siteModules[$g] as $m)
@@ -174,9 +175,10 @@
                         </ul>
                     </div>
                 @endforeach
-                <div>
+                <div class="max-sm:col-span-2">
                     <div class="mb-3 font-extrabold text-white">EgMenu</div>
-                    <ul class="space-y-2">
+                    <ul class="grid grid-cols-2 gap-x-6 gap-y-2 sm:block sm:space-y-2">
+                        <li class="sm:hidden"><a href="{{ route('features') }}" class="hover:text-white">{{ __('All features') }}</a></li>
                         <li><a href="{{ route('pricing') }}" class="hover:text-white">{{ __('Pricing') }}</a></li>
                         <li><a href="{{ route('services') }}" class="hover:text-white">{{ __('Services') }}</a></li>
                         <li><a href="{{ route('blog') }}" class="hover:text-white">{{ __('Blog') }}</a></li>
@@ -205,7 +207,7 @@
 @endphp
 
 {{-- mobile: one action always in reach --}}
-<div data-bottom-bar class="lp-bottom fixed inset-x-0 bottom-0 z-30 border-t border-navy-100 bg-white/95 px-4 pt-3 pb-[max(.75rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
+<div data-bottom-bar class="lp-bottom fixed inset-x-3 z-30 rounded-2xl border border-navy-100 bg-white/95 p-2 shadow-[0_18px_40px_-20px_rgba(10,37,64,.45)] backdrop-blur sm:inset-x-5 lg:hidden">
     <div class="flex gap-2">
         <a href="{{ route('register') }}" class="btn-primary min-h-12 flex-1 text-base">{{ __('Start free') }}</a>
         <a href="{{ route('pricing') }}" class="btn-ghost min-h-12 px-5 text-base">{{ __('Pricing') }}</a>

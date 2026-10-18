@@ -14,46 +14,47 @@
 @endphp
 
 @section('page')
-<section data-hero class="border-b border-navy-100 bg-[var(--lp-paper)]">
-    <div class="mx-auto max-w-7xl px-4 pt-12 pb-10 sm:px-6 lg:pt-16">
-        <p class="lp-eyebrow">{{ __('Features') }}</p>
-        <h1 class="mt-3 max-w-3xl text-[2rem] leading-[1.3] font-black tracking-tight sm:text-5xl sm:leading-[1.25]">{{ __('Everything a cafe or a restaurant needs, one module at a time') }}</h1>
-        <p class="lp-lead mt-4 max-w-2xl">{{ __('Start with the free menu. Each module below has its own page with a real screen and a short animation of how it works.') }}</p>
-        <nav class="mt-8 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]" aria-label="{{ __('Groups') }}">
+<section data-hero class="lp-hero lp-glow">
+    <div class="mx-auto max-w-7xl px-4 pt-10 pb-10 text-center sm:px-6 lg:pt-14 lg:pb-14">
+        <p class="lp-eyebrow" data-reveal>{{ __('Features') }}</p>
+        <h1 class="mx-auto mt-4 max-w-3xl text-[2rem] leading-[1.3] font-black tracking-tight sm:text-5xl sm:leading-[1.25]" data-reveal style="--d: 70ms">{{ __('Everything a cafe or a restaurant needs, one module at a time') }}</h1>
+        <p class="lp-lead mx-auto mt-4 max-w-2xl" data-reveal style="--d: 140ms">{{ __('Start with the free menu. Each module below has its own page with a real screen and a short animation of how it works.') }}</p>
+        <nav class="-mx-4 mt-8 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:justify-center sm:px-0" aria-label="{{ __('Groups') }}" data-reveal style="--d: 210ms">
             @foreach (\App\Support\SiteModules::groups() as $g => [$label, $icon])
-                <a href="#{{ $g }}" class="flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-navy-200 bg-white px-4 text-sm font-bold text-navy-800 hover:border-navy-900"><x-landing.icon :name="$icon" class="size-4 text-brand-600" />{{ $label }}</a>
+                <a href="#{{ $g }}" class="flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-navy-200 bg-white px-4 text-sm font-bold text-navy-800 hover:border-navy-600 hover:text-navy-600"><x-landing.icon :name="$icon" class="size-4 text-brand-600" />{{ $label }}</a>
             @endforeach
         </nav>
     </div>
 </section>
 
 @foreach (\App\Support\SiteModules::grouped() as $g => $modules)
-    <section id="{{ $g }}" @class(['py-14 lg:py-20', 'border-t border-navy-100' => !$loop->first, 'bg-[var(--lp-paper)]' => $g === 'operations'])>
+    <section id="{{ $g }}" @class(['py-16 lg:py-24', 'lp-band' => $g === 'operations'])>
         <div class="mx-auto max-w-7xl px-4 sm:px-6">
-            <div class="grid gap-3 lg:grid-cols-[1fr_2fr] lg:items-end">
-                <h2 class="lp-h2 flex items-center gap-3">{{ \App\Support\SiteModules::groups()[$g][0] }}
-                    @if ($g === 'operations')<span class="rounded-full bg-brand-600 px-3 py-1 text-sm font-bold text-white">{{ __('Add-ons') }}</span>@endif
+            <div class="mx-auto max-w-2xl text-center" data-reveal>
+                <h2 class="lp-h2 flex flex-wrap items-center justify-center gap-3">{{ \App\Support\SiteModules::groups()[$g][0] }}
+                    @if ($g === 'operations')<span class="lp-eyebrow">{{ __('Add-ons') }}</span>@endif
                 </h2>
-                <p class="text-navy-600 lg:text-end">{{ $intro[$g] }}</p>
+                <p class="mt-3 leading-relaxed text-navy-600">{{ $intro[$g] }}</p>
             </div>
-            <div @class(['mt-8 grid gap-5 sm:grid-cols-2', 'lg:grid-cols-3 xl:grid-cols-5' => count($modules) === 5, 'lg:grid-cols-3' => count($modules) === 3, 'lg:grid-cols-4' => !in_array(count($modules), [3, 5], true)])>
+            <div id="group-{{ $g }}" data-more @class(['mt-10 grid gap-4 sm:grid-cols-2 lg:gap-5', 'lg:grid-cols-3 xl:grid-cols-5' => count($modules) === 5, 'lg:grid-cols-3' => count($modules) === 3, 'lg:grid-cols-4' => !in_array(count($modules), [3, 5], true)])>
                 @foreach ($modules as $m)
-                    <x-landing.module-card :m="$m" :note="\App\Support\SiteModules::where($m, $pricing)" data-reveal style="--d: {{ $loop->index * 60 }}ms" />
+                    <x-landing.module-card :m="$m" :note="\App\Support\SiteModules::where($m, $pricing)" :compact="true" data-reveal style="--d: {{ ($loop->index % 5) * 60 }}ms" :data-more-item="$loop->index >= 3 ? '' : null" />
                 @endforeach
             </div>
+            @if (count($modules) > 3)<x-landing.more :for="'group-' . $g" />@endif
         </div>
     </section>
 @endforeach
 
-<section class="px-4 pb-16 sm:px-6">
-    <div class="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 rounded-3xl bg-navy-900 p-8 text-white sm:p-12 lg:flex-row lg:items-center">
+<section class="lp-band lp-glow mb-8 py-16 lg:py-20">
+    <div class="mx-auto flex max-w-3xl flex-col items-center gap-6 px-4 text-center sm:px-6" data-reveal>
         <div>
-            <h2 class="text-2xl font-black sm:text-3xl">{{ __('Start with the free menu today') }}</h2>
-            <p class="mt-2 text-white/70">{{ __('No card, no contract. Try every paid feature for :days days.', ['days' => \App\Services\TenantProvisioner::TRIAL_DAYS]) }}</p>
+            <h2 class="lp-h2">{{ __('Start with the free menu today') }}</h2>
+            <p class="lp-lead mt-2">{{ __('No card, no contract. Try every paid feature for :days days.', ['days' => \App\Services\TenantProvisioner::TRIAL_DAYS]) }}</p>
         </div>
-        <div class="flex flex-wrap gap-3">
-            <a href="{{ route('register') }}" class="btn-primary min-h-12 px-6 text-base">{{ __('Start free') }}</a>
-            <a href="{{ route('pricing') }}" class="btn min-h-12 border border-white/25 px-6 text-base text-white hover:bg-white/10">{{ __('See prices') }}</a>
+        <div class="flex flex-wrap justify-center gap-3">
+            <a href="{{ route('register') }}" class="btn-primary min-h-12 rounded-full px-7 text-base">{{ __('Start free') }}</a>
+            <a href="{{ route('pricing') }}" class="btn-ghost min-h-12 rounded-full px-6 text-base">{{ __('See prices') }}</a>
         </div>
     </div>
 </section>

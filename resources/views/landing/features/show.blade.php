@@ -14,28 +14,26 @@
 
 @section('page')
 {{-- ============ HERO ============ --}}
-<section data-hero class="border-b border-navy-100 bg-[var(--lp-paper)]">
+<section data-hero class="lp-hero lp-glow">
     <div class="mx-auto max-w-7xl px-4 pt-6 pb-12 sm:px-6 lg:pt-10 lg:pb-16">
-        <nav class="text-sm font-semibold text-navy-500" aria-label="{{ __('Breadcrumb') }}">
+        <nav class="text-center text-sm font-semibold text-navy-500 lg:text-start" aria-label="{{ __('Breadcrumb') }}">
             <a href="{{ route('features') }}" class="hover:text-navy-900">{{ __('Features') }}</a>
             <span class="mx-1.5 text-navy-300" aria-hidden="true">/</span>
             <span>{{ $groups[$module['group']][0] }}</span>
         </nav>
         <div class="mt-6 grid items-center gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14">
-            <div>
-                <p class="flex items-center gap-2 text-base font-extrabold text-brand-700">
-                    <x-landing.icon :name="$module['icon']" class="size-5" />{{ $module['name'] }}
-                </p>
-                <h1 class="mt-3 text-[2rem] leading-[1.3] font-black tracking-tight text-navy-900 sm:text-[2.6rem]">{{ $module['tagline'] }}</h1>
-                <p class="lp-lead mt-4 max-w-lg">{{ $module['summary'] }}</p>
+            <div class="text-center lg:text-start">
+                <p class="lp-eyebrow" data-reveal><x-landing.icon :name="$module['icon']" class="size-4" />{{ $module['name'] }}</p>
+                <h1 class="mt-4 text-[2rem] leading-[1.3] font-black tracking-tight text-navy-900 sm:text-[2.6rem]" data-reveal style="--d: 70ms">{{ $module['tagline'] }}</h1>
+                <p class="lp-lead mx-auto mt-4 max-w-lg lg:mx-0" data-reveal style="--d: 140ms">{{ $module['summary'] }}</p>
                 @if ($where)
-                    <p class="mt-5 inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1.5 text-sm font-bold text-navy-700">
-                        <span @class(['size-2 rounded-full', 'bg-emerald-500' => $availability['everyPlan'], 'bg-brand-500' => !$availability['everyPlan']])></span>{{ $where }}
+                    <p class="mt-5 inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1.5 text-sm font-bold text-navy-700" data-reveal style="--d: 180ms">
+                        <span @class(['size-2 shrink-0 rounded-full', 'bg-emerald-500' => $availability['everyPlan'], 'bg-brand-500' => !$availability['everyPlan']])></span>{{ $where }}
                     </p>
                 @endif
-                <div class="mt-7 flex flex-wrap gap-3">
-                    <a href="{{ route('register') }}" class="btn-primary min-h-12 px-6 text-base">{{ __('Start free') }}</a>
-                    <a href="#how" class="btn-ghost min-h-12 px-5 text-base">{{ __('See how it works') }}</a>
+                <div class="mt-7 flex flex-wrap justify-center gap-3 lg:justify-start" data-reveal style="--d: 220ms">
+                    <a href="{{ route('register') }}" class="btn-primary min-h-12 rounded-full px-6 text-base">{{ __('Start free') }}</a>
+                    <a href="#how" class="btn-ghost min-h-12 rounded-full px-5 text-base">{{ __('See how it works') }}</a>
                 </div>
             </div>
             <div class="relative">
@@ -51,11 +49,13 @@
 
 {{-- ============ WORKFLOW ============ --}}
 @if ($hasScene)
-    <section id="how" class="py-16 lg:py-24">
+    <section id="how" class="py-20 lg:py-28">
         <div class="mx-auto max-w-4xl px-4 sm:px-6">
-            <p class="lp-eyebrow">{{ __('How it works') }}</p>
-            <h2 class="lp-h2 mt-2">{{ __(':module, step by step', ['module' => $module['name']]) }}</h2>
-            <x-landing.scene class="mt-8" :steps="$module['steps']" :label="__(':module, step by step', ['module' => $module['name']])">
+            <div class="text-center" data-reveal>
+                <p class="lp-eyebrow">{{ __('How it works') }}</p>
+                <h2 class="lp-h2 mt-3">{{ __(':module, step by step', ['module' => $module['name']]) }}</h2>
+            </div>
+            <x-landing.scene class="mt-10" :steps="$module['steps']" :label="__(':module, step by step', ['module' => $module['name']])">
                 @include('landing.scenes.' . $module['slug'])
             </x-landing.scene>
         </div>
@@ -63,24 +63,28 @@
 @endif
 
 {{-- ============ BENEFITS ============ --}}
-<section class="border-t border-navy-100 py-16 lg:py-20">
+<section @class(['pb-20 lg:pb-28', 'pt-20 lg:pt-28' => !$hasScene])>
     <div class="mx-auto max-w-7xl px-4 sm:px-6">
-        <h2 class="lp-h2 max-w-2xl">{{ __('What you get') }}</h2>
-        <div @class(['mt-10 grid gap-x-8 gap-y-10 sm:grid-cols-2', 'lg:grid-cols-4' => count($module['benefits']) === 4, 'lg:grid-cols-3' => count($module['benefits']) !== 4])>
+        <div class="text-center" data-reveal>
+            <p class="lp-eyebrow">{{ $module['name'] }}</p>
+            <h2 class="lp-h2 mt-3">{{ __('What you get') }}</h2>
+        </div>
+        <div id="benefits" data-more @class(['mt-10 grid gap-4 sm:grid-cols-2 lg:mt-14 lg:gap-5', 'lg:grid-cols-4' => count($module['benefits']) === 4, 'lg:grid-cols-3' => count($module['benefits']) !== 4])>
             @foreach ($module['benefits'] as [$icon, $title, $text])
-                <div class="border-t-2 border-navy-900 pt-5" data-reveal style="--d: {{ $loop->index * 70 }}ms">
-                    <x-landing.icon :name="$icon" class="size-6 text-brand-600" />
-                    <h3 class="mt-3 text-lg font-extrabold">{{ $title }}</h3>
-                    <p class="mt-1.5 leading-relaxed text-navy-600">{{ $text }}</p>
+                <div class="lp-idea lp-lift" data-reveal style="--d: {{ ($loop->index % 4) * 70 }}ms" @if ($loop->index >= 3) data-more-item @endif>
+                    <span class="lp-idea-icon"><x-landing.icon :name="$icon" class="size-6" /></span>
+                    <h3 class="mt-5 text-lg font-extrabold">{{ $title }}</h3>
+                    <p class="mt-2 leading-relaxed text-navy-600">{{ $text }}</p>
                 </div>
             @endforeach
         </div>
+        @if (count($module['benefits']) > 3)<x-landing.more for="benefits" />@endif
     </div>
 </section>
 
-{{-- ============ MORE SCREENS ============ --}}
+{{-- ============ MORE SCREENS (from tablet width up: on a phone the hero shot and the animation already show it) ============ --}}
 @foreach ($module['gallery'] ?? [] as [$shot, $frame, $url, $caption])
-    <section class="border-t border-navy-100 py-14 lg:py-16">
+    <section class="hidden border-t border-navy-100 py-14 sm:block lg:py-16">
         <figure class="mx-auto grid max-w-7xl items-center gap-6 px-4 sm:px-6 lg:grid-cols-[minmax(0,4fr)_minmax(0,7fr)] lg:gap-12">
             <figcaption class="text-lg leading-relaxed text-navy-700"><x-landing.icon name="layers" class="mb-3 size-6 text-brand-600" />{{ $caption }}</figcaption>
             <x-landing.shot :name="$shot" :frame="$frame" :url="$url" :alt="$caption" data-reveal />
@@ -89,14 +93,14 @@
 @endforeach
 
 {{-- ============ WHO + WHERE ============ --}}
-<section class="bg-[var(--lp-paper)] py-16 lg:py-20">
-    <div class="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:gap-14">
+<section class="lp-band py-16 lg:py-24">
+    <div class="mx-auto grid max-w-7xl gap-14 px-4 sm:px-6 lg:grid-cols-2">
         <div>
-            <h2 class="lp-h2">{{ __('Who is it for') }}</h2>
+            <h2 class="lp-h2 text-center lg:text-start">{{ __('Who is it for') }}</h2>
             <div class="mt-8 space-y-4">
                 @foreach (['cafe' => ['cup', __('In a cafe like Rosto')], 'restaurant' => ['plate', __('In a restaurant like Sofra')]] as $type => [$icon, $label])
-                    <div class="flex gap-4 rounded-2xl border border-navy-100 bg-white p-5">
-                        <span class="grid size-11 shrink-0 place-items-center rounded-xl bg-navy-900 text-white"><x-landing.icon :name="$icon" class="size-5" /></span>
+                    <div class="flex gap-4 rounded-[24px] border border-navy-100 bg-white p-5" data-reveal style="--d: {{ $loop->index * 70 }}ms">
+                        <span class="lp-idea-icon size-11! text-navy-600!"><x-landing.icon :name="$icon" class="size-5" /></span>
                         <div>
                             <h3 class="font-extrabold">{{ $label }}
                                 @if (in_array($type, $module['for'], true))<span class="ms-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">{{ __('A great fit') }}</span>@endif
@@ -109,8 +113,8 @@
         </div>
 
         <div id="price">
-            <h2 class="lp-h2">{{ __('Where you get it') }}</h2>
-            <div class="mt-8 overflow-hidden rounded-2xl border border-navy-200 bg-white">
+            <h2 class="lp-h2 text-center lg:text-start">{{ __('Where you get it') }}</h2>
+            <div class="mt-8 overflow-hidden rounded-[24px] border border-navy-100 bg-white">
                 @if ($isAddon)
                     @foreach ($availability['addons'] as $addon)
                         @php
@@ -176,23 +180,26 @@
                         </ul>
                     </div>
                 @endif
-                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-navy-100 bg-navy-900 px-5 py-4 text-white">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-navy-100 bg-navy-800 px-5 py-4 text-white">
                     <span class="text-sm text-white/75">{{ __('Every account starts free, with :days days of Pro to try everything.', ['days' => \App\Services\TenantProvisioner::TRIAL_DAYS]) }}</span>
-                    <a href="{{ route('register') }}" class="btn-primary min-h-11">{{ __('Start free') }}</a>
+                    <a href="{{ route('register') }}" class="btn-primary min-h-11 rounded-full px-5">{{ __('Start free') }}</a>
                 </div>
             </div>
-            <a href="{{ route('pricing') }}" class="mt-3 inline-flex min-h-11 items-center text-sm font-bold text-navy-700 underline decoration-navy-300 underline-offset-4 hover:text-navy-900">{{ __('Compare all plans and add-ons') }}</a>
+            <p class="text-center lg:text-start"><a href="{{ route('pricing') }}" class="mt-3 inline-flex min-h-11 items-center text-sm font-bold text-navy-600 underline decoration-navy-300 underline-offset-4 hover:text-navy-800">{{ __('Compare all plans and add-ons') }}</a></p>
         </div>
     </div>
 </section>
 
 {{-- ============ FAQ ============ --}}
-<section class="py-16 lg:py-20">
+<section class="py-20 lg:py-28">
     <div class="mx-auto max-w-3xl px-4 sm:px-6">
-        <h2 class="lp-h2">{{ __('Questions about :module', ['module' => $module['name']]) }}</h2>
-        <div class="mt-8 divide-y divide-navy-100 border-y border-navy-100">
+        <div class="text-center" data-reveal>
+            <p class="lp-eyebrow">{{ __('FAQ') }}</p>
+            <h2 class="lp-h2 mt-3">{{ __('Questions about :module', ['module' => $module['name']]) }}</h2>
+        </div>
+        <div class="mt-10 space-y-3">
             @foreach ($module['faq'] as [$q, $a])
-                <details class="lp-faq group" @if ($loop->first) open @endif>
+                <details class="lp-faq group rounded-2xl border border-navy-100 bg-white px-5 open:bg-[var(--lp-paper)]" @if ($loop->first) open @endif>
                     <summary class="flex min-h-15 cursor-pointer list-none items-center justify-between gap-4 py-4 text-[1.05rem] font-extrabold">
                         {{ $q }}
                         <span class="lp-faq-icon grid size-8 shrink-0 place-items-center rounded-full border border-navy-200 text-lg leading-none text-navy-700">+</span>
@@ -205,12 +212,12 @@
 </section>
 
 {{-- ============ RELATED + PREV/NEXT ============ --}}
-<section class="border-t border-navy-100 bg-[var(--lp-paper)] py-16">
+<section class="lp-band mb-8 py-16 lg:py-20">
     <div class="mx-auto max-w-7xl px-4 sm:px-6">
-        <h2 class="text-2xl font-black">{{ __('Works well with') }}</h2>
-        <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <h2 class="text-center text-2xl font-black lg:text-start">{{ __('Works well with') }}</h2>
+        <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
             @foreach ($related as $r)
-                <x-landing.module-card :m="$r" :note="\App\Support\SiteModules::where($r, $pricing)" />
+                <x-landing.module-card :m="$r" :note="\App\Support\SiteModules::where($r, $pricing)" :compact="true" data-reveal style="--d: {{ $loop->index * 70 }}ms" />
             @endforeach
         </div>
         <nav class="mt-12 grid gap-3 border-t border-navy-200 pt-6 sm:grid-cols-2" aria-label="{{ __('More features') }}">

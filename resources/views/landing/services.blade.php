@@ -8,36 +8,37 @@
 @endphp
 
 @section('page')
-<section data-hero class="border-b border-navy-100 bg-[var(--lp-paper)]">
-    <div class="mx-auto max-w-7xl px-4 pt-12 pb-10 sm:px-6 lg:pt-16">
-        <p class="lp-eyebrow">{{ __('Services') }}</p>
-        <h1 class="mt-3 max-w-3xl text-[2rem] leading-[1.3] font-black tracking-tight sm:text-5xl sm:leading-[1.25]">{{ __('We set it up for you, once') }}</h1>
-        <p class="lp-lead mt-4 max-w-2xl">{{ __('The subscription runs your menu every day. These are one-time jobs by the EgWeb team: we enter your menu, take the photos, print what goes on the tables and train your staff.') }}</p>
-        <nav class="mt-8 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]" aria-label="{{ __('Services') }}">
+<section data-hero class="lp-hero lp-glow">
+    <div class="mx-auto max-w-7xl px-4 pt-10 pb-10 text-center sm:px-6 lg:pt-14 lg:pb-14">
+        <p class="lp-eyebrow" data-reveal>{{ __('Services') }}</p>
+        <h1 class="mx-auto mt-4 max-w-3xl text-[2rem] leading-[1.3] font-black tracking-tight sm:text-5xl sm:leading-[1.25]" data-reveal style="--d: 70ms">{{ __('We set it up for you, once') }}</h1>
+        <p class="lp-lead mx-auto mt-4 max-w-2xl" data-reveal style="--d: 140ms">{{ __('The subscription runs your menu every day. These are one-time jobs by the EgWeb team: we enter your menu, take the photos, print what goes on the tables and train your staff.') }}</p>
+        <nav class="-mx-4 mt-8 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:justify-center sm:px-0" aria-label="{{ __('Services') }}" data-reveal style="--d: 210ms">
             @foreach ($services as $s)
-                <a href="#{{ $s['key'] }}" class="flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-navy-200 bg-white px-4 text-sm font-bold text-navy-800 hover:border-navy-900"><x-landing.icon :name="$s['icon']" class="size-4 text-brand-600" />{{ $s['name'] }}</a>
+                <a href="#{{ $s['key'] }}" class="flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-navy-200 bg-white px-4 text-sm font-bold text-navy-800 hover:border-navy-600 hover:text-navy-600"><x-landing.icon :name="$s['icon']" class="size-4 text-brand-600" />{{ $s['name'] }}</a>
             @endforeach
         </nav>
     </div>
 </section>
 
-<section class="py-14 lg:py-20">
-    <div class="mx-auto grid max-w-7xl gap-5 px-4 sm:px-6 lg:grid-cols-2">
+<section class="py-16 lg:py-24">
+    <div class="mx-auto grid max-w-7xl gap-4 px-4 sm:px-6 lg:grid-cols-2 lg:gap-5">
         @foreach ($services as $s)
-            <article id="{{ $s['key'] }}" class="flex scroll-mt-24 flex-col rounded-2xl border border-navy-200 bg-white p-6 sm:p-7" data-service="{{ $s['key'] }}" data-reveal style="--d: {{ ($loop->index % 2) * 60 }}ms">
+            <article id="{{ $s['key'] }}" class="lp-lift flex scroll-mt-24 flex-col rounded-[28px] border border-navy-100 bg-white p-6 sm:p-7" data-service="{{ $s['key'] }}" data-reveal style="--d: {{ ($loop->index % 2) * 70 }}ms">
                 <div class="flex items-start gap-4">
-                    <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-brand-50 text-brand-600"><x-landing.icon :name="$s['icon']" class="size-6" /></span>
+                    <span class="lp-idea-icon size-12!"><x-landing.icon :name="$s['icon']" class="size-6" /></span>
                     <div class="min-w-0 flex-1">
                         <h2 class="text-xl font-extrabold text-navy-900">{{ $s['name'] }}</h2>
                         <p class="mt-1 text-navy-600">{{ $s['summary'] }}</p>
                     </div>
                 </div>
 
-                <ul class="mt-5 space-y-2 text-sm text-navy-700">
+                <ul id="includes-{{ $s['key'] }}" data-more class="mt-5 space-y-2 text-sm text-navy-700">
                     @foreach ($s['includes'] as $line)
-                        <li class="flex gap-2"><x-landing.icon name="check" class="mt-0.5 size-4 shrink-0 text-emerald-600" />{{ $line }}</li>
+                        <li class="flex gap-2" @if ($loop->index >= 3) data-more-item @endif><x-landing.icon name="check" class="mt-0.5 size-4 shrink-0 text-emerald-600" />{{ $line }}</li>
                     @endforeach
                 </ul>
+                @if (count($s['includes']) > 3)<x-landing.more :for="'includes-' . $s['key']" class="mt-3" />@endif
 
                 @if ($s['items'])
                     <div class="mt-5 overflow-hidden rounded-xl border border-navy-100">
@@ -69,7 +70,7 @@
                             @endif
                             <div class="mt-1 flex items-center gap-1.5 text-sm text-navy-500"><x-landing.icon name="clock" class="size-4" />{{ $s['delivery'] }}</div>
                         </div>
-                        <a href="{{ route('services', ['service' => $s['key']]) }}#request" data-pick-service="{{ $s['key'] }}" class="btn-primary min-h-11 px-5">{{ __('Request this service') }}</a>
+                        <a href="{{ route('services', ['service' => $s['key']]) }}#request" data-pick-service="{{ $s['key'] }}" class="btn-primary min-h-11 rounded-full px-5">{{ __('Request this service') }}</a>
                     </div>
                     @if ($s['note'])<p class="mt-3 text-xs text-navy-500">{{ $s['note'] }}</p>@endif
                 </div>
@@ -83,12 +84,12 @@
     $studioDefaults = ['stand' => 'white', 'accent' => '#F26522', 'restaurant' => '', 'table' => '5'];
 @endphp
 @include('partials.stand-card-css')
-<section id="stand-studio" class="scroll-mt-20 border-t border-navy-100 py-14 lg:py-20" data-stand-studio>
+<section id="stand-studio" class="lp-band scroll-mt-20 py-16 lg:py-24" data-stand-studio>
     <div class="mx-auto grid max-w-7xl gap-x-10 gap-y-6 px-4 sm:px-6 lg:grid-cols-[1.15fr_1fr]">
-        <div class="lg:col-start-1 lg:row-start-1">
+        <div class="text-center lg:col-start-1 lg:row-start-1 lg:text-start">
             <p class="lp-eyebrow">{{ __('Stand studio') }}</p>
             <h2 class="lp-h2 mt-3">{{ __('Design your table stand') }}</h2>
-            <p class="mt-3 max-w-xl text-navy-600">{{ __('Write your name and pick the material and the color, and see the stand right away. This is a preview: the printed stand carries the real QR of your menu.') }}</p>
+            <p class="mx-auto mt-3 max-w-xl text-navy-600 lg:mx-0">{{ __('Write your name and pick the material and the color, and see the stand right away. This is a preview: the printed stand carries the real QR of your menu.') }}</p>
         </div>
         <div class="order-last lg:order-none lg:col-start-1 lg:row-start-2">
             <form class="grid gap-4 sm:grid-cols-2" data-studio-form onsubmit="return false">
@@ -168,7 +169,7 @@
     </div>
 </section>
 
-<section id="request" class="scroll-mt-20 border-t border-navy-100 bg-[var(--lp-paper)] py-14 lg:py-20">
+<section id="request" class="scroll-mt-20 py-16 lg:py-24">
     <div class="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[1fr_1.3fr]">
         <div>
             <h2 class="lp-h2">{{ __('Request a service') }}</h2>
@@ -182,7 +183,7 @@
             @endif
         </div>
 
-        <div class="rounded-3xl border border-navy-200 bg-white p-6 sm:p-8">
+        <div class="rounded-[28px] border border-navy-100 bg-[var(--lp-paper)] p-6 sm:p-8">
             @if ($sent)
                 <div class="text-center" data-service-sent role="status">
                     <span class="mx-auto grid size-14 place-items-center rounded-full bg-emerald-100 text-emerald-700"><x-landing.icon name="check" class="size-7" /></span>
@@ -233,7 +234,7 @@
                         <textarea name="notes" class="field min-h-24 py-2" maxlength="1000" placeholder="{{ __('Sizes, number of items or dishes, your area, the best time to call...') }}">{{ old('notes', $prefill['notes']) }}</textarea>
                     </label>
                     <div class="hidden" aria-hidden="true"><input name="website" tabindex="-1" autocomplete="off"></div>
-                    <button class="btn-primary min-h-12 text-base sm:col-span-2">{{ __('Send the request') }}</button>
+                    <button class="btn-primary min-h-12 rounded-full text-base sm:col-span-2">{{ __('Send the request') }}</button>
                 </form>
             @endif
         </div>

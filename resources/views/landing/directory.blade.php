@@ -3,8 +3,8 @@
 @section('description', $description)
 
 @section('page')
-<section class="border-b border-navy-100 bg-[var(--lp-paper)]">
-    <div class="mx-auto max-w-7xl px-4 pt-10 pb-8 sm:px-6 lg:pt-14">
+<section class="lp-hero lp-glow">
+    <div class="mx-auto max-w-7xl px-4 pt-8 pb-10 sm:px-6 lg:pt-12 lg:pb-12">
         <nav class="text-sm font-semibold text-navy-500" aria-label="{{ __('Breadcrumb') }}">
             <a href="{{ route('directory') }}" class="hover:text-navy-900">{{ __('Restaurant directory') }}</a>
             @if ($city)
@@ -21,7 +21,7 @@
             <form method="get" action="{{ route('directory') }}" class="mt-6 flex max-w-xl gap-2" role="search">
                 <label for="q" class="sr-only">{{ __('Search by name or area') }}</label>
                 <input id="q" name="q" type="search" value="{{ $search }}" maxlength="60" class="field min-h-12 flex-1" placeholder="{{ __('Search by name or area') }}">
-                <button class="btn-primary min-h-12 px-5">{{ __('Search') }}</button>
+                <button class="btn-primary min-h-12 rounded-full px-5">{{ __('Search') }}</button>
             </form>
         @endunless
 
@@ -50,13 +50,13 @@
     </div>
 </section>
 
-<section class="py-10 lg:py-14">
+<section class="py-12 lg:py-16">
     <div class="mx-auto max-w-7xl px-4 sm:px-6">
         @if ($cards)
             <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 @foreach ($cards as $c)
                     <li class="relative" @if ($c['featured']) data-featured @endif>
-                        <a href="{{ $c['url'] }}" @class(['flex h-full flex-col rounded-2xl border bg-white p-4 transition hover:shadow-md', 'border-amber-300 ring-1 ring-amber-200 hover:border-amber-400' => $c['featured'], 'border-navy-100 hover:border-navy-300' => !$c['featured'], 'pb-16' => $c['online']]) data-place="{{ $c['slug'] }}">
+                        <a href="{{ $c['url'] }}" @class(['lp-lift flex h-full flex-col rounded-[24px] border bg-white p-4', 'border-amber-300 ring-1 ring-amber-200 hover:border-amber-400' => $c['featured'], 'border-navy-100 hover:border-navy-300' => !$c['featured'], 'pb-16' => $c['online']]) data-place="{{ $c['slug'] }}">
                             @if ($c['featured'])
                                 <span class="absolute -top-2.5 end-4 rounded-full bg-amber-400 px-2.5 py-0.5 text-xs font-extrabold text-amber-950">★ {{ __('Featured') }}</span>
                             @endif

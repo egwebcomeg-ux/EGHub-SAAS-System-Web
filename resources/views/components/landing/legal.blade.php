@@ -1,8 +1,7 @@
 @props(['title', 'updated', 'current'])
 {{-- Shell for the legal pages: title band, a side card with the page's sections (filled by landing.js) and the text. --}}
-<section class="relative overflow-hidden border-b border-navy-100 bg-gradient-to-b from-brand-50 to-white">
-    <div class="lp-dots pointer-events-none absolute inset-0" aria-hidden="true"></div>
-    <div class="relative mx-auto max-w-6xl px-4 py-12 sm:py-16">
+<section class="lp-hero lp-glow">
+    <div class="relative mx-auto max-w-6xl px-4 pt-8 pb-12 sm:pt-12 sm:pb-14">
         <nav class="flex items-center gap-2 text-sm text-navy-500" aria-label="{{ __('Breadcrumb') }}">
             <a href="{{ route('landing') }}" class="hover:text-navy-900">EgMenu</a>
             <span aria-hidden="true">/</span>

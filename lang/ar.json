@@ -3177,5 +3177,11 @@
     "In use": "المستخدم دلوقتي",
     "Street or sub-area in :area": "شارع أو منطقة فرعية في :area",
     "Empty = the main area’s fee": "فاضي = رسوم المنطقة الرئيسية",
-    "Add street": "ضيف شارع"
+    "Add street": "ضيف شارع",
+    "A free QR menu for your cafe or restaurant. Add table ordering, online orders and a loyalty card when you are ready.": "منيو QR ببلاش لكافيهك أو مطعمك. ولما تكون جاهز، زوّد الطلب من الترابيزة والطلب الأونلاين وكارت الولاء.",
+    "Learn more": "اعرف أكتر",
+    "Show all": "عرض الكل",
+    "Show less": "عرض أقل",
+    "Try editing": "جرّب تعدّل",
+    "Hide the dashboard": "اقفل لوحة التحكم"
 }

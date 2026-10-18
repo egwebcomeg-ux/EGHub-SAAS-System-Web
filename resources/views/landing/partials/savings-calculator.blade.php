@@ -33,7 +33,7 @@
      data-l10n="{{ json_encode($calcL10n, JSON_UNESCAPED_UNICODE) }}" class="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-8">
     <div class="min-w-0 space-y-5">
         @foreach (['menus' => [__('Paper menus'), 'printer'], 'delivery' => [__('Delivery apps'), 'scooter']] as $group => [$groupLabel, $groupIcon])
-            <fieldset class="min-w-0 rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+            <fieldset class="min-w-0 rounded-[24px] border border-navy-100 bg-white p-5 sm:p-6">
                 <legend class="sr-only">{{ $groupLabel }}</legend>
                 <p class="flex items-center gap-2 text-lg font-black" aria-hidden="true"><x-landing.icon :name="$groupIcon" class="size-5 text-brand-600" />{{ $groupLabel }}</p>
                 <div class="mt-4 grid gap-x-6 gap-y-5 sm:grid-cols-2">
@@ -57,7 +57,7 @@
             </fieldset>
         @endforeach
 
-        <div class="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+        <div class="rounded-[24px] border border-navy-100 bg-white p-5 sm:p-6">
             <label for="calc-plan" class="flex items-center gap-2 text-lg font-black"><x-landing.icon name="layers" class="size-5 text-brand-600" />{{ __('The plan you would take') }}</label>
             <select id="calc-plan" data-calc-plan class="field mt-3 h-12 font-bold">
                 @foreach ($plans as $p)
@@ -72,10 +72,18 @@
                 </label>
             @endif
         </div>
+
+        {{-- phones: the yearly total rides along at the bottom while the numbers are typed (aria-hidden: the full result below is the live region) --}}
+        <div class="sticky bottom-3 z-20 lg:hidden" aria-hidden="true" data-calc-mini>
+            <a href="#calc-result" tabindex="-1" class="flex min-h-14 items-center justify-between gap-3 rounded-2xl bg-navy-800 px-4 py-2.5 text-white shadow-[0_18px_40px_-16px_rgba(10,37,64,.7)]">
+                <span class="min-w-0 text-sm font-bold"><span class="block text-xs font-semibold text-white/60">{{ __('Over one year') }}</span><span data-calc-mini-label>{{ __('What stays with you') }}</span></span>
+                <span class="shrink-0"><b class="text-2xl font-black tracking-tight"><bdi dir="ltr" data-calc-mini-net>0</bdi></b> <span class="text-sm font-bold text-white/70">{{ __('EGP') }}</span></span>
+            </a>
+        </div>
     </div>
 
-    <div class="min-w-0 lg:sticky lg:top-24 lg:self-start">
-        <div class="rounded-3xl bg-navy-900 p-6 text-white sm:p-7" aria-live="polite">
+    <div id="calc-result" class="min-w-0 scroll-mt-24 lg:sticky lg:top-24 lg:self-start">
+        <div class="rounded-[28px] bg-navy-800 p-6 text-white sm:p-7" aria-live="polite">
             <p class="text-sm font-bold text-white/70">{{ __('Over one year') }}</p>
             <dl class="mt-4 space-y-4 text-[0.95rem]">
                 <div class="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
@@ -96,7 +104,7 @@
                 <p class="text-end"><b class="text-[2.1rem] leading-none font-black tracking-tight" data-calc-out-wrap><bdi dir="ltr" data-calc-out="net">0</bdi></b> <span class="text-sm font-bold text-white/70">{{ __('EGP') }}</span></p>
             </div>
             <p class="mt-5 rounded-xl bg-white/5 px-3 py-2.5 text-xs leading-relaxed text-white/70">{{ __('Worked out only from the numbers you typed. Plan prices are the monthly prices on this page.') }}</p>
-            <a href="{{ route('register') }}" class="btn-primary mt-5 min-h-12 w-full text-base">{{ __('Start free') }}</a>
+            <a href="{{ route('register') }}" class="btn-primary mt-5 min-h-12 w-full rounded-full text-base">{{ __('Start free') }}</a>
         </div>
     </div>
 </div>
@@ -116,6 +124,8 @@
     var addonRow = root.querySelector('[data-calc-addon-row]');
     var addonBox = root.querySelector('[data-calc-addon]');
     var netLabel = root.querySelector('[data-calc-net-label]');
+    var miniNet = root.querySelector('[data-calc-mini-net]');
+    var miniLabel = root.querySelector('[data-calc-mini-label]');
 
     function field(key) { return root.querySelector('[data-calc-input="' + key + '"]'); }
     function range(key) { return root.querySelector('[data-calc-range="' + key + '"]'); }
@@ -150,6 +160,8 @@
         explain('commission', canOrderOnline ? fmt(sales) + ' × 12 × ' + fmt(moved) + '% × ' + fmt(commission) + '%' : L.needsOnline);
         explain('plan', fmt(plan.monthly + (withPack ? pack : 0)) + ' × 12');
         netLabel.textContent = netLabel.getAttribute(net < 0 ? 'data-negative' : 'data-positive');
+        if (miniNet) miniNet.textContent = (net < 0 ? '−' : '') + fmt(Math.abs(net));
+        if (miniLabel) miniLabel.textContent = netLabel.textContent;
     }
 
     root.querySelectorAll('[data-calc-input]').forEach(function (el) {

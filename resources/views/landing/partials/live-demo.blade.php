@@ -25,8 +25,18 @@
 @endphp
 <div data-live-demo data-l10n="{{ json_encode($demoL10n, JSON_UNESCAPED_UNICODE) }}"
      class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:grid-rows-[auto_1fr] lg:gap-x-10">
+    {{-- phones: the guest's phone comes first, the dashboard opens under "Try editing" --}}
+    <div class="flex justify-center max-lg:order-2 lg:hidden">
+        <button type="button" data-collapse-btn aria-controls="demo-dashboard" aria-expanded="false" data-open="{{ __('Try editing') }}" data-close="{{ __('Hide the dashboard') }}"
+                class="btn-ghost min-h-12 rounded-full px-6 text-base font-bold">
+            <x-landing.icon name="pencil" class="size-5 text-brand-600" /><span data-collapse-label>{{ __('Try editing') }}</span>
+            <svg class="lp-chev size-4 text-navy-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5.3 7.3a1 1 0 0 1 1.4 0L10 10.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 0-1.4z"/></svg>
+        </button>
+    </div>
+
     {{-- the owner's side: prices and sold-out --}}
-    <div class="min-w-0 overflow-hidden rounded-2xl border border-navy-100 bg-white shadow-[0_20px_40px_-26px_rgba(20,31,56,.6)] lg:col-start-1 lg:row-start-1 lg:self-start">
+    <div id="demo-dashboard" class="lp-collapse min-w-0 max-lg:order-3 lg:col-start-1 lg:row-start-1 lg:self-start">
+    <div class="min-w-0 overflow-hidden rounded-2xl border border-navy-100 bg-white shadow-[0_20px_40px_-26px_rgba(20,31,56,.6)]">
         <div class="flex h-9 items-center gap-1.5 border-b border-navy-100 bg-navy-50/60 px-3 text-xs font-bold text-navy-500">
             <i class="size-2 rounded-full bg-navy-200"></i><i class="size-2 rounded-full bg-navy-200"></i>
             <span class="ms-2 truncate">{{ __('Your dashboard') }} · {{ __('Menu') }}</span>
@@ -49,9 +59,10 @@
             @endforeach
         </ul>
     </div>
+    </div>
 
     {{-- the guest's phone --}}
-    <div class="mx-auto w-full max-w-[300px] lg:col-start-2 lg:row-span-2 lg:row-start-1">
+    <div class="mx-auto w-full max-w-[300px] max-lg:order-1 lg:col-start-2 lg:row-span-2 lg:row-start-1">
         <p class="mb-2 text-center text-xs font-bold text-navy-500">{{ __('The guest’s phone') }} · {{ __('Table 4') }}</p>
         <div class="rounded-[34px] bg-[#10182b] p-2 shadow-[0_24px_40px_-24px_rgba(20,31,56,.7)]">
             <div class="relative flex min-h-[500px] flex-col overflow-hidden rounded-[27px] bg-[#fbf7f1] text-navy-900">
@@ -91,14 +102,14 @@
     </div>
 
     {{-- orders reaching the dashboard --}}
-    <div class="min-w-0 rounded-2xl border border-navy-100 bg-white p-4 lg:col-start-1 lg:row-start-2 lg:self-start">
+    <div class="min-w-0 rounded-2xl border border-navy-100 bg-white p-4 max-lg:order-4 lg:col-start-1 lg:row-start-2 lg:self-start">
         <p class="flex items-center gap-2 text-sm font-black text-navy-900"><x-landing.icon name="bell" class="size-4 text-brand-600" />{{ __('Orders') }}</p>
         <div data-demo-orders aria-live="polite" class="mt-3 space-y-3">
             <p data-demo-empty class="rounded-xl border border-dashed border-navy-200 px-3 py-4 text-center text-sm text-navy-500">{{ __('No orders yet. Add something on the phone and send it.') }}</p>
         </div>
     </div>
 </div>
-<p class="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-navy-500">
+<p class="mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-sm text-navy-500 lg:justify-start lg:text-start">
     <span class="inline-flex items-center gap-1.5"><x-landing.icon name="shield" class="size-4" />{{ __('A demo running in your browser. Nothing is saved or sent.') }}</span>
     <button type="button" data-demo-reset class="min-h-11 font-bold text-brand-700 underline-offset-4 hover:underline">{{ __('Start the demo again') }}</button>
 </p>
