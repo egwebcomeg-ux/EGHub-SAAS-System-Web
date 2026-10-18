@@ -6,9 +6,13 @@ use App\Billing\Billing;
 use App\Models\Branch;
 use App\Models\Customer;
 use App\Models\DeliveryZone;
+use App\Models\LoyaltyCard;
+use App\Models\LoyaltyProgram;
 use App\Models\Order;
 use App\Models\Tenant;
+use App\Services\Settings;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Tests\TenantTestCase;
 
 class CallCenterTest extends TenantTestCase
@@ -138,5 +142,77 @@ class CallCenterTest extends TenantTestCase
         $customer = $this->as($a, fn () => Customer::query()->first());
         $this->assertSame(30.05, $customer->addresses[0]['lat']);
         $this->assertSame(30.05, $this->as($a, fn () => Order::query()->first())->delivery_address['lat']);
+    }
+
+    /** @return array<string, mixed> */
+    private function screenData(TestResponse $page): array
+    {
+        preg_match('#<script type="application/json" id="pos-data">(.*?)</script>#s', $page->getContent(), $m);
+
+        return json_decode($m[1] ?? '{}', true);
+    }
+
+    public function test_the_panel_shows_customer_delivery_and_order_with_the_two_step_area_pick(): void
+    {
+        $a = $this->withCallCenter('cafe-a');
+        $nasr = $this->zone($a, ['name' => 'Nasr City', 'fee' => 30, 'min_order' => 150]);
+        $street = $this->zone($a, ['name' => 'Abbas St', 'parent_id' => $nasr->id, 'fee' => 40, 'min_order' => null]);
+        $agent = $this->staff($a, 'callcenter', 'agent@a.test');
+
+        $page = $this->actingAs($agent)->get($this->dashUrl('/call-center'))->assertOk();
+        // two zones (customer & delivery, the order), the steps for narrow screens and the always-visible footer
+        foreach (['data-cc-panel', 'data-cc-tab="customer"', 'data-cc-tab="delivery"', 'data-cc-tab="order"', 'data-cc-summary', 'data-cc-footer',
+            'data-customer-phone', 'data-lookup', 'data-caller', 'data-addresses', 'data-zone-root', 'data-zone-sub', 'data-zone ', 'data-zone-facts',
+            'data-min-warning', 'data-address ', 'data-address-label', 'data-map-toggle', 'data-lines', 'data-totals', 'data-send'] as $hook) {
+            $page->assertSee($hook, false);
+        }
+        $page->assertDontSee('data-pay>', false)->assertDontSee('data-coupon-apply', false); // paid later, on delivery
+
+        $data = $this->screenData($page);
+        $this->assertSame('manual', $data['zoneMode']);
+        $zones = collect($data['zones'])->keyBy('id');
+        $this->assertSame($nasr->id, $zones[$street->id]['parent']);
+        $this->assertSame('Abbas St', $zones[$street->id]['short']);
+        $this->assertSame('Nasr City › Abbas St', $zones[$street->id]['name']);
+        $this->assertEquals(150, $zones[$street->id]['min']); // the street takes the main area's minimum
+        $this->assertNull($zones[$nasr->id]['parent']);
+
+        // drawn areas: one zone list with the map pin next to it, no two-step pickers
+        $this->as($a, fn () => Settings::put(['delivery_zone_mode' => 'map']));
+        $page = $this->actingAs($agent)->get($this->dashUrl('/call-center'))->assertOk()
+            ->assertSee('data-zone ', false)->assertSee('data-map-toggle', false)->assertDontSee('data-zone-root', false);
+        $this->assertSame('map', $this->screenData($page)['zoneMode']);
+    }
+
+    public function test_the_caller_card_carries_loyalty_and_stays_inside_the_restaurant(): void
+    {
+        $a = $this->withCallCenter('cafe-a');
+        $b = $this->withCallCenter('cafe-b');
+        $agent = $this->staff($a, 'callcenter', 'agent@a.test');
+        $this->as($a, function () {
+            $customer = Customer::query()->create(['phone' => '01012345678', 'name' => 'Mona']);
+            $program = LoyaltyProgram::query()->create(['type' => 'visits', 'title' => 'Coffee card', 'stamps_required' => 8, 'reward_label' => 'Free coffee']);
+            LoyaltyCard::query()->create(['loyalty_program_id' => $program->id, 'customer_id' => $customer->id, 'stamps' => 5, 'rewards_available' => 1]);
+        });
+        // the same mobile at another restaurant, with its own card and address
+        $this->as($b, function () {
+            $customer = Customer::query()->create(['phone' => '01012345678', 'name' => 'Other', 'addresses' => [['label' => 'B', 'zone_id' => 1, 'text' => 'elsewhere']]]);
+            $program = LoyaltyProgram::query()->create(['type' => 'visits', 'title' => 'B card', 'stamps_required' => 5, 'reward_label' => 'x']);
+            LoyaltyCard::query()->create(['loyalty_program_id' => $program->id, 'customer_id' => $customer->id, 'stamps' => 4]);
+        });
+
+        $this->actingAs($agent)->getJson($this->dashUrl('/call-center/customer?phone=01012345678'))->assertOk()
+            ->assertJsonPath('name', 'Mona')->assertJsonPath('addresses', [])->assertJsonPath('orders', [])
+            ->assertJsonCount(1, 'loyalty')
+            ->assertJsonPath('loyalty.0', ['title' => 'Coffee card', 'stamps' => 5, 'of' => 8, 'rewards' => 1])
+            ->assertJsonPath('tier', null)->assertJsonPath('balance', null); // basic plan: no tiers, no wallet
+
+        // a paused program is not shown on the card
+        $this->as($a, fn () => LoyaltyProgram::query()->update(['is_active' => false]));
+        $this->actingAs($agent)->getJson($this->dashUrl('/call-center/customer?phone=01012345678'))->assertJsonCount(0, 'loyalty');
+
+        // the lookup needs the call-center permission
+        $kitchen = $this->staff($a, 'kitchen', 'k@a.test');
+        $this->actingAs($kitchen)->getJson($this->dashUrl('/call-center/customer?phone=01012345678'))->assertForbidden();
     }
 }

@@ -20,6 +20,9 @@ if (dataEl) {
     const CC = D.mode === 'callcenter'; // call-center mode: delivery / pickup, caller lookup, no payment here
     let ccPoint = () => null; // the pinned customer location (set by the call-center map below)
     let resetPoint = () => {};
+    let renderCc = () => {}; // call-center panel: steps, zone facts, summary line (set below)
+    let resetCc = () => {};
+    let goStep = () => {};
     const zones = Object.fromEntries((D.zones || []).map((z) => [z.id, z]));
     let state = { type: CC ? 'delivery' : 'takeaway', table: '', lines: [], category: 'all' };
     let lastOrderId = null;
@@ -189,15 +192,11 @@ if (dataEl) {
         }).join('') : `<li class="py-10 text-center text-sm text-navy-500">${esc(T.empty)}</li>`;
         const t = totals();
         const row = (label, v, cls = '') => `<div class="flex justify-between ${cls}"><span>${esc(label)}</span><span>${fmt(v)}</span></div>`;
-        $('[data-totals]').innerHTML = (t.discount || t.service || t.tax ? row(T.subtotal, t.subtotal) : '')
+        $('[data-totals]').innerHTML = (t.discount || t.service || t.tax || t.delivery ? row(T.subtotal, t.subtotal) : '')
             + (t.staff ? row(T.discount, -t.staff, 'text-emerald-700') : '')
             + (t.voucher ? row(T.voucher.replace('__C__', state.coupon.code), -t.voucher, 'text-emerald-700') : '') + (t.service ? row(T.service, t.service) : '')
             + (t.tax ? row(T.tax, t.tax) : '') + (t.delivery ? row(T.deliveryFee, t.delivery) : '') + row(T.total, t.total, 'text-lg font-extrabold');
-        if (CC) {
-            const short = t.zone && t.zone.min > 0 && t.subtotal - t.discount < t.zone.min;
-            $('[data-min-warning]').textContent = short ? T.minOrder.replace('__A__', fmt(t.zone.min)) : '';
-            $('[data-min-warning]').classList.toggle('hidden', !short);
-        }
+        if (CC) renderCc(t);
         // phones: the bar under the menu shows how many items the order has and its total
         const bar = $('[data-ticket-bar]');
         if (bar) {
@@ -234,8 +233,7 @@ if (dataEl) {
         if (CC) {
             resetPoint();
             state.type = 'delivery';
-            $('[data-caller]').classList.add('hidden');
-            $('[data-addresses]').innerHTML = '';
+            resetCc();
         }
         if ($('[data-discount]')) $('[data-discount]').value = 0;
         render();
@@ -259,22 +257,74 @@ if (dataEl) {
         if (!state.lines.length) return false;
         if (state.type === 'dine_in' && !state.table) { alert(T.chooseTable); return false; }
         if (CC) {
-            if (!$('[data-customer-phone]').value.trim()) { alert(T.phoneFirst); $('[data-customer-phone]').focus(); return false; }
+            if (!$('[data-customer-phone]').value.trim()) { goStep('customer', true); alert(T.phoneFirst); $('[data-customer-phone]').focus(); return false; }
             if (state.type === 'delivery') {
                 const t = totals();
-                if (!t.zone) { alert(T.chooseZone); return false; }
-                if (!$('[data-address]').value.trim()) { alert(T.enterAddress); $('[data-address]').focus(); return false; }
+                if (!t.zone) { goStep('delivery'); alert(T.chooseZone); return false; }
+                if (!$('[data-address]').value.trim()) { goStep('delivery'); alert(T.enterAddress); $('[data-address]').focus(); return false; }
                 if (t.zone.min > 0 && t.subtotal - t.discount < t.zone.min) { alert(T.minOrder.replace('__A__', fmt(t.zone.min))); return false; }
             }
         }
         return true;
     }
 
-    // ---- call center: caller lookup and saved addresses ----
+    // ---- call center: caller card, saved addresses, delivery zone, steps ----
     if (CC) {
-        $('[data-zone]').innerHTML += D.zones.map((z) => `<option value="${z.id}">${esc(z.name)} · ${fmt(z.fee)}${z.minutes ? ' · ' + esc(T.minutes.replace('__N__', z.minutes)) : ''}</option>`).join('');
-        $('[data-zone]').addEventListener('change', render);
+        const panel = $('[data-cc-panel]');
+        const zoneSel = $('[data-zone]');
+        zoneSel.innerHTML += D.zones.map((z) => `<option value="${z.id}">${esc(z.name)} · ${fmt(z.fee)}${z.minutes ? ' · ' + esc(T.minutes.replace('__N__', z.minutes)) : ''}</option>`).join('');
+        zoneSel.addEventListener('change', render);
         let saved = [];
+
+        // ---- manual zones: the main area, then its street / sub-area (as the guest picks it on the menu) ----
+        const rootSel = $('[data-zone-root]');
+        const subSel = $('[data-zone-sub]');
+        const kidsOf = (id) => D.zones.filter((z) => z.parent === id);
+        // a sub-area whose main area is not offered on its own is listed with the main areas
+        const roots = D.zones.filter((z) => !z.parent || !zones[z.parent]);
+        const facts = (z) => [T.zoneFee.replace('__A__', fmt(z.fee)), z.min > 0 ? T.zoneMin.replace('__A__', fmt(z.min)) : '', z.minutes ? T.zoneTime.replace('__N__', z.minutes) : '']
+            .filter(Boolean).join(' · ');
+        if (rootSel) {
+            rootSel.innerHTML += roots.map((z) => {
+                const kids = kidsOf(z.id).length;
+                return `<option value="${z.id}" title="${kids ? esc(T.streets.replace('__N__', kids)) : ''}">${esc(z.parent ? z.name : z.short)}${kids ? '' : ' · ' + fmt(z.fee)}</option>`;
+            }).join('');
+        }
+        function fillSub(rootId, selected = '') {
+            if (!subSel) return;
+            const kids = rootId ? kidsOf(rootId) : [];
+            subSel.innerHTML = `<option value="">${esc(T.chooseStreet)}</option>`
+                + kids.map((z) => `<option value="${z.id}">${esc(z.short)} · ${fmt(z.fee)}${z.min > 0 ? ' · ' + esc(T.zoneMin.replace('__A__', fmt(z.min))) : ''}</option>`).join('');
+            subSel.disabled = !kids.length;
+            subSel.classList.toggle('hidden', !!rootId && !kids.length);
+            rootSel.classList.toggle('col-span-2', !!rootId && !kids.length);
+            subSel.value = selected;
+        }
+        // keeps the two pickers in step with the zone that is sent (picked from a saved address or the map)
+        function syncPickers() {
+            if (!rootSel) return;
+            const z = zones[zoneSel.value];
+            const rootId = z ? (z.parent && zones[z.parent] ? z.parent : z.id) : null;
+            rootSel.value = rootId || '';
+            fillSub(rootId, z && rootId !== z.id ? String(z.id) : '');
+        }
+        function setZone(id) {
+            zoneSel.value = id || '';
+            syncPickers();
+            render();
+        }
+        rootSel?.addEventListener('change', () => {
+            const id = Number(rootSel.value) || null;
+            fillSub(id);
+            // an area without streets is the zone itself; otherwise wait for the street
+            zoneSel.value = id && !kidsOf(id).length ? id : '';
+            render();
+            if (id && kidsOf(id).length) subSel.focus();
+        });
+        subSel?.addEventListener('change', () => {
+            zoneSel.value = subSel.value || '';
+            render();
+        });
 
         // ---- map: pin the customer, the zone whose drawn area contains the pin is chosen ----
         let point = null;
@@ -293,13 +343,17 @@ if (dataEl) {
         const drawn = D.zones.filter((z) => z.polygon && z.polygon.length >= 3).sort((a, b) => b.sub - a.sub);
         function setPoint(p, pickZone = true) {
             point = p;
-            $('[data-pinned]').textContent = p ? '✓ ' + T.pinned : '';
+            const pinned = $('[data-pinned]');
+            pinned.textContent = p ? '📍 ✓ ' + T.pinnedOnMap : '';
+            pinned.classList.toggle('hidden', !p);
+            $('[data-map-toggle]').classList.toggle('ring-2', !!p);
+            $('[data-map-toggle]').classList.toggle('ring-emerald-500', !!p);
             if (!map) return;
             if (marker) marker.remove();
             marker = p ? L.marker(p).addTo(map) : null;
             if (p && pickZone) {
                 const zone = drawn.find((z) => inside(p, z.polygon));
-                if (zone) { $('[data-zone]').value = zone.id; render(); } else alert(T.outside);
+                if (zone) setZone(zone.id); else alert(T.outside);
             }
         }
         $('[data-map-toggle]').addEventListener('click', () => {
@@ -315,16 +369,65 @@ if (dataEl) {
             if (point) map.setView(point, 15);
         });
 
+        // ---- saved addresses: one tap fills the zone, the address and its name ----
         const pick = (a) => {
-            $('[data-zone]').value = a.zone_id;
             $('[data-address]').value = a.text;
             $('[data-address-label]').value = a.label || '';
             setPoint(a.lat != null ? [a.lat, a.lng] : null, false);
-            render();
+            setZone(a.zone_id);
         };
+        function renderAddresses() {
+            $('[data-addresses-box]').classList.toggle('hidden', !saved.length);
+            const text = $('[data-address]').value.trim();
+            $('[data-addresses]').innerHTML = saved.map((a, i) => {
+                const on = String(a.zone_id) === zoneSel.value && a.text === text;
+                return `<button type="button" class="flex min-h-11 min-w-0 max-w-full flex-col items-start rounded-xl border px-3 py-1.5 text-start ${on ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600' : 'border-navy-100 bg-white hover:border-navy-300'}" data-pick-address="${i}" aria-pressed="${on}" title="${esc(a.text)}">
+                    <span class="text-sm font-bold">${a.label ? '📍 ' + esc(a.label) : '📍 ' + esc(zones[a.zone_id].short)}</span>
+                    <span class="max-w-56 truncate text-xs text-navy-500">${esc(zones[a.zone_id].name)} · ${esc(a.text)}</span>
+                </button>`;
+            }).join('');
+        }
         $('[data-addresses]').addEventListener('click', (e) => {
             const b = e.target.closest('[data-pick-address]');
             if (b) pick(saved[Number(b.dataset.pickAddress)]);
+        });
+        $('[data-address]').addEventListener('input', () => render());
+
+        // ---- the caller: look up by mobile; a known caller collapses to a card with "edit" ----
+        const showSearch = (on) => {
+            $('[data-caller-search]').classList.toggle('hidden', !on);
+            $('[data-customer-fields]').classList.toggle('hidden', !on);
+        };
+        function callerCard(c) {
+            const last = c.orders[0];
+            const chips = [
+                c.orders_count ? T.ordersCount.replace('__N__', c.orders_count) : T.firstOrder,
+                last ? T.lastOrder.replace('__W__', last.date).replace('__T__', last.total + ' ' + D.currency) : '',
+                c.tier ? '⭐ ' + c.tier : '',
+                ...(c.loyalty || []).map((l) => '🎟 ' + l.title + ' · ' + T.stamps.replace('__N__', l.stamps).replace('__O__', l.of) + (l.rewards ? ' · ' + T.rewards.replace('__N__', l.rewards) : '')),
+                c.balance > 0 ? '💳 ' + T.balance.replace('__A__', fmt(c.balance)) : '',
+            ].filter(Boolean);
+            const phones = [c.phone, $('[data-phone2]').value.trim()].filter(Boolean);
+            return `<div class="rounded-2xl border border-navy-100 bg-white p-3 shadow-sm" data-caller-card>
+                <div class="flex items-start gap-3">
+                    <div class="grid size-11 shrink-0 place-items-center rounded-full bg-navy-800 text-lg font-extrabold text-white" aria-hidden="true">${esc((c.name || '#').trim().charAt(0))}</div>
+                    <div class="min-w-0 flex-1">
+                        <div class="truncate text-base font-extrabold">${esc(c.name || T.noName)}</div>
+                        <div class="flex flex-wrap gap-x-3 text-sm text-navy-500">${phones.map((x) => `<span dir="ltr">${esc(x)}</span>`).join('')}</div>
+                    </div>
+                    <button type="button" class="btn-ghost min-h-11 shrink-0 px-3 text-sm" data-caller-edit>${esc(T.edit)}</button>
+                </div>
+                <div class="mt-2 flex flex-wrap gap-1.5">${chips.map((x) => `<span class="rounded-full bg-navy-50 px-2.5 py-1 text-xs font-semibold text-navy-700">${esc(x)}</span>`).join('')}</div>
+                ${c.notes ? `<div class="mt-2 rounded-xl bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-700">⚠ ${esc(c.notes)}</div>` : ''}
+                ${c.orders.length ? `<details class="mt-1 text-xs"><summary class="flex min-h-11 cursor-pointer items-center font-semibold text-navy-600">${esc(T.previousOrders)}</summary>
+                    <ul class="space-y-1 text-navy-600">${c.orders.map((o) => `<li>#${o.number} · ${esc(o.date)} · ${esc(o.type)} · ${esc(o.total)} · ${esc(o.status)}</li>`).join('')}</ul></details>` : ''}
+            </div>`;
+        }
+        $('[data-caller]').addEventListener('click', (e) => {
+            if (!e.target.closest('[data-caller-edit]')) return;
+            showSearch(true);
+            e.target.closest('[data-caller-edit]').remove();
+            $('[data-customer-name]').focus();
         });
         async function lookup() {
             const phone = $('[data-customer-phone]').value.trim();
@@ -338,28 +441,104 @@ if (dataEl) {
                 $('[data-customer-phone]').value = c.phone;
                 if (!c.found) {
                     saved = [];
-                    box.innerHTML = `<b class="text-emerald-700">${esc(T.newCaller)}</b>`;
-                    $('[data-addresses]').innerHTML = '';
+                    renderAddresses();
+                    box.innerHTML = `<p class="rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800">${esc(T.newCaller)}</p>`;
+                    showSearch(true);
                     $('[data-customer-name]').focus();
+                    render();
                     return;
                 }
                 $('[data-customer-name]').value = c.name || '';
                 $('[data-phone2]').value = c.phone_2 || '';
-                box.innerHTML = `<div class="font-bold">${esc(c.name || c.phone)}${c.orders_count ? ' · ' + esc(T.ordersCount.replace('__N__', c.orders_count)) : ''}</div>`
-                    + (c.notes ? `<div class="mt-1 text-brand-700">⚠ ${esc(c.notes)}</div>` : '')
-                    + (c.orders.length ? `<ul class="mt-1 space-y-0.5 text-navy-500">${c.orders.map((o) => `<li>#${o.number} · ${esc(o.date)} · ${esc(o.type)} · ${esc(o.total)} · ${esc(o.status)}</li>`).join('')}</ul>` : '');
+                box.innerHTML = callerCard(c);
+                showSearch(false);
                 saved = c.addresses.filter((a) => zones[a.zone_id]); // addresses in zones this branch still serves
-                $('[data-addresses]').innerHTML = saved.map((a, i) =>
-                    `<button type="button" class="btn-ghost min-h-8 px-2 text-xs" data-pick-address="${i}" title="${esc(a.text)}">📍 ${esc(a.label || zones[a.zone_id].name)}</button>`).join('');
-                if (saved[0]) pick(saved[0]);
+                renderAddresses();
+                if (saved[0] && state.type === 'delivery') pick(saved[0]); else render();
+                goStep('delivery');
             } catch (err) {
-                box.innerHTML = `<b class="text-red-600">${esc(err.message)}</b>`;
+                box.innerHTML = `<p class="rounded-xl bg-red-50 px-3 py-2 text-sm font-bold text-red-700">${esc(err.message)}</p>`;
             }
         }
         ccPoint = () => point;
         resetPoint = () => setPoint(null, false);
         $('[data-lookup]').addEventListener('click', lookup);
         $('[data-customer-phone]').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); lookup(); } });
+        $('[data-customer-name]').addEventListener('input', () => render());
+
+        // ---- steps on narrower screens (customer → delivery → order); both zones show side by side from 1280px ----
+        let step = 'customer';
+        goStep = (s, focus = false) => {
+            step = s;
+            panel.dataset.ccStep = s;
+            $$('[data-cc-tab]').forEach((b) => {
+                const on = b.dataset.ccTab === s;
+                b.setAttribute('aria-selected', on ? 'true' : 'false');
+                b.classList.toggle('bg-white', on);
+                b.classList.toggle('text-navy-900', on);
+                b.classList.toggle('shadow-sm', on);
+                b.classList.toggle('text-navy-600', !on);
+            });
+            $('[data-cc-setup]').classList.toggle('max-xl:hidden', s === 'order');
+            $('[data-cc-order]').classList.toggle('max-xl:hidden', s !== 'order');
+            $('[data-cc-pane="customer"]').classList.toggle('max-xl:hidden', s !== 'customer');
+            $('[data-cc-pane="delivery"]').classList.toggle('max-xl:hidden', s !== 'delivery');
+            $('[data-cc-footer-summary]').classList.toggle('hidden', s === 'order');
+            if (focus && s === 'customer') $('[data-customer-phone]').focus();
+        };
+        $$('[data-cc-tab]').forEach((b) => b.addEventListener('click', () => goStep(b.dataset.ccTab)));
+        $$('[data-cc-next]').forEach((b) => b.addEventListener('click', () => goStep(b.dataset.ccNext)));
+        $$('[data-cc-goto]').forEach((b) => b.addEventListener('click', () => goStep(b.dataset.ccGoto)));
+
+        renderCc = (t) => {
+            const delivery = state.type === 'delivery';
+            $('[data-pickup-note]').classList.toggle('hidden', delivery);
+            // the chosen zone: fee, minimum and time inline, and how far below the minimum the order is
+            const z = delivery ? t.zone : null;
+            $('[data-zone-facts]').classList.toggle('hidden', !delivery);
+            $('[data-zone-facts]').innerHTML = z
+                ? `<b class="text-navy-900">${esc(z.name)}</b><span>${esc(facts(z))}</span>`
+                : `<span class="text-navy-500">${esc(T.pickArea)}</span>`;
+            const left = z && z.min > 0 ? z.min - (t.subtotal - t.discount) : 0;
+            ['[data-min-warning]', '[data-min-warning-footer]'].forEach((sel) => {
+                const warn = $(sel);
+                warn.textContent = left > 0 ? '⚠ ' + T.belowMin.replace('__M__', fmt(z.min)).replace('__S__', fmt(left)) : '';
+                warn.classList.toggle('hidden', !(left > 0));
+            });
+            // one line that says who and where, above the order lines (and in the footer on the other steps)
+            const name = $('[data-customer-name]').value.trim();
+            const phone = $('[data-customer-phone]').value.trim();
+            const who = name || phone ? `👤 <b>${esc(name || phone)}</b>${name && phone ? ` <span class="text-navy-500" dir="ltr">${esc(phone)}</span>` : ''}` : `<span class="text-amber-700">👤 ${esc(T.noCustomer)}</span>`;
+            const where = !delivery ? `🛍 <b>${esc(T.pickup)}</b>${D.branchName ? ' · ' + esc(D.branchName) : ''}`
+                : z ? `<span class="truncate">🛵 <b>${esc(T.delivery)}</b> · ${esc(z.name)}</span><span class="shrink-0 font-bold">· ${esc(fmt(z.fee))}</span>`
+                    : `<span class="font-bold text-amber-700">🛵 ${esc(T.delivery)} · ${esc(T.noArea)}</span>`;
+            $$('[data-cc-summary]').forEach((el) => { el.innerHTML = `<div class="truncate">${who}</div><div class="flex min-w-0 gap-1 overflow-hidden whitespace-nowrap"><span class="flex min-w-0 gap-1">${where}</span></div>`; });
+            const count = state.lines.reduce((n, l) => n + l.qty, 0);
+            $$('[data-cc-count]').forEach((el) => { el.textContent = count; });
+            $('[data-send-total]').textContent = fmt(t.total);
+            // the step badges turn into a check once the step has what the order needs
+            const done = { customer: !!phone, delivery: !delivery || (!!z && !!$('[data-address]').value.trim()), order: count > 0 };
+            $$('[data-cc-tab]').forEach((b, i) => {
+                const num = $('[data-cc-tab-num]', b);
+                num.textContent = done[b.dataset.ccTab] ? '✓' : ['١', '٢', '٣'][i];
+                num.classList.toggle('bg-emerald-600', done[b.dataset.ccTab]);
+                num.classList.toggle('text-white', done[b.dataset.ccTab]);
+                num.classList.toggle('bg-white', !done[b.dataset.ccTab]);
+                num.classList.toggle('ring-1', !done[b.dataset.ccTab]);
+            });
+            renderAddresses();
+        };
+        resetCc = () => {
+            saved = [];
+            $('[data-caller]').classList.add('hidden');
+            $('[data-caller]').innerHTML = '';
+            showSearch(true);
+            if ($('[data-address-more]')) $('[data-address-more]').open = false;
+            $('[data-cc-map]').classList.add('hidden');
+            syncPickers();
+            goStep('customer');
+        };
+        goStep('customer');
     }
 
     // ---- send / pay ----

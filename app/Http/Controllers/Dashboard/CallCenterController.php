@@ -5,10 +5,14 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\DeliveryZone;
+use App\Models\LoyaltyCard;
 use App\Models\Order;
+use App\Services\Loyalty\Membership;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use App\Services\Orders\ShiftService;
+use App\Services\Settings;
+use App\Services\Wallet\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -32,19 +36,23 @@ class CallCenterController extends Controller
         $data['walletManage'] = false;
         $data['urls']['order'] = route('dash.callcenter.order');
         $data['urls']['lookup'] = route('dash.callcenter.lookup');
+        // manual: main area, then its street / sub-area (as the guest picks it); map: one list plus the map pin
+        $data['zoneMode'] = Settings::get('delivery_zone_mode') === 'map' ? 'map' : 'manual';
+        $data['branchName'] = tr($branch->name, $branch->name_en);
         $data['zones'] = DeliveryZone::query()->where('branch_id', $branch->id)->where('is_active', true)->with('parent')
             ->get()->sortBy(fn (DeliveryZone $z) => $z->label())
             ->map(fn (DeliveryZone $z) => [
                 'id' => $z->id, 'name' => $z->label(), 'fee' => (float) ($z->effective('fee') ?? 0),
                 'min' => (float) ($z->effective('min_order') ?? 0), 'minutes' => $z->effective('estimated_minutes'),
                 'polygon' => $z->polygon, 'sub' => $z->parent_id !== null,
+                'parent' => $z->parent_id, 'short' => tr($z->name, $z->name_en),
             ])->values();
 
         return $view->with(['data' => $data, 'mode' => 'callcenter', 'needsShift' => false]);
     }
 
-    /** Caller card: name, second phone, saved addresses, notes and the last orders. */
-    public function lookup(Request $request): JsonResponse
+    /** Caller card: name, second phone, saved addresses, notes, the last orders and loyalty (tier, stamps, balance). */
+    public function lookup(Request $request, Membership $membership): JsonResponse
     {
         $phone = normalize_phone((string) $request->query('phone', ''));
         if (! $phone) {
@@ -60,6 +68,13 @@ class CallCenterController extends Controller
             'found' => true, 'phone' => $phone, 'name' => $customer->name, 'phone_2' => $customer->phone_2,
             'notes' => $customer->notes, 'addresses' => array_values($customer->addresses ?? []),
             'orders_count' => Order::query()->where('customer_id', $customer->id)->where('status', '!=', 'cancelled')->count(),
+            'tier' => $membership->tierFor($customer)?->displayName(),
+            'balance' => WalletService::enabled() ? (float) $customer->credit_balance : null,
+            'loyalty' => $customer->loyaltyCards()->with('program')->whereHas('program', fn ($q) => $q->where('is_active', true))
+                ->latest('updated_at')->limit(2)->get()->map(fn (LoyaltyCard $card) => [
+                    'title' => tr($card->program->title, $card->program->title_en), 'stamps' => $card->stamps,
+                    'of' => $card->program->stamps_required, 'rewards' => $card->rewards_available,
+                ])->values(),
             'orders' => $orders->map(fn (Order $o) => [
                 'number' => $o->number, 'date' => local_time($o->created_at, 'd/m h:i A'), 'total' => money($o->total),
                 'status' => $o->statusLabel(), 'type' => Order::TYPES[$o->type][app()->getLocale() === 'en' ? 1 : 0] ?? $o->type,

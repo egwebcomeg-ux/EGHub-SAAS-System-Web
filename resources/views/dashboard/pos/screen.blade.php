@@ -45,7 +45,7 @@
         <section class="flex min-w-0 flex-1 flex-col">
             <div class="flex gap-2 overflow-x-auto border-b border-navy-100 bg-white px-3 py-2" data-cats></div>
             <div class="p-3"><input type="search" class="field" placeholder="{{ __('Search items') }}" data-search></div>
-            <div class="grid flex-1 auto-rows-min grid-cols-2 gap-2 overflow-y-auto p-3 pt-0 sm:grid-cols-3 xl:grid-cols-5" data-items></div>
+            <div class="grid flex-1 auto-rows-min grid-cols-2 gap-2 overflow-y-auto p-3 pt-0 sm:grid-cols-3 {{ $cc ? 'xl:grid-cols-3 min-[87.5rem]:grid-cols-4' : 'xl:grid-cols-5' }}" data-items></div>
             {{-- phones: the order opens as a sheet from this bar --}}
             <div class="border-t border-navy-100 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden" data-ticket-bar>
                 <button type="button" class="btn-primary w-full justify-between" data-ticket-open aria-controls="pos-ticket" aria-expanded="false">
@@ -57,6 +57,9 @@
         <div class="pos-ticket-backdrop fixed inset-0 z-30 bg-navy-900/50 md:hidden" data-ticket-backdrop aria-hidden="true"></div>
 
         {{-- ticket --}}
+        @if ($cc)
+            @include('dashboard.pos.callcenter-ticket')
+        @else
         <aside id="pos-ticket" class="pos-ticket flex w-[22rem] shrink-0 flex-col overflow-y-auto border-s border-navy-100 bg-white max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-40 max-md:max-h-[88dvh] max-md:w-full max-md:rounded-t-3xl max-md:border-s-0 max-md:shadow-2xl lg:w-[24rem]" data-ticket>
             <div class="flex items-center justify-between border-b border-navy-100 px-4 py-2 md:hidden">
                 <span class="font-extrabold">🧾 {{ __('The order') }}</span>
@@ -64,56 +67,23 @@
                     <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
                 </button>
             </div>
-            @if ($cc)
-                {{-- caller: lookup by mobile, saved addresses, last orders --}}
-                <div class="space-y-2 border-b border-navy-100 p-3 text-sm">
-                    <div class="flex gap-2">
-                        <input class="field min-h-10 flex-1 text-lg" data-customer-phone placeholder="{{ __('Caller mobile') }}" maxlength="20" dir="ltr" inputmode="tel" autofocus>
-                        <button type="button" class="btn-primary min-h-10 px-4" data-lookup>{{ __('Search') }}</button>
-                    </div>
-                    <div class="hidden rounded-lg bg-navy-50 p-2 text-xs" data-caller></div>
-                    <input class="field min-h-9" data-customer-name placeholder="{{ __('Customer name') }}" maxlength="100">
-                    <input class="field min-h-9" data-phone2 placeholder="{{ __('Another phone (optional)') }}" maxlength="20" dir="ltr">
-                </div>
-                <div class="grid grid-cols-2 gap-1 p-3 pb-2">
-                    <button type="button" class="btn min-h-10 rounded-lg" data-type="delivery">{{ __('Delivery') }}</button>
-                    <button type="button" class="btn min-h-10 rounded-lg" data-type="takeaway">{{ __('Pickup') }}</button>
-                </div>
-                @include('partials.leaflet')
-                <div class="space-y-2 px-3 pb-2 text-sm" data-delivery-box>
-                    <div class="flex flex-wrap gap-1" data-addresses></div>
-                    <button type="button" class="btn-ghost min-h-9 w-full" data-map-toggle>📍 {{ __('Pin on the map') }} <span class="text-xs text-emerald-700" data-pinned></span></button>
-                    <div class="hidden h-56 overflow-hidden rounded-xl border border-navy-100" dir="ltr" data-cc-map></div>
-                    <select class="field min-h-9" data-zone>
-                        <option value="">{{ __('Choose the delivery zone') }}</option>
-                    </select>
-                    <textarea class="field min-h-16" rows="2" data-address maxlength="300" placeholder="{{ __('Street, building, floor, apartment, landmark') }}"></textarea>
-                    <input class="field min-h-9" data-address-label maxlength="40" placeholder="{{ __('Address name, e.g. Home or Work (optional)') }}">
-                    <p class="hidden text-xs font-semibold text-amber-700" data-min-warning></p>
-                </div>
-            @else
                 <div class="grid grid-cols-2 gap-1 p-3">
                     <button type="button" class="btn min-h-10 rounded-lg" data-type="takeaway">{{ __('Takeaway') }}</button>
                     <button type="button" class="btn min-h-10 rounded-lg" data-type="dine_in">{{ __('Dine-in') }}</button>
                 </div>
-            @endif
             <div class="hidden px-3 pb-2" data-table-box>
                 <select class="field" data-table><option value="">{{ __('Choose a table') }}</option></select>
             </div>
             <ul class="min-h-24 flex-1 divide-y divide-navy-50 overflow-y-auto px-3" data-lines></ul>
             <div class="space-y-2 border-t border-navy-100 p-3 text-sm">
-                @if ($cc)
-                    <input class="field min-h-9" data-notes placeholder="{{ __('Notes for the order') }}" maxlength="500">
-                @else
-                    <details>
-                        <summary class="cursor-pointer text-navy-500">{{ __('Customer & notes') }}</summary>
-                        <div class="mt-2 space-y-2">
-                            <input class="field min-h-9" data-customer-name placeholder="{{ __('Customer name') }}" maxlength="100">
-                            <input class="field min-h-9" data-customer-phone placeholder="{{ __('Mobile') }}" maxlength="20" dir="ltr" inputmode="tel">
-                            <input class="field min-h-9" data-notes placeholder="{{ __('Notes for the order') }}" maxlength="500">
-                        </div>
-                    </details>
-                @endif
+                <details>
+                    <summary class="cursor-pointer text-navy-500">{{ __('Customer & notes') }}</summary>
+                    <div class="mt-2 space-y-2">
+                        <input class="field min-h-9" data-customer-name placeholder="{{ __('Customer name') }}" maxlength="100">
+                        <input class="field min-h-9" data-customer-phone placeholder="{{ __('Mobile') }}" maxlength="20" dir="ltr" inputmode="tel">
+                        <input class="field min-h-9" data-notes placeholder="{{ __('Notes for the order') }}" maxlength="500">
+                    </div>
+                </details>
                 @if ($data['canDiscount'])
                     <div class="flex items-center gap-2">
                         <span class="text-navy-500">{{ __('Discount') }}</span>
@@ -121,7 +91,7 @@
                         <select class="field min-h-9 w-20" data-discount-kind><option value="amount">{{ __('EGP') }}</option><option value="percent">%</option></select>
                     </div>
                 @endif
-                @if (! $cc && ! empty($data['coupons']))
+                @if (! empty($data['coupons']))
                     <div class="space-y-1" data-coupon-box>
                         <div class="flex items-center gap-2">
                             <span class="text-navy-500">{{ __('Voucher') }}</span>
@@ -132,17 +102,14 @@
                     </div>
                 @endif
                 <div class="space-y-0.5" data-totals></div>
-                @if ($cc)
-                    <button type="button" class="btn-primary w-full" data-send>{{ __('Place order') }}</button>
-                @else
-                    <div class="grid grid-cols-2 gap-2 pt-1">
-                        <button type="button" class="btn-ghost" data-send>{{ __('Send to kitchen') }}</button>
-                        <button type="button" class="btn-primary" data-pay>{{ __('Pay') }}</button>
-                    </div>
-                @endif
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button type="button" class="btn-ghost" data-send>{{ __('Send to kitchen') }}</button>
+                    <button type="button" class="btn-primary" data-pay>{{ __('Pay') }}</button>
+                </div>
                 <button type="button" class="min-h-10 w-full text-center text-xs font-semibold text-red-600" data-clear>{{ __('Clear') }}</button>
             </div>
         </aside>
+        @endif
     </div>
 </div>
 
@@ -292,6 +259,19 @@
         'voucher' => __('Voucher :code', ['code' => '__C__']), 'voucherRemoved' => __('Voucher removed: the cart changed, apply it again.'),
         'chooseMethod' => __('Choose a payment method.'), 'enterAmount' => __('Enter an amount.'), 'enterPhone' => __('Enter the guest\'s mobile to see the balance.'),
     ];
+    if ($cc) {
+        $i18n += [
+            'zoneFee' => __('Delivery :fee', ['fee' => '__A__']), 'zoneMin' => __('Minimum :amount', ['amount' => '__A__']), 'zoneTime' => __('About :n min', ['n' => '__N__']),
+            'streets' => __(':n streets / areas', ['n' => '__N__']), 'chooseStreet' => __('Street / sub-area'),
+            'pickArea' => __('Choose the area to see the fee and the minimum order.'),
+            'belowMin' => __('Below this area\'s minimum order (:min): add :short more.', ['min' => '__M__', 'short' => '__S__']),
+            'noCustomer' => __('No customer yet'), 'noArea' => __('No area chosen yet'), 'pickup' => __('Pickup'),
+            'pinnedOnMap' => __('Location pinned on the map'), 'firstOrder' => __('First order'), 'noName' => __('No name saved'),
+            'lastOrder' => __('Last order: :when · :total', ['when' => '__W__', 'total' => '__T__']),
+            'stamps' => __(':n of :of stamps', ['n' => '__N__', 'of' => '__O__']), 'rewards' => __(':n rewards ready', ['n' => '__N__']),
+            'previousOrders' => __('Previous orders'), 'edit' => __('Edit'),
+        ];
+    }
 @endphp
 <script type="application/json" id="pos-data">{!! json_encode($data, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>
 <script type="application/json" id="pos-i18n">{!! json_encode($i18n, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>
