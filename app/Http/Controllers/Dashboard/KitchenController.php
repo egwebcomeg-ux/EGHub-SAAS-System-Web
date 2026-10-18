@@ -9,9 +9,10 @@ use App\Models\OrderItem;
 use App\Services\Entitlements;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
+use App\Support\PrepKind;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
@@ -45,7 +46,8 @@ class KitchenController extends Controller
 
         $tickets = $orders->map(function (Order $o) use ($station) {
             $lines = $station ? $o->items->where('kitchen_station_id', $station->id) : $o->items;
-            if ($lines->isEmpty()) {
+            // nothing (left) for this screen: its lines are all bumped while another station still works
+            if ($lines->isEmpty() || ($station && $lines->every(fn (OrderItem $i) => $i->ready_at !== null))) {
                 return null;
             }
 
@@ -56,6 +58,7 @@ class KitchenController extends Controller
                 'created' => $o->created_at->toIso8601String(), 'scheduled' => $o->scheduled_for?->toIso8601String(),
                 'items' => $lines->map(fn (OrderItem $i) => [
                     'id' => $i->id, 'name' => $i->name, 'qty' => $i->quantity, 'notes' => $i->notes, 'done' => $i->ready_at !== null,
+                    'kind' => $i->prep_kind ?: PrepKind::FOOD,
                     'options' => collect($i->options ?? [])->pluck('name')->implode('، '),
                 ])->values(),
             ];
@@ -64,25 +67,22 @@ class KitchenController extends Controller
         return response()->json(['max_id' => (int) Order::query()->where('branch_id', $branch->id)->max('id'), 'tickets' => $tickets]);
     }
 
-    /** start: new → preparing. ready: this station's lines done; the order is ready when all lines are. */
+    /**
+     * start: new → preparing. ready: this station's lines done (only the food or the drinks with `kind`); the order is
+     * ready when all lines are.
+     */
     public function bump(Request $request, Order $order, OrderService $orders): JsonResponse
     {
         abort_if($request->user()->branch_id && $request->user()->branch_id !== $order->branch_id, 404);
-        $action = $request->validate(['action' => 'required|in:start,ready'])['action'];
+        $data = $request->validate(['action' => 'required|in:start,ready', 'kind' => ['nullable', Rule::in(array_keys(PrepKind::KINDS))]]);
         $station = $this->station($request);
 
         try {
-            if ($order->status === 'new') {
+            if ($data['action'] === 'start' && $order->status === 'new') {
                 $orders->transition($order, 'preparing', $request->user());
             }
-            if ($action === 'ready') {
-                DB::transaction(function () use ($order, $station, $orders, $request) {
-                    $order->items()->when($station, fn ($q) => $q->where('kitchen_station_id', $station->id))
-                        ->whereNull('ready_at')->update(['ready_at' => now()]);
-                    if ($order->items()->whereNull('ready_at')->doesntExist() && $order->fresh()->status === 'preparing') {
-                        $orders->transition($order->fresh(), 'ready', $request->user());
-                    }
-                });
+            if ($data['action'] === 'ready') {
+                $orders->markReady($order, $request->user(), $data['kind'] ?? null, $station?->id);
             }
         } catch (OrderException $e) {
             return response()->json(['message' => $e->getMessage()], 422);

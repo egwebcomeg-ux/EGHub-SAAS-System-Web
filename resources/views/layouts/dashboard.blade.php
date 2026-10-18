@@ -1,4 +1,4 @@
-@extends('layouts.base')
+@extends('layouts.base', ['viteEntries' => array_merge(['resources/js/notifications.js'], $viteEntries ?? [])])
 
 @php
     $user = auth()->user();
@@ -83,6 +83,24 @@
                 <div class="text-xs text-navy-500"><a href="{{ route('dash.security') }}" class="hover:underline" title="{{ __('Account security') }}">{{ $user->name }}</a> · {{ $user->roleName() }}</div>
             </div>
             <div class="flex items-center gap-2">
+                @if (\App\Http\Controllers\Dashboard\NotificationsController::visibleFor($user))
+                    {{-- the bell: new / ready orders, waiter calls, bookings, low stock (polled, see notifications.js) --}}
+                    <div class="relative" data-notifications data-feed="{{ route('dash.notifications') }}" data-seen="{{ route('dash.notifications.seen') }}"
+                         data-empty="{{ __('Nothing new in the last hours.') }}">
+                        <button type="button" class="btn-ghost relative min-h-9 px-2.5" data-bell aria-haspopup="true" aria-expanded="false" title="{{ __('Notifications') }}">
+                            <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+                            <span class="sr-only">{{ __('Notifications') }}</span>
+                            <span class="absolute -end-1 -top-1 hidden min-w-5 rounded-full bg-brand-600 px-1 text-center text-[11px] font-bold leading-5 text-white" data-bell-count></span>
+                        </button>
+                        <div class="absolute end-0 z-30 mt-2 hidden w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-navy-100" data-bell-panel>
+                            <div class="flex items-center justify-between border-b border-navy-100 px-4 py-2.5">
+                                <span class="font-bold">{{ __('Notifications') }}</span>
+                                <span class="text-xs text-navy-500">{{ __('Last :n hours', ['n' => \App\Http\Controllers\Dashboard\NotificationsController::WINDOW_HOURS]) }}</span>
+                            </div>
+                            <ul class="max-h-[60dvh] divide-y divide-navy-50 overflow-y-auto" data-bell-list></ul>
+                        </div>
+                    </div>
+                @endif
                 @if ($sub)
                     <span class="badge {{ $sub->status === 'trialing' ? 'bg-brand-100 text-brand-700' : 'bg-navy-100 text-navy-700' }}">
                         {{ $sub->plan->displayName() }}@if ($sub->status === 'trialing') · {{ __(':days days left', ['days' => $sub->daysLeft()]) }}@endif

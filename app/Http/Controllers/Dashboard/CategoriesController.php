@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Services\ImageService;
 use App\Services\Menu\MenuTranslations;
+use App\Support\PrepKind;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CategoriesController extends Controller
 {
@@ -84,7 +86,11 @@ class CategoriesController extends Controller
             'visible_until' => 'nullable|date_format:H:i|required_with:visible_from',
             'visible_days' => 'nullable|array',
             'visible_days.*' => 'integer|between:0,6',
+            'prep_kind' => ['nullable', Rule::in(array_keys(PrepKind::KINDS))],
         ]);
+        if (empty($data['prep_kind'])) {
+            unset($data['prep_kind']); // a new category guesses it from its name (Category::booted)
+        }
         unset($data['image']);
         $days = array_values(array_unique(array_map('intval', $data['visible_days'] ?? [])));
         sort($days);

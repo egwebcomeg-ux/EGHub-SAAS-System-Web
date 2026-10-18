@@ -12,6 +12,8 @@ use App\Services\Orders\BusyMode;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use App\Services\Settings;
+use App\Support\PrepKind;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -50,7 +52,47 @@ class OrdersController extends Controller
                 'minutes' => (int) $c->created_at->diffInMinutes(now()),
             ])->values(),
             'reservations' => $this->pendingReservations($request),
+            'counts' => self::counts($orders),
         ]);
+    }
+
+    /**
+     * The quick filters on top of the board, counted over the open orders (not served or cancelled): all, in the
+     * kitchen (new + preparing), ready (+ on the way), each order type, and orders with food / with drinks.
+     *
+     * @param  Collection<int,Order>  $orders
+     * @return array<string,int>
+     */
+    public static function counts(Collection $orders): array
+    {
+        $open = $orders->whereIn('status', ['new', 'preparing', 'ready', 'on_way']);
+        $counts = [
+            'all' => $open->count(),
+            'kitchen' => $open->whereIn('status', ['new', 'preparing'])->count(),
+            'ready' => $open->whereIn('status', ['ready', 'on_way'])->count(),
+        ];
+        foreach (array_keys(Order::TYPES) as $type) {
+            $counts[$type] = $open->where('type', $type)->count();
+        }
+        foreach (array_keys(PrepKind::KINDS) as $kind) {
+            $counts[$kind] = $open->filter(fn (Order $o) => in_array($kind, $o->kinds(), true))->count();
+        }
+
+        return $counts;
+    }
+
+    /** "Food ready" / "drinks ready" on the board: marks that part; the order turns ready when every part is. */
+    public function partReady(Request $request, Order $order, OrderService $service): JsonResponse
+    {
+        abort_unless($this->visible($request, $order), 404);
+        $kind = $request->validate(['kind' => ['required', Rule::in(array_keys(PrepKind::KINDS))]])['kind'];
+        try {
+            $service->markReady($order, $request->user(), $kind);
+        } catch (OrderException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['ok' => true, 'order' => $this->present($order->fresh()->load(['items', 'table', 'branch']))]);
     }
 
     /** Bookings waiting for confirmation (reservations feature), shown in the strip on top of the board. */
@@ -163,8 +205,10 @@ class OrdersController extends Controller
             'time' => local_time($o->created_at, 'h:i A'),
             'reason' => $o->status === 'cancelled' ? $o->cancelReasonLabel() : null,
             'next' => array_values(array_filter(Order::TRANSITIONS[$o->status] ?? [], fn ($s) => $o->canMoveTo($s))),
+            'kinds' => $o->kinds(),
+            'parts' => collect($o->parts())->map(fn (bool $ready, string $kind) => ['kind' => $kind, 'label' => PrepKind::label($kind), 'ready' => $ready])->values(),
             'items' => $o->items->map(fn ($i) => [
-                'name' => $i->name, 'qty' => $i->quantity, 'notes' => $i->notes,
+                'name' => $i->name, 'qty' => $i->quantity, 'notes' => $i->notes, 'kind' => $i->prep_kind ?: PrepKind::FOOD,
                 'options' => collect($i->options ?? [])->pluck('name')->implode('، '),
             ])->values(),
         ];

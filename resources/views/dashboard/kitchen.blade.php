@@ -7,7 +7,9 @@
     $i18n = [
         'start' => __('Start'), 'ready' => __('Ready'), 'new' => __('New'), 'preparing' => __('Preparing'),
         'table' => __('Table :name', ['name' => '__N__']), 'empty' => __('No orders right now'), 'scheduled' => __('Scheduled :time', ['time' => '__T__']),
+        'foodReady' => __('Food ready'), 'drinksReady' => __('Drinks ready'),
     ];
+    $chips = [['all', __('All')], ['dine_in', __('Dine-in')], ['takeaway', __('Takeaway')], ['delivery', __('Delivery')], ['food', '🍽 '.__('Food')], ['drinks', '☕ '.__('Drinks')]];
 @endphp
 <div class="flex min-h-dvh flex-col">
     <header class="flex flex-wrap items-center gap-3 border-b border-white/10 px-4 py-3">
@@ -27,6 +29,16 @@
             <button type="button" class="rounded-lg bg-white/10 px-3 py-1.5" data-fullscreen>⛶ {{ __('Full screen') }}</button>
         </div>
     </header>
+    {{-- quick filters: order type, or only the food / only the drinks of every ticket (remembered on this screen) --}}
+    <div class="flex gap-2 overflow-x-auto border-b border-white/10 px-4 py-2" data-chips role="toolbar" aria-label="{{ __('Filter orders') }}">
+        @foreach ($chips as [$key, $label])
+            <button type="button" data-chip="{{ $key }}" aria-pressed="false"
+                class="group flex min-h-10 shrink-0 items-center gap-2 rounded-full bg-white/10 px-4 text-sm font-bold text-white transition aria-pressed:bg-white aria-pressed:text-navy-900">
+                <span>{{ $label }}</span>
+                <span class="min-w-6 rounded-full bg-white/15 px-1.5 text-center text-xs tabular-nums group-aria-pressed:bg-brand-600 group-aria-pressed:text-white" data-chip-count="{{ $key }}">0</span>
+            </button>
+        @endforeach
+    </div>
     <main class="grid flex-1 auto-rows-min gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4" id="kds"
           data-feed="{{ route('dash.kitchen.feed', array_filter(['station' => $station?->id])) }}"
           data-bump="{{ url('/kitchen/orders/__ID__') . ($station ? '?station=' . $station->id : '') }}"

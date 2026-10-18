@@ -11,6 +11,8 @@ use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\Shift;
+use App\Models\TableCall;
+use App\Models\TableSession;
 use App\Models\User;
 use App\Services\Entitlements;
 use App\Services\Inventory\StockService;
@@ -21,6 +23,8 @@ use App\Services\Notify\GuestNotifier;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
 use App\Support\DineIn;
+use App\Support\PrepKind;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -147,6 +151,9 @@ final class OrderService
                     foreach ($lines as $line) {
                         $order->items()->create($line);
                     }
+                    if ($table && $type === 'dine_in') {
+                        $this->joinTableSession($order, $table);
+                    }
                     OrderStatusHistory::query()->create(['order_id' => $order->id, 'to_status' => 'new', 'user_id' => $by?->id]);
                     app(StockService::class)->deductForOrder($order); // inventory pack only
                     DB::afterCommit(fn () => app(GuestNotifier::class)->orderPlaced($order)); // WhatsApp "we got your order"
@@ -258,9 +265,145 @@ final class OrderService
             if ($to === 'cancelled') {
                 app(Coupons::class)->release($order);
             }
+            if ($to === 'ready') {
+                // the whole order is ready: every part with it (food / drinks, every station)
+                $order->items()->whereNull('ready_at')->update(['ready_at' => now()]);
+            }
+            if ($to === 'cancelled' && $order->table_session_id) {
+                $order->tableSession?->refreshTotal();
+            }
             DB::afterCommit(fn () => app(GuestNotifier::class)->orderMoved($order, $to)); // WhatsApp "ready" / "on the way"
 
             return $order;
+        });
+    }
+
+    /**
+     * Marks part of an order ready: the lines of one kind (food / drinks), of one kitchen station, or all of them. A
+     * new order starts preparing first. Once no line is left the order moves to ready through transition() (the order
+     * row is locked, so two screens marking the last two parts at once move it only once).
+     */
+    public function markReady(Order $order, ?User $by = null, ?string $kind = null, ?int $stationId = null): Order
+    {
+        return DB::transaction(function () use ($order, $by, $kind, $stationId) {
+            $order->status = Order::query()->lockForUpdate()->whereKey($order->id)->value('status');
+            if ($order->status === 'cancelled') {
+                throw new OrderException(__('This order was cancelled.'));
+            }
+            if (! in_array($order->status, ['new', 'preparing'], true)) {
+                return $order; // already ready (another screen got there first)
+            }
+            if ($order->status === 'new') {
+                $this->transition($order, 'preparing', $by);
+            }
+            $order->items()->whereNull('ready_at')
+                ->when($stationId, fn ($q) => $q->where('kitchen_station_id', $stationId))
+                ->when($kind, fn ($q) => $q->where('prep_kind', $kind))
+                ->update(['ready_at' => now()]);
+            if ($order->items()->whereNull('ready_at')->doesntExist()) {
+                $this->transition($order, 'ready', $by);
+            }
+
+            return $order;
+        });
+    }
+
+    /** A dine-in order on a table joins the table's open session, or opens one (the table is locked meanwhile). */
+    private function joinTableSession(Order $order, DiningTable $table): void
+    {
+        DiningTable::query()->lockForUpdate()->whereKey($table->id)->value('id');
+        $session = TableSession::query()->open()->where('dining_table_id', $table->id)->latest('id')->first()
+            ?? TableSession::query()->create(['branch_id' => $table->branch_id, 'dining_table_id' => $table->id, 'opened_at' => now()]);
+        $order->update(['table_session_id' => $session->id]);
+        $session->refreshTotal();
+    }
+
+    /**
+     * One bill for every order of a table session (cancelled ones left out): the lines added up, and the totals as
+     * each order was priced (its own discount, service and tax).
+     *
+     * @return array{orders:Collection<int,Order>, lines:list<array{name:string, options:string, qty:int, unit_price:float, total:float}>,
+     *               subtotal:float, discount:float, service:float, tax:float, total:float, paid:float, due:float, unpaid:int, in_kitchen:int}
+     */
+    public function sessionBill(TableSession $session): array
+    {
+        $orders = $session->orders()->where('status', '!=', 'cancelled')->with('items')->get();
+        $lines = [];
+        foreach ($orders->flatMap->items as $item) {
+            $options = collect($item->options ?? [])->pluck('name')->implode('، ');
+            $key = $item->name.'|'.$options.'|'.$item->unit_price;
+            $lines[$key] ??= ['name' => $item->name, 'options' => $options, 'qty' => 0, 'unit_price' => (float) $item->unit_price, 'total' => 0.0];
+            $lines[$key]['qty'] += $item->quantity;
+            $lines[$key]['total'] = round($lines[$key]['total'] + $item->line_total, 2);
+        }
+        $sum = fn (string $column) => round((float) $orders->sum($column), 2);
+        $paid = round((float) $orders->where('payment_status', 'paid')->sum('total'), 2);
+
+        return [
+            'orders' => $orders, 'lines' => array_values($lines),
+            'subtotal' => $sum('subtotal'), 'discount' => $sum('discount'), 'service' => $sum('service'), 'tax' => $sum('tax'),
+            'total' => $sum('total'), 'paid' => $paid, 'due' => round($sum('total') - $paid, 2),
+            'unpaid' => $orders->where('payment_status', '!=', 'paid')->count(),
+            'in_kitchen' => $orders->whereIn('status', ['new', 'preparing'])->count(),
+        ];
+    }
+
+    /**
+     * Takes the payment of a whole table session: each unpaid order is paid through pay() (same method, same shift),
+     * so the shift drawer, loyalty and the reports see ordinary paid orders. Orders already paid are skipped; all or
+     * nothing (one refused order leaves every order unpaid).
+     *
+     * @return int how many orders were paid now
+     */
+    public function paySession(TableSession $session, string $method, User $by, ?Shift $shift): int
+    {
+        if ($method === WalletService::METHOD) {
+            throw new OrderException(__('Prepaid balance is taken per order from the POS.'));
+        }
+
+        return DB::transaction(function () use ($session, $method, $by, $shift) {
+            $locked = TableSession::query()->lockForUpdate()->findOrFail($session->id);
+            if (! $locked->isOpen()) {
+                throw new OrderException(__('This table is already closed.'));
+            }
+            $unpaid = $locked->orders()->where('status', '!=', 'cancelled')->where('payment_status', '!=', 'paid')->get();
+            foreach ($unpaid as $order) {
+                $this->pay($order, $method, $by, $shift);
+            }
+
+            return $unpaid->count();
+        });
+    }
+
+    /**
+     * Closes a table: every order that is not cancelled must be paid and out of the kitchen. Ready orders are marked
+     * served, the open waiter calls of the table are handled and the table is free for the next guests (their first
+     * order opens a new session).
+     */
+    public function closeSession(TableSession $session, User $by): TableSession
+    {
+        return DB::transaction(function () use ($session, $by) {
+            $locked = TableSession::query()->lockForUpdate()->findOrFail($session->id);
+            if (! $locked->isOpen()) {
+                throw new OrderException(__('This table is already closed.'));
+            }
+            $orders = $locked->orders()->where('status', '!=', 'cancelled')->get();
+            if ($orders->contains(fn (Order $o) => $o->payment_status !== 'paid')) {
+                throw new OrderException(__('Some orders of this table are not paid yet. Take the payment or cancel them first.'));
+            }
+            if ($orders->contains(fn (Order $o) => in_array($o->status, ['new', 'preparing'], true))) {
+                throw new OrderException(__('Some orders of this table are still being prepared.'));
+            }
+            foreach ($orders->whereIn('status', ['ready', 'on_way']) as $order) {
+                $this->transition($order, 'served', $by);
+            }
+            TableCall::query()->where('dining_table_id', $locked->dining_table_id)->whereNull('handled_at')
+                ->update(['handled_at' => now(), 'handled_by' => $by->id]);
+            $locked->update(['closed_at' => now(), 'closed_by' => $by->id]);
+            $locked->refreshTotal();
+            $session->setRawAttributes($locked->getAttributes(), true);
+
+            return $session;
         });
     }
 
@@ -301,6 +444,7 @@ final class OrderService
 
             $lines[] = [
                 'menu_item_id' => $item->id, 'kitchen_station_id' => $item->category?->kitchen_station_id,
+                'prep_kind' => PrepKind::valid($item->category?->prep_kind),
                 'name' => $item->displayName(), 'unit_price' => $unit, 'original_price' => $original, 'quantity' => $qty, 'options' => $options,
                 'notes' => mb_substr(trim((string) ($l['notes'] ?? '')), 0, 200), 'line_total' => round($unit * $qty, 2),
             ];

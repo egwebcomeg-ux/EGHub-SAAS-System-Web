@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\TenantModel;
+use App\Support\PrepKind;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -12,6 +13,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Category extends TenantModel
 {
+    protected static function booted(): void
+    {
+        // food or drinks (food ready / drinks ready on the board): a new category starts from its name
+        static::creating(function (self $category) {
+            $category->prep_kind = $category->prep_kind ? PrepKind::valid($category->prep_kind) : PrepKind::guess($category->name, $category->name_en);
+        });
+    }
+
     protected function casts(): array
     {
         return [

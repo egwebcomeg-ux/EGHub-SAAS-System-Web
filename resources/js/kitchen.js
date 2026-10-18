@@ -28,13 +28,59 @@ if (kds) {
 
     const minutes = (iso) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
 
+    // ---- quick filters: an order type, or only the food / only the drinks lines (the bar follows "drinks") ----
+    const KINDS = ['food', 'drinks'];
+    const ICON = { food: '🍽', drinks: '☕' };
+    let filter = 'all';
+    try { filter = localStorage.getItem('egmenu.kds.filter') || 'all'; } catch {}
+    const pending = (t, kind) => t.items.some((i) => !i.done && (!kind || i.kind === kind));
+
+    // what this screen shows of a ticket under the filter (null = nothing to do here)
+    function view(t, f) {
+        if (['dine_in', 'takeaway', 'delivery'].includes(f) && t.type !== f) return null;
+        if (KINDS.includes(f)) {
+            const items = t.items.filter((i) => i.kind === f);
+            return items.length && items.some((i) => !i.done) ? { ...t, items, only: f } : null;
+        }
+        return t;
+    }
+
+    const chips = document.querySelector('[data-chips]');
+    function renderChips() {
+        chips?.querySelectorAll('[data-chip]').forEach((c) => {
+            c.setAttribute('aria-pressed', c.dataset.chip === filter ? 'true' : 'false');
+            c.querySelector('[data-chip-count]').textContent = tickets.filter((t) => view(t, c.dataset.chip)).length;
+        });
+    }
+    chips?.addEventListener('click', (e) => {
+        const c = e.target.closest('[data-chip]');
+        if (!c) return;
+        filter = c.dataset.chip;
+        try { localStorage.setItem('egmenu.kds.filter', filter); } catch {}
+        render();
+    });
+
+    // one "ready", or "food ready" + "drinks ready" when the ticket shows both kinds
+    function readyButtons(t) {
+        const kinds = KINDS.filter((k) => t.items.some((i) => i.kind === k));
+        if (kinds.length > 1) {
+            return kinds.map((k) => pending(t, k)
+                ? `<button class="min-h-14 rounded-xl bg-emerald-600 text-lg font-bold text-white" data-bump="${t.id}" data-action="ready" data-kind="${k}">${ICON[k]} ${esc(k === 'drinks' ? T.drinksReady : T.foodReady)}</button>`
+                : `<span class="grid min-h-14 place-items-center rounded-xl bg-emerald-50 text-lg font-bold text-emerald-700">${ICON[k]} ✓</span>`).join('');
+        }
+        return `<button class="min-h-14 rounded-xl bg-emerald-600 text-lg font-bold text-white" data-bump="${t.id}" data-action="ready" data-kind="${t.only || ''}">${esc(T.ready)} ✓</button>`;
+    }
+
     function render() {
-        document.querySelector('[data-count]').textContent = tickets.length;
-        if (!tickets.length) {
+        renderChips();
+        const shown = tickets.map((t) => view(t, filter)).filter(Boolean);
+        document.querySelector('[data-count]').textContent = shown.length;
+        if (!shown.length) {
             kds.innerHTML = `<p class="col-span-full py-24 text-center text-2xl text-white/40">${esc(T.empty)}</p>`;
             return;
         }
-        kds.innerHTML = tickets.map((t) => {
+        kds.innerHTML = shown.map((t) => {
+            const split = KINDS.filter((k) => t.items.some((i) => i.kind === k)).length > 1;
             const m = minutes(t.since);
             const tone = m >= 20 ? 'bg-red-600 animate-pulse' : m >= 10 ? 'bg-amber-500' : t.status === 'new' ? 'bg-sky-600' : 'bg-emerald-600';
             const where = t.table ? T.table.replace('__N__', t.table) : t.type_label;
@@ -46,27 +92,27 @@ if (kds) {
                 </header>
                 ${t.scheduled ? `<div class="bg-violet-100 px-4 py-1 text-sm font-bold text-violet-800">${esc(T.scheduled.replace('__T__', new Date(t.scheduled).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })))}</div>` : ''}
                 <ul class="flex-1 space-y-2 p-4 text-lg">${t.items.map((i) => `
-                    <li class="${i.done ? 'line-through opacity-40' : ''}"><b>${i.qty}×</b> ${esc(i.name)}
+                    <li class="${i.done ? 'line-through opacity-40' : ''}">${split ? `<span class="me-1">${ICON[i.kind] || ''}</span>` : ''}<b>${i.qty}×</b> ${esc(i.name)}
                         ${i.options ? `<div class="text-sm text-navy-500">${esc(i.options)}</div>` : ''}
                         ${i.notes ? `<div class="text-sm font-bold text-red-600">⚠ ${esc(i.notes)}</div>` : ''}</li>`).join('')}</ul>
                 ${t.notes ? `<p class="mx-4 mb-3 rounded-lg bg-amber-100 p-2 text-sm font-bold text-amber-900">⚠ ${esc(t.notes)}</p>` : ''}
-                <div class="grid ${t.status === 'new' ? 'grid-cols-2' : 'grid-cols-1'} gap-2 p-3 pt-0">
-                    ${t.status === 'new' ? `<button class="min-h-14 rounded-xl bg-sky-100 text-lg font-bold text-sky-900" data-bump="${t.id}" data-action="start">${esc(T.start)}</button>` : ''}
-                    <button class="min-h-14 rounded-xl bg-emerald-600 text-lg font-bold text-white" data-bump="${t.id}" data-action="ready">${esc(T.ready)} ✓</button>
-                </div>
+                ${t.status === 'new' ? `<div class="px-3 pb-2"><button class="min-h-12 w-full rounded-xl bg-sky-100 text-lg font-bold text-sky-900" data-bump="${t.id}" data-action="start">${esc(T.start)}</button></div>` : ''}
+                <div class="grid ${split ? 'grid-cols-2' : 'grid-cols-1'} gap-2 p-3 pt-0">${readyButtons(t)}</div>
             </article>`;
         }).join('');
     }
 
+    async function load() {
+        const res = await fetch(kds.dataset.feed, { headers: { Accept: 'application/json' } });
+        const data = await res.json();
+        if (lastMax !== null && data.max_id > lastMax) chime();
+        lastMax = data.max_id;
+        tickets = data.tickets;
+        render();
+    }
+
     async function poll() {
-        try {
-            const res = await fetch(kds.dataset.feed, { headers: { Accept: 'application/json' } });
-            const data = await res.json();
-            if (lastMax !== null && data.max_id > lastMax) chime();
-            lastMax = data.max_id;
-            tickets = data.tickets;
-            render();
-        } catch {}
+        try { await load(); } catch {}
         setTimeout(poll, 4000);
     }
 
@@ -76,10 +122,9 @@ if (kds) {
         b.disabled = true;
         await fetch(kds.dataset.bump.replace('__ID__', b.dataset.bump), {
             method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
-            body: JSON.stringify({ action: b.dataset.action }),
+            body: JSON.stringify({ action: b.dataset.action, kind: b.dataset.kind || null }),
         });
-        if (b.dataset.action === 'ready') tickets = tickets.filter((t) => String(t.id) !== b.dataset.bump);
-        render();
+        try { await load(); } catch { render(); }
     });
 
     document.querySelector('[data-sound]').addEventListener('click', (e) => {

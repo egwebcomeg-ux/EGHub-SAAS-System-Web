@@ -15,9 +15,18 @@
         'alarmOn' => __('Alarm on'), 'alarmOff' => __('Alarm muted'),
         'busyUntil' => __('Busy until :time', ['time' => '__T__']), 'busyOff' => __('Taking online orders'),
         'customTime' => __('Until when? (HH:MM)'),
+        'foodReady' => __('Food ready'), 'drinksReady' => __('Drinks ready'),
+        'partReady' => __('ready'), 'partWaiting' => __('not yet'), 'noMatch' => __('No orders match this filter'),
     ];
     $canManage = auth()->user()->can('orders.manage');
+    // quick filters: [key, label]; the counts come live from the feed
+    $chips = [
+        ['all', __('All')], ['kitchen', __('In the kitchen')], ['ready', __('Ready')],
+        ['dine_in', __('Dine-in')], ['takeaway', __('Takeaway')], ['delivery', __('Delivery')],
+        ['food', '🍽 '.__('Food')], ['drinks', '☕ '.__('Drinks')],
+    ];
 @endphp
+@include('dashboard.orders.partials.tabs')
 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
     <h1 class="text-2xl font-extrabold">{{ __('Orders') }}</h1>
     <div class="flex flex-wrap items-center gap-3 text-sm">
@@ -59,9 +68,21 @@
 <div class="mb-4 hidden flex-wrap gap-2" data-calls></div>
 <div class="mb-4 hidden flex-wrap gap-2" data-reservations></div>
 
+{{-- quick filters with live counts (remembered on this device) --}}
+<div class="-mx-1 mb-4 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible" data-chips role="toolbar" aria-label="{{ __('Filter orders') }}">
+    @foreach ($chips as [$key, $label])
+        <button type="button" data-chip="{{ $key }}" aria-pressed="false"
+            class="group flex min-h-10 shrink-0 items-center gap-2 rounded-full bg-white px-4 text-sm font-bold text-navy-700 shadow-sm ring-1 ring-navy-100 transition hover:ring-brand-200 aria-pressed:bg-navy-800 aria-pressed:text-white aria-pressed:ring-navy-800">
+            <span>{{ $label }}</span>
+            <span class="min-w-6 rounded-full bg-navy-100 px-1.5 text-center text-xs tabular-nums text-navy-700 group-aria-pressed:bg-brand-600 group-aria-pressed:text-white" data-chip-count="{{ $key }}">0</span>
+        </button>
+    @endforeach
+</div>
+
 <div id="board" class="grid gap-4 lg:grid-cols-3"
      data-feed="{{ route('dash.orders.feed') }}"
      data-status-url="{{ url('/orders/__ID__/status') }}"
+     data-part-url="{{ url('/orders/__ID__/part-ready') }}"
      data-call-url="{{ url('/orders/calls/__ID__') }}"
      data-reservation-url="{{ url('/reservations/__ID__/status') }}"
      data-poll="{{ $poll }}"

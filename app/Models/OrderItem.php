@@ -17,6 +17,7 @@ class OrderItem extends TenantModel
             'original_price' => 'float',
             'line_total' => 'float',
             'options' => 'array',
+            'ready_at' => 'datetime',
         ];
     }
 

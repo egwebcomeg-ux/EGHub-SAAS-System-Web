@@ -24,6 +24,7 @@ use App\Http\Controllers\Dashboard\MarketingController;
 use App\Http\Controllers\Dashboard\MenuExportController;
 use App\Http\Controllers\Dashboard\MenuImportController;
 use App\Http\Controllers\Dashboard\MenuTranslationController;
+use App\Http\Controllers\Dashboard\NotificationsController;
 use App\Http\Controllers\Dashboard\OnboardingController;
 use App\Http\Controllers\Dashboard\OrdersController;
 use App\Http\Controllers\Dashboard\PasswordResetController;
@@ -38,6 +39,7 @@ use App\Http\Controllers\Dashboard\SettingsController;
 use App\Http\Controllers\Dashboard\ShiftsController;
 use App\Http\Controllers\Dashboard\StationsController;
 use App\Http\Controllers\Dashboard\TablesController;
+use App\Http\Controllers\Dashboard\TableSessionsController;
 use App\Http\Controllers\Dashboard\TvScreensController;
 use App\Http\Controllers\Dashboard\TwoFactorController;
 use App\Http\Controllers\Dashboard\UsersController;
@@ -151,7 +153,25 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/orders/calls/{call}', [OrdersController::class, 'handleCall'])->name('orders.call');
         Route::post('/orders/{order}/status', [OrdersController::class, 'transition'])
             ->middleware('permission:orders.manage')->name('orders.status');
+        Route::post('/orders/{order}/part-ready', [OrdersController::class, 'partReady'])
+            ->middleware('permission:orders.manage')->name('orders.part-ready');
+
+        // the "Tables" tab: tables free / busy, one bill per table, pay and close (taking money needs the POS right)
+        Route::middleware('permission:orders.manage')->group(function () {
+            Route::get('/orders/tables', [TableSessionsController::class, 'index'])->name('orders.tables');
+            Route::get('/orders/tables/feed', [TableSessionsController::class, 'feed'])->name('orders.tables.feed');
+            Route::get('/orders/tables/sessions/{tableSession}', [TableSessionsController::class, 'bill'])->name('orders.tables.bill');
+            Route::get('/orders/tables/sessions/{tableSession}/receipt', [TableSessionsController::class, 'receipt'])->name('orders.tables.receipt');
+            Route::post('/orders/tables/sessions/{tableSession}/pay', [TableSessionsController::class, 'pay'])
+                ->middleware('permission:pos.use')->name('orders.tables.pay');
+            Route::post('/orders/tables/sessions/{tableSession}/close', [TableSessionsController::class, 'close'])
+                ->middleware('permission:pos.use')->name('orders.tables.close');
+        });
     });
+
+    // the bell in the dashboard header: new / ready orders, waiter calls, bookings, low stock (each by its right)
+    Route::get('/notifications', [NotificationsController::class, 'index'])->name('notifications');
+    Route::post('/notifications/seen', [NotificationsController::class, 'seen'])->name('notifications.seen');
 
     Route::get('/orders/{order}/receipt', [OrdersController::class, 'receipt'])
         ->middleware('permission:orders.view|pos.use')->name('orders.receipt');

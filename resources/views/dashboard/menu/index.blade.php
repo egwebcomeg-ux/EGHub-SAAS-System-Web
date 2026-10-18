@@ -86,6 +86,14 @@
                                 @include('dashboard.menu.partials.translations', ['translations' => $categoryTranslations[$category->id] ?? [], 'descriptionMax' => 200, 'compact' => true])
                             @endif
                             <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="is_active" value="1" @checked($category->is_active) class="size-4 accent-brand-600"> {{ __('Visible on the menu') }}</label>
+                            <label class="block text-sm">
+                                <span class="mb-1 block text-xs font-semibold text-navy-500">{{ __('Prepared as (food ready / drinks ready on the orders board)') }}</span>
+                                <select class="field min-h-9" name="prep_kind">
+                                    @foreach (\App\Support\PrepKind::KINDS as $kind => $l)
+                                        <option value="{{ $kind }}" @selected(($category->prep_kind ?? 'food') === $kind)>{{ $kind === 'drinks' ? '☕' : '🍽' }} {{ \App\Support\PrepKind::label($kind) }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
                             <fieldset class="space-y-2 rounded-xl bg-navy-50 p-2 text-sm">
                                 <legend class="px-1 text-xs font-semibold text-navy-500">🕒 {{ __('Shown only during (optional)') }}</legend>
                                 <div class="grid grid-cols-2 gap-2">

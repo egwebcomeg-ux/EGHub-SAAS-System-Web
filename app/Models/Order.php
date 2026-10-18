@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\TenantModel;
+use App\Support\PrepKind;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -109,6 +110,41 @@ class Order extends TenantModel
     public function table(): BelongsTo
     {
         return $this->belongsTo(DiningTable::class, 'dining_table_id');
+    }
+
+    public function tableSession(): BelongsTo
+    {
+        return $this->belongsTo(TableSession::class);
+    }
+
+    /**
+     * The food / drinks parts of an order and whether each is ready, e.g. ['food' => true, 'drinks' => false].
+     * Empty for an order with one kind only: it keeps a single "ready".
+     *
+     * @return array<string,bool>
+     */
+    public function parts(): array
+    {
+        $parts = [];
+        $done = in_array($this->status, ['ready', 'on_way', 'served'], true); // older orders have no line stamps
+        foreach ($this->items as $item) {
+            $kind = $item->prep_kind ?: PrepKind::FOOD;
+            $parts[$kind] = ($parts[$kind] ?? true) && ($done || $item->ready_at !== null);
+        }
+        $ordered = []; // food first, then drinks, on every screen
+        foreach (array_keys(PrepKind::KINDS) as $kind) {
+            if (isset($parts[$kind])) {
+                $ordered[$kind] = $parts[$kind];
+            }
+        }
+
+        return count($ordered) > 1 ? $ordered : [];
+    }
+
+    /** @return list<string> the kinds of lines in the order (food, drinks) */
+    public function kinds(): array
+    {
+        return array_values(array_unique($this->items->map(fn ($i) => $i->prep_kind ?: PrepKind::FOOD)->all()));
     }
 
     public function deliveryZone(): BelongsTo

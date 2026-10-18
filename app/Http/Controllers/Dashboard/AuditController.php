@@ -21,6 +21,7 @@ class AuditController extends Controller
         'user.created' => ['إضافة مستخدم', 'User added'],
         'user.updated' => ['تعديل مستخدم', 'User updated'],
         'order.cancelled' => ['إلغاء طلب', 'Order cancelled'],
+        'table.closed' => ['قفل ترابيزة', 'Table closed'],
         'stock.purchase' => ['استلام مخزون', 'Stock received'],
         'stock.waste' => ['هالك مخزون', 'Stock waste'],
         'stock.count' => ['جرد مخزون', 'Stock count'],
