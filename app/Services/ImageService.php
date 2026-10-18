@@ -27,6 +27,7 @@ final class ImageService
         'cover' => ['brand', 1600, 700, false],
         'banner' => ['banners', 1600, 700, false],
         'post' => ['blog', 1600, 900, false],            // platform blog covers (no tenant)
+        'testimonial' => ['testimonials', 400, 400, false], // owner photos on the marketing site (no tenant)
     ];
 
     /** @return string path on the public disk, e.g. tenants/my-cafe/items/uuid.webp */

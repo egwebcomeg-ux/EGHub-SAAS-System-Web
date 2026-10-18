@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\SecurityController;
 use App\Http\Controllers\Admin\ServicesController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\TenantsController;
+use App\Http\Controllers\Admin\TestimonialsController;
 use App\Http\Controllers\Admin\TwoFactorController;
 use Illuminate\Support\Facades\Route;
 
@@ -62,6 +63,15 @@ Route::middleware('auth:admin')->group(function () {
     Route::post('/blog/{post}', [BlogController::class, 'update'])->whereNumber('post')->name('blog.update');
     Route::post('/blog/{post}/publish', [BlogController::class, 'publish'])->whereNumber('post')->name('blog.publish');
     Route::post('/blog/{post}/delete', [BlogController::class, 'destroy'])->whereNumber('post')->name('blog.delete');
+
+    // Real owner quotes on the home page (published only with the owner's consent)
+    Route::get('/testimonials', [TestimonialsController::class, 'index'])->name('testimonials');
+    Route::get('/testimonials/create', [TestimonialsController::class, 'create'])->name('testimonials.create');
+    Route::post('/testimonials', [TestimonialsController::class, 'store'])->name('testimonials.store');
+    Route::get('/testimonials/{testimonial}/edit', [TestimonialsController::class, 'edit'])->whereNumber('testimonial')->name('testimonials.edit');
+    Route::post('/testimonials/{testimonial}', [TestimonialsController::class, 'update'])->whereNumber('testimonial')->name('testimonials.update');
+    Route::post('/testimonials/{testimonial}/publish', [TestimonialsController::class, 'publish'])->whereNumber('testimonial')->name('testimonials.publish');
+    Route::post('/testimonials/{testimonial}/delete', [TestimonialsController::class, 'destroy'])->whereNumber('testimonial')->name('testimonials.delete');
 
     // What visitors asked the website assistant ("اسألنا") and where it handed over to WhatsApp
     Route::get('/assistant', [AssistantController::class, 'index'])->name('assistant');

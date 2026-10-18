@@ -195,6 +195,43 @@
     </section>
 @endif
 
+{{-- ============ OWNERS IN THEIR OWN WORDS (App\Models\Testimonial: real quotes with consent; hidden while none) ============ --}}
+@if ($testimonials->isNotEmpty())
+    <section data-testimonials class="pb-20 lg:pb-28">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6">
+            <div class="mx-auto max-w-2xl text-center" data-reveal>
+                <p class="lp-eyebrow">{{ __('From our customers') }}</p>
+                <h2 class="lp-h2 mt-3">{{ __('Owners in their own words') }}</h2>
+            </div>
+            <ul class="mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] sm:flex-wrap sm:justify-center sm:overflow-visible">
+                @foreach ($testimonials as $t)
+                    <li class="w-[85%] shrink-0 snap-center sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)]" data-reveal style="--d: {{ ($loop->index % 3) * 70 }}ms">
+                        <figure class="lp-lift flex h-full flex-col rounded-[24px] border border-navy-100 bg-white p-6">
+                            <div class="flex items-center justify-between gap-3">
+                                <svg aria-hidden="true" viewBox="0 0 32 24" class="h-6 w-8 fill-brand-200 rtl:-scale-x-100"><path d="M0 24V14C0 6 4 1 12 0l1 4c-4 1-6 4-6 8h6v12H0Zm19 0V14c0-8 4-13 12-14l1 4c-4 1-6 4-6 8h6v12H19Z"/></svg>
+                                @if ($t->rating)<div class="text-brand-600" role="img" aria-label="{{ __(':n out of 5', ['n' => $t->rating]) }}">{{ str_repeat('★', $t->rating) }}<span class="text-navy-200">{{ str_repeat('★', 5 - $t->rating) }}</span></div>@endif
+                            </div>
+                            <blockquote class="mt-3 flex-1 leading-relaxed text-navy-800">{{ $t->displayQuote() }}</blockquote>
+                            <figcaption class="mt-5 flex items-center gap-3">
+                                @if ($t->photo)
+                                    <img src="/storage/{{ $t->photo }}" alt="" width="44" height="44" loading="lazy" class="size-11 shrink-0 rounded-full border border-navy-100 object-cover">
+                                @else
+                                    <span aria-hidden="true" class="grid size-11 shrink-0 place-items-center rounded-full bg-navy-600 font-black text-white">{{ mb_substr($t->name, 0, 1) }}</span>
+                                @endif
+                                <span class="min-w-0">
+                                    <span class="block font-extrabold text-navy-900">{{ $t->name }}</span>
+                                    @if ($t->displayRole())<span class="block truncate text-sm text-navy-500">{{ $t->displayRole() }}</span>@endif
+                                    @if ($url = $t->menuUrl())<a href="{{ $url }}" class="inline-flex min-h-8 items-center text-sm font-bold text-navy-600 hover:text-brand-700">{{ __('See their menu') }} <span aria-hidden="true" class="ms-1 inline-block rtl:rotate-180">→</span></a>@endif
+                                </span>
+                            </figcaption>
+                        </figure>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    </section>
+@endif
+
 {{-- ============ PRICING TEASER: every plan on one line, the details on /pricing ============ --}}
 <section id="pricing" class="lp-band py-16 lg:py-24">
     <div class="mx-auto max-w-5xl px-4 sm:px-6">
