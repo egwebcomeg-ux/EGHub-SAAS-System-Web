@@ -30,7 +30,7 @@ class SocialAndPaymentsTest extends TenantTestCase
     public function test_the_payment_gateway_service_is_offered_on_home_and_services(): void
     {
         $this->get($this->menuUrl())->assertOk()->assertSee('data-payment-gateways', false)
-            ->assertSee('Fawry')->assertSee('Kashier')->assertSee('Paymob')->assertSee('Geidea')
+            ->assertSee('alt="Fawry"', false)->assertSee('img/partners/kashier.webp', false)->assertSee('alt="Paymob"', false)->assertSee('alt="Geidea"', false)
             ->assertSee('service=payment_gateway', false);
         $this->get($this->menuUrl('services?service=payment_gateway'))->assertOk()->assertSee('دفع أونلاين ببوابة الدفع بتاعتك');
     }

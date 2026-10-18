@@ -136,6 +136,19 @@ class ModulePickerTest extends TenantTestCase
             ->assertSee('href="'.route('dash.billing').'" data-home-module="pos"', false);
     }
 
+    public function test_one_plan_beats_a_pile_of_add_ons_when_it_costs_about_the_same(): void
+    {
+        $a = $this->restaurant('cafe-a', 'starter');
+        $basicMix = Plan::query()->where('code', 'basic')->value('monthly_price')
+            + AddonPrice::query()->whereIn('key', ['reservations_pack', 'offers_pack'])->sum('monthly_price');
+        $pro = (float) Plan::query()->where('code', 'pro')->value('monthly_price');
+        $this->assertGreaterThan($basicMix, $pro, 'the seeded prices make Basic + two packs the strictly cheapest mix');
+        $this->assertLessThanOrEqual(50, $pro - $basicMix);
+
+        $this->actingAs($this->owner($a))->get($this->dashUrl('/modules/summary?modules[]=reservations&modules[]=offers'))->assertOk()
+            ->assertSee('data-summary-best="pro"', false)->assertDontSee('data-summary-addon=', false);
+    }
+
     public function test_staff_without_the_settings_permission_never_see_or_change_the_step(): void
     {
         $a = $this->restaurant('cafe-a', 'pro', true);

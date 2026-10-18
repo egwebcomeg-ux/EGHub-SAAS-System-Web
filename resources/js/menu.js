@@ -414,6 +414,8 @@ if (dataEl) {
                 <span class="m-primary rounded-full px-3 py-1 text-xs font-extrabold">${esc(T.goalFree)}</span>
             </li>` : '';
         $('[data-cart-lines]', cartSheet).innerHTML = lines ? lines + gift : `<li class="m-muted py-6 text-center">${esc(T.empty)}</li>`;
+        // an empty cart shows only "the cart is empty": no order fields and no send button
+        cartSheet.classList.toggle('m-cart-empty', !cart.length);
         renderGoal(t);
         const row = (label, v, bold) => `<div class="flex justify-between ${bold ? 'text-base font-extrabold' : ''}"><span>${esc(label)}</span><span>${fmt(v)}</span></div>`;
         const summary = $('[data-cart-summary]', cartSheet);
@@ -1064,3 +1066,13 @@ if (dataEl) {
         openItem(M.openItem, { fromHistory: true });
     }
 }
+
+// Phones: when the keyboard opens over a sheet (cart name, phone, address…), bring the focused field into view
+// once the visible area has shrunk, so the guest always sees what they type.
+document.addEventListener('focusin', (event) => {
+    const field = event.target;
+    if (!(field instanceof HTMLElement) || !field.matches('input, textarea, select') || !field.closest('dialog')) {
+        return;
+    }
+    setTimeout(() => field.scrollIntoView({ block: 'center', behavior: 'smooth' }), 320);
+});

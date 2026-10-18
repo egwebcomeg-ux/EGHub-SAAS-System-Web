@@ -2742,7 +2742,7 @@
     "Some days": "أيام معينة",
     "Shown only during (optional)": "يظهر بس في (اختياري)",
     "e.g. breakfast 07:00–12:00; a window may cross midnight (22:00–03:00).": "مثلاً الفطار 07:00–12:00؛ الفترة ممكن تعدي نص الليل (22:00–03:00).",
-    "Spicy level": "درجة الحرارة (شطة)",
+    "Spicy level": "مستوى الشطة",
     "Not spicy": "مش حار",
     "Allergens": "مسببات الحساسية",
     "Shown to guests when they open the item. Tick everything the dish contains.": "بتظهر للزبون لما يفتح الصنف. علّم على كل حاجة الأكلة فيها.",
@@ -3418,7 +3418,7 @@
     "Ticker saved.": "الشريط اتحفظ.",
     "Play the banners as a slideshow (every 4–5 seconds)": "اعرض البانرات ورا بعض لوحدها (كل ٤–٥ ثواني)",
     "It stops while the guest touches it. While the slideshow plays, the ticker stands still so only one thing moves.": "بيقف لما الزبون يلمسه. وطول ما العرض شغال الشريط بيفضل ثابت، عشان حاجة واحدة بس تتحرك.",
-    "Menu ticker": "شريط الأخبار",
+    "Menu ticker": "شريط العروض",
     "A thin line under the menu header that shows one short sentence at a time. Running offers, the cart goal and the season greeting are added by themselves; write up to :n lines of your own.": "سطر رفيع تحت أول المنيو بيعرض جملة قصيرة واحدة كل شوية. العروض الشغالة وهدية الطلب وتهنئة الموسم بيتضافوا لوحدهم، وتقدر تكتب لحد :n سطور من عندك.",
     "e.g. Free delivery all week": "مثلاً: التوصيل ببلاش طول الأسبوع",
     "Line :n": "سطر :n",
@@ -3444,5 +3444,7 @@
     "Filter the menu": "فلتر المنيو",
     "Back to the menu": "رجوع للمنيو",
     "Share this item": "شارك الصنف ده",
-    "Link copied": "اتنسخ اللينك"
+    "Link copied": "اتنسخ اللينك",
+    "Add another line": "ضيف سطر تاني",
+    "Want it at a set time?": "عايزه في وقت محدد؟"
 }

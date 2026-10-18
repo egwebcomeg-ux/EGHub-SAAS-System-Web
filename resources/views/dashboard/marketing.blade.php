@@ -129,8 +129,11 @@
         <form method="post" action="{{ route('dash.ticker.update') }}" class="card space-y-3" data-ticker-form>
             @csrf
             @error('lines.*')<p class="rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ $message }}</p>@enderror
+            {{-- the filled lines and one empty one show; the rest wait behind "add a line" so the form stays short on phones --}}
+            @php($tickerShown = min(\App\Support\MenuTicker::MAX_OWNER_LINES, count($tickerLines) + 1))
             @for ($n = 0; $n < \App\Support\MenuTicker::MAX_OWNER_LINES; $n++)
                 @php($line = $tickerLines[$n] ?? ['text' => '', 'text_en' => '', 'link' => ''])
+                @if ($n === $tickerShown)<details data-ticker-more><summary class="cursor-pointer py-2 text-sm font-bold text-navy-600">+ {{ __('Add another line') }}</summary><div class="space-y-3 pt-1">@endif
                 <div class="grid gap-2 sm:grid-cols-3" data-ticker-row>
                     <input class="field" name="lines[{{ $n }}][text]" maxlength="{{ \App\Support\MenuTicker::MAX_LENGTH }}" value="{{ $line['text'] }}" placeholder="{{ $n === 0 ? __('e.g. Free delivery all week') : __('Line :n', ['n' => $n + 1]) }}">
                     <input class="field" name="lines[{{ $n }}][text_en]" maxlength="{{ \App\Support\MenuTicker::MAX_LENGTH }}" value="{{ $line['text_en'] }}" placeholder="{{ __('In English (optional)') }}" dir="ltr">
@@ -145,6 +148,7 @@
                     </select>
                 </div>
             @endfor
+            @if ($tickerShown < \App\Support\MenuTicker::MAX_OWNER_LINES)</div></details>@endif
             <button class="btn-primary">{{ __('Save ticker') }}</button>
         </form>
 

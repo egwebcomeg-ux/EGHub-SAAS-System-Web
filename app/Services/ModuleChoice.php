@@ -19,6 +19,11 @@ use Illuminate\Support\Collection;
  */
 final class ModuleChoice
 {
+    /** A plan with fewer add-ons is suggested over the cheapest mix when it costs at most this much more a month (EGP or share). */
+    private const SIMPLER_MARGIN_EGP = 50;
+
+    private const SIMPLER_MARGIN_RATIO = 0.1;
+
     /** Always on: the menu is the product. */
     public const LOCKED = ['qr-menu'];
 
@@ -229,7 +234,7 @@ final class ModuleChoice
     {
         $tenant = tenant();
         $packs = $pricing['addons']->filter(fn (AddonPrice $a) => $a->isFeaturePack())->values();
-        $best = null;
+        $options = [];
 
         foreach ($pricing['plans'] as $plan) {
             $features = $pricing['matrix'][$plan->id]['features'] ?? [];
@@ -238,11 +243,18 @@ final class ModuleChoice
             if ($addons === null) {
                 continue;
             }
-            $total = (float) $plan->monthly_price + $addons->sum(fn (AddonPrice $a) => $a->priceFor($tenant));
-            if ($best === null || $total < $best['total'] || ($total == $best['total'] && $addons->count() < $best['addons']->count())) {
-                $best = ['plan' => $plan, 'addons' => $addons, 'total' => $total];
-            }
+            $options[] = ['plan' => $plan, 'addons' => $addons, 'total' => (float) $plan->monthly_price + $addons->sum(fn (AddonPrice $a) => $a->priceFor($tenant))];
         }
+        if ($options === []) {
+            return null;
+        }
+
+        // simpler wins when it costs about the same: one plan with fewer add-ons beats a pile of small packs
+        $lowest = min(array_column($options, 'total'));
+        $ceiling = $lowest + max(self::SIMPLER_MARGIN_EGP, $lowest * self::SIMPLER_MARGIN_RATIO);
+        $close = array_filter($options, fn (array $o) => $o['total'] <= $ceiling);
+        usort($close, fn (array $a, array $b) => [$a['addons']->count(), $a['total']] <=> [$b['addons']->count(), $b['total']]);
+        $best = $close[0];
 
         return $best;
     }

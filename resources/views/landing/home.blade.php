@@ -278,10 +278,12 @@
                 <h2 class="text-xl font-black text-navy-900 sm:text-2xl">{{ __('Guests pay online, through your own gateway') }}</h2>
                 <p class="mt-2 text-navy-600">{{ __('Have a contract with a payment company? We connect it to your menu and online orders, and the money goes straight to your account with no commission from us.') }}</p>
                 <ul class="mt-4 flex flex-wrap justify-center gap-2 lg:justify-start" aria-label="{{ __('Payment gateways we connect') }}">
-                    @foreach (['Fawry', 'Kashier', 'Paymob', 'Geidea'] as $gateway)
-                        <li class="rounded-full border border-navy-200 bg-navy-50 px-4 py-1.5 text-sm font-extrabold text-navy-700" dir="ltr">{{ $gateway }}</li>
+                    @foreach (['fawry' => 'Fawry', 'kashier' => 'Kashier', 'paymob' => 'Paymob', 'geidea' => 'Geidea'] as $gatewayFile => $gateway)
+                        <li class="grid h-14 w-28 place-items-center rounded-2xl border border-navy-100 bg-white px-3 sm:w-32" data-gateway="{{ $gatewayFile }}">
+                            <img src="{{ versioned_asset('img/partners/' . $gatewayFile . '.webp') }}" alt="{{ $gateway }}" width="120" height="40" loading="lazy" decoding="async" class="max-h-8 w-auto max-w-full object-contain">
+                        </li>
                     @endforeach
-                    <li class="rounded-full border border-dashed border-navy-300 px-4 py-1.5 text-sm font-bold text-navy-500">{{ __('or any gateway with an API') }}</li>
+                    <li class="grid h-14 place-items-center rounded-2xl border border-dashed border-navy-300 px-4 text-sm font-bold text-navy-500">{{ __('or any gateway with an API') }}</li>
                 </ul>
             </div>
             <a href="{{ route('services', ['service' => 'payment_gateway']) }}#request" class="btn-primary min-h-12 shrink-0 rounded-full px-6">{{ __('Ask for the connection') }}</a>

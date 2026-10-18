@@ -332,7 +332,7 @@
 </main>
 
 @php
-    $wayLabels = ['dine' => '🍽 ' . __('In the place'), 'takeaway' => '🛍 ' . __('Pickup'), 'delivery' => '🛵 ' . __('Delivery')];
+    $wayLabels = ['dine' => '🍽 ' . __('In the place'), 'takeaway' => '🛍 ' . __('Takeaway'), 'delivery' => '🛵 ' . __('Delivery')];
 @endphp
 {{-- Cart button --}}
 <div class="fixed inset-x-0 bottom-0 z-30 hidden p-4" data-cart-bar>
@@ -350,7 +350,7 @@
     /item/{id} (resources/js/menu.js pushes it, the browser back closes it and the menu keeps its scroll).
 --}}
 <dialog @class(['m-0 w-full max-w-none p-0', 'mt-auto bg-transparent backdrop:bg-black/50 sm:m-auto sm:max-w-lg' => ! $pro, 'm-item-page m-surface h-dvh max-h-none backdrop:bg-black' => $pro]) data-item-sheet @if ($pro) data-item-page @endif aria-labelledby="sheet-name">
-    <form method="dialog" @class(['m-surface', 'max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl' => ! $pro, 'h-full overflow-y-auto' => $pro]) data-item-form>
+    <form method="dialog" @class(['m-surface', 'max-h-[90dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl' => ! $pro, 'h-full overflow-y-auto' => $pro]) data-item-form>
         @if ($pro)
             <div class="pointer-events-none fixed inset-x-0 top-0 z-10 mx-auto flex max-w-2xl items-center justify-between p-3">
                 <button value="cancel" class="pointer-events-auto grid size-11 place-items-center rounded-full bg-black/45 text-white backdrop-blur" aria-label="{{ __('Back to the menu') }}" data-sheet-back>
@@ -445,7 +445,7 @@
 
 {{-- Cart sheet: an order (table / takeaway / delivery) or, in the hall, a list to show the waiter --}}
 <dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/50 sm:m-auto sm:max-w-lg" data-cart-sheet>
-    <form method="dialog" class="m-surface max-h-[90vh] overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl" data-cart-panel>
+    <form method="dialog" class="m-surface max-h-[90dvh] overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl" data-cart-panel>
         <div class="mb-3 flex items-center justify-between">
             <h3 class="text-xl font-extrabold" data-cart-title>{{ $data['mode'] === 'list' ? __('My order') : __('Your order') }}</h3>
             <button value="cancel" class="m-muted text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
@@ -494,7 +494,7 @@
                     <div class="mt-4 space-y-3" data-online>
                         @if (count($ways) < 2)
                             <div class="grid grid-cols-2 gap-2">
-                                @if ($online['takeaway'])<button type="button" class="m-border min-h-11 rounded-xl border font-bold" data-otype="takeaway">🛍 {{ __('Pickup') }}</button>@endif
+                                @if ($online['takeaway'])<button type="button" class="m-border min-h-11 rounded-xl border font-bold" data-otype="takeaway">🛍 {{ __('Takeaway') }}</button>@endif
                                 @if ($online['delivery'])<button type="button" class="m-border min-h-11 rounded-xl border font-bold" data-otype="delivery">🛵 {{ __('Delivery') }}</button>@endif
                             </div>
                         @endif
@@ -506,10 +506,14 @@
                             <textarea class="field min-h-16 py-2" maxlength="300" data-address placeholder="{{ __('Street, building, floor, apartment, landmark') }}"></textarea>
                         </div>
                         @if ($online['scheduled'])
-                            <label class="block text-sm">
-                                <span class="field-label">{{ __('When? (leave empty for as soon as possible)') }}</span>
-                                <input class="field" type="datetime-local" data-scheduled dir="ltr">
-                            </label>
+                            {{-- as soon as possible by default; a set time only for the guest who asks for one --}}
+                            <details class="text-sm" data-schedule-box>
+                                <summary class="m-primary-text cursor-pointer py-1 font-bold">⏰ {{ __('Want it at a set time?') }}</summary>
+                                <label class="mt-2 block">
+                                    <span class="field-label">{{ __('When? (leave empty for as soon as possible)') }}</span>
+                                    <input class="field" type="datetime-local" data-scheduled dir="ltr">
+                                </label>
+                            </details>
                         @endif
                         <p class="m-muted text-xs">{{ __('Ready in about :n minutes. You pay on pickup or delivery.', ['n' => $online['prep']]) }}</p>
                     </div>
@@ -564,7 +568,7 @@
 @if ($hall['mode'] !== 'off' && $hall['prices'])
     {{-- split the bill (pure client side, estimate) --}}
     <dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/50 sm:m-auto sm:max-w-lg" data-split-sheet>
-        <form method="dialog" class="m-surface max-h-[92vh] overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl">
+        <form method="dialog" class="m-surface max-h-[92dvh] overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl">
             <div class="mb-3 flex items-center justify-between">
                 <h3 class="text-xl font-extrabold">➗ {{ __('Split the bill') }}</h3>
                 <button value="cancel" class="m-muted text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
@@ -577,7 +581,7 @@
 @if ($branchPicker)
     {{-- branch switcher: nearest branch (location asked on tap only), current / last visit, open now, map --}}
     <dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/50 sm:m-auto sm:max-w-lg" data-branch-sheet aria-labelledby="branch-sheet-title">
-        <form method="dialog" class="m-surface max-h-[90vh] overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl">
+        <form method="dialog" class="m-surface max-h-[90dvh] overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl">
             <div class="mb-3 flex items-center justify-between">
                 <h3 id="branch-sheet-title" class="text-xl font-extrabold">📍 {{ __('Choose the branch') }}</h3>
                 <button value="cancel" class="m-muted text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
@@ -620,7 +624,7 @@
         };
     @endphp
     <dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/50 sm:m-auto sm:max-w-lg" data-zone-sheet aria-labelledby="zone-sheet-title">
-        <form method="dialog" class="m-surface max-h-[90vh] overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl">
+        <form method="dialog" class="m-surface max-h-[90dvh] overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl">
             <div class="mb-1 flex items-center justify-between">
                 <h3 id="zone-sheet-title" class="text-xl font-extrabold">🛵 {{ __('Where should we deliver?') }}</h3>
                 <button value="cancel" class="m-muted text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>

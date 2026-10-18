@@ -27,8 +27,8 @@ class MenuThemeTokensTest extends TenantTestCase
             $this->assertStringContainsString("--menu-surface: {$palette['surface']};", $html, $theme);
             $this->assertStringContainsString("--menu-accent: {$palette['accent']};", $html, $theme);
             // cart, item sheet and the "how will you order?" card are painted by the tokens, never a fixed white
-            $this->assertStringContainsString('class="m-surface max-h-[90vh] overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl" data-cart-panel', $html);
-            $this->assertStringContainsString('class="m-surface max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl" data-item-form', $html);
+            $this->assertStringContainsString('class="m-surface max-h-[90dvh] overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl" data-cart-panel', $html);
+            $this->assertStringContainsString('class="m-surface max-h-[90dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl" data-item-form', $html);
             $this->assertStringContainsString('m-choice-card m-surface', $html);
             $this->assertDoesNotMatchRegularExpression('/<(form|dialog)[^>]*\bbg-white\b/', $html, "$theme has a white sheet");
         }
