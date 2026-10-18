@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\PlatformSetting;
 use App\Services\WhatsApp\PhoneVerification;
+use App\Support\SocialLinks;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -20,6 +21,7 @@ class SettingsController extends Controller
         'pay_instapay_enabled', 'pay_instapay_handle', 'pay_vodafone_enabled', 'pay_vodafone_number', 'pay_instructions',
         'gateway_paymob_enabled', 'gateway_kashier_enabled', 'gateway_geidea_enabled', 'support_whatsapp', 'support_email',
         'sales_whatsapp', 'contact_email', 'server_ip', 'domain_cart_url',
+        'social_facebook', 'social_instagram', 'social_tiktok', 'social_youtube', 'social_linkedin', 'social_x',
     ];
 
     public function edit(): View
@@ -55,7 +57,7 @@ class SettingsController extends Controller
             'contact_email' => 'nullable|email|max:120',
             'server_ip' => 'nullable|ip',
             'domain_cart_url' => 'nullable|url|max:300',
-        ]);
+        ] + collect(SocialLinks::NETWORKS)->mapWithKeys(fn ($network, string $key) => [SocialLinks::key($key) => 'nullable|url:https|max:300'])->all());
         foreach (self::KEYS as $key) {
             $value = str_ends_with($key, '_enabled') ? ($request->boolean($key) ? '1' : '0') : (string) $request->input($key, '');
             PlatformSetting::put($key, $value);

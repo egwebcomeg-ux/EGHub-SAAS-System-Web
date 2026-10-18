@@ -3338,5 +3338,21 @@
     "From our customers": "من عملائنا",
     "Owners in their own words": "أصحاب المطاعم بكلامهم",
     ":n out of 5": ":n من 5",
-    "See their menu": "شوف المنيو بتاعهم"
+    "See their menu": "شوف المنيو بتاعهم",
+    "Online payment with your own gateway": "دفع أونلاين ببوابة الدفع بتاعتك",
+    "We connect your menu and online orders to the payment gateway you already have a contract with, so guests pay by card or wallet and the money goes straight to your account.": "بنربط المنيو والطلبات الأونلاين ببوابة الدفع اللي أنت متعاقد معاها، فالزبون يدفع بالكارت أو المحفظة والفلوس تنزل في حسابك على طول.",
+    "Fawry, Kashier, Paymob, Geidea or any gateway with an API": "فوري أو Kashier أو Paymob أو Geidea أو أي بوابة ليها API",
+    "Card and mobile-wallet payment on your online orders": "دفع بالكارت والمحافظ على الطلبات الأونلاين",
+    "Paid orders marked automatically on the order board": "الطلب المدفوع بيتعلّم عليه لوحده في لوحة الطلبات",
+    "Your contract and keys stay yours; EgMenu takes no commission": "العقد والمفاتيح بتاعتك أنت، وEgMenu مش بياخد عمولة",
+    "Timeline agreed after we review your gateway account": "المدة بنتفق عليها بعد ما نراجع حسابك على البوابة",
+    "You need an active merchant account with the gateway; we help you through it.": "محتاج حساب تاجر شغال على البوابة، وإحنا بنساعدك فيه.",
+    "Social media": "السوشيال ميديا",
+    "EgMenu’s own accounts. Each filled link shows as an icon in the site footer; empty fields are hidden.": "حسابات EgMenu نفسها. كل لينك مكتوب بيظهر أيقونة في آخر الموقع، والفاضي مش بيظهر.",
+    "Guests pay online, through your own gateway": "زباينك يدفعوا أونلاين، ببوابة الدفع بتاعتك",
+    "Have a contract with a payment company? We connect it to your menu and online orders, and the money goes straight to your account with no commission from us.": "متعاقد مع شركة دفع؟ بنربطها بالمنيو والطلبات الأونلاين، والفلوس تنزل في حسابك على طول من غير أي عمولة مننا.",
+    "Payment gateways we connect": "بوابات الدفع اللي بنربطها",
+    "or any gateway with an API": "أو أي بوابة ليها API",
+    "Ask for the connection": "اطلب الربط",
+    "Follow EgMenu": "تابع EgMenu"
 }

@@ -42,6 +42,14 @@
         <p class="text-xs text-navy-500 sm:col-span-2">{{ __('The site footer shows the sales and support numbers as WhatsApp links and the public email; empty fields are hidden.') }}</p>
     </div>
 
+    <div class="card grid gap-3 sm:grid-cols-2" data-social-settings>
+        <h2 class="text-lg font-bold sm:col-span-2">{{ __('Social media') }}</h2>
+        @foreach (\App\Support\SocialLinks::NETWORKS as $network => [$networkLabel])
+            <div><label class="field-label">{{ $networkLabel }}</label><input class="field" name="social_{{ $network }}" type="url" value="{{ $s['social_' . $network] }}" dir="ltr" placeholder="https://"></div>
+        @endforeach
+        <p class="text-xs text-navy-500 sm:col-span-2">{{ __('EgMenu’s own accounts. Each filled link shows as an icon in the site footer; empty fields are hidden.') }}</p>
+    </div>
+
     <div class="card space-y-3" id="whatsapp-verification">
         <h2 class="text-lg font-bold">{{ __('WhatsApp phone confirmation') }}</h2>
         <p class="text-sm text-navy-500">{{ __('Owners confirm their mobile by sending one ready message (EGMENU + code) to the platform number. These values come from .env and are shown here so you can paste them into Meta.') }}</p>

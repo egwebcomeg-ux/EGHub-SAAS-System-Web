@@ -269,6 +269,26 @@
     </div>
 </section>
 
+{{-- ============ GUESTS PAY ONLINE THROUGH THE RESTAURANT'S OWN GATEWAY (a service, App\Support\SiteServices payment_gateway) ============ --}}
+<section data-payment-gateways class="pt-16 lg:pt-24">
+    <div class="mx-auto max-w-5xl px-4 sm:px-6">
+        <div class="flex flex-col items-center gap-6 rounded-[28px] border border-navy-100 bg-white p-6 text-center sm:p-10 lg:flex-row lg:text-start" data-reveal>
+            <span class="lp-idea-icon shrink-0"><x-landing.icon name="wallet" class="size-6" /></span>
+            <div class="min-w-0 flex-1">
+                <h2 class="text-xl font-black text-navy-900 sm:text-2xl">{{ __('Guests pay online, through your own gateway') }}</h2>
+                <p class="mt-2 text-navy-600">{{ __('Have a contract with a payment company? We connect it to your menu and online orders, and the money goes straight to your account with no commission from us.') }}</p>
+                <ul class="mt-4 flex flex-wrap justify-center gap-2 lg:justify-start" aria-label="{{ __('Payment gateways we connect') }}">
+                    @foreach (['Fawry', 'Kashier', 'Paymob', 'Geidea'] as $gateway)
+                        <li class="rounded-full border border-navy-200 bg-navy-50 px-4 py-1.5 text-sm font-extrabold text-navy-700" dir="ltr">{{ $gateway }}</li>
+                    @endforeach
+                    <li class="rounded-full border border-dashed border-navy-300 px-4 py-1.5 text-sm font-bold text-navy-500">{{ __('or any gateway with an API') }}</li>
+                </ul>
+            </div>
+            <a href="{{ route('services', ['service' => 'payment_gateway']) }}#request" class="btn-primary min-h-12 shrink-0 rounded-full px-6">{{ __('Ask for the connection') }}</a>
+        </div>
+    </div>
+</section>
+
 {{-- ============ FAQ ============ --}}
 <section id="faq" class="py-20 lg:py-28">
     <div class="mx-auto max-w-3xl px-4 sm:px-6">

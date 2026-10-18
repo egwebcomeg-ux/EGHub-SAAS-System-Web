@@ -96,6 +96,19 @@ final class SiteServices
                 'note' => __('At your place in Cairo and Giza; online anywhere.'), 'items' => [], 'link' => null,
             ],
             [
+                'key' => 'payment_gateway', 'icon' => 'wallet',
+                'name' => __('Online payment with your own gateway'),
+                'summary' => __('We connect your menu and online orders to the payment gateway you already have a contract with, so guests pay by card or wallet and the money goes straight to your account.'),
+                'includes' => [
+                    __('Fawry, Kashier, Paymob, Geidea or any gateway with an API'),
+                    __('Card and mobile-wallet payment on your online orders'),
+                    __('Paid orders marked automatically on the order board'),
+                    __('Your contract and keys stay yours; EgMenu takes no commission'),
+                ],
+                'delivery' => __('Timeline agreed after we review your gateway account'), 'price' => null, 'unit' => '',
+                'note' => __('You need an active merchant account with the gateway; we help you through it.'), 'items' => [], 'link' => null,
+            ],
+            [
                 'key' => 'domain_email', 'icon' => 'globe',
                 'name' => __('Custom domain & branded email'),
                 'summary' => __('Your menu on your own name (mycafe.com) and email addresses like hello@mycafe.com, from EgWeb.'),

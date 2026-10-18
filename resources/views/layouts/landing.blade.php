@@ -15,6 +15,7 @@
     if ($contactEmail !== '') {
         $contacts[] = ['label' => __('Email'), 'text' => $contactEmail, 'href' => 'mailto:' . $contactEmail, 'icon' => null];
     }
+    $socialLinks = \App\Support\SocialLinks::all();
     $other = app()->getLocale() === 'ar' ? 'en' : 'ar';
     $home = route('landing');
     $siteGroups = \App\Support\SiteModules::groups();
@@ -159,6 +160,15 @@
                                     @if ($contact['icon'])<span class="shrink-0 text-xs font-medium text-white/50">({{ __('WhatsApp') }})</span>@endif
                                 </a>
                             </li>
+                        @endforeach
+                    </ul>
+                @endif
+                @if ($socialLinks)
+                    <ul data-social-links class="mt-5 flex flex-wrap gap-2" aria-label="{{ __('Follow EgMenu') }}">
+                        @foreach ($socialLinks as $social)
+                            <li><a href="{{ $social['url'] }}" target="_blank" rel="noopener me" aria-label="{{ $social['label'] }}" title="{{ $social['label'] }}" class="grid size-11 place-items-center rounded-full bg-white/10 text-white/80 transition hover:bg-brand-600 hover:text-white">
+                                <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5 fill-current"><path d="{{ $social['path'] }}"/></svg>
+                            </a></li>
                         @endforeach
                     </ul>
                 @endif
