@@ -2,9 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\DeliveryZone;
 use App\Models\DiningTable;
+use App\Models\Ingredient;
+use App\Models\Kiosk;
 use App\Models\LoyaltyProgram;
 use App\Models\MenuItem;
+use App\Models\TvScreen;
 use App\Models\User;
 
 /**
@@ -12,10 +16,26 @@ use App\Models\User;
  * real data (no flags to forget), except what only the owner can tell us: ordering decided (the settings form
  * saved once), the QR cards printed (print page opened), and the steps they chose to skip.
  * State lives in the `onboarding` setting as JSON {skipped: [...], dismissed: bool}.
+ * Once the owner picked the modules they use (App\Services\ModuleChoice), module steps follow that pick: ordering and
+ * loyalty only when picked, plus a setup step for picked modules such as reservations, delivery areas or the kiosk.
  */
 final class Onboarding
 {
-    public const STEPS = ['brand', 'menu', 'tables', 'ordering', 'staff', 'loyalty', 'whatsapp', 'plan'];
+    public const STEPS = ['brand', 'menu', 'tables', 'ordering', 'staff', 'loyalty', 'reservations', 'zones', 'inventory', 'tv', 'kiosk', 'whatsapp', 'plan'];
+
+    /** Steps that belong to modules: step => the picked modules any of which keeps it in the checklist. */
+    public const MODULE_STEPS = [
+        'ordering' => ['table-ordering', 'online-ordering'],
+        'loyalty' => ['loyalty'],
+        'reservations' => ['reservations'],
+        'zones' => ['online-ordering', 'call-center'],
+        'inventory' => ['inventory'],
+        'tv' => ['tv-screens'],
+        'kiosk' => ['kiosk'],
+    ];
+
+    /** Setup steps that only appear once their module was picked; without a pick the checklist stays as it was. */
+    private const PICKED_ONLY = ['reservations', 'zones', 'inventory', 'tv', 'kiosk'];
 
     public const MENU_ITEMS_WITH_PHOTOS = 5;
 
@@ -58,6 +78,27 @@ final class Onboarding
             $steps[] = self::step('loyalty', __('Set up the loyalty card'), __('Stamps or points that bring guests back.'),
                 LoyaltyProgram::query()->where('is_active', true)->exists(), $link('loyalty.manage', route('dash.loyalty.setup')));
         }
+        if (self::follows('reservations') && $rights->allows('reservations')) {
+            $steps[] = self::step('reservations', __('Open table reservations'), __('Set your hours and seats, then turn bookings on.'),
+                $s['reservations_enabled'] === '1', $link('reservations.manage', route('dash.reservations')));
+        }
+        if (self::follows('zones') && $rights->allows('delivery_zones|online_ordering')) {
+            $steps[] = self::step('zones', __('Add your delivery areas'), __('Each area with its delivery fee, so guests see the right total.'),
+                DeliveryZone::query()->exists(), $link('delivery.manage', route('dash.zones')));
+        }
+        if (self::follows('inventory') && $rights->allows('inventory')) {
+            $steps[] = self::step('inventory', __('Add your ingredients'), __('Add the ingredients and their stock, then link them to your recipes.'),
+                Ingredient::query()->exists(), $link('inventory.manage', route('dash.inventory')));
+        }
+        if (self::follows('tv') && $rights->allows('tv_screens')) {
+            $steps[] = self::step('tv', __('Set up your first TV screen'), __('Create a screen and open its link on the TV browser.'),
+                TvScreen::query()->exists(), $link('menu.manage', route('dash.tv')));
+        }
+        if (self::follows('kiosk') && $rights->allows('kiosk')) {
+            $steps[] = self::step('kiosk', __('Set up the kiosk tablet'), __('Create a kiosk and open its link on the tablet at the counter.'),
+                Kiosk::query()->exists(), $link('kiosk.manage', route('dash.kiosks')));
+        }
+        $steps = array_values(array_filter($steps, fn (array $st) => self::follows($st['key'])));
         $steps[] = self::step('whatsapp', __('Confirm your WhatsApp number'), __('One ready message from your phone, no codes to type.'),
             $user->hasVerifiedPhone() || User::query()->whereNotNull('phone_verified_at')->exists(), route('dash.phone'));
         $steps[] = self::step('plan', __('Choose your plan'), __('Pick the plan that fits and pay by InstaPay or Vodafone Cash.'),
@@ -107,6 +148,20 @@ final class Onboarding
             'skipped' => array_values(array_filter((array) ($raw['skipped'] ?? []), 'is_string')),
             'dismissed' => (bool) ($raw['dismissed'] ?? false),
         ];
+    }
+
+    /** Whether a step fits the modules the owner picked (no pick yet: the original checklist). */
+    private static function follows(string $key): bool
+    {
+        if (! isset(self::MODULE_STEPS[$key])) {
+            return true;
+        }
+        $chosen = ModuleChoice::chosen();
+        if ($chosen === null) {
+            return ! in_array($key, self::PICKED_ONLY, true);
+        }
+
+        return array_intersect(self::MODULE_STEPS[$key], $chosen) !== [];
     }
 
     /** @return array{key:string, title:string, text:string, done:bool, skipped:bool, url:?string} */

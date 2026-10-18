@@ -49,6 +49,17 @@
     ];
     $allowed = fn (array $i) => (! $i[3] || $user->can($i[3])) && (! $i[4] || $rights->allows($i[4]));
     $groups = array_values(array_filter(array_map(fn ($g) => [$g[0], array_values(array_filter($g[1], $allowed))], $groups), fn ($g) => $g[1] !== []));
+    // the modules the owner picked come first; the rest wait under "more modules" (focus only, every link still works)
+    $more = [];
+    if (\App\Services\ModuleChoice::hasChoice()) {
+        foreach ($groups as $gi => $g) {
+            $groups[$gi][1] = array_values(array_filter($g[1], fn ($i) => \App\Services\ModuleChoice::focuses($i[0])));
+            array_push($more, ...array_values(array_filter($g[1], fn ($i) => ! \App\Services\ModuleChoice::focuses($i[0]))));
+        }
+        $groups = array_values(array_filter($groups, fn ($g) => $g[1] !== []));
+    }
+    $inMore = collect($more)->contains(fn ($i) => request()->routeIs($i[0]) || request()->routeIs($i[0].'.*'));
+    $canPickModules = \App\Services\ModuleChoice::canChange($user);
     $nav = array_merge(...array_map(fn ($g) => $g[1], $groups));
 @endphp
 
@@ -72,6 +83,35 @@
                     @endforeach
                 </div>
             @endforeach
+            @if ($more !== [])
+                <details class="group/more" data-nav-more @if ($inMore) open @endif>
+                    <summary class="flex min-h-10 cursor-pointer list-none items-center gap-3 rounded-xl px-3 text-sm font-semibold text-white/60 hover:bg-white/5 hover:text-white [&::-webkit-details-marker]:hidden">
+                        <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg>
+                        {{ __('More modules') }}
+                        <span class="ms-auto rounded-full bg-white/10 px-2 text-xs">{{ count($more) }}</span>
+                        <svg class="size-4 shrink-0 transition group-open/more:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </summary>
+                    <div class="ms-5 mt-0.5 space-y-0.5 border-s border-white/10 ps-2">
+                        @foreach ($more as [$route, $label, $icon])
+                            @php
+                                $active = request()->routeIs($route) || request()->routeIs($route.'.*');
+                            @endphp
+                            <a href="{{ route($route) }}" data-nav-more-item="{{ $route }}" @class(['flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition',
+                                'bg-white/10 text-white' => $active, 'text-white/60 hover:bg-white/5 hover:text-white' => !$active])>
+                                <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $icon }}"/></svg>
+                                {{ $label }}
+                            </a>
+                        @endforeach
+                    </div>
+                </details>
+            @endif
+            @if ($canPickModules)
+                <a href="{{ route('dash.modules') }}" data-nav-modules @class(['flex min-h-10 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition',
+                    'bg-white/10 text-white' => request()->routeIs('dash.modules'), 'text-white/50 hover:bg-white/5 hover:text-white' => !request()->routeIs('dash.modules')])>
+                    <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>
+                    {{ __('Your modules') }}
+                </a>
+            @endif
         </nav>
         <div class="border-t border-white/10 p-4 text-xs text-white/50">EgMenu · by EgWeb</div>
     </aside>
@@ -123,6 +163,23 @@
                 <a href="{{ route($route) }}" @class(['shrink-0 rounded-lg px-3 py-2 text-sm font-semibold', 'bg-navy-800 text-white' => request()->routeIs($route), 'text-navy-700' => !request()->routeIs($route)])>{{ $label }}</a>
             @endforeach
         </nav>
+        @if ($more !== [])
+            <details class="group/more border-b border-navy-100 bg-white px-3 lg:hidden" data-nav-more-mobile @if ($inMore) open @endif>
+                <summary class="flex min-h-10 cursor-pointer list-none items-center gap-2 text-sm font-semibold text-navy-600 [&::-webkit-details-marker]:hidden">
+                    {{ __('More modules') }}
+                    <span class="rounded-full bg-navy-50 px-2 text-xs">{{ count($more) }}</span>
+                    <svg class="size-4 transition group-open/more:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </summary>
+                <div class="flex flex-wrap gap-1 pb-2">
+                    @foreach ($more as [$route, $label])
+                        <a href="{{ route($route) }}" @class(['rounded-lg px-3 py-2 text-sm font-semibold', 'bg-navy-800 text-white' => request()->routeIs($route), 'bg-navy-50 text-navy-700' => !request()->routeIs($route)])>{{ $label }}</a>
+                    @endforeach
+                    @if ($canPickModules)
+                        <a href="{{ route('dash.modules') }}" class="rounded-lg px-3 py-2 text-sm font-semibold text-brand-700">{{ __('Change your modules') }}</a>
+                    @endif
+                </div>
+            </details>
+        @endif
         <main class="flex-1 p-4 sm:p-6">
             @if ($sub && $sub->needsAttention() && $user->can('billing.manage') && !request()->routeIs('dash.billing*'))
                 <div @class(['mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-semibold',

@@ -21,6 +21,37 @@
     @endforeach
 </div>
 
+@if ($moduleShortcuts !== null)
+    {{-- The modules the owner picked, first thing on the home page (App\Services\ModuleChoice). --}}
+    <section class="card mt-4" data-home-modules>
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 class="text-lg font-bold">{{ __('Your modules') }}</h2>
+            @if ($canPickModules)<a href="{{ route('dash.modules') }}" class="text-sm font-semibold text-brand-700 underline">{{ __('Change your modules') }}</a>@endif
+        </div>
+        @if ($moduleShortcuts === [])
+            <p class="muted">{{ __('The modules you picked open from the menu on the side.') }}</p>
+        @else
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+                @foreach ($moduleShortcuts as $shortcut)
+                    <a href="{{ $shortcut['url'] }}" data-home-module="{{ $shortcut['module']['slug'] }}" @class(['flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition',
+                        'border-navy-100 text-navy-800 hover:border-brand-500 hover:bg-brand-50/60' => ! $shortcut['locked'],
+                        'border-dashed border-navy-200 text-navy-500 hover:border-brand-500' => $shortcut['locked']])>
+                        <x-landing.icon :name="$shortcut['module']['icon']" :class="$shortcut['locked'] ? 'size-5 shrink-0 text-navy-300' : 'size-5 shrink-0 text-brand-600'" />
+                        <span class="min-w-0 leading-snug">
+                            {{ $shortcut['module']['name'] }}
+                            @if ($shortcut['locked'])<span class="block text-xs font-semibold text-brand-700">{{ __('Upgrade') }}</span>@endif
+                        </span>
+                    </a>
+                @endforeach
+            </div>
+        @endif
+    </section>
+@elseif ($canPickModules)
+    <a href="{{ route('dash.modules') }}" data-modules-invite class="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-dashed border-navy-200 bg-navy-50/70 px-4 py-3 text-sm font-semibold text-navy-800">
+        <span>🧩 {{ __('Tell us what you use, and we put it first in your dashboard.') }}</span><span class="shrink-0 text-brand-700 underline">{{ __('Pick your modules') }}</span>
+    </a>
+@endif
+
 @if ($onboarding && ! $onboarding['hidden'])
     {{-- Onboarding checklist (owners and managers): computed from real data, hidden at 100% or when put away. --}}
     <section class="card mt-4" data-onboarding data-percent="{{ $onboarding['percent'] }}">

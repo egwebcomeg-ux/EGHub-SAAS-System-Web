@@ -24,6 +24,7 @@ use App\Http\Controllers\Dashboard\MarketingController;
 use App\Http\Controllers\Dashboard\MenuExportController;
 use App\Http\Controllers\Dashboard\MenuImportController;
 use App\Http\Controllers\Dashboard\MenuTranslationController;
+use App\Http\Controllers\Dashboard\ModulesController;
 use App\Http\Controllers\Dashboard\NotificationsController;
 use App\Http\Controllers\Dashboard\OnboardingController;
 use App\Http\Controllers\Dashboard\OrdersController;
@@ -88,6 +89,11 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/settings', [SettingsController::class, 'edit'])->name('settings');
         Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
         Route::post('/settings/ai-test', [SettingsController::class, 'testAi'])->middleware('throttle:6,1')->name('settings.ai-test');
+        // "what will you use?": first stop after signup (?welcome=1), then from Settings; focus only, never access
+        Route::get('/modules', [ModulesController::class, 'edit'])->name('modules');
+        Route::get('/modules/summary', [ModulesController::class, 'summary'])->middleware('throttle:60,1')->name('modules.summary');
+        Route::post('/modules', [ModulesController::class, 'update'])->name('modules.update');
+        Route::post('/modules/skip', [ModulesController::class, 'skip'])->name('modules.skip');
         Route::get('/domain', [DomainController::class, 'show'])->name('domain');
         Route::post('/domain/book', [DomainController::class, 'book'])->middleware('throttle:10,1')->name('domain.book');
         Route::post('/domain/connect', [DomainController::class, 'connect'])->middleware('throttle:10,1')->name('domain.connect');

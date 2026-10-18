@@ -127,6 +127,8 @@ final class Settings
         'qr_printed_at' => '',                   // set when the QR cards print page is opened
         'ordering_decided' => '0',               // the settings form was saved at least once (ordering on/off chosen)
         'onboarding' => '',                      // json {skipped: [step keys], dismissed: bool}
+        // "what will you use?" (App\Services\ModuleChoice): json list of App\Support\SiteModules slugs; '' = not picked
+        'modules' => '',
     ];
 
     /** @var array<string,array<string,string>> */

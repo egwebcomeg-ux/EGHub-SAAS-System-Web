@@ -2,7 +2,10 @@
 @section('title', __('Settings'))
 
 @section('content')
-<h1 class="mb-4 text-2xl font-extrabold">{{ __('Settings') }}</h1>
+<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <h1 class="text-2xl font-extrabold">{{ __('Settings') }}</h1>
+    <a href="{{ route('dash.modules') }}" class="btn-ghost" data-settings-modules>🧩 {{ __('Modules') }}</a>
+</div>
 
 <form method="post" action="{{ route('dash.settings.update') }}" enctype="multipart/form-data" class="space-y-4">
     @csrf

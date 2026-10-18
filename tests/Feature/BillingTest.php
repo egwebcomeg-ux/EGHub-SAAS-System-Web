@@ -179,7 +179,8 @@ class BillingTest extends TenantTestCase
         $owner = User::query()->where('email', 'sara@new.test')->first();
         $this->assertTrue($owner->hasRole('owner'));
 
-        $this->get($res->headers->get('Location'))->assertRedirect(route('dash.home'));
+        // first stop after signup: "what will you use?" (ModulePickerTest)
+        $this->get($res->headers->get('Location'))->assertRedirect(route('dash.modules', ['welcome' => 1]));
         $this->assertAuthenticatedAs($owner, 'web');
 
         // the link works once only

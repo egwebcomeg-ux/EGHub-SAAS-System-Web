@@ -103,14 +103,17 @@ class PhoneVerificationTest extends TenantTestCase
         $this->actingAs($owner)->get($this->dashUrl('/phone'))->assertOk()->assertSee('https://wa.me/201000000000?text=EGMENU%20AB2CD3', false);
     }
 
-    public function test_the_welcome_link_lands_on_the_confirmation_step_when_a_number_is_configured(): void
+    public function test_after_the_module_step_the_owner_lands_on_the_confirmation_step_when_a_number_is_configured(): void
     {
         config(['whatsapp.number' => '201000000000']);
         $a = $this->restaurant('cafe-a');
         $owner = $this->pending($a, '01011111111', 'AB2CD3');
         $owner->forceFill(['last_login_at' => null])->save();
 
-        $this->get(URL::temporarySignedRoute('dash.welcome', now()->addMinutes(5), ['user' => $owner->id]))->assertRedirect(route('dash.phone'));
+        $this->get(URL::temporarySignedRoute('dash.welcome', now()->addMinutes(5), ['user' => $owner->id]))
+            ->assertRedirect(route('dash.modules', ['welcome' => 1]));
+        $this->actingAs($owner)->post($this->dashUrl('/modules'), ['welcome' => '1', 'modules' => ['loyalty']])->assertRedirect(route('dash.phone'));
+        $this->actingAs($owner)->post($this->dashUrl('/modules/skip'), ['welcome' => '1'])->assertRedirect(route('dash.phone'));
     }
 
     public function test_meta_verification_handshake(): void

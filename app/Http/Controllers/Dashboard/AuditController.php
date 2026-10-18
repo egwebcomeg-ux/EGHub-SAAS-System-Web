@@ -18,6 +18,7 @@ class AuditController extends Controller
         'item.price_changed' => ['تغيير سعر', 'Price changed'],
         'item.deleted' => ['حذف صنف', 'Item deleted'],
         'settings.updated' => ['تعديل الإعدادات', 'Settings updated'],
+        'modules.updated' => ['تغيير الموديولات المستخدمة', 'Modules in use changed'],
         'user.created' => ['إضافة مستخدم', 'User added'],
         'user.updated' => ['تعديل مستخدم', 'User updated'],
         'order.cancelled' => ['إلغاء طلب', 'Order cancelled'],
