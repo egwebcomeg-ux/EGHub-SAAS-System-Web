@@ -9,8 +9,13 @@ final class SpreadsheetReader
 {
     private const MAX_ROWS = 5000;
 
-    /** @return array<int,array<int,string>> @throws \RuntimeException */
-    public static function read(string $path, string $originalName): array
+    /**
+     * Rows are read up to $maxRows (default 5,000) and the rest is dropped; pass one more than a caller's own cap to
+     * tell "exactly at the cap" from "over it".
+     *
+     * @return array<int,array<int,string>> @throws \RuntimeException
+     */
+    public static function read(string $path, string $originalName, int $maxRows = self::MAX_ROWS): array
     {
         $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
         if (filesize($path) > 6 * 1024 * 1024) {
@@ -18,14 +23,14 @@ final class SpreadsheetReader
         }
 
         return match ($ext) {
-            'csv', 'txt' => self::csv($path),
-            'xlsx' => self::xlsx($path),
+            'csv', 'txt' => self::csv($path, $maxRows),
+            'xlsx' => self::xlsx($path, $maxRows),
             default => throw new \RuntimeException(__('Unsupported file. Upload an .xlsx or .csv file.')),
         };
     }
 
     /** @return array<int,array<int,string>> */
-    private static function csv(string $path): array
+    private static function csv(string $path, int $maxRows): array
     {
         $raw = (string) file_get_contents($path);
         $raw = preg_replace('/^\xEF\xBB\xBF/', '', $raw) ?? $raw;
@@ -43,7 +48,7 @@ final class SpreadsheetReader
         fwrite($fh, $raw);
         rewind($fh);
         $rows = [];
-        while (($r = fgetcsv($fh, 0, $delim, '"', '\\')) !== false && count($rows) <= self::MAX_ROWS) {
+        while (($r = fgetcsv($fh, 0, $delim, '"', '\\')) !== false && count($rows) <= $maxRows) {
             if ($r === [null] || ! array_filter($r, static fn ($v) => trim((string) $v) !== '')) {
                 continue;
             }
@@ -55,7 +60,7 @@ final class SpreadsheetReader
     }
 
     /** @return array<int,array<int,string>> */
-    private static function xlsx(string $path): array
+    private static function xlsx(string $path, int $maxRows): array
     {
         if (! class_exists(\ZipArchive::class)) {
             throw new \RuntimeException(__('Excel files are not supported on this server, upload a CSV file.'));
@@ -116,7 +121,7 @@ final class SpreadsheetReader
                 $line[] = $cells[$i] ?? '';
             }
             $rows[] = $line;
-            if (count($rows) > self::MAX_ROWS) {
+            if (count($rows) > $maxRows) {
                 break;
             }
         }

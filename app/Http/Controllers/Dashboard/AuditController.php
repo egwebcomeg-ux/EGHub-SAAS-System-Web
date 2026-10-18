@@ -26,6 +26,7 @@ class AuditController extends Controller
         'stock.purchase' => ['استلام مخزون', 'Stock received'],
         'stock.waste' => ['هالك مخزون', 'Stock waste'],
         'stock.count' => ['جرد مخزون', 'Stock count'],
+        'customers.imported' => ['استيراد عملاء', 'Customers imported'],
     ];
 
     public function index(Request $request): View

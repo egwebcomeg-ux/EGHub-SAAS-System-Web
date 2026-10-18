@@ -2,10 +2,23 @@
 @section('title', __('Customers'))
 
 @section('content')
-<div class="dash-head">
-    <h1 class="page-title">{{ __('Customers') }}</h1>
-    <a href="{{ route('dash.customers.export', array_filter(['q' => $q, 'segment' => $segment])) }}" class="btn-ghost">⬇ {{ __('Export to Excel (CSV)') }}</a>
-</div>
+<x-dash.page-header :title="__('Customers')">
+    <x-slot:actions>
+        @can('customers.view')<a href="{{ route('dash.customers.import') }}" class="btn-ghost" data-customers-import>⬆ {{ __('Import customers') }}</a>@endcan
+        <a href="{{ route('dash.customers.export', array_filter(['q' => $q, 'segment' => $segment])) }}" class="btn-ghost">⬇ {{ __('Export to Excel (CSV)') }}</a>
+    </x-slot:actions>
+</x-dash.page-header>
+
+@if ($summary = session('import_summary'))
+    <section class="card mb-4 border-s-4 border-emerald-500" data-import-summary>
+        <h2 class="section-title">{{ __('Import finished') }} <span class="text-sm font-normal text-navy-500">· <span dir="ltr">{{ $summary['file'] }}</span></span></h2>
+        <dl class="mt-3 grid grid-cols-3 gap-3 text-center">
+            <div class="rounded-xl bg-emerald-50 p-3"><dt class="text-xs text-emerald-800">{{ __('New customers') }}</dt><dd class="text-xl font-bold text-emerald-900">{{ number_format($summary['created']) }}</dd></div>
+            <div class="rounded-xl bg-brand-50 p-3"><dt class="text-xs text-brand-700">{{ __('Updated') }}</dt><dd class="text-xl font-bold text-brand-700">{{ number_format($summary['updated']) }}</dd></div>
+            <div class="rounded-xl bg-navy-50 p-3"><dt class="text-xs text-navy-600">{{ __('Skipped rows') }}</dt><dd class="text-xl font-bold text-navy-800">{{ number_format($summary['skipped']) }}</dd></div>
+        </dl>
+    </section>
+@endif
 
 <div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
     <div class="stat-card"><div class="stat-label">{{ __('All customers') }}</div><div class="stat-value">{{ $stats['total'] }}</div></div>
