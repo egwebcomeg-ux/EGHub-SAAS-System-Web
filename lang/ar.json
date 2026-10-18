@@ -3166,5 +3166,16 @@
     "You can change it later from your cart.": "تقدر تغيّره بعدين من السلة.",
     "When it plays": "إمتى يظهر",
     "Every time the menu is opened": "كل مرة المنيو يتفتح",
-    "About 2 seconds; the guest can tap to skip it.": "حوالي ثانيتين، والعميل يقدر يتخطاه بلمسة."
+    "About 2 seconds; the guest can tap to skip it.": "حوالي ثانيتين، والعميل يقدر يتخطاه بلمسة.",
+    "Map drawing is on.": "اتفعّل الرسم على الخريطة.",
+    "Manual areas are on.": "اتفعّلت المناطق اليدوي.",
+    "Where you deliver and for how much. The guest ordering online (and the call center) picks the area: its fee is added and its minimum order is checked. A sub-area left empty uses its main area’s values.": "بتوصّل فين وبكام. العميل اللي بيطلب أونلاين (والكول سنتر) بيختار المنطقة: رسومها بتتضاف والحد الأدنى بيتراجع. المنطقة الفرعية اللي تسيبها فاضية بتاخد قيم المنطقة الرئيسية.",
+    "By hand": "يدوي بالأسماء",
+    "Type each main area, then its streets or sub-areas, with the fee you want. No map needed.": "اكتب كل منطقة رئيسية وتحتها شوارعها أو مناطقها الفرعية، بالرسوم اللي انت عايزها. من غير خريطة.",
+    "Draw on the map": "رسم على الخريطة",
+    "Draw each area’s borders on the map; a guest or the call center can pin the address and the area is picked automatically.": "ارسم حدود كل منطقة على الخريطة؛ العميل أو الكول سنتر يحدد العنوان على الخريطة والمنطقة بتتحدد لوحدها.",
+    "In use": "المستخدم دلوقتي",
+    "Street or sub-area in :area": "شارع أو منطقة فرعية في :area",
+    "Empty = the main area’s fee": "فاضي = رسوم المنطقة الرئيسية",
+    "Add street": "ضيف شارع"
 }

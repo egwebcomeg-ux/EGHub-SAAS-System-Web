@@ -267,6 +267,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::middleware(['feature:delivery_zones|online_ordering', 'permission:delivery.manage'])->group(function () {
         Route::get('/delivery-zones', [DeliveryZonesController::class, 'index'])->name('zones');
         Route::post('/delivery-zones', [DeliveryZonesController::class, 'store'])->name('zones.store');
+        Route::post('/delivery-zones/mode', [DeliveryZonesController::class, 'mode'])->name('zones.mode');
         Route::post('/delivery-zones/{zone}', [DeliveryZonesController::class, 'update'])->name('zones.update');
         Route::post('/delivery-zones/{zone}/area', [DeliveryZonesController::class, 'polygon'])->name('zones.polygon');
         Route::post('/delivery-zones/{zone}/delete', [DeliveryZonesController::class, 'destroy'])->name('zones.delete');

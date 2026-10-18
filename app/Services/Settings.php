@@ -58,6 +58,7 @@ final class Settings
         // online ordering from the menu link (plan feature online_ordering)
         'online_takeaway' => '1',
         'online_delivery' => '0',
+        'delivery_zone_mode' => 'manual',   // manual (main area → sub-areas/streets, fees typed) | map (areas drawn on the map)
         'online_prep_minutes' => '20',
         'online_auto_cancel_minutes' => '0',  // 0 = off; else online orders nobody accepted in N minutes are cancelled (egmenu:auto-cancel)
         // busy mode (orders board): until this moment online/takeaway/delivery ordering is paused; table orders go on

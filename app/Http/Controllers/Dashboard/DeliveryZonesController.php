@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\DeliveryZone;
+use App\Services\Settings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -18,6 +19,7 @@ class DeliveryZonesController extends Controller
         $branch = Branch::query()->whereNotNull('lat')->first();
 
         return view('dashboard.delivery', [
+            'mode' => Settings::get('delivery_zone_mode') === 'map' ? 'map' : 'manual',
             'center' => $branch ? [(float) $branch->lat, (float) $branch->lng] : null,
             'branches' => Branch::query()->orderBy('sort_order')->get(),
             // "Main › Sub" labels sort each sub-area right under its main area
@@ -37,6 +39,15 @@ class DeliveryZonesController extends Controller
         $zone->update($this->validated($request, $zone) + ['is_active' => $request->boolean('is_active')]);
 
         return back()->with('ok', __('Zone saved.'));
+    }
+
+    /** How the restaurant sets its areas: typed by hand (main area → streets) or drawn on the map. */
+    public function mode(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['mode' => ['required', Rule::in(['manual', 'map'])]]);
+        Settings::put(['delivery_zone_mode' => $data['mode']]);
+
+        return back()->with('ok', $data['mode'] === 'map' ? __('Map drawing is on.') : __('Manual areas are on.'));
     }
 
     /** Saves the area drawn on the map: [[lat, lng], ...], or clears it. */

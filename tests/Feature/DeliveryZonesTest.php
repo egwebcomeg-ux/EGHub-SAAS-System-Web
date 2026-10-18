@@ -6,6 +6,7 @@ use App\Billing\Billing;
 use App\Models\Branch;
 use App\Models\DeliveryZone;
 use App\Models\Tenant;
+use App\Services\Settings;
 use Tests\TenantTestCase;
 
 class DeliveryZonesTest extends TenantTestCase
@@ -16,6 +17,29 @@ class DeliveryZonesTest extends TenantTestCase
         app(Billing::class)->setAddon($tenant, 'callcenter_pack', 1);
 
         return $tenant;
+    }
+
+    public function test_manual_mode_is_the_default_and_streets_are_added_under_a_main_area(): void
+    {
+        $tenant = $this->withCallCenter('cafe-a');
+        $owner = $this->owner($tenant);
+        $branch = $this->as($tenant, fn () => Branch::query()->firstOrFail());
+
+        // manual by default: the mode cards show, the map does not, each main area offers "add a street"
+        $this->actingAs($owner)->post($this->dashUrl('/delivery-zones'), ['branch_id' => $branch->id, 'name' => 'مدينة نصر', 'fee' => 30])->assertSessionHasNoErrors();
+        $main = $this->as($tenant, fn () => DeliveryZone::query()->firstOrFail());
+        $page = $this->actingAs($owner)->get($this->dashUrl('/delivery-zones'))->assertOk();
+        $page->assertSee('data-zone-mode', false)->assertSee('data-add-street', false)->assertDontSee('id="zones-map"', false);
+
+        $this->actingAs($owner)->post($this->dashUrl('/delivery-zones'), ['branch_id' => $branch->id, 'parent_id' => $main->id, 'name' => 'شارع عباس العقاد'])->assertSessionHasNoErrors();
+        $street = $this->as($tenant, fn () => DeliveryZone::query()->where('parent_id', $main->id)->firstOrFail());
+        $this->assertSame(30.0, (float) $this->as($tenant, fn () => $street->effective('fee')));   // inherits the main area's fee
+
+        // switching to the map shows the drawing tools instead of the street rows
+        $this->actingAs($owner)->post($this->dashUrl('/delivery-zones/mode'), ['mode' => 'map'])->assertSessionHasNoErrors();
+        $this->assertSame('map', $this->as($tenant, fn () => Settings::get('delivery_zone_mode')));
+        $this->actingAs($owner)->get($this->dashUrl('/delivery-zones'))->assertSee('id="zones-map"', false)->assertDontSee('data-add-street', false);
+        $this->actingAs($owner)->post($this->dashUrl('/delivery-zones/mode'), ['mode' => 'drone'])->assertSessionHasErrors('mode');
     }
 
     public function test_zones_and_sub_areas_inherit_empty_values(): void

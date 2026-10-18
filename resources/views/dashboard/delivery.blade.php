@@ -3,10 +3,21 @@
 
 @section('content')
 <h1 class="page-title mb-1">{{ __('Delivery zones') }}</h1>
-<p class="muted mb-4">{{ __('The call center picks the zone for each delivery: its fee is added and its minimum order is checked. A sub-area left empty uses its main area’s values.') }}</p>
+<p class="muted mb-4">{{ __('Where you deliver and for how much. The guest ordering online (and the call center) picks the area: its fee is added and its minimum order is checked. A sub-area left empty uses its main area’s values.') }}</p>
+
+{{-- how the areas are set: typed by hand (default, simplest) or drawn on the map --}}
+<form method="post" action="{{ route('dash.zones.mode') }}" class="mb-4 grid gap-3 sm:grid-cols-2" data-zone-mode>
+    @csrf
+    @foreach (['manual' => ['✍️', __('By hand'), __('Type each main area, then its streets or sub-areas, with the fee you want. No map needed.')], 'map' => ['🗺️', __('Draw on the map'), __('Draw each area’s borders on the map; a guest or the call center can pin the address and the area is picked automatically.')]] as $key => [$icon, $title, $text])
+        <button name="mode" value="{{ $key }}" @class(['card flex items-start gap-3 text-start transition', 'ring-2 ring-brand-600' => $mode === $key, 'opacity-80 hover:opacity-100' => $mode !== $key])>
+            <span class="text-2xl" aria-hidden="true">{{ $icon }}</span>
+            <span><span class="block font-extrabold">{{ $title }} @if ($mode === $key)<span class="badge bg-brand-50 text-brand-700">{{ __('In use') }}</span>@endif</span><span class="mt-1 block text-sm text-navy-500">{{ $text }}</span></span>
+        </button>
+    @endforeach
+</form>
 
 @include('partials.leaflet')
-@if ($zones->isNotEmpty())
+@if ($mode === 'map' && $zones->isNotEmpty())
     <section class="card mb-4 space-y-3">
         <div class="flex flex-wrap items-center gap-2">
             <h2 class="section-title me-auto">{{ __('Areas on the map') }}</h2>
@@ -48,7 +59,7 @@
                     <tbody>
                     @forelse ($branchZones as $z)
                         <tr @class(['opacity-50' => !$z->is_active])>
-                            <td class="font-semibold">{{ $z->label() }}@if ($z->polygon) <span class="text-xs text-emerald-700" title="{{ __('Area drawn on the map') }}">📍</span>@endif</td>
+                            <td @class(['font-semibold', 'ps-6 text-navy-600' => $z->parent_id])>{{ $z->parent_id ? '↳ '.$z->name : $z->label() }}@if ($z->polygon) <span class="text-xs text-emerald-700" title="{{ __('Area drawn on the map') }}">📍</span>@endif</td>
                             <td>{{ money($z->effective('fee') ?? 0) }}@if ($z->fee === null && $z->parent) <span class="text-xs text-navy-400">({{ __('inherited') }})</span>@endif</td>
                             <td>{{ $z->effective('min_order') !== null ? money($z->effective('min_order')) : '—' }}</td>
                             <td>{{ $z->effective('estimated_minutes') ?? '—' }}</td>
@@ -65,6 +76,21 @@
                                 <form method="post" action="{{ route('dash.zones.delete', $z) }}" class="mt-1" onsubmit="return confirm(@js(__('Delete this zone?')))">@csrf<button class="text-xs text-red-600">{{ __('Delete') }}</button></form>
                             </td>
                         </tr>
+                        @if ($mode === 'manual' && ! $z->parent_id)
+                            <tr class="bg-navy-50/50">
+                                <td colspan="5" class="py-2">
+                                    <form method="post" action="{{ route('dash.zones.store') }}" class="flex flex-wrap items-center gap-2 ps-6" data-add-street>
+                                        @csrf
+                                        <input type="hidden" name="branch_id" value="{{ $z->branch_id }}">
+                                        <input type="hidden" name="parent_id" value="{{ $z->id }}">
+                                        <span class="text-sm text-navy-500">↳</span>
+                                        <input class="field min-h-9 w-48 py-1" name="name" required maxlength="80" placeholder="{{ __('Street or sub-area in :area', ['area' => $z->name]) }}">
+                                        <input class="field min-h-9 w-24 py-1" name="fee" type="number" step="0.5" min="0" placeholder="{{ __('Fee') }}" title="{{ __('Empty = the main area’s fee') }}">
+                                        <button class="btn-ghost min-h-9 px-3">+ {{ __('Add street') }}</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @endif
                     @empty
                         <tr><td colspan="5" class="py-4 text-center text-navy-500">{{ __('No zones yet.') }}</td></tr>
                     @endforelse
