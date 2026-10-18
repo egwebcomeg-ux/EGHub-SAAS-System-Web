@@ -78,6 +78,15 @@
                 </label>
             @endforeach
         </div>
+        <div class="max-w-md">
+            <label class="field-label" for="menu_intro">{{ __('Opening animation of the menu') }}</label>
+            <select class="field" name="menu_intro" id="menu_intro">
+                @foreach (['logo' => __('Your logo rises over your color (light)'), 'full' => __('Logo, pattern and your tagline (full)'), 'off' => __('Off')] as $key => $label)
+                    <option value="{{ $key }}" @selected($s['menu_intro'] === $key)>{{ $label }}</option>
+                @endforeach
+            </select>
+            <p class="mt-1 text-xs text-navy-500">{{ __('About 2 seconds, once per visit; the guest can tap to skip it.') }}</p>
+        </div>
     </section>
 
     <section class="card grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -134,6 +143,43 @@
     <section class="card grid gap-4 sm:grid-cols-2 lg:grid-cols-4" id="ordering">
         <h2 class="text-lg font-bold sm:col-span-2 lg:col-span-4">{{ __('Ordering') }}</h2>
         <label class="flex items-center gap-2 text-sm font-semibold sm:col-span-2 lg:col-span-4"><input type="checkbox" name="ordering_enabled" value="1" @checked($s['ordering_enabled'] === '1') class="size-4 accent-brand-600"> {{ __('Guests can order from the table QR') }}</label>
+        @php
+            $tableOrdering = \App\Support\DineIn::orderingAllowed();
+            $dineMode = old('dine_in_mode', \App\Support\DineIn::mode($s));
+            $dineModes = [
+                'order' => ['📲', __('Send the order from the table'), __('The guest sends the order from their phone to your orders board.')],
+                'list' => ['📋', __('A list to show the waiter'), __('The guest builds a list and shows it to the waiter. Nothing is sent. Works on every plan.')],
+                'off' => ['📖', __('Menu only'), __('No cart in the hall: the guest only browses the menu.')],
+            ];
+        @endphp
+        <div class="rounded-xl border border-navy-100 p-3 sm:col-span-2 lg:col-span-4" id="dine-in">
+            <input type="hidden" name="dine_in_sent" value="1">
+            <div class="mb-2 font-semibold">{{ __('In the hall (table QR and "in the place")') }}</div>
+            <div class="grid gap-2 sm:grid-cols-3">
+                @foreach ($dineModes as $key => [$icon, $label, $hint])
+                    <label @class(['flex cursor-pointer gap-2 rounded-xl border border-navy-100 p-3 text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50', 'cursor-not-allowed opacity-60' => $key === 'order' && ! $tableOrdering])>
+                        <input type="radio" name="dine_in_mode" value="{{ $key }}" class="mt-1 accent-brand-600" @checked($dineMode === $key) @disabled($key === 'order' && ! $tableOrdering)>
+                        <span>
+                            <b class="block">{{ $icon }} {{ $label }}</b>
+                            <span class="block text-xs text-navy-500">{{ $hint }}</span>
+                            @if ($key === 'order' && ! $tableOrdering)
+                                <span class="mt-1 block text-xs font-semibold text-brand-700" data-dine-order-locked>{{ \App\Services\Entitlements::current()->upgradeMessage('qr_ordering') }}</span>
+                            @endif
+                        </span>
+                    </label>
+                @endforeach
+            </div>
+            @if ($tableOrdering && $s['ordering_enabled'] !== '1')
+                <p class="mt-2 text-xs text-amber-700">{{ __('Ordering is switched off above, so the hall works as a list for the waiter until you switch it on.') }}</p>
+            @endif
+            <label class="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" name="dine_in_show_prices" value="1" @checked(\App\Support\DineIn::showPrices($s, $dineMode)) class="size-4 accent-brand-600"> {{ __('Show prices and the total in the hall cart and list (the menu always shows prices)') }}</label>
+            <label class="mt-3 block text-sm">
+                <span class="field-label">{{ __('Note on the list for the waiter') }}</span>
+                <input class="field" name="dine_in_notice" maxlength="200" value="{{ old('dine_in_notice', $s['dine_in_notice']) }}" placeholder="{{ __('This list is for showing the waiter. Hand it to the service team.') }}">
+            </label>
+            <label class="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" name="order_type_prompt" value="1" @checked($s['order_type_prompt'] === '1') class="size-4 accent-brand-600"> {{ __('Ask "how will you order?" on the menu link when you offer the hall and takeaway or delivery') }}</label>
+            <p class="mt-1 text-xs text-navy-500">{{ __('A table QR always means the hall. On the menu link, sending from the hall needs the table QR, so there it works as a list for the waiter.') }}</p>
+        </div>
         @if (\App\Services\Entitlements::current()->allows('online_ordering'))
             <div class="rounded-xl bg-navy-50 p-3 sm:col-span-2 lg:col-span-4">
                 <div class="mb-2 font-semibold">{{ __('Online ordering from your menu link (no table)') }}</div>

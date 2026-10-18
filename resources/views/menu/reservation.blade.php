@@ -1,6 +1,6 @@
 @extends('layouts.base')
 @section('title', __('Your booking') . ' · ' . (tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name))
-@section('body_class', 'bg-navy-50 text-navy-900')
+@section('body_class', 'm-surface-2 m-text')
 
 @php
     $r = $reservation;
@@ -37,16 +37,16 @@
             <div class="mt-1 text-lg font-bold">{{ $r->starts_at->locale(app()->getLocale())->translatedFormat('l j/n/Y') }}</div>
         </div>
         <dl class="grid grid-cols-2 gap-3 text-start text-sm">
-            <div class="rounded-xl bg-navy-50 p-3"><dt class="text-navy-500">{{ __('Guests') }}</dt><dd class="text-lg font-extrabold">{{ $r->party_size }}</dd></div>
-            <div class="rounded-xl bg-navy-50 p-3"><dt class="text-navy-500">{{ __('Name') }}</dt><dd class="truncate text-lg font-extrabold">{{ $r->name }}</dd></div>
-            <div class="col-span-2 rounded-xl bg-navy-50 p-3"><dt class="text-navy-500">{{ __('Branch') }}</dt>
+            <div class="rounded-xl m-surface-2 p-3"><dt class="m-muted">{{ __('Guests') }}</dt><dd class="text-lg font-extrabold">{{ $r->party_size }}</dd></div>
+            <div class="rounded-xl m-surface-2 p-3"><dt class="m-muted">{{ __('Name') }}</dt><dd class="truncate text-lg font-extrabold">{{ $r->name }}</dd></div>
+            <div class="col-span-2 rounded-xl m-surface-2 p-3"><dt class="m-muted">{{ __('Branch') }}</dt>
                 <dd class="font-bold">{{ tr($r->branch?->name, $r->branch?->name_en) }}@if ($r->branch?->address) · {{ $r->branch->address }}@endif</dd></div>
             @if ($r->notes)
-                <div class="col-span-2 rounded-xl bg-navy-50 p-3"><dt class="text-navy-500">{{ __('Notes') }}</dt><dd>{{ $r->notes }}</dd></div>
+                <div class="col-span-2 rounded-xl m-surface-2 p-3"><dt class="m-muted">{{ __('Notes') }}</dt><dd>{{ $r->notes }}</dd></div>
             @endif
         </dl>
         @if ($r->status === 'pending')
-            <p class="text-sm text-navy-600">{{ __('The restaurant will confirm your booking soon. Keep this page to check it.') }}</p>
+            <p class="text-sm m-muted">{{ __('The restaurant will confirm your booking soon. Keep this page to check it.') }}</p>
         @endif
         @if ($r->branch?->phone)
             <a href="tel:{{ $r->branch->phone }}" class="btn-ghost w-full">{{ __('Call the restaurant') }} <span dir="ltr">{{ $r->branch->phone }}</span></a>
@@ -56,7 +56,7 @@
     @if ($r->guestCanCancel())
         <form method="post" action="{{ route('menu.reserve.cancel', $r->token) }}" onsubmit="return confirm(@js(__('Cancel this booking?')))">
             @csrf
-            <button class="w-full rounded-2xl border border-red-200 bg-white py-3 font-bold text-red-600">{{ __('Cancel my booking') }}</button>
+            <button class="w-full rounded-2xl border border-red-200 m-surface py-3 font-bold text-red-600">{{ __('Cancel my booking') }}</button>
         </form>
     @endif
     <a href="{{ route('menu.show') }}" class="btn-ghost w-full">{{ __('Open the menu') }}</a>

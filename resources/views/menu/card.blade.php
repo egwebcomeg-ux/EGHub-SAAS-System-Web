@@ -1,17 +1,18 @@
 @extends('layouts.base')
 @section('title', tr($program->title, $program->title_en))
-@section('body_class', 'bg-navy-50 text-navy-900')
+@section('body_class', 'm-surface-2 m-text')
 
 @push('head')
 <meta name="theme-color" content="{{ $program->card_design['bg'] ?? '#B5451B' }}">
 <meta name="apple-mobile-web-app-capable" content="yes">
+@include('menu.partials.theme')
 @endpush
 
 @section('body')
 @php($points = $program->type === 'points')
 <main class="mx-auto max-w-md px-4 py-6">
     <div class="mb-4 flex justify-center">
-        <div class="inline-flex rounded-full bg-white p-1 shadow-sm" role="tablist">
+        <div class="inline-flex rounded-full m-surface p-1 shadow-sm" role="tablist">
             <button type="button" class="rounded-full px-5 py-1.5 text-sm font-bold" data-side="front" aria-selected="true">{{ __('Front side') }}</button>
             <button type="button" class="rounded-full px-5 py-1.5 text-sm font-bold" data-side="back">{{ __('Back side') }}</button>
         </div>
@@ -35,8 +36,8 @@
                 @endforeach
             </div>
         @endif
-        <p class="mt-5 text-center text-sm text-navy-500">{{ __('Show the QR to the cashier with every order to collect your stamps.') }}</p>
-        <p class="mt-1 text-center text-xs text-navy-500">{{ __('Tip: add this page to your home screen to keep the card one tap away.') }}</p>
+        <p class="mt-5 text-center text-sm m-muted">{{ __('Show the QR to the cashier with every order to collect your stamps.') }}</p>
+        <p class="mt-1 text-center text-xs m-muted">{{ __('Tip: add this page to your home screen to keep the card one tap away.') }}</p>
     </section>
 
     <section data-face="back" class="hidden space-y-4">
@@ -46,12 +47,12 @@
                 @foreach ($milestones as $m)
                     <li class="flex items-center justify-between gap-3">
                         <span class="flex items-center gap-2">🎁 {{ $m['label'] }}</span>
-                        <span class="badge bg-navy-100 text-navy-700">{{ $points ? __(':n points', ['n' => $m['at']]) : __('Stamp :n', ['n' => $m['at']]) }}</span>
+                        <span class="badge m-surface-2 m-muted">{{ $points ? __(':n points', ['n' => $m['at']]) : __('Stamp :n', ['n' => $m['at']]) }}</span>
                     </li>
                 @endforeach
             </ul>
         </div>
-        <div class="card text-sm text-navy-700">
+        <div class="card text-sm m-muted">
             <h2 class="section-title mb-2">{{ __('How it works') }}</h2>
             <p>
                 @if ($program->type === 'visits')
@@ -71,7 +72,7 @@
                     @foreach ($card->transactions as $t)
                         <li class="flex justify-between">
                             <span>{{ $t->type === 'redeem' ? '🎁 ' . $t->note : ($points ? __('+:n points', ['n' => $t->amount]) : __('+:n stamps', ['n' => $t->amount])) }}</span>
-                            <span class="text-navy-500">{{ local_time($t->created_at, 'Y/m/d') }}</span>
+                            <span class="m-muted">{{ local_time($t->created_at, 'Y/m/d') }}</span>
                         </li>
                     @endforeach
                 </ul>

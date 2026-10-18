@@ -1,6 +1,6 @@
 @extends('layouts.base')
 @section('title', __('Book a table') . ' · ' . (tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name))
-@section('body_class', 'bg-navy-50 text-navy-900')
+@section('body_class', 'm-surface-2 m-text')
 
 @php
     $brand = tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name;
@@ -68,7 +68,7 @@
             @else
                 <div class="grid grid-cols-3 gap-2 sm:grid-cols-4">
                     @foreach ($slots as $s)
-                        <label @class(['m-slot flex min-h-12 cursor-pointer items-center justify-center rounded-xl border border-navy-100 bg-white text-sm font-bold', 'pointer-events-none opacity-35 line-through' => !$s['fits']])>
+                        <label @class(['m-slot flex min-h-12 cursor-pointer items-center justify-center rounded-xl border m-border m-surface text-sm font-bold', 'pointer-events-none opacity-35 line-through' => !$s['fits']])>
                             <input type="radio" name="time" value="{{ $s['time'] }}" class="sr-only" @checked(old('time') === $s['time']) @disabled(!$s['fits']) required>
                             <span dir="ltr">{{ local_time($s['at'], 'h:i A') }}</span>
                         </label>

@@ -1,6 +1,6 @@
 @extends('layouts.base')
 @section('title', __('Gift card') . ' · ' . (tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name))
-@section('body_class', 'bg-navy-50 text-navy-900')
+@section('body_class', 'm-surface-2 m-text')
 
 @php
     $primary = is_hex_color($settings['color_primary']) ? $settings['color_primary'] : '#F26522';
@@ -11,12 +11,12 @@
 @push('head')
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="{{ $primary }}">
-<style>:root { --menu-primary: {{ $primary }}; }</style>
+@include('menu.partials.theme')
 @endpush
 
 @section('body')
 <main class="mx-auto max-w-md px-4 py-6">
-    <div class="relative overflow-hidden rounded-3xl p-6 text-white shadow-lg" style="background: linear-gradient(135deg, var(--menu-primary), #061a2e)">
+    <div class="relative overflow-hidden rounded-3xl p-6 text-white shadow-lg" style="background: linear-gradient(135deg, var(--menu-accent), #061a2e)">
         <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-3">
                 @if ($settings['logo'])<img src="/storage/{{ $settings['logo'] }}" alt="" class="size-11 rounded-xl bg-white object-contain p-1">@endif
@@ -37,12 +37,12 @@
         <x-flash />
         @if ($status === 'active')
             <h1 class="section-title">{{ __('Add it to my balance') }}</h1>
-            <p class="mt-1 mb-4 text-sm text-navy-600">{{ __('Enter your mobile number: the amount goes to your wallet at :brand and you pay with it on your next order, in the shop or online.', ['brand' => $brand]) }}</p>
+            <p class="mt-1 mb-4 text-sm m-muted">{{ __('Enter your mobile number: the amount goes to your wallet at :brand and you pay with it on your next order, in the shop or online.', ['brand' => $brand]) }}</p>
             <form method="post" action="{{ route('menu.gift.redeem', $card->code) }}" class="space-y-3">
                 @csrf
                 <input class="field" name="phone" value="{{ old('phone', $card->recipient_phone) }}" required inputmode="tel" dir="ltr" placeholder="01xxxxxxxxx" aria-label="{{ __('Mobile number') }}" autocomplete="tel">
                 <input class="field" name="name" value="{{ old('name') }}" maxlength="100" placeholder="{{ __('Your name (optional)') }}" autocomplete="name">
-                <button class="m-primary min-h-12 w-full rounded-2xl font-bold text-white" style="background: var(--menu-primary)">{{ __('Add it to my balance') }}</button>
+                <button class="m-primary min-h-12 w-full rounded-2xl font-bold">{{ __('Add it to my balance') }}</button>
             </form>
         @elseif (! session('ok'))
             <p class="text-center font-bold" data-gift-status>

@@ -1,14 +1,13 @@
 @extends('layouts.base', ['viteEntries' => ['resources/js/menu.js']])
 @section('title', $profile->title())
-@section('body_class', 'text-navy-900')
+@section('body_class', 'm-text')
 
 @php
     $color = fn ($k, $d) => is_hex_color($settings[$k]) ? $settings[$k] : $d;
     $brand = tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name;
     $currency = tr($settings['currency'], $settings['currency_en']);
     $featured = $categories->flatMap->items->where('is_featured', true)->take(8);
-    $theme = \App\Services\Entitlements::current()->allows('menu_themes') && in_array($settings['menu_theme'], \App\Support\MenuThemes::keys(), true)
-        ? $settings['menu_theme'] : 'classic';
+    $theme = \App\Support\MenuThemes::current($settings);
     $layout = \App\Support\MenuThemes::layout($theme);
 @endphp
 
@@ -20,17 +19,19 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family={{ urlencode($settings['font']) }}:wght@400;600;700;800&display=swap">
 @endif
+@include('menu.partials.theme', ['theme' => $theme])
 <style>
-    :root { --menu-primary: {{ $color('color_primary', '#F26522') }}; --menu-secondary: {{ $color('color_secondary', '#0A2540') }}; --menu-bg: {{ $color('color_bg', '#FFFFFF') }}; }
-    body { background: var(--menu-bg); font-family: '{{ $settings['font'] }}', 'Cairo', system-ui, sans-serif; }
-    @include('menu.themes.styles', ['theme' => $theme])
-    .m-primary { background: var(--menu-primary); color: #fff; }
-    .m-primary-text { color: var(--menu-primary); }
-    .m-secondary { background: var(--menu-secondary); color: #fff; }
+    body { font-family: '{{ $settings['font'] }}', 'Cairo', system-ui, sans-serif; }
+    .m-qty { display: grid; place-items: center; min-width: 3rem; height: 3rem; border-radius: .9rem; font-size: 1.35rem; font-weight: 900; }
+    .m-way-on { background: var(--menu-accent); color: var(--menu-accent-text); border-color: transparent; }
 </style>
+@if ($intro !== 'off' || $choice)
+    @include('menu.partials.intro-head')
+@endif
 @endpush
 
 @section('body')
+@include('menu.partials.intro')
 <header class="m-secondary relative">
     @if ($settings['cover'])
         <img src="/storage/{{ $settings['cover'] }}" alt="" class="h-40 w-full object-cover opacity-90 sm:h-56">
@@ -115,10 +116,10 @@
 @endif
 
 @if ($categories->isNotEmpty())
-    <nav class="sticky top-0 z-20 border-b border-black/5 bg-white/95 backdrop-blur" data-cat-nav>
+    <nav class="sticky top-0 z-20 border-b m-border bg-white/95 backdrop-blur" data-cat-nav>
         <div class="mx-auto flex max-w-2xl gap-2 overflow-x-auto px-4 py-3">
             @foreach ($categories as $c)
-                <a href="#cat-{{ $c->id }}" data-cat-link="cat-{{ $c->id }}" class="shrink-0 rounded-full bg-navy-50 px-4 py-2 text-sm font-semibold transition">{{ tx($c, 'name') }}</a>
+                <a href="#cat-{{ $c->id }}" data-cat-link="cat-{{ $c->id }}" class="shrink-0 rounded-full m-surface-2 px-4 py-2 text-sm font-semibold transition">{{ tx($c, 'name') }}</a>
             @endforeach
         </div>
         <div class="mx-auto max-w-2xl px-4 pb-3">
@@ -141,7 +142,7 @@
             <h2 class="mb-3 text-lg font-extrabold">⭐ {{ __('Recommended') }}</h2>
             <div class="flex gap-3 overflow-x-auto pb-2">
                 @foreach ($featured as $item)
-                    <button type="button" data-item="{{ $item->id }}" class="w-36 shrink-0 overflow-hidden rounded-2xl border border-black/5 bg-white text-start shadow-sm">
+                    <button type="button" data-item="{{ $item->id }}" class="w-36 shrink-0 overflow-hidden rounded-2xl border m-border m-surface text-start shadow-sm">
                         @if ($item->image)<img src="/storage/{{ $item->image }}" alt="" loading="lazy" class="aspect-square w-full object-cover">@endif
                         <div class="p-2">
                             <div class="line-clamp-2 text-sm font-bold">{{ $item->displayName() }}</div>
@@ -156,15 +157,15 @@
     @forelse ($categories as $c)
         <section id="cat-{{ $c->id }}" class="mb-8 scroll-mt-36" data-category>
             <h2 class="mb-1 text-xl font-extrabold" style="color: var(--menu-secondary)">{{ tx($c, 'name') }}</h2>
-            @if ($d = tx($c, 'description'))<p class="mb-3 text-sm text-navy-500">{{ $d }}</p>@endif
-            <div @class(['mt-3', 'grid grid-cols-2 gap-3' => $layout === 'grid', 'divide-y divide-black/10' => $layout === 'minimal', 'space-y-3' => in_array($layout, ['classic', 'cafe'], true)])>
+            @if ($d = tx($c, 'description'))<p class="mb-3 text-sm m-muted">{{ $d }}</p>@endif
+            <div @class(['mt-3', 'grid grid-cols-2 gap-3' => $layout === 'grid', 'divide-y m-divide' => $layout === 'minimal', 'space-y-3' => in_array($layout, ['classic', 'cafe'], true)])>
                 @foreach ($c->items as $item)
                     @include('menu.items.' . $layout, ['item' => $item])
                 @endforeach
             </div>
         </section>
     @empty
-        <p class="py-16 text-center text-navy-500">{{ __('The menu is being prepared. Please check back soon.') }}</p>
+        <p class="py-16 text-center m-muted">{{ __('The menu is being prepared. Please check back soon.') }}</p>
     @endforelse
 
     @if ($loyalty)
@@ -179,13 +180,13 @@
         </a>
     @endif
 
-    <p class="hidden py-10 text-center text-navy-500" data-no-results>{{ __('No items match your search.') }}</p>
+    <p class="hidden py-10 text-center m-muted" data-no-results>{{ __('No items match your search.') }}</p>
 
     @if ($feedback)
         @include('partials.rate-us')
     @endif
 
-    <footer class="mt-10 space-y-3 text-center text-sm text-navy-500">
+    <footer class="mt-10 space-y-3 text-center text-sm m-muted">
         <div class="flex justify-center gap-4">
             @foreach (['instagram' => 'Instagram', 'facebook' => 'Facebook', 'tiktok' => 'TikTok'] as $key => $label)
                 @if ($settings[$key])<a href="{{ $settings[$key] }}" target="_blank" rel="noopener" class="font-semibold">{{ $label }}</a>@endif
@@ -198,25 +199,28 @@
     </footer>
 </main>
 
+@php
+    $wayLabels = ['dine' => '🍽 ' . __('In the place'), 'takeaway' => '🛍 ' . __('Pickup'), 'delivery' => '🛵 ' . __('Delivery')];
+@endphp
 {{-- Cart button --}}
 <div class="fixed inset-x-0 bottom-0 z-30 hidden p-4" data-cart-bar>
     <button type="button" class="m-primary mx-auto flex min-h-14 w-full max-w-2xl items-center justify-between rounded-2xl px-5 font-bold shadow-xl" data-open-cart>
-        <span><span class="me-2 rounded-full bg-white/25 px-2 py-0.5" data-cart-count>0</span>{{ $canOrder ? __('View order') : __('My list') }}</span>
+        <span><span class="me-2 rounded-full bg-black/15 px-2 py-0.5" data-cart-count>0</span><span data-cart-label>{{ $data['mode'] === 'list' ? __('My order') : __('View order') }}</span></span>
         <span data-cart-total></span>
     </button>
 </div>
 
 {{-- Item sheet --}}
 <dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/50 sm:m-auto sm:max-w-lg" data-item-sheet>
-    <form method="dialog" class="max-h-[90vh] overflow-y-auto rounded-t-3xl bg-white sm:rounded-3xl" data-item-form>
+    <form method="dialog" class="m-surface max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl" data-item-form>
         <img alt="" class="hidden aspect-video w-full object-cover" data-sheet-image>
         <div class="p-5">
             <div class="flex items-start justify-between gap-3">
                 <h3 class="text-xl font-extrabold" data-sheet-name></h3>
-                <button value="cancel" class="text-2xl leading-none text-navy-500" aria-label="{{ __('Close') }}">×</button>
+                <button value="cancel" class="m-muted text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
             </div>
-            <p class="mt-1 text-navy-500" data-sheet-desc></p>
-            <p class="mt-1 text-xs text-navy-500" data-sheet-cal></p>
+            <p class="m-muted mt-1" data-sheet-desc></p>
+            <p class="m-muted mt-1 text-xs" data-sheet-cal></p>
             <div class="mt-2 hidden flex-wrap items-center gap-1.5 text-xs" data-sheet-allergens></div>
             <div class="mt-3 hidden rounded-xl bg-brand-50 p-3 text-sm" data-sheet-combo></div>
             <div class="mt-4 space-y-5" data-sheet-groups></div>
@@ -225,7 +229,7 @@
                 <input class="field" maxlength="200" data-sheet-notes placeholder="{{ __('e.g. no sugar') }}">
             </label>
             <div class="mt-5 flex items-center gap-3">
-                <div class="flex items-center rounded-xl border border-navy-100">
+                <div class="m-border flex items-center rounded-xl border">
                     <button type="button" class="size-11 text-xl" data-qty="-1">−</button>
                     <span class="w-8 text-center font-bold" data-sheet-qty>1</span>
                     <button type="button" class="size-11 text-xl" data-qty="1">+</button>
@@ -241,10 +245,10 @@
 
 {{-- "Goes well with" after adding an item --}}
 <dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/40 sm:m-auto sm:max-w-lg" data-pair-sheet>
-    <form method="dialog" class="rounded-t-3xl bg-white p-5 sm:rounded-3xl">
+    <form method="dialog" class="m-surface rounded-t-3xl p-5 sm:rounded-3xl">
         <div class="mb-3 flex items-center justify-between">
             <h3 class="text-lg font-extrabold">{{ __('Goes well with') }}</h3>
-            <button value="cancel" class="text-2xl leading-none text-navy-500" aria-label="{{ __('Close') }}">×</button>
+            <button value="cancel" class="m-muted text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
         </div>
         <div class="space-y-2" data-pair-list></div>
         <button value="cancel" class="btn-ghost mt-4 w-full">{{ __('No, thanks') }}</button>
@@ -252,92 +256,157 @@
 </dialog>
 
 {{-- Popup (offer / featured item) --}}
-<dialog class="m-auto w-[min(26rem,92vw)] overflow-hidden rounded-3xl p-0 backdrop:bg-black/50" data-popup>
+<dialog class="m-surface m-auto w-[min(26rem,92vw)] overflow-hidden rounded-3xl p-0 backdrop:bg-black/50" data-popup>
     <form method="dialog">
         <img alt="" class="hidden aspect-[4/3] w-full object-cover" data-popup-image>
         <div class="p-5 text-center">
             <h3 class="text-xl font-extrabold" data-popup-title></h3>
-            <p class="mt-1 text-navy-500" data-popup-body></p>
+            <p class="m-muted mt-1" data-popup-body></p>
             <div class="mt-4 grid gap-2">
                 <button type="button" class="m-primary min-h-12 rounded-xl font-bold" data-popup-action></button>
-                <button value="cancel" class="text-sm text-navy-500">{{ __('Close') }}</button>
+                <button value="cancel" class="m-muted text-sm">{{ __('Close') }}</button>
             </div>
         </div>
     </form>
 </dialog>
 
-@if ($table && $canOrder)
-    {{-- call the waiter / ask for the bill --}}
-    <button type="button" class="fixed bottom-24 start-4 z-30 grid size-14 place-items-center rounded-full bg-white text-2xl shadow-lg ring-1 ring-black/5" data-call-open aria-label="{{ __('Call the waiter') }}">🛎</button>
-    <dialog class="m-auto w-full max-w-xs rounded-3xl p-0 backdrop:bg-black/50" data-call-sheet>
+@if ($calls)
+    {{-- call the waiter / ask for the bill (scanned table, plan with table ordering) --}}
+    <button type="button" class="m-surface m-ring fixed bottom-24 start-4 z-30 grid size-14 place-items-center rounded-full text-2xl shadow-lg ring-1" data-call-open aria-label="{{ __('Call the waiter') }}">🛎</button>
+    <dialog class="m-surface m-auto w-full max-w-xs rounded-3xl p-0 backdrop:bg-black/50" data-call-sheet>
         <form method="dialog" class="space-y-3 p-5 text-center">
             <h3 class="text-lg font-extrabold">{{ __('Table :name', ['name' => $table->name]) }}</h3>
             <button type="button" class="m-primary min-h-12 w-full rounded-2xl font-bold" data-call="waiter">🛎 {{ __('Call the waiter') }}</button>
             <button type="button" class="min-h-12 w-full rounded-2xl bg-emerald-600 font-bold text-white" data-call="bill">🧾 {{ __('The bill, please') }}</button>
             <p class="hidden text-sm font-semibold text-emerald-700" data-call-done></p>
-            <button value="cancel" class="text-sm text-navy-500">{{ __('Close') }}</button>
+            <button value="cancel" class="m-muted text-sm">{{ __('Close') }}</button>
         </form>
     </dialog>
 @endif
 
-{{-- Cart sheet --}}
+{{-- Cart sheet: an order (table / takeaway / delivery) or, in the hall, a list to show the waiter --}}
 <dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/50 sm:m-auto sm:max-w-lg" data-cart-sheet>
-    <form method="dialog" class="max-h-[90vh] overflow-y-auto rounded-t-3xl bg-white p-5 sm:rounded-3xl">
+    <form method="dialog" class="m-surface max-h-[90vh] overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl" data-cart-panel>
         <div class="mb-3 flex items-center justify-between">
-            <h3 class="text-xl font-extrabold">{{ $canOrder ? __('Your order') : __('My list') }}</h3>
-            <button value="cancel" class="text-2xl leading-none text-navy-500" aria-label="{{ __('Close') }}">×</button>
+            <h3 class="text-xl font-extrabold" data-cart-title>{{ $data['mode'] === 'list' ? __('My order') : __('Your order') }}</h3>
+            <button value="cancel" class="m-muted text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
         </div>
-        @unless ($canOrder)
-            <p class="mb-3 rounded-xl bg-navy-50 p-3 text-sm text-navy-700">{{ __('Show this list to the waiter. To order from your phone, scan the QR code on your table.') }}</p>
-        @endunless
-        <ul class="divide-y divide-navy-50" data-cart-lines></ul>
-        <div class="mt-3 space-y-1 border-t border-navy-100 pt-3 text-sm" data-cart-summary></div>
-        @if ($canOrder)
-            @if ($online)
-                {{-- ordering from the menu link: pickup or delivery --}}
-                <div class="mt-4 space-y-3" data-online>
-                    <div class="grid grid-cols-2 gap-2">
-                        @if ($online['takeaway'])<button type="button" class="min-h-11 rounded-xl border border-navy-100 font-bold" data-otype="takeaway">🛍 {{ __('Pickup') }}</button>@endif
-                        @if ($online['delivery'])<button type="button" class="min-h-11 rounded-xl border border-navy-100 font-bold" data-otype="delivery">🛵 {{ __('Delivery') }}</button>@endif
-                    </div>
-                    <div class="hidden space-y-3" data-delivery-fields>
-                        <select class="field" data-zone>
-                            <option value="">{{ __('Choose your area') }}</option>
-                            @foreach ($online['zones'] as $z)<option value="{{ $z['id'] }}">{{ $z['name'] }} · {{ money($z['fee']) }} {{ tr($settings['currency'], $settings['currency_en']) }}</option>@endforeach
-                        </select>
-                        <textarea class="field min-h-16 py-2" maxlength="300" data-address placeholder="{{ __('Street, building, floor, apartment, landmark') }}"></textarea>
-                    </div>
-                    @if ($online['scheduled'])
-                        <label class="block text-sm">
-                            <span class="field-label">{{ __('When? (leave empty for as soon as possible)') }}</span>
-                            <input class="field" type="datetime-local" data-scheduled dir="ltr">
-                        </label>
-                    @endif
-                    <p class="text-xs text-navy-500">{{ __('Ready in about :n minutes. You pay on pickup or delivery.', ['n' => $online['prep']]) }}</p>
-                </div>
-            @endif
-            <div class="mt-4 grid gap-3">
-                <input class="field" maxlength="100" data-customer-name placeholder="{{ $online ? __('Your name') : __('Your name (optional)') }}">
-                <input class="field" maxlength="20" inputmode="tel" dir="ltr" data-customer-phone placeholder="{{ $online ? __('Mobile number (required)') : __('Mobile (optional, for offers & loyalty)') }}">
-                @if (\App\Models\Coupon::query()->where('is_active', true)->exists())
-                    <input class="field uppercase" maxlength="30" dir="ltr" autocomplete="off" data-coupon placeholder="{{ __('Coupon code (optional)') }}">
-                @endif
-                <textarea class="field min-h-16 py-2" maxlength="500" data-order-notes placeholder="{{ __('Notes for the order') }}"></textarea>
+        @if (! $table && count($ways) > 1)
+            {{-- how the guest orders (also chosen on the "how will you order?" screen) --}}
+            <div class="m-surface-2 mb-3 grid gap-1 rounded-2xl p-1" style="grid-template-columns: repeat({{ count($ways) }}, minmax(0, 1fr))" data-way-switch>
+                @foreach ($ways as $way)
+                    <button type="button" class="min-h-11 rounded-xl border border-transparent text-sm font-bold" data-way="{{ $way }}" @if ($way !== 'dine') data-otype="{{ $way }}" @endif>{{ $wayLabels[$way] }}</button>
+                @endforeach
             </div>
-            @if ($data['wallet'])
-                <label class="mt-3 flex items-center gap-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900 ring-1 ring-emerald-200">
-                    <input type="checkbox" class="size-5 shrink-0 accent-emerald-600" data-pay-wallet>
-                    <span>
-                        <b class="block">{{ __('You have a balance of :amount', ['amount' => money($data['wallet']['balance']) . ' ' . $data['currency']]) }}</b>
-                        <span class="block" data-wallet-note>{{ __('Pay from my balance') }}</span>
-                    </span>
-                </label>
+        @endif
+        @if ($hall['mode'] === 'list')
+            <p @class(['m-surface-2 mb-3 rounded-xl p-3 text-sm font-semibold', 'hidden' => $data['mode'] !== 'list']) data-hall-notice>📋 {{ $hall['notice'] }}</p>
+            @if ($hall['scanHint'])
+                <p @class(['m-muted mb-3 text-xs', 'hidden' => $data['mode'] !== 'list']) data-scan-hint>{{ __('Show this list to the waiter. To order from your phone, scan the QR code on your table.') }}</p>
             @endif
-            <p class="mt-3 hidden rounded-xl bg-red-50 p-3 text-sm text-red-700" data-order-error></p>
-            <button type="button" class="m-primary mt-4 min-h-14 w-full rounded-2xl text-lg font-bold" data-send-order>{{ __('Send order') }}</button>
+        @endif
+        <ul class="m-divide divide-y" data-cart-lines></ul>
+        <div class="m-border mt-3 space-y-1 border-t pt-3 text-sm" data-cart-summary></div>
+        @if ($hall['mode'] !== 'off')
+            <div @class(['mt-4 grid gap-2', 'hidden' => ! in_array($data['mode'], ['list', 'table'], true)]) data-hall-tools>
+                @if ($hall['mode'] === 'list')
+                    <button type="button" class="m-primary min-h-14 w-full rounded-2xl text-lg font-extrabold" data-show-waiter>🧾 {{ __('Show the waiter') }}</button>
+                    @if ($calls)
+                        <button type="button" class="m-surface-2 m-border min-h-12 w-full rounded-2xl border font-bold" data-call="waiter" data-hall-call>🛎 {{ __('Call the waiter') }}</button>
+                        <p class="hidden text-center text-sm font-semibold text-emerald-700" data-hall-call-done></p>
+                    @endif
+                @endif
+                @if ($hall['prices'])
+                    <button type="button" class="btn-ghost w-full" data-open-split>➗ {{ __('Split the bill') }}</button>
+                @endif
+            </div>
+        @endif
+        @if ($canOrder)
+            <div @class(['hidden' => ! in_array($data['mode'], ['table', 'online'], true)]) data-order-fields>
+                @if ($online)
+                    {{-- ordering from the menu link: pickup or delivery --}}
+                    <div class="mt-4 space-y-3" data-online>
+                        @if (count($ways) < 2)
+                            <div class="grid grid-cols-2 gap-2">
+                                @if ($online['takeaway'])<button type="button" class="m-border min-h-11 rounded-xl border font-bold" data-otype="takeaway">🛍 {{ __('Pickup') }}</button>@endif
+                                @if ($online['delivery'])<button type="button" class="m-border min-h-11 rounded-xl border font-bold" data-otype="delivery">🛵 {{ __('Delivery') }}</button>@endif
+                            </div>
+                        @endif
+                        <div class="hidden space-y-3" data-delivery-fields>
+                            <select class="field" data-zone>
+                                <option value="">{{ __('Choose your area') }}</option>
+                                @foreach ($online['zones'] as $z)<option value="{{ $z['id'] }}">{{ $z['name'] }} · {{ money($z['fee']) }} {{ tr($settings['currency'], $settings['currency_en']) }}</option>@endforeach
+                            </select>
+                            <textarea class="field min-h-16 py-2" maxlength="300" data-address placeholder="{{ __('Street, building, floor, apartment, landmark') }}"></textarea>
+                        </div>
+                        @if ($online['scheduled'])
+                            <label class="block text-sm">
+                                <span class="field-label">{{ __('When? (leave empty for as soon as possible)') }}</span>
+                                <input class="field" type="datetime-local" data-scheduled dir="ltr">
+                            </label>
+                        @endif
+                        <p class="m-muted text-xs">{{ __('Ready in about :n minutes. You pay on pickup or delivery.', ['n' => $online['prep']]) }}</p>
+                    </div>
+                @endif
+                <div class="mt-4 grid gap-3">
+                    <input class="field" maxlength="100" data-customer-name placeholder="{{ $online ? __('Your name') : __('Your name (optional)') }}">
+                    <input class="field" maxlength="20" inputmode="tel" dir="ltr" data-customer-phone placeholder="{{ $online ? __('Mobile number (required)') : __('Mobile (optional, for offers & loyalty)') }}">
+                    @if (\App\Models\Coupon::query()->where('is_active', true)->exists())
+                        <input class="field uppercase" maxlength="30" dir="ltr" autocomplete="off" data-coupon placeholder="{{ __('Coupon code (optional)') }}">
+                    @endif
+                    <textarea class="field min-h-16 py-2" maxlength="500" data-order-notes placeholder="{{ __('Notes for the order') }}"></textarea>
+                </div>
+                @if ($data['wallet'])
+                    <label class="mt-3 flex items-center gap-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900 ring-1 ring-emerald-200">
+                        <input type="checkbox" class="size-5 shrink-0" data-pay-wallet>
+                        <span>
+                            <b class="block">{{ __('You have a balance of :amount', ['amount' => money($data['wallet']['balance']) . ' ' . $data['currency']]) }}</b>
+                            <span class="block" data-wallet-note>{{ __('Pay from my balance') }}</span>
+                        </span>
+                    </label>
+                @endif
+                <p class="mt-3 hidden rounded-xl bg-red-50 p-3 text-sm text-red-700" data-order-error></p>
+                <button type="button" class="m-primary mt-4 min-h-14 w-full rounded-2xl text-lg font-bold" data-send-order>{{ __('Send order') }}</button>
+            </div>
         @endif
     </form>
 </dialog>
+
+@if ($hall['mode'] === 'list')
+    {{-- the list in big type for the waiter (Desoky / Gold read-out) --}}
+    <dialog class="m-surface m-0 h-dvh max-h-none w-full max-w-none p-0 backdrop:bg-black" data-waiter-view aria-label="{{ __('Show the waiter') }}">
+        <div class="mx-auto flex min-h-full max-w-xl flex-col px-5 pt-6 pb-8">
+            <div class="text-center">
+                <div class="m-muted text-sm font-bold">{{ $brand }}</div>
+                @if ($table)
+                    <div class="m-primary mx-auto mt-2 inline-block rounded-2xl px-6 py-2 text-3xl font-black">{{ __('Table :name', ['name' => $table->name]) }}</div>
+                @endif
+                <div class="m-muted mt-2 text-xs" data-waiter-time></div>
+            </div>
+            <ul class="m-divide mt-5 flex-1 divide-y" data-waiter-lines></ul>
+            <div class="m-border mt-4 border-t pt-3 text-lg" data-waiter-total></div>
+            <div class="mt-6 grid gap-2">
+                @if ($calls)
+                    <button type="button" class="m-primary min-h-14 w-full rounded-2xl text-lg font-extrabold" data-call="waiter" data-hall-call>🛎 {{ __('Call the waiter') }}</button>
+                @endif
+                <button type="button" class="btn-ghost min-h-14 w-full text-lg" data-waiter-close>{{ __('Back') }}</button>
+            </div>
+        </div>
+    </dialog>
+@endif
+
+@if ($hall['mode'] !== 'off' && $hall['prices'])
+    {{-- split the bill (pure client side, estimate) --}}
+    <dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/50 sm:m-auto sm:max-w-lg" data-split-sheet>
+        <form method="dialog" class="m-surface max-h-[92vh] overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl">
+            <div class="mb-3 flex items-center justify-between">
+                <h3 class="text-xl font-extrabold">➗ {{ __('Split the bill') }}</h3>
+                <button value="cancel" class="m-muted text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
+            </div>
+            <div class="space-y-4" data-split-body></div>
+        </form>
+    </dialog>
+@endif
 
 <script type="application/json" id="menu-data">{!! json_encode($data, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>
 @php
@@ -353,6 +422,13 @@
         'phoneRequired' => __('Enter your mobile number so the restaurant can reach you.'),
         'payFromBalance' => __('Pay from my balance'), 'notEnoughBalance' => __('Not enough balance for this order.'),
         'contains' => __('Contains:'), 'spicy' => __('Spicy'),
+        'myOrder' => __('My order'), 'yourOrder' => __('Your order'), 'viewOrder' => __('View order'),
+        'people' => __('How many are you?'), 'names' => __('Your names (optional)'), 'person' => __('Person :n', ['n' => '__N__']),
+        'equal' => __('Equally'), 'byItems' => __('By what each one ordered'), 'whoOrdered' => __('Who ordered what?'),
+        'whoHint' => __('Tap the people under each item. A shared item is divided between the people you pick.'),
+        'unclaimed' => __(':n item(s) not given to anyone yet are shared by everyone.', ['n' => '__N__']),
+        'eachPays' => __('Each one pays'), 'food' => __('Food'), 'billTotal' => __('Bill total'),
+        'splitNote' => __('An estimate to help you split. The restaurant\'s receipt is the official bill; service and tax follow what each one ate.'),
     ];
 @endphp
 <script type="application/json" id="menu-i18n">{!! json_encode($i18n, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>

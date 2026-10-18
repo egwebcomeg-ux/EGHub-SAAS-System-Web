@@ -1,6 +1,6 @@
 @extends('layouts.base')
 @section('title', __('Links of :name', ['name' => $profile->name()]) . ' | EgMenu')
-@section('body_class', 'text-navy-900')
+@section('body_class', 'm-text')
 
 @php
     $color = fn ($k, $d) => is_hex_color($settings[$k]) ? $settings[$k] : $d;
@@ -29,15 +29,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family={{ urlencode($settings['font']) }}:wght@400;600;700;800&display=swap">
 @endif
+@include('menu.partials.theme', ['theme' => $theme])
 <style>
-    :root { --menu-primary: {{ $color('color_primary', '#F26522') }}; --menu-secondary: {{ $color('color_secondary', '#0A2540') }}; --menu-bg: {{ $color('color_bg', '#FFFFFF') }}; }
-    body { background: var(--menu-bg); font-family: '{{ $settings['font'] }}', 'Cairo', system-ui, sans-serif; }
-    @include('menu.themes.styles', ['theme' => $theme])
-    .m-primary { background: var(--menu-primary); color: #fff; }
-    .m-primary-text { color: var(--menu-primary); }
-    .m-secondary { background: var(--menu-secondary); color: #fff; }
+    body { font-family: '{{ $settings['font'] }}', 'Cairo', system-ui, sans-serif; }
     .l-btn { display: flex; align-items: center; gap: .75rem; min-height: 3.5rem; padding: 0 1.25rem; border-radius: 1.25rem; font-weight: 800; font-size: 1.05rem; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
-    .l-btn.m-card { border: 1px solid rgba(0,0,0,.08); background: #fff; }
+    .l-btn.m-card { border: 1px solid var(--menu-border); background: var(--menu-surface); color: var(--menu-text); }
     .l-btn span:first-child { font-size: 1.4rem; width: 2rem; text-align: center; }
 </style>
 @endpush
@@ -80,12 +76,12 @@
     @endforeach
 
     @if ($withHours->isNotEmpty())
-        <section class="m-card rounded-3xl border border-black/5 bg-white p-4 shadow-sm" data-hours>
+        <section class="m-card rounded-3xl border m-border m-surface p-4 shadow-sm" data-hours>
             <h2 class="mb-2 flex items-center gap-2 font-extrabold"><span aria-hidden="true">🕒</span> {{ __('Opening hours') }}</h2>
             <dl class="space-y-1 text-sm">
                 @foreach ($withHours as $b)
                     <div class="flex justify-between gap-3">
-                        @if ($branches->count() > 1)<dt class="m-muted text-navy-500">{{ tr($b->name, $b->name_en) }}</dt>@endif
+                        @if ($branches->count() > 1)<dt class="m-muted">{{ tr($b->name, $b->name_en) }}</dt>@endif
                         <dd class="font-semibold">{{ $b->working_hours }}</dd>
                     </div>
                 @endforeach
@@ -93,7 +89,7 @@
         </section>
     @endif
 
-    <footer class="space-y-2 pt-4 text-center text-sm text-navy-500">
+    <footer class="space-y-2 pt-4 text-center text-sm m-muted">
         <a href="{{ route('menu.about') }}" class="m-primary-text font-semibold underline underline-offset-2">{{ __('About the place') }}</a>
         @unless (\App\Services\Entitlements::current()->allows('hide_badge'))
             <div><a href="{{ platform_url(null) }}" class="inline-flex items-center gap-1 text-xs">{{ __('Powered by') }} <x-logo :size="14" class="!gap-1 [&_span]:text-xs" /></a></div>

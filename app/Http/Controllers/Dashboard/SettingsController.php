@@ -15,6 +15,8 @@ use App\Services\Settings;
 use App\Support\BusinessType;
 use App\Support\Cities;
 use App\Support\Cuisines;
+use App\Support\DineIn;
+use App\Support\MenuIntro;
 use App\Support\MenuLocales;
 use App\Support\MenuThemes;
 use Illuminate\Http\RedirectResponse;
@@ -88,6 +90,14 @@ class SettingsController extends Controller
             'menu_locales' => 'nullable|array',
             'menu_locales.*' => [Rule::in(MenuLocales::codes())],
             'qr_target' => ['nullable', Rule::in(['menu', 'links'])],
+            // sending orders from the table needs table ordering in the plan; a list for the waiter works on every plan
+            'dine_in_mode' => ['nullable', Rule::in(DineIn::MODES), function (string $attribute, mixed $value, \Closure $fail) {
+                if ($value === 'order' && ! DineIn::orderingAllowed()) {
+                    $fail(__('Sending orders from the table needs table ordering in your plan. Choose the list for the waiter.'));
+                }
+            }],
+            'dine_in_notice' => 'nullable|string|max:200',
+            'menu_intro' => ['nullable', Rule::in(MenuIntro::STYLES)],
             'meta_pixel_id' => ['nullable', 'string', TrackingPixels::RULES['meta_pixel_id']],
             'ga4_measurement_id' => ['nullable', 'string', TrackingPixels::RULES['ga4_measurement_id']],
             'tiktok_pixel_id' => ['nullable', 'string', TrackingPixels::RULES['tiktok_pixel_id']],
@@ -120,6 +130,22 @@ class SettingsController extends Controller
         }
         $values['english_enabled'] = $request->boolean('english_enabled') ? '1' : '0';
         $values['ordering_enabled'] = $request->boolean('ordering_enabled') ? '1' : '0';
+        // the hall: kept empty while it equals the default, so a later plan upgrade turns table ordering on by itself
+        unset($values['dine_in_mode'], $values['menu_intro']);
+        if ($request->boolean('dine_in_sent')) {
+            $next = $values + Settings::all();
+            $mode = (string) ($data['dine_in_mode'] ?? '');
+            $values['dine_in_mode'] = $mode === '' || $mode === DineIn::defaultMode($next) ? '' : $mode;
+            $effective = DineIn::mode(['dine_in_mode' => $values['dine_in_mode']] + $next);
+            $prices = $request->boolean('dine_in_show_prices');
+            $values['dine_in_show_prices'] = $prices === DineIn::defaultShowPrices($effective) ? '' : ($prices ? '1' : '0');
+            $values['order_type_prompt'] = $request->boolean('order_type_prompt') ? '1' : '0';
+        } else {
+            unset($values['dine_in_notice']);
+        }
+        if (! empty($data['menu_intro'])) {
+            $values['menu_intro'] = $data['menu_intro'];
+        }
         if (Entitlements::current()->allows('online_ordering')) {
             $values['online_takeaway'] = $request->boolean('online_takeaway') ? '1' : '0';
             $values['online_delivery'] = $request->boolean('online_delivery') ? '1' : '0';

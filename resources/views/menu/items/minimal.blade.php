@@ -6,6 +6,6 @@
         <span class="mb-1 flex-1 border-b border-dotted border-current opacity-30"></span>
         <span class="flex shrink-0 items-center gap-1.5">@include('menu.items.price')</span>
     </div>
-    @if ($d = tx($item, 'description'))<div class="m-muted mt-0.5 text-sm text-navy-500">{{ $d }}</div>@endif
+    @if ($d = tx($item, 'description'))<div class="m-muted mt-0.5 text-sm">{{ $d }}</div>@endif
     @include('menu.items.tags')
 </button>

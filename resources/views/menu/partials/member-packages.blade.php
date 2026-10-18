@@ -1,18 +1,18 @@
 {{-- Membership tier and prepaid packages on the guest's card page (advanced cards); nothing when neither applies. --}}
 @if ($tier || $nextTier)
-    <div class="mt-5 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-navy-100" data-membership>
+    <div class="mt-5 rounded-2xl m-surface p-4 shadow-sm ring-1 m-ring" data-membership>
         @if ($tier)
             <div class="flex items-center gap-3">
                 <span class="grid size-12 place-items-center rounded-2xl text-xl font-black text-white" style="background: {{ $tier->color }}">★</span>
                 <div>
-                    <div class="text-sm text-navy-500">{{ __('Your membership') }}</div>
+                    <div class="text-sm m-muted">{{ __('Your membership') }}</div>
                     <div class="text-xl font-black" style="color: {{ $tier->color }}">{{ $tier->displayName() }}</div>
-                    @if ($tier->discount_percent > 0)<div class="text-sm text-navy-600">{{ __(':p% off every order placed with your number.', ['p' => money($tier->discount_percent)]) }}</div>@endif
+                    @if ($tier->discount_percent > 0)<div class="text-sm m-muted">{{ __(':p% off every order placed with your number.', ['p' => money($tier->discount_percent)]) }}</div>@endif
                 </div>
             </div>
         @endif
         @if ($nextTier)
-            <p class="mt-2 text-sm text-navy-600">
+            <p class="mt-2 text-sm m-muted">
                 {{ __('Next: :tier', ['tier' => $nextTier->displayName()]) }}
                 @if ($nextTier->min_visits > $customer->visits_count) · {{ __(':n more visits', ['n' => $nextTier->min_visits - $customer->visits_count]) }}@endif
                 @if ($nextTier->min_spent > $customer->total_spent) · {{ __(':amount EGP more', ['amount' => money($nextTier->min_spent - $customer->total_spent)]) }}@endif

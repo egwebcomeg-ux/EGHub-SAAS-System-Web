@@ -20,6 +20,7 @@ use App\Services\Menu\MenuCatalog;
 use App\Services\Notify\GuestNotifier;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
+use App\Support\DineIn;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -50,6 +51,10 @@ final class OrderService
         }
         if (Settings::get('ordering_enabled') !== '1' && ($data['source'] ?? 'qr') === 'qr') {
             throw new OrderException(__('Ordering is not available right now.'));
+        }
+        // the owner can keep the hall to a list for the waiter (or menu only): then nothing is sent from the table
+        if (($data['source'] ?? 'qr') === 'qr' && DineIn::mode(Settings::all()) !== 'order') {
+            throw new OrderException(__('Orders here are taken by the waiter. Show your list to the waiter.'));
         }
         if ($table && $table->branch_id !== $branch->id) {
             throw new OrderException(__('This table belongs to another branch.'));

@@ -3,10 +3,7 @@
 @endphp
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="{{ $color('color_secondary', '#0A2540') }}">
+@include('menu.partials.theme', ['settings' => $settings])
 <style>
-    :root { --menu-primary: {{ $color('color_primary', '#F26522') }}; --menu-secondary: {{ $color('color_secondary', '#0A2540') }}; }
-    .m-primary { background: var(--menu-primary); color: #fff; }
-    .m-primary-text { color: var(--menu-primary); }
-    .m-secondary { background: var(--menu-secondary); color: #fff; }
-    .m-slot:has(input:checked) { background: var(--menu-primary); color: #fff; border-color: var(--menu-primary); }
+    .m-slot:has(input:checked) { background: var(--menu-accent); color: var(--menu-accent-text); border-color: var(--menu-accent); }
 </style>

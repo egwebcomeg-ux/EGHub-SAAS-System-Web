@@ -19,6 +19,8 @@ use App\Services\Orders\BusyMode;
 use App\Services\Seo\RestaurantProfile;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
+use App\Support\DineIn;
+use App\Support\MenuIntro;
 use App\Support\OpeningHours;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -42,9 +44,19 @@ class MenuController extends Controller
         $categories = $catalog->categories();
         $settings = Settings::all();
 
-        $tableOrder = $table !== null && Entitlements::current()->allows('qr_ordering') && $settings['ordering_enabled'] === '1';
+        // the hall: a scanned table always orders "in the place"; the general link may also offer takeaway / delivery
+        $dineMode = DineIn::mode($settings);
+        $tableOrder = $table !== null && $dineMode === 'order';
         $online = $table === null ? self::onlineOptions($branch, $settings) : null;
         $canOrder = $tableOrder || $online !== null;
+        $hall = self::hall($settings, $dineMode, $table);
+        $ways = array_values(array_filter([
+            $hall['mode'] !== 'off' ? 'dine' : null,
+            $online && $online['takeaway'] ? 'takeaway' : null,
+            $online && $online['delivery'] ? 'delivery' : null,
+        ]));
+        $choice = $table === null && $settings['order_type_prompt'] === '1' && $ways[0] === 'dine' && $online !== null;
+        $calls = $table !== null && Entitlements::current()->allows('qr_ordering');
         $upsell = Entitlements::current()->allows('upsell');
         $available = $categories->flatMap(fn (Category $c) => $c->items)->keyBy('id');
         $popup = Entitlements::current()->allows('offers')
@@ -81,6 +93,11 @@ class MenuController extends Controller
             'shownCategories' => $shownCategories,
             'available' => $available,
             'busy' => $table === null ? BusyMode::state() : null,
+            'hall' => $hall,
+            'ways' => $ways,
+            'choice' => $choice,
+            'calls' => $calls,
+            'intro' => MenuIntro::style($settings, $request),
             'openNow' => OpeningHours::isOpenAt($branch->working_hours, now()),
             'data' => [
                 'popup' => $popup ? [
@@ -92,8 +109,12 @@ class MenuController extends Controller
                 ] : null,
                 'tenant' => tenant()->getTenantKey(),
                 'canOrder' => $canOrder,
-                'mode' => $tableOrder ? 'table' : ($online ? 'online' : 'none'),
-                'callUrl' => $tableOrder ? route('menu.call') : null,
+                // first mode of the cart; on the general link the guest's choice (sessionStorage) switches hall <-> online
+                'mode' => $tableOrder ? 'table' : ($online ? 'online' : self::hallCart($hall['mode'])),
+                'hall' => $hall,
+                'ways' => $ways,
+                'choice' => $choice,
+                'callUrl' => $calls ? route('menu.call') : null,
                 'wallet' => $walletGuest && $walletGuest->credit_balance > 0
                     ? ['balance' => round((float) $walletGuest->credit_balance, 2), 'phone' => $walletGuest->phone] : null,
                 'online' => $online,
@@ -164,6 +185,33 @@ class MenuController extends Controller
             'branch' => $branch->id, 'takeaway' => $takeaway, 'delivery' => $zones !== [], 'zones' => $zones,
             'scheduled' => Entitlements::current()->allows('scheduled_orders'), 'prep' => (int) $settings['online_prep_minutes'],
         ];
+    }
+
+    /**
+     * What the hall cart does for this visit. Sending needs a scanned table (the QR session proves the guest sits
+     * there), so on the general link an "order" hall works as a list for the waiter with a hint to scan the table QR.
+     *
+     * @return array{mode:string, prices:bool, notice:string, table:?string, scanHint:bool}
+     */
+    public static function hall(array $settings, string $dineMode, ?DiningTable $table): array
+    {
+        return [
+            'mode' => $dineMode === 'order' && $table === null ? 'list' : $dineMode,
+            'prices' => DineIn::showPrices($settings, $dineMode),
+            'notice' => DineIn::notice($settings),
+            'table' => $table?->name,
+            'scanHint' => $dineMode === 'order' && $table === null,
+        ];
+    }
+
+    /** Cart mode of the hall: table (sends the order), list (shows the waiter) or none (menu only). */
+    private static function hallCart(string $hallMode): string
+    {
+        return match ($hallMode) {
+            'order' => 'table',
+            'list' => 'list',
+            default => 'none',
+        };
     }
 
     /** The table scanned in this session within the last 4 hours (after that the guest has surely left). */

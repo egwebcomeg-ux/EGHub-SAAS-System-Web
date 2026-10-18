@@ -63,6 +63,15 @@ final class Settings
         // busy mode (orders board): until this moment online/takeaway/delivery ordering is paused; table orders go on
         'busy_until' => '',                   // ISO datetime or empty
         'busy_message' => '',
+        // the hall (App\Support\DineIn): order (send from the table) | list (show the waiter) | off; empty = order with
+        // table ordering in the plan and ordering on, else list
+        'dine_in_mode' => '',
+        'dine_in_show_prices' => '',          // '' = shown in an order, hidden on a list; '1' | '0' when the owner chose
+        'dine_in_notice' => '',               // text on the hall list; empty = the default sentence
+        // general menu link: "how will you order?" screen when the hall and takeaway/delivery are both offered
+        'order_type_prompt' => '1',
+        // branded splash on the first open per session (App\Support\MenuIntro): off | logo | full
+        'menu_intro' => 'logo',
         'service_percent' => '0',
         'tax_percent' => '0',
         // AI menu import with the restaurant's own key (ai_key is encrypted, see AiProviders)

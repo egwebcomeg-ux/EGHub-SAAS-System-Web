@@ -1,6 +1,6 @@
 @extends('layouts.base')
 @section('title', $profile->title())
-@section('body_class', 'bg-navy-50 text-navy-900')
+@section('body_class', 'm-surface-2 m-text')
 
 @php
     $color = fn ($k, $d) => is_hex_color($settings[$k]) ? $settings[$k] : $d;
@@ -15,12 +15,7 @@
 @include('menu.partials.seo-head', ['profile' => $profile, 'schemas' => $schemas])
 @include('menu.partials.pixels')
 {{-- theme-color, manifest and the home-screen icon come from partials.pwa-head (layouts.base) --}}
-<style>
-    :root { --menu-primary: {{ $color('color_primary', '#F26522') }}; --menu-secondary: {{ $color('color_secondary', '#0A2540') }}; }
-    .m-primary { background: var(--menu-primary); color: #fff; }
-    .m-primary-text { color: var(--menu-primary); }
-    .m-secondary { background: var(--menu-secondary); color: #fff; }
-</style>
+@include('menu.partials.theme')
 @endpush
 
 @section('body')
@@ -41,14 +36,14 @@
 </header>
 
 <main class="mx-auto max-w-3xl space-y-5 px-4 py-6">
-    <section class="rounded-3xl bg-white p-5 shadow-sm">
+    <section class="rounded-3xl m-surface p-5 shadow-sm">
         @if ($description)
             <p class="text-lg leading-relaxed">{{ $description }}</p>
         @endif
         @if ($cuisines)
             <ul class="mt-3 flex flex-wrap gap-2" aria-label="{{ __('What they serve') }}">
                 @foreach ($cuisines as $c)
-                    <li class="rounded-full bg-navy-50 px-3 py-1 text-sm font-semibold">{{ $c }}</li>
+                    <li class="rounded-full m-surface-2 px-3 py-1 text-sm font-semibold">{{ $c }}</li>
                 @endforeach
             </ul>
         @endif
@@ -63,12 +58,12 @@
                 <span class="rounded-full bg-sky-50 px-3 py-1 font-bold text-sky-800">{{ __('Delivery') }}</span>
             @endif
             @if ($ordering['takeaway'])
-                <span class="rounded-full bg-navy-50 px-3 py-1 font-bold text-navy-700">{{ __('Takeaway') }}</span>
+                <span class="rounded-full m-surface-2 px-3 py-1 font-bold m-muted">{{ __('Takeaway') }}</span>
             @endif
         </div>
         <a href="{{ route('menu.show') }}" class="m-primary mt-5 flex min-h-14 items-center justify-center rounded-2xl text-lg font-extrabold shadow-md">{{ __('Open the menu') }} @if ($itemsCount)<span class="ms-2 text-sm font-semibold opacity-80">({{ __(':n items', ['n' => $itemsCount]) }})</span>@endif</a>
         @if (\App\Services\Reservations\ReservationService::enabled())
-            <a href="{{ route('menu.reserve') }}" class="mt-3 flex min-h-12 items-center justify-center rounded-2xl border-2 border-navy-100 text-base font-extrabold">{{ __('Book a table') }}</a>
+            <a href="{{ route('menu.reserve') }}" class="mt-3 flex min-h-12 items-center justify-center rounded-2xl border-2 m-border text-base font-extrabold">{{ __('Book a table') }}</a>
         @endif
     </section>
 
@@ -77,7 +72,7 @@
             <h2 class="mb-3 text-xl font-extrabold">{{ __('From the menu') }}</h2>
             <ul class="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 @foreach ($featured as $item)
-                    <li class="overflow-hidden rounded-2xl bg-white shadow-sm">
+                    <li class="overflow-hidden rounded-2xl m-surface shadow-sm">
                         @if ($item->image)
                             <img src="/storage/{{ $item->image }}" alt="{{ $item->displayName() }}" loading="lazy" class="aspect-square w-full object-cover">
                         @endif
@@ -100,15 +95,15 @@
                         $wa = $profile->whatsapp($b);
                         $map = $profile->mapUrl($b);
                     @endphp
-                    <article class="rounded-2xl bg-white p-4 shadow-sm">
+                    <article class="rounded-2xl m-surface p-4 shadow-sm">
                         @if ($branches->count() > 1)<h3 class="mb-2 font-extrabold">{{ tr($b->name, $b->name_en) }}</h3>@endif
                         <dl class="space-y-1.5 text-sm">
-                            @if ($b->address)<div class="flex gap-2"><dt class="w-20 shrink-0 text-navy-500">{{ __('Address') }}</dt><dd>{{ $b->address }}</dd></div>@endif
-                            @if ($b->working_hours)<div class="flex gap-2"><dt class="w-20 shrink-0 text-navy-500">{{ __('Hours') }}</dt><dd>{{ $b->working_hours }}
+                            @if ($b->address)<div class="flex gap-2"><dt class="w-20 shrink-0 m-muted">{{ __('Address') }}</dt><dd>{{ $b->address }}</dd></div>@endif
+                            @if ($b->working_hours)<div class="flex gap-2"><dt class="w-20 shrink-0 m-muted">{{ __('Hours') }}</dt><dd>{{ $b->working_hours }}
                                 @php($open = \App\Support\OpeningHours::isOpenAt($b->working_hours, now()))
-                                @if ($open !== null)<span @class(['badge ms-1', 'bg-emerald-100 text-emerald-800' => $open, 'bg-navy-100 text-navy-500' => ! $open])>{{ $open ? __('Open now') : __('Closed now') }}</span>@endif
+                                @if ($open !== null)<span @class(['badge ms-1', 'bg-emerald-100 text-emerald-800' => $open, 'm-surface-2 m-muted' => ! $open])>{{ $open ? __('Open now') : __('Closed now') }}</span>@endif
                             </dd></div>@endif
-                            @if ($b->phone)<div class="flex gap-2"><dt class="w-20 shrink-0 text-navy-500">{{ __('Phone') }}</dt><dd><a href="tel:{{ $b->phone }}" dir="ltr" class="font-semibold">{{ $b->phone }}</a></dd></div>@endif
+                            @if ($b->phone)<div class="flex gap-2"><dt class="w-20 shrink-0 m-muted">{{ __('Phone') }}</dt><dd><a href="tel:{{ $b->phone }}" dir="ltr" class="font-semibold">{{ $b->phone }}</a></dd></div>@endif
                         </dl>
                         <div class="mt-3 flex flex-wrap gap-2">
                             @if ($wa)<a href="https://wa.me/{{ whatsapp_number($wa) }}" target="_blank" rel="noopener" class="btn-ghost min-h-10 px-3 text-sm">{{ __('WhatsApp') }}</a>@endif
@@ -120,7 +115,7 @@
         </section>
     @endif
 
-    <footer class="space-y-3 pt-4 text-center text-sm text-navy-500">
+    <footer class="space-y-3 pt-4 text-center text-sm m-muted">
         <div class="flex justify-center gap-4">
             @foreach (['instagram' => 'Instagram', 'facebook' => 'Facebook', 'tiktok' => 'TikTok'] as $key => $label)
                 @if ($settings[$key])<a href="{{ $settings[$key] }}" target="_blank" rel="noopener" class="font-semibold">{{ $label }}</a>@endif

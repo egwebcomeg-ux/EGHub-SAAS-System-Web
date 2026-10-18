@@ -2,7 +2,7 @@
 @section('title', __('Order #:n', ['n' => $order->number]))
 
 @push('head')
-<style>:root { --menu-primary: {{ is_hex_color($settings['color_primary']) ? $settings['color_primary'] : '#F26522' }}; }</style>
+@include('menu.partials.theme')
 @include('menu.partials.pixels', ['purchase' => $order->status === 'cancelled' ? null : [
     'id' => $order->number, 'value' => round((float) $order->total, 2),
     'items' => $order->items->map(fn ($i) => ['id' => $i->menu_item_id, 'name' => $i->name, 'quantity' => $i->quantity, 'price' => round((float) $i->unit_price, 2)])->values()->all(),
@@ -22,13 +22,13 @@
 @endphp
 <main class="mx-auto max-w-md px-4 py-8">
     <div class="card text-center">
-        <div class="text-sm text-navy-500">{{ tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name }}</div>
+        <div class="text-sm m-muted">{{ tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name }}</div>
         <h1 class="mt-1 text-3xl font-extrabold">{{ __('Order #:n', ['n' => $order->number]) }}</h1>
-        @if ($order->table)<div class="mt-1 font-semibold" style="color: var(--menu-primary)">{{ __('Table :name', ['name' => $order->table->name]) }}</div>@endif
+        @if ($order->table)<div class="mt-1 font-semibold" style="color: var(--menu-accent)">{{ __('Table :name', ['name' => $order->table->name]) }}</div>@endif
         @if (! $order->table)
-            <div class="mt-1 font-semibold" style="color: var(--menu-primary)">{{ \App\Models\Order::TYPES[$order->type][app()->getLocale() === 'en' ? 1 : 0] ?? '' }}</div>
-            @if ($order->delivery_address)<div class="text-sm text-navy-500">📍 {{ $order->delivery_address['zone'] ?? '' }} — {{ $order->delivery_address['text'] ?? '' }}</div>@endif
-            @if ($order->scheduled_for)<div class="text-sm text-navy-500">🕒 {{ local_time($order->scheduled_for, 'd/m h:i A') }}</div>@endif
+            <div class="mt-1 font-semibold" style="color: var(--menu-accent)">{{ \App\Models\Order::TYPES[$order->type][app()->getLocale() === 'en' ? 1 : 0] ?? '' }}</div>
+            @if ($order->delivery_address)<div class="text-sm m-muted">📍 {{ $order->delivery_address['zone'] ?? '' }} — {{ $order->delivery_address['text'] ?? '' }}</div>@endif
+            @if ($order->scheduled_for)<div class="text-sm m-muted">🕒 {{ local_time($order->scheduled_for, 'd/m h:i A') }}</div>@endif
         @endif
 
         <div class="mt-6 text-lg font-bold" data-status-label>{{ $order->statusLabel() }}</div>
@@ -40,7 +40,7 @@
                 @foreach ($steps as $i => $s)
                     @php($done = array_search($order->status, $steps, true) >= $i)
                     <li class="flex flex-1 flex-col items-center gap-1 text-xs" data-step="{{ $s }}">
-                        <span class="size-4 rounded-full {{ $done ? '' : 'bg-navy-100' }}" @if ($done) style="background: var(--menu-primary)" @endif></span>
+                        <span class="size-4 rounded-full {{ $done ? '' : 'm-surface-2' }}" @if ($done) style="background: var(--menu-accent)" @endif></span>
                         {{ \App\Models\Order::STATUSES[$s][app()->getLocale() === 'en' ? 1 : 0] }}
                     </li>
                 @endforeach
@@ -49,18 +49,18 @@
     </div>
 
     <div class="card mt-4">
-        <ul class="divide-y divide-navy-50 text-sm">
+        <ul class="divide-y m-divide text-sm">
             @foreach ($order->items as $item)
                 <li class="flex justify-between gap-3 py-2">
                     <span><b>{{ $item->quantity }}×</b> {{ $item->name }}
-                        @if ($item->options)<span class="block text-xs text-navy-500">{{ collect($item->options)->pluck('name')->implode('، ') }}</span>@endif
-                        @if ($item->notes)<span class="block text-xs" style="color: var(--menu-primary)">{{ $item->notes }}</span>@endif
+                        @if ($item->options)<span class="block text-xs m-muted">{{ collect($item->options)->pluck('name')->implode('، ') }}</span>@endif
+                        @if ($item->notes)<span class="block text-xs" style="color: var(--menu-accent)">{{ $item->notes }}</span>@endif
                     </span>
                     <span>{{ money($item->line_total) }}</span>
                 </li>
             @endforeach
         </ul>
-        <div class="mt-3 space-y-1 border-t border-navy-100 pt-3 text-sm">
+        <div class="mt-3 space-y-1 border-t m-border pt-3 text-sm">
             @if ($order->service > 0)<div class="flex justify-between"><span>{{ __('Service') }}</span><span>{{ money($order->service) }}</span></div>@endif
             @if ($order->tax > 0)<div class="flex justify-between"><span>{{ __('Tax') }}</span><span>{{ money($order->tax) }}</span></div>@endif
             @if ($order->delivery_fee > 0)<div class="flex justify-between"><span>{{ __('Delivery fee') }}</span><span>{{ money($order->delivery_fee) }}</span></div>@endif

@@ -1,9 +1,10 @@
 @extends('layouts.base')
 @section('title', __('My balance') . ' · ' . (tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name))
-@section('body_class', 'bg-navy-50 text-navy-900')
+@section('body_class', 'm-surface-2 m-text')
 
 @push('head')
 <meta name="robots" content="noindex">
+@include('menu.partials.theme')
 @endpush
 
 @section('body')
@@ -12,7 +13,7 @@
     <div class="card text-center">
         @if ($settings['logo'])<img src="/storage/{{ $settings['logo'] }}" alt="" class="mx-auto mb-2 size-14 rounded-xl object-contain">@endif
         <div class="font-extrabold">{{ tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name }}</div>
-        @if ($customer->name)<div class="text-sm text-navy-500">{{ $customer->name }}</div>@endif
+        @if ($customer->name)<div class="text-sm m-muted">{{ $customer->name }}</div>@endif
         <div class="mx-auto mt-4 w-48 [&_svg]:h-auto [&_svg]:w-full">{!! $qr !!}</div>
     </div>
     @if ($wallet)
