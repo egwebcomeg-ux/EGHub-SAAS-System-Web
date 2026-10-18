@@ -93,6 +93,6 @@ class DomainController extends Controller
         $domain = Domain::query()->updateOrCreate(['domain' => $host], [
             'tenant_id' => $tenant->getTenantKey(), 'source' => $source, 'status' => $status, 'verified_at' => null,
         ]);
-        Notification::send(PlatformAdmin::query()->get(), new DomainRequested($domain));
+        Notification::send(PlatformAdmin::notifiable('tenants.manage'), new DomainRequested($domain));
     }
 }

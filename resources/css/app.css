@@ -123,7 +123,8 @@
 
 /* EgMenu Pro accent: a word in orange-to-blue gradient (hero headlines) */
 .text-brand-gradient {
-    background: linear-gradient(90deg, #f26522, #ff7537 45%, #005ba6);
+    /* theme variables, so the colors picked in admin › branding (App\Support\PlatformBrand) reach it too */
+    background: linear-gradient(90deg, var(--color-brand-600), var(--color-brand-500) 45%, var(--color-navy-600));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;

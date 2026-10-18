@@ -85,7 +85,7 @@ class ServicesController extends Controller
             'notes' => isset($data['notes']) && trim($data['notes']) !== '' ? trim($data['notes']) : null,
             'locale' => app()->getLocale(), 'ip' => client_ip(),
         ]);
-        Notification::send(PlatformAdmin::query()->get(), new ServiceRequested($serviceRequest));
+        Notification::send(PlatformAdmin::notifiable('services.manage'), new ServiceRequested($serviceRequest));
 
         return redirect()->route('services')->with('service_sent', $serviceRequest->serviceName())->withFragment('request');
     }

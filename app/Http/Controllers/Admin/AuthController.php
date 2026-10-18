@@ -25,6 +25,9 @@ class AuthController extends Controller
         if (! $admin || ! Hash::check($data['password'], $admin->password)) {
             return back()->withInput(['email' => $data['email']])->withErrors(['email' => __('Wrong login or password.')]);
         }
+        if (! $admin->is_active) {
+            return back()->withInput(['email' => $data['email']])->withErrors(['email' => __('This account is turned off. Ask the platform owner.')]);
+        }
         // second step: the code from the authenticator app, unless this browser was remembered within 30 days
         if ($admin->hasTwoFactorEnabled() && ! TwoFactor::isRemembered($request, 'admin', $admin)) {
             TwoFactor::challenge($request, 'admin', $admin, $request->boolean('remember'));

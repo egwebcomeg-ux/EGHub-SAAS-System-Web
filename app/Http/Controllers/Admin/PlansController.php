@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AddonPrice;
 use App\Models\Plan;
+use App\Models\Subscription;
+use App\Models\SubscriptionAddon;
 use App\Services\Entitlements;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,15 +16,32 @@ use Illuminate\View\View;
 /** Plans are data: prices, which features each plan unlocks and its limits are all edited here. */
 class PlansController extends Controller
 {
+    /** Plans tab: one card per plan, the full comparison behind a toggle. */
     public function index(): View
     {
         $plans = Plan::query()->with('features')->orderBy('sort_order')->get();
 
         return view('admin.plans.index', [
-            'addons' => AddonPrice::query()->orderBy('sort_order')->get(),
             'plans' => $plans,
             'matrix' => $plans->mapWithKeys(fn (Plan $p) => [$p->id => $p->entitlements()]),
+            'restaurants' => Subscription::query()->selectRaw('plan_id, count(*) as total')->groupBy('plan_id')->pluck('total', 'plan_id'),
+            'addonCount' => AddonPrice::query()->count(),
         ]);
+    }
+
+    /** Add-ons tab: a compact list with search and type filter; each add-on is edited on its own page. */
+    public function addonsIndex(): View
+    {
+        return view('admin.plans.addons', [
+            'addons' => AddonPrice::query()->orderBy('type')->orderBy('sort_order')->get(),
+            'plans' => Plan::query()->orderBy('sort_order')->get()->keyBy('code'),
+            'buyers' => SubscriptionAddon::query()->where('quantity', '>', 0)->select('key')->selectRaw('count(*) as total')->groupBy('key')->pluck('total', 'key'),
+        ]);
+    }
+
+    public function editAddon(AddonPrice $addon): View
+    {
+        return view('admin.plans.addon-edit', ['addon' => $addon, 'plans' => Plan::query()->orderBy('sort_order')->get()]);
     }
 
     /** Prices / names / on-off of the add-ons; a feature pack's feature list is edited here too. */
@@ -52,7 +71,19 @@ class PlansController extends Controller
         }
         Entitlements::flush();
 
-        return back()->with('ok', __('Add-ons saved.'));
+        // the one-add-on edit page goes back to the list; the old all-in-one form stays where it was
+        return $request->input('return') === 'addons'
+            ? redirect()->route('admin.addons')->with('ok', __('Add-ons saved.'))
+            : back()->with('ok', __('Add-ons saved.'));
+    }
+
+    /** The "on sale" switch of the add-ons list. */
+    public function toggleAddon(AddonPrice $addon): RedirectResponse
+    {
+        $addon->update(['is_active' => ! $addon->is_active]);
+        Entitlements::flush();
+
+        return back()->with('ok', $addon->is_active ? __(':name is on sale.', ['name' => $addon->displayName()]) : __(':name is no longer on sale.', ['name' => $addon->displayName()]));
     }
 
     public function edit(Plan $plan): View

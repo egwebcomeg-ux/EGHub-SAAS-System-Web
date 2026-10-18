@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Entitlements;
 use App\Services\Settings;
 use App\Services\TenantProvisioner;
+use App\Support\PlatformBrand;
 use Database\Seeders\PlanSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,6 +26,7 @@ abstract class TenantTestCase extends TestCase
         $this->seed([PlanSeeder::class, RoleSeeder::class]);
         Entitlements::flush();
         Settings::flush();
+        PlatformBrand::flush();
     }
 
     protected function tearDown(): void
@@ -34,6 +36,7 @@ abstract class TenantTestCase extends TestCase
         }
         Entitlements::flush();
         Settings::flush();
+        PlatformBrand::flush();
         parent::tearDown();
     }
 

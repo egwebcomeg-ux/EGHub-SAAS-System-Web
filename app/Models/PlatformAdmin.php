@@ -4,10 +4,16 @@ namespace App\Models;
 
 use App\Models\Concerns\HasTwoFactor;
 use App\Notifications\ResetPasswordLink;
+use App\Support\AdminPermissions;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-/** Platform owner (admin.<domain>). Separate table and guard from restaurant staff. */
+/**
+ * Platform owner (admin.<domain>). Separate table and guard from restaurant staff. What each admin may do comes from
+ * its role plus optional extra permissions (App\Support\AdminPermissions), never from the restaurant staff roles.
+ */
 class PlatformAdmin extends Authenticatable
 {
     protected $guarded = ['id'];
@@ -15,6 +21,9 @@ class PlatformAdmin extends Authenticatable
     use HasTwoFactor, Notifiable;
 
     protected $hidden = ['password', 'remember_token'];
+
+    /** Same as the column defaults, so a freshly created model already knows them. */
+    protected $attributes = ['role' => 'owner', 'is_active' => true];
 
     public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
     {
@@ -26,6 +35,48 @@ class PlatformAdmin extends Authenticatable
         return [
             'password' => 'hashed',
             'last_login_at' => 'datetime',
+            'permissions' => 'array',
+            'is_active' => 'boolean',
         ];
+    }
+
+    public function isOwner(): bool
+    {
+        return $this->role === 'owner';
+    }
+
+    /** May this admin use $permission (role permissions + extra ones)? A switched-off admin may do nothing. */
+    public function allows(string $permission): bool
+    {
+        return $this->is_active && in_array($permission, $this->grantedPermissions(), true);
+    }
+
+    /** @return list<string> */
+    public function grantedPermissions(): array
+    {
+        $extra = array_values(array_intersect((array) ($this->permissions ?? []), array_keys(AdminPermissions::ALL)));
+
+        return array_values(array_unique([...AdminPermissions::of((string) $this->role), ...$extra]));
+    }
+
+    public function roleName(): string
+    {
+        return AdminPermissions::roleLabel((string) $this->role);
+    }
+
+    /** @param Builder<PlatformAdmin> $query */
+    public function scopeActive(Builder $query): void
+    {
+        $query->where('is_active', true);
+    }
+
+    /**
+     * Active admins who handle $permission: who gets the emails about payments, domains and service requests.
+     *
+     * @return Collection<int, PlatformAdmin>
+     */
+    public static function notifiable(string $permission): Collection
+    {
+        return static::query()->active()->get()->filter(fn (PlatformAdmin $admin) => $admin->allows($permission))->values();
     }
 }

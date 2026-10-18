@@ -6,6 +6,7 @@ use App\Billing\Billing;
 use App\Billing\Credits;
 use App\Http\Controllers\Controller;
 use App\Models\AddonPrice;
+use App\Models\AuditLog;
 use App\Models\CreditTransaction;
 use App\Models\Plan;
 use App\Models\Subscription;
@@ -13,6 +14,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Audit;
 use App\Services\Entitlements;
+use App\Services\Settings;
 use App\Services\TenantProvisioner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -78,6 +80,15 @@ class TenantsController extends Controller
         foreach (array_keys(Plan::LIMITS) as $key) {
             $usage[$key] = ['used' => $rights->usage($key), 'limit' => $rights->limit($key)];
         }
+        // the restaurant's own settings and audit trail are read inside its tenant context
+        tenancy()->initialize($tenant);
+        try {
+            $contact = ['phone' => Settings::get('phone'), 'whatsapp' => Settings::get('whatsapp')];
+            $platformActions = AuditLog::query()->where('action', 'like', '%_by_platform')->latest('id')->limit(8)->get();
+        } finally {
+            tenancy()->end();
+            Settings::flush();
+        }
 
         return view('admin.tenants.show', [
             'tenant' => $tenant,
@@ -89,7 +100,30 @@ class TenantsController extends Controller
             'myAddons' => $tenant->subscription?->addons()->pluck('quantity', 'key')->all() ?? [],
             'invoices' => $tenant->invoices()->latest('id')->limit(10)->get(),
             'usage' => $usage,
+            'contact' => $contact,
+            'platformActions' => $platformActions,
         ]);
+    }
+
+    /** Basic info of the restaurant: its name and the contact numbers shown to guests. Written to its audit trail. */
+    public function info(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:100',
+            'phone' => 'nullable|string|max:20',
+            'whatsapp' => 'nullable|string|max:20',
+        ]);
+        $tenant->update(['name' => trim($data['name'])]);
+        tenancy()->initialize($tenant);
+        try {
+            Settings::put(['phone' => trim((string) ($data['phone'] ?? '')), 'whatsapp' => trim((string) ($data['whatsapp'] ?? ''))]);
+            Audit::record('restaurant.info_by_platform', $tenant->name, ['admin' => $request->user('admin')->email]);
+        } finally {
+            tenancy()->end();
+            Settings::flush();
+        }
+
+        return back()->with('ok', __('Restaurant info saved.'));
     }
 
     /** Manual plan/status/period change (e.g. after an InstaPay or Vodafone Cash transfer). */

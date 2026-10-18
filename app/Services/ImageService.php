@@ -28,6 +28,8 @@ final class ImageService
         'banner' => ['banners', 1600, 700, false],
         'post' => ['blog', 1600, 900, false],            // platform blog covers (no tenant)
         'testimonial' => ['testimonials', 400, 400, false], // owner photos on the marketing site (no tenant)
+        'platform_logo' => ['brand', 900, 300, false, true], // the platform logo, admin › branding (no tenant)
+        'favicon' => ['brand', 256, 256, false, true],       // the platform favicon (no tenant)
     ];
 
     /** @return string path on the public disk, e.g. tenants/my-cafe/items/uuid.webp */

@@ -1,84 +1,113 @@
 @extends('layouts.admin')
-@section('title', __('Plans & features') . ' · EgMenu Admin')
+@section('title', __('Plans & add-ons') . ' · EgMenu Admin')
 
 @section('content')
-<h1 class="mb-1 text-2xl font-extrabold">{{ __('Plans & features') }}</h1>
-<p class="mb-4 text-sm text-navy-500">{{ __('Which plan unlocks what. Click a plan to change its price, features and limits; changes apply to all its restaurants immediately.') }}</p>
+@include('admin.plans.tabs')
 
-<div class="card overflow-x-auto">
-    <table class="table-base">
-        <thead>
-            <tr>
-                <th></th>
-                @foreach ($plans as $p)
-                    <th class="text-center">
-                        <a href="{{ route('admin.plans.edit', $p) }}" class="text-base font-extrabold text-brand-700 hover:underline">{{ $p->displayName() }}</a>
-                        <div class="font-normal">{{ money($p->monthly_price) }} {{ __('EGP / month') }}</div>
-                    </th>
+@php
+    $featureTotal = count(\App\Models\Plan::FEATURES);
+@endphp
+<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5" data-plan-cards>
+    @foreach ($plans as $p)
+        @php
+            $rights = $matrix[$p->id];
+            $on = count(array_filter($rights['features']));
+        @endphp
+        <article @class(['card flex flex-col gap-3 p-4', 'ring-2 ring-brand-600' => $p->is_featured]) data-plan="{{ $p->code }}">
+            <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                    <h2 class="truncate text-lg font-black">{{ $p->displayName() }}</h2>
+                    <div class="flex flex-wrap gap-1">
+                        @if ($p->is_featured)<span class="badge bg-brand-100 text-brand-700">{{ __('Most popular') }}</span>@endif
+                        @unless ($p->is_public)<span class="badge bg-navy-100 text-navy-600">{{ __('Hidden from pricing') }}</span>@endunless
+                    </div>
+                </div>
+                <span class="badge shrink-0 bg-navy-50 text-navy-700" title="{{ __('Restaurants on this plan') }}">{{ __(':count restaurants', ['count' => (int) ($restaurants[$p->id] ?? 0)]) }}</span>
+            </div>
+            <div>
+                <span class="text-3xl font-black">{{ money($p->monthly_price) }}</span>
+                <span class="text-sm text-navy-500">{{ __('EGP / month') }}</span>
+                @if ($p->original_price)<span class="ms-1 text-sm text-navy-400 line-through">{{ money($p->original_price) }}</span>@endif
+            </div>
+            <dl class="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+                @foreach (\App\Models\Plan::LIMITS as $key => $_)
+                    @php($v = $rights['limits'][$key])
+                    <dt class="truncate text-navy-500">{{ \App\Models\Plan::label($key) }}</dt>
+                    <dd class="text-end font-bold" dir="ltr">{{ $v === null ? '∞' : number_format($v) }}</dd>
                 @endforeach
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (\App\Models\Plan::LIMITS as $key => $_)
+            </dl>
+            <div>
+                <div class="mb-1 flex justify-between text-xs text-navy-500"><span>{{ __('Features') }}</span><span dir="ltr">{{ $on }} / {{ $featureTotal }}</span></div>
+                <div class="flex h-1.5 overflow-hidden rounded-full bg-navy-100"><div class="h-full rounded-full bg-brand-600" style="width: {{ round($on / max(1, $featureTotal) * 100) }}%"></div></div>
+            </div>
+            <a href="{{ route('admin.plans.edit', $p) }}" class="btn-ghost mt-auto w-full">{{ __('Edit plan') }}</a>
+        </article>
+    @endforeach
+</div>
+
+<details class="group card mt-4 p-0" data-compare>
+    <summary class="flex min-h-14 cursor-pointer list-none items-center justify-between gap-2 px-5 font-bold [&::-webkit-details-marker]:hidden">
+        <span>{{ __('Compare all features') }}</span>
+        <svg class="size-5 text-navy-400 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+    </summary>
+    <div class="max-h-[70vh] overflow-auto border-t border-navy-100">
+        <table class="w-full min-w-[36rem] border-separate border-spacing-0 text-sm" data-compare-table>
+            <thead>
                 <tr>
-                    <td class="font-semibold">{{ \App\Models\Plan::label($key) }}</td>
+                    <th class="sticky start-0 top-0 z-20 border-b border-navy-100 bg-white px-3 py-2 text-start text-xs font-semibold text-navy-500">{{ __('Feature') }}</th>
                     @foreach ($plans as $p)
-                        @php($v = $matrix[$p->id]['limits'][$key])
-                        <td class="text-center font-semibold">{{ $v === null ? '∞' : $v }}</td>
+                        <th class="sticky top-0 z-10 w-[12%] border-b border-navy-100 bg-white px-3 py-2 text-center">
+                            <a href="{{ route('admin.plans.edit', $p) }}" class="font-extrabold text-navy-900 hover:text-brand-700">{{ $p->displayName() }}</a>
+                            <div class="text-xs font-normal text-navy-500">{{ money($p->monthly_price) }}</div>
+                        </th>
                     @endforeach
                 </tr>
-            @endforeach
-            @foreach (\App\Models\Plan::GROUPS as $group => $gl)
-                <tr><td colspan="{{ $plans->count() + 1 }}" class="bg-navy-50 text-xs font-bold text-navy-500">{{ app()->getLocale() === 'en' ? $gl[1] : $gl[0] }}</td></tr>
-                @foreach (\App\Models\Plan::FEATURES as $key => $f)
-                    @continue($f[2] !== $group)
+            </thead>
+            <tbody>
+                <tr><td colspan="{{ $plans->count() + 1 }}" class="sticky start-0 bg-navy-50 px-3 py-2 text-xs font-bold text-navy-600">{{ __('Limits') }}</td></tr>
+                @foreach (\App\Models\Plan::LIMITS as $key => $_)
                     <tr>
-                        <td>{{ \App\Models\Plan::label($key) }}</td>
+                        <td class="sticky start-0 z-[1] min-w-36 max-w-40 border-b border-navy-50 bg-white px-3 py-2 max-sm:text-xs sm:max-w-none font-semibold">{{ \App\Models\Plan::label($key) }}</td>
                         @foreach ($plans as $p)
-                            <td class="text-center">{!! $matrix[$p->id]['features'][$key] ? '<span class="text-emerald-600">✓</span>' : '<span class="text-navy-200">—</span>' !!}</td>
+                            @php($v = $matrix[$p->id]['limits'][$key])
+                            <td class="border-b border-navy-50 px-3 py-2 text-center font-semibold">{{ $v === null ? '∞' : $v }}</td>
                         @endforeach
                     </tr>
                 @endforeach
+            </tbody>
+            @foreach (\App\Models\Plan::GROUPS as $group => $gl)
+                <tbody data-compare-group>
+                    <tr>
+                        <td colspan="{{ $plans->count() + 1 }}" class="bg-navy-50 p-0">
+                            <button type="button" class="sticky start-0 flex min-h-10 items-center gap-2 px-3 text-xs font-bold text-navy-600" aria-expanded="true" data-compare-toggle>
+                                <svg class="size-4 transition" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+                                {{ app()->getLocale() === 'en' ? $gl[1] : $gl[0] }}
+                            </button>
+                        </td>
+                    </tr>
+                    @foreach (\App\Models\Plan::FEATURES as $key => $f)
+                        @continue($f[2] !== $group)
+                        <tr data-compare-row>
+                            <td class="sticky start-0 z-[1] min-w-36 max-w-40 border-b border-navy-50 bg-white px-3 py-2 max-sm:text-xs sm:max-w-none">{{ \App\Models\Plan::label($key) }}</td>
+                            @foreach ($plans as $p)
+                                <td class="border-b border-navy-50 px-3 py-2 text-center">{!! $matrix[$p->id]['features'][$key] ? '<span class="font-bold text-emerald-600">✓</span>' : '<span class="text-navy-200">—</span>' !!}</td>
+                            @endforeach
+                        </tr>
+                    @endforeach
+                </tbody>
             @endforeach
-        </tbody>
-    </table>
-</div>
-<h2 class="mt-8 mb-1 text-xl font-extrabold">{{ __('Add-ons') }}</h2>
-<p class="mb-4 text-sm text-navy-500">{{ __('Sold on top of any plan. A pack unlocks the features ticked below; extra branch/staff raise a limit.') }}</p>
-<form method="post" action="{{ route('admin.addons.update') }}" class="space-y-4">
-    @csrf
-    <div class="grid gap-4 lg:grid-cols-2">
-        @foreach ($addons as $a)
-            <div class="card space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="badge {{ $a->isFeaturePack() ? 'bg-brand-100 text-brand-700' : 'bg-navy-100 text-navy-700' }}">{{ $a->isFeaturePack() ? __('Feature pack') : ($a->isCreditPack() ? __('WhatsApp credits').' · '.number_format((int) $a->credits) : __('Extra limit')) }}</span>
-                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="addons[{{ $a->id }}][is_active]" value="1" @checked($a->is_active) class="size-4 accent-brand-600"> {{ __('On sale') }}</label>
-                </div>
-                <div class="grid gap-3 sm:grid-cols-3">
-                    <input class="field" name="addons[{{ $a->id }}][name]" value="{{ $a->name }}" required>
-                    <input class="field" name="addons[{{ $a->id }}][name_en]" value="{{ $a->name_en }}" dir="ltr">
-                    <input class="field" name="addons[{{ $a->id }}][monthly_price]" type="number" step="1" min="0" value="{{ $a->monthly_price }}" required>
-                </div>
-                <input class="field" name="addons[{{ $a->id }}][description]" value="{{ $a->description }}" placeholder="{{ __('Description') }}">
-                <div class="flex flex-wrap items-center gap-4 text-sm">
-                    <label class="flex items-center gap-2"><input type="checkbox" name="addons[{{ $a->id }}][per_branch]" value="1" @checked($a->per_branch) class="size-4 accent-brand-600"> {{ __('Priced per branch (40% off each extra branch)') }}</label>
-                    <label class="flex items-center gap-2">{{ __('Available from plan') }}
-                        <select class="field min-h-9 w-auto py-0" name="addons[{{ $a->id }}][min_plan]">
-                            <option value="">{{ __('Any plan') }}</option>
-                            @foreach (\App\Models\Plan::query()->orderBy('sort_order')->get() as $pl)<option value="{{ $pl->code }}" @selected($a->min_plan === $pl->code)>{{ $pl->displayName() }}</option>@endforeach
-                        </select>
-                    </label>
-                </div>
-                @if ($a->isFeaturePack())
-                    <div class="flex flex-wrap gap-x-4 gap-y-1">
-                        @foreach (\App\Models\Plan::FEATURES as $key => $f)
-                            <label class="flex items-center gap-1.5 text-xs"><input type="checkbox" name="addons[{{ $a->id }}][features][]" value="{{ $key }}" @checked(in_array($key, $a->features ?? [], true)) class="size-3.5 accent-brand-600"> {{ \App\Models\Plan::label($key) }}</label>
-                        @endforeach
-                    </div>
-                @endif
-            </div>
-        @endforeach
+        </table>
     </div>
-    <button class="btn-primary">{{ __('Save add-ons') }}</button>
-</form>
+</details>
 @endsection
+
+@push('scripts')
+<script>
+    document.querySelectorAll('[data-compare-toggle]').forEach((button) => button.addEventListener('click', () => {
+        const open = button.getAttribute('aria-expanded') !== 'true';
+        button.setAttribute('aria-expanded', open ? 'true' : 'false');
+        button.querySelector('svg').classList.toggle('-rotate-90', !open);
+        button.closest('[data-compare-group]').querySelectorAll('[data-compare-row]').forEach((row) => row.classList.toggle('hidden', !open));
+    }));
+</script>
+@endpush

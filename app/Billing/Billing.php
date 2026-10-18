@@ -153,7 +153,7 @@ final class Billing
             ['gateway' => $method, 'reference' => $reference, 'idempotency_key' => 'claim:'.$invoice->id.':'.random_token(4),
                 'amount' => $invoice->total, 'payload' => ['sender' => $sender]],
         );
-        Notification::send(PlatformAdmin::query()->get(), new PaymentClaimed($payment));
+        Notification::send(PlatformAdmin::notifiable('billing.manage'), new PaymentClaimed($payment));
 
         return $payment;
     }

@@ -35,7 +35,7 @@ class MenuSetupRequest
             'notes' => __('Requested at sign-up. Menu: :url', ['url' => $tenant->url()]),
             'locale' => app()->getLocale(), 'ip' => client_ip(),
         ]);
-        Notification::send(PlatformAdmin::query()->get(), new ServiceRequested($serviceRequest));
+        Notification::send(PlatformAdmin::notifiable('services.manage'), new ServiceRequested($serviceRequest));
 
         return $serviceRequest;
     }
