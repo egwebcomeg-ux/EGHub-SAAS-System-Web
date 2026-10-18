@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Audit;
+use Illuminate\Auth\SessionGuard;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -65,12 +66,30 @@ class TenantUsersController extends Controller
         return User::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->findOrFail($user);
     }
 
-    /** New remember token (ends "remember me" cookies) and, with database sessions, removes the user's sessions. */
+    /**
+     * New remember token (ends "remember me" cookies) and, with database sessions, removes the user's sessions.
+     *
+     * The sessions table's user_id belongs to whichever guard served the request, so on the admin panel it holds
+     * platform admin ids. A session is only removed when its payload is signed in on the restaurant ("web") guard as
+     * this user; otherwise an admin whose id equals the user's id would sign themselves out.
+     */
     private function endSessions(User $staff): void
     {
         $staff->forceFill(['remember_token' => Str::random(60)])->save();
-        if (config('session.driver') === 'database') {
-            DB::connection(config('session.connection'))->table(config('session.table', 'sessions'))->where('user_id', $staff->id)->delete();
+        if (config('session.driver') !== 'database') {
+            return;
+        }
+        $sessions = DB::connection(config('session.connection'))->table(config('session.table', 'sessions'));
+        $webKey = 'login_web_'.sha1(SessionGuard::class);
+        $ids = (clone $sessions)->where('user_id', $staff->id)->get(['id', 'payload'])
+            ->filter(function (object $row) use ($webKey, $staff): bool {
+                $data = @unserialize(base64_decode((string) $row->payload), ['allowed_classes' => false]);
+
+                return is_array($data) && (string) ($data[$webKey] ?? '') === (string) $staff->id;
+            })
+            ->pluck('id');
+        if ($ids->isNotEmpty()) {
+            $sessions->whereIn('id', $ids)->delete();
         }
     }
 

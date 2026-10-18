@@ -7,6 +7,8 @@ use App\Models\PlatformAdmin;
 use App\Models\Tenant;
 use App\Notifications\ResetPasswordLink;
 use App\Services\Settings;
+use Illuminate\Auth\SessionGuard;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Tests\TenantTestCase;
@@ -79,6 +81,23 @@ class AdminTenantUsersTest extends TenantTestCase
 
         $this->assertNotSame('old-token', $owner->fresh()->remember_token);
         $this->assertSame(['user.signed_out_by_platform'], $this->auditActions($tenant));
+    }
+
+    public function test_ending_a_users_sessions_never_signs_out_the_admin_with_the_same_id(): void
+    {
+        config(['session.driver' => 'database']);
+        $tenant = $this->restaurant('cafe-a');
+        $owner = $this->owner($tenant);
+        $support = $this->support();
+        $support->forceFill(['id' => $owner->id])->save();   // the sessions table cannot tell the two guards apart by id
+        $sessions = DB::table('sessions');
+        $row = fn (string $id, string $guard) => ['id' => $id, 'user_id' => $owner->id, 'ip_address' => null, 'user_agent' => null, 'last_activity' => time(),
+            'payload' => base64_encode(serialize(['login_'.$guard.'_'.sha1(SessionGuard::class) => $owner->id]))];
+        $sessions->insert([$row('restaurant-session', 'web'), $row('admin-session', 'admin')]);
+
+        $this->actingAs($support->fresh(), 'admin')->post($this->adminUrl("/tenants/cafe-a/users/{$owner->id}/password"))->assertSessionHas('temporary_password');
+
+        $this->assertSame(['admin-session'], DB::table('sessions')->whereIn('id', ['restaurant-session', 'admin-session'])->pluck('id')->all());
     }
 
     public function test_an_admin_without_tenants_manage_cannot_touch_users(): void
