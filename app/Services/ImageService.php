@@ -18,11 +18,12 @@ final class ImageService
 
     private const MAX_PIXELS = 24_000_000;
 
-    /** profile => [dir, max width, max height, square crop] */
+    /** profile => [dir, max width, max height, square crop, lossless] */
     private const PROFILES = [
         'item' => ['items', 900, 900, false],
         'category' => ['categories', 900, 600, false],
-        'logo' => ['brand', 400, 400, false],
+        // logos stay lossless (sharp edges, full alpha), so a transparent logo looks crisp on dark templates
+        'logo' => ['brand', 512, 512, false, true],
         'cover' => ['brand', 1600, 700, false],
         'banner' => ['banners', 1600, 700, false],
         'post' => ['blog', 1600, 900, false],            // platform blog covers (no tenant)
@@ -48,7 +49,7 @@ final class ImageService
         imagedestroy($src);
 
         ob_start();
-        imagewebp($dst, null, 80);
+        imagewebp($dst, null, (self::PROFILES[$profile][4] ?? false) ? IMG_WEBP_LOSSLESS : 80);
         $bytes = (string) ob_get_clean();
         imagedestroy($dst);
 

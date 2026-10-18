@@ -12,6 +12,7 @@ use App\Services\Audit;
 use App\Services\Entitlements;
 use App\Services\ImageService;
 use App\Services\Import\Ai\AiProviders;
+use App\Services\ItemVideo;
 use App\Services\Menu\MenuTranslations;
 use App\Support\MenuLocales;
 use Illuminate\Http\JsonResponse;
@@ -104,6 +105,7 @@ class ItemsController extends Controller
     public function destroy(MenuItem $item, ImageService $images): RedirectResponse
     {
         $images->delete($item->image);
+        app(ItemVideo::class)->delete($item->video);
         $groups = $item->optionGroups()->pluck('id')->all();
         MenuTranslations::forget('option', ItemOption::query()->whereIn('item_option_group_id', $groups)->pluck('id')->all());
         MenuTranslations::forget('group', $groups);
@@ -170,6 +172,12 @@ class ItemsController extends Controller
             'sold_out_until' => ['nullable', Rule::in(MenuItem::SOLD_OUT_UNTIL)],
             'sold_out_until_at' => 'nullable|date',
             'image' => 'nullable|file|max:5120',
+            'video' => 'nullable|file|max:'.ItemVideo::MAX_KB,
+            'video_url' => ['nullable', 'url', 'max:300', function (string $attribute, mixed $value, \Closure $fail) {
+                if (! ItemVideo::embed((string) $value)) {
+                    $fail(__('Paste a YouTube, Instagram or TikTok video link.'));
+                }
+            }],
             'groups' => 'array|max:10',
             'groups.*.name' => 'required|string|max:60',
             'groups.*.name_en' => 'nullable|string|max:60',
@@ -210,6 +218,18 @@ class ItemsController extends Controller
             } elseif ($request->boolean('remove_image')) {
                 $images->delete($item->image);
                 $item->image = null;
+            }
+            // a short video (plan feature full_branding): an upload or a YouTube / Instagram / TikTok link
+            if (Entitlements::current()->allows(ItemVideo::FEATURE)) {
+                $videos = app(ItemVideo::class);
+                if ($request->hasFile('video')) {
+                    $videos->delete($item->video);
+                    $item->video = $videos->store($request->file('video'));
+                } elseif ($request->boolean('remove_video')) {
+                    $videos->delete($item->video);
+                    $item->video = null;
+                }
+                $item->video_url = ($data['video_url'] ?? null) ?: null;
             }
             $item->save();
 

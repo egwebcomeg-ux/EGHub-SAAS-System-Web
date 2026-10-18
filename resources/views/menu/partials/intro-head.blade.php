@@ -34,6 +34,8 @@
     html.intro-open .m-intro { display: flex; }
     html.choice-open .m-choice { display: flex; }
     html.choice-open { overflow: hidden; }
+    .m-choice-close { display: none; }
+    html.choice-reopen .m-choice-close { display: block; }
 
     /* intro: brand glow, logo rises with a soft scale, tagline fades in, then the overlay fades out (≈1.8 s; full ≈2.3 s) */
     .m-intro {
@@ -60,9 +62,11 @@
     }
     .m-intro-stage { position: relative; display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 0 24px; text-align: center; }
     .m-intro-logo {
-        width: min(36vw, 148px); height: min(36vw, 148px); object-fit: contain; border-radius: 30px; background: #fff; padding: 12px;
+        width: min(46vw, 176px); height: min(46vw, 176px); object-fit: contain; border-radius: 32px; background: #fff; padding: 14px;
         box-shadow: 0 18px 50px -18px rgba(0, 0, 0, .55); animation: m-intro-rise .75s .1s cubic-bezier(.2, .8, .2, 1) both;
     }
+    /* transparent logos on dark templates (setting logo_background): no tile, a soft glow keeps the edges crisp */
+    .m-intro-logo--bare { background: transparent; padding: 0; border-radius: 0; box-shadow: none; filter: drop-shadow(0 10px 28px rgba(0, 0, 0, .45)); }
     .m-intro-name { font-size: clamp(2rem, 9vw, 3.2rem); font-weight: 900; line-height: 1.2; animation: m-intro-rise .75s .1s cubic-bezier(.2, .8, .2, 1) both; }
     .m-intro-tagline { max-width: 28rem; font-size: 1.05rem; font-weight: 700; color: rgba(255, 255, 255, .85); animation: m-intro-fade .55s .65s ease both; }
     .m-intro--full .m-intro-tagline { animation: m-intro-pop .6s .8s cubic-bezier(.3, 1.4, .5, 1) both; }

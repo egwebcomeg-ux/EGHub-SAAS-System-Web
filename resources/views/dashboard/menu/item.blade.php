@@ -91,6 +91,22 @@
             <input class="field py-2" type="file" name="image" accept="image/jpeg,image/png,image/webp">
             <p class="text-xs text-navy-500">{{ __('JPG, PNG or WebP up to 5 MB. Converted automatically to a light WebP.') }}</p>
         </section>
+        <section class="card space-y-3" data-video-field>
+            <label class="field-label">{{ __('Video (optional)') }}</label>
+            @if (\App\Services\Entitlements::current()->allows(\App\Services\ItemVideo::FEATURE))
+                @if ($item->video)
+                    <video src="/storage/{{ $item->video }}" class="aspect-video w-full rounded-xl bg-navy-900 object-cover" muted loop playsinline controls preload="metadata"></video>
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="remove_video" value="1" class="size-4 accent-brand-600"> {{ __('Remove video') }}</label>
+                @endif
+                <input class="field py-2" type="file" name="video" accept="video/mp4,video/webm">
+                <p class="text-xs text-navy-500">{{ __('MP4 or WebM up to 15 MB, a few seconds is best. Guests see it muted and looping.') }}</p>
+                <input class="field" name="video_url" value="{{ old('video_url', $item->video_url) }}" maxlength="300" dir="ltr" placeholder="{{ __('or a YouTube / Instagram / TikTok link') }}">
+                @error('video')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+                @error('video_url')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
+            @else
+                <p class="text-sm text-navy-500">{{ \App\Services\Entitlements::current()->upgradeMessage(\App\Services\ItemVideo::FEATURE) }}</p>
+            @endif
+        </section>
         @if ($upsell)
             <section class="card space-y-3">
                 <h2 class="section-title">{{ __('Goes well with') }}</h2>

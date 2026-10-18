@@ -76,6 +76,7 @@ if (dataEl) {
         const img = $('[data-sheet-image]', sheet);
         img.classList.toggle('hidden', !current.image);
         if (current.image) img.src = current.image;
+        resetVideo();
         $('[data-sheet-name]', sheet).textContent = current.name;
         $('[data-sheet-desc]', sheet).textContent = current.description || '';
         $('[data-sheet-cal]', sheet).textContent = current.calories ? T.cal.replace('__N__', current.calories) : '';
@@ -118,6 +119,41 @@ if (dataEl) {
         sheet.showModal();
         countView(id);
     }
+
+    // ---- item video: a "watch" button; uploads play muted and looping inline, links load their embed on tap ----
+    const videoBox = $('[data-sheet-video]', sheet);
+    const videoPlay = $('[data-sheet-video-play]', sheet);
+    function resetVideo() {
+        videoBox.innerHTML = '';
+        videoBox.classList.add('hidden');
+        const has = !!current?.video;
+        videoPlay.classList.toggle('hidden', !has);
+        videoPlay.classList.toggle('flex', has);
+        // without a photo the button sits in the flow instead of over the picture
+        videoPlay.classList.toggle('absolute', !!current?.image);
+        videoPlay.classList.toggle('m-5', has && !current.image);
+        videoPlay.classList.toggle('mb-0', has && !current.image);
+    }
+    videoPlay.addEventListener('click', () => {
+        const v = current?.video;
+        if (!v) return;
+        if (v.type === 'file') {
+            videoBox.style.aspectRatio = 'auto';
+            videoBox.innerHTML = `<video class="max-h-[60vh] w-full object-contain" src="${esc(v.src)}" ${current.image ? `poster="${esc(current.image)}"` : ''} autoplay muted loop playsinline controls></video>`;
+            const el = $('video', videoBox);
+            el.muted = true; // never with sound unless the guest turns it on
+            el.play?.().catch(() => {});
+        } else {
+            videoBox.style.aspectRatio = v.provider === 'youtube' ? '16 / 9' : '9 / 16';
+            videoBox.innerHTML = `<iframe class="mx-auto h-full max-h-[70vh] w-full" src="${esc(v.src)}" loading="lazy" title="${esc(current.name)}"
+                allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+        }
+        videoBox.classList.remove('hidden');
+        $('[data-sheet-image]', sheet).classList.add('hidden');
+        videoPlay.classList.add('hidden');
+        videoPlay.classList.remove('flex');
+    });
+    sheet.addEventListener('close', () => { videoBox.innerHTML = ''; });
 
     // one anonymous "opened" count per item and page visit, for the restaurant's item reports
     const viewed = new Set();
@@ -206,12 +242,45 @@ if (dataEl) {
     // bill of the cart: service on the food in the hall, tax on food + service, the zone fee for delivery
     function totals() {
         const subtotal = cart.reduce((s, l) => s + unitPrice(M.items[l.item_id], l.option_ids) * l.qty, 0);
-        const service = inHall() ? subtotal * M.service / 100 : 0;
-        const tax = mode === 'none' ? 0 : (subtotal + service) * M.tax / 100;
+        const goal = goalState(subtotal);
+        const service = inHall() ? (subtotal - goal.off) * M.service / 100 : 0;
+        const tax = mode === 'none' ? 0 : (subtotal - goal.off + service) * M.tax / 100;
         const zone = currentZone();
         const fee = zone ? zone.fee : 0;
-        return { subtotal, service, tax, fee, zone, total: subtotal + service + tax + fee };
+        return { subtotal, goal, service, tax, fee, zone, total: subtotal - goal.off + service + tax + fee };
     }
+
+    // ---- cart goal ("add X and get Y free"): progress only; the server decides the reward with its own prices ----
+    const G = M.goal;
+    function goalState(subtotal) {
+        const none = { on: false, reached: false, off: 0, left: 0, blocked: false };
+        if (!G || !cart.length || mode === 'none') return none;
+        const left = Math.max(0, G.amount - subtotal);
+        const reached = left < 0.005;
+        const blocked = reached && !G.withCoupon && !!$('[data-coupon]')?.value.trim();
+        // only orders sent from the menu get it; a list for the waiter just shows the progress
+        const applies = reached && !blocked && mode !== 'list';
+        const off = applies && G.reward !== 'item' ? Math.min(subtotal, G.reward === 'percent' ? subtotal * G.value / 100 : G.value) : 0;
+        return { on: true, reached, applies, off, left, blocked, pct: Math.min(100, (subtotal / G.amount) * 100) };
+    }
+    function renderGoal(t) {
+        const box = $('[data-goal-box]', cartSheet);
+        if (!box) return;
+        const g = t.goal;
+        box.classList.toggle('hidden', !g.on || hidePrices());
+        if (!g.on) return;
+        const isItem = G.reward === 'item';
+        let text;
+        if (!g.reached) text = `🎁 ${(isItem ? T.goalItemLeft : T.goalOffLeft).replace(':left', fmt(g.left)).replace(':reward', G.rewardName)}`;
+        else if (mode === 'list') text = `🎉 ${T.goalListDone.replace(':reward', G.rewardName)}`;
+        else if (g.blocked) text = `🎁 ${T.goalCoupon}`;
+        else text = `🎉 ${(isItem ? T.goalItemDone : T.goalOffDone).replace(':reward', G.rewardName)}`;
+        $('[data-goal-text]', box).textContent = text;
+        $('[data-goal-track]', box).classList.toggle('hidden', mode === 'list');
+        $('[data-goal-fill]', box).style.width = `${g.pct}%`;
+        box.classList.toggle('m-primary-border', g.reached);
+    }
+    $('[data-coupon]')?.addEventListener('input', () => { if (G) renderCart(); });
 
     function renderCart() {
         const list = mode === 'list';
@@ -246,13 +315,18 @@ if (dataEl) {
                 </div>
             </li>`;
         }).join('');
-        $('[data-cart-lines]', cartSheet).innerHTML = lines || `<li class="m-muted py-6 text-center">${esc(T.empty)}</li>`;
-
         const t = totals();
+        // the free item of a reached goal, shown as it will appear on the order
+        const gift = t.goal.applies && G.reward === 'item' && M.items[G.item] ? `<li class="flex items-center gap-3 py-3" data-goal-line>
+                <div class="min-w-0 flex-1"><div class="font-bold">🎁 ${esc(M.items[G.item].name)}</div></div>
+                <span class="m-primary rounded-full px-3 py-1 text-xs font-extrabold">${esc(T.goalFree)}</span>
+            </li>` : '';
+        $('[data-cart-lines]', cartSheet).innerHTML = lines ? lines + gift : `<li class="m-muted py-6 text-center">${esc(T.empty)}</li>`;
+        renderGoal(t);
         const row = (label, v, bold) => `<div class="flex justify-between ${bold ? 'text-base font-extrabold' : ''}"><span>${esc(label)}</span><span>${fmt(v)}</span></div>`;
         const summary = $('[data-cart-summary]', cartSheet);
         summary.classList.toggle('hidden', hidePrices() || !cart.length);
-        summary.innerHTML = (t.service || t.tax || t.fee ? row(T.subtotal, t.subtotal) + (t.service ? row(T.service, t.service) : '') + (t.tax ? row(T.tax, t.tax) : '') + (t.fee ? row(T.deliveryFee, t.fee) : '') : '')
+        summary.innerHTML = (t.service || t.tax || t.fee || t.goal.off ? row(T.subtotal, t.subtotal) + (t.goal.off ? row(`🎁 ${G.rewardName}`, -t.goal.off) : '') + (t.service ? row(T.service, t.service) : '') + (t.tax ? row(T.tax, t.tax) : '') + (t.fee ? row(T.deliveryFee, t.fee) : '') : '')
             + row(T.total, t.total, true)
             + (t.zone && t.zone.min > t.subtotal ? `<div class="mt-1 text-xs font-semibold text-amber-700">${esc(T.minOrder.replace('__A__', fmt(t.zone.min)))}</div>` : '');
         // prepaid balance: the whole order is paid from it, or not at all (no partial payment)
@@ -301,6 +375,12 @@ if (dataEl) {
         show('[data-open-split]', inHall() && H.prices);
         const title = $('[data-cart-title]');
         if (title) title.textContent = mode === 'list' ? T.myOrder : T.yourOrder;
+        // the order-type chip in the header: "🛵 Delivery · Maadi ▾"
+        const chip = $('[data-way-chip-label]');
+        if (chip && way && T.wayChips[way]) {
+            const zone = way === 'delivery' ? currentZone() : null;
+            chip.textContent = T.wayChips[way] + (zone ? ` · ${zone.name.split('› ').pop()}` : '');
+        }
         renderBar();
         if (cartSheet.open) renderCart();
     }
@@ -309,21 +389,99 @@ if (dataEl) {
         else if (O && O[way]) { mode = 'online'; otype = way; }
         renderMode();
     }
+    const root = document.documentElement;
     document.addEventListener('click', (e) => {
         const b = e.target.closest('[data-way], [data-online] [data-otype]');
         if (!b) return;
         const way = b.dataset.way || b.dataset.otype;
         if (!H.table) session.set(wayKey, way);
         applyWay(way);
-        if (b.closest('[data-order-choice]')) document.documentElement.classList.remove('choice-open');
+        if (b.closest('[data-order-choice]')) root.classList.remove('choice-open', 'choice-reopen');
+        // delivery: the area comes first, so the fee, the minimum and the time are known before adding items
+        if (way === 'delivery' && !currentZone()) openZones();
     });
+    // the chip in the header reopens the "how will you order?" sheet
+    $('[data-way-chip]')?.addEventListener('click', () => root.classList.add('choice-open', 'choice-reopen'));
+    $('[data-choice-close]')?.addEventListener('click', () => root.classList.remove('choice-open', 'choice-reopen'));
+
+    // ---- delivery area: main area, then its street / sub-area; "detect my area" against drawn zones (map mode) ----
+    const zoneSheet = $('[data-zone-sheet]');
+    const zoneKey = `egmenu.zone.${M.tenant}`;
+    function zoneStep(step) {
+        zoneSheet.querySelectorAll('[data-zone-step]').forEach((el) => el.classList.toggle('hidden', el.dataset.zoneStep !== String(step)));
+    }
+    function openZones() {
+        if (!zoneSheet) return;
+        zoneStep('root');
+        $('[data-zone-outside]', zoneSheet).classList.add('hidden');
+        if (!zoneSheet.open) zoneSheet.showModal();
+    }
+    function pickZone(id) {
+        const select = $('[data-zone]');
+        if (!select || !O.zones.some((z) => String(z.id) === String(id))) return;
+        select.value = String(id);
+        session.set(zoneKey, String(id));
+        zoneSheet?.close();
+        renderMode();
+        renderCart();
+    }
+    zoneSheet?.addEventListener('click', (e) => {
+        const open = e.target.closest('[data-zone-open]');
+        const pick = e.target.closest('[data-zone-pick]');
+        if (open) zoneStep(open.dataset.zoneOpen);
+        else if (pick) pickZone(pick.dataset.zonePick);
+        else if (e.target.closest('[data-zone-back]')) zoneStep('root');
+        else if (e.target.closest('[data-zone-detect]')) detectZone(e.target.closest('[data-zone-detect]'));
+    });
+    zoneSheet?.addEventListener('input', (e) => {
+        const box = e.target.closest('[data-zone-search]');
+        if (!box) return;
+        const q = box.value.trim().toLowerCase();
+        box.parentElement.querySelectorAll('[data-zone-text]').forEach((b) => b.classList.toggle('hidden', !!q && !b.dataset.zoneText.includes(q)));
+    });
+    // ray casting, the same test as App\Models\DeliveryZone::contains (points are [lat, lng])
+    const inside = (poly, lat, lng) => {
+        let hit = false;
+        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+            const [ai, oi] = poly[i];
+            const [aj, oj] = poly[j];
+            if ((oi > lng) !== (oj > lng) && lat < ((aj - ai) * (lng - oi)) / (oj - oi) + ai) hit = !hit;
+        }
+        return hit;
+    };
+    function detectZone(btn) {
+        if (!navigator.geolocation) return;
+        const label = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = T.locating;
+        navigator.geolocation.getCurrentPosition((pos) => {
+            btn.disabled = false;
+            btn.textContent = label;
+            const { latitude: lat, longitude: lng } = pos.coords;
+            const hits = O.zones.filter((z) => z.polygon && inside(z.polygon, lat, lng));
+            // a drawn street inside a drawn area wins over the area
+            const zone = hits.find((z) => z.parent) || hits[0];
+            if (zone) pickZone(zone.id);
+            else $('[data-zone-outside]', zoneSheet).classList.remove('hidden');
+        }, () => {
+            btn.disabled = false;
+            btn.textContent = label;
+            $('[data-zone-outside]', zoneSheet).classList.remove('hidden');
+        }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 });
+    }
+
     // a remembered choice on the general link (the "how will you order?" screen or the cart switch)
+    if (O) {
+        const savedZone = session.get(zoneKey);
+        const select = $('[data-zone]');
+        if (select && savedZone && O.zones.some((z) => String(z.id) === savedZone)) select.value = savedZone;
+    }
     if (!H.table && (M.ways || []).length > 1) {
         const saved = session.get(wayKey);
         if (saved && M.ways.includes(saved)) applyWay(saved);
     }
     if (O) {
-        $('[data-zone]')?.addEventListener('change', renderCart);
+        $('[data-zone]')?.addEventListener('change', () => { session.set(zoneKey, $('[data-zone]').value); renderMode(); renderCart(); });
         const when = $('[data-scheduled]');
         if (when) {
             const pad = (n) => String(n).padStart(2, '0');
@@ -642,6 +800,81 @@ if (dataEl) {
                 try { store?.setItem(key, new Date().toDateString()); } catch {}
                 fetch(P.eventUrl.replace('__E__', 'view'), { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } }).catch(() => {});
             }, (P.delay || 0) * 1000);
+        }
+    }
+
+    // ---- branch switcher (2+ branches, no table): nearest (location on tap only), current, last visit ----
+    const branchSheet = $('[data-branch-sheet]');
+    const B = M.branches || [];
+    if (branchSheet && B.length > 1) {
+        const memKey = `egmenu.branch.${M.tenant}`;
+        let mem = {};
+        try { mem = JSON.parse(localStorage.getItem(memKey) || '{}') || {}; } catch {}
+        const firstVisit = !mem.current;
+        const lastVisit = mem.current && mem.current !== M.branch ? mem.current : (mem.previous ?? null);
+        try { localStorage.setItem(memKey, JSON.stringify({ current: M.branch, previous: lastVisit })); } catch {}
+        let distances = null;
+        const tag = (text, strong) => `<span class="rounded-full px-2 py-0.5 text-[11px] font-extrabold ${strong ? 'm-primary' : 'm-surface-2 m-muted'}">${esc(text)}</span>`;
+        const km = (d) => T.km.replace('__N__', d < 10 ? d.toFixed(1) : Math.round(d));
+        function renderBranches() {
+            const rows = [...B];
+            if (distances) rows.sort((a, b) => (distances[a.id] ?? 1e9) - (distances[b.id] ?? 1e9));
+            const nearest = distances ? rows.find((r) => distances[r.id] != null)?.id : null;
+            $('[data-branch-list]', branchSheet).innerHTML = rows.map((b) => {
+                const tags = [
+                    b.id === nearest ? tag(T.nearest, true) : '',
+                    b.id === M.branch ? tag(T.current, b.id !== nearest) : '',
+                    b.id === lastVisit ? tag(T.lastVisit, false) : '',
+                ].join('');
+                const open = b.open === null ? '' : `<span class="text-xs font-bold ${b.open ? 'text-emerald-700' : 'text-red-600'}">● ${esc(b.open ? T.openNow : T.closedNow)}</span>`;
+                const dist = distances && distances[b.id] != null ? `<span class="m-muted text-xs font-bold" dir="ltr">${esc(km(distances[b.id]))}</span>` : '';
+                return `<div class="m-border rounded-2xl border p-3 ${b.id === M.branch ? 'm-primary-border' : ''}" data-branch-row="${b.id}">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-1.5"><b class="text-base">${esc(b.name)}</b>${tags}</div>
+                            ${b.address ? `<div class="m-muted mt-0.5 text-sm">${esc(b.address)}</div>` : ''}
+                            <div class="mt-1 flex flex-wrap items-center gap-3">${open}${dist}${b.hours ? `<span class="m-muted text-xs" dir="auto">${esc(b.hours)}</span>` : ''}</div>
+                        </div>
+                        <div class="flex shrink-0 flex-col items-end gap-2">
+                            <a href="?branch=${encodeURIComponent(b.slug)}" class="m-primary inline-flex min-h-10 items-center rounded-xl px-4 text-sm font-extrabold" data-branch-pick="${esc(b.slug)}">${esc(T.choose)}</a>
+                            ${b.map ? `<a href="${esc(b.map)}" target="_blank" rel="noopener" class="m-primary-text text-xs font-bold">🗺 ${esc(T.onMap)}</a>` : ''}
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        const openBranches = () => { renderBranches(); if (!branchSheet.open) branchSheet.showModal(); };
+        $('[data-branch-open]')?.addEventListener('click', openBranches);
+        $('[data-branch-near]', branchSheet)?.addEventListener('click', (e) => {
+            const note = $('[data-branch-note]', branchSheet);
+            const btn = e.currentTarget;
+            if (!navigator.geolocation) { note.textContent = T.noLocation; note.classList.remove('hidden'); return; }
+            note.textContent = T.locating;
+            note.classList.remove('hidden');
+            btn.disabled = true;
+            navigator.geolocation.getCurrentPosition((pos) => {
+                const { latitude, longitude } = pos.coords;
+                const rad = Math.PI / 180;
+                distances = {};
+                B.forEach((b) => {
+                    if (b.lat == null || b.lng == null) return;
+                    const a = Math.sin(((b.lat - latitude) * rad) / 2) ** 2
+                        + Math.cos(latitude * rad) * Math.cos(b.lat * rad) * Math.sin(((b.lng - longitude) * rad) / 2) ** 2;
+                    distances[b.id] = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                });
+                note.classList.add('hidden');
+                btn.disabled = false;
+                renderBranches();
+            }, () => { note.textContent = T.noLocation; btn.disabled = false; }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+        });
+        // first visit on the general link with no branch chosen: offer the switcher once, after the intro / order type
+        if (firstVisit && !M.branchChosen) {
+            const clear = () => !root.classList.contains('intro-open') && !root.classList.contains('choice-open');
+            if (clear()) setTimeout(openBranches, 300);
+            else {
+                const watch = new MutationObserver(() => { if (clear()) { watch.disconnect(); setTimeout(openBranches, 300); } });
+                watch.observe(root, { attributes: true, attributeFilter: ['class'] });
+            }
         }
     }
 

@@ -1,9 +1,7 @@
 {{-- Bistro: name … gold price on one line, the description below in a calmer tone, a small photo when there is one. --}}
 <button type="button" data-item="{{ $item->id }}" data-search-text="{{ mb_strtolower($item->name . ' ' . $item->name_en . ' ' . $item->description . ' ' . $item->displayName()) }}"
     @class(['m-card flex w-full items-start gap-4 border-b py-4 text-start', 'opacity-50' => $item->is_sold_out])>
-    @if ($item->image)
-        <img src="/storage/{{ $item->image }}" alt="" loading="lazy" class="size-16 shrink-0 rounded-lg object-cover">
-    @endif
+    @include('menu.items.photo', ['class' => 'size-16 shrink-0 rounded-xl'])
     <div class="min-w-0 flex-1">
         <div class="flex items-baseline gap-2">
             <span class="text-lg font-semibold tracking-wide">{{ $item->displayName() }}</span>

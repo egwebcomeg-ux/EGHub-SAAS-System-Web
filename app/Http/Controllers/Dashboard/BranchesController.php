@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Services\Entitlements;
+use App\Support\MapsLink;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -60,8 +61,13 @@ class BranchesController extends Controller
             'whatsapp' => 'nullable|string|max:20',
             'working_hours' => 'nullable|string|max:100',
             'maps_url' => 'nullable|url|max:300',
+            'lat' => 'nullable|numeric|between:-90,90|required_with:lng',
+            'lng' => 'nullable|numeric|between:-180,180|required_with:lat',
         ]);
+        // the coordinates feed "nearest branch" on the menu; a Google Maps link with them fills empty fields
+        $point = ($data['lat'] ?? null) !== null ? ['lat' => (float) $data['lat'], 'lng' => (float) $data['lng']] : MapsLink::coordinates($data['maps_url'] ?? null);
+        unset($data['lat'], $data['lng']);
 
-        return array_map(fn ($v) => $v ?? '', $data) + ['whatsapp' => null, 'maps_url' => null];
+        return array_map(fn ($v) => $v ?? '', $data) + ['whatsapp' => null, 'maps_url' => null, 'lat' => $point['lat'] ?? null, 'lng' => $point['lng'] ?? null];
     }
 }

@@ -351,6 +351,11 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/marketing/banners', [MarketingController::class, 'saveBanner'])->name('banners.store');
         Route::post('/marketing/banners/{banner}/toggle', [MarketingController::class, 'toggleBanner'])->name('banners.toggle');
         Route::post('/marketing/banners/{banner}/delete', [MarketingController::class, 'deleteBanner'])->name('banners.delete');
+        // cart goal ("add X and get Y free") and seasonal looks of the menu (Ramadan, Eid…)
+        Route::post('/marketing/cart-goal', [MarketingController::class, 'saveCartGoal'])->name('cart-goal.update');
+        Route::post('/marketing/seasons', [MarketingController::class, 'saveSeason'])->name('seasons.store');
+        Route::post('/marketing/seasons/{season}/toggle', [MarketingController::class, 'toggleSeason'])->name('seasons.toggle');
+        Route::post('/marketing/seasons/{season}/delete', [MarketingController::class, 'deleteSeason'])->name('seasons.delete');
     });
 });
 

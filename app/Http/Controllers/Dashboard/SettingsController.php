@@ -99,6 +99,7 @@ class SettingsController extends Controller
             'dine_in_notice' => 'nullable|string|max:200',
             'menu_intro' => ['nullable', Rule::in(MenuIntro::STYLES)],
             'menu_intro_repeat' => ['nullable', Rule::in(['always', 'session'])],
+            'logo_background' => ['nullable', Rule::in(['auto', 'white', 'none'])],
             'meta_pixel_id' => ['nullable', 'string', TrackingPixels::RULES['meta_pixel_id']],
             'ga4_measurement_id' => ['nullable', 'string', TrackingPixels::RULES['ga4_measurement_id']],
             'tiktok_pixel_id' => ['nullable', 'string', TrackingPixels::RULES['tiktok_pixel_id']],
@@ -149,6 +150,13 @@ class SettingsController extends Controller
         }
         if (! empty($data['menu_intro_repeat'])) {
             $values['menu_intro_repeat'] = $data['menu_intro_repeat'];
+        }
+        // the logo tile and the photo placeholders (sent with the brand section)
+        if (($values['logo_background'] ?? '') === '') {
+            unset($values['logo_background']);
+        }
+        if ($request->boolean('look_sent')) {
+            $values['item_placeholder'] = $request->boolean('item_placeholder') ? '1' : '0';
         }
         if (Entitlements::current()->allows('online_ordering')) {
             $values['online_takeaway'] = $request->boolean('online_takeaway') ? '1' : '0';

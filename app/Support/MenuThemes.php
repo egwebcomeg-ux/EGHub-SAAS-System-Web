@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Season;
 use App\Services\Entitlements;
 use App\Services\Settings;
 
@@ -108,6 +109,37 @@ final class MenuThemes
             '--menu-accent' => $accent,
             '--menu-accent-text' => $custom ? self::textOn($accent) : $p['accentText'],
         ]];
+    }
+
+    /**
+     * A running season paints the accent (buttons, prices, chips) with its own color, on every guest surface.
+     *
+     * @param  array{dark:bool, vars:array<string,string>}  $tokens
+     * @return array{dark:bool, vars:array<string,string>}
+     */
+    public static function withSeason(array $tokens, ?Season $season): array
+    {
+        if ($season && is_hex_color($season->accent)) {
+            $accent = strtoupper((string) $season->accent);
+            $tokens['vars']['--menu-accent'] = $accent;
+            $tokens['vars']['--menu-accent-text'] = self::textOn($accent);
+            $tokens['vars']['--menu-season'] = $accent;
+        }
+
+        return $tokens;
+    }
+
+    /**
+     * Whether the logo sits on a white tile (setting logo_background): auto = only on light templates, so a
+     * transparent logo shows on the dark ones as drawn.
+     */
+    public static function logoTile(string $theme, array $settings): bool
+    {
+        return match ($settings['logo_background'] ?? 'auto') {
+            'white' => true,
+            'none' => false,
+            default => ! (self::PALETTES[$theme]['dark'] ?? false),
+        };
     }
 
     /** Black or white, whichever reads better on $hex (WCAG relative luminance). */

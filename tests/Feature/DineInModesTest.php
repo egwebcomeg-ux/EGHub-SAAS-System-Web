@@ -137,7 +137,9 @@ class DineInModesTest extends TenantTestCase
     {
         $a = $this->restaurant('cafe-a');
         $this->as($a, fn () => Settings::put(['order_type_prompt' => '0']));
-        $this->get($this->subUrl('cafe-a'))->assertOk()->assertDontSee('data-order-choice', false)->assertSee('data-way-switch', false);
+        // off: the sheet never opens by itself; the order-type chip in the header still opens it
+        $this->get($this->subUrl('cafe-a'))->assertOk()->assertDontSee("classList.add('choice-open')", false)
+            ->assertSee('data-way-chip', false)->assertSee('data-way-switch', false);
 
         // menu only in the hall: takeaway is the only way, so nothing to choose
         $this->as($a, fn () => Settings::put(['order_type_prompt' => '1', 'dine_in_mode' => 'off']));

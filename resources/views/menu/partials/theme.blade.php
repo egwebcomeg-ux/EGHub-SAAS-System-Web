@@ -5,7 +5,8 @@
 --}}
 @php
     $themeKey = $theme ?? \App\Support\MenuThemes::current($settings);
-    $menuTheme = \App\Support\MenuThemes::tokens($themeKey, $settings);
+    // a running season (Ramadan, Eid…) overrides the accent of every guest page
+    $menuTheme = \App\Support\MenuThemes::withSeason(\App\Support\MenuThemes::tokens($themeKey, $settings), $season ?? \App\Models\Season::live());
     $themeVars = collect($menuTheme['vars'])->map(fn ($v, $k) => "$k: $v;")->implode(' ');
 @endphp
 <style>

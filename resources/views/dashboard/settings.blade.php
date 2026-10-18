@@ -33,8 +33,21 @@
                     </div>
                 @endif
                 <input class="field py-2" type="file" name="{{ $key }}" accept="image/jpeg,image/png,image/webp">
+                @if ($key === 'logo')
+                    <label class="field-label mt-2" for="logo_background">{{ __('Behind the logo') }}</label>
+                    <select class="field" name="logo_background" id="logo_background">
+                        @foreach (['auto' => __('Automatic: no background on dark themes, white on light ones'), 'white' => __('Always a white tile'), 'none' => __('No background (transparent logo)')] as $value => $text)
+                            <option value="{{ $value }}" @selected($s['logo_background'] === $value)>{{ $text }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-navy-500">{{ __('A transparent PNG keeps its edges sharp on every theme.') }}</p>
+                @endif
             </div>
         @endforeach
+        <div class="sm:col-span-2">
+            <input type="hidden" name="look_sent" value="1">
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="item_placeholder" value="1" @checked($s['item_placeholder'] !== '0') class="size-4 accent-brand-600"> {{ __('Show a neat icon for items without a photo') }}</label>
+        </div>
     </section>
 
     <section class="card grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

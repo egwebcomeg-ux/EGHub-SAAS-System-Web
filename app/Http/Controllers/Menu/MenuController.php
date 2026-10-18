@@ -12,25 +12,29 @@ use App\Models\DiningTable;
 use App\Models\MenuItem;
 use App\Models\MenuVisit;
 use App\Models\Popup;
+use App\Models\Season;
 use App\Services\Entitlements;
+use App\Services\ItemVideo;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Orders\BusyMode;
+use App\Services\Orders\CartGoal;
 use App\Services\Seo\RestaurantProfile;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
 use App\Support\DineIn;
 use App\Support\MenuIntro;
+use App\Support\MenuThemes;
 use App\Support\OpeningHours;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Illuminate\Http\Response;
 
 /** Public menu of the current restaurant (tenancy initialised from the URL). */
 class MenuController extends Controller
 {
-    public function show(Request $request): View
+    public function show(Request $request): Response
     {
         $table = self::currentTable($request);
         // one visit per browser session and day
@@ -39,10 +43,26 @@ class MenuController extends Controller
             $request->session()->put($visitKey, today()->toDateString());
             MenuVisit::bump('views');
         }
-        $catalog = MenuCatalog::forBranch($table?->branch ?? $this->branch($request));
+        // the branch: a scanned table fixes it; else ?branch=slug (remembered in a cookie), else the remembered one
+        $chosenBranch = $table ? null : $this->branch($request);
+        $catalog = MenuCatalog::forBranch($table?->branch ?? $chosenBranch);
         $branch = $catalog->branch;
         $categories = $catalog->categories();
         $settings = Settings::all();
+        $theme = MenuThemes::current($settings);
+        // a running season swaps the cover and the logo (its accent goes through the theme tokens)
+        $season = Season::live();
+        if ($season?->banner) {
+            $settings['cover'] = $season->banner;
+        }
+        if ($season?->logo) {
+            $settings['logo'] = $season->logo;
+        }
+        $activeBranches = Branch::query()->where('is_active', true)->orderBy('sort_order')->orderBy('id')->get();
+        $branchPicker = $table === null && $activeBranches->count() > 1;
+        $currency = tr($settings['currency'], $settings['currency_en']);
+        $goal = CartGoal::current($settings)?->forMenu($catalog, $currency);
+        $videos = Entitlements::current()->allows(ItemVideo::FEATURE);
 
         // the hall: a scanned table always orders "in the place"; the general link may also offer takeaway / delivery
         $dineMode = DineIn::mode($settings);
@@ -74,7 +94,15 @@ class MenuController extends Controller
         $walletGuest = $canOrder && WalletService::enabled() && is_string($cardCookie)
             ? Customer::query()->where('card_token', $cardCookie)->first() : null;
 
-        return view('menu.show', [
+        $zonesDrawn = $online && collect($online['zones'])->contains(fn ($z) => $z['polygon'] !== null);
+        $response = response()->view('menu.show', [
+            'theme' => $theme,
+            'season' => $season,
+            'goal' => $goal,
+            'branchPicker' => $branchPicker,
+            'branchChosen' => $chosenBranch !== null,
+            'logoTile' => MenuThemes::logoTile($theme, $settings),
+            'placeholders' => $settings['item_placeholder'] !== '0',
             'profile' => $profile,
             'schemas' => [$profile->menuSchema($categories)],
             'loyalty' => $loyalty,
@@ -84,7 +112,7 @@ class MenuController extends Controller
             'categories' => $categories,
             'table' => $table,
             'branch' => $branch,
-            'branches' => Branch::query()->where('is_active', true)->orderBy('sort_order')->get(),
+            'branches' => $activeBranches,
             'canOrder' => $canOrder,
             'online' => $online,
             'offers' => $catalog->runningOffers(),
@@ -108,6 +136,17 @@ class MenuController extends Controller
                     'eventUrl' => route('menu.popup.event', ['popup' => $popup->id, 'event' => '__E__']),
                 ] : null,
                 'tenant' => tenant()->getTenantKey(),
+                'goal' => $goal,
+                // branch switcher (2+ branches, no table): coordinates for "nearest branch", open now, map link
+                'branch' => $branch->id,
+                'branchChosen' => $chosenBranch !== null,
+                'branches' => $branchPicker ? $activeBranches->map(fn (Branch $b) => [
+                    'id' => $b->id, 'slug' => $b->slug, 'name' => tr($b->name, $b->name_en), 'address' => $b->address,
+                    'lat' => $b->lat, 'lng' => $b->lng, 'map' => $b->maps_url ?: ($b->lat !== null ? "https://www.google.com/maps?q={$b->lat},{$b->lng}" : null),
+                    'open' => OpeningHours::isOpenAt($b->working_hours, now()), 'hours' => $b->working_hours,
+                ])->values() : [],
+                // "outside every zone": the guest can still ask the branch on WhatsApp
+                'whatsapp' => ($wa = (string) ($branch->whatsapp ?: $settings['whatsapp'] ?: $branch->phone)) !== '' ? whatsapp_number($wa) : null,
                 'canOrder' => $canOrder,
                 // first mode of the cart; on the general link the guest's choice (sessionStorage) switches hall <-> online
                 'mode' => $tableOrder ? 'table' : ($online ? 'online' : self::hallCart($hall['mode'])),
@@ -132,6 +171,7 @@ class MenuController extends Controller
                         'saving' => max(0, round($i->comboParts->sum(fn ($p) => $p->price * $p->pivot->quantity) - $i->price, 2)),
                     ] : null,
                     'description' => tx($i, 'description'), 'image' => $i->image ? '/storage/'.$i->image : null,
+                    'video' => $videos ? self::video($i) : null,
                     'calories' => $i->calories,
                     'allergens' => $i->allergenList(), 'spicy' => $i->spicyIcons(),
                     'groups' => $i->optionGroups->map(fn ($g) => [
@@ -145,6 +185,30 @@ class MenuController extends Controller
                 ]]),
             ],
         ]);
+        // geolocation only on this page and only for "nearest branch" / "detect my area" (asked on a tap)
+        if ($branchPicker || $zonesDrawn) {
+            $response->header('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
+        }
+        if ($chosenBranch) {
+            $response->withCookie(cookie()->forever($this->branchKey(), $chosenBranch->slug));
+        }
+
+        return $response;
+    }
+
+    /**
+     * The video of an item for the sheet: an upload (muted loop, poster = photo) or a link embed loaded on tap.
+     *
+     * @return array{type:string, src:string, provider?:string}|null
+     */
+    private static function video(MenuItem $item): ?array
+    {
+        if ($item->video) {
+            return ['type' => 'file', 'src' => '/storage/'.$item->video];
+        }
+        $embed = ItemVideo::embed($item->video_url);
+
+        return $embed ? ['type' => 'embed', 'src' => $embed['embed'], 'provider' => $embed['provider']] : null;
     }
 
     /** QR of a table: remember the table for this restaurant, then show the menu on a clean URL. */
@@ -174,6 +238,7 @@ class MenuController extends Controller
                 ->sortBy(fn ($z) => $z->label())->map(fn ($z) => [
                     'id' => $z->id, 'name' => $z->label(), 'fee' => (float) ($z->effective('fee') ?? 0),
                     'min' => (float) ($z->effective('min_order') ?? 0), 'minutes' => $z->effective('estimated_minutes'),
+                    'parent' => $z->parent_id, 'polygon' => is_array($z->polygon) && count($z->polygon) >= 3 ? $z->polygon : null,
                 ])->values()->all()
             : [];
         $takeaway = $settings['online_takeaway'] === '1';
@@ -232,11 +297,17 @@ class MenuController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    /** The branch the guest chose: ?branch=slug, else the one remembered from an earlier visit (cookie). */
     private function branch(Request $request): ?Branch
     {
-        $slug = $request->query('branch');
+        $slug = $request->query('branch') ?: $request->cookie($this->branchKey());
 
-        return $slug ? Branch::query()->where('is_active', true)->where('slug', $slug)->first() : null;
+        return is_string($slug) && $slug !== '' ? Branch::query()->where('is_active', true)->where('slug', $slug)->first() : null;
+    }
+
+    private function branchKey(): string
+    {
+        return 'branch_'.tenant()->getTenantKey();
     }
 
     private function tableKey(): string

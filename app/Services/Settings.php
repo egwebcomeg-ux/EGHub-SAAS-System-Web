@@ -74,6 +74,18 @@ final class Settings
         // branded splash on the first open per session (App\Support\MenuIntro): off | logo | full
         'menu_intro' => 'logo',
         'menu_intro_repeat' => 'always',  // always (every time the menu is opened) | session (once per browser session)
+        // behind the logo on the guest pages: auto (no tile on dark templates, white on light ones) | white | none
+        'logo_background' => 'auto',
+        // items without a photo show a themed placeholder tile (icon from the category) instead of nothing
+        'item_placeholder' => '1',
+        // cart goal of the public menu (feature offers, App\Services\Orders\CartGoal): "add X more and get Y free"
+        'cart_goal_enabled' => '0',
+        'cart_goal_amount' => '0',            // threshold on the order's food, in the restaurant's currency
+        'cart_goal_reward' => 'item',         // item (free item) | percent | amount (off the order)
+        'cart_goal_item' => '',               // menu item id given free
+        'cart_goal_value' => '0',             // percent or amount off
+        'cart_goal_label' => '',              // empty = generated ("Order for 200 EGP and get a croissant free")
+        'cart_goal_with_coupon' => '0',       // '1' = also given when the guest uses a coupon
         'service_percent' => '0',
         'tax_percent' => '0',
         // AI menu import with the restaurant's own key (ai_key is encrypted, see AiProviders)

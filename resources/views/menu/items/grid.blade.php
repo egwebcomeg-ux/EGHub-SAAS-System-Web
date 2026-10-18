@@ -1,8 +1,8 @@
 {{-- Grid: photo-first cards, two per row. --}}
 <button type="button" data-item="{{ $item->id }}" data-search-text="{{ mb_strtolower($item->name . ' ' . $item->name_en . ' ' . $item->description . ' ' . $item->displayName()) }}"
     @class(['m-card flex flex-col overflow-hidden rounded-2xl border m-border m-surface text-start shadow-sm transition active:scale-[.98]', 'opacity-60' => $item->is_sold_out])>
-    @if ($item->image)
-        <img src="/storage/{{ $item->image }}" alt="" loading="lazy" class="aspect-square w-full object-cover">
+    @if ($item->image || ($placeholders ?? true))
+        @include('menu.items.photo', ['class' => 'aspect-square w-full', 'iconClass' => 'size-[34%]'])
     @else
         <span class="flex aspect-[4/3] w-full items-center justify-center text-3xl font-extrabold" style="background: color-mix(in srgb, var(--menu-accent) 12%, transparent); color: var(--menu-accent)">{{ mb_substr($item->displayName(), 0, 1) }}</span>
     @endif

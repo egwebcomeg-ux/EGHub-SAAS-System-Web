@@ -9,7 +9,10 @@ use App\Models\Category;
 use App\Models\MenuItem;
 use App\Models\Offer;
 use App\Models\Popup;
+use App\Models\Season;
 use App\Services\ImageService;
+use App\Services\Orders\CartGoal;
+use App\Services\Settings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -27,7 +30,10 @@ class MarketingController extends Controller
             'maxBanners' => Banner::MAX_ACTIVE,
             'categories' => Category::query()->orderBy('sort_order')->get(),
             'branches' => Branch::query()->orderBy('sort_order')->get(),
-            'items' => MenuItem::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'items' => MenuItem::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'price']),
+            'seasons' => Season::query()->orderByDesc('starts_on')->orderByDesc('id')->get(),
+            'liveSeason' => Season::live(),
+            'settings' => Settings::all(),
         ]);
     }
 
@@ -147,6 +153,75 @@ class MarketingController extends Controller
     {
         return Banner::query()->where('is_active', true)
             ->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', today()))->count();
+    }
+
+    /** The cart goal of the menu: threshold and reward (a free item, or a percent / amount off). */
+    public function saveCartGoal(Request $request): RedirectResponse
+    {
+        $tenant = tenant()->getTenantKey();
+        $data = $request->validate([
+            'cart_goal_amount' => 'required_if:cart_goal_enabled,1|nullable|numeric|min:1|max:100000',
+            'cart_goal_reward' => ['required', Rule::in(CartGoal::REWARDS)],
+            'cart_goal_item' => ['nullable', 'required_if:cart_goal_reward,item', Rule::exists('menu_items', 'id')->where('tenant_id', $tenant)],
+            'cart_goal_value' => ['nullable', 'required_unless:cart_goal_reward,item', 'numeric', 'min:1',
+                $request->input('cart_goal_reward') === 'percent' ? 'max:100' : 'max:100000'],
+            'cart_goal_label' => 'nullable|string|max:120',
+        ]);
+        Settings::put([
+            'cart_goal_enabled' => $request->boolean('cart_goal_enabled') ? '1' : '0',
+            'cart_goal_amount' => (string) (float) ($data['cart_goal_amount'] ?? 0),
+            'cart_goal_reward' => $data['cart_goal_reward'],
+            'cart_goal_item' => (string) ($data['cart_goal_item'] ?? ''),
+            'cart_goal_value' => (string) (float) ($data['cart_goal_value'] ?? 0),
+            'cart_goal_label' => trim((string) ($data['cart_goal_label'] ?? '')),
+            'cart_goal_with_coupon' => $request->boolean('cart_goal_with_coupon') ? '1' : '0',
+        ]);
+
+        return back()->with('ok', __('Cart goal saved.'));
+    }
+
+    /** A seasonal look; empty greeting / accent take the preset's defaults. */
+    public function saveSeason(Request $request, ImageService $images): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:80',
+            'preset' => ['required', Rule::in(array_keys(Season::PRESETS))],
+            'starts_on' => 'required|date', 'ends_on' => 'required|date|after_or_equal:starts_on',
+            'greeting' => 'nullable|string|max:120', 'greeting_en' => 'nullable|string|max:120',
+            'accent' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'banner' => 'nullable|file|max:5120', 'logo' => 'nullable|file|max:5120',
+        ]);
+        $preset = Season::PRESETS[$data['preset']];
+        $greeting = trim((string) ($data['greeting'] ?? ''));
+        $greetingEn = trim((string) ($data['greeting_en'] ?? ''));
+        Season::query()->create([
+            'name' => $data['name'], 'preset' => $data['preset'],
+            'starts_on' => $data['starts_on'], 'ends_on' => $data['ends_on'],
+            'greeting' => $greeting !== '' ? $greeting : $preset['greeting'],
+            'greeting_en' => $greetingEn !== '' ? $greetingEn : $preset['greeting_en'],
+            'accent' => isset($data['accent']) ? strtoupper($data['accent']) : $preset['accent'],
+            'decoration' => $request->boolean('decoration'),
+            'banner' => $request->hasFile('banner') ? $images->store($request->file('banner'), 'banner') : null,
+            'logo' => $request->hasFile('logo') ? $images->store($request->file('logo'), 'logo') : null,
+        ]);
+
+        return back()->with('ok', __('Season saved.'));
+    }
+
+    public function toggleSeason(Season $season): RedirectResponse
+    {
+        $season->update(['is_active' => ! $season->is_active]);
+
+        return back();
+    }
+
+    public function deleteSeason(Season $season, ImageService $images): RedirectResponse
+    {
+        $images->delete($season->banner);
+        $images->delete($season->logo);
+        $season->delete();
+
+        return back()->with('ok', __('Season deleted.'));
     }
 
     public function togglePopup(Popup $popup): RedirectResponse

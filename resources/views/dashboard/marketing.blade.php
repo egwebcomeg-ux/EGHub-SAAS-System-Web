@@ -88,6 +88,52 @@
         @empty
             <p class="card muted">{{ __('No banners yet. A wide picture (1600×700) works best.') }}</p>
         @endforelse
+
+        {{-- cart goal: "add X more and get Y free", applied by the server when the order is placed --}}
+        <h2 class="section-title pt-4" id="cart-goal">{{ __('Cart goal') }}</h2>
+        <p class="muted -mt-2">{{ __('A progress bar in the guest cart: once the order reaches the amount, the gift is added to the order by itself (table and online orders).') }}</p>
+        <form method="post" action="{{ route('dash.cart-goal.update') }}" class="card grid gap-3 sm:grid-cols-2" data-goal-form>
+            @csrf
+            <label class="flex items-center gap-2 font-bold sm:col-span-2"><input type="checkbox" name="cart_goal_enabled" value="1" @checked($settings['cart_goal_enabled'] === '1') class="size-4 accent-brand-600"> {{ __('Show the cart goal on the menu') }}</label>
+            <div><label class="field-label">{{ __('When the order reaches') }}</label><input class="field" name="cart_goal_amount" type="number" min="1" step="0.5" value="{{ (float) $settings['cart_goal_amount'] ?: '' }}" placeholder="200" data-goal-amount></div>
+            <div><label class="field-label">{{ __('The guest gets') }}</label>
+                <select class="field" name="cart_goal_reward" data-goal-reward>
+                    <option value="item" @selected($settings['cart_goal_reward'] === 'item')>{{ __('A free item') }}</option>
+                    <option value="percent" @selected($settings['cart_goal_reward'] === 'percent')>{{ __('A percent off') }}</option>
+                    <option value="amount" @selected($settings['cart_goal_reward'] === 'amount')>{{ __('An amount off') }}</option>
+                </select>
+            </div>
+            <div data-goal-for="item"><label class="field-label">{{ __('Free item') }}</label>
+                <select class="field" name="cart_goal_item" data-goal-item><option value="">{{ __('Choose an item') }}</option>@foreach ($items as $i)<option value="{{ $i->id }}" @selected((string) $i->id === $settings['cart_goal_item'])>{{ $i->name }}</option>@endforeach</select>
+            </div>
+            <div data-goal-for="value"><label class="field-label">{{ __('Discount value') }}</label><input class="field" name="cart_goal_value" type="number" min="1" step="0.5" value="{{ (float) $settings['cart_goal_value'] ?: '' }}" data-goal-value></div>
+            <div class="sm:col-span-2"><label class="field-label">{{ __('Text on the menu (written for you, you can edit it)') }}</label><input class="field" name="cart_goal_label" maxlength="120" value="{{ $settings['cart_goal_label'] }}" data-goal-label></div>
+            <label class="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" name="cart_goal_with_coupon" value="1" @checked($settings['cart_goal_with_coupon'] === '1') class="size-4 accent-brand-600"> {{ __('Also with a coupon code (off by default: a coupon replaces the gift)') }}</label>
+            <div class="sm:col-span-2"><button class="btn-primary">{{ __('Save cart goal') }}</button></div>
+        </form>
+
+        {{-- seasonal looks of the menu --}}
+        <h2 class="section-title pt-4" id="seasons">{{ __('Seasons') }}</h2>
+        <p class="muted -mt-2">{{ __('Ramadan, Eid, Christmas or your own occasion: between two dates the menu shows a greeting, the season banner and logo, and its color.') }}</p>
+        @forelse ($seasons as $season)
+            <div class="card flex flex-wrap items-center justify-between gap-3" data-season="{{ $season->id }}">
+                <div class="flex items-center gap-3">
+                    <span class="grid size-12 place-items-center rounded-xl text-2xl" style="background: {{ $season->accent ?? '#F0F6FC' }}">{{ $season->icon() }}</span>
+                    <div>
+                        <b>{{ $season->name }}</b> <span class="badge bg-navy-100 text-navy-700">{{ \App\Models\Season::presetLabel($season->preset) }}</span>
+                        @if ($liveSeason?->is($season))<span class="badge bg-emerald-100 text-emerald-800">{{ __('Running now') }}</span>@endif
+                        @unless ($season->is_active)<span class="badge bg-navy-100 text-navy-500">{{ __('Paused') }}</span>@endunless
+                        <div class="text-sm text-navy-500">{{ $season->starts_on->format('Y/m/d') }} – {{ $season->ends_on->format('Y/m/d') }}@if ($season->greeting) · {{ $season->greeting }}@endif</div>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <form method="post" action="{{ route('dash.seasons.toggle', $season) }}">@csrf<button class="btn-ghost min-h-9 px-3">{{ $season->is_active ? __('Pause') : __('Resume') }}</button></form>
+                    <form method="post" action="{{ route('dash.seasons.delete', $season) }}" onsubmit="return confirm(@js(__('Delete this season?')))">@csrf<button class="btn-ghost min-h-9 px-3 text-red-600">{{ __('Delete') }}</button></form>
+                </div>
+            </div>
+        @empty
+            <p class="card muted">{{ __('No seasons yet. When two overlap, the one that starts last is shown.') }}</p>
+        @endforelse
     </section>
 
     <div class="space-y-4 xl:col-span-2">
@@ -173,6 +219,31 @@
             </div>
             <button class="btn-primary w-full">{{ __('Save banner') }}</button>
         </form>
+
+        <form method="post" action="{{ route('dash.seasons.store') }}" enctype="multipart/form-data" class="card space-y-3" data-season-form>
+            @csrf
+            <h2 class="section-title">{{ __('New season') }}</h2>
+            <select class="field" name="preset" data-season-preset>
+                @foreach (\App\Models\Season::PRESETS as $key => $preset)
+                    <option value="{{ $key }}" data-greeting="{{ $preset['greeting'] }}" data-greeting-en="{{ $preset['greeting_en'] }}" data-accent="{{ $preset['accent'] }}">{{ $preset['icon'] }} {{ \App\Models\Season::presetLabel($key) }}</option>
+                @endforeach
+            </select>
+            <input class="field" name="name" required maxlength="80" placeholder="{{ __('Name, e.g. Ramadan 2027') }}" data-season-name>
+            <div class="grid grid-cols-2 gap-2">
+                <div><label class="field-label">{{ __('From') }}</label><input class="field" name="starts_on" type="date" required></div>
+                <div><label class="field-label">{{ __('To') }}</label><input class="field" name="ends_on" type="date" required></div>
+            </div>
+            <input class="field" name="greeting" maxlength="120" placeholder="{{ __('Greeting line') }}" data-season-greeting>
+            <input class="field" name="greeting_en" maxlength="120" placeholder="{{ __('Greeting (English)') }}" dir="ltr" data-season-greeting-en>
+            <div class="flex items-center gap-3">
+                <label class="field-label mb-0">{{ __('Season color') }}</label>
+                <input type="color" name="accent" value="#0F6B4F" class="h-10 w-16 rounded-lg border border-navy-100" data-season-accent>
+            </div>
+            <div><label class="field-label">{{ __('Season banner (optional, replaces the cover)') }}</label><input class="field py-2" type="file" name="banner" accept="image/jpeg,image/png,image/webp"></div>
+            <div><label class="field-label">{{ __('Season logo (optional)') }}</label><input class="field py-2" type="file" name="logo" accept="image/png,image/webp,image/jpeg"></div>
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="decoration" value="1" checked class="size-4 accent-brand-600"> {{ __('Light decoration (crescents, lanterns, snow…)') }}</label>
+            <button class="btn-primary w-full">{{ __('Save season') }}</button>
+        </form>
     </div>
 </div>
 <script>
@@ -185,6 +256,42 @@
         const syncLink = () => document.querySelectorAll('[data-banner-for]').forEach((el) => el.classList.toggle('hidden', el.dataset.bannerFor !== link.value));
         link.addEventListener('change', syncLink);
         syncLink();
+
+        // cart goal: item or discount fields, and the generated text until the owner writes their own
+        const goal = document.querySelector('[data-goal-form]');
+        const reward = goal.querySelector('[data-goal-reward]');
+        const labelField = goal.querySelector('[data-goal-label]');
+        const texts = {{ \Illuminate\Support\Js::from(['item' => __('Order for :amount and get :reward free'), 'off' => __('Order for :amount and get :reward off'), 'currency' => tr($settings['currency'], $settings['currency_en'])]) }};
+        let generated = labelField.value === '';
+        const autoText = () => {
+            const amount = `${goal.querySelector('[data-goal-amount]').value || '…'} ${texts.currency}`;
+            const value = goal.querySelector('[data-goal-value]').value || '…';
+            const item = goal.querySelector('[data-goal-item]');
+            const what = reward.value === 'item' ? (item.value ? item.selectedOptions[0].text : '…') : reward.value === 'percent' ? `${value}%` : `${value} ${texts.currency}`;
+            return (reward.value === 'item' ? texts.item : texts.off).replace(':amount', amount).replace(':reward', what);
+        };
+        const syncGoal = () => {
+            goal.querySelector('[data-goal-for="item"]').classList.toggle('hidden', reward.value !== 'item');
+            goal.querySelector('[data-goal-for="value"]').classList.toggle('hidden', reward.value === 'item');
+            if (generated) labelField.placeholder = autoText();
+        };
+        goal.addEventListener('input', (e) => { if (e.target === labelField) generated = labelField.value === ''; syncGoal(); });
+        goal.addEventListener('change', syncGoal);
+        syncGoal();
+
+        // season presets fill the greeting and color
+        const seasonForm = document.querySelector('[data-season-form]');
+        const preset = seasonForm.querySelector('[data-season-preset]');
+        const applyPreset = () => {
+            const o = preset.selectedOptions[0];
+            seasonForm.querySelector('[data-season-greeting]').value = o.dataset.greeting;
+            seasonForm.querySelector('[data-season-greeting-en]').value = o.dataset.greetingEn;
+            if (o.dataset.accent) seasonForm.querySelector('[data-season-accent]').value = o.dataset.accent;
+            const name = seasonForm.querySelector('[data-season-name]');
+            if (!name.value && o.dataset.greeting) name.value = `${o.text.replace(/^\S+\s/, '')} ${new Date().getFullYear()}`;
+        };
+        preset.addEventListener('change', applyPreset);
+        applyPreset();
     })();
 </script>
 @endsection

@@ -69,7 +69,8 @@ final class OrderService
             return $existing; // the same submit retried (double tap, flaky network)
         }
 
-        $lines = $this->priceLines($data['items'] ?? [], MenuCatalog::forBranch($branch));
+        $catalog = MenuCatalog::forBranch($branch);
+        $lines = $this->priceLines($data['items'] ?? [], $catalog);
         $subtotal = round(array_sum(array_column($lines, 'line_total')), 2);
         // Only staff (POS) can discount; the caller checks the permission. Never more than the order itself.
         $discount = round(min($subtotal, max(0.0, (float) ($data['discount'] ?? 0))), 2);
@@ -79,6 +80,18 @@ final class OrderService
         if (trim((string) ($data['coupon'] ?? '')) !== '') {
             [$coupon, $couponOff] = app(Coupons::class)->check((string) $data['coupon'], $subtotal - $discount, normalize_phone((string) ($data['customer_phone'] ?? '')), $lines);
             $discount = round($discount + $couponOff, 2);
+        }
+        // Cart goal of the menu ("add X and get Y free"): decided here with the server's prices, never by the client.
+        $goalOff = 0.0;
+        $goalReward = null;
+        $goal = in_array($data['source'] ?? 'qr', CartGoal::SOURCES, true) ? CartGoal::current() : null;
+        if ($goal && ($reward = $goal->rewardFor($subtotal - $discount + $couponOff, $coupon !== null, $catalog))) {
+            $goalOff = round(min($reward['discount'], $subtotal - $discount), 2);
+            $discount = round($discount + $goalOff, 2);
+            $goalReward = $reward['label'];
+            if ($reward['line']) {
+                $lines[] = $reward['line'];
+            }
         }
         // Membership tier of the guest behind the mobile number: its discount comes off what is left.
         [$tier, $memberOff] = app(Membership::class)->discountFor(normalize_phone((string) ($data['customer_phone'] ?? '')), $subtotal - $discount);
@@ -108,7 +121,7 @@ final class OrderService
 
         for ($attempt = 1; ; $attempt++) {
             try {
-                return DB::transaction(function () use ($data, $branch, $table, $by, $lines, $subtotal, $discount, $service, $tax, $type, $phone, $uuid, $zone, $deliveryFee, $coupon, $couponOff, $tier, $memberOff) {
+                return DB::transaction(function () use ($data, $branch, $table, $by, $lines, $subtotal, $discount, $service, $tax, $type, $phone, $uuid, $zone, $deliveryFee, $coupon, $couponOff, $tier, $memberOff, $goalOff, $goalReward) {
                     if ($coupon) {
                         app(Coupons::class)->redeem($coupon);
                     }
@@ -126,6 +139,7 @@ final class OrderService
                         'subtotal' => $subtotal, 'discount' => $discount, 'service' => $service, 'tax' => $tax,
                         'member_discount' => $memberOff, 'member_tier' => $memberOff > 0 ? mb_substr($tier->displayName(), 0, 40) : null,
                         'coupon_id' => $coupon?->id, 'coupon_code' => $coupon?->code, 'coupon_discount' => $couponOff,
+                        'goal_discount' => $goalOff, 'goal_reward' => $goalReward,
                         'delivery_zone_id' => $zone?->id, 'delivery_fee' => $deliveryFee,
                         'delivery_address' => $type === 'delivery' ? ($data['delivery_address'] ?? null) : null,
                         'total' => round($subtotal - $discount + $service + $tax + $deliveryFee, 2), 'created_by' => $by?->id,

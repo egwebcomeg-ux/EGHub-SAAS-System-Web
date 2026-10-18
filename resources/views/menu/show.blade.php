@@ -7,8 +7,11 @@
     $brand = tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name;
     $currency = tr($settings['currency'], $settings['currency_en']);
     $featured = $categories->flatMap->items->where('is_featured', true)->take(8);
-    $theme = \App\Support\MenuThemes::current($settings);
     $layout = \App\Support\MenuThemes::layout($theme);
+    // the order-type chip and sheet: the general link with more than one way to order
+    $waysMenu = ! $table && count($ways) > 1;
+    $wayChips = ['dine' => '🍽 ' . __('In the place'), 'takeaway' => '🛍 ' . __('Takeaway'), 'delivery' => '🛵 ' . __('Delivery')];
+    $logoClass = $logoTile ? 'rounded-2xl bg-white p-1 shadow-lg' : 'drop-shadow-[0_2px_6px_rgba(0,0,0,.35)]';
 @endphp
 
 @push('head')
@@ -19,26 +22,38 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family={{ urlencode($settings['font']) }}:wght@400;600;700;800&display=swap">
 @endif
-@include('menu.partials.theme', ['theme' => $theme])
+@include('menu.partials.theme', ['theme' => $theme, 'season' => $season])
 <style>
     body { font-family: '{{ $settings['font'] }}', 'Cairo', system-ui, sans-serif; }
     .m-qty { display: grid; place-items: center; min-width: 3rem; height: 3rem; border-radius: .9rem; font-size: 1.35rem; font-weight: 900; }
     .m-way-on { background: var(--menu-accent); color: var(--menu-accent-text); border-color: transparent; }
+    /* photo placeholder: the theme accent on a surface-2 tile */
+    .m-ph { background: var(--menu-surface-2); color: var(--menu-accent); box-shadow: inset 0 0 0 1px var(--menu-border); }
+    .m-chip { display: inline-flex; min-height: 2.25rem; align-items: center; gap: .35rem; border-radius: 999px; padding: 0 .85rem;
+        font-size: .85rem; font-weight: 800; background: rgba(255, 255, 255, .14); color: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28); }
+    .m-goal-track { height: .55rem; border-radius: 999px; background: var(--menu-surface-2); box-shadow: inset 0 0 0 1px var(--menu-border); overflow: hidden; }
+    .m-goal-fill { height: 100%; border-radius: inherit; background: var(--menu-accent); transition: width .4s ease; }
 </style>
-@if ($intro !== 'off' || $choice)
+@if ($season)
+    @include('menu.partials.season-style', ['season' => $season])
+@endif
+@if ($intro !== 'off' || $choice || $waysMenu)
     @include('menu.partials.intro-head')
 @endif
 @endpush
 
 @section('body')
 @include('menu.partials.intro')
-<header class="m-secondary relative">
-    @if ($settings['cover'])
-        <img src="/storage/{{ $settings['cover'] }}" alt="" class="h-40 w-full object-cover opacity-90 sm:h-56">
+<header class="m-secondary relative overflow-hidden" data-menu-header>
+    @if ($season && $season->decoration)
+        <div class="m-season-deco" data-season-deco="{{ $season->pattern() }}" aria-hidden="true"></div>
     @endif
-    <div class="mx-auto flex max-w-2xl items-center gap-3 px-4 py-4">
+    @if ($settings['cover'])
+        <img src="/storage/{{ $settings['cover'] }}" alt="" class="relative h-40 w-full object-cover opacity-90 sm:h-56" @if ($season?->banner) data-season-banner @endif>
+    @endif
+    <div class="relative mx-auto flex max-w-2xl items-center gap-3 px-4 py-4">
         @if ($settings['logo'])
-            <img src="/storage/{{ $settings['logo'] }}" alt="{{ $brand }}" class="size-14 shrink-0 rounded-2xl bg-white object-contain p-1 {{ $settings['cover'] ? '-mt-10 shadow-lg' : '' }}">
+            <img src="/storage/{{ $settings['logo'] }}" alt="{{ $brand }}" class="h-14 max-h-16 w-auto min-w-14 max-w-36 shrink-0 object-contain sm:h-16 {{ $logoClass }} {{ $settings['cover'] ? '-mt-10' : '' }}" data-logo data-logo-tile="{{ $logoTile ? 'white' : 'none' }}">
         @endif
         <div class="min-w-0 flex-1">
             <h1 class="truncate text-xl font-black">{{ $brand }}</h1>
@@ -50,23 +65,32 @@
             <a href="{{ route('menu.reserve', $branches->count() > 1 ? ['branch' => $branch->id] : []) }}" class="m-primary inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-sm font-bold shadow" data-reserve-link>{{ __('Book a table') }}</a>
         @endif
     </div>
+    @if ($table || $waysMenu || $branchPicker)
+        {{-- how the guest orders and from which branch: a scanned table fixes both --}}
+        <div class="relative mx-auto flex max-w-2xl flex-wrap items-center gap-2 px-4 pb-3" data-header-chips>
+            @if ($table)
+                <span class="m-primary inline-flex min-h-9 items-center rounded-full px-3 text-sm font-bold" data-table-chip>🍽 {{ __('Table :name', ['name' => $table->name]) }}@if ($branches->count() > 1) · {{ tr($branch->name, $branch->name_en) }}@endif</span>
+            @else
+                @if ($waysMenu)
+                    <button type="button" class="m-chip" data-way-chip aria-label="{{ __('How will you order?') }}"><span data-way-chip-label>{{ $wayChips[$ways[0]] }}</span> <span aria-hidden="true">▾</span></button>
+                @endif
+                @if ($branchPicker)
+                    <button type="button" class="m-chip" data-branch-open>📍 <span class="max-w-40 truncate">{{ tr($branch->name, $branch->name_en) }}</span> <span aria-hidden="true">▾</span></button>
+                @endif
+            @endif
+        </div>
+    @endif
     @if ($openNow !== null)
-        <div class="mx-auto max-w-2xl px-4 pb-3">
+        <div class="relative mx-auto max-w-2xl px-4 pb-3">
             <span @class(['rounded-full px-3 py-1 text-xs font-bold', 'bg-emerald-500/90 text-white' => $openNow, 'bg-white/20 text-white/90' => ! $openNow]) data-open-now>{{ $openNow ? __('Open now') : __('Closed now') }}@if ($branch->working_hours) · <span dir="auto">{{ $branch->working_hours }}</span>@endif</span>
         </div>
     @endif
-    @if ($table)
-        <div class="mx-auto max-w-2xl px-4 pb-4">
-            <span class="m-primary rounded-full px-3 py-1 text-sm font-bold">{{ __('Table :name', ['name' => $table->name]) }}@if ($branches->count() > 1) · {{ tr($branch->name, $branch->name_en) }}@endif</span>
-        </div>
-    @elseif ($branches->count() > 1)
-        <div class="mx-auto flex max-w-2xl gap-2 overflow-x-auto px-4 pb-4">
-            @foreach ($branches as $b)
-                <a href="?branch={{ $b->slug }}" @class(['shrink-0 rounded-full px-3 py-1 text-sm font-semibold', 'm-primary' => $b->id === $branch->id, 'border border-white/30' => $b->id !== $branch->id])>{{ tr($b->name, $b->name_en) }}</a>
-            @endforeach
-        </div>
-    @endif
 </header>
+@if ($season && $season->greetingText() !== '')
+    <div class="m-primary" data-season-strip>
+        <div class="mx-auto max-w-2xl px-4 py-2 text-center text-sm font-extrabold tracking-wide">{{ $season->icon() }} {{ $season->greetingText() }}</div>
+    </div>
+@endif
 
 @if ($busy)
     <div class="mx-auto max-w-2xl px-4 pt-4" data-busy-notice>
@@ -115,6 +139,12 @@
     </section>
 @endif
 
+@if ($goal && ($canOrder || $hall['mode'] === 'list'))
+    <div class="mx-auto max-w-2xl px-4 pt-4" data-goal-strip>
+        <div class="m-surface-2 m-border flex items-center gap-2 rounded-2xl border px-3 py-2 text-sm font-bold"><span aria-hidden="true">🎁</span> <span>{{ $goal['label'] }}</span></div>
+    </div>
+@endif
+
 @if ($categories->isNotEmpty())
     <nav class="sticky top-0 z-20 border-b m-border bg-white/95 backdrop-blur" data-cat-nav>
         <div class="mx-auto flex max-w-2xl gap-2 overflow-x-auto px-4 py-3">
@@ -143,7 +173,7 @@
             <div class="flex gap-3 overflow-x-auto pb-2">
                 @foreach ($featured as $item)
                     <button type="button" data-item="{{ $item->id }}" class="w-36 shrink-0 overflow-hidden rounded-2xl border m-border m-surface text-start shadow-sm">
-                        @if ($item->image)<img src="/storage/{{ $item->image }}" alt="" loading="lazy" class="aspect-square w-full object-cover">@endif
+                        @include('menu.items.photo', ['class' => 'aspect-square w-full', 'iconClass' => 'size-[38%]', 'phIcon' => $settings['business_type'] === 'cafe' ? 'cup' : 'plate'])
                         <div class="p-2">
                             <div class="line-clamp-2 text-sm font-bold">{{ $item->displayName() }}</div>
                             <div class="m-primary-text text-sm font-extrabold">{{ money($item->price) }} {{ $currency }}</div>
@@ -159,8 +189,11 @@
             <h2 class="mb-1 text-xl font-extrabold" style="color: var(--menu-secondary)">{{ tx($c, 'name') }}</h2>
             @if ($d = tx($c, 'description'))<p class="mb-3 text-sm m-muted">{{ $d }}</p>@endif
             <div @class(['mt-3', 'grid grid-cols-2 gap-3' => $layout === 'grid', 'divide-y m-divide' => $layout === 'minimal', 'space-y-3' => in_array($layout, ['classic', 'cafe'], true)])>
+                @php
+                    $phIcon = \App\Support\ItemPlaceholder::icon($c->name . ' ' . $c->name_en, $settings['business_type']);
+                @endphp
                 @foreach ($c->items as $item)
-                    @include('menu.items.' . $layout, ['item' => $item])
+                    @include('menu.items.' . $layout, ['item' => $item, 'phIcon' => $phIcon])
                 @endforeach
             </div>
         </section>
@@ -213,7 +246,12 @@
 {{-- Item sheet --}}
 <dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/50 sm:m-auto sm:max-w-lg" data-item-sheet>
     <form method="dialog" class="m-surface max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl" data-item-form>
-        <img alt="" class="hidden aspect-video w-full object-cover" data-sheet-image>
+        <div class="relative" data-sheet-media>
+            <img alt="" class="hidden aspect-video w-full object-cover" data-sheet-image>
+            {{-- item video (uploads: muted loop inline, poster = photo; links: embed loaded on tap) --}}
+            <div class="hidden aspect-video w-full bg-black" data-sheet-video></div>
+            <button type="button" class="m-primary absolute bottom-3 start-3 hidden min-h-10 items-center gap-2 rounded-full px-4 text-sm font-extrabold shadow-lg" data-sheet-video-play>▶ {{ __('Watch the video') }}</button>
+        </div>
         <div class="p-5">
             <div class="flex items-start justify-between gap-3">
                 <h3 class="text-xl font-extrabold" data-sheet-name></h3>
@@ -304,6 +342,13 @@
             @if ($hall['scanHint'])
                 <p @class(['m-muted mb-3 text-xs', 'hidden' => $data['mode'] !== 'list']) data-scan-hint>{{ __('Show this list to the waiter. To order from your phone, scan the QR code on your table.') }}</p>
             @endif
+        @endif
+        @if ($goal)
+            {{-- cart goal progress; the reward itself is applied by the server when the order is placed --}}
+            <div class="m-surface-2 m-border mb-3 hidden rounded-2xl border p-3" data-goal-box>
+                <p class="text-sm font-extrabold" data-goal-text></p>
+                <div class="m-goal-track mt-2" data-goal-track><div class="m-goal-fill" style="width: 0%" data-goal-fill></div></div>
+            </div>
         @endif
         <ul class="m-divide divide-y" data-cart-lines></ul>
         <div class="m-border mt-3 space-y-1 border-t pt-3 text-sm" data-cart-summary></div>
@@ -408,6 +453,106 @@
     </dialog>
 @endif
 
+@if ($branchPicker)
+    {{-- branch switcher: nearest branch (location asked on tap only), current / last visit, open now, map --}}
+    <dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/50 sm:m-auto sm:max-w-lg" data-branch-sheet aria-labelledby="branch-sheet-title">
+        <form method="dialog" class="m-surface max-h-[90vh] overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl">
+            <div class="mb-3 flex items-center justify-between">
+                <h3 id="branch-sheet-title" class="text-xl font-extrabold">📍 {{ __('Choose the branch') }}</h3>
+                <button value="cancel" class="m-muted text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
+            </div>
+            <p class="m-muted -mt-1 mb-3 text-sm">{{ __('Prices and what is available follow the branch you choose.') }}</p>
+            @if ($branches->contains(fn ($b) => $b->lat !== null))
+                <button type="button" class="m-primary min-h-12 w-full rounded-2xl font-extrabold" data-branch-near>🧭 {{ __('Nearest branch to me') }}</button>
+            @endif
+            <p class="m-muted mt-2 hidden text-center text-xs" data-branch-note></p>
+            <div class="mt-3 space-y-2" data-branch-list>
+                @foreach ($branches as $b)
+                    <div class="m-border rounded-2xl border p-3" data-branch-row="{{ $b->id }}">
+                        <a href="?branch={{ $b->slug }}" class="block font-extrabold" data-branch-pick="{{ $b->slug }}">{{ tr($b->name, $b->name_en) }}</a>
+                        @if ($b->address)<div class="m-muted text-sm">{{ $b->address }}</div>@endif
+                    </div>
+                @endforeach
+            </div>
+        </form>
+    </dialog>
+@endif
+
+@if ($online && $online['delivery'])
+    {{-- delivery step: the area first (main area, then its street / sub-area), with the fee, minimum and time --}}
+    @php
+        $zoneRoots = collect($online['zones'])->whereNull('parent')->values();
+        $zoneKids = collect($online['zones'])->whereNotNull('parent')->groupBy('parent');
+        // sub-areas whose main area is not offered on its own still get listed
+        $orphans = collect($online['zones'])->whereNotNull('parent')->reject(fn ($z) => $zoneRoots->contains('id', $z['parent']));
+        $zoneMap = ($settings['delivery_zone_mode'] ?? 'manual') === 'map' && collect($online['zones'])->contains(fn ($z) => $z['polygon'] !== null);
+        $zoneFacts = function (array $z) use ($currency) {
+            $facts = [__('Delivery :fee', ['fee' => money($z['fee']) . ' ' . $currency])];
+            if ($z['min'] > 0) {
+                $facts[] = __('Minimum :amount', ['amount' => money($z['min']) . ' ' . $currency]);
+            }
+            if ($z['minutes']) {
+                $facts[] = __('About :n min', ['n' => $z['minutes']]);
+            }
+
+            return implode(' · ', $facts);
+        };
+    @endphp
+    <dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/50 sm:m-auto sm:max-w-lg" data-zone-sheet aria-labelledby="zone-sheet-title">
+        <form method="dialog" class="m-surface max-h-[90vh] overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl">
+            <div class="mb-1 flex items-center justify-between">
+                <h3 id="zone-sheet-title" class="text-xl font-extrabold">🛵 {{ __('Where should we deliver?') }}</h3>
+                <button value="cancel" class="m-muted text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
+            </div>
+            <p class="m-muted mb-3 text-sm">{{ __('Choose your area to see the delivery fee, the minimum order and the time.') }}</p>
+            @if ($zoneMap)
+                <button type="button" class="m-primary mb-3 min-h-12 w-full rounded-2xl font-extrabold" data-zone-detect>📍 {{ __('Detect my area') }}</button>
+            @endif
+            <div class="mb-3 hidden rounded-2xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-200" data-zone-outside>
+                <b class="block">{{ __('Sorry, we do not deliver to your location yet.') }}</b>
+                <span>{{ __('Choose the nearest area from the list, or ask us on WhatsApp.') }}</span>
+                @if ($data['whatsapp'])
+                    <a href="https://wa.me/{{ $data['whatsapp'] }}" target="_blank" rel="noopener" class="mt-2 flex min-h-11 items-center justify-center rounded-xl bg-emerald-600 font-bold text-white" data-zone-whatsapp>💬 {{ __('Ask on WhatsApp') }}</a>
+                @endif
+            </div>
+            <div data-zone-step="root">
+                <div class="space-y-2">
+                    @foreach ($zoneRoots->concat($orphans) as $z)
+                        @php
+                            $kids = $zoneKids->get($z['id'], collect());
+                        @endphp
+                        <button type="button" class="m-border flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl border p-3 text-start" @if ($kids->isNotEmpty()) data-zone-open="{{ $z['id'] }}" @else data-zone-pick="{{ $z['id'] }}" @endif>
+                            <span class="min-w-0">
+                                <span class="block font-extrabold">{{ $z['name'] }}</span>
+                                <span class="m-muted block text-xs">{{ $kids->isNotEmpty() ? __(':n streets / areas', ['n' => $kids->count()]) : $zoneFacts($z) }}</span>
+                            </span>
+                            <span class="m-primary-text shrink-0 text-lg" aria-hidden="true">‹</span>
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+            @foreach ($zoneKids as $parentId => $kids)
+                <div class="hidden" data-zone-step="{{ $parentId }}">
+                    <button type="button" class="m-primary-text mb-2 text-sm font-bold" data-zone-back>→ {{ __('All areas') }}</button>
+                    @if ($kids->count() > 6)
+                        <input type="search" class="field mb-2" placeholder="{{ __('Search for your street') }}" data-zone-search>
+                    @endif
+                    <div class="space-y-2">
+                        @foreach ($kids as $z)
+                            <button type="button" class="m-border flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl border p-3 text-start" data-zone-pick="{{ $z['id'] }}" data-zone-text="{{ mb_strtolower($z['name']) }}">
+                                <span class="min-w-0">
+                                    <span class="block font-extrabold">{{ \Illuminate\Support\Str::afterLast($z['name'], '› ') }}</span>
+                                    <span class="m-muted block text-xs">{{ $zoneFacts($z) }}</span>
+                                </span>
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
+        </form>
+    </dialog>
+@endif
+
 <script type="application/json" id="menu-data">{!! json_encode($data, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>
 @php
     $i18n = [
@@ -428,6 +573,16 @@
         'whoHint' => __('Tap the people under each item. A shared item is divided between the people you pick.'),
         'unclaimed' => __(':n item(s) not given to anyone yet are shared by everyone.', ['n' => '__N__']),
         'eachPays' => __('Each one pays'), 'food' => __('Food'), 'billTotal' => __('Bill total'),
+        'goalItemLeft' => __('Add :left more and get :reward free'), 'goalOffLeft' => __('Add :left more and get :reward off'),
+        'goalItemDone' => __('Congrats! Your free :reward was added'), 'goalOffDone' => __('Congrats! :reward off your order'),
+        'goalListDone' => __('You reached the goal! Tell the waiter about your :reward.'),
+        'goalCoupon' => __('The gift does not combine with a coupon code.'), 'goalFree' => __('Free'),
+        'wayChips' => $wayChips,
+        'current' => __('Current'), 'nearest' => __('Nearest'), 'lastVisit' => __('Last visit'),
+        // open / closed labels of the branch rows only when the switcher is there (the header shows the state otherwise)
+        'openNow' => $branchPicker ? __('Open now') : '', 'closedNow' => $branchPicker ? __('Closed now') : '', 'onMap' => __('Map'), 'km' => __(':n km', ['n' => '__N__']),
+        'locating' => __('Finding your location…'), 'noLocation' => __('We could not get your location. Choose the branch from the list.'),
+        'choose' => __('Choose'),
         'splitNote' => __('An estimate to help you split. The restaurant\'s receipt is the official bill; service and tax follow what each one ate.'),
     ];
 @endphp

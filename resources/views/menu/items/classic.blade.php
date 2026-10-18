@@ -7,7 +7,5 @@
         @if ($d = tx($item, 'description'))<div class="m-muted mt-0.5 line-clamp-2 text-sm">{{ $d }}</div>@endif
         <div class="mt-auto flex flex-wrap items-center gap-2 pt-2">@include('menu.items.price')</div>
     </div>
-    @if ($item->image)
-        <img src="/storage/{{ $item->image }}" alt="" loading="lazy" class="size-24 shrink-0 rounded-xl object-cover">
-    @endif
+    @include('menu.items.photo', ['class' => 'size-24 shrink-0 rounded-xl'])
 </button>

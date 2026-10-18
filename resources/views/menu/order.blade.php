@@ -61,6 +61,9 @@
             @endforeach
         </ul>
         <div class="mt-3 space-y-1 border-t m-border pt-3 text-sm">
+            @if ($order->goal_reward)
+                <div class="flex justify-between gap-3 font-semibold m-primary-text" data-goal-reward><span>🎁 {{ $order->goal_reward }}</span>@if ($order->goal_discount > 0)<span>−{{ money($order->goal_discount) }}</span>@endif</div>
+            @endif
             @if ($order->service > 0)<div class="flex justify-between"><span>{{ __('Service') }}</span><span>{{ money($order->service) }}</span></div>@endif
             @if ($order->tax > 0)<div class="flex justify-between"><span>{{ __('Tax') }}</span><span>{{ money($order->tax) }}</span></div>@endif
             @if ($order->delivery_fee > 0)<div class="flex justify-between"><span>{{ __('Delivery fee') }}</span><span>{{ money($order->delivery_fee) }}</span></div>@endif

@@ -16,7 +16,7 @@
         @endif
         <div class="m-intro-stage">
             @if ($settings['logo'])
-                <img src="/storage/{{ $settings['logo'] }}" alt="" class="m-intro-logo" fetchpriority="low">
+                <img src="/storage/{{ $settings['logo'] }}" alt="" @class(['m-intro-logo', 'm-intro-logo--bare' => ! ($logoTile ?? true)]) fetchpriority="low">
             @else
                 <span class="m-intro-name">{{ $brand }}</span>
             @endif
@@ -27,11 +27,13 @@
         <span class="m-intro-skip">{{ __('Tap to skip') }}</span>
     </div>
 @endif
-@if ($choice)
+@if ($choice || ($waysMenu ?? false))
+    {{-- opens by itself once (setting order_type_prompt) and again from the order-type chip in the header --}}
     <div class="m-choice" data-order-choice role="dialog" aria-modal="true" aria-labelledby="order-choice-title">
-        <div class="m-choice-card m-surface">
+        <div class="m-choice-card m-surface relative">
+            <button type="button" class="m-choice-close m-muted absolute end-4 top-3 text-2xl leading-none" data-choice-close aria-label="{{ __('Close') }}">×</button>
             @if ($settings['logo'])
-                <img src="/storage/{{ $settings['logo'] }}" alt="{{ $brand }}" class="size-16 rounded-2xl bg-white object-contain p-1 shadow">
+                <img src="/storage/{{ $settings['logo'] }}" alt="{{ $brand }}" @class(['h-20 w-auto max-w-40 object-contain', 'rounded-2xl bg-white p-1 shadow' => $logoTile ?? true])>
             @else
                 <span class="text-xl font-black">{{ $brand }}</span>
             @endif
