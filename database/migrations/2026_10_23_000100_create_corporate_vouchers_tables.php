@@ -83,7 +83,7 @@ return new class extends Migration
             $t->string('exception_reason', 200)->nullable();
             $t->timestamp('refunded_at')->nullable();          // the order was cancelled: the value went back
             $t->timestamp('created_at')->useCurrent();
-            $t->index(['tenant_id', 'corporate_contract_id']);
+            $t->index(['tenant_id', 'corporate_contract_id'], 'cv_redemptions_tenant_contract_idx'); // named: the default is longer than MySQL's 64 characters
             $t->index('order_id');
         });
 
