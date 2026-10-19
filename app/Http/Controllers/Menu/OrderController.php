@@ -13,6 +13,7 @@ use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
+use App\Support\OrderTracking;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -125,15 +126,20 @@ class OrderController extends Controller
 
     public function show(string $token): View
     {
-        $order = Order::query()->where('tracking_token', $token)->with(['items', 'table', 'branch'])->firstOrFail();
+        $order = Order::query()->where('tracking_token', $token)->with(['items', 'table', 'branch', 'deliveryZone.parent'])->firstOrFail();
+        $settings = Settings::all();
 
-        return view('menu.order', ['order' => $order, 'settings' => Settings::all()]);
+        return view('menu.order', ['order' => $order, 'settings' => $settings, 'tracking' => (new OrderTracking($order, $settings))->toArray()]);
     }
 
+    /**
+     * Polled by the tracking page while the order is open. Keeps status and label, and adds the tracking shape of
+     * App\Support\OrderTracking (steps, parts, headline, eta, final) so the page redraws without reloading.
+     */
     public function status(string $token): JsonResponse
     {
-        $order = Order::query()->where('tracking_token', $token)->firstOrFail();
+        $order = Order::query()->where('tracking_token', $token)->with(['items', 'deliveryZone.parent'])->firstOrFail();
 
-        return response()->json(['status' => $order->status, 'label' => $order->statusLabel()]);
+        return response()->json((new OrderTracking($order, Settings::all()))->toArray());
     }
 }
