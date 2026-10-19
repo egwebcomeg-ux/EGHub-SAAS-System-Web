@@ -11,10 +11,12 @@ use App\Models\DeliveryZone;
 use App\Models\DiningTable;
 use App\Models\MenuItem;
 use App\Models\MenuVisit;
+use App\Models\Order;
 use App\Models\Season;
 use App\Services\Entitlements;
 use App\Services\ItemVideo;
 use App\Services\Loyalty\LoyaltyService;
+use App\Services\Menu\BestSellers;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Orders\BusyMode;
 use App\Services\Orders\CartGoal;
@@ -23,6 +25,7 @@ use App\Services\Settings;
 use App\Services\Wallet\WalletService;
 use App\Support\DineIn;
 use App\Support\ItemBadges;
+use App\Support\ItemPlaceholder;
 use App\Support\MenuIntro;
 use App\Support\MenuLayouts;
 use App\Support\MenuThemes;
@@ -119,6 +122,9 @@ class MenuController extends Controller
         $cartMode = $tableOrder ? 'table' : ($online ? 'online' : self::hallCart($hall['mode']));
         // the top of the menu: banner slideshow and ticker, only one of them moves (App\Support\MenuTicker)
         $bannerAutoplay = MenuTicker::bannerAutoplay($banners->count(), $settings);
+        // "الأكثر طلباً" from the branch's real sales (empty: the featured row stays), the round or chip category row
+        $bestSellers = $settings['menu_best_sellers'] !== '0' ? BestSellers::forMenu($branch, $available) : collect();
+        $categoryIcons = $categories->mapWithKeys(fn (Category $c) => [$c->id => ItemPlaceholder::forCategory($c, $settings['business_type'])]);
         $ticker = MenuTicker::lines($catalog->runningOffers(), $goal && ($canOrder || $hall['mode'] === 'list') ? $goal : null,
             $season, $settings, $available, $shownCategories, $currency);
         $response = response()->view('menu.show', [
@@ -126,6 +132,10 @@ class MenuController extends Controller
             'display' => $display,
             'opened' => $opened,
             'badgeChips' => ItemBadges::chips($settings, $available),
+            'bestSellers' => $bestSellers,
+            'categoryStyle' => $settings['menu_category_style'] === 'circles' ? 'circles' : 'chips',
+            'categoryIcons' => $categoryIcons,
+            'greeting' => self::greeting(),
             'layouts' => $categories->mapWithKeys(fn (Category $c) => [$c->id => MenuLayouts::forCategory($c, $theme, $settings)]),
             'bannerAutoplay' => $bannerAutoplay,
             'ticker' => $ticker,
@@ -154,7 +164,6 @@ class MenuController extends Controller
             'offers' => $catalog->runningOffers(),
             'popup' => $popup,
             'popupLink' => $popupLink,
-            'popupLink' => $popupLink,
             'banners' => $banners,
             'shownCategories' => $shownCategories,
             'available' => $available,
@@ -179,6 +188,13 @@ class MenuController extends Controller
                 ] : null,
                 'tenant' => tenant()->getTenantKey(),
                 'goal' => $goal,
+                // the item page's "الأكثر طلباً" badge, the placeholder icons (cart lines, favourites, item page)
+                'best' => $bestSellers->pluck('id')->values(),
+                'placeholders' => $settings['item_placeholder'] !== '0',
+                'phIcons' => collect(ItemPlaceholder::ICONS)->mapWithKeys(fn (string $icon) => [$icon => ItemPlaceholder::svg($icon, 'size-[50%]')]),
+                // ?reorder={tracking token} from the order page: that order's lines that can still be ordered
+                'reorder' => $canOrder || $hall['mode'] === 'list' ? self::reorder($request, $available) : null,
+                'phone' => (string) ($branch->phone ?: $settings['phone']),
                 // professional display: an item opens as a full page with its own address; /item/{id} opens it first
                 'display' => $display,
                 'openItem' => $opened?->id,
@@ -211,6 +227,7 @@ class MenuController extends Controller
                 'tax' => (float) $settings['tax_percent'],
                 'items' => $categories->flatMap(fn (Category $c) => $c->items)->mapWithKeys(fn (MenuItem $i) => [$i->id => [
                     'id' => $i->id, 'name' => $i->displayName(), 'price' => (float) $i->price, 'soldOut' => $i->is_sold_out,
+                    'icon' => $categoryIcons[$i->category_id] ?? 'plate',
                     'offerFrom' => $i->getAttribute('offer_from'), 'offerPercent' => $i->getAttribute('offer_percent'),
                     'pairings' => $upsell ? $i->pairings->pluck('id')->filter(fn ($id) => $available->has($id))->values() : [],
                     'combo' => $upsell && $i->comboParts->isNotEmpty() ? [
@@ -257,6 +274,85 @@ class MenuController extends Controller
         $embed = ItemVideo::embed($item->video_url);
 
         return $embed ? ['type' => 'embed', 'src' => $embed['embed'], 'provider' => $embed['provider']] : null;
+    }
+
+    /** The line over the search bar, by the hour of the restaurant: morning, day or evening. */
+    private static function greeting(): string
+    {
+        $hour = now()->hour;
+
+        return match (true) {
+            $hour >= 5 && $hour < 12 => __('Good morning ☀️'),
+            $hour >= 12 && $hour < 17 => __('Welcome 👋'),
+            default => __('Good evening 🌙'),
+        };
+    }
+
+    /**
+     * "اطلب تاني" from the order page (?reorder={tracking token}): the lines of that order of THIS restaurant (the
+     * tenant scope of Order) that can be ordered again now, with today's prices (the cart reads them from the menu).
+     * A line is skipped when its item left the menu or is sold out, or a chosen option is gone or a required choice
+     * would be missing; gift lines of a cart goal are left out.
+     *
+     * @param  Collection<int, MenuItem>  $available
+     * @return array{lines: list<array{item_id:int, option_ids:list<int>, qty:int, notes:string}>, skipped:int}|null
+     */
+    public static function reorder(Request $request, Collection $available): ?array
+    {
+        $token = $request->query('reorder');
+        if (! is_string($token) || $token === '' || strlen($token) > 80) {
+            return null;
+        }
+        $order = Order::query()->where('tracking_token', $token)->with('items')->first();
+        if ($order === null) {
+            return null;
+        }
+        $lines = [];
+        $skipped = 0;
+        foreach ($order->items as $line) {
+            if ((float) $line->line_total <= 0 && (float) $line->unit_price <= 0) {
+                continue;
+            }
+            $item = $line->menu_item_id ? $available->get($line->menu_item_id) : null;
+            $optionIds = $item ? self::reorderOptions($item, (array) ($line->options ?? [])) : null;
+            if ($item === null || $item->is_sold_out || $optionIds === null) {
+                $skipped++;
+
+                continue;
+            }
+            $lines[] = ['item_id' => $item->id, 'option_ids' => $optionIds, 'qty' => min(30, max(1, (int) $line->quantity)), 'notes' => (string) $line->notes];
+        }
+
+        return ['lines' => $lines, 'skipped' => $skipped];
+    }
+
+    /**
+     * The option ids of an old order line that still exist on the item (null when one is gone or sold out, or a
+     * required choice would be missing).
+     *
+     * @param  list<array<string, mixed>>  $snapshot
+     * @return list<int>|null
+     */
+    private static function reorderOptions(MenuItem $item, array $snapshot): ?array
+    {
+        $options = $item->optionGroups->flatMap(fn ($group) => $group->options)->reject(fn ($option) => $option->is_sold_out)->keyBy('id');
+        $ids = [];
+        foreach ($snapshot as $chosen) {
+            if (! isset($chosen['id'])) {
+                continue; // the parts of a combo, written for the kitchen
+            }
+            if (! $options->has((int) $chosen['id'])) {
+                return null;
+            }
+            $ids[] = (int) $chosen['id'];
+        }
+        foreach ($item->optionGroups as $group) {
+            if ($group->is_required && ! $group->options->contains(fn ($option) => in_array($option->id, $ids, true))) {
+                return null;
+            }
+        }
+
+        return $ids;
     }
 
     /** QR of a table: remember the table for this restaurant, then show the menu on a clean URL. */

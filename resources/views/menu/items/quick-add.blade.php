@@ -8,6 +8,7 @@
         'top' => 'top-2 end-2 size-9',
         'photo' => 'top-[4.25rem] end-1.5 size-9',
         'photo-sm' => 'top-[2.85rem] end-1.5 size-7',
+        'bold' => 'bottom-3 start-3 size-11',
         default => 'top-1/2 end-1 size-9 -translate-y-1/2',
     };
 @endphp

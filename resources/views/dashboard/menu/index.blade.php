@@ -146,6 +146,15 @@
                                     @endforeach
                                 </select>
                             </label>
+                            <label class="block text-sm">
+                                <span class="mb-1 block text-xs font-semibold text-navy-500">{{ __('Icon in the round category row (when it has no photo)') }}</span>
+                                <select class="field min-h-9" name="icon" data-category-icon>
+                                    <option value="">{{ __('From the category name') }} ({{ \App\Support\ItemPlaceholder::label(\App\Support\ItemPlaceholder::icon($category->name . ' ' . $category->name_en, \App\Services\Settings::get('business_type'))) }})</option>
+                                    @foreach (\App\Support\ItemPlaceholder::ICONS as $iconKey)
+                                        <option value="{{ $iconKey }}" @selected($category->icon === $iconKey)>{{ \App\Support\ItemPlaceholder::label($iconKey) }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
                             <fieldset class="space-y-2 rounded-xl bg-navy-50 p-2 text-sm">
                                 <legend class="px-1 text-xs font-semibold text-navy-500">🕒 {{ __('Shown only during (optional)') }}</legend>
                                 <div class="grid grid-cols-2 gap-2">

@@ -112,6 +112,7 @@ class SettingsController extends Controller
             'logo_background' => ['nullable', Rule::in(['auto', 'white', 'none'])],
             'menu_layout' => ['nullable', Rule::in(MenuLayouts::CHOICES)],
             'menu_display' => ['nullable', Rule::in(['simple', 'pro'])],
+            'menu_category_style' => ['nullable', Rule::in(['chips', 'circles'])],
             'menu_badge_filters' => 'nullable|array|max:'.ItemBadges::MAX_FILTERS,
             'menu_badge_filters.*' => [Rule::in(array_keys(MenuItem::TAGS))],
             'meta_pixel_id' => ['nullable', 'string', TrackingPixels::RULES['meta_pixel_id']],
@@ -171,6 +172,11 @@ class SettingsController extends Controller
         }
         if ($request->boolean('look_sent')) {
             $values['item_placeholder'] = $request->boolean('item_placeholder') ? '1' : '0';
+            $values['menu_best_sellers'] = $request->boolean('menu_best_sellers') ? '1' : '0';
+        }
+        // the category row (chips or circles): not sent = keep it
+        if (($values['menu_category_style'] ?? '') === '') {
+            unset($values['menu_category_style']);
         }
         if (Entitlements::current()->allows('online_ordering')) {
             $values['online_takeaway'] = $request->boolean('online_takeaway') ? '1' : '0';

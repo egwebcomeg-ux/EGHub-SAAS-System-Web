@@ -8,6 +8,13 @@
         </div>
     @elseif ($layout === 'cards')
         <div class="rounded bg-white"><div class="h-8 rounded-t bg-brand-200"></div><div class="m-1 flex justify-between"><div class="h-1 w-10 rounded bg-navy-500"></div><div class="h-1 w-4 rounded bg-brand-500"></div></div></div>
+    @elseif ($layout === 'bold')
+        @for ($i = 0; $i < 2; $i++)
+            <div class="mb-1 flex items-center gap-1 rounded-md bg-white p-1">
+                <div class="flex-1 space-y-0.5"><div class="h-1 w-8 rounded bg-navy-500"></div><div class="flex items-center gap-0.5"><div class="size-2 rounded-full bg-brand-500"></div><div class="h-2 w-5 rounded bg-brand-500"></div></div></div>
+                <div class="size-5 rounded bg-brand-200"></div>
+            </div>
+        @endfor
     @elseif ($layout === 'text')
         @for ($i = 0; $i < 4; $i++)<div class="mb-1.5 flex items-end gap-1"><div class="h-1 w-9 rounded bg-navy-500"></div><div class="flex-1 border-b border-dotted border-navy-300"></div><div class="h-1 w-3 rounded bg-brand-500"></div></div>@endfor
     @elseif ($layout === 'list')

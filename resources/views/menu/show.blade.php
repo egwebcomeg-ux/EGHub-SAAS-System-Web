@@ -72,8 +72,57 @@
         border-radius: 999px; padding: .55rem 1rem; font-size: .85rem; font-weight: 700; background: var(--menu-text); color: var(--menu-bg);
         box-shadow: 0 6px 20px rgba(0, 0, 0, .25); opacity: 0; transform: translateY(.5rem); pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
     .m-toast.is-on { opacity: 1; transform: none; }
+    /* the big search bar on top (16px text so phones do not zoom in) */
+    .m-search { display: flex; align-items: center; gap: .6rem; min-height: 3.25rem; border-radius: 999px; padding-inline: 1.1rem;
+        background: var(--menu-surface); color: var(--menu-text); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--menu-accent) 45%, var(--menu-border)), 0 4px 14px rgba(0, 0, 0, .06); }
+    .m-search:focus-within { box-shadow: 0 0 0 2.5px var(--menu-accent), 0 4px 14px rgba(0, 0, 0, .08); }
+    .m-search input { flex: 1; min-width: 0; min-height: 3rem; background: transparent; border: 0; outline: 0; font-size: 1rem; color: inherit; }
+    .m-search input::placeholder { color: var(--menu-muted); opacity: 1; }
+    .m-search svg { color: var(--menu-accent); }
+    /* category row as circles (setting menu_category_style = circles): a photo or icon, the active one ringed */
+    [data-cat-nav] a.m-cat-circle { display: flex; flex-direction: column; align-items: center; gap: .3rem; width: 4.75rem; padding: .15rem 0; background: transparent !important; border: 0 !important; color: var(--menu-text); }
+    [data-cat-nav] a.m-cat-circle.hidden { display: none; }
+    .m-cat-ring { position: relative; display: grid; place-items: center; width: 3.75rem; height: 3.75rem; border-radius: 999px; overflow: hidden;
+        background: var(--menu-surface-2); color: var(--menu-accent); box-shadow: inset 0 0 0 1px var(--menu-border); transition: box-shadow .2s ease; }
+    .m-cat-ring img { width: 100%; height: 100%; object-fit: cover; }
+    .m-cat-circle .m-cat-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .75rem; font-weight: 700; }
+    .m-cat-circle[aria-current="true"] .m-cat-ring { box-shadow: 0 0 0 3px var(--menu-accent); }
+    .m-cat-circle[aria-current="true"] .m-cat-name { color: var(--menu-accent); }
+    /* how many items of a category match the search, on its chip or circle */
+    .m-cat-count { display: none; min-width: 1.25rem; height: 1.25rem; border-radius: 999px; padding: 0 .3rem; font-size: .7rem; font-weight: 800; line-height: 1.25rem; text-align: center;
+        background: var(--menu-accent); color: var(--menu-accent-text); }
+    [data-searching] .m-cat-count { display: inline-block; }
+    .m-cat-circle .m-cat-count { position: absolute; top: 0; inset-inline-end: .35rem; }
+    [data-searching] [data-cat-link][data-matches="0"] { opacity: .45; }
+    /* bold cards: the price in an accent pill, room for the round "+" next to it */
+    .m-bold-price { display: inline-flex; align-items: center; min-height: 2.25rem; border-radius: .9rem; padding: 0 .85rem; font-weight: 900;
+        background: var(--menu-accent); color: var(--menu-accent-text); }
+    .m-bold-room { padding-inline-start: 3.4rem; }
+    .m-quick-off .m-bold-room { padding-inline-start: 0; }
+    /* the heart of favourites (this phone only) */
+    .m-fav { background: color-mix(in srgb, var(--menu-surface) 88%, transparent); color: var(--menu-muted); box-shadow: 0 1px 4px rgba(0, 0, 0, .18); }
+    .m-fav::before { content: ''; position: absolute; inset: -6px; }
+    .m-fav[aria-pressed="true"] { color: var(--menu-accent); }
+    .m-fav[aria-pressed="true"] svg, [data-sheet-fav][aria-pressed="true"] svg { fill: currentColor; }
+    /* a banner linked to an item on a real offer: old price struck, new price, "order now" */
+    .m-offer-cta { display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; border-radius: 999px; padding: 0 1.1rem; font-weight: 800;
+        background: var(--menu-accent); color: var(--menu-accent-text); box-shadow: 0 4px 12px rgba(0, 0, 0, .25); }
+    /* professional item page: a hero in the accent with the photo in a big circle */
+    .m-hero { background: var(--menu-accent); color: var(--menu-accent-text); border-end-start-radius: 2.5rem; border-end-end-radius: 2.5rem; }
+    .m-hero-circle { display: grid; place-items: center; width: min(15rem, 62vw); aspect-ratio: 1; border-radius: 999px; overflow: hidden;
+        background: var(--menu-surface-2); color: var(--menu-accent); box-shadow: 0 0 0 6px color-mix(in srgb, var(--menu-accent-text) 35%, transparent), 0 14px 30px rgba(0, 0, 0, .25); }
+    .m-hero-circle img { width: 100%; height: 100%; object-fit: cover; }
+    .m-best-badge { display: inline-flex; align-items: center; gap: .3rem; border-radius: 999px; padding: .3rem .8rem; font-size: .8rem; font-weight: 800;
+        background: var(--menu-surface); color: var(--menu-accent); box-shadow: 0 4px 12px rgba(0, 0, 0, .15); }
+    /* the cart: line photos, the price card and the hint under a send button that cannot send yet */
+    .m-line-ph { display: grid; place-items: center; width: 3.25rem; height: 3.25rem; flex-shrink: 0; border-radius: .9rem; overflow: hidden; background: var(--menu-surface-2); color: var(--menu-accent); box-shadow: inset 0 0 0 1px var(--menu-border); }
+    .m-line-ph img { width: 100%; height: 100%; object-fit: cover; }
+    .m-bill { background: color-mix(in srgb, var(--menu-accent) 7%, var(--menu-surface)); border: 1px solid color-mix(in srgb, var(--menu-accent) 25%, var(--menu-border)); }
+    .m-label { display: flex; align-items: center; gap: .35rem; margin-bottom: .3rem; font-size: .85rem; font-weight: 700; color: var(--menu-text); }
+    .m-label svg { width: 1rem; height: 1rem; color: var(--menu-accent); flex-shrink: 0; }
+    .m-send:disabled { opacity: .55; cursor: not-allowed; }
     @media (prefers-reduced-motion: reduce) {
-        .m-ticker-line, .m-toast, .m-dot span { transition: none; }
+        .m-ticker-line, .m-toast, .m-dot span, .m-cat-ring { transition: none; }
         .m-bump { animation: none; }
     }
 </style>
@@ -181,6 +230,19 @@
     </div>
 @endif
 
+@if ($categories->isNotEmpty())
+    {{-- a greeting by the hour and the big search bar near the top (it filters the menu as the guest types) --}}
+    <section class="mx-auto max-w-2xl px-4 pt-4" data-menu-greeting>
+        <p class="text-lg font-extrabold leading-tight" data-greeting>{{ $greeting }}</p>
+        <p class="m-muted text-sm">{{ __('What would you like to order today?') }}</p>
+        <label class="m-search mt-3" data-search-bar>
+            <svg viewBox="0 0 24 24" class="size-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+            <span class="sr-only">{{ __('Search the menu') }}</span>
+            <input type="search" enterkeyhint="search" autocomplete="off" placeholder="{{ __('Search for your favourite dish or drink') }}" data-search>
+        </label>
+    </section>
+@endif
+
 @if ($banners->isNotEmpty())
     {{--
         Banner slideshow: CSS scroll-snap (swipe), dots, and with 2+ banners an autoplay (setting banner_autoplay) that
@@ -200,7 +262,27 @@
                     $categoryOk = $type === 'category' && $shownCategories->has($banner->category_id);
                     $classes = 'relative block shrink-0 snap-start overflow-hidden rounded-2xl bg-black/5 text-start shadow-sm ' . ($bannerCount > 1 ? 'w-[88%] sm:w-[70%]' : 'w-full');
                     $slideAttrs = 'data-banner-slide aria-roledescription="slide" aria-label="' . e(__(':n of :total', ['n' => $loop->iteration, 'total' => $bannerCount])) . '"';
+                    // linked to an item on a running offer (a real discount of MenuCatalog, never a typed "was" price)
+                    $offerItem = $itemOk ? $available->get($banner->menu_item_id) : null;
+                    $offerItem = $offerItem && $offerItem->offer_from && ! $offerItem->is_sold_out ? $offerItem : null;
                 @endphp
+                @if ($offerItem)
+                    <div class="{{ $classes }}" data-banner="{{ $banner->id }}" data-banner-offer="{{ $offerItem->id }}" {!! $slideAttrs !!}>
+                        <button type="button" class="block w-full" data-item="{{ $offerItem->id }}" aria-label="{{ $title ?: $offerItem->displayName() }}">
+                            <img src="/storage/{{ $banner->image }}" alt="" loading="{{ $loop->first ? 'eager' : 'lazy' }}" decoding="async" class="aspect-[16/7] w-full object-cover">
+                        </button>
+                        <div class="pointer-events-none absolute inset-0 flex flex-col justify-end gap-0.5 bg-gradient-to-t from-black/80 via-black/35 to-transparent p-3 pe-36 text-white">
+                            <span class="w-fit rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-extrabold text-neutral-900">🔥 {{ __('Special offer') }} <span dir="ltr">-{{ $offerItem->offer_percent }}%</span></span>
+                            <span class="line-clamp-1 font-extrabold">{{ $title ?: $offerItem->displayName() }}</span>
+                            <span class="flex items-baseline gap-2" data-offer-prices>
+                                <b class="text-xl font-black">{{ money($offerItem->price) }} {{ $currency }}</b>
+                                <s class="text-sm text-white/75">{{ money($offerItem->offer_from) }} {{ $currency }}</s>
+                            </span>
+                        </div>
+                        <button type="button" class="m-offer-cta absolute end-3 bottom-3" data-offer-order="{{ $offerItem->id }}">{{ $quickAdd ? __('Order now') : __('View') }}</button>
+                    </div>
+                    @continue
+                @endif
                 @if ($itemOk)
                     <button type="button" class="{{ $classes }}" data-item="{{ $banner->menu_item_id }}" data-banner="{{ $banner->id }}" {!! $slideAttrs !!}>
                 @elseif ($categoryOk)
@@ -232,15 +314,40 @@
 @endif
 
 @if ($categories->isNotEmpty())
-    <nav class="sticky top-0 z-20 border-b m-border bg-white/95 backdrop-blur" data-cat-nav>
-        <div class="m-noscroll mx-auto flex max-w-2xl gap-2 overflow-x-auto px-4 pt-3 pb-1" data-cat-chips>
-            @foreach ($categories as $c)
-                <a href="#cat-{{ $c->id }}" data-cat-link="cat-{{ $c->id }}" class="shrink-0 rounded-full m-surface-2 px-4 py-2 text-sm font-semibold transition">{{ tx($c, 'name') }}</a>
-            @endforeach
-        </div>
-        <div class="mx-auto max-w-2xl px-4 pt-2.5 pb-3">
-            <input type="search" class="field" placeholder="{{ __('Search the menu') }}" data-search>
-        </div>
+    {{--
+        The category row stays on top while scrolling: chips (default) or circles (setting menu_category_style) with the
+        category photo or its icon (App\Support\ItemPlaceholder::forCategory). While searching, each shows how many of
+        its items match. "Favourites" appears first once the guest keeps one on this phone (resources/js/menu.js).
+    --}}
+    <nav class="sticky top-0 z-20 border-b m-border bg-white/95 backdrop-blur" data-cat-nav data-cat-style="{{ $categoryStyle }}" aria-label="{{ __('Categories') }}">
+        @if ($categoryStyle === 'circles')
+            <div class="m-noscroll mx-auto flex max-w-2xl gap-1 overflow-x-auto px-3 pt-3 pb-2" data-cat-chips>
+                <a href="#favs" data-cat-link="favs" class="m-cat-circle hidden shrink-0" data-cat-circle data-fav-chip>
+                    <span class="m-cat-ring text-2xl" aria-hidden="true">❤️</span>
+                    <span class="m-cat-name">{{ __('Favourites') }}</span>
+                </a>
+                @foreach ($categories as $c)
+                    <a href="#cat-{{ $c->id }}" data-cat-link="cat-{{ $c->id }}" class="m-cat-circle shrink-0" data-cat-circle>
+                        <span class="m-cat-ring">
+                            @if ($c->image)
+                                <img src="/storage/{{ $c->image }}" alt="" loading="lazy" decoding="async">
+                            @else
+                                {!! \App\Support\ItemPlaceholder::svg($categoryIcons[$c->id], 'size-[52%]') !!}
+                            @endif
+                            <span class="m-cat-count" data-cat-count aria-hidden="true"></span>
+                        </span>
+                        <span class="m-cat-name">{{ tx($c, 'name') }}</span>
+                    </a>
+                @endforeach
+            </div>
+        @else
+            <div class="m-noscroll mx-auto flex max-w-2xl gap-2 overflow-x-auto px-4 pt-3 pb-3" data-cat-chips>
+                <a href="#favs" data-cat-link="favs" class="hidden shrink-0 rounded-full m-surface-2 px-4 py-2 text-sm font-semibold transition" data-fav-chip>❤️ {{ __('Favourites') }}</a>
+                @foreach ($categories as $c)
+                    <a href="#cat-{{ $c->id }}" data-cat-link="cat-{{ $c->id }}" class="inline-flex shrink-0 items-center gap-1.5 rounded-full m-surface-2 px-4 py-2 text-sm font-semibold transition">{{ tx($c, 'name') }}<span class="m-cat-count" data-cat-count aria-hidden="true"></span></a>
+                @endforeach
+            </div>
+        @endif
         @if ($badgeChips)
             {{-- the owner's quick filters (App\Support\ItemBadges): one tap shows only the items with that label --}}
             <div class="m-noscroll mx-auto -mt-1 flex max-w-2xl gap-2 overflow-x-auto px-4 pb-3" role="group" aria-label="{{ __('Filter the menu') }}" data-badge-chips>
@@ -254,16 +361,43 @@
 
 {{-- running offers show in the ticker under the header; m-quick-off hides the quick "+" while the cart cannot order --}}
 <main @class(['mx-auto max-w-2xl px-4 pt-5 pb-32', 'm-quick-off' => ! $quickOn]) data-menu-main>
-    @if ($featured->isNotEmpty())
-        <section class="mb-6" data-featured>
-            <h2 class="mb-3 text-lg font-extrabold">⭐ {{ __('Recommended') }}</h2>
+    @if ($quickAdd)
+        {{-- "اطلب تاني": the last order placed from this phone (localStorage, resources/js/menu.js fills and shows it) --}}
+        <section class="m-surface m-border mb-6 hidden rounded-2xl border p-3 shadow-sm" data-last-order aria-labelledby="last-order-title">
+            <div class="flex items-center gap-3">
+                <span class="m-line-ph text-xl" aria-hidden="true">🧾</span>
+                <div class="min-w-0 flex-1">
+                    <p id="last-order-title" class="font-extrabold">{{ __('Your last order') }}</p>
+                    <p class="m-muted line-clamp-2 text-sm" data-last-order-lines></p>
+                </div>
+                <button type="button" class="m-primary min-h-11 shrink-0 rounded-full px-4 text-sm font-extrabold" data-last-order-again>{{ __('Order it again') }}</button>
+            </div>
+        </section>
+    @endif
+
+    {{-- the guest's favourites on this phone: filled and shown by resources/js/menu.js --}}
+    <section id="favs" class="mb-6 hidden scroll-mt-36" data-favs aria-labelledby="favs-title">
+        <h2 id="favs-title" class="mb-3 text-lg font-extrabold">❤️ {{ __('Favourites') }}</h2>
+        <div class="m-noscroll flex gap-3 overflow-x-auto pb-2" data-favs-list></div>
+    </section>
+
+    @php
+        // "الأكثر طلباً" from real sales of this branch; without enough of them the owner's featured items
+        $topItems = $bestSellers->isNotEmpty() ? $bestSellers : $featured;
+    @endphp
+    @if ($topItems->isNotEmpty())
+        <section class="mb-6" @if ($bestSellers->isNotEmpty()) data-best-sellers @else data-featured @endif data-top-row>
+            <h2 class="mb-3 text-lg font-extrabold">{{ $bestSellers->isNotEmpty() ? __('Most ordered') . ' 🔥' : '⭐ ' . __('Recommended') }}</h2>
             <div class="m-noscroll flex gap-3 overflow-x-auto pb-2">
-                @foreach ($featured as $item)
+                @foreach ($topItems as $item)
                     <button type="button" data-item="{{ $item->id }}" class="w-36 shrink-0 overflow-hidden rounded-2xl border m-border m-surface text-start shadow-sm">
-                        @include('menu.items.photo', ['class' => 'aspect-square w-full', 'iconClass' => 'size-[38%]', 'phIcon' => $settings['business_type'] === 'cafe' ? 'cup' : 'plate'])
+                        @include('menu.items.photo', ['class' => 'aspect-square w-full', 'iconClass' => 'size-[38%]', 'phIcon' => $categoryIcons[$item->category_id] ?? 'plate'])
                         <div class="p-2">
                             <div class="line-clamp-2 text-sm font-bold">{{ $item->displayName() }}</div>
-                            <div class="m-primary-text text-sm font-extrabold">{{ money($item->price) }} {{ $currency }}</div>
+                            <div class="flex flex-wrap items-baseline gap-x-1.5 text-sm">
+                                <span class="m-primary-text font-extrabold">{{ money($item->price) }} {{ $currency }}</span>
+                                @if ($item->offer_from)<s class="m-muted text-xs">{{ money($item->offer_from) }}</s>@endif
+                            </div>
                         </div>
                     </button>
                 @endforeach
@@ -279,18 +413,22 @@
                 // the layout of this category: its own, the menu setting or the theme's (App\Support\MenuLayouts)
                 $catLayout = $layouts[$c->id];
                 $layoutView = \App\Support\MenuLayouts::view($catLayout);
-                $phIcon = \App\Support\ItemPlaceholder::icon($c->name . ' ' . $c->name_en, $settings['business_type']);
+                $phIcon = $categoryIcons[$c->id];
             @endphp
             <div class="mt-3 {{ $layoutView['wrapper'] }}" data-layout="{{ $catLayout }}">
                 @foreach ($c->items as $item)
                     @php
                         $qa = $quickAdd ? \App\Support\MenuLayouts::quickAdd($item) : null;
                         $qaSpot = $qa ? \App\Support\MenuLayouts::quickSpot($catLayout, $item, $placeholders) : null;
+                        $favSpot = \App\Support\MenuLayouts::favSpot($catLayout, $item, $placeholders);
                     @endphp
                     <div class="relative" data-search-text="{{ mb_strtolower($item->name . ' ' . $item->name_en . ' ' . $item->description . ' ' . $item->displayName()) }}" data-badges="{{ implode(' ', $item->badgeKeys()) }}">
-                        @include('menu.items.' . $layoutView['blade'], $layoutView['vars'] + ['item' => $item, 'phIcon' => $phIcon, 'qaPad' => $qaSpot === 'row' ? 'pe-12' : ''])
+                        @include('menu.items.' . $layoutView['blade'], $layoutView['vars'] + ['item' => $item, 'phIcon' => $phIcon, 'qaPad' => match ($qaSpot) { 'row' => 'pe-12', 'bold' => 'bold', default => '' }])
                         @if ($qa)
                             @include('menu.items.quick-add', ['item' => $item, 'qa' => $qa, 'spot' => $qaSpot])
+                        @endif
+                        @if ($favSpot)
+                            @include('menu.items.fav', ['item' => $item, 'spot' => $favSpot])
                         @endif
                     </div>
                 @endforeach
@@ -356,24 +494,55 @@
                 <button value="cancel" class="pointer-events-auto grid size-11 place-items-center rounded-full bg-black/45 text-white backdrop-blur" aria-label="{{ __('Back to the menu') }}" data-sheet-back>
                     <svg viewBox="0 0 24 24" class="size-5 rtl:-scale-x-100" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>
                 </button>
-                <button type="button" class="pointer-events-auto grid size-11 place-items-center rounded-full bg-black/45 text-white backdrop-blur" aria-label="{{ __('Share this item') }}" data-sheet-share>
-                    <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/></svg>
-                </button>
+                <span class="pointer-events-auto flex gap-2">
+                    <button type="button" class="grid size-11 place-items-center rounded-full bg-black/45 text-white backdrop-blur aria-pressed:bg-[var(--menu-surface)] aria-pressed:text-[var(--menu-accent)]" aria-pressed="false" aria-label="{{ __('Keep in my favourites') }}" data-sheet-fav>
+                        <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20Z"/></svg>
+                    </button>
+                    <button type="button" class="grid size-11 place-items-center rounded-full bg-black/45 text-white backdrop-blur" aria-label="{{ __('Share this item') }}" data-sheet-share>
+                        <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/></svg>
+                    </button>
+                </span>
             </div>
         @endif
-        <div @class(['relative', 'mx-auto max-w-2xl' => $pro]) data-sheet-media>
-            <img alt="" @class(['hidden w-full object-cover', 'aspect-video' => ! $pro, 'aspect-[4/3] max-h-[55vh] sm:rounded-b-3xl' => $pro]) data-sheet-image>
-            {{-- item video (uploads: muted loop inline, poster = photo; links: embed loaded on tap) --}}
-            <div class="hidden aspect-video w-full bg-black" data-sheet-video></div>
-            <button type="button" class="m-primary absolute bottom-3 start-3 hidden min-h-10 items-center gap-2 rounded-full px-4 text-sm font-extrabold shadow-lg" data-sheet-video-play>▶ {{ __('Watch the video') }}</button>
-        </div>
+        @if ($pro)
+            {{-- professional item page: a hero in the accent with the photo (or the themed icon) in a big circle --}}
+            <div class="relative" data-sheet-media>
+                <div class="m-hero px-5 pt-16 pb-7" data-sheet-hero>
+                    <div class="mx-auto flex max-w-2xl flex-col items-center gap-3">
+                        <div class="m-hero-circle">
+                            <img alt="" class="hidden" data-sheet-image>
+                            <span class="hidden size-full place-items-center text-6xl font-black" data-sheet-ph aria-hidden="true"></span>
+                        </div>
+                        <span class="m-best-badge -mt-6 hidden" data-sheet-best>🔥 {{ __('Most ordered') }}</span>
+                    </div>
+                </div>
+                {{-- item video (uploads: muted loop inline, poster = photo; links: embed loaded on tap) --}}
+                <div class="mx-auto mt-4 hidden aspect-video w-full max-w-2xl bg-black sm:rounded-2xl" data-sheet-video></div>
+                <button type="button" class="m-surface absolute bottom-3 start-3 hidden min-h-11 items-center gap-2 rounded-full px-4 text-sm font-extrabold shadow-lg" data-sheet-video-play>▶ {{ __('Watch the video') }}</button>
+            </div>
+        @else
+            <div class="relative" data-sheet-media>
+                <img alt="" class="hidden aspect-video w-full object-cover" data-sheet-image>
+                {{-- item video (uploads: muted loop inline, poster = photo; links: embed loaded on tap) --}}
+                <div class="hidden aspect-video w-full bg-black" data-sheet-video></div>
+                <button type="button" class="m-primary absolute bottom-3 start-3 hidden min-h-10 items-center gap-2 rounded-full px-4 text-sm font-extrabold shadow-lg" data-sheet-video-play>▶ {{ __('Watch the video') }}</button>
+            </div>
+        @endif
         <div @class(['p-5', 'mx-auto max-w-2xl pb-28' => $pro]) data-sheet-body>
             <div class="flex items-start justify-between gap-3">
                 <h3 id="sheet-name" @class(['font-extrabold', 'text-xl' => ! $pro, 'text-2xl' => $pro]) data-sheet-name></h3>
                 @unless ($pro)
-                    <button value="cancel" class="m-muted text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
+                    <span class="flex shrink-0 items-center gap-1">
+                        <button type="button" class="m-fav relative grid size-10 place-items-center rounded-full" aria-pressed="false" aria-label="{{ __('Keep in my favourites') }}" data-sheet-fav>
+                            <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20Z"/></svg>
+                        </button>
+                        <button value="cancel" class="m-muted grid size-11 place-items-center text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
+                    </span>
                 @endunless
             </div>
+            @unless ($pro)
+                <span class="m-tag mt-1 hidden w-fit items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold" data-sheet-best>🔥 {{ __('Most ordered') }}</span>
+            @endunless
             <p class="m-primary-text mt-1 flex flex-wrap items-center gap-2 text-lg font-extrabold" data-sheet-price></p>
             <div class="mt-2 hidden flex-wrap gap-1" data-sheet-badges></div>
             <p @class(['m-muted mt-2', 'leading-relaxed' => $pro]) data-sheet-desc></p>
@@ -480,7 +649,18 @@
             </div>
         @endif
         <ul class="m-divide divide-y" data-cart-lines></ul>
-        <div class="m-border mt-3 space-y-1 border-t pt-3 text-sm" data-cart-summary></div>
+        {{-- the bill: subtotal, delivery fee, discounts, total, the expected time and how to reach the place --}}
+        <div class="m-bill mt-3 rounded-2xl p-3 text-sm" data-bill>
+            <div class="space-y-1" data-cart-summary></div>
+            <p class="m-border mt-2 hidden items-center gap-1.5 border-t pt-2 font-semibold" data-cart-eta></p>
+            @if ($canOrder && ($data['phone'] !== '' || $data['whatsapp']))
+                <p class="m-muted mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs" data-cart-contact>
+                    <span>{{ __('To reach the place:') }}</span>
+                    @if ($data['phone'] !== '')<a href="tel:{{ preg_replace('/[^0-9+]/', '', $data['phone']) }}" class="m-primary-text inline-flex min-h-11 items-center gap-1 font-bold" dir="ltr">📞 {{ $data['phone'] }}</a>@endif
+                    @if ($data['whatsapp'])<a href="https://wa.me/{{ $data['whatsapp'] }}" target="_blank" rel="noopener" class="m-primary-text inline-flex min-h-11 items-center gap-1 font-bold">💬 {{ __('WhatsApp') }}</a>@endif
+                </p>
+            @endif
+        </div>
         @if ($hall['mode'] !== 'off')
             <div @class(['mt-4 grid gap-2', 'hidden' => ! in_array($data['mode'], ['list', 'table'], true)]) data-hall-tools>
                 @if ($hall['mode'] === 'list')
@@ -507,11 +687,17 @@
                             </div>
                         @endif
                         <div class="hidden space-y-3" data-delivery-fields>
-                            <select class="field" data-zone>
-                                <option value="">{{ __('Choose your area') }}</option>
-                                @foreach ($online['zones'] as $z)<option value="{{ $z['id'] }}">{{ $z['name'] }} · {{ money($z['fee']) }} {{ tr($settings['currency'], $settings['currency_en']) }}</option>@endforeach
-                            </select>
-                            <textarea class="field min-h-16 py-2" maxlength="300" data-address placeholder="{{ __('Street, building, floor, apartment, landmark') }}"></textarea>
+                            <label class="block">
+                                <span class="m-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg> {{ __('Your area') }}</span>
+                                <select class="field" data-zone>
+                                    <option value="">{{ __('Choose your area') }}</option>
+                                    @foreach ($online['zones'] as $z)<option value="{{ $z['id'] }}">{{ $z['name'] }} · {{ money($z['fee']) }} {{ tr($settings['currency'], $settings['currency_en']) }}</option>@endforeach
+                                </select>
+                            </label>
+                            <label class="block">
+                                <span class="m-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg> {{ __('The address in detail') }}</span>
+                                <textarea class="field min-h-16 py-2" maxlength="300" data-address placeholder="{{ __('Street, building, floor, apartment, landmark') }}"></textarea>
+                            </label>
                         </div>
                         @if ($online['scheduled'])
                             {{-- as soon as possible by default; a set time only for the guest who asks for one --}}
@@ -523,12 +709,18 @@
                                 </label>
                             </details>
                         @endif
-                        <p class="m-muted text-xs">{{ __('Ready in about :n minutes. You pay on pickup or delivery.', ['n' => $online['prep']]) }}</p>
+                        <p class="m-muted text-xs">{{ __('You pay on pickup or delivery.') }}</p>
                     </div>
                 @endif
                 <div class="mt-4 grid gap-3">
-                    <input class="field" maxlength="100" data-customer-name placeholder="{{ $online ? __('Your name') : __('Your name (optional)') }}">
-                    <input class="field" maxlength="20" inputmode="tel" dir="ltr" data-customer-phone placeholder="{{ $online ? __('Mobile number (required)') : __('Mobile (optional, for offers & loyalty)') }}">
+                    <label class="block">
+                        <span class="m-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> {{ $online ? __('Your name') : __('Your name (optional)') }}</span>
+                        <input class="field" maxlength="100" autocomplete="name" data-customer-name placeholder="{{ __('e.g. Ahmed') }}">
+                    </label>
+                    <label class="block">
+                        <span class="m-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg> {{ $online ? __('Mobile number') : __('Mobile (optional, for offers & loyalty)') }}</span>
+                        <input class="field" maxlength="20" inputmode="tel" autocomplete="tel" dir="ltr" data-customer-phone placeholder="01xxxxxxxxx">
+                    </label>
                     {{-- optional extras folded away so the cart stays short: a coupon code and notes --}}
                     <details class="m-surface-2 rounded-xl px-3" data-order-extras>
                         <summary class="m-primary-text min-h-11 cursor-pointer content-center text-sm font-bold">+ {{ __('A coupon code or notes') }}</summary>
@@ -550,7 +742,9 @@
                     </label>
                 @endif
                 <p class="mt-3 hidden rounded-xl bg-red-50 p-3 text-sm text-red-700" data-order-error></p>
-                <button type="button" class="m-primary mt-4 min-h-14 w-full rounded-2xl text-lg font-bold" data-send-order>{{ __('Send order') }}</button>
+                <button type="button" class="m-primary m-send mt-4 min-h-14 w-full rounded-2xl text-lg font-bold" data-send-order aria-describedby="send-help">{{ __('Send order') }}</button>
+                {{-- while something is missing the button waits and this line says exactly what (resources/js/menu.js) --}}
+                <p id="send-help" class="m-muted mt-2 hidden text-center text-sm font-semibold" data-send-help aria-live="polite"></p>
             </div>
         @endif
     </form>
@@ -704,6 +898,16 @@
         'choose' => __('Choose'),
         'added' => __('Added to your order: :name', ['name' => '__N__']),
         'linkCopied' => __('Link copied'),
+        'missing' => __('To send, add: :list', ['list' => '__L__']), 'missingName' => __('your name'), 'missingPhone' => __('your mobile'),
+        'missingZone' => __('your area'), 'missingAddress' => __('the address'),
+        'missingMin' => __('Add :left more to reach the minimum order of your area (:min)', ['left' => '__A__', 'min' => '__M__']),
+        'etaPickup' => __('Ready for pickup in about :n minutes', ['n' => '__N__']), 'etaDelivery' => __('At your door in about :n minutes', ['n' => '__N__']),
+        'offersSaved' => __('You save :amount with the offers', ['amount' => '__A__']),
+        'reordered' => __('Added :n item(s) from your order', ['n' => '__N__']),
+        'reorderSkipped' => __(':n item(s) are not available now and were skipped', ['n' => '__N__']),
+        'reorderNone' => __('The items of that order are not available now.'),
+        'favOn' => __('Saved in your favourites'), 'favOff' => __('Removed from your favourites'),
+        'favAdd' => __('Keep in my favourites'), 'favRemove' => __('Remove from my favourites'),
         'splitNote' => __('An estimate to help you split. The restaurant\'s receipt is the official bill; service and tax follow what each one ate.'),
     ];
 @endphp

@@ -16,15 +16,16 @@ use App\Services\Entitlements;
  * like the theme itself; the price-list fallback of "auto" works on every plan.
  *
  * Every layout reuses an item blade of resources/views/menu/items: list = classic (smaller photo), grid = grid,
- * cards = grid (one wide photo card per row, with the description), text = minimal without any image.
+ * cards = grid (one wide photo card per row, with the description), text = minimal without any image, bold = its own
+ * blade (a big photo on the side, the price in an accent pill and a round "+" next to it).
  */
 final class MenuLayouts
 {
     /** Values of the menu setting. */
-    public const CHOICES = ['auto', 'list', 'grid', 'cards', 'text'];
+    public const CHOICES = ['auto', 'list', 'grid', 'cards', 'bold', 'text'];
 
     /** Values a category may override with (null = the menu setting). */
-    public const OVERRIDES = ['list', 'grid', 'cards', 'text'];
+    public const OVERRIDES = ['list', 'grid', 'cards', 'bold', 'text'];
 
     /**
      * Resolved layout => [item blade, wrapper classes, extra blade variables].
@@ -40,6 +41,7 @@ final class MenuLayouts
         'list' => ['classic', 'space-y-2', ['compact' => true]],
         'cards' => ['grid', 'space-y-4', ['big' => true]],
         'text' => ['minimal', 'divide-y m-divide', ['noPhoto' => true]],
+        'bold' => ['bold', 'space-y-3', []],
     ];
 
     /** @return array{0:string, 1:string} [name, one-line description] */
@@ -50,6 +52,7 @@ final class MenuLayouts
             'grid' => [__('Two-column grid'), __('Square photos, two items per row')],
             'cards' => [__('Big photo cards'), __('A wide photo for every item')],
             'text' => [__('Price list'), __('Name, description and price, no photos at all')],
+            'bold' => [__('Bold cards'), __('A big photo on the side, the price in a colored pill and a round + button')],
             default => [__('Follow the design'), __('The layout of the design you chose')],
         };
     }
@@ -114,7 +117,27 @@ final class MenuLayouts
             $layout === 'grid', $layout === 'cards' && $photo => 'top',
             $layout === 'classic' && $photo => 'photo',
             $layout === 'list' && $photo => 'photo-sm',
+            $layout === 'bold' => 'bold',
             default => 'row',
+        };
+    }
+
+    /**
+     * Where the heart (favourites on this phone) sits on an item card: over a corner of its photo, away from the
+     * quick "+". Layouts without a photo corner to spare (small-photo list, price list, bistro, cafe, minimal) show the heart only in
+     * the item sheet. Null = no heart on the card.
+     */
+    public static function favSpot(string $layout, MenuItem $item, bool $placeholders): ?string
+    {
+        if (! $item->image && ! $placeholders) {
+            return null;
+        }
+
+        return match ($layout) {
+            'grid', 'cards' => 'top-2 start-2',
+            'classic' => 'top-4 end-4',
+            'bold' => 'top-4 end-4',
+            default => null,
         };
     }
 

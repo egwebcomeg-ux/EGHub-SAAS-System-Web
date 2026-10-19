@@ -90,12 +90,25 @@ if (dataEl) {
         badgeBox.innerHTML = (current.badges || []).map((b) => `<span class="m-tag rounded-full px-2.5 py-0.5 text-xs font-semibold">${esc(b.icon)} ${esc(b.label)}</span>`).join('');
         badgeBox.classList.toggle('hidden', !current.badges?.length);
         badgeBox.classList.toggle('flex', !!current.badges?.length);
-        // the full page without a photo: room for the back / share buttons on top
-        $('[data-sheet-body]', sheet).classList.toggle('pt-20', PRO && !current.image);
         track('ViewContent', { content_ids: [String(current.id)], content_name: current.name, content_type: 'product', value: current.price });
         const img = $('[data-sheet-image]', sheet);
         img.classList.toggle('hidden', !current.image);
         if (current.image) img.src = current.image;
+        // professional page: without a photo the circle shows the category icon (or the first letter)
+        const ph = $('[data-sheet-ph]', sheet);
+        if (ph) {
+            ph.innerHTML = current.image ? '' : (M.placeholders && M.phIcons?.[current.icon]) || esc([...current.name][0] || '');
+            ph.classList.toggle('hidden', !!current.image);
+            ph.classList.toggle('grid', !current.image);
+        }
+        // "الأكثر طلباً" of this branch (real sales, App\Services\Menu\BestSellers)
+        const best = $('[data-sheet-best]', sheet);
+        if (best) {
+            const on = (M.best || []).includes(current.id);
+            best.classList.toggle('hidden', !on);
+            best.classList.toggle('inline-flex', on);
+        }
+        syncFavButtons();
         resetVideo();
         $('[data-sheet-name]', sheet).textContent = current.name;
         $('[data-sheet-desc]', sheet).textContent = current.description || '';
@@ -184,10 +197,11 @@ if (dataEl) {
         const has = !!current?.video;
         videoPlay.classList.toggle('hidden', !has);
         videoPlay.classList.toggle('flex', has);
-        // without a photo the button sits in the flow instead of over the picture
-        videoPlay.classList.toggle('absolute', !!current?.image);
-        videoPlay.classList.toggle('m-5', has && !current.image);
-        videoPlay.classList.toggle('mb-0', has && !current.image);
+        // without a photo the button sits in the flow instead of over the picture (the full page always has its hero)
+        const over = PRO || !!current?.image;
+        videoPlay.classList.toggle('absolute', over);
+        videoPlay.classList.toggle('m-5', has && !over);
+        videoPlay.classList.toggle('mb-0', has && !over);
     }
     videoPlay.addEventListener('click', () => {
         const v = current?.video;
@@ -204,7 +218,7 @@ if (dataEl) {
                 allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
         }
         videoBox.classList.remove('hidden');
-        $('[data-sheet-image]', sheet).classList.add('hidden');
+        if (!PRO) $('[data-sheet-image]', sheet).classList.add('hidden');
         videoPlay.classList.add('hidden');
         videoPlay.classList.remove('flex');
     });
@@ -292,6 +306,68 @@ if (dataEl) {
         addLine(item, [], 1);
         bumpCount();
         toast(T.added.replace('__N__', item.name));
+    });
+
+    // ---- a banner on a real offer: "order now" adds one at once when nothing must be chosen, else opens the item ----
+    const needsChoice = (item) => item.groups.some((g) => g.required || g.type === 'single');
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-offer-order]');
+        if (!btn) return;
+        const item = M.items[btn.dataset.offerOrder];
+        if (!item) return;
+        if (item.soldOut || !quickOn() || needsChoice(item)) {
+            openItem(item.id);
+            return;
+        }
+        addLine(item, [], 1);
+        bumpCount();
+        toast(T.added.replace('__N__', item.name));
+    });
+
+    // ---- favourites: a heart on the cards and in the item sheet, kept on this phone only ----
+    const favKey = `egmenu.fav.${M.tenant}`;
+    let favs = [];
+    try { favs = (JSON.parse(localStorage.getItem(favKey) || '[]') || []).map(Number).filter((id) => M.items[id]); } catch {}
+    const search = $('[data-search]');
+    const searching = () => !!search?.value.trim();
+    const phTile = (item, cls) => (item.image
+        ? `<img src="${esc(item.image)}" alt="" loading="lazy" class="${cls} object-cover">`
+        : `<span class="m-ph ${cls} grid place-items-center">${M.placeholders ? (M.phIcons?.[item.icon] || '') : ''}</span>`);
+    function syncFavButtons() {
+        document.querySelectorAll('[data-fav]').forEach((b) => {
+            b.setAttribute('aria-pressed', favs.includes(Number(b.dataset.fav)) ? 'true' : 'false');
+        });
+        sheet.querySelectorAll('[data-sheet-fav]').forEach((b) => {
+            const on = !!current && favs.includes(current.id);
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+            b.setAttribute('aria-label', on ? T.favRemove : T.favAdd);
+        });
+    }
+    function renderFavs() {
+        const box = $('[data-favs]');
+        const list = favs.map((id) => M.items[id]).filter(Boolean);
+        box?.classList.toggle('hidden', !list.length || searching());
+        document.querySelectorAll('[data-fav-chip]').forEach((chip) => chip.classList.toggle('hidden', !list.length));
+        if (!box || !list.length) return;
+        $('[data-favs-list]', box).innerHTML = list.map((item) => `
+            <button type="button" data-item="${item.id}" class="w-32 shrink-0 overflow-hidden rounded-2xl border m-border m-surface text-start shadow-sm">
+                ${phTile(item, 'aspect-square w-full')}
+                <div class="p-2"><div class="line-clamp-2 text-sm font-bold">${esc(item.name)}</div>
+                ${hidePrices() ? '' : `<div class="m-primary-text text-sm font-extrabold">${esc(fmt(item.price))}</div>`}</div>
+            </button>`).join('');
+    }
+    function toggleFav(id) {
+        const on = !favs.includes(id);
+        favs = on ? [id, ...favs] : favs.filter((f) => f !== id);
+        try { localStorage.setItem(favKey, JSON.stringify(favs)); } catch {}
+        syncFavButtons();
+        renderFavs();
+        toast(on ? T.favOn : T.favOff);
+    }
+    document.addEventListener('click', (e) => {
+        const card = e.target.closest('[data-fav]');
+        if (card) toggleFav(Number(card.dataset.fav));
+        else if (e.target.closest('[data-sheet-fav]') && current) toggleFav(current.id);
     });
 
     // ---- "goes well with" ----
@@ -394,6 +470,7 @@ if (dataEl) {
                 </li>`;
             }
             return `<li class="flex items-center gap-3 py-3">
+                <span class="m-line-ph" aria-hidden="true">${item.image ? `<img src="${esc(item.image)}" alt="" loading="lazy">` : (M.placeholders ? (M.phIcons?.[item.icon] || '') : '')}</span>
                 <div class="min-w-0 flex-1">
                     <div class="font-bold">${esc(item.name)}</div>
                     ${opts ? `<div class="m-muted text-xs">${esc(opts)}</div>` : ''}
@@ -420,9 +497,23 @@ if (dataEl) {
         const row = (label, v, bold) => `<div class="flex justify-between ${bold ? 'text-base font-extrabold' : ''}"><span>${esc(label)}</span><span>${fmt(v)}</span></div>`;
         const summary = $('[data-cart-summary]', cartSheet);
         summary.classList.toggle('hidden', hidePrices() || !cart.length);
-        summary.innerHTML = (t.service || t.tax || t.fee || t.goal.off ? row(T.subtotal, t.subtotal) + (t.goal.off ? row(`🎁 ${G.rewardName}`, -t.goal.off) : '') + (t.service ? row(T.service, t.service) : '') + (t.tax ? row(T.tax, t.tax) : '') + (t.fee ? row(T.deliveryFee, t.fee) : '') : '')
-            + row(T.total, t.total, true)
+        $('[data-bill]', cartSheet)?.classList.toggle('hidden', hidePrices() || !cart.length);
+        // savings of the running offers: the price before the offer is real data of the menu (MenuCatalog)
+        const saved = cart.reduce((s, l) => { const it = M.items[l.item_id]; return s + (it.offerFrom ? (it.offerFrom - it.price) * l.qty : 0); }, 0);
+        const breakdown = t.service || t.tax || t.fee || t.goal.off;
+        summary.innerHTML = (breakdown ? row(T.subtotal, t.subtotal) + (t.goal.off ? row(`🎁 ${G.rewardName}`, -t.goal.off) : '') + (t.service ? row(T.service, t.service) : '') + (t.tax ? row(T.tax, t.tax) : '') + (t.fee ? row(T.deliveryFee, t.fee) : '') : '')
+            + (breakdown ? `<div class="m-border mt-1 border-t pt-1.5">${row(T.total, t.total, true)}</div>` : row(T.total, t.total, true))
+            + (saved > 0.005 ? `<div class="text-xs font-bold text-emerald-700" data-offers-saved>🏷 ${esc(T.offersSaved.replace('__A__', fmt(saved)))}</div>` : '')
             + (t.zone && t.zone.min > t.subtotal ? `<div class="mt-1 text-xs font-semibold text-amber-700">${esc(T.minOrder.replace('__A__', fmt(t.zone.min)))}</div>` : '');
+        // the expected time: the zone's minutes for delivery, else the kitchen's preparation time (online orders)
+        const eta = $('[data-cart-eta]', cartSheet);
+        if (eta) {
+            const minutes = mode === 'online' ? (otype === 'delivery' ? (t.zone?.minutes || null) : O?.prep) : null;
+            eta.textContent = minutes ? `⏱ ${(otype === 'delivery' ? T.etaDelivery : T.etaPickup).replace('__N__', minutes)}` : '';
+            eta.classList.toggle('hidden', !minutes);
+            eta.classList.toggle('flex', !!minutes);
+        }
+        renderSendHelp(t);
         // prepaid balance: the whole order is paid from it, or not at all (no partial payment)
         const walletBox = $('[data-pay-wallet]', cartSheet);
         if (walletBox && M.wallet) {
@@ -434,6 +525,35 @@ if (dataEl) {
             if (phone && !phone.value) phone.value = M.wallet.phone;
         }
     }
+
+    // the send button waits until the order can go, and the line under it says exactly what is missing
+    function missingFields(t) {
+        if (mode !== 'online') return [];
+        const val = (sel) => $(sel)?.value.trim() || '';
+        const list = [];
+        if (!val('[data-customer-name]')) list.push(T.missingName);
+        if (!val('[data-customer-phone]')) list.push(T.missingPhone);
+        if (otype === 'delivery' && !t.zone) list.push(T.missingZone);
+        if (otype === 'delivery' && !val('[data-address]')) list.push(T.missingAddress);
+        return list;
+    }
+    function renderSendHelp(t = totals()) {
+        const btn = $('[data-send-order]');
+        const help = $('[data-send-help]');
+        if (!btn || !help) return;
+        const missing = missingFields(t);
+        const short = mode === 'online' && t.zone && t.zone.min > t.subtotal ? t.zone.min - t.subtotal : 0;
+        const lines = [];
+        if (missing.length) lines.push(T.missing.replace('__L__', missing.join(document.documentElement.lang === 'ar' ? '، ' : ', ')));
+        if (short > 0) lines.push(T.missingMin.replace('__A__', fmt(short)).replace('__M__', fmt(t.zone.min)));
+        const blocked = lines.length > 0;
+        if (!btn.dataset.busy) btn.disabled = blocked;
+        help.textContent = lines.join(' · ');
+        help.classList.toggle('hidden', !blocked);
+    }
+    cartSheet.addEventListener('input', (e) => {
+        if (e.target.closest('[data-customer-name], [data-customer-phone], [data-address]')) renderSendHelp();
+    });
 
     $('[data-open-cart]').addEventListener('click', () => { renderCart(); cartSheet.showModal(); });
     cartSheet.addEventListener('click', (e) => {
@@ -676,6 +796,7 @@ if (dataEl) {
             if (otype === 'delivery' && !$('[data-address]').value.trim()) return fail(T.enterAddress);
         }
         sendBtn.disabled = true;
+        sendBtn.dataset.busy = '1';
         const label = sendBtn.textContent;
         sendBtn.textContent = T.sending;
         clientUuid ??= crypto.randomUUID?.() ?? ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c) => (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16));
@@ -702,6 +823,7 @@ if (dataEl) {
                 const first = body.errors ? Object.values(body.errors)[0][0] : null;
                 throw new Error(body.message || first || res.status);
             }
+            rememberLastOrder();
             cart = [];
             save();
             window.location.href = body.url;
@@ -710,10 +832,65 @@ if (dataEl) {
             errorBox.classList.remove('hidden');
             // a refused coupon: show the field it is about
             if ($('[data-coupon]')?.value) $('[data-coupon]').closest('details')?.setAttribute('open', '');
+            delete sendBtn.dataset.busy;
             sendBtn.disabled = false;
             sendBtn.textContent = label;
+            renderSendHelp();
         }
     });
+
+    // ---- "اطلب تاني": the last order placed from this phone, and ?reorder={token} from the order page ----
+    const lastKey = `egmenu.last.${M.tenant}`;
+    function rememberLastOrder() {
+        try {
+            localStorage.setItem(lastKey, JSON.stringify({ at: Date.now(), lines: cart.map((l) => ({ item_id: l.item_id, option_ids: l.option_ids, qty: l.qty, notes: l.notes })) }));
+        } catch {}
+    }
+    // puts lines back in the cart with today's prices; an item that left the menu, is sold out or lost an option is skipped
+    function putBack(lines, skippedBefore = 0) {
+        let added = 0;
+        let skipped = skippedBefore;
+        lines.forEach((l) => {
+            const item = M.items[l.item_id];
+            const ids = item ? item.groups.flatMap((g) => g.options.filter((o) => !o.soldOut).map((o) => o.id)) : [];
+            const optionIds = (l.option_ids || []).map(Number);
+            const requiredOk = item && item.groups.every((g) => !g.required || g.options.some((o) => optionIds.includes(o.id)));
+            if (!item || item.soldOut || !optionIds.every((id) => ids.includes(id)) || !requiredOk) { skipped++; return; }
+            const count = Math.min(30, Math.max(1, Number(l.qty) || 1));
+            addLine(item, optionIds, count, String(l.notes || '').slice(0, 200));
+            added += count;
+        });
+        if (added) bumpCount();
+        const parts = [added ? T.reordered.replace('__N__', added) : T.reorderNone];
+        if (added && skipped) parts.push(T.reorderSkipped.replace('__N__', skipped));
+        toast(parts.join(' · '));
+        return added;
+    }
+    const lastBox = $('[data-last-order]');
+    let lastOrder = null;
+    try { lastOrder = JSON.parse(localStorage.getItem(lastKey) || 'null'); } catch {}
+    if (lastBox && lastOrder?.lines?.length && Date.now() - (lastOrder.at || 0) < 60 * 86400000) {
+        const names = lastOrder.lines.map((l) => (M.items[l.item_id] ? `${l.qty}× ${M.items[l.item_id].name}` : null)).filter(Boolean);
+        if (names.length) {
+            $('[data-last-order-lines]', lastBox).textContent = names.join(document.documentElement.lang === 'ar' ? '، ' : ', ');
+            lastBox.classList.remove('hidden');
+            lastBox.dataset.ready = '1';
+            $('[data-last-order-again]', lastBox).addEventListener('click', () => {
+                if (!quickOn()) return;
+                if (putBack(lastOrder.lines)) { renderCart(); cartSheet.showModal(); }
+            });
+        }
+    }
+    if (M.reorder && quickOn()) {
+        // the order page's "order again": once, then the address goes back to the plain menu
+        const added = putBack(M.reorder.lines, M.reorder.skipped);
+        try {
+            const url = new URL(location.href);
+            url.searchParams.delete('reorder');
+            history.replaceState(history.state, '', url.toString());
+        } catch {}
+        if (added) { renderCart(); cartSheet.showModal(); }
+    }
 
     // ---- call the waiter / ask for the bill (scanned table): the 🛎 sheet, the hall list and the waiter view ----
     const callSheet = $('[data-call-sheet]');
@@ -908,11 +1085,11 @@ if (dataEl) {
     }
 
     // ---- search, badge filter chips (all picked labels must match) & active category chip ----
-    const search = $('[data-search]');
     const pickedBadges = new Set();
     function applyFilter() {
         const q = search ? search.value.trim().toLowerCase() : '';
         let any = false;
+        const nav = $('[data-cat-nav]');
         document.querySelectorAll('[data-category]').forEach((sec) => {
             let shown = 0;
             sec.querySelectorAll('[data-search-text]').forEach((el) => {
@@ -923,9 +1100,25 @@ if (dataEl) {
             });
             sec.classList.toggle('hidden', shown === 0);
             any ||= shown > 0;
+            // live count on the category chip / circle
+            const link = nav?.querySelector(`[data-cat-link="${sec.id}"]`);
+            if (link) {
+                link.dataset.matches = String(shown);
+                const count = $('[data-cat-count]', link);
+                if (count) count.textContent = String(shown);
+            }
         });
-        $('[data-featured]')?.classList.toggle('hidden', !!q || pickedBadges.size > 0);
+        const filtering = !!q || pickedBadges.size > 0;
+        nav?.toggleAttribute('data-searching', filtering);
+        // while searching, the rows above the categories step aside so the results come first
+        document.querySelectorAll('[data-top-row], [data-banners]').forEach((el) => el.classList.toggle('hidden', filtering));
+        lastBoxHidden(filtering);
+        renderFavs();
         $('[data-no-results]').classList.toggle('hidden', any);
+    }
+    function lastBoxHidden(filtering) {
+        const box = $('[data-last-order]');
+        if (box && box.dataset.ready) box.classList.toggle('hidden', filtering);
     }
     search?.addEventListener('input', applyFilter);
     document.querySelectorAll('[data-badge-filter]').forEach((chip) => chip.addEventListener('click', () => {
@@ -942,13 +1135,18 @@ if (dataEl) {
             if (!entry.isIntersecting) return;
             links.forEach((a) => {
                 const on = a.dataset.catLink === entry.target.id;
-                a.classList.toggle('m-primary', on);
-                a.classList.toggle('m-surface-2', !on);
+                if (a.hasAttribute('data-cat-circle')) {
+                    // circles: the active one is ringed in the accent
+                    a.setAttribute('aria-current', on ? 'true' : 'false');
+                } else {
+                    a.classList.toggle('m-primary', on);
+                    a.classList.toggle('m-surface-2', !on);
+                }
                 if (on) a.scrollIntoView({ inline: 'center', block: 'nearest' });
             });
         });
     }, { rootMargin: '-40% 0px -55% 0px' });
-    document.querySelectorAll('[data-category]').forEach((s) => observer.observe(s));
+    document.querySelectorAll('[data-category], [data-favs]').forEach((s) => observer.observe(s));
 
     // ---- the top of the menu: banner slideshow and ticker. Only one of them moves by itself (the server decides,
     // App\Support\MenuTicker); nothing moves on its own under reduced motion. Both stop while held, hovered,
@@ -1159,6 +1357,8 @@ if (dataEl) {
 
     syncQuick();
     renderBar();
+    syncFavButtons();
+    renderFavs();
     // a shared item link (/item/{id}) opens that item over the menu
     if (M.openItem && M.items[M.openItem]) {
         landedOnItem = true;

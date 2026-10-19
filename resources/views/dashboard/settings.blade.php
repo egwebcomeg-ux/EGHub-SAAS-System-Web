@@ -176,7 +176,7 @@
             {{-- the item layout, apart from the colors of the design (App\Support\MenuLayouts) --}}
             <fieldset data-layout-picker>
                 <legend class="field-label">{{ __('How the items are laid out') }}</legend>
-                <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
                     @foreach (\App\Support\MenuLayouts::CHOICES as $key)
                         @php
                             [$label, $hint] = \App\Support\MenuLayouts::label($key);
@@ -204,6 +204,19 @@
                     @endforeach
                 </div>
             </fieldset>
+            {{-- the category row of the menu: chips (default) or circles with a photo / icon per category --}}
+            <fieldset data-category-style-picker>
+                <legend class="field-label">{{ __('The categories row on the menu') }}</legend>
+                <div class="grid gap-2 sm:grid-cols-2">
+                    @foreach (['chips' => [__('Chips'), __('Rounded buttons with the category names (the usual).')], 'circles' => [__('Circles'), __('A round photo or icon for each category with its name under it.')]] as $key => [$label, $hint])
+                        <label class="flex cursor-pointer items-start gap-2 rounded-xl border border-navy-100 p-3 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+                            <input type="radio" name="menu_category_style" value="{{ $key }}" class="mt-1 accent-brand-600" @checked(($s['menu_category_style'] === 'circles' ? 'circles' : 'chips') === $key)>
+                            <span><span class="block font-bold">{{ $label }}</span><span class="block text-xs text-navy-500">{{ $hint }}</span></span>
+                        </label>
+                    @endforeach
+                </div>
+                <p class="mt-1 text-xs text-navy-500">{{ __('A category shows its photo in the circle, else the icon you pick for it on the menu page.') }}</p>
+            </fieldset>
             {{-- badges as quick filter chips on the menu (App\Support\ItemBadges) --}}
             <fieldset data-badge-filters>
                 <input type="hidden" name="badge_filters_sent" value="1">
@@ -227,6 +240,9 @@
             <div class="max-w-md">
                 <input type="hidden" name="look_sent" value="1">
                 <label class="mb-3 flex items-center gap-2 text-sm"><input type="checkbox" name="item_placeholder" value="1" @checked($s['item_placeholder'] !== '0') class="size-4 accent-brand-600"> {{ __('Show a neat icon for items without a photo') }}</label>
+                <label class="mb-3 flex items-start gap-2 text-sm"><input type="checkbox" name="menu_best_sellers" value="1" @checked($s['menu_best_sellers'] !== '0') class="mt-0.5 size-4 accent-brand-600" data-best-sellers-toggle>
+                    <span>{{ __('Show "Most ordered 🔥" on top of the menu') }}<span class="block text-xs text-navy-500">{{ __('From your real orders of the last 7 days in each branch. Until there are enough orders, your recommended items show instead.') }}</span></span>
+                </label>
                 <label class="field-label" for="menu_intro">{{ __('Opening animation of the menu') }}</label>
                 <select class="field" name="menu_intro" id="menu_intro">
                     @foreach (['logo' => __('Your logo rises over your color (light)'), 'full' => __('Logo, pattern and your tagline (full)'), 'off' => __('Off')] as $key => $label)

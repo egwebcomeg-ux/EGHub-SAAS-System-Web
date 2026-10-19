@@ -82,6 +82,11 @@ final class Settings
         'menu_layout' => 'auto',
         // tapping an item: simple (the bottom sheet) | pro (a full item page with its own link; plan feature menu_themes)
         'menu_display' => 'simple',
+        // the category row of the menu: chips (rounded text buttons, the default for every restaurant) | circles
+        // (a round photo or icon per category with its name under it)
+        'menu_category_style' => 'chips',
+        // "الأكثر طلباً" on top of the menu from real sales of the branch (App\Services\Menu\BestSellers); '0' = off
+        'menu_best_sellers' => '1',
         // badges shown as quick filter chips on the menu (App\Support\ItemBadges): JSON list of keys, empty = off
         'menu_badge_filters' => '',
         // the banner strip plays as a slideshow (2+ banners); the ticker then stands still (App\Support\MenuTicker)
