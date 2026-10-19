@@ -3842,5 +3842,6 @@
     "Setup with you and training for your team": "تجهيز معاك وتدريب لفريقك",
     "Includes one branch and :users users": "فيها فرع واحد و :users مستخدمين",
     "Includes :branches branches and :users users": "فيها :branches فروع و :users مستخدمين",
-    "A coupon code or notes": "كود خصم أو ملاحظات"
+    "A coupon code or notes": "كود خصم أو ملاحظات",
+    ":lines items · :pieces pieces": ":lines أصناف · :pieces قطعة"
 }

@@ -750,16 +750,20 @@ if (dataEl) {
         $('[data-waiter-lines]', waiterView).innerHTML = cart.map((l) => {
             const item = M.items[l.item_id];
             const opts = optionNames(item, l.option_ids);
-            return `<li class="flex items-start gap-4 py-4">
-                <span class="m-qty m-primary shrink-0 text-2xl" style="min-width:3.75rem;height:3.75rem" dir="ltr">${l.qty}×</span>
+            const price = H.prices ? `<span class="m-muted shrink-0 text-sm font-bold">${fmt(unitPrice(item, l.option_ids) * l.qty)}</span>` : '';
+            return `<li class="flex items-center gap-3 py-3">
+                <span class="m-qty m-primary shrink-0" style="min-width:2.75rem;height:2.75rem;font-size:1.15rem" dir="ltr">${l.qty}×</span>
                 <div class="min-w-0 flex-1">
-                    <div class="text-2xl font-black leading-snug">${esc(item.name)}</div>
-                    ${opts ? `<div class="m-muted mt-0.5 text-lg font-semibold">${esc(opts)}</div>` : ''}
-                    ${l.notes ? `<div class="m-primary-text mt-0.5 text-lg font-bold">✎ ${esc(l.notes)}</div>` : ''}
+                    <div class="text-lg font-extrabold leading-snug">${esc(item.name)}</div>
+                    ${opts ? `<div class="m-muted text-sm font-semibold">${esc(opts)}</div>` : ''}
+                    ${l.notes ? `<div class="m-primary-text text-sm font-bold">✎ ${esc(l.notes)}</div>` : ''}
                 </div>
+                ${price}
             </li>`;
         }).join('');
         const t = totals();
+        const pieces = cart.reduce((n, l) => n + l.qty, 0);
+        $('[data-waiter-count]', waiterView).textContent = T.waiterCount.replace('__L__', cart.length).replace('__Q__', pieces);
         $('[data-waiter-total]', waiterView).innerHTML = H.prices
             ? `<div class="flex justify-between font-black"><span>${esc(T.total)}</span><span>${fmt(t.total)}</span></div>` : '';
         $('[data-waiter-time]', waiterView).textContent = new Date().toLocaleTimeString(document.documentElement.lang || undefined, { hour: 'numeric', minute: '2-digit' });

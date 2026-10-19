@@ -559,21 +559,26 @@
 @if ($hall['mode'] === 'list')
     {{-- the list in big type for the waiter (Desoky / Gold read-out) --}}
     <dialog class="m-surface m-0 h-dvh max-h-none w-full max-w-none p-0 backdrop:bg-black" data-waiter-view aria-label="{{ __('Show the waiter') }}">
-        <div class="mx-auto flex min-h-full max-w-xl flex-col px-5 pt-6 pb-8">
-            <div class="text-center">
-                <div class="m-muted text-sm font-bold">{{ $brand }}</div>
+        {{-- the order shown to the waiter: a compact header, a list that scrolls, the total and buttons always on screen --}}
+        <div class="mx-auto flex h-full max-w-xl flex-col">
+            <div class="m-border flex items-center justify-between gap-3 border-b px-5 pt-5 pb-3">
+                <div class="min-w-0">
+                    <div class="truncate text-lg font-black">{{ $brand }}</div>
+                    <div class="m-muted text-sm"><span data-waiter-count></span> · <span data-waiter-time></span></div>
+                </div>
                 @if ($table)
-                    <div class="m-primary mx-auto mt-2 inline-block rounded-2xl px-6 py-2 text-3xl font-black">{{ __('Table :name', ['name' => $table->name]) }}</div>
+                    <div class="m-primary shrink-0 rounded-2xl px-4 py-2 text-xl font-black">{{ __('Table :name', ['name' => $table->name]) }}</div>
                 @endif
-                <div class="m-muted mt-2 text-xs" data-waiter-time></div>
             </div>
-            <ul class="m-divide mt-5 flex-1 divide-y" data-waiter-lines></ul>
-            <div class="m-border mt-4 border-t pt-3 text-lg" data-waiter-total></div>
-            <div class="mt-6 grid gap-2">
-                @if ($calls)
-                    <button type="button" class="m-primary min-h-14 w-full rounded-2xl text-lg font-extrabold" data-call="waiter" data-hall-call>🛎 {{ __('Call the waiter') }}</button>
-                @endif
-                <button type="button" class="btn-ghost min-h-14 w-full text-lg" data-waiter-close>{{ __('Back') }}</button>
+            <ul class="m-divide flex-1 divide-y overflow-y-auto px-5" data-waiter-lines></ul>
+            <div class="m-border border-t px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+                <div class="text-lg" data-waiter-total></div>
+                <div class="mt-3 grid gap-2 @if ($calls) grid-cols-2 @endif">
+                    @if ($calls)
+                        <button type="button" class="m-primary min-h-12 w-full rounded-2xl font-extrabold" data-call="waiter" data-hall-call>🛎 {{ __('Call the waiter') }}</button>
+                    @endif
+                    <button type="button" class="btn-ghost min-h-12 w-full" data-waiter-close>{{ __('Back') }}</button>
+                </div>
             </div>
         </div>
     </dialog>
@@ -681,7 +686,7 @@
         'phoneRequired' => __('Enter your mobile number so the restaurant can reach you.'),
         'payFromBalance' => __('Pay from my balance'), 'notEnoughBalance' => __('Not enough balance for this order.'),
         'contains' => __('Contains:'), 'spicy' => __('Spicy'),
-        'myOrder' => __('My order'), 'yourOrder' => __('Your order'), 'viewOrder' => __('View order'),
+        'myOrder' => __('My order'), 'yourOrder' => __('Your order'), 'waiterCount' => __(':lines items · :pieces pieces', ['lines' => '__L__', 'pieces' => '__Q__']), 'viewOrder' => __('View order'),
         'people' => __('How many are you?'), 'names' => __('Your names (optional)'), 'person' => __('Person :n', ['n' => '__N__']),
         'equal' => __('Equally'), 'byItems' => __('By what each one ordered'), 'whoOrdered' => __('Who ordered what?'),
         'whoHint' => __('Tap the people under each item. A shared item is divided between the people you pick.'),
