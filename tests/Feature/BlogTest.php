@@ -110,10 +110,13 @@ class BlogTest extends TenantTestCase
     {
         $this->seed(BlogSeeder::class);
         $this->seed(BlogSeeder::class);
-        $this->assertSame(3, Post::query()->count());
+        $this->assertSame(13, Post::query()->count());
+        $this->assertSame(13, Post::query()->published()->count());
         foreach (Post::query()->get() as $post) {
             $this->get($this->menuUrl('blog/'.$post->slug))->assertOk()->assertSee('<h2', false);
             $this->assertGreaterThanOrEqual(2, $post->readingMinutes());
+            $this->assertStringNotContainsString('منيوك', $post->title.$post->excerpt.$post->body);
         }
+        $this->assertSame('food-cost-menu-pricing', Post::query()->published()->value('slug'));
     }
 }
