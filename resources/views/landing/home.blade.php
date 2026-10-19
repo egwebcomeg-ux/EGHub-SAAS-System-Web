@@ -12,7 +12,7 @@
         'menu' => __('Put the menu online in your guests’ languages, on paper and on the TVs, and keep every copy up to date from one place.'),
         'orders' => __('Orders from the table and from your own link with no commission, and table bookings, on one live board.'),
         'customers' => __('Bring guests back with a stamp card, offers, WhatsApp messages and a prepaid balance.'),
-        'operations' => __('For busier places: a cashier, a self-order tablet, kitchen screens and stock. Add only the ones you need, on top of a paid plan.'),
+        'operations' => __('For busier places and chains: a cashier, a self-order tablet, kitchen screens and stock, in the Enterprise plan set up with you.'),
     ];
 
     $paths = [
@@ -21,12 +21,13 @@
     ];
 
     $faq = [
-        [__('Is the free plan really free?'), __('Yes. Your menu stays online with its QR codes at no cost and with no time limit, with a small egmenu badge. You pay only if you choose a paid plan.')],
+        [__('Is the free plan really free?'), __('Yes. Your menu stays online with its QR codes at no cost and with no time limit, with a small egmenu badge. You pay only if you choose the Complete plan.')],
         [__('Do my guests need to download an app?'), __('No. They scan the QR code and the menu opens in the browser.')],
         [__('Do I need special devices?'), __('No. The dashboard works on any phone, tablet or computer, and guests use their own phones.')],
-        [__('What happens after the :days days of Pro?', ['days' => $trial]), __('Nothing breaks. If you do not choose a plan, the account goes back to the free plan: the menu and QR codes keep working and everything you set up is kept.')],
+        [__('What happens after the :days days of the Complete plan?', ['days' => $trial]), __('Nothing breaks. If you do not choose a plan, the account goes back to the free plan: the menu and QR codes keep working and everything you set up is kept.')],
         [__('Can I change prices myself?'), __('Yes, at any time from your dashboard. The QR menu, the printed menu and the TV screens all update.')],
-        [__('How do I pay the subscription?'), __('By Vodafone Cash or InstaPay from your dashboard. Paying for 6 or 12 months gets a discount.')],
+        [__('How do I pay the subscription?'), __('By Vodafone Cash or InstaPay from your dashboard. Paying for a whole year at once gets a discount.')],
+        [__('I have a chain or a busy kitchen. Which plan is mine?'), __('Enterprise: the POS, kitchen screens, the kiosk, the call center, stock and more than 5 branches, set up with you. Message us and we agree a price for your place.')],
         [__('I run a cafe or a shop, not a restaurant. Is EgMenu for me?'), __('Yes. When you sign up you choose cafe, restaurant, both or a shop (a bakery, a butcher, a juice bar), and EgMenu sets up the right categories, a bar or prep screen instead of a kitchen and a loyalty card ready to switch on.')],
         [__('Is my data safe?'), __('Every restaurant’s data is kept separate and is visible only to its own staff, each with the permissions you give them.')],
     ];
@@ -44,7 +45,7 @@
                 <a href="{{ route('register') }}" class="btn-primary min-h-12 rounded-full px-7 text-base">{{ __('Start free') }}</a>
                 <a href="{{ route('features') }}" class="btn-ghost min-h-12 rounded-full px-6 text-base">{{ __('See the features') }}</a>
             </div>
-            <p class="mt-4 text-sm text-navy-500" data-reveal style="--d: 280ms">{{ __('No card, no contract. :days days of Pro included.', ['days' => $trial]) }}</p>
+            <p class="mt-4 text-sm text-navy-500" data-reveal style="--d: 280ms">{{ __('No card, no contract. :days days of the Complete plan included.', ['days' => $trial]) }}</p>
         </div>
 
         <div class="relative">
@@ -240,23 +241,35 @@
             <h2 class="lp-h2 mt-3">{{ __('Start free. Pay only when you need more.') }}</h2>
             <p class="lp-lead mt-3">{{ __('Clear prices in Egyptian pounds, with no commission on your orders.') }}</p>
         </div>
-        <ul class="mt-10 grid gap-3 lg:grid-cols-5">
+        <ul class="mt-10 grid gap-3 lg:grid-cols-3" data-home-plans>
             @foreach ($plans as $p)
-                @php($isFree = (float) $p->monthly_price === 0.0)
+                @php
+                    $isContact = $p->isContactSales();
+                    $isFree = ! $isContact && (float) $p->monthly_price === 0.0;
+                @endphp
                 <li @class(['lp-lift relative flex items-center justify-between gap-3 rounded-2xl border bg-white px-5 py-4 lg:flex-col lg:items-start lg:justify-start lg:py-5',
                             'border-emerald-600 ring-1 ring-emerald-600' => $isFree, 'border-navy-800 ring-1 ring-navy-800' => !$isFree && $p->is_featured, 'border-navy-100' => !$isFree && !$p->is_featured])
-                    data-reveal style="--d: {{ $loop->index * 60 }}ms">
+                    data-home-plan="{{ $p->code }}" data-reveal style="--d: {{ $loop->index * 60 }}ms">
                     <span class="flex min-w-0 flex-col">
                         <b class="text-lg font-black text-navy-900">{{ $p->displayName() }}</b>
                         @if ($isFree)
                             <span class="text-xs font-bold text-emerald-700">{{ __('Free forever, no card') }}</span>
+                        @elseif ($isContact)
+                            <span class="text-xs font-bold text-navy-600">{{ __('For chains and busy kitchens') }}</span>
                         @elseif ($p->is_featured)
                             <span class="text-xs font-bold text-navy-600">{{ __('Most popular') }}</span>
                         @endif
                     </span>
                     <span class="shrink-0 text-end lg:text-start">
-                        <b class="text-2xl font-black tracking-tight text-navy-900" dir="ltr">{{ money($p->monthly_price) }}</b>
-                        <span class="text-sm font-semibold text-navy-500">{{ __('EGP / month') }}</span>
+                        @if ($isContact)
+                            <a href="{{ $p->contactUrl() }}" target="_blank" rel="noopener" class="text-lg font-black text-brand-700 hover:text-brand-800" data-contact-sales-link>{{ __('Contact us') }}</a>
+                        @else
+                            <b class="text-2xl font-black tracking-tight text-navy-900" dir="ltr">{{ money($p->monthly_price) }}</b>
+                            <span class="text-sm font-semibold text-navy-500">{{ __('EGP / month') }}</span>
+                            @if ((float) $p->monthly_price > 0 && $p->priceFor(12) < $p->monthly_price * 12)
+                                <span class="block text-xs font-semibold text-emerald-700">{{ __('or :total EGP a year', ['total' => money($p->priceFor(12))]) }}</span>
+                            @endif
+                        @endif
                     </span>
                 </li>
             @endforeach
@@ -265,7 +278,7 @@
             <a href="{{ route('pricing') }}" class="btn-primary min-h-12 rounded-full px-7 text-base">{{ __('See prices') }}</a>
             <a href="{{ route('pricing') }}#calculator" class="btn-ghost min-h-12 rounded-full px-6 text-base">{{ __('Work out what you save') }}</a>
         </div>
-        <p class="mt-4 text-center text-sm text-navy-500">{{ __('By Vodafone Cash or InstaPay from your dashboard. Paying for 6 or 12 months gets a discount.') }}</p>
+        <p class="mt-4 text-center text-sm text-navy-500">{{ __('By Vodafone Cash or InstaPay from your dashboard. Paying for a whole year at once gets a discount.') }}</p>
     </div>
 </section>
 

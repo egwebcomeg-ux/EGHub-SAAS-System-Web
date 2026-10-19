@@ -116,6 +116,7 @@ class PlansController extends Controller
             'original_price' => $data['original_price'] ?? null, 'sort_order' => $data['sort_order'] ?? $plan->sort_order,
             'cycle_discounts' => ['6' => (float) ($data['discount_6'] ?? 0), '12' => (float) ($data['discount_12'] ?? 0)],
             'is_public' => $request->boolean('is_public'), 'is_featured' => $request->boolean('is_featured'),
+            'contact_sales' => $request->boolean('contact_sales'),
         ]);
 
         $on = $data['features'] ?? [];

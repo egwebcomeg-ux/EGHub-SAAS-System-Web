@@ -20,14 +20,20 @@
                     <div class="flex flex-wrap gap-1">
                         @if ($p->is_featured)<span class="badge bg-brand-100 text-brand-700">{{ __('Most popular') }}</span>@endif
                         @unless ($p->is_public)<span class="badge bg-navy-100 text-navy-600">{{ __('Hidden from pricing') }}</span>@endunless
+                        @if ($p->contact_sales)<span class="badge bg-amber-100 text-amber-800" data-plan-contact>{{ __('Contact sales') }}</span>@endif
                     </div>
                 </div>
                 <span class="badge shrink-0 bg-navy-50 text-navy-700" title="{{ __('Restaurants on this plan') }}">{{ __(':count restaurants', ['count' => (int) ($restaurants[$p->id] ?? 0)]) }}</span>
             </div>
             <div>
-                <span class="text-3xl font-black">{{ money($p->monthly_price) }}</span>
-                <span class="text-sm text-navy-500">{{ __('EGP / month') }}</span>
-                @if ($p->original_price)<span class="ms-1 text-sm text-navy-400 line-through">{{ money($p->original_price) }}</span>@endif
+                @if ($p->contact_sales)
+                    <span class="text-2xl font-black">{{ __('By agreement') }}</span>
+                    <span class="block text-xs text-navy-500">{{ __('Shown as “Contact us”; assign it from the restaurant’s page.') }}</span>
+                @else
+                    <span class="text-3xl font-black">{{ money($p->monthly_price) }}</span>
+                    <span class="text-sm text-navy-500">{{ __('EGP / month') }}</span>
+                    @if ($p->original_price)<span class="ms-1 text-sm text-navy-400 line-through">{{ money($p->original_price) }}</span>@endif
+                @endif
             </div>
             <dl class="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
                 @foreach (\App\Models\Plan::LIMITS as $key => $_)
@@ -58,7 +64,7 @@
                     @foreach ($plans as $p)
                         <th class="sticky top-0 z-10 w-[12%] border-b border-navy-100 bg-white px-3 py-2 text-center">
                             <a href="{{ route('admin.plans.edit', $p) }}" class="font-extrabold text-navy-900 hover:text-brand-700">{{ $p->displayName() }}</a>
-                            <div class="text-xs font-normal text-navy-500">{{ money($p->monthly_price) }}</div>
+                            <div class="text-xs font-normal text-navy-500">{{ $p->contact_sales ? __('By agreement') : money($p->monthly_price) }}</div>
                         </th>
                     @endforeach
                 </tr>

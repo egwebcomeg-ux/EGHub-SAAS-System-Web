@@ -113,13 +113,14 @@ class ModulePickerTest extends TenantTestCase
         $a = $this->restaurant('cafe-a', 'starter');
         $owner = $this->owner($a);
         $planBefore = Subscription::query()->where('tenant_id', 'cafe-a')->value('plan_id');
-        $expected = Plan::query()->where('code', 'basic')->value('monthly_price') + AddonPrice::query()->where('key', 'pos_pack')->value('monthly_price');
+        // more branches: the Complete plan plus the extra-branch add-on (an older plan is never suggested)
+        $expected = Plan::query()->where('code', 'full')->value('monthly_price') + AddonPrice::query()->where('key', 'branches')->value('monthly_price');
 
-        $this->actingAs($owner)->get($this->dashUrl('/modules/summary?modules[]=pos'))->assertOk()
-            ->assertSee('data-summary-missing-module="pos"', false)
+        $this->actingAs($owner)->get($this->dashUrl('/modules/summary?modules[]=multi-branch'))->assertOk()
+            ->assertSee('data-summary-missing-module="multi-branch"', false)
             ->assertDontSee('data-summary-missing-module="qr-menu"', false)
-            ->assertSee('data-summary-best="basic"', false)
-            ->assertSee('data-summary-addon="pos_pack"', false)
+            ->assertSee('data-summary-best="full"', false)
+            ->assertSee('data-summary-addon="branches"', false)
             ->assertSee(__('About :price EGP / month', ['price' => money($expected)]))
             ->assertSee(route('dash.billing'), false);
 
@@ -136,17 +137,13 @@ class ModulePickerTest extends TenantTestCase
             ->assertSee('href="'.route('dash.billing').'" data-home-module="pos"', false);
     }
 
-    public function test_one_plan_beats_a_pile_of_add_ons_when_it_costs_about_the_same(): void
+    public function test_modules_in_the_complete_plan_point_to_it_with_no_add_ons(): void
     {
         $a = $this->restaurant('cafe-a', 'starter');
-        $basicMix = Plan::query()->where('code', 'basic')->value('monthly_price')
-            + AddonPrice::query()->whereIn('key', ['reservations_pack', 'offers_pack'])->sum('monthly_price');
-        $pro = (float) Plan::query()->where('code', 'pro')->value('monthly_price');
-        $this->assertGreaterThan($basicMix, $pro, 'the seeded prices make Basic + two packs the strictly cheapest mix');
-        $this->assertLessThanOrEqual(50, $pro - $basicMix);
 
+        // feature packs are off sale, so the Complete plan alone covers bookings and offers
         $this->actingAs($this->owner($a))->get($this->dashUrl('/modules/summary?modules[]=reservations&modules[]=offers'))->assertOk()
-            ->assertSee('data-summary-best="pro"', false)->assertDontSee('data-summary-addon=', false);
+            ->assertSee('data-summary-best="full"', false)->assertDontSee('data-summary-addon=', false)->assertDontSee('data-summary-contact', false);
     }
 
     public function test_staff_without_the_settings_permission_never_see_or_change_the_step(): void

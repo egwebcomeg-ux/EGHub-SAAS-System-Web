@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Assistant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -22,14 +23,14 @@ class Plan extends Model
         'online_ordering' => ['طلب أونلاين (تيك أواي وتوصيل) من غير عمولة', 'Online ordering (takeaway & delivery), no commission', 'orders'],
         'scheduled_orders' => ['طلب بميعاد (العميل يختار وقت الاستلام)', 'Scheduled orders (guest picks the time)', 'orders'],
         'reservations' => ['حجز ترابيزات أونلاين', 'Table reservations', 'orders'],
-        // operations: sold as add-on packs on top of any plan (AddonPrice type=feature), off in the plans by default
+        'delivery_zones' => ['مناطق التوصيل ورسوم كل منطقة', 'Delivery zones and fees', 'orders'],
+        // operations: in the Enterprise plan only (older subscribers may still hold them as add-on packs)
         'pos' => ['كاشير POS', 'POS cashier', 'operations'],
         'shifts' => ['ورديات الكاشير والدرج', 'Cashier shifts & cash drawer', 'operations'],
         'customer_display' => ['شاشة العميل ولوحة أرقام الطلبات', 'Customer display & order-number board', 'operations'],
         'kitchen_display' => ['شاشة المطبخ', 'Kitchen display', 'operations'],
         'kitchen_stations' => ['أقسام مطبخ (شاشة لكل قسم)', 'Kitchen stations (screen per station)', 'operations'],
         'call_center' => ['شاشة الكول سنتر', 'Call-center screen', 'operations'],
-        'delivery_zones' => ['مناطق التوصيل ورسوم كل منطقة', 'Delivery zones and fees', 'operations'],
         'kiosk' => ['كشك طلب ذاتي (تابلت عند الكاشير)', 'Self-order kiosk (tablet at the counter)', 'operations'],
         // menu
         'full_branding' => ['ألوان وخطوط ولوجو المطعم', 'Colors, fonts & logo', 'menu'],
@@ -81,10 +82,10 @@ class Plan extends Model
         'marketing' => ['التسويق والعملاء', 'Marketing & guests'],
         'management' => ['الإدارة', 'Management'],
         'platform' => ['المنصة', 'Platform'],
-        'operations' => ['إضافات التشغيل (تتباع منفصلة)', 'Operations add-ons (sold separately)'],
+        'operations' => ['التشغيل (في باقة Enterprise)', 'Operations (in the Enterprise plan)'],
     ];
 
-    /** Features sold as add-on packs; the plan comparison for guests leaves them out. */
+    /** The operations features (POS, kitchen, kiosk, call center, inventory): only the Enterprise plan has them. */
     public static function addonFeatures(): array
     {
         return array_keys(array_filter(self::FEATURES, fn ($f) => $f[2] === 'operations'));
@@ -100,6 +101,7 @@ class Plan extends Model
             'cycle_discounts' => 'array',
             'is_public' => 'boolean',
             'is_featured' => 'boolean',
+            'contact_sales' => 'boolean',
         ];
     }
 
@@ -113,6 +115,35 @@ class Plan extends Model
     public function displayName(): string
     {
         return app()->getLocale() === 'en' && $this->name_en !== '' ? $this->name_en : $this->name;
+    }
+
+    /** Sold by talking to sales (Enterprise): no public price, no self-subscribe, no dashboard invoice. */
+    public function isContactSales(): bool
+    {
+        return (bool) $this->contact_sales;
+    }
+
+    /** Whether a restaurant may pick this plan and get an invoice for it from its own dashboard. */
+    public function isSelfServe(): bool
+    {
+        return ! $this->isContactSales() && $this->is_public;
+    }
+
+    /**
+     * WhatsApp link to the sales team with a ready message about this plan (the sales number from the super admin
+     * settings, else the support number); the services page when neither is set.
+     */
+    public function contactUrl(?string $restaurant = null): string
+    {
+        $number = Assistant::salesWhatsApp();
+        if ($number === '') {
+            return route('services').'#request';
+        }
+        $message = $restaurant
+            ? __('Hello, I would like to know about the :plan plan for :restaurant.', ['plan' => $this->displayName(), 'restaurant' => $restaurant])
+            : __('Hello, I would like to know about the :plan plan for my place.', ['plan' => $this->displayName()]);
+
+        return 'https://wa.me/'.$number.'?text='.rawurlencode($message);
     }
 
     public function features(): HasMany

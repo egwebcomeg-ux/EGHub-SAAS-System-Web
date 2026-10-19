@@ -42,11 +42,14 @@ class BillingTest extends TenantTestCase
         $a = $this->restaurant('cafe-a', 'pro', trial: true);
         $owner = $this->owner($a);
 
+        // the older Basic plan is hidden: only the public line-up (or the plan you are on) can be picked
         $this->actingAs($owner)->post($this->dashUrl('/billing/checkout'), ['plan_id' => $this->plan('basic')->id, 'months' => 6])
+            ->assertSessionHasErrors('plan_id');
+        $this->actingAs($owner)->post($this->dashUrl('/billing/checkout'), ['plan_id' => $this->plan('full')->id, 'months' => 6])
             ->assertRedirect();
         $invoice = Invoice::query()->where('tenant_id', 'cafe-a')->firstOrFail();
         $this->assertSame('open', $invoice->status);
-        $this->assertSame(1075.0, $invoice->total);                  // 199 × 6 − 10%, rounded
+        $this->assertSame(6750.0, $invoice->total);                  // 1,250 × 6 − 10%
 
         $this->actingAs($owner)->get($this->dashUrl("/billing/invoices/{$invoice->number}"))->assertOk()->assertSee('egweb@instapay');
         $this->actingAs($owner)->post($this->dashUrl("/billing/invoices/{$invoice->number}/claim"), ['method' => 'instapay', 'reference' => 'TX-123'])
@@ -58,7 +61,7 @@ class BillingTest extends TenantTestCase
         ])->assertSessionHasNoErrors();
 
         $sub = Subscription::query()->where('tenant_id', 'cafe-a')->first();
-        $this->assertSame('basic', $sub->plan->code);
+        $this->assertSame('full', $sub->plan->code);
         $this->assertSame('active', $sub->status);
         $this->assertSame(6, $sub->cycle_months);
         $this->assertTrue($sub->current_period_end->between(now()->addMonths(6)->subDay(), now()->addMonths(6)->addDay()));

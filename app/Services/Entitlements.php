@@ -54,12 +54,17 @@ final class Entitlements
         $plan = $sub?->plan ?? Plan::query()->with('features')->where('code', self::FALLBACK_PLAN)->first()
             ?? throw new \RuntimeException('Plans are missing — run the PlanSeeder.');
         $e = $plan->entitlements();
-        $packs = AddonPrice::query()->where('type', 'feature')->pluck('features', 'key');
-        // a limit add-on adds `credits` units per pack bought (1 branch, 1 staff account, 50 items, 10 tables)
+        // feature packs and limit packs alike may switch features on (an extra branch brings per-branch prices)
+        $packs = AddonPrice::query()->whereIn('type', ['feature', 'limit'])->pluck('features', 'key');
+        // a limit add-on adds `credits` units per pack bought (1 branch, 5 staff accounts, 50 items, 10 tables)
         $units = AddonPrice::query()->where('type', 'limit')->pluck('credits', 'key');
         foreach ($sub?->addons ?? [] as $addon) {
             if (array_key_exists($addon->key, $e['limits']) && $e['limits'][$addon->key] !== null) {
                 $e['limits'][$addon->key] += $addon->quantity * max(1, (int) ($units[$addon->key] ?? 1));
+            }
+            // every extra branch comes with its own staff accounts
+            if ($addon->key === 'branches' && $e['limits']['staff'] !== null) {
+                $e['limits']['staff'] += $addon->quantity * AddonPrice::STAFF_PER_EXTRA_BRANCH;
             }
             // feature packs (POS, kitchen display, ...) switch their features on, whatever the plan
             foreach ((array) ($packs[$addon->key] ?? []) as $feature) {

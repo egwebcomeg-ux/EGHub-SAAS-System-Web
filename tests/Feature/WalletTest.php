@@ -64,7 +64,7 @@ class WalletTest extends TenantTestCase
         $this->get($this->subUrl('cafe-a', 'gift/ABCDEFGHJKMN'))->assertNotFound();
 
         app(Billing::class)->setAddon($tenant, 'wallet_pack', 1);
-        $this->actingAs($owner)->get($this->dashUrl('/wallet'))->assertOk()->assertSee('المحفظة وكروت الهدايا');
+        $this->actingAs($owner)->get($this->dashUrl('/wallet'))->assertOk()->assertSee('المحفظة')->assertSee('كروت هدايا');
         $this->actingAs($owner)->get($this->dashUrl('/pos'))->assertOk()->assertSee('data-topup-open', false)->assertSee('data-method="credit"', false);
         $waiter = $this->staff($tenant, 'waiter', 'w@a.test');
         $this->actingAs($waiter)->get($this->dashUrl('/wallet'))->assertForbidden();

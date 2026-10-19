@@ -11,7 +11,7 @@ class RoutingTest extends TenantTestCase
 {
     public function test_landing_lists_plans_from_the_database(): void
     {
-        $this->get($this->menuUrl())->assertOk()->assertSee(['99', '199', '399', '799'])->assertSee('أسئلة شائعة');
+        $this->get($this->menuUrl())->assertOk()->assertSee(['1,250', '12,000'])->assertSee('أسئلة شائعة');
         $this->get($this->menuUrl('terms'))->assertOk()->assertSee('EgWeb');
         $this->get($this->menuUrl('privacy?lang=en'))->assertOk()->assertSee('Personal Data Protection Law');
     }

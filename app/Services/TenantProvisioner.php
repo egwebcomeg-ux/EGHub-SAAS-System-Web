@@ -15,14 +15,14 @@ use App\Support\BusinessType;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Creates a ready-to-use restaurant: tenant (slug), owner account, 14-day Pro trial, default settings,
+ * Creates a ready-to-use restaurant: tenant (slug), owner account, 14-day Complete trial, default settings,
  * a main branch and its first tables. The menu itself is added by the owner (or imported).
  */
 final class TenantProvisioner
 {
     public const TRIAL_DAYS = 14;
 
-    public const TRIAL_PLAN = 'pro';
+    public const TRIAL_PLAN = 'full';
 
     public const STARTER_TABLES = 5;
 

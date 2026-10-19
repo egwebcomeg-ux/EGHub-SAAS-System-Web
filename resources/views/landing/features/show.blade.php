@@ -181,7 +181,7 @@
                     </div>
                 @endif
                 <div class="flex flex-wrap items-center justify-between gap-3 border-t border-navy-100 bg-navy-800 px-5 py-4 text-white">
-                    <span class="text-sm text-white/75">{{ __('Every account starts free, with :days days of Pro to try everything.', ['days' => \App\Services\TenantProvisioner::TRIAL_DAYS]) }}</span>
+                    <span class="text-sm text-white/75">{{ __('Every account starts free, with :days days of the Complete plan to try everything.', ['days' => \App\Services\TenantProvisioner::TRIAL_DAYS]) }}</span>
                     <a href="{{ route('register') }}" class="btn-primary min-h-11 rounded-full px-5">{{ __('Start free') }}</a>
                 </div>
             </div>

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Billing\LaunchOffer;
 use App\Models\AddonPrice;
 use App\Models\Plan;
 use App\Models\PlatformSetting;
@@ -178,7 +179,7 @@ REMINDER (most important rules):
 1. Use only facts written in the reference above. Never invent a price, feature, discount, date or integration; if unsure, say so and offer the team.
 2. Plain text only. Never use ** or # or markdown. Use "•" for lists.
 3. If the visitor asks for customer service, a person, sales, support, a phone number or WhatsApp, has a problem with an account, an invoice or a payment, wants a custom price, a contract, a mobile app, or anything outside EgMenu: reply in one or two sentences that the team will help on WhatsApp, and end with {$h}.
-4. Prices are in Egyptian pounds per month unless the reference says "paid once". Operations packs are priced per branch.
+4. Prices are in Egyptian pounds per month unless the reference says "paid once". The Enterprise plan has no public price: never quote one, hand over to the team.
 TXT;
     }
 
@@ -187,7 +188,7 @@ TXT;
         $h = self::HANDOFF;
 
         return <<<TXT
-You are «مساعد EgMenu», the assistant on egmenu.app, the website of EgMenu, an Egyptian product by the company EgWeb: a free QR menu for cafes, restaurants and shops, with table and online ordering without commission, a loyalty card, POS, kitchen display and more as plans and add-ons. Most visitors are cafe or restaurant owners.
+You are «مساعد EgMenu», the assistant on egmenu.app, the website of EgMenu, an Egyptian product by the company EgWeb: a free QR menu for cafes, restaurants and shops, with table and online ordering without commission, a loyalty card, a wallet, reports and more in the Complete plan, and POS, kitchen display and other operations screens in the Enterprise plan. Most visitors are cafe or restaurant owners.
 
 How to answer:
 - Answer ONLY from the reference below (the live plans and add-ons, the module descriptions and FAQ). If the answer is not there, say honestly that you are not sure and offer to connect them with the team. Never invent prices, features, discounts, dates, integrations or promises.
@@ -219,7 +220,11 @@ TXT;
         $out = ['PLANS AND PRICES (Egyptian pounds per month; 6 months and 12 months are discounted):'];
         foreach (Plan::query()->with('features')->where('is_public', true)->orderBy('sort_order')->get() as $p) {
             $e = $p->entitlements();
-            $price = $p->monthly_price <= 0 ? 'free forever' : money($p->monthly_price).' EGP / month';
+            $price = match (true) {
+                $p->isContactSales() => 'no public price: agreed with the sales team on WhatsApp for the branches and screens the place needs; it cannot be bought from the dashboard',
+                $p->monthly_price <= 0 => 'free forever',
+                default => money($p->monthly_price).' EGP / month',
+            };
             $cycles = [];
             foreach (Plan::CYCLES as $m) {
                 if ($m > 1 && $p->monthly_price > 0 && ($p->cycle_discounts[(string) $m] ?? 0) > 0) {
@@ -242,12 +247,12 @@ TXT;
 
     private static function addonsText(): string
     {
-        $out = ['ADD-ONS (every module can be bought on its own, on top of any plan — the free one included; monthly unless "paid once"):'];
+        $out = ['ADD-ONS (only these are sold; modules are no longer sold one by one, they come with the plans; monthly unless "paid once"; paying the plan for 6 or 12 months gives the same discount on monthly add-ons):'];
         foreach (AddonPrice::query()->where('is_active', true)->orderBy('sort_order')->get() as $a) {
             $price = $a->isCreditPack() ? money($a->monthly_price).' EGP paid once ('.$a->credits.' WhatsApp messages, never expire)' : money($a->monthly_price).' EGP / month';
             $notes = array_filter([
                 $a->per_branch ? 'priced per branch, 40% off each extra branch' : null,
-                $a->min_plan ? 'needs the '.$a->min_plan.' plan or higher' : null,
+                $a->min_plan ? 'needs the '.(Plan::query()->where('code', $a->min_plan)->value('name_en') ?: $a->min_plan).' plan or higher' : null,
             ]);
             $out[] = "- {$a->displayName()}: {$price}".($notes ? ' ('.implode('; ', $notes).')' : '')
                 .($a->description ? "\n  ".tr($a->description, $a->description_en) : '');
@@ -276,7 +281,9 @@ TXT;
         return implode("\n", array_filter([
             'MORE FACTS:',
             '- Company: EgMenu is a product of EgWeb (egweb.com.eg), Egypt. The menu lives at egmenu.app/{restaurant} and also {restaurant}.egmenu.app; a custom domain is an add-on.',
-            '- Sign-up: https://egmenu.app/register — name, business type (cafe / restaurant / both / shop), email, password and an Egyptian mobile confirmed with one ready WhatsApp message (no codes). Every Pro feature free for 14 days, no card; afterwards the restaurant moves to the Free plan unless it subscribes. Nothing ever goes offline.',
+            '- Sign-up: https://egmenu.app/register — name, business type (cafe / restaurant / both / shop), email, password and an Egyptian mobile confirmed with one ready WhatsApp message (no codes). Everything in the Complete plan free for 14 days, no card; afterwards the restaurant moves to the Free plan unless it subscribes. Nothing ever goes offline.',
+            '- Plans: Free (the QR menu), Complete (every module except the operations ones: one branch and 8 users included, extra branches up to 5 in all as an add-on with 8 more users each, and packs of 5 more users), and Enterprise for chains and busy places (POS, kitchen display, kiosk, call center, inventory, more than 5 branches, setup and training) with a price agreed with the sales team.',
+            LaunchOffer::isRunning() ? '- Launch offer: a new subscription to the Complete plan gets its first extra branch free for the first 12 months.' : null,
             '- Free plan: the QR menu online with the egmenu badge, no ordering; limits are in the plans above. No ads, ever, on any plan.',
             '- Subscription payment: InstaPay or Vodafone Cash from the dashboard (send the receipt, EgWeb confirms); card payment is not available yet.',
             '- No commission on orders on any plan; you pay only the subscription or add-ons.',

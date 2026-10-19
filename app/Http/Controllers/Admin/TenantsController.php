@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Billing\Billing;
 use App\Billing\Credits;
+use App\Billing\LaunchOffer;
 use App\Http\Controllers\Controller;
 use App\Models\AddonPrice;
 use App\Models\AuditLog;
@@ -137,10 +138,14 @@ class TenantsController extends Controller
             'trial_ends_at' => 'nullable|date',
         ]);
 
-        Subscription::query()->updateOrCreate(['tenant_id' => $tenant->id], [
+        $sub = Subscription::query()->updateOrCreate(['tenant_id' => $tenant->id], [
             'plan_id' => $data['plan_id'], 'status' => $data['status'], 'cycle_months' => $data['cycle_months'],
             'current_period_end' => $data['current_period_end'] ?? null, 'trial_ends_at' => $data['trial_ends_at'] ?? null,
         ]);
+        if ($sub->status === 'active') {
+            // a Complete subscription set by hand while the launch offer runs gets it too
+            LaunchOffer::grant($sub->fresh(), $sub->current_period_start ?? now());
+        }
         Entitlements::flush();
 
         return back()->with('ok', __('Subscription updated.'));

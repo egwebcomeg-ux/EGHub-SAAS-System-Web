@@ -47,6 +47,13 @@
         <div class="mt-0.5 text-navy-600">{{ __('About :price EGP / month', ['price' => money($best['total'])]) }}</div>
     @elseif ($coverage['missing'] === [])
         {{ __('Your current plan covers everything you picked.') }}
+    @elseif ($coverage['contact'] ?? null)
+        <div data-summary-contact="{{ $coverage['contact']->code }}">
+            <div class="text-xs font-bold text-navy-600">{{ __('What you picked is in the :plan plan', ['plan' => $coverage['contact']->displayName()]) }}</div>
+            <p class="mt-1 text-navy-700">{{ __('Its price is agreed with you, for the branches and screens you need. It also includes:') }}</p>
+            <div class="mt-2">@include('partials.enterprise-includes', ['listClass' => 'space-y-1.5 text-xs'])</div>
+            <a href="{{ $coverage['contact']->contactUrl(tenant()->name) }}" target="_blank" rel="noopener" class="btn-navy mt-3 w-full" data-contact-sales-link>{{ __('Contact us') }}</a>
+        </div>
     @else
         {{ __('Some of what you picked is not sold in one package yet. Message us and we will sort it out.') }}
     @endif

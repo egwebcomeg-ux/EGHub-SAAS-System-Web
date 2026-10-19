@@ -299,15 +299,33 @@ function setCycle(months) {
         // Same rounding as Plan::priceFor(): the whole cycle is rounded to whole pounds.
         const cycleTotal = months === 1 ? monthly : Math.round(monthly * months * (1 - pct / 100));
         const perMonth = months === 1 ? monthly : Math.round(cycleTotal / months);
+        const saved = nf.format(Math.round(monthly * months - cycleTotal));
+        // data-show-total: the big figure is what the whole cycle costs (12,000 a year), not the monthly equivalent
+        const showTotal = card.hasAttribute('data-show-total') && months > 1;
         const price = $('[data-price]', card);
-        price.textContent = nf.format(perMonth);
+        price.textContent = nf.format(showTotal ? cycleTotal : perMonth);
         if (!still) { price.classList.remove('lp-pop'); void price.offsetWidth; price.classList.add('lp-pop'); }
+        $$('[data-monthly-only]', card).forEach((el) => { el.hidden = months > 1; });
+        const unit = $('[data-unit]', card);
+        if (unit) unit.textContent = (months === 1 ? unit.dataset.unitMonth : unit.dataset.unitCycle) || unit.textContent;
         $('[data-billed]', card).textContent = months === 1
             ? (T.billedMonthly || '')
-            : (T.billedEvery || ':total / :period')
+            : (showTotal ? (T.billedTotal || ':month') : (T.billedEvery || ':total / :period'))
                 .replace(':total', nf.format(cycleTotal))
+                .replace(':month', nf.format(perMonth))
                 .replace(':period', (T.periods || {})[months] || months)
-                .replace(':saved', nf.format(Math.round(monthly * months - cycleTotal)));
+                .replace(':saved', saved);
+    });
+    // any other amount that follows the switch (an extra branch a year): data-monthly, data-discounts, data-t1 / data-tn
+    $$('[data-cycle-text]').forEach((el) => {
+        const monthly = Number(el.dataset.monthly) || 0;
+        let disc = {};
+        try { disc = JSON.parse(el.dataset.discounts || '{}'); } catch { /* none */ }
+        const pct = Number(disc[String(months)] || 0);
+        const total = months === 1 ? monthly : Math.round(monthly * months * (1 - pct / 100));
+        el.textContent = (months === 1 ? el.dataset.t1 : el.dataset.tn || el.dataset.t1 || '')
+            .replace(':total', nf.format(total))
+            .replace(':period', (T.periods || {})[months] || months);
     });
 }
 cycleButtons.forEach((b) => b.addEventListener('click', () => setCycle(Number(b.dataset.cycle))));

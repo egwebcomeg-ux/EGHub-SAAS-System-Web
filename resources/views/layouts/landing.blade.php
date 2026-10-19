@@ -138,6 +138,7 @@
 <main id="main" data-i18n="{{ json_encode([
     'billedMonthly' => __('Billed monthly'),
     'billedEvery' => __(':total EGP for :period, you save :saved EGP'),
+    'billedTotal' => __('That is :month EGP a month, you save :saved EGP'),
     'periods' => collect(\App\Models\Plan::CYCLES)->mapWithKeys(fn ($m) => [$m => cycle_label($m)]),
 ], JSON_UNESCAPED_UNICODE) }}">@yield('page')</main>
 

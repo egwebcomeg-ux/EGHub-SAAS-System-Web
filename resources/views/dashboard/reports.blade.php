@@ -20,7 +20,10 @@
 <div class="dash-head">
     <h1 class="page-title">{{ __('Reports') }}</h1>
     @if ($advanced)
-        <a href="{{ route('dash.reports.export', request()->query()) }}" class="btn-ghost">⬇ {{ __('Export orders (CSV)') }}</a>
+        <div class="dash-head-actions">
+            <a href="#advanced" class="btn-ghost" data-reports-advanced-link>{{ __('Advanced') }} ↓</a>
+            <a href="{{ route('dash.reports.export', request()->query()) }}" class="btn-ghost">⬇ {{ __('Export orders (CSV)') }}</a>
+        </div>
     @endif
 </div>
 

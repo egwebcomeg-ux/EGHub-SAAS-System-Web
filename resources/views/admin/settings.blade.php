@@ -33,6 +33,13 @@
         <p class="mt-2 text-xs text-navy-500">{{ __('The gateway integrations are built in the billing phase; until then these switches only record the choice.') }}</p>
     </div>
 
+    <div class="card grid gap-4 sm:grid-cols-2" data-launch-offer-settings>
+        <h2 class="text-lg font-bold sm:col-span-2">{{ __('Launch offer: second branch free') }}</h2>
+        <label class="flex items-center gap-2 font-semibold"><input type="checkbox" name="launch_offer_branch_enabled" value="1" @checked($s['launch_offer_branch_enabled'] !== '0') class="size-4 accent-brand-600"> {{ __('New Complete subscriptions get their first extra branch free for 12 months') }}</label>
+        <div><label class="field-label">{{ __('Offer ends on (optional)') }}</label><input class="field" type="date" name="launch_offer_branch_ends" value="{{ $s['launch_offer_branch_ends'] }}" dir="ltr"></div>
+        <p class="text-xs text-navy-500 sm:col-span-2">{{ __('Each subscription keeps the end date it got, so switching the offer off later does not take it back from restaurants that already have it.') }}</p>
+    </div>
+
     <div class="card grid gap-4 sm:grid-cols-2">
         <h2 class="text-lg font-bold sm:col-span-2">{{ __('Support contact') }}</h2>
         <div><label class="field-label">{{ __('Support WhatsApp') }}</label><input class="field" name="support_whatsapp" value="{{ $s['support_whatsapp'] }}" dir="ltr" placeholder="010xxxxxxxx"></div>

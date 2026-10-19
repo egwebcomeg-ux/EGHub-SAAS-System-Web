@@ -1,5 +1,5 @@
 {{-- Mona tops up 500 → pays 170 from the balance → her friend scans a 300 gift card → it lands in the friend's balance. --}}
-<x-landing.sc-window :title="__('Wallet and gift cards')" class="top-6 start-5 h-[350px] w-[370px]">
+<x-landing.sc-window :title="__('Wallet')" class="top-6 start-5 h-[350px] w-[370px]">
     <div class="space-y-2 p-3 text-[11px]">
         <div class="flex gap-1.5">
             <div class="flex-1 rounded-lg border border-navy-200 px-2 py-1.5 font-bold" dir="ltr">0101 234 5678</div>

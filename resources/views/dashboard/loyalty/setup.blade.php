@@ -14,6 +14,7 @@
     </div>
     <div class="dash-head-actions">
         <a href="{{ route('dash.coupons') }}" class="btn-ghost">{{ __('Coupons & vouchers') }}</a>
+        @if (\App\Services\Entitlements::current()->allows('membership'))<a href="{{ route('dash.cards') }}#tiers" class="btn-ghost" data-tiers-link>{{ __('Membership tiers') }}</a>@endif
         @if ($program->exists)<a href="{{ tenant()->url('card') }}" target="_blank" rel="noopener" class="btn-ghost">{{ __('Open the guest page') }}</a>@endif
         @can('loyalty.stamp')<a href="{{ route('dash.loyalty.desk') }}" class="btn-primary">{{ __('Counter: stamp a card') }}</a>@endcan
     </div>

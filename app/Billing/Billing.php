@@ -51,14 +51,25 @@ final class Billing
         if ($full - $price > 0) {
             $lines[] = ['label' => __(':pct% discount for :cycle', ['pct' => money($plan->cycle_discounts[(string) $months] ?? 0), 'cycle' => cycle_label($months)]), 'amount' => -round($full - $price, 2)];
         }
-        // add-ons already on the subscription are billed with the plan for the same cycle
+        // add-ons already on the subscription are billed with the plan for the same cycle, with the cycle's discount
+        $pct = (float) ($plan->cycle_discounts[(string) $months] ?? 0);
+        $from = $renewal && $sub->current_period_end?->isFuture() ? $sub->current_period_end : now();
+        $offerUntil = LaunchOffer::until($sub, $plan);
         foreach ($sub?->addons ?? [] as $addon) {
             $price = AddonPrice::query()->where('key', $addon->key)->first();
             // per-branch packs follow the current number of branches
             $unit = $price?->per_branch ? $price->priceFor($tenant) : $addon->unit_price;
-            $lines[] = ['label' => ($price?->displayName() ?? $addon->key).($addon->quantity > 1 ? " × {$addon->quantity}" : '').' — '.cycle_label($months),
-                'amount' => round($unit * $addon->quantity * $months, 2)];
+            $free = $addon->key === LaunchOffer::ADDON ? LaunchOffer::freeMonths($offerUntil, $from, $months) : 0;
+            $charged = $addon->quantity * $months - $free;
             $full += round($unit * $addon->quantity * $months, 2);
+            if ($charged > 0) {
+                $lines[] = ['label' => ($price?->displayName() ?? $addon->key).($addon->quantity > 1 ? " × {$addon->quantity}" : '').' — '.cycle_label($months)
+                    .($pct > 0 ? ' ('.__(':pct% off', ['pct' => money($pct)]).')' : ''),
+                    'amount' => round($unit * $charged * (1 - $pct / 100), 2)];
+            }
+            if ($free > 0) {
+                $lines[] = ['label' => __('Extra branch: launch offer, free until :date', ['date' => local_time($offerUntil, 'Y/m/d')]), 'amount' => 0.0];
+            }
         }
         $credit = $sub && ! $renewal ? $this->credit($sub) : 0.0;
         if ($credit > 0) {
@@ -72,6 +83,10 @@ final class Billing
     /** Open invoice for a plan/cycle; an identical open one is reused, other open plan invoices are voided. */
     public function invoiceForPlan(Tenant $tenant, Plan $plan, int $months): Invoice
     {
+        if ($plan->isContactSales()) {
+            // Enterprise is agreed with sales and set by EgWeb from the super admin, never invoiced from the dashboard
+            throw new \DomainException('The '.$plan->code.' plan is sold through sales only.');
+        }
         $q = $this->quote($tenant, $plan, $months);
 
         return DB::transaction(function () use ($tenant, $plan, $months, $q) {
@@ -100,16 +115,25 @@ final class Billing
      */
     public function invoiceForAddon(Tenant $tenant, AddonPrice $addon, int $quantity = 1): Invoice
     {
-        $sub = $tenant->subscription()->first();
+        $sub = $tenant->subscription()->with('plan')->first();
         $paidPeriod = $sub && $sub->status === 'active' && $sub->current_period_end?->isFuture();
         $months = $paidPeriod ? max(0.1, round(now()->diffInDays($sub->current_period_end) / 30, 2)) : 1;
-        $amount = round($addon->priceFor($tenant) * $quantity * $months);
+        // a paid 6 or 12 months cycle gives its discount to what is added during it
+        $pct = $paidPeriod ? (float) ($sub->plan?->cycle_discounts[(string) $sub->cycle_months] ?? 0) : 0.0;
+        $amount = round($addon->priceFor($tenant) * $quantity * $months * (1 - $pct / 100));
         $label = $addon->displayName().($quantity > 1 ? " × $quantity" : '').' — '
-            .($paidPeriod ? __('until :date', ['date' => local_time($sub->current_period_end, 'Y/m/d')]) : cycle_label(1));
+            .($paidPeriod ? __('until :date', ['date' => local_time($sub->current_period_end, 'Y/m/d')]) : cycle_label(1))
+            .($pct > 0 ? ' ('.__(':pct% off', ['pct' => money($pct)]).')' : '');
         if ($addon->isCreditPack()) {
             // message credits are bought once, whatever the subscription period
             $amount = round((float) $addon->monthly_price * $quantity);
             $label = $addon->displayName().($quantity > 1 ? " × $quantity" : '');
+        } elseif ($this->launchOfferCoversNextBranch($sub, $addon)) {
+            // the first extra branch of a Complete subscription is free while its launch offer lasts
+            $until = $sub->branch_offer_until;
+            $paidMonths = $until->greaterThanOrEqualTo($sub->current_period_end) ? 0 : round($until->diffInDays($sub->current_period_end) / 30, 2);
+            $amount = round($addon->priceFor($tenant) * $paidMonths * (1 - $pct / 100));
+            $label = __('Extra branch: launch offer, free until :date', ['date' => local_time($until, 'Y/m/d')]);
         }
 
         return DB::transaction(function () use ($tenant, $addon, $quantity, $amount, $label) {
@@ -124,6 +148,17 @@ final class Billing
 
             return $invoice->fresh();
         });
+    }
+
+    /** Whether the next extra branch this subscription buys is its first one, inside its launch offer. */
+    public function launchOfferCoversNextBranch(?Subscription $sub, AddonPrice $addon): bool
+    {
+        if ($addon->key !== LaunchOffer::ADDON || ! $sub || $sub->status !== 'active' || ! $sub->branch_offer_until?->isFuture()
+            || ! $sub->current_period_end?->isFuture() || $sub->plan?->code !== LaunchOffer::PLAN) {
+            return false;
+        }
+
+        return (int) $sub->addons()->where('key', LaunchOffer::ADDON)->value('quantity') === 0;
     }
 
     /** Switches an add-on on or off for a restaurant (paid invoice, or EgWeb granting it by hand). */
@@ -221,6 +256,7 @@ final class Billing
             'current_period_start' => $start, 'current_period_end' => $end, 'grace_ends_at' => null, 'reminded_at' => null,
             'period_value' => $invoice->total,
         ]);
+        LaunchOffer::grant($tenant->subscription()->first(), $start);
         if ($tenant->isSuspended()) {
             $tenant->update(['status' => 'active', 'suspended_at' => null]);
         }

@@ -1,17 +1,18 @@
 @extends('layouts.dashboard')
-@section('title', __('Advanced cards'))
+@section('title', __('Wallet'))
 
 @section('content')
 <div class="dash-head">
     <div>
-        <h1 class="page-title">{{ __('Advanced cards') }}</h1>
-        <p class="dash-help">{{ __('Cashback, membership tiers and prepaid packages — all on the same card the guest already has.') }}</p>
+        <h1 class="page-title">{{ __('Wallet') }}</h1>
+        <p class="dash-help">{{ __('Prepaid packages, cashback into the balance and membership tiers, all on the card the guest already has.') }}</p>
     </div>
     <div class="dash-head-actions">
         @if (\App\Services\Entitlements::current()->allows('loyalty_stamps'))<a href="{{ route('dash.coupons') }}" class="btn-ghost">{{ __('Coupons & vouchers') }}</a>@endif
         <a href="{{ route('dash.loyalty.desk') }}" class="btn-ghost">{{ __('Counter') }}</a>
     </div>
 </div>
+@include('dashboard.partials.wallet-tabs')
 
 @if ($errors->any())<div class="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ $errors->first() }}</div>@endif
 

@@ -29,37 +29,62 @@
 @endif
 
 <h2 class="mb-3 text-lg font-bold">{{ __('Choose a plan') }}</h2>
-<div class="grid gap-4 lg:grid-cols-3">
+<div class="grid gap-4 lg:grid-cols-3" data-billing-plans>
     @foreach ($plans as $p)
         @php
             $current = $subscription && $subscription->plan_id === $p->id;
         @endphp
-        <form method="post" action="{{ route('dash.billing.checkout') }}" @class(['card flex flex-col', 'ring-2 ring-brand-500' => $p->is_featured])>
+        @if ($p->isContactSales())
+            <div class="card flex flex-col border-2 border-dashed border-navy-200" data-billing-plan="{{ $p->code }}" data-contact-sales>
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-extrabold">{{ $p->displayName() }}</h3>
+                    @if ($current)<span class="badge bg-navy-800 text-white">{{ __('Current') }}</span>@endif
+                </div>
+                <p class="mt-1 min-h-10 text-sm text-navy-500">{{ tr($p->tagline, $p->tagline_en) }}</p>
+                <div class="my-3 text-2xl font-extrabold">{{ __('Price on request') }}</div>
+                <p class="mb-2 text-sm font-bold text-navy-900">{{ __('Everything in Complete, plus:') }}</p>
+                <div class="mb-5 flex-1">@include('partials.enterprise-includes')</div>
+                <a href="{{ $p->contactUrl(tenant()->name) }}" target="_blank" rel="noopener" class="btn-navy w-full" data-contact-sales-link>{{ __('Contact us') }}</a>
+                <p class="mt-2 text-center text-xs text-navy-500">{{ __('We agree the price with you, then set it up from our side.') }}</p>
+            </div>
+            @continue
+        @endif
+        <form method="post" action="{{ route('dash.billing.checkout') }}" @class(['card flex flex-col', 'ring-2 ring-brand-500' => $p->is_featured]) data-billing-plan="{{ $p->code }}">
             @csrf
             <input type="hidden" name="plan_id" value="{{ $p->id }}">
             <div class="flex items-center justify-between">
                 <h3 class="text-xl font-extrabold">{{ $p->displayName() }}</h3>
                 @if ($current)<span class="badge bg-navy-800 text-white">{{ __('Current') }}</span>@elseif ($p->is_featured)<span class="badge bg-brand-600 text-white">{{ __('Most popular') }}</span>@endif
             </div>
+            @unless ($p->is_public)<p class="mt-1 text-xs font-semibold text-navy-500" data-legacy-plan>{{ __('An older plan: it stays as it is for you, and you can renew it.') }}</p>@endunless
             <p class="mt-1 min-h-10 text-sm text-navy-500">{{ tr($p->tagline, $p->tagline_en) }}</p>
             <div class="my-3"><span class="text-3xl font-extrabold">{{ money($p->monthly_price) }}</span> <span class="text-sm text-navy-500">{{ __('EGP / month') }}</span></div>
+            @if ($p->code === \App\Billing\LaunchOffer::PLAN && \App\Billing\LaunchOffer::isRunning())
+                <p class="mb-3 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800" data-launch-offer>{{ __('Launch offer: the second branch is free for the first 12 months.') }}</p>
+            @endif
 
-            <div class="mb-5 grid grid-cols-3 gap-2" role="radiogroup">
-                @foreach (\App\Models\Plan::CYCLES as $m)
-                    @php
-                        $pct = (float) ($p->cycle_discounts[(string) $m] ?? 0);
-                    @endphp
-                    <label class="cursor-pointer rounded-xl border border-navy-100 p-2 text-center text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
-                        <input type="radio" name="months" value="{{ $m }}" class="sr-only" @checked($m === 1)>
-                        <span class="block font-bold">{{ cycle_label($m) }}</span>
-                        <span class="block text-xs text-navy-500">{{ money($p->priceFor($m)) }}</span>
-                        @if ($pct > 0)<span class="block text-xs font-bold text-emerald-700">-{{ money($pct) }}%</span>@endif
-                    </label>
-                @endforeach
-            </div>
+            @if ((float) $p->monthly_price > 0)
+                <div class="mb-5 grid grid-cols-3 gap-2" role="radiogroup">
+                    @foreach (\App\Models\Plan::CYCLES as $m)
+                        @php
+                            $pct = (float) ($p->cycle_discounts[(string) $m] ?? 0);
+                        @endphp
+                        <label class="cursor-pointer rounded-xl border border-navy-100 p-2 text-center text-sm has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+                            <input type="radio" name="months" value="{{ $m }}" class="sr-only" @checked($m === 1)>
+                            <span class="block font-bold">{{ cycle_label($m) }}</span>
+                            <span class="block text-xs text-navy-500">{{ money($p->priceFor($m)) }}</span>
+                            @if ($pct > 0)<span class="block text-xs font-bold text-emerald-700">-{{ money($pct) }}%</span>@endif
+                        </label>
+                    @endforeach
+                </div>
+            @else
+                <input type="hidden" name="months" value="1">
+            @endif
 
             <div class="mb-5 flex-1">@include('partials.plan-features', ['plan' => $p])</div>
-            <button class="{{ $p->is_featured ? 'btn-primary' : 'btn-navy' }} w-full">{{ $current ? __('Renew') : __('Choose :plan', ['plan' => $p->displayName()]) }}</button>
+            @if ((float) $p->monthly_price > 0)
+                <button class="{{ $p->is_featured ? 'btn-primary' : 'btn-navy' }} w-full">{{ $current ? __('Renew') : __('Choose :plan', ['plan' => $p->displayName()]) }}</button>
+            @endif
         </form>
     @endforeach
 </div>
@@ -78,8 +103,12 @@
                     @if ($qty > 0)<span class="badge bg-emerald-100 text-emerald-800">{{ $addon->isFeaturePack() ? __('Active') : '× ' . $qty }}</span>@endif
                 </div>
                 <p class="mt-1 flex-1 text-sm text-navy-500">{{ tr($addon->description, $addon->description_en) }}</p>
+                @if ($addon->key === 'branches' && $launchOffer)
+                    <p class="mt-2 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-800" data-launch-offer-branch>{{ __('Your first extra branch is free until :date (launch offer).', ['date' => local_time($launchOffer, 'Y/m/d')]) }}</p>
+                @endif
                 @php
                     $myPrice = $addon->priceFor(tenant());
+                    $branchCap = $addon->key === 'branches' && $qty >= \App\Models\AddonPrice::MAX_SELF_SERVE_EXTRA_BRANCHES;
                     $planOk = $addon->availableFor($subscription?->plan);
                     $covered = $addon->isFeaturePack() && $qty === 0 && $addon->features && collect($addon->features)->every(fn ($f) => \App\Services\Entitlements::current()->allows($f));
                 @endphp
@@ -88,7 +117,11 @@
                         <b class="text-lg">{{ money($myPrice) }}</b> <span class="text-sm text-navy-500">{{ __('EGP / month') }}</span>
                         @if ($addon->per_branch && $myPrice > $addon->monthly_price)<span class="block text-xs text-navy-500">{{ __('For all your branches (40% off each extra branch)') }}</span>@endif
                     </span>
-                    @if (! $planOk)
+                    @if ($branchCap)
+                        <a href="{{ $plans->first(fn ($pl) => $pl->isContactSales())?->contactUrl(tenant()->name) ?? route('services') }}" target="_blank" rel="noopener" class="text-xs font-bold text-brand-700" data-branch-cap>{{ __('More than 5 branches? Contact us') }}</a>
+                    @elseif (! $addon->is_active)
+                        <span class="text-xs text-navy-500">{{ __('No longer sold') }}</span>
+                    @elseif (! $planOk)
                         <span class="text-xs text-navy-500">{{ __('Needs the :plan plan', ['plan' => $plans->firstWhere('code', $addon->min_plan)?->displayName()]) }}</span>
                     @elseif ($covered)
                         <span class="badge bg-emerald-100 text-emerald-800">{{ __('Included') }}</span>

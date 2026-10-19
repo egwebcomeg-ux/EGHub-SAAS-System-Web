@@ -66,7 +66,8 @@ class ModulesController extends Controller
     {
         $data = $request->validate([
             'modules' => ['array', 'max:'.count(SiteModules::all())],
-            'modules.*' => ['string', Rule::in(array_keys(SiteModules::all()))],
+            // an old slug of a merged module (a bookmarked link) is still accepted and saved as its new one
+            'modules.*' => ['string', Rule::in(array_merge(array_keys(SiteModules::all()), array_keys(SiteModules::MERGED)))],
         ]);
 
         return array_values($data['modules'] ?? []);

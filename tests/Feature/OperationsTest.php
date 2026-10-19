@@ -177,17 +177,19 @@ class OperationsTest extends TenantTestCase
         $a = $this->restaurant('cafe-a', 'basic');
         $a->subscription()->update(['current_period_end' => now()->addDays(30)]); // prorated: 30 days left = one month
         $owner = $this->owner($a);
-        $this->actingAs($owner)->post($this->dashUrl('/billing/addons/kitchen_pack'))->assertRedirect();
+        // feature packs are off sale since the Complete / Enterprise line-up; the 5-users pack is still sold
+        $this->actingAs($owner)->post($this->dashUrl('/billing/addons/kitchen_pack'))->assertNotFound();
+        $this->actingAs($owner)->post($this->dashUrl('/billing/addons/staff'))->assertRedirect();
         $invoice = Invoice::query()->where('tenant_id', 'cafe-a')->where('kind', 'addon')->firstOrFail();
-        $this->assertSame(149.0, $invoice->total);
+        $this->assertSame(100.0, $invoice->total);
 
         $admin = PlatformAdmin::query()->create(['name' => 'A', 'email' => 'a@egmenu.test', 'password' => 'Secret-pass-123']);
-        $this->actingAs($admin, 'admin')->post($this->adminUrl("/invoices/{$invoice->id}/paid"), ['gateway' => 'manual', 'amount' => 149]);
+        $this->actingAs($admin, 'admin')->post($this->adminUrl("/invoices/{$invoice->id}/paid"), ['gateway' => 'manual', 'amount' => 100]);
         Entitlements::flush();
-        $this->assertTrue(Entitlements::for($a)->allows('kitchen_display'));
+        $this->assertSame(2 + 5, Entitlements::for($a)->limit('staff'));
 
         $quote = app(Billing::class)->quote($a->fresh(), Plan::query()->where('code', 'basic')->first(), 1);
-        $this->assertSame(199.0 + 149.0, $quote['total']); // basic plan + kitchen pack
+        $this->assertSame(199.0 + 100.0, $quote['total']); // basic plan + the users pack
     }
 
     public function test_admin_grants_and_removes_an_add_on(): void
@@ -220,7 +222,8 @@ class OperationsTest extends TenantTestCase
         $this->assertTrue(Entitlements::for($a)->allows('inventory'));
 
         $starter = $this->restaurant('cafe-s', 'starter');
-        $this->actingAs($this->owner($starter))->post($this->dashUrl('/billing/addons/pos_pack'))->assertSessionHasErrors('addon');
+        // operations packs are no longer sold at all (Enterprise has them)
+        $this->actingAs($this->owner($starter))->post($this->dashUrl('/billing/addons/pos_pack'))->assertNotFound();
         $this->assertSame(0, Invoice::query()->where('tenant_id', 'cafe-s')->count());
     }
 }

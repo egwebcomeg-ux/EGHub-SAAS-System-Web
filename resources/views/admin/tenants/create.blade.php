@@ -37,7 +37,7 @@
         <label class="field-label">{{ __('Plan') }}</label>
         <select class="field" name="plan">
             @foreach ($plans as $p)
-                <option value="{{ $p->code }}" @selected(old('plan', 'pro') === $p->code)>{{ $p->displayName() }} — {{ money($p->monthly_price) }} {{ __('EGP') }}</option>
+                <option value="{{ $p->code }}" @selected(old('plan', 'full') === $p->code)>{{ $p->displayName() }} — {{ $p->isContactSales() ? __('Contact sales') : money($p->monthly_price) . ' ' . __('EGP') }}</option>
             @endforeach
         </select>
     </div>

@@ -48,7 +48,8 @@ class AdminPlansPagesTest extends TenantTestCase
 
     public function test_on_sale_switch_flips_only_that_add_on(): void
     {
-        $pack = AddonPrice::query()->where('key', 'kitchen_pack')->sole();
+        // feature packs are off sale since the Complete / Enterprise line-up; the extra branch is still sold
+        $pack = AddonPrice::query()->where('key', 'branches')->sole();
         $features = $pack->features;
         $this->assertTrue($pack->is_active);
 

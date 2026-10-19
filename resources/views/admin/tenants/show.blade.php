@@ -158,7 +158,7 @@
                     <label class="field-label">{{ __('Plan') }}</label>
                     <select class="field" name="plan_id">
                         @foreach ($plans as $p)
-                            <option value="{{ $p->id }}" @selected($sub?->plan_id === $p->id)>{{ $p->displayName() }}</option>
+                            <option value="{{ $p->id }}" @selected($sub?->plan_id === $p->id)>{{ $p->displayName() }}@if ($p->isContactSales()) · {{ __('Contact sales') }}@elseif (! $p->is_public) · {{ __('Older plan') }}@endif</option>
                         @endforeach
                     </select>
                 </div>

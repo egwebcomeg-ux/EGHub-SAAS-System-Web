@@ -16,7 +16,8 @@ class PlansAndEntitlementsTest extends TenantTestCase
 {
     public function test_seeded_plans_prices_and_feature_split(): void
     {
-        $this->assertSame([0.0, 99.0, 199.0, 399.0, 799.0], Plan::query()->orderBy('sort_order')->pluck('monthly_price')->all());
+        // the older plans (hidden since the Complete / Enterprise line-up) keep their prices for their subscribers
+        $this->assertSame([0.0, 99.0, 199.0, 399.0, 799.0], Plan::query()->whereIn('code', ['free', 'starter', 'basic', 'pro', 'business'])->orderBy('sort_order')->pluck('monthly_price')->all());
 
         // starter: the menu to browse, no ordering
         $starter = Entitlements::for($this->restaurant('cafe-starter', 'starter'));
@@ -51,14 +52,14 @@ class PlansAndEntitlementsTest extends TenantTestCase
         $this->assertNull($business->limit('staff'));
     }
 
-    public function test_new_restaurant_gets_a_14_day_pro_trial(): void
+    public function test_new_restaurant_gets_a_14_day_complete_trial(): void
     {
         $tenant = app(TenantProvisioner::class)->create([
             'slug' => 'trial-cafe', 'name' => 'Trial', 'owner_name' => 'O', 'email' => 'o@trial.test', 'password' => 'Secret-pass-123',
         ]);
         $sub = $tenant->subscription;
         $this->assertSame('trialing', $sub->status);
-        $this->assertSame('pro', $sub->plan->code);
+        $this->assertSame('full', $sub->plan->code);
         $this->assertSame(14, $sub->daysLeft());
     }
 

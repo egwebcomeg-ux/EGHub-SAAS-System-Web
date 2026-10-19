@@ -1,16 +1,20 @@
 {{--
     Savings calculator on /pricing. Every figure comes from what the visitor types; the plan prices and the
-    online-ordering add-on come from the database (public plans + AddonPrice online_pack), read the way
-    App\Support\SiteModules::pricing() reads them. Needs $plans, $addons and $matrix from that method.
+    online-ordering add-on come from the database (public plans + AddonPrice online_pack while it is on sale), read
+    the way App\Support\SiteModules::pricing() reads them. Needs $plans, $addons and $matrix from that method.
+    A plan priced with sales (Enterprise) has no price to work with, so it is left out.
 --}}
 @php
     $calcOnlinePack = $addons->firstWhere('key', 'online_pack');
-    $calcPlans = $plans->map(fn ($p) => [
+    $calcSelectable = $plans->reject(fn ($p) => $p->isContactSales())->values();
+    $calcPlans = $calcSelectable->map(fn ($p) => [
         'code' => $p->code,
         'monthly' => (float) $p->monthly_price,
+        // the whole year paid at once, after its discount (Plan::priceFor)
+        'yearly' => (float) $p->priceFor(12),
         'online' => (bool) ($matrix[$p->id]['features']['online_ordering'] ?? false),
     ])->values();
-    $calcDefault = ($plans->firstWhere('is_featured', true) ?? $plans->last())?->code;
+    $calcDefault = ($calcSelectable->firstWhere('is_featured', true) ?? $calcSelectable->last())?->code;
     $calcL10n = [
         'needsOnline' => __('Needs online ordering on your link'),
     ];
@@ -60,10 +64,15 @@
         <div class="rounded-[24px] border border-navy-100 bg-white p-5 sm:p-6">
             <label for="calc-plan" class="flex items-center gap-2 text-lg font-black"><x-landing.icon name="layers" class="size-5 text-brand-600" />{{ __('The plan you would take') }}</label>
             <select id="calc-plan" data-calc-plan class="field mt-3 h-12 font-bold">
-                @foreach ($plans as $p)
+                @foreach ($calcSelectable as $p)
                     <option value="{{ $p->code }}" @selected($p->code === $calcDefault)>{{ $p->displayName() }} · {{ (float) $p->monthly_price === 0.0 ? __('Free') : money($p->monthly_price) . ' ' . __('EGP / month') }}</option>
                 @endforeach
             </select>
+            <label data-calc-yearly-row class="mt-3 flex min-h-11 cursor-pointer items-start gap-3 rounded-xl bg-navy-50 px-3 py-2.5 text-sm">
+                <input type="checkbox" data-calc-yearly class="mt-0.5 size-5 shrink-0 accent-brand-600">
+                <span>{{ __('Pay for the whole year at once') }}
+                    <span class="block text-xs text-navy-500">{{ __('The yearly price on this page, with its discount.') }}</span></span>
+            </label>
             @if ($calcOnlinePack)
                 <label data-calc-addon-row hidden class="mt-3 flex min-h-11 cursor-pointer items-start gap-3 rounded-xl bg-navy-50 px-3 py-2.5 text-sm">
                     <input type="checkbox" checked data-calc-addon class="mt-0.5 size-5 shrink-0 accent-brand-600">
@@ -103,7 +112,7 @@
                 <p class="font-bold" data-calc-net-label data-positive="{{ __('What stays with you') }}" data-negative="{{ __('What it costs you more') }}">{{ __('What stays with you') }}</p>
                 <p class="text-end"><b class="text-[2.1rem] leading-none font-black tracking-tight" data-calc-out-wrap><bdi dir="ltr" data-calc-out="net">0</bdi></b> <span class="text-sm font-bold text-white/70">{{ __('EGP') }}</span></p>
             </div>
-            <p class="mt-5 rounded-xl bg-white/5 px-3 py-2.5 text-xs leading-relaxed text-white/70">{{ __('Worked out only from the numbers you typed. Plan prices are the monthly prices on this page.') }}</p>
+            <p class="mt-5 rounded-xl bg-white/5 px-3 py-2.5 text-xs leading-relaxed text-white/70">{{ __('Worked out only from the numbers you typed. Plan prices are the prices on this page, monthly or for the whole year.') }}</p>
             <a href="{{ route('register') }}" class="btn-primary mt-5 min-h-12 w-full rounded-full text-base">{{ __('Start free') }}</a>
         </div>
     </div>
@@ -123,6 +132,8 @@
     var planSelect = root.querySelector('[data-calc-plan]');
     var addonRow = root.querySelector('[data-calc-addon-row]');
     var addonBox = root.querySelector('[data-calc-addon]');
+    var yearlyRow = root.querySelector('[data-calc-yearly-row]');
+    var yearlyBox = root.querySelector('[data-calc-yearly]');
     var netLabel = root.querySelector('[data-calc-net-label]');
     var miniNet = root.querySelector('[data-calc-mini-net]');
     var miniLabel = root.querySelector('[data-calc-mini-label]');
@@ -140,7 +151,10 @@
     function calc() {
         var tables = value('tables'), copies = value('copies'), cost = value('cost'), changes = value('changes');
         var sales = value('sales'), commission = value('commission'), moved = value('moved');
-        var plan = plans.filter(function (p) { return p.code === planSelect.value; })[0] || plans[0] || { monthly: 0, online: false };
+        var plan = plans.filter(function (p) { return p.code === planSelect.value; })[0] || plans[0] || { monthly: 0, yearly: 0, online: false };
+        var canYear = plan.yearly > 0 && plan.yearly < plan.monthly * 12;
+        if (yearlyRow) yearlyRow.hidden = !canYear;
+        var byYear = canYear && yearlyBox && yearlyBox.checked;
 
         var needsPack = !plan.online && pack !== null;
         if (addonRow) addonRow.hidden = !needsPack;
@@ -149,7 +163,8 @@
 
         var reprint = tables * copies * cost * changes;
         var kept = canOrderOnline ? sales * 12 * (moved / 100) * (commission / 100) : 0;
-        var yearly = (plan.monthly + (withPack ? pack : 0)) * 12;
+        var planYear = byYear ? plan.yearly : plan.monthly * 12;
+        var yearly = planYear + (withPack ? pack * 12 : 0);
         var net = reprint + kept - yearly;
 
         out('reprint', '+' + fmt(reprint));
@@ -158,7 +173,7 @@
         out('net', (net < 0 ? '−' : '') + fmt(Math.abs(net)));
         explain('reprint', fmt(tables) + ' × ' + fmt(copies) + ' × ' + fmt(cost) + ' × ' + fmt(changes));
         explain('commission', canOrderOnline ? fmt(sales) + ' × 12 × ' + fmt(moved) + '% × ' + fmt(commission) + '%' : L.needsOnline);
-        explain('plan', fmt(plan.monthly + (withPack ? pack : 0)) + ' × 12');
+        explain('plan', byYear ? fmt(plan.yearly) + (withPack ? ' + ' + fmt(pack) + ' × 12' : '') : fmt(plan.monthly + (withPack ? pack : 0)) + ' × 12');
         netLabel.textContent = netLabel.getAttribute(net < 0 ? 'data-negative' : 'data-positive');
         if (miniNet) miniNet.textContent = (net < 0 ? '−' : '') + fmt(Math.abs(net));
         if (miniLabel) miniLabel.textContent = netLabel.textContent;
@@ -172,6 +187,7 @@
     });
     planSelect.addEventListener('change', calc);
     if (addonBox) addonBox.addEventListener('change', calc);
+    if (yearlyBox) yearlyBox.addEventListener('change', calc);
     calc();
 })();
 </script>

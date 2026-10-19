@@ -1,7 +1,8 @@
-{{-- Short feature list of $plan: its limits, then "Everything in <previous plan>, plus" only what it adds. --}}
+{{-- Short feature list of $plan: its limits, then "Everything in <previous public plan>, plus" only what it adds. --}}
 @php
-    $index = $plans->search(fn ($p) => $p->id === $plan->id);
-    $previous = $index > 0 ? $plans[$index - 1] : null;
+    $ladder = $plans->filter(fn ($p) => $p->id === $plan->id || ($p->is_public && ! $p->isContactSales()))->values();
+    $index = $ladder->search(fn ($p) => $p->id === $plan->id);
+    $previous = $index > 0 ? $ladder[$index - 1] : null;
     $features = array_keys(array_filter($matrix[$plan->id]['features']));
     $added = $previous ? array_values(array_diff($features, array_keys(array_filter($matrix[$previous->id]['features'])))) : $features;
 @endphp

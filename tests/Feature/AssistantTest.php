@@ -48,8 +48,8 @@ class AssistantTest extends TenantTestCase
             $system = implode("\n", array_column($body['system'], 'text'));
 
             return $request->hasHeader('x-api-key', 'test-key')
-                && str_contains($system, '399')                         // Pro price from the database
-                && str_contains($system, 'كارت الولاء')                 // an add-on sold on its own
+                && str_contains($system, '1,250')                       // the Complete price from the database
+                && str_contains($system, 'فرع إضافي')                   // an add-on still on sale
                 && str_contains($system, 'wa.me/201271133655')           // the sales number for hand-offs
                 && ($body['system'][1]['cache_control']['type'] ?? '') === 'ephemeral'
                 && $body['messages'][0]['content'] === 'الباقات بكام؟';
@@ -117,7 +117,7 @@ class AssistantTest extends TenantTestCase
 
             return str_contains($request->url(), 'models/gemini-3.1-flash-lite:generateContent')
                 && $request->hasHeader('x-goog-api-key', 'g-key')
-                && str_contains($body['system_instruction']['parts'][0]['text'], '399')
+                && str_contains($body['system_instruction']['parts'][0]['text'], '1,250')
                 && $body['contents'][1]['role'] === 'model'
                 && $body['contents'][2]['parts'][0]['text'] === 'والمجانية؟';
         });

@@ -16,7 +16,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * Self-service signup on the main domain: creates the restaurant with a 14-day Pro trial, then hands the owner
+ * Self-service signup on the main domain: creates the restaurant with a 14-day Complete trial, then hands the owner
  * to the dashboard host through a one-time signed link (sessions are per host, so it can't just log in here).
  */
 class SignupController extends Controller

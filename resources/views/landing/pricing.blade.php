@@ -1,18 +1,20 @@
 @extends('layouts.landing')
 @section('title', __('Pricing') . ' · EgMenu')
-@section('description', __('EgMenu prices in Egyptian pounds: a free plan for your QR menu, paid plans for ordering and loyalty, add-ons for POS, kiosk, kitchen, call center and inventory, and WhatsApp credits paid once.'))
+@section('description', __('EgMenu prices in Egyptian pounds: a free plan for your QR menu, the Complete plan with every module for one place, Enterprise for chains with POS and kitchen screens, and WhatsApp credits paid once.'))
 
 @php
-    $groups = collect(\App\Models\Plan::GROUPS)->except('operations');
+    $groups = collect(\App\Models\Plan::GROUPS);
     $planByCode = $plans->keyBy('code');
     $extraBranchOff = (int) round((1 - \App\Models\AddonPrice::EXTRA_BRANCH_SHARE) * 100);
     $limitPacks = $addons->where('type', 'limit')->values();
     // add-ons in three groups: packs that unlock an operations feature, the other feature packs, one-off credits
     $opsFeatures = \App\Models\Plan::addonFeatures();
     $isOps = fn ($a) => array_intersect($a->features ?? [], $opsFeatures) !== [];
+    // add-ons still on sale: more branches and users for Complete, more items and tables for Free, the featured
+    // listing, and WhatsApp credits paid once (feature packs that are no longer sold are inactive, so never listed)
     $addonGroups = [
         'operations' => [__('Operations'), __('The cashier, the kiosk, kitchen screens, the call center and stock. Priced per branch.'), $addons->filter(fn ($a) => $a->isFeaturePack() && $isOps($a))->values()],
-        'growth' => [__('Modules on their own'), __('Every module can be bought by itself, on top of any plan — the free one included. Ordering only, the loyalty card only, offers only.'), $addons->filter(fn ($a) => $a->isFeaturePack() && !$isOps($a))->values()],
+        'growth' => [__('Add to your plan'), __('More branches and users for the Complete plan, more items and tables for the free one, and a featured place in the directory.'), $addons->filter(fn ($a) => ($a->isFeaturePack() && !$isOps($a)) || $a->type === 'limit')->values()],
         'credits' => [__('Credits'), __('WhatsApp messages for order updates and campaigns. One message is one credit.'), $addons->filter(fn ($a) => $a->isCreditPack())->values()],
     ];
     // the first module page that sells each add-on
@@ -58,9 +60,9 @@
                     <tr class="border-b border-navy-200">
                         <th class="w-40 p-3 text-start text-xs font-bold text-navy-500 sm:w-[30%] sm:p-4">{{ __('Plan') }}</th>
                         @foreach ($plans as $p)
-                            <th @class(['p-3 text-center sm:p-4', 'bg-emerald-50' => (float) $p->monthly_price === 0.0, 'bg-navy-50' => $p->is_featured])>
+                            <th @class(['p-3 text-center sm:p-4', 'bg-emerald-50' => ! $p->isContactSales() && (float) $p->monthly_price === 0.0, 'bg-navy-50' => $p->is_featured])>
                                 <div class="font-black text-navy-900">{{ $p->displayName() }}</div>
-                                <div class="text-xs font-semibold whitespace-nowrap text-navy-500">{{ (float) $p->monthly_price === 0.0 ? __('Free') : money($p->monthly_price) . ' ' . __('EGP') }}</div>
+                                <div class="text-xs font-semibold whitespace-nowrap text-navy-500">{{ $p->isContactSales() ? __('By agreement') : ((float) $p->monthly_price === 0.0 ? __('Free') : money($p->monthly_price) . ' ' . __('EGP')) }}</div>
                             </th>
                         @endforeach
                     </tr>
@@ -69,7 +71,7 @@
                     <tr class="grp"><td colspan="{{ $plans->count() + 1 }}" class="bg-navy-50 px-4 py-2 text-xs font-extrabold text-navy-700">{{ __('Limits') }}</td></tr>
                     @foreach (\App\Models\Plan::LIMITS as $lk => $_)
                         <tr class="border-t border-navy-50">
-                            <td class="px-4 py-2.5 text-navy-700">{{ \App\Models\Plan::label($lk) }}</td>
+                            <td class="px-4 py-2.5 text-navy-700">{{ \App\Models\Plan::label($lk) }}@if ($lk === 'branches' && $limitPacks->firstWhere('key', 'branches'))<span class="block text-xs text-navy-500">{{ __('Complete: add up to :count more', ['count' => \App\Models\AddonPrice::MAX_SELF_SERVE_EXTRA_BRANCHES]) }}</span>@endif</td>
                             @foreach ($plans as $p)
                                 @php
                                     $v = $matrix[$p->id]['limits'][$lk];
@@ -124,10 +126,10 @@
         <div class="mx-auto max-w-7xl px-4 sm:px-6">
             <div class="mx-auto max-w-2xl text-center" data-reveal>
                 <h2 class="lp-h2">{{ __('Add-ons') }}</h2>
-                <p class="lp-lead mt-3">{{ __('Start with the menu. When you grow, add only what you need, on top of your plan.') }}</p>
+                <p class="lp-lead mt-3">{{ __('Start with the menu. When you grow, add branches, users or WhatsApp credits on top of your plan.') }}</p>
             </div>
             @foreach ($addonGroups as $groupKey => [$groupLabel, $groupLead, $packs])
-                @continue($packs->isEmpty() && !($groupKey === 'operations' && $limitPacks->isNotEmpty()))
+                @continue($packs->isEmpty())
                 <div id="addons-{{ $groupKey }}" class="mt-12 border-t border-navy-100 pt-8">
                     <div class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
                         <h3 class="flex items-center gap-2 text-xl font-black">
@@ -150,6 +152,9 @@
                                     @if ($bundle)<span class="badge shrink-0 bg-brand-600 text-white">{{ __('Best value') }}</span>@endif
                                 </div>
                                 <p @class(['mt-1 flex-1 text-sm', 'text-white/70' => $bundle, 'text-navy-500' => !$bundle])>{{ tr($addon->description, $addon->description_en) }}</p>
+                                @if ($addon->key === 'branches' && \App\Billing\LaunchOffer::isRunning())
+                                    <p class="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">{{ __('Launch offer: the first extra branch is free for 12 months with a new Complete subscription.') }}</p>
+                                @endif
                                 @if ($credits)
                                     <p class="mt-4"><b class="text-2xl font-black"><bdi dir="ltr">{{ money($addon->monthly_price) }}</bdi></b> <span class="text-sm text-navy-500">{{ __('EGP') }} · {{ __('Paid once') }}</span></p>
                                 @else
@@ -167,15 +172,6 @@
                         @endforeach
                     </div>
                     @if ($packs->count() > 3)<x-landing.more :for="'addons-' . $groupKey . '-list'" />@endif
-                    @if ($groupKey === 'operations' && $limitPacks->isNotEmpty())
-                        <div class="mt-4 flex flex-wrap gap-3">
-                            @foreach ($limitPacks as $addon)
-                                <div class="flex min-h-12 items-center gap-3 rounded-xl border border-navy-200 bg-white px-4 text-sm">
-                                    <b>{{ $addon->displayName() }}</b><span class="text-navy-500"><bdi dir="ltr">+{{ money($addon->monthly_price) }}</bdi> {{ __('EGP / month') }}</span>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
                 </div>
             @endforeach
         </div>
@@ -185,7 +181,7 @@
 <section class="lp-band lp-glow mb-8 py-16 lg:py-20">
     <div class="mx-auto max-w-3xl px-4 text-center sm:px-6" data-reveal>
         <h2 class="lp-h2">{{ __('Questions about paying?') }}</h2>
-        <p class="lp-lead mt-3">{{ __('You pay from your dashboard by InstaPay or Vodafone Cash. Paying for 6 or 12 months gets a discount. There is no contract and you can stop whenever you want; your menu then stays on the free plan.') }}</p>
+        <p class="lp-lead mt-3">{{ __('You pay from your dashboard by InstaPay or Vodafone Cash. Paying for 12 months at once takes :pct% off the plan and its add-ons. There is no contract and you can stop whenever you want; your menu then stays on the free plan.', ['pct' => money((float) ($plans->firstWhere('is_featured', true)?->cycle_discounts['12'] ?? 0))]) }}</p>
         <a href="{{ route('register') }}" class="btn-primary mt-6 min-h-12 rounded-full px-7 text-base">{{ __('Start free') }}</a>
     </div>
 </section>

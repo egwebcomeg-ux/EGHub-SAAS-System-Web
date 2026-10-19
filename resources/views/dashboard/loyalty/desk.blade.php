@@ -7,7 +7,8 @@
     <h1 class="page-title">{{ __('Loyalty card') }} · {{ __('Counter') }}</h1>
     <div class="dash-head-actions">
         @can('loyalty.manage')
-            @if (\App\Services\Entitlements::current()->allows('cashback|prepaid_packages|membership'))<a href="{{ route('dash.cards') }}" class="btn-ghost">{{ __('Advanced cards') }}</a>@endif
+            @if (\App\Services\Entitlements::current()->allows('membership'))<a href="{{ route('dash.cards') }}#tiers" class="btn-ghost" data-tiers-link>{{ __('Membership tiers') }}</a>@endif
+            @if (\App\Services\Entitlements::current()->allows('cashback|prepaid_packages'))<a href="{{ route('dash.cards') }}" class="btn-ghost">{{ __('Packages and cashback') }}</a>@endif
             @if (\App\Services\Entitlements::current()->allows('loyalty_stamps'))<a href="{{ route('dash.loyalty.setup') }}" class="btn-ghost">{{ __('Program settings') }}</a>@endif
         @endcan
     </div>

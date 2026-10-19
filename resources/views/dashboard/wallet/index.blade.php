@@ -1,11 +1,15 @@
 @extends('layouts.dashboard')
-@section('title', __('Wallet & gift cards'))
+@section('title', __('Wallet'))
 
 @section('content')
 <div class="dash-head">
-    <h1 class="page-title">{{ __('Wallet & gift cards') }}</h1>
+    <div>
+        <h1 class="page-title">{{ __('Wallet') }}</h1>
+        <p class="dash-help">{{ __('The guest’s prepaid balance: top-ups, gift cards, packages and cashback.') }}</p>
+    </div>
     @can('pos.use')<a href="{{ route('dash.pos') }}" class="btn-primary">{{ __('Top up or sell a gift card from the POS') }}</a>@endcan
 </div>
+@include('dashboard.partials.wallet-tabs')
 
 @if ($errors->any())
     <div class="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ $errors->first() }}</div>

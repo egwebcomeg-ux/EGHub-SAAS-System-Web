@@ -58,6 +58,9 @@ final class SiteModules
         return $out;
     }
 
+    /** Old module slugs that were merged into another one: old => new (pages redirect, saved picks follow). */
+    public const MERGED = ['advanced-cards' => 'wallet', 'advanced-reports' => 'reports'];
+
     /** @return array{0:?array,1:?array} previous and next module in menu order (wrapping around) */
     public static function neighbours(string $slug): array
     {
@@ -108,11 +111,16 @@ final class SiteModules
         if ($av['everyPlan']) {
             return __('Free, in every plan');
         }
-        if ($av['plans']->isNotEmpty()) {
+        // a plan priced with sales (Enterprise) is named, but never as the only way when something is on sale
+        $selfServe = $av['plans']->reject(fn (Plan $p) => $p->isContactSales());
+        if ($selfServe->isNotEmpty()) {
             return __('In :plans', ['plans' => $av['plans']->map->displayName()->join(' · ')]);
         }
         if ($av['addons']->isNotEmpty()) {
             return __('Add-on from :price EGP / month', ['price' => money($av['addons']->min('monthly_price'))]);
+        }
+        if ($av['plans']->isNotEmpty()) {
+            return __('In :plan, contact us', ['plan' => $av['plans']->first()->displayName()]);
         }
 
         return '';
@@ -280,7 +288,7 @@ final class SiteModules
                     [__('Is Excel import free?'), __('Yes, the Excel import is included in every plan, including the free one.')],
                     [__('Will it replace my current items?'), __('No. Imported items are added for review; you decide what to keep.')],
                 ],
-                'related' => ['qr-menu', 'printed-menu', 'multi-branch'],
+                'related' => ['qr-menu', 'printed-menu', 'languages'],
             ],
 
             // ---------------- orders ----------------
@@ -387,6 +395,8 @@ final class SiteModules
                 'benefits' => [
                     ['stamp', __('Stamps or points'), __('A stamp per visit or per item, or points on every pound spent.')],
                     ['gift', __('Rewards on the way'), __('A discount at the 4th stamp and a free drink at the 8th keep guests coming.')],
+                    ['tag', __('Discount vouchers'), __('Give a guest a voucher, or print a batch of codes, each used once at the counter or online.')],
+                    ['star', __('Membership tiers'), __('Silver, Gold, VIP by visits or spend; the tier’s discount comes off every order placed with the guest’s number, automatically.')],
                     ['users', __('Know your regulars'), __('See who comes back, how often, and what they like.')],
                 ],
                 'steps' => [
@@ -403,8 +413,9 @@ final class SiteModules
                     [__('Does the guest need an app?'), __('No. The card opens from a link and can be saved to the phone’s home screen.')],
                     [__('Can I change the rules later?'), __('Yes, the number of stamps, the rewards and the card colours are all yours to edit.')],
                     [__('How do I stop staff abuse?'), __('Stamps are recorded with the staff member and time, and the cashier only sees what you allow.')],
+                    [__('Can a member discount be combined with a coupon?'), __('Yes. The coupon is applied first, then the tier’s percentage on what is left; both show on the order.')],
                 ],
-                'related' => ['offers', 'pos', 'reports'],
+                'related' => ['wallet', 'offers', 'campaigns'],
             ],
             [
                 'slug' => 'offers', 'group' => 'customers', 'icon' => 'tag', 'for' => ['cafe', 'restaurant'],
@@ -497,15 +508,21 @@ final class SiteModules
             ],
             [
                 'slug' => 'wallet', 'group' => 'customers', 'icon' => 'wallet', 'for' => ['cafe', 'restaurant'],
-                'name' => __('Wallet and gift cards'),
-                'tagline' => __('Prepaid balance and gift cards: the money comes in first'),
-                'summary' => __('Guests top up and pay from their balance; gift cards with a QR.'),
-                'feature' => 'wallet', 'addons' => ['wallet_pack'],
+                'name' => __('Wallet'),
+                'tagline' => __('A prepaid balance on the guest’s card: top-ups, gift cards, packages and cashback'),
+                'summary' => __('Top up and pay from the balance, gift cards, a 10-coffee pass and cashback.'),
+                'feature' => 'wallet', 'addons' => ['wallet_pack', 'cards_pack'],
                 'shot' => 'wallet', 'frame' => 'browser', 'url' => 'app.egmenu.app/wallet', 'phone' => 'm-gift',
+                'gallery' => [
+                    ['cards', 'browser', 'app.egmenu.app/loyalty/cards', __('Packages and cashback: the 10-coffee pass you sell, and the share of each order that goes back to the balance.')],
+                    ['cards-desk', 'browser', 'app.egmenu.app/loyalty', __('The counter: the guest’s tier, balance, packages and stamps on one screen; sell a package or take a use.')],
+                ],
                 'benefits' => [
                     ['wallet', __('Top up at the counter'), __('The cashier adds a balance to the guest’s mobile number and prints a receipt.')],
                     ['cash', __('Pay from the balance'), __('At the POS or with an online order, the guest pays from the balance; a refund goes back to it.')],
                     ['gift', __('Gift cards'), __('Sell printed gift cards with a code and a QR; whoever receives one adds it to their own balance.')],
+                    ['cup', __('Prepaid packages'), __('“10 coffees for 150 EGP, valid 30 days”: paid once at the counter, the cashier takes one use per visit.')],
+                    ['trend', __('Cashback to the wallet'), __('A share of every paid order goes back to the guest’s balance, to spend on the next visit. A cancelled order takes it back.')],
                     ['shield', __('Every pound on record'), __('Each top-up, payment, refund and adjustment is recorded with the staff member and the time.')],
                 ],
                 'steps' => [
@@ -515,47 +532,17 @@ final class SiteModules
                     [__('Added'), __('The card’s amount is added to the friend’s balance.')],
                 ],
                 'who' => [
-                    'cafe' => __('Regulars who top up once a month and order every morning without cash.'),
-                    'restaurant' => __('Gift cards for birthdays and companies, paid in advance.'),
+                    'cafe' => __('Regulars who top up once a month, and a monthly coffee pass paid up front.'),
+                    'restaurant' => __('Gift cards for birthdays and companies, and cashback that brings families back.'),
                 ],
                 'faq' => [
                     [__('Can the guest see the balance?'), __('Yes, on their card page, from the same link as the loyalty card.')],
                     [__('Can a gift card be used twice?'), __('No. A gift card is added to one mobile number, once, and you can void a card that was not used.')],
-                    [__('Who can top up?'), __('Staff with the wallet permission, from the wallet page or from the POS during their shift.')],
-                ],
-                'related' => ['loyalty', 'pos', 'campaigns'],
-            ],
-            [
-                'slug' => 'advanced-cards', 'group' => 'customers', 'icon' => 'star', 'for' => ['cafe', 'restaurant'],
-                'name' => __('Advanced cards'),
-                'tagline' => __('Cashback, membership tiers and prepaid packages on the same card'),
-                'summary' => __('A 10-coffee pass, Gold members at 10% off, and 5% back on every order.'),
-                'feature' => 'membership', 'addons' => ['cards_pack'],
-                'shot' => 'cards', 'frame' => 'browser', 'url' => 'app.egmenu.app/loyalty/cards', 'phone' => 'm-member',
-                'gallery' => [['cards-desk', 'browser', 'app.egmenu.app/loyalty', __('The counter: the guest’s tier, balance, packages and stamps on one screen; sell a package or take a use.')]],
-                'benefits' => [
-                    ['wallet', __('Cashback to the wallet'), __('A share of every paid order goes back to the guest’s balance, to spend on the next visit. A cancelled order takes it back.')],
-                    ['star', __('Membership tiers'), __('Silver, Gold, VIP by visits or spend; the tier’s discount comes off every order placed with the guest’s number, automatically.')],
-                    ['cup', __('Prepaid packages'), __('“10 coffees for 150 EGP, valid 30 days”: paid once at the counter, the cashier takes one use per visit.')],
-                    ['shield', __('Nothing by hand'), __('Tiers are worked out from real visits, cashback from paid orders, and every package use is recorded with the staff member.')],
-                ],
-                'steps' => [
-                    [__('A package'), __('Mona buys a 10-coffee package for 150 EGP.')],
-                    [__('One use'), __('The cashier takes one use with her latte: 9 left.')],
-                    [__('Gold'), __('Her 5th visit makes her Gold: 10% off every order.')],
-                    [__('Cashback'), __('5% of her order lands in her balance.')],
-                ],
-                'who' => [
-                    'cafe' => __('A monthly coffee pass that is paid up front, and regulars who feel like members.'),
-                    'restaurant' => __('VIP guests with a standing discount, and cashback that brings families back.'),
-                ],
-                'faq' => [
-                    [__('Can I run stamps and cashback together?'), __('Yes. The stamp card, the tiers, the packages and the balance all sit on the one card the guest already has.')],
                     [__('Does cashback expire?'), __('Your choice: it can stay as balance until spent, or expire after the number of days you set. You also set the percentage and a minimum order.')],
                     [__('What if a package expires with uses left?'), __('It closes on its date and shows as expired; you can set the validity per package, from a week to two years.')],
-                    [__('Can a member discount be combined with a coupon?'), __('Yes. The coupon is applied first, then the tier’s percentage on what is left; both show on the order.')],
+                    [__('Who can top up?'), __('Staff with the wallet permission, from the wallet page or from the POS during their shift.')],
                 ],
-                'related' => ['loyalty', 'wallet', 'pos'],
+                'related' => ['loyalty', 'campaigns', 'online-ordering'],
             ],
 
             // ---------------- operations (add-ons) ----------------
@@ -584,7 +571,7 @@ final class SiteModules
                 ],
                 'faq' => [
                     [__('Do I need special hardware?'), __('No. Any tablet or computer with a browser; a receipt printer is optional.')],
-                    [__('Is the POS in every plan?'), __('It is an add-on you switch on when you need it, on top of a paid plan.')],
+                    [__('Is the POS in every plan?'), __('No. The POS is part of the Enterprise plan, set up with you; message us and we agree the price for your place.')],
                     [__('Does it work with several cashiers?'), __('Yes, each cashier has an account, and each shift is tied to the person who opened it.')],
                 ],
                 'related' => ['kitchen-display', 'reports', 'loyalty'],
@@ -617,7 +604,7 @@ final class SiteModules
                     [__('Which tablet do I need?'), __('Any tablet with a browser; a 10-inch screen in landscape works best. Open the kiosk link once and leave it on.')],
                     [__('Does the guest pay on the tablet?'), __('No. The kiosk takes the order, and the guest pays at the cashier as usual.')],
                     [__('What if a guest walks away mid-order?'), __('The kiosk asks “Are you still here?” and starts over by itself after a short wait.')],
-                    [__('How is it priced?'), __('It is an add-on per branch, with a discount on each extra branch, on top of a paid plan.')],
+                    [__('How is it priced?'), __('The kiosk is part of the Enterprise plan; message us and we agree the price for your branches.')],
                 ],
                 'related' => ['pos', 'kitchen-display', 'table-ordering'],
             ],
@@ -646,7 +633,7 @@ final class SiteModules
                 'faq' => [
                     [__('What screen do I need?'), __('Any tablet or TV with a browser, in full-screen mode.')],
                     [__('Can the kitchen see all orders?'), __('Yes, or only its station’s items once you set up stations.')],
-                    [__('Is it an add-on?'), __('Yes, you add it when your kitchen needs it, on top of a paid plan.')],
+                    [__('Which plan has it?'), __('The Enterprise plan, set up with you for your kitchen and stations.')],
                 ],
                 'related' => ['table-ordering', 'pos', 'call-center'],
             ],
@@ -675,9 +662,9 @@ final class SiteModules
                 'faq' => [
                     [__('Can I see a customer’s history?'), __('Yes, the customer page shows their orders and addresses.')],
                     [__('Are zones drawn on a map?'), __('Yes, with a fee and a minimum order per zone and sub-areas.')],
-                    [__('Is it an add-on?'), __('Yes, it comes with delivery zones and the customer list, on top of a paid plan.')],
+                    [__('Which plan has it?'), __('The Enterprise plan. Delivery zones and the customer list are already in the Complete plan.')],
                 ],
-                'related' => ['online-ordering', 'kitchen-display', 'inventory'],
+                'related' => ['online-ordering', 'kitchen-display', 'pos'],
             ],
             [
                 'slug' => 'inventory', 'group' => 'operations', 'icon' => 'box', 'for' => ['cafe', 'restaurant'],
@@ -706,21 +693,28 @@ final class SiteModules
                     [__('Can I record waste?'), __('Yes, record waste and stock counts with a reason, and every movement is kept.')],
                     [__('Is stock per branch?'), __('Yes, each branch has its own stock.')],
                 ],
-                'related' => ['reports', 'pos', 'multi-branch'],
+                'related' => ['reports', 'pos', 'kitchen-display'],
             ],
 
             // ---------------- management ----------------
             [
                 'slug' => 'reports', 'group' => 'management', 'icon' => 'chart', 'for' => ['cafe', 'restaurant'],
                 'name' => __('Reports'),
-                'tagline' => __('Sales, busy hours and best sellers, in plain numbers'),
-                'summary' => __('What sold, when, and from where.'),
+                'tagline' => __('Sales, rush hours and best sellers, down to each item and each branch'),
+                'summary' => __('Daily numbers, item performance, a heat map, comparisons, CSV and a weekly email.'),
                 'feature' => 'daily_reports', 'addons' => ['team_pack', 'reports_pack'],
                 'shot' => 'reports', 'frame' => 'browser', 'url' => 'app.egmenu.app/reports', 'phone' => null,
+                'gallery' => [
+                    ['reports-advanced', 'browser', 'app.egmenu.app/reports', __('The advanced part: this period against the last one, and how often each item is opened against ordered.')],
+                    ['reports-heatmap', 'browser', 'app.egmenu.app/reports', __('Orders by day and hour, branch against branch, and where orders come from; every table downloads as CSV.')],
+                ],
                 'benefits' => [
                     ['chart', __('The day at a glance'), __('Sales, number of orders and the average order, for today, yesterday or the week.')],
                     ['clock', __('Busy hours'), __('See when you are busiest and plan staff and offers around it.')],
-                    ['file', __('Export'), __('Download the numbers as a spreadsheet for your accountant, on plans with advanced reports.')],
+                    ['trend', __('Item performance'), __('How many guests opened each item against how many ordered it, so you see which photo or price needs work.')],
+                    ['clock', __('Busy-hours heat map'), __('Days against hours on one map: the darker the cell, the busier you were.')],
+                    ['layers', __('Compare'), __('This week against last week, and one branch against another.')],
+                    ['file', __('CSV and a weekly email'), __('Download any table as CSV, and get last week’s numbers by email every week.')],
                 ],
                 'steps' => [
                     [__('Sales add up'), __('Today’s sales grow with every order.')],
@@ -729,46 +723,16 @@ final class SiteModules
                     [__('Export'), __('Download it for the accountant.')],
                 ],
                 'who' => [
-                    'cafe' => __('Which drinks sell in the morning and which in the evening.'),
-                    'restaurant' => __('Dine-in against delivery, and the dishes that carry the month.'),
+                    'cafe' => __('Which drinks sell in the morning and which in the evening, and which are looked at but not ordered.'),
+                    'restaurant' => __('Dine-in against delivery, branch against branch, before you change the menu or the staff.'),
                 ],
                 'faq' => [
                     [__('Do reports include POS and phone orders?'), __('Yes, every order source is counted and shown separately.')],
-                    [__('Can I see each branch?'), __('Yes, with advanced reports you can filter by branch or see them all together.')],
-                    [__('What do advanced reports add?'), __('Item performance, a busy-hours heat map, branch and period comparison, CSV exports and a weekly email.')],
-                ],
-                'related' => ['advanced-reports', 'inventory', 'multi-branch'],
-            ],
-            [
-                'slug' => 'advanced-reports', 'group' => 'management', 'icon' => 'trend', 'for' => ['cafe', 'restaurant'],
-                'name' => __('Advanced reports'),
-                'tagline' => __('Which items sell, when you are busy, and how branches compare'),
-                'summary' => __('Item performance, a heat map, comparisons, CSV and a weekly email.'),
-                'feature' => 'advanced_reports', 'addons' => ['reports_pack'],
-                'shot' => 'reports-advanced', 'frame' => 'browser', 'url' => 'app.egmenu.app/reports', 'phone' => null,
-                'gallery' => [['reports-heatmap', 'browser', 'app.egmenu.app/reports', __('Orders by day and hour, branch against branch, and where orders come from; every table downloads as CSV.')]],
-                'benefits' => [
-                    ['chart', __('Item performance'), __('How many guests opened each item against how many ordered it, so you see which photo or price needs work.')],
-                    ['clock', __('Busy-hours heat map'), __('Days against hours on one map: the darker the cell, the busier you were.')],
-                    ['layers', __('Compare'), __('This week against last week, and one branch against another.')],
-                    ['file', __('CSV and a weekly email'), __('Download any table as CSV, and get last week’s numbers by email every week.')],
-                ],
-                'steps' => [
-                    [__('Item performance'), __('Cheesecake: opened often, ordered less. Time for a better photo.')],
-                    [__('Heat map'), __('Friday evening is the darkest cell.')],
-                    [__('Compare'), __('This week against last week, side by side.')],
-                    [__('Weekly email'), __('Monday morning, last week’s numbers in your inbox.')],
-                ],
-                'who' => [
-                    'cafe' => __('See which drinks are looked at but not ordered, and fix the photo or the price.'),
-                    'restaurant' => __('Compare branches and periods before you change the menu or the staff.'),
-                ],
-                'faq' => [
-                    [__('How is this different from the daily reports?'), __('Daily reports show sales, orders, busy hours and best sellers. Advanced reports add item performance, the heat map, comparisons, exports and the weekly email.')],
+                    [__('Can I see each branch?'), __('Yes, filter by branch or see them all together, and compare one branch with another.')],
                     [__('Who gets the weekly email?'), __('The owner, once the weekly report is switched on in Settings.')],
                     [__('Can I give the numbers to my accountant?'), __('Yes, each table downloads as a CSV file that opens in Excel.')],
                 ],
-                'related' => ['reports', 'multi-branch', 'inventory'],
+                'related' => ['multi-branch', 'loyalty', 'online-ordering'],
             ],
             [
                 'slug' => 'multi-branch', 'group' => 'management', 'icon' => 'store', 'for' => ['restaurant'],
@@ -793,9 +757,9 @@ final class SiteModules
                     'restaurant' => __('A chain with different prices in malls and on the street.'),
                 ],
                 'faq' => [
-                    [__('How many branches can I have?'), __('Each plan includes a number of branches; add more branches as an add-on.')],
+                    [__('How many branches can I have?'), __('The Complete plan includes one branch, and you add up to 4 more, each one a monthly add-on with its own staff accounts. More than 5 branches is the Enterprise plan.')],
                     [__('Does each branch get its own QR codes?'), __('Yes, tables belong to a branch, so orders arrive at the right place.')],
-                    [__('Are add-on prices per branch?'), __('Operations add-ons are priced per branch, with a discount on each extra branch.')],
+                    [__('What does an extra branch cost?'), __('Its monthly price is on the pricing page, with the same discount when you pay for 6 or 12 months.')],
                 ],
                 'related' => ['reports', 'inventory', 'custom-domain'],
             ],
@@ -824,7 +788,7 @@ final class SiteModules
                 'faq' => [
                     [__('Do my printed QR codes change?'), __('No. Codes printed with the egmenu link keep working and open your domain.')],
                     [__('Can I use a domain I already have?'), __('Yes, point it to EgMenu from your DNS settings; the page tells you exactly what to add.')],
-                    [__('Is the domain itself included?'), __('Connecting is in the plan or the add-on; the yearly domain fee is separate if you book a new one.')],
+                    [__('Is the domain itself included?'), __('Connecting it is in the Complete plan; the yearly domain fee is separate if you book a new one.')],
                 ],
                 'related' => ['online-ordering', 'qr-menu', 'multi-branch'],
             ],

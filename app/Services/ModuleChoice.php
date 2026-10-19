@@ -40,11 +40,11 @@ final class ModuleChoice
         'dash.stations' => ['kitchen-display'],
         'dash.reservations' => ['reservations'],
         'dash.tv' => ['tv-screens'],
-        'dash.customers' => ['loyalty', 'campaigns', 'wallet', 'advanced-cards', 'whatsapp', 'call-center', 'online-ordering', 'reservations'],
-        'dash.loyalty.desk' => ['loyalty', 'advanced-cards'],
-        'dash.cards' => ['advanced-cards'],
+        'dash.customers' => ['loyalty', 'campaigns', 'wallet', 'whatsapp', 'call-center', 'online-ordering', 'reservations'],
+        'dash.loyalty.desk' => ['loyalty', 'wallet'],
+        'dash.cards' => ['wallet', 'loyalty'],
         'dash.marketing' => ['offers'],
-        'dash.feedback' => ['reports', 'advanced-reports', 'loyalty'],
+        'dash.feedback' => ['reports', 'loyalty'],
         'dash.campaigns' => ['campaigns'],
         'dash.coupons' => ['loyalty', 'campaigns'],
         'dash.wallet' => ['wallet'],
@@ -52,7 +52,7 @@ final class ModuleChoice
         'dash.zones' => ['online-ordering', 'call-center'],
         'dash.kiosks' => ['kiosk'],
         'dash.devices' => ['tv-screens', 'kiosk', 'kitchen-display', 'pos'],
-        'dash.reports' => ['reports', 'advanced-reports'],
+        'dash.reports' => ['reports'],
         'dash.branches' => ['multi-branch'],
         'dash.domain' => ['custom-domain'],
     ];
@@ -72,14 +72,12 @@ final class ModuleChoice
         'whatsapp' => ['dash.settings', 'settings.manage', null],
         'campaigns' => ['dash.campaigns', 'marketing.manage', null],
         'wallet' => ['dash.wallet', 'wallet.manage', null],
-        'advanced-cards' => ['dash.cards', 'loyalty.manage', 'cashback|prepaid_packages|membership'],
         'pos' => ['dash.pos', 'pos.use', null],
         'kiosk' => ['dash.kiosks', 'kiosk.manage', null],
         'kitchen-display' => ['dash.kitchen', 'kitchen.view', null],
         'call-center' => ['dash.callcenter', 'callcenter.use', null],
         'inventory' => ['dash.inventory', 'inventory.manage', null],
         'reports' => ['dash.reports', 'reports.view', null],
-        'advanced-reports' => ['dash.reports', 'reports.view', null],
         'multi-branch' => ['dash.branches', 'branches.manage', null],
         'custom-domain' => ['dash.domain', 'settings.manage', null],
         'featured-listing' => ['dash.billing', 'billing.manage', null],
@@ -195,7 +193,7 @@ final class ModuleChoice
      *
      * @param  list<string>  $slugs
      * @return array{included: list<array>, missing: list<array{module: array, where: string}>, trialing: bool,
-     *     plan: Plan, best: ?array{plan: Plan, addons: Collection<int, AddonPrice>, total: float, current: bool}}
+     *     plan: Plan, best: ?array{plan: Plan, addons: Collection<int, AddonPrice>, total: float, current: bool}, contact: ?Plan}
      */
     public static function coverage(array $slugs): array
     {
@@ -221,8 +219,14 @@ final class ModuleChoice
         if ($best) {
             $best['current'] = ! $trialing && $best['addons']->isEmpty() && $best['plan']->is($rights->plan);
         }
+        // nothing on sale covers the pick (an operations module): the plan agreed with sales that does
+        $contact = null;
+        if (! $best && $missing !== []) {
+            $contact = $pricing['plans']->first(fn (Plan $p) => $p->isContactSales() && collect($modules)
+                ->every(fn (array $m) => $m['feature'] === null || ! empty($pricing['matrix'][$p->id]['features'][$m['feature']])));
+        }
 
-        return ['included' => $included, 'missing' => $missing, 'trialing' => $trialing, 'plan' => $rights->plan, 'best' => $best];
+        return ['included' => $included, 'missing' => $missing, 'trialing' => $trialing, 'plan' => $rights->plan, 'best' => $best, 'contact' => $contact];
     }
 
     /**
@@ -235,10 +239,15 @@ final class ModuleChoice
     private static function cheapest(array $modules, array $pricing): ?array
     {
         $tenant = tenant();
-        $packs = $pricing['addons']->filter(fn (AddonPrice $a) => $a->isFeaturePack())->values();
+        // feature packs, and limit packs that switch a feature on (an extra branch brings per-branch prices)
+        $packs = $pricing['addons']->filter(fn (AddonPrice $a) => $a->isFeaturePack() || ($a->type === 'limit' && $a->features))->values();
         $options = [];
 
         foreach ($pricing['plans'] as $plan) {
+            // a plan priced with sales has no price to compare; coverage() names it on its own
+            if ($plan->isContactSales()) {
+                continue;
+            }
             $features = $pricing['matrix'][$plan->id]['features'] ?? [];
             $needed = array_values(array_filter($modules, fn (array $m) => $m['feature'] !== null && empty($features[$m['feature']])));
             $addons = self::packsFor($needed, $packs->filter(fn (AddonPrice $a) => $a->availableFor($plan))->values(), $tenant);
@@ -308,9 +317,10 @@ final class ModuleChoice
         return $options[0];
     }
 
-    /** @return list<string> known slugs only, in catalogue order, locked modules always in */
+    /** @return list<string> known slugs only, in catalogue order, locked modules always in; merged modules follow their new slug */
     private static function clean(array $slugs): array
     {
+        $slugs = array_map(fn ($s) => is_string($s) ? (SiteModules::MERGED[$s] ?? $s) : $s, $slugs);
         $wanted = array_merge(self::LOCKED, array_filter($slugs, 'is_string'));
 
         return array_values(array_filter(array_keys(SiteModules::all()), fn (string $s) => in_array($s, $wanted, true)));

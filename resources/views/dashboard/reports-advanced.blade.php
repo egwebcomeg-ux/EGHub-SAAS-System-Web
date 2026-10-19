@@ -13,7 +13,7 @@
 @endphp
 
 <div class="mt-8 mb-3 flex flex-wrap items-center justify-between gap-2" id="advanced">
-    <h2 class="text-xl font-extrabold">{{ __('Advanced reports') }}</h2>
+    <h2 class="text-xl font-extrabold">{{ __('Advanced') }}</h2>
     @can('settings.manage')
         <a href="{{ route('dash.settings') }}#weekly-report" class="text-sm font-semibold text-brand-700 underline underline-offset-2">
             ✉ {{ __('Weekly report') }}: {{ $weeklyEmail ? __('On') : __('Off') }}

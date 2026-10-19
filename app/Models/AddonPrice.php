@@ -17,6 +17,12 @@ class AddonPrice extends Model
     /** Each branch after the first pays this share of a per-branch pack (40% off). */
     public const EXTRA_BRANCH_SHARE = 0.6;
 
+    /** Staff accounts every extra branch (limit add-on `branches`) adds on top of the plan's. */
+    public const STAFF_PER_EXTRA_BRANCH = 8;
+
+    /** Extra branches a restaurant may add by itself (so 5 branches in all); more is the Enterprise plan. */
+    public const MAX_SELF_SERVE_EXTRA_BRANCHES = 4;
+
     protected function casts(): array
     {
         return ['monthly_price' => 'float', 'is_active' => 'boolean', 'features' => 'array', 'per_branch' => 'boolean', 'credits' => 'integer'];

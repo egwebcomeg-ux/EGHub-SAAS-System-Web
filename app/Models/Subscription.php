@@ -27,6 +27,7 @@ class Subscription extends Model
             'grace_ends_at' => 'datetime',
             'reminded_at' => 'datetime',
             'period_value' => 'float',
+            'branch_offer_until' => 'datetime',
         ];
     }
 

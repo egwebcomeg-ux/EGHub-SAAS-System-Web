@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Billing\Billing;
 use App\Billing\Credits;
+use App\Billing\LaunchOffer;
 use App\Billing\PaymentMethods;
 use App\Http\Controllers\Controller;
 use App\Models\AddonPrice;
@@ -23,17 +24,25 @@ class BillingController extends Controller
 {
     public function index(Credits $credits): View
     {
-        $plans = Plan::query()->where('is_public', true)->with('features')->orderBy('sort_order')->get();
+        $subscription = tenant()->subscription()->with('plan')->first();
+        // the public line-up, plus an older plan the restaurant is still on so it can renew it
+        $plans = Plan::query()->where(fn ($q) => $q->where('is_public', true)->orWhere('id', $subscription?->plan_id))
+            ->with('features')->orderBy('sort_order')->get();
+        $myAddons = $subscription?->addons()->pluck('quantity', 'key')->all() ?? [];
 
         return view('dashboard.billing.index', [
-            'subscription' => tenant()->subscription()->with('plan')->first(),
+            'subscription' => $subscription,
             'plans' => $plans,
             'matrix' => $plans->mapWithKeys(fn (Plan $p) => [$p->id => $p->entitlements()]),
             'invoices' => Invoice::query()->where('tenant_id', tenant()->getTenantKey())->latest('id')->limit(20)->get(),
-            'addons' => AddonPrice::query()->where('is_active', true)->where('type', '!=', 'credits')->orderBy('sort_order')->get(),
+            // add-ons on sale, and the ones this restaurant already has even if they are no longer sold
+            'addons' => AddonPrice::query()->where('type', '!=', 'credits')
+                ->where(fn ($q) => $q->where('is_active', true)->orWhereIn('key', array_keys(array_filter($myAddons))))->orderBy('sort_order')->get(),
+            'launchOffer' => app(Billing::class)->launchOfferCoversNextBranch($subscription, new AddonPrice(['key' => LaunchOffer::ADDON]))
+                ? $subscription->branch_offer_until : null,
             'creditPacks' => AddonPrice::query()->where('is_active', true)->where('type', 'credits')->orderBy('sort_order')->get(),
             'creditBalance' => $credits->balance(tenant()),
-            'myAddons' => tenant()->subscription()->first()?->addons()->pluck('quantity', 'key')->all() ?? [],
+            'myAddons' => $myAddons,
         ]);
     }
 
@@ -48,6 +57,9 @@ class BillingController extends Controller
             return back()->with('ok', __('This add-on is already active.'));
         }
         $plan = tenant()->subscription()->with('plan')->first()?->plan;
+        if ($addon->key === 'branches' && $mine >= AddonPrice::MAX_SELF_SERVE_EXTRA_BRANCHES) {
+            return back()->withErrors(['addon' => __('More than :count branches is the Enterprise plan. Message us and we will set it up.', ['count' => AddonPrice::MAX_SELF_SERVE_EXTRA_BRANCHES + 1])]);
+        }
         if (! $addon->availableFor($plan)) {
             return back()->withErrors(['addon' => __('This add-on needs at least the :plan plan.', ['plan' => Plan::query()->where('code', $addon->min_plan)->first()?->displayName()])]);
         }
@@ -55,14 +67,23 @@ class BillingController extends Controller
             return back()->with('ok', __('Everything in this add-on is already included in your subscription.'));
         }
         $invoice = $billing->invoiceForAddon(tenant(), $addon, 1);
+        if ((float) $invoice->total === 0.0) {
+            // nothing to pay (the launch offer's free branch): switched on at once
+            $billing->markPaid($invoice, 'offer', null, 0, 'offer-'.$invoice->number);
+
+            return redirect()->route('dash.billing')->with('ok', __('Your extra branch is on, free with the launch offer.'));
+        }
 
         return redirect()->route('dash.billing.invoice', $invoice->number);
     }
 
     public function checkout(Request $request, Billing $billing): RedirectResponse
     {
+        $current = tenant()->subscription()->value('plan_id');
         $data = $request->validate([
-            'plan_id' => ['required', Rule::exists('plans', 'id')->where('is_public', true)],
+            // a public plan, or the older plan the restaurant is on (renewal); never a contact-sales plan
+            'plan_id' => ['required', Rule::exists('plans', 'id')->where('contact_sales', false)
+                ->where(fn ($q) => $q->where('is_public', true)->orWhere('id', $current))],
             'months' => ['required', Rule::in(Plan::CYCLES)],
         ]);
         $invoice = $billing->invoiceForPlan(tenant(), Plan::query()->findOrFail($data['plan_id']), (int) $data['months']);

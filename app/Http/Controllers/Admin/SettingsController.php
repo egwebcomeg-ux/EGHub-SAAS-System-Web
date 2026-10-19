@@ -21,6 +21,8 @@ class SettingsController extends Controller
         'pay_instapay_enabled', 'pay_instapay_handle', 'pay_vodafone_enabled', 'pay_vodafone_number', 'pay_instructions',
         'gateway_paymob_enabled', 'gateway_kashier_enabled', 'gateway_geidea_enabled', 'support_whatsapp', 'support_email',
         'sales_whatsapp', 'contact_email', 'server_ip', 'domain_cart_url',
+        // launch offer (App\Billing\LaunchOffer): the second branch free for the first year of a Complete subscription
+        'launch_offer_branch_enabled', 'launch_offer_branch_ends',
         'social_facebook', 'social_instagram', 'social_tiktok', 'social_youtube', 'social_linkedin', 'social_x',
     ];
 
@@ -57,6 +59,7 @@ class SettingsController extends Controller
             'contact_email' => 'nullable|email|max:120',
             'server_ip' => 'nullable|ip',
             'domain_cart_url' => 'nullable|url|max:300',
+            'launch_offer_branch_ends' => 'nullable|date',
         ] + collect(SocialLinks::NETWORKS)->mapWithKeys(fn ($network, string $key) => [SocialLinks::key($key) => 'nullable|url:https|max:300'])->all());
         foreach (self::KEYS as $key) {
             $value = str_ends_with($key, '_enabled') ? ($request->boolean($key) ? '1' : '0') : (string) $request->input($key, '');

@@ -26,6 +26,7 @@
             <div class="flex flex-col justify-end gap-1 text-sm">
                 <label class="flex min-h-10 items-center gap-2"><input type="checkbox" name="is_public" value="1" @checked($plan->is_public) class="size-5 accent-brand-600"> {{ __('Shown on pricing page') }}</label>
                 <label class="flex min-h-10 items-center gap-2"><input type="checkbox" name="is_featured" value="1" @checked($plan->is_featured) class="size-5 accent-brand-600"> {{ __('Most popular') }}</label>
+                <label class="flex min-h-10 items-center gap-2"><input type="checkbox" name="contact_sales" value="1" @checked($plan->contact_sales) class="size-5 accent-brand-600" data-contact-sales-toggle> {{ __('Contact sales (no public price, assigned from here only)') }}</label>
             </div>
         </section>
     </div>

@@ -7,11 +7,25 @@ use App\Models\Plan;
 use Illuminate\Database\Seeder;
 
 /**
- * Initial plans. Safe to re-run: plans that already exist (edited from the super admin) are left untouched,
- * only features/limits added to the catalogue since are filled in with this default.
+ * The plans and add-ons. Safe to re-run on production (`php artisan db:seed --class=PlanSeeder --force`):
+ *  - plans and add-ons that already exist keep what the super admin edited (prices, names, features); only
+ *    features/limits added to the catalogue since are filled in with this default;
+ *  - the public line-up is Free, Complete and Enterprise (contact sales); the older Starter, Basic, Pro and Business
+ *    plans are hidden from the pricing page and new upgrades but stay as they are for whoever subscribes to them;
+ *  - feature packs are no longer sold (existing holders keep theirs); WhatsApp credits, the featured listing, the
+ *    extra branch and the 5-users pack stay on sale. Nothing here deletes a plan or touches a subscription.
  */
 class PlanSeeder extends Seeder
 {
+    /** Older plans, kept for their subscribers only. */
+    public const LEGACY = ['starter', 'basic', 'pro', 'business'];
+
+    /** Add-ons still on sale under the new line-up; every other feature pack is switched off. */
+    public const STILL_SOLD = ['wa_500', 'wa_2000', 'featured_listing', 'branches', 'staff', 'menu_items', 'tables'];
+
+    /** The operations features as they were when the older plans were made (delivery zones was one of them). */
+    private const LEGACY_OPERATIONS = ['pos', 'shifts', 'customer_display', 'kitchen_display', 'kitchen_stations', 'call_center', 'delivery_zones', 'kiosk', 'inventory'];
+
     public function run(): void
     {
         $cycles = ['6' => 10, '12' => 17];
@@ -21,18 +35,33 @@ class PlanSeeder extends Seeder
         $basic = array_merge($starter, ['qr_ordering', 'order_board', 'full_branding']);
         $pro = array_merge($basic, ['online_ordering', 'scheduled_orders', 'daily_reports', 'menu_themes', 'printed_menu',
             'offers', 'upsell', 'ai_import', 'customers', 'loyalty_stamps', 'custom_domain', 'whatsapp_notifications', 'reservations']);
-        // Business = every menu feature; operations (POS, kitchen, call center, inventory) are add-ons for every plan.
-        // A featured directory listing is paid placement, sold only as its own add-on.
-        $business = array_values(array_diff(array_keys(Plan::FEATURES), Plan::addonFeatures(), ['featured_listing']));
+        // Business = every menu feature; operations were add-ons. A featured directory listing is paid placement.
+        $business = array_values(array_diff(array_keys(Plan::FEATURES), self::LEGACY_OPERATIONS, ['featured_listing']));
+        // Complete = every module except operations (POS, kitchen, kiosk, call center, inventory) and per-branch
+        // prices, which an extra branch switches on. Enterprise = everything.
+        $complete = array_values(array_diff(array_keys(Plan::FEATURES), Plan::addonFeatures(), ['branch_pricing', 'featured_listing']));
+        $enterprise = array_keys(Plan::FEATURES);
 
         $plans = [
             // Free = the menu online with the egmenu badge, no ordering; what a restaurant lands on when a trial or
             // a subscription ends unpaid (App\Billing\Lifecycle), so nothing ever goes offline.
-            ['code' => 'free', 'name' => 'مجاني', 'name_en' => 'Free', 'monthly_price' => 0, 'sort_order' => -1,
+            ['code' => 'free', 'name' => 'مجانية', 'name_en' => 'Free', 'monthly_price' => 0, 'sort_order' => -1,
                 'tagline' => 'منيو QR أونلاين لمحلك من غير أي تكلفة، لحد ما تحتاج أكتر',
                 'tagline_en' => 'Your QR menu online at no cost, until you need more',
                 'features' => ['excel_import'],
                 'limits' => ['branches' => 1, 'menu_items' => 30, 'staff' => 1, 'tables' => 5, 'ai_imports_per_month' => 0]],
+            ['code' => 'full', 'name' => 'الكاملة', 'name_en' => 'Complete', 'monthly_price' => 1250, 'sort_order' => 10, 'is_featured' => true,
+                'cycles' => ['6' => 10, '12' => 20],
+                'tagline' => 'كل حاجة للمطعم أو الكافيه: الطلبات والتوصيل والحجز والولاء والمحفظة والتسويق والتقارير',
+                'tagline_en' => 'Everything for one place: ordering, delivery, bookings, loyalty, wallet, marketing and reports',
+                'features' => $complete,
+                'limits' => ['branches' => 1, 'menu_items' => null, 'staff' => 8, 'tables' => null, 'ai_imports_per_month' => 20]],
+            ['code' => 'enterprise', 'name' => 'Enterprise', 'name_en' => 'Enterprise', 'monthly_price' => 0, 'sort_order' => 20, 'contact_sales' => true,
+                'cycles' => [],
+                'tagline' => 'للسلاسل والمحلات الكبيرة: الكاشير والمطبخ والكشك والكول سنتر والمخزون وفروع أكتر، بسعر حسب احتياجك',
+                'tagline_en' => 'For chains and busy places: POS, kitchen, kiosk, call center, inventory and more branches, priced for you',
+                'features' => $enterprise,
+                'limits' => ['branches' => null, 'menu_items' => null, 'staff' => null, 'tables' => null, 'ai_imports_per_month' => null]],
             ['code' => 'starter', 'name' => 'مبتدئ', 'name_en' => 'Starter', 'monthly_price' => 99, 'sort_order' => 0,
                 'tagline' => 'منيو QR بشكل محترم لكافيه صغير: العميل يشوف المنيو والأسعار',
                 'tagline_en' => 'A good-looking QR menu for a small cafe: guests browse the menu and prices',
@@ -43,7 +72,7 @@ class PlanSeeder extends Seeder
                 'tagline_en' => 'QR menu and table ordering for a single-branch venue',
                 'features' => $basic,
                 'limits' => ['branches' => 1, 'menu_items' => 150, 'staff' => 2, 'tables' => 15, 'ai_imports_per_month' => 0]],
-            ['code' => 'pro', 'name' => 'احترافية', 'name_en' => 'Pro', 'monthly_price' => 399, 'sort_order' => 2, 'is_featured' => true,
+            ['code' => 'pro', 'name' => 'احترافية', 'name_en' => 'Pro', 'monthly_price' => 399, 'sort_order' => 2,
                 'tagline' => 'طلب من الترابيزة وكارت ولاء وعروض ومنيو مطبوع',
                 'tagline_en' => 'Table ordering, loyalty card, offers and a printed menu',
                 'features' => $pro,
@@ -58,8 +87,8 @@ class PlanSeeder extends Seeder
         foreach ($plans as $p) {
             $plan = Plan::query()->firstOrCreate(['code' => $p['code']], [
                 'name' => $p['name'], 'name_en' => $p['name_en'], 'tagline' => $p['tagline'], 'tagline_en' => $p['tagline_en'],
-                'monthly_price' => $p['monthly_price'], 'cycle_discounts' => $cycles, 'sort_order' => $p['sort_order'],
-                'is_featured' => $p['is_featured'] ?? false,
+                'monthly_price' => $p['monthly_price'], 'cycle_discounts' => $p['cycles'] ?? $cycles, 'sort_order' => $p['sort_order'],
+                'is_featured' => $p['is_featured'] ?? false, 'contact_sales' => $p['contact_sales'] ?? false,
             ]);
             foreach (Plan::FEATURES as $key => $_) {
                 $plan->features()->firstOrCreate(['key' => $key], ['type' => 'feature', 'value' => in_array($key, $p['features'], true) ? 1 : 0]);
@@ -69,6 +98,11 @@ class PlanSeeder extends Seeder
                 $plan->features()->firstOrCreate(['key' => $key], ['type' => 'limit', 'value' => array_key_exists($key, $p['limits']) ? $p['limits'][$key] : 0]);
             }
         }
+
+        // the older plans leave the pricing page (their subscribers keep them exactly as they are)
+        Plan::query()->whereIn('code', self::LEGACY)->update(['is_public' => false, 'is_featured' => false]);
+        // the free plan's first name was «مجاني»; the line-up calls it «مجانية» (a name edited by hand is kept)
+        Plan::query()->where('code', 'free')->where('name', 'مجاني')->update(['name' => 'مجانية']);
 
         foreach ([
             ['key' => 'pos_pack', 'type' => 'feature', 'monthly_price' => 199, 'sort_order' => 1, 'per_branch' => true, 'min_plan' => 'basic',
@@ -203,5 +237,21 @@ class PlanSeeder extends Seeder
         ] as $a) {
             AddonPrice::query()->firstOrCreate(['key' => $a['key']], $a);
         }
+
+        // with Complete and Enterprise, feature packs are no longer sold to new customers (holders keep theirs)
+        AddonPrice::query()->whereNotIn('key', self::STILL_SOLD)->where('type', 'feature')->update(['is_active' => false]);
+        // an extra branch on the Complete plan: 600 a month, with its own staff accounts and per-branch prices
+        AddonPrice::query()->where('key', 'branches')->update([
+            'monthly_price' => 600, 'credits' => 1, 'is_active' => true, 'min_plan' => 'full', 'features' => ['branch_pricing'],
+            'name' => 'فرع إضافي', 'name_en' => 'Extra branch',
+            'description' => 'فرع زيادة بنفس المنيو وأسعاره الخاصة، ومعاه ٨ مستخدمين. لحد ٥ فروع، وأكتر من كده باقة Enterprise',
+            'description_en' => 'One more branch with the same menu and its own prices, with 8 more users. Up to 5 branches; more is the Enterprise plan',
+        ]);
+        // extra users come five at a time
+        AddonPrice::query()->where('key', 'staff')->update([
+            'monthly_price' => 100, 'credits' => 5, 'is_active' => true,
+            'name' => '٥ مستخدمين', 'name_en' => '5 users',
+            'description' => '٥ حسابات موظفين زيادة على باقتك', 'description_en' => '5 more staff accounts on top of your plan',
+        ]);
     }
 }
