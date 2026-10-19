@@ -2,6 +2,10 @@
 @section('title', $profile->title())
 @section('body_class', 'm-surface-2 m-text')
 
+{{--
+    The place's one page (/about, and /links shows it too): the links as big buttons on top, then the place itself —
+    description, what they serve, rating, from the menu, branches with address, hours, phones and the map.
+--}}
 @php
     $color = fn ($k, $d) => is_hex_color($settings[$k]) ? $settings[$k] : $d;
     $name = $profile->name();
@@ -9,19 +13,33 @@
     $cuisines = $profile->cuisines();
     $place = $profile->place();
     $description = trim(tr($settings['short_description'], $settings['short_description_en'])) ?: trim(tr($settings['tagline'], $settings['tagline_en']));
+    $socials = array_filter(['instagram' => $settings['instagram'], 'facebook' => $settings['facebook'], 'tiktok' => $settings['tiktok']]);
+    $socialLabels = ['instagram' => 'Instagram', 'facebook' => 'Facebook', 'tiktok' => 'TikTok'];
+    $socialIcons = ['instagram' => '📸', 'facebook' => '👍', 'tiktok' => '🎵'];
+    $withHours = $branches->filter(fn ($b) => trim((string) $b->working_hours) !== '');
 @endphp
 
 @push('head')
 @include('menu.partials.seo-head', ['profile' => $profile, 'schemas' => $schemas])
 @include('menu.partials.pixels')
 {{-- theme-color, manifest and the home-screen icon come from partials.pwa-head (layouts.base) --}}
+@if ($settings['font'] !== 'Cairo')
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family={{ urlencode($settings['font']) }}:wght@400;600;700;800&display=swap">
+@endif
 @include('menu.partials.theme')
+<style>
+    body { font-family: '{{ $settings['font'] }}', 'Cairo', system-ui, sans-serif; }
+    .l-btn { display: flex; align-items: center; gap: .75rem; min-height: 3.5rem; padding: 0 1.25rem; border-radius: 1.25rem; font-weight: 800; font-size: 1.05rem; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+    .l-btn.m-card { border: 1px solid var(--menu-border); background: var(--menu-surface); color: var(--menu-text); }
+    .l-btn > span:first-child { font-size: 1.4rem; width: 2rem; text-align: center; }
+</style>
 @endpush
 
 @section('body')
 <header class="m-secondary">
     @if ($settings['cover'])
-        <img src="/storage/{{ $settings['cover'] }}" alt="{{ $name }}" class="h-44 w-full object-cover sm:h-64">
+        <img src="/storage/{{ $settings['cover'] }}" alt="{{ $name }}" class="h-40 w-full object-cover sm:h-60">
     @endif
     <div class="mx-auto flex max-w-3xl items-center gap-4 px-4 py-5">
         @if ($settings['logo'])
@@ -36,36 +54,52 @@
 </header>
 
 <main class="mx-auto max-w-3xl space-y-5 px-4 py-6">
-    <section class="rounded-3xl m-surface p-5 shadow-sm">
-        @if ($description)
-            <p class="text-lg leading-relaxed">{{ $description }}</p>
+    {{-- the links: what a guest scanning the QR came for, one tap each --}}
+    <nav class="grid gap-3 sm:grid-cols-2" aria-label="{{ __('Links of :name', ['name' => $name]) }}" data-links>
+        <a href="{{ route('menu.show') }}" class="l-btn m-primary sm:col-span-2" data-link="menu"><span aria-hidden="true">📖</span>
+            <span>{{ __('Open the menu') }} @if ($itemsCount)<span class="ms-1 text-sm font-semibold opacity-80">({{ __(':n items', ['n' => $itemsCount]) }})</span>@endif</span></a>
+        @if ($online)
+            <a href="{{ route('menu.show') }}#order" class="l-btn m-card" data-link="order"><span aria-hidden="true">🛵</span><span>{{ __('Order online') }}</span></a>
         @endif
-        @if ($cuisines)
-            <ul class="mt-3 flex flex-wrap gap-2" aria-label="{{ __('What they serve') }}">
-                @foreach ($cuisines as $c)
-                    <li class="rounded-full m-surface-2 px-3 py-1 text-sm font-semibold">{{ $c }}</li>
-                @endforeach
-            </ul>
+        @if ($reservations)
+            <a href="{{ route('menu.reserve') }}" class="l-btn m-card" data-link="reserve"><span aria-hidden="true">🪑</span><span>{{ __('Book a table') }}</span></a>
         @endif
-        <div class="mt-4 flex flex-wrap items-center gap-2 text-sm">
-            @if ($rating)
-                <span class="rounded-full bg-amber-50 px-3 py-1 font-bold text-amber-800">★ {{ number_format($rating['avg'], 1) }} <span class="font-normal">({{ __(':n ratings', ['n' => $rating['count']]) }})</span></span>
-            @endif
-            @if ($ordering['table'])
-                <span class="rounded-full bg-emerald-50 px-3 py-1 font-bold text-emerald-800">{{ __('Order from the table') }}</span>
-            @endif
-            @if ($ordering['delivery'])
-                <span class="rounded-full bg-sky-50 px-3 py-1 font-bold text-sky-800">{{ __('Delivery') }}</span>
-            @endif
-            @if ($ordering['takeaway'])
-                <span class="rounded-full m-surface-2 px-3 py-1 font-bold m-muted">{{ __('Takeaway') }}</span>
-            @endif
-        </div>
-        <a href="{{ route('menu.show') }}" class="m-primary mt-5 flex min-h-14 items-center justify-center rounded-2xl text-lg font-extrabold shadow-md">{{ __('Open the menu') }} @if ($itemsCount)<span class="ms-2 text-sm font-semibold opacity-80">({{ __(':n items', ['n' => $itemsCount]) }})</span>@endif</a>
-        @if (\App\Services\Reservations\ReservationService::enabled())
-            <a href="{{ route('menu.reserve') }}" class="mt-3 flex min-h-12 items-center justify-center rounded-2xl border-2 m-border text-base font-extrabold">{{ __('Book a table') }}</a>
+        @if ($whatsapp)
+            <a href="https://wa.me/{{ whatsapp_number($whatsapp) }}" target="_blank" rel="noopener" class="l-btn m-card" data-link="whatsapp"><span aria-hidden="true">💬</span><span>{{ __('WhatsApp') }}</span></a>
         @endif
-    </section>
+        @foreach ($socials as $key => $url)
+            <a href="{{ $url }}" target="_blank" rel="noopener" class="l-btn m-card" data-link="{{ $key }}"><span aria-hidden="true">{{ $socialIcons[$key] }}</span><span>{{ $socialLabels[$key] }}</span></a>
+        @endforeach
+    </nav>
+
+    @if ($description || $cuisines || $rating || in_array(true, $ordering, true))
+        <section class="rounded-3xl m-surface p-5 shadow-sm" data-about>
+            @if ($description)
+                <p class="text-lg leading-relaxed">{{ $description }}</p>
+            @endif
+            @if ($cuisines)
+                <ul class="mt-3 flex flex-wrap gap-2" aria-label="{{ __('What they serve') }}">
+                    @foreach ($cuisines as $c)
+                        <li class="rounded-full m-surface-2 px-3 py-1 text-sm font-semibold">{{ $c }}</li>
+                    @endforeach
+                </ul>
+            @endif
+            <div class="mt-4 flex flex-wrap items-center gap-2 text-sm">
+                @if ($rating)
+                    <span class="rounded-full bg-amber-50 px-3 py-1 font-bold text-amber-800">★ {{ number_format($rating['avg'], 1) }} <span class="font-normal">({{ __(':n ratings', ['n' => $rating['count']]) }})</span></span>
+                @endif
+                @if ($ordering['table'])
+                    <span class="rounded-full bg-emerald-50 px-3 py-1 font-bold text-emerald-800">{{ __('Order from the table') }}</span>
+                @endif
+                @if ($ordering['delivery'])
+                    <span class="rounded-full bg-sky-50 px-3 py-1 font-bold text-sky-800">{{ __('Delivery') }}</span>
+                @endif
+                @if ($ordering['takeaway'])
+                    <span class="rounded-full m-surface-2 px-3 py-1 font-bold m-muted">{{ __('Takeaway') }}</span>
+                @endif
+            </div>
+        </section>
+    @endif
 
     @if ($featured->isNotEmpty())
         <section>
@@ -87,27 +121,26 @@
     @endif
 
     @if ($branches->isNotEmpty())
-        <section>
+        <section @if ($withHours->isNotEmpty()) data-hours @endif>
             <h2 class="mb-3 text-xl font-extrabold">{{ $branches->count() > 1 ? __('Branches') : __('Address & hours') }}</h2>
             <div class="grid gap-3 sm:grid-cols-2">
                 @foreach ($branches as $b)
                     @php
                         $wa = $profile->whatsapp($b);
-                        $map = $profile->mapUrl($b);
+                        $open = \App\Support\OpeningHours::isOpenAt($b->working_hours, now());
                     @endphp
-                    <article class="rounded-2xl m-surface p-4 shadow-sm">
+                    <article class="rounded-2xl m-surface p-4 shadow-sm" data-branch-card="{{ $b->id }}">
                         @if ($branches->count() > 1)<h3 class="mb-2 font-extrabold">{{ tr($b->name, $b->name_en) }}</h3>@endif
                         <dl class="space-y-1.5 text-sm">
                             @if ($b->address)<div class="flex gap-2"><dt class="w-20 shrink-0 m-muted">{{ __('Address') }}</dt><dd>{{ $b->address }}</dd></div>@endif
-                            @if ($b->working_hours)<div class="flex gap-2"><dt class="w-20 shrink-0 m-muted">{{ __('Hours') }}</dt><dd>{{ $b->working_hours }}
-                                @php($open = \App\Support\OpeningHours::isOpenAt($b->working_hours, now()))
+                            @if ($b->working_hours)<div class="flex gap-2"><dt class="w-20 shrink-0 m-muted">{{ __('Opening hours') }}</dt><dd>{{ $b->working_hours }}
                                 @if ($open !== null)<span @class(['badge ms-1', 'bg-emerald-100 text-emerald-800' => $open, 'm-surface-2 m-muted' => ! $open])>{{ $open ? __('Open now') : __('Closed now') }}</span>@endif
                             </dd></div>@endif
                             @if ($b->phone)<div class="flex gap-2"><dt class="w-20 shrink-0 m-muted">{{ __('Phone') }}</dt><dd><a href="tel:{{ $b->phone }}" dir="ltr" class="font-semibold">{{ $b->phone }}</a></dd></div>@endif
                         </dl>
                         <div class="mt-3 flex flex-wrap gap-2">
-                            @if ($wa)<a href="https://wa.me/{{ whatsapp_number($wa) }}" target="_blank" rel="noopener" class="btn-ghost min-h-10 px-3 text-sm">{{ __('WhatsApp') }}</a>@endif
-                            @if ($map)<a href="{{ $map }}" target="_blank" rel="noopener" class="btn-ghost min-h-10 px-3 text-sm">{{ __('Open in Google Maps') }}</a>@endif
+                            @if ($maps[$b->id])<a href="{{ $maps[$b->id] }}" target="_blank" rel="noopener" class="btn-ghost min-h-10 px-3 text-sm" data-link="map">📍 {{ __('Location on the map') }}</a>@endif
+                            @if ($wa && $branches->count() > 1)<a href="https://wa.me/{{ whatsapp_number($wa) }}" target="_blank" rel="noopener" class="btn-ghost min-h-10 px-3 text-sm">💬 {{ __('WhatsApp') }}</a>@endif
                         </div>
                     </article>
                 @endforeach
@@ -116,11 +149,9 @@
     @endif
 
     <footer class="space-y-3 pt-4 text-center text-sm m-muted">
-        <div class="flex justify-center gap-4">
-            @foreach (['instagram' => 'Instagram', 'facebook' => 'Facebook', 'tiktok' => 'TikTok'] as $key => $label)
-                @if ($settings[$key])<a href="{{ $settings[$key] }}" target="_blank" rel="noopener" class="font-semibold">{{ $label }}</a>@endif
-            @endforeach
-        </div>
+        @unless (\App\Services\Entitlements::current()->allows('hide_badge'))
+            <div><a href="{{ platform_url(null) }}" class="inline-flex items-center gap-1 text-xs">{{ __('Powered by') }} <x-logo :size="14" class="!gap-1 [&_span]:text-xs" /></a></div>
+        @endunless
         <a href="{{ platform_url(null, 'restaurants') }}" class="inline-flex items-center gap-1 text-xs">{{ __('More places on') }} <x-logo :size="14" class="!gap-1 [&_span]:text-xs" /></a>
     </footer>
 </main>

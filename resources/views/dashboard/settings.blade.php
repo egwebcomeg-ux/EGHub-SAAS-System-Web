@@ -271,6 +271,7 @@
         <div><label class="field-label">{{ __('Tax %') }}</label><input class="field" name="tax_percent" type="number" step="0.5" min="0" max="30" value="{{ $s['tax_percent'] }}"></div>
     </section>
 
+    {{-- ==== The place page (/about with its links): contact & social, showing up in search, the page & QR — keep these blocks together ==== --}}
     <section class="card grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <h2 class="text-lg font-bold sm:col-span-2 lg:col-span-3">{{ __('Contact & social') }}</h2>
         <div><label class="field-label">{{ __('Phone') }}</label><input class="field" name="phone" value="{{ $s['phone'] }}" dir="ltr"></div>
@@ -325,16 +326,17 @@
         <label class="flex items-center gap-2 text-sm font-semibold sm:col-span-2"><input type="checkbox" name="listed_in_directory" value="1" @checked($s['listed_in_directory'] === '1') class="size-4 accent-brand-600"> {{ __('Show my place in the EgMenu restaurant directory') }}</label>
     </section>
 
-    <section class="card grid gap-4 sm:grid-cols-2" id="links-page">
+    {{-- the place's page (/about; /links shows the same page): its links on top, then the description, contact and branches above --}}
+    <section class="card grid gap-4 sm:grid-cols-2" id="links-page" data-about-page>
         <div class="sm:col-span-2">
-            <h2 class="text-lg font-bold">{{ __('Links page & QR') }}</h2>
-            <p class="text-sm text-navy-500">{{ __('One page with all your buttons: the menu, ordering, booking, WhatsApp, your social accounts, the map and your hours.') }}
-                <a href="{{ tenant()->url('links') }}" target="_blank" rel="noopener" class="font-semibold text-brand-700 underline" dir="ltr">{{ tenant()->url('links') }}</a></p>
+            <h2 class="text-lg font-bold">{{ __('Your place page & QR') }}</h2>
+            <p class="text-sm text-navy-500">{{ __('One page for your place: the buttons on top (the menu, ordering, booking, WhatsApp, your social accounts), then your description, branches, hours and the map. It uses the contact, social and description fields above.') }}
+                <a href="{{ tenant()->url('about') }}" target="_blank" rel="noopener" class="font-semibold text-brand-700 underline" dir="ltr">{{ tenant()->url('about') }}</a></p>
         </div>
         <div class="sm:col-span-2">
             <span class="field-label">{{ __('When a guest scans your QR, open') }}</span>
             <div class="flex flex-wrap gap-2">
-                @foreach (['menu' => [__('The menu'), __('Straight to the items (default)')], 'links' => [__('The links page'), __('The buttons first, the menu one tap away')]] as $key => [$label, $hint])
+                @foreach (['menu' => [__('The menu'), __('Straight to the items (default)')], 'links' => [__('Your place page'), __('The buttons first, the menu one tap away')]] as $key => [$label, $hint])
                     <label class="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-navy-100 px-4 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
                         <input type="radio" name="qr_target" value="{{ $key }}" class="accent-brand-600" @checked(old('qr_target', $s['qr_target']) === $key)>
                         <span><span class="block text-sm font-semibold">{{ $label }}</span><span class="block text-xs text-navy-500">{{ $hint }}</span></span>

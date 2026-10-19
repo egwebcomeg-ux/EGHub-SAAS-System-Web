@@ -8,7 +8,6 @@ use App\Models\Branch;
 use App\Models\Category;
 use App\Models\MenuItem;
 use App\Models\Offer;
-use App\Models\Popup;
 use App\Models\Season;
 use App\Services\ImageService;
 use App\Services\Orders\CartGoal;
@@ -20,15 +19,14 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
-/** Timed offers ("happy hour"), popups and the banner strip shown on the public menu. */
+/** Timed offers ("happy hour"), the announcements of the public menu (banners, the popup banner, the ticker), seasons. */
 class MarketingController extends Controller
 {
     public function index(): View
     {
         return view('dashboard.marketing', [
             'offers' => Offer::query()->with(['category', 'branch'])->latest('id')->get(),
-            'popups' => Popup::query()->with('item')->latest('id')->get(),
-            'banners' => Banner::query()->with(['item', 'category'])->orderBy('sort_order')->orderBy('id')->get(),
+            'banners' => Banner::query()->with(['item', 'category'])->orderByDesc('is_popup')->orderBy('sort_order')->orderBy('id')->get(),
             'maxBanners' => Banner::MAX_ACTIVE,
             'categories' => Category::query()->orderBy('sort_order')->get(),
             'branches' => Branch::query()->orderBy('sort_order')->get(),
@@ -72,37 +70,11 @@ class MarketingController extends Controller
         return back()->with('ok', __('Offer deleted.'));
     }
 
-    public function savePopup(Request $request, ImageService $images): RedirectResponse
-    {
-        $tenant = tenant()->getTenantKey();
-        $data = $request->validate([
-            'type' => ['required', Rule::in(['image', 'item'])],
-            'title' => 'nullable|string|max:80', 'title_en' => 'nullable|string|max:80',
-            'body' => 'nullable|string|max:300', 'body_en' => 'nullable|string|max:300',
-            'image' => 'nullable|file|max:5120',
-            'menu_item_id' => ['nullable', 'required_if:type,item', Rule::exists('menu_items', 'id')->where('tenant_id', $tenant)],
-            'button_text' => 'nullable|string|max:40', 'link_url' => 'nullable|url|max:300',
-            'branch_id' => ['nullable', Rule::exists('branches', 'id')->where('tenant_id', $tenant)],
-            'starts_on' => 'nullable|date', 'ends_on' => 'nullable|date|after_or_equal:starts_on',
-            'frequency' => ['required', Rule::in(Popup::FREQUENCIES)], 'delay_seconds' => 'nullable|integer|min:0|max:30',
-        ]);
-        if ($data['type'] === 'image' && ! $request->hasFile('image')) {
-            return back()->withErrors(['image' => __('Add a picture for the popup.')]);
-        }
-        $values = collect($data)->except('image')->map(fn ($v) => $v ?? null)->all();
-        $values['title'] ??= '';
-        $values['title_en'] ??= '';
-        $values['button_text'] ??= '';
-        $values['delay_seconds'] ??= 2;
-        if ($request->hasFile('image')) {
-            $values['image'] = $images->store($request->file('image'), 'cover');
-        }
-        Popup::query()->create($values);
-
-        return back()->with('ok', __('Popup saved.'));
-    }
-
-    /** A new banner: picture (required), optional title and one optional link (item, category or address). */
+    /**
+     * A new banner: picture (required), optional title and one optional link (item, category or address). With
+     * "show as soon as the menu opens" it is the menu's popup instead of a slide: switching it on pauses the popup
+     * that was on (one at a time), and it does not count towards the strip's limit.
+     */
     public function saveBanner(Request $request, ImageService $images): RedirectResponse
     {
         $tenant = tenant()->getTenantKey();
@@ -115,11 +87,18 @@ class MarketingController extends Controller
             'link_url' => ['nullable', 'required_if:link_type,url', 'url', 'max:300'],
             'starts_on' => 'nullable|date', 'ends_on' => 'nullable|date|after_or_equal:starts_on',
             'sort_order' => 'nullable|integer|min:0|max:99',
+            'popup_frequency' => ['nullable', Rule::in(Banner::POPUP_FREQUENCIES)],
         ]);
-        if ($this->liveBanners() >= Banner::MAX_ACTIVE) {
+        $popup = $request->boolean('is_popup');
+        if (! $popup && $this->liveBanners() >= Banner::MAX_ACTIVE) {
             return back()->withErrors(['banners' => __('Up to :n banners can be active at a time. Pause or delete one first.', ['n' => Banner::MAX_ACTIVE])]);
         }
+        if ($popup) {
+            $this->pauseOtherPopups();
+        }
         Banner::query()->create([
+            'is_popup' => $popup,
+            'popup_frequency' => $data['popup_frequency'] ?? 'session',
             'image' => $images->store($request->file('image'), 'banner'),
             'title' => (string) ($data['title'] ?? ''), 'title_en' => (string) ($data['title_en'] ?? ''),
             'menu_item_id' => $data['link_type'] === 'item' ? (int) $data['menu_item_id'] : null,
@@ -129,13 +108,16 @@ class MarketingController extends Controller
             'sort_order' => (int) ($data['sort_order'] ?? ((int) Banner::query()->max('sort_order') + 1)),
         ]);
 
-        return back()->with('ok', __('Banner saved.'));
+        return back()->with('ok', $popup ? __('Saved. It shows as soon as the menu opens.') : __('Banner saved.'));
     }
 
     public function toggleBanner(Banner $banner): RedirectResponse
     {
-        if (! $banner->is_active && $this->liveBanners() >= Banner::MAX_ACTIVE) {
+        if (! $banner->is_active && ! $banner->is_popup && $this->liveBanners() >= Banner::MAX_ACTIVE) {
             return back()->withErrors(['banners' => __('Up to :n banners can be active at a time. Pause or delete one first.', ['n' => Banner::MAX_ACTIVE])]);
+        }
+        if (! $banner->is_active && $banner->is_popup) {
+            $this->pauseOtherPopups();
         }
         $banner->update(['is_active' => ! $banner->is_active]);
 
@@ -150,11 +132,24 @@ class MarketingController extends Controller
         return back()->with('ok', __('Banner deleted.'));
     }
 
-    /** Banners switched on and not yet ended (a future start still counts towards the limit). */
+    /** Banners of the strip switched on and not yet ended (a future start still counts towards the limit). */
     private function liveBanners(): int
     {
-        return Banner::query()->where('is_active', true)
+        return Banner::query()->where('is_active', true)->where('is_popup', false)
             ->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', today()))->count();
+    }
+
+    /** One popup at a time: the one being switched on replaces the one that was on. */
+    private function pauseOtherPopups(): void
+    {
+        Banner::query()->where('is_popup', true)->where('is_active', true)->update(['is_active' => false]);
+    }
+
+    /** The old popup editor is now part of "Banners & announcements" (a banner shown as soon as the menu opens). */
+    public function popupsMoved(): RedirectResponse
+    {
+        return redirect()->to(route('dash.marketing').'#announcements')
+            ->with('ok', __('Popups are now banners shown as soon as the menu opens.'));
     }
 
     /** The cart goal of the menu: threshold and reward (a free item, or a percent / amount off). */
@@ -266,20 +261,5 @@ class MarketingController extends Controller
         $season->delete();
 
         return back()->with('ok', __('Season deleted.'));
-    }
-
-    public function togglePopup(Popup $popup): RedirectResponse
-    {
-        $popup->update(['is_active' => ! $popup->is_active]);
-
-        return back();
-    }
-
-    public function deletePopup(Popup $popup, ImageService $images): RedirectResponse
-    {
-        $images->delete($popup->image);
-        $popup->delete();
-
-        return back()->with('ok', __('Popup deleted.'));
     }
 }

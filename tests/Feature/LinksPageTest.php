@@ -8,7 +8,7 @@ use App\Models\Tenant;
 use App\Services\Settings;
 use Tests\TenantTestCase;
 
-/** The public links page egmenu.app/{slug}/links and the QR target setting that can point the QR codes at it. */
+/** The place page egmenu.app/{slug}/about with its links on top (/links shows the same page) and the QR target setting that can point the QR codes at it. */
 class LinksPageTest extends TenantTestCase
 {
     private const BASE = [
@@ -30,10 +30,10 @@ class LinksPageTest extends TenantTestCase
             Branch::query()->first()->update(['address' => '12 شارع 9', 'working_hours' => '9 ص - 1 ص']);
         });
 
-        $html = $this->get($this->pathUrl('cafe-a', 'links'))->assertOk()
-            ->assertSee('<title>روابط روستو | EgMenu</title>', false)
-            ->assertSee('<link rel="canonical" href="http://egmenu.test/cafe-a/links">', false)
-            ->assertSee('<meta property="og:title" content="روابط روستو">', false)
+        // one page for the place: /about carries the links on top, then the place itself
+        $html = $this->get($this->pathUrl('cafe-a', 'about'))->assertOk()
+            ->assertSee('<title>منيو روستو في المعادي، القاهرة | EgMenu</title>', false)
+            ->assertSee('<link rel="canonical" href="http://egmenu.test/cafe-a/about">', false)
             ->assertDontSee('name="robots"', false)
             ->assertSee(['data-link="menu"', 'data-link="order"', 'data-link="reserve"', 'data-link="whatsapp"', 'data-link="instagram"', 'data-link="tiktok"', 'data-link="map"', 'data-hours'], false)
             ->assertDontSee('data-link="facebook"', false)
@@ -42,10 +42,18 @@ class LinksPageTest extends TenantTestCase
         $this->assertStringContainsString('https://wa.me/201011112222', $html);
         $this->assertStringContainsString('google.com/maps/search/?api=1&amp;query=12%20%D8%B4%D8%A7%D8%B1%D8%B9%209', $html);
         $this->assertStringContainsString('http://egmenu.test/cafe-a/reserve', str_replace('\/', '/', $html));
+        // the links come before the description and the branches
+        $this->assertTrue(strpos($html, 'data-links') < strpos($html, 'data-about') && strpos($html, 'data-about') < strpos($html, 'data-hours'));
+
+        // /links keeps working (printed QRs, shared links): the same page, one canonical (/about)
+        $this->get($this->pathUrl('cafe-a', 'links'))->assertOk()
+            ->assertSee('<link rel="canonical" href="http://egmenu.test/cafe-a/about">', false)
+            ->assertDontSee('<link rel="canonical" href="http://egmenu.test/cafe-a/links">', false)
+            ->assertSee(['data-link="menu"', 'data-link="whatsapp"', 'data-hours', 'قهوة مختصة'], false);
 
         // the subdomain alias serves the same page with its own links and the canonical path
         $sub = $this->get($this->subUrl('cafe-a', 'links'))->assertOk()
-            ->assertSee('<link rel="canonical" href="http://egmenu.test/cafe-a/links">', false)->getContent();
+            ->assertSee('<link rel="canonical" href="http://egmenu.test/cafe-a/about">', false)->getContent();
         $this->assertStringContainsString('http://cafe-a.egmenu.test/reserve', $sub);
     }
 
@@ -78,9 +86,11 @@ class LinksPageTest extends TenantTestCase
         $this->assertSame('links', $this->as($a, fn () => Settings::get('qr_target')));
         $this->actingAs($owner)->post($this->dashUrl('/settings'), self::BASE + ['qr_target' => 'elsewhere'])->assertSessionHasErrors('qr_target');
 
-        // printed table QRs keep their link and now land on the links page; the storefront QR encodes the links page
-        $this->get($this->pathUrl('cafe-a', "t/$token"))->assertRedirect($this->pathUrl('cafe-a', 'links'));
-        $this->get($this->subUrl('cafe-a', "t/$token"))->assertRedirect($this->subUrl('cafe-a', 'links'));
+        // printed table QRs keep their link and now land on the place's page with its links (/about); the storefront
+        // QR encodes /links, which shows that same page
+        $this->get($this->pathUrl('cafe-a', "t/$token"))->assertRedirect($this->pathUrl('cafe-a', 'about'));
+        $this->get($this->subUrl('cafe-a', "t/$token"))->assertRedirect($this->subUrl('cafe-a', 'about'));
+        $this->get($this->pathUrl('cafe-a', 'about'))->assertOk()->assertSee('data-links', false);
         $this->actingAs($owner)->get($this->dashUrl('/tables'))->assertOk()->assertSee('data-qr-target="links"', false);
         $this->actingAs($owner)->get($this->dashUrl('/tables/print?menu=1'))->assertOk()->assertSee('امسح للمنيو والطلب وروابطنا');
         // the form posted without the field keeps the current target

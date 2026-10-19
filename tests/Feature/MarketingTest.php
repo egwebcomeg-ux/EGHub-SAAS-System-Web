@@ -7,14 +7,13 @@ use App\Models\DiningTable;
 use App\Models\MenuItem;
 use App\Models\Offer;
 use App\Models\Order;
-use App\Models\Popup;
 use App\Models\Tenant;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TenantTestCase;
 
-/** Timed offers, popups, "goes well with" pairings and combos. */
+/** Timed offers, "goes well with" pairings and combos. */
 class MarketingTest extends TenantTestCase
 {
     private function orderAtTable(Tenant $t, array $items)
@@ -72,26 +71,15 @@ class MarketingTest extends TenantTestCase
         $this->actingAs($this->owner($basic))->get($this->dashUrl('/marketing'))->assertForbidden();
     }
 
-    public function test_owner_creates_offer_and_popup_from_the_dashboard(): void
+    /** The popup is a banner now (tests/Feature/PopupBannerTest.php); the old popup editor only points there. */
+    public function test_owner_creates_an_offer_from_the_dashboard(): void
     {
         $a = $this->restaurant('cafe-a');
-        $item = $this->item($a, 'Cake', 90);
         $owner = $this->owner($a);
         $this->actingAs($owner)->post($this->dashUrl('/marketing/offers'), [
             'title' => 'Weekend', 'discount_percent' => 15, 'days' => [5, 6], 'starts_at' => '15:00', 'ends_at' => '18:00',
         ])->assertSessionHasNoErrors();
         $this->assertSame([5, 6], $this->as($a, fn () => Offer::query()->first()->days));
-
-        $this->actingAs($owner)->post($this->dashUrl('/marketing/popups'), [
-            'type' => 'item', 'menu_item_id' => $item->id, 'title' => 'Try our cake', 'frequency' => 'day',
-        ])->assertSessionHasNoErrors();
-        $popup = $this->as($a, fn () => Popup::query()->first());
-        $this->get($this->subUrl('cafe-a'))->assertSee('Try our cake', false);
-
-        $this->postJson($this->subUrl('cafe-a', "popups/{$popup->id}/view"))->assertOk();
-        $this->postJson($this->subUrl('cafe-a', "popups/{$popup->id}/click"))->assertOk();
-        $popup->refresh();
-        $this->assertSame([1, 1], [$popup->views, $popup->clicks]);
     }
 
     public function test_combo_contents_reach_the_kitchen_and_pairings_are_saved_per_restaurant(): void

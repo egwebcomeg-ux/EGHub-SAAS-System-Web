@@ -205,9 +205,9 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/marketing/offers/{offer}', [MarketingController::class, 'saveOffer'])->name('offers.update');
         Route::post('/marketing/offers/{offer}/toggle', [MarketingController::class, 'toggleOffer'])->name('offers.toggle');
         Route::post('/marketing/offers/{offer}/delete', [MarketingController::class, 'deleteOffer'])->name('offers.delete');
-        Route::post('/marketing/popups', [MarketingController::class, 'savePopup'])->name('popups.store');
-        Route::post('/marketing/popups/{popup}/toggle', [MarketingController::class, 'togglePopup'])->name('popups.toggle');
-        Route::post('/marketing/popups/{popup}/delete', [MarketingController::class, 'deletePopup'])->name('popups.delete');
+        // the old popup editor: popups are now banners shown as soon as the menu opens (Banners & announcements)
+        Route::match(['get', 'post'], '/marketing/popups/{any?}', [MarketingController::class, 'popupsMoved'])
+            ->where('any', '.*')->name('popups.moved');
     });
 
     // ---- Marketing: WhatsApp campaigns with coupons ----

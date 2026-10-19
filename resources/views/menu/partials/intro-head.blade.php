@@ -5,6 +5,7 @@
 @php
     $introKey = 'egmenu.intro.' . tenant()->getTenantKey();
     $wayKey = 'egmenu.way.' . tenant()->getTenantKey();
+    $branchKey = 'egmenu.branch.' . tenant()->getTenantKey();
     // "always": every time the menu is opened (a scan, a link, a new tab) — but not when coming back from another page
     // of the same menu (order tracking, card); "session": once per browser session
     $introAlways = \App\Services\Settings::get('menu_intro_repeat') !== 'session';
@@ -24,8 +25,16 @@
             try { if (store) { store.setItem(@json($introKey), '1'); } } catch (e) {}
         }
         @endif
+        @if ($choice || $branchFirst)
+        // the first-open sheet: no way of ordering remembered yet, or a first visit with no branch chosen
+        var firstOpen = false;
         @if ($choice)
-        if (!read(@json($wayKey))) { root.classList.add('choice-open'); }
+        if (!read(@json($wayKey))) { firstOpen = true; }
+        @endif
+        @if ($branchFirst)
+        try { var mem = JSON.parse(window.localStorage.getItem(@json($branchKey)) || '{}'); if (!mem || !mem.current) { firstOpen = true; } } catch (e) {}
+        @endif
+        if (firstOpen) { root.classList.add('choice-open'); }
         @endif
     })();
 </script>
@@ -35,7 +44,7 @@
     html.choice-open .m-choice { display: flex; }
     html.choice-open { overflow: hidden; }
     .m-choice-close { display: none; }
-    html.choice-reopen .m-choice-close { display: block; }
+    html.choice-reopen .m-choice-close, .m-choice-card--closable .m-choice-close { display: block; }
 
     /* intro: brand glow, logo rises with a soft scale, tagline fades in, then the overlay fades out (≈1.8 s; full ≈2.3 s) */
     .m-intro {
@@ -80,13 +89,14 @@
     @keyframes m-intro-out { to { opacity: 0; visibility: hidden; } }
     @media (prefers-reduced-motion: reduce) { .m-intro { display: none !important; } }
 
-    /* "how will you order?" sheet (general link with the hall and takeaway/delivery) */
+    /* the first-open sheet: "how will you order?" and the branch, one confirm */
     .m-choice {
         position: fixed; inset: 0; z-index: 90; align-items: flex-end; justify-content: center;
         background: color-mix(in srgb, var(--menu-secondary) 82%, #000); padding: 0;
     }
     .m-choice-card {
-        width: 100%; max-width: 30rem; border-radius: 28px 28px 0 0; padding: 26px 20px calc(20px + env(safe-area-inset-bottom));
+        width: 100%; max-width: 30rem; max-height: 94dvh; overflow-y: auto; overscroll-behavior: contain;
+        border-radius: 28px 28px 0 0; padding: 22px 20px calc(18px + env(safe-area-inset-bottom));
         display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center;
         box-shadow: 0 -20px 60px -24px rgba(0, 0, 0, .6); animation: m-choice-rise .45s cubic-bezier(.2, .8, .2, 1) both;
     }

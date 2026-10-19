@@ -74,7 +74,8 @@ class IdentifyTenantBySubdomain
             'lang' => $request->query('lang') === 'en' || (MenuLocales::current() && $request->query('lang') === MenuLocales::current())
                 ? $request->query('lang') : null,
         ]);
-        $path = $this->relativePath($request);
+        // /links shows the place's page (/about): one page, one canonical
+        $path = $name === 'links' ? 'about' : $this->relativePath($request);
         $request->attributes->set('canonical', $tenant->url($path.($query ? '?'.http_build_query($query) : '')));
     }
 

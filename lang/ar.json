@@ -3681,5 +3681,18 @@
     "first :n rows": "أول :n صف",
     "matched with your delivery zones by name": "بنطابقها مع مناطق التوصيل بالاسم",
     "they will not be imported": "مش هيتستوردوا",
-    "The name is copied. EgWeb opens with it ready; if the search box is empty there, paste it (Ctrl+V or long press) and tap Search.": "الاسم اتنسخ. EgWeb هيفتح والاسم جاهز؛ لو خانة البحث هناك فاضية، الصقه (Ctrl+V أو ضغطة طويلة) ودوس Search."
+    "The name is copied. EgWeb opens with it ready; if the search box is empty there, paste it (Ctrl+V or long press) and tap Search.": "الاسم اتنسخ. EgWeb هيفتح والاسم جاهز؛ لو خانة البحث هناك فاضية، الصقه (Ctrl+V أو ضغطة طويلة) ودوس Search.",
+    "Saved. It shows as soon as the menu opens.": "اتحفظ. هيظهر أول ما المنيو يفتح.",
+    "Popups are now banners shown as soon as the menu opens.": "النوافذ الإعلانية بقت بانرات بتظهر أول ما المنيو يفتح.",
+    "Banners & announcements": "البانرات والإعلانات",
+    "Banners in the strip": "البانرات اللي في الشريط",
+    "Mark one \"Show as soon as the menu opens\" and it greets guests over the menu instead, after they choose how to order.": "علّم على واحد «يظهر أول ما المنيو يفتح» وهيستقبل الضيوف فوق المنيو بدل الشريط، بعد ما يختاروا هيطلبوا إزاي.",
+    "Shows as soon as the menu opens": "يظهر أول ما المنيو يفتح",
+    "Show as soon as the menu opens": "يظهر أول ما المنيو يفتح",
+    "Instead of the strip, it opens over the menu once. Only one at a time: it replaces the one that was on.": "بدل الشريط، بيفتح فوق المنيو. واحد بس في نفس الوقت: بياخد مكان اللي كان شغال.",
+    "From which branch?": "من أنهي فرع؟",
+    "Let's order": "يلا نطلب",
+    "Your place page & QR": "صفحة المكان و QR",
+    "One page for your place: the buttons on top (the menu, ordering, booking, WhatsApp, your social accounts), then your description, branches, hours and the map. It uses the contact, social and description fields above.": "صفحة واحدة لمكانك: الزراير فوق (المنيو، الطلب، الحجز، واتساب، حساباتك على السوشيال)، وبعدها الوصف والفروع والمواعيد والخريطة. بتاخد بياناتها من خانات التواصل والسوشيال والوصف اللي فوق.",
+    "Your place page": "صفحة المكان"
 }

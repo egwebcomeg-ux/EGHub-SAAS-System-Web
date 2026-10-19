@@ -80,7 +80,7 @@
 @if ($season)
     @include('menu.partials.season-style', ['season' => $season])
 @endif
-@if ($intro !== 'off' || $choice || $waysMenu)
+@if ($intro !== 'off' || $firstSheet)
     @include('menu.partials.intro-head')
 @endif
 @endpush
@@ -414,20 +414,28 @@
     </form>
 </dialog>
 
-{{-- Popup (offer / featured item) --}}
-<dialog class="m-surface m-auto w-[min(26rem,92vw)] overflow-hidden rounded-3xl p-0 backdrop:bg-black/50" data-popup>
+@if ($popup)
+{{--
+    The banner the owner marked "show as soon as the menu opens". It waits until the intro and the first-open sheet
+    are closed (data-popup-after), so two layers never stack; once per visit unless the owner chose otherwise.
+--}}
+<dialog class="m-surface m-auto w-[min(26rem,92vw)] overflow-hidden rounded-3xl p-0 backdrop:bg-black/50" data-popup="{{ $popup->id }}" @if ($firstSheet) data-popup-after="first-sheet" @endif aria-labelledby="popup-title">
     <form method="dialog">
-        <img alt="" class="hidden aspect-[4/3] w-full object-cover" data-popup-image>
+        <img alt="" class="hidden aspect-[16/7] w-full object-cover" data-popup-image>
         <div class="p-5 text-center">
-            <h3 class="text-xl font-extrabold" data-popup-title></h3>
-            <p class="m-muted mt-1" data-popup-body></p>
-            <div class="mt-4 grid gap-2">
-                <button type="button" class="m-primary min-h-12 rounded-xl font-bold" data-popup-action></button>
-                <button value="cancel" class="m-muted text-sm">{{ __('Close') }}</button>
+            @if ($popupTitle = tr($popup->title, $popup->title_en))
+                <h3 id="popup-title" class="text-xl font-extrabold" data-popup-title>{{ $popupTitle }}</h3>
+            @endif
+            <div @class(['grid gap-2', 'mt-4' => $popupTitle])>
+                @if ($popupLink)
+                    <button type="button" class="m-primary min-h-12 rounded-xl font-bold" data-popup-action>{{ isset($popupLink['item']) ? __('Order now') : __('View') }}</button>
+                @endif
+                <button value="cancel" class="m-muted min-h-11 text-sm">{{ __('Close') }}</button>
             </div>
         </div>
     </form>
 </dialog>
+@endif
 
 @if ($calls)
     {{-- call the waiter / ask for the bill (scanned table, plan with table ordering) --}}
@@ -574,31 +582,6 @@
                 <button value="cancel" class="m-muted text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
             </div>
             <div class="space-y-4" data-split-body></div>
-        </form>
-    </dialog>
-@endif
-
-@if ($branchPicker)
-    {{-- branch switcher: nearest branch (location asked on tap only), current / last visit, open now, map --}}
-    <dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/50 sm:m-auto sm:max-w-lg" data-branch-sheet aria-labelledby="branch-sheet-title">
-        <form method="dialog" class="m-surface max-h-[90dvh] overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl">
-            <div class="mb-3 flex items-center justify-between">
-                <h3 id="branch-sheet-title" class="text-xl font-extrabold">📍 {{ __('Choose the branch') }}</h3>
-                <button value="cancel" class="m-muted text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
-            </div>
-            <p class="m-muted -mt-1 mb-3 text-sm">{{ __('Prices and what is available follow the branch you choose.') }}</p>
-            @if ($branches->contains(fn ($b) => $b->lat !== null))
-                <button type="button" class="m-primary min-h-12 w-full rounded-2xl font-extrabold" data-branch-near>🧭 {{ __('Nearest branch to me') }}</button>
-            @endif
-            <p class="m-muted mt-2 hidden text-center text-xs" data-branch-note></p>
-            <div class="mt-3 space-y-2" data-branch-list>
-                @foreach ($branches as $b)
-                    <div class="m-border rounded-2xl border p-3" data-branch-row="{{ $b->id }}">
-                        <a href="?branch={{ $b->slug }}" class="block font-extrabold" data-branch-pick="{{ $b->slug }}">{{ tr($b->name, $b->name_en) }}</a>
-                        @if ($b->address)<div class="m-muted text-sm">{{ $b->address }}</div>@endif
-                    </div>
-                @endforeach
-            </div>
         </form>
     </dialog>
 @endif

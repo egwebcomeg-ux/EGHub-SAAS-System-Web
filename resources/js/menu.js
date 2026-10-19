@@ -485,19 +485,78 @@ if (dataEl) {
         renderMode();
     }
     const root = document.documentElement;
-    document.addEventListener('click', (e) => {
-        const b = e.target.closest('[data-way], [data-online] [data-otype]');
-        if (!b) return;
-        const way = b.dataset.way || b.dataset.otype;
+    function chooseWay(way) {
         if (!H.table) session.set(wayKey, way);
         applyWay(way);
-        if (b.closest('[data-order-choice]')) root.classList.remove('choice-open', 'choice-reopen');
         // delivery: the area comes first, so the fee, the minimum and the time are known before adding items
         if (way === 'delivery' && !currentZone()) openZones();
+    }
+    document.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-way], [data-online] [data-otype]');
+        // in the first-open sheet a way is only picked; "Let's order" applies it
+        if (!b || b.closest('[data-order-choice]')) return;
+        chooseWay(b.dataset.way || b.dataset.otype);
     });
-    // the chip in the header reopens the "how will you order?" sheet
-    $('[data-way-chip]')?.addEventListener('click', () => root.classList.add('choice-open', 'choice-reopen'));
-    $('[data-choice-close]')?.addEventListener('click', () => root.classList.remove('choice-open', 'choice-reopen'));
+
+    // ---- the first-open sheet: order type on top, the branch (2+ branches, no table) below, one confirm ----
+    const firstSheet = $('[data-order-choice]');
+    let pickedWay = null;
+    let pickedBranch = null;
+    const branchMemKey = `egmenu.branch.${M.tenant}`;
+    const zoneAskKey = `egmenu.zoneAsk.${M.tenant}`;
+    function markWays() {
+        firstSheet?.querySelectorAll('[data-way-pick] [data-way]').forEach((b) => {
+            const on = b.dataset.way === pickedWay;
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+            b.classList.toggle('m-way-on', on);
+            b.classList.toggle('m-surface-2', !on);
+            b.classList.toggle('m-border', !on);
+        });
+    }
+    function openFirstSheet(reopen, focus) {
+        if (!firstSheet) return;
+        // the way chosen before (this sheet or the cart switch), else the first one offered
+        const savedWay = session.get(wayKey);
+        pickedWay = savedWay && (M.ways || []).includes(savedWay) ? savedWay : (M.ways || [])[0] ?? null;
+        markWays();
+        renderBranchPart?.();
+        root.classList.add('choice-open');
+        if (reopen) root.classList.add('choice-reopen');
+        if (focus) setTimeout(() => $(focus, firstSheet)?.scrollIntoView({ block: 'start', behavior: reducedMotionNow() ? 'auto' : 'smooth' }), 50);
+    }
+    const closeFirstSheet = () => root.classList.remove('choice-open', 'choice-reopen');
+    const reducedMotionNow = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    let renderBranchPart = null;
+    if (firstSheet) {
+        firstSheet.addEventListener('click', (e) => {
+            const way = e.target.closest('[data-way-pick] [data-way]');
+            if (way) { pickedWay = way.dataset.way; markWays(); return; }
+            const pick = e.target.closest('[data-branch-pick]');
+            if (pick) { e.preventDefault(); pickedBranch = pick.dataset.branchPick; renderBranchPart?.(); return; }
+            if (e.target.closest('[data-choice-close]')) closeFirstSheet();
+        });
+        $('[data-first-confirm]', firstSheet)?.addEventListener('click', () => {
+            const current = (M.branches || []).find((b) => b.id === M.branch)?.slug;
+            const moving = pickedBranch && pickedBranch !== current;
+            if (pickedWay && (M.ways || []).includes(pickedWay)) {
+                if (!H.table) session.set(wayKey, pickedWay);
+                applyWay(pickedWay);
+            }
+            if (moving) {
+                // the other branch's menu (prices, what is available) loads; its delivery areas are asked there
+                if (pickedWay === 'delivery') session.set(zoneAskKey, '1');
+                const url = new URL(location.href);
+                url.searchParams.set('branch', pickedBranch);
+                location.href = url.toString();
+                return;
+            }
+            closeFirstSheet();
+            if (pickedWay === 'delivery' && !currentZone()) openZones();
+        });
+        // the chips in the header reopen it; the branch chip brings the branch list into view
+        $('[data-way-chip]')?.addEventListener('click', () => openFirstSheet(true));
+        $('[data-branch-open]')?.addEventListener('click', () => openFirstSheet(true, '[data-branch-sheet]'));
+    }
 
     // ---- delivery area: main area, then its street / sub-area; "detect my area" against drawn zones (map mode) ----
     const zoneSheet = $('[data-zone-sheet]');
@@ -575,6 +634,8 @@ if (dataEl) {
         const saved = session.get(wayKey);
         if (saved && M.ways.includes(saved)) applyWay(saved);
     }
+    // the first-open sheet opened before the first paint (intro-head): show the remembered way picked in it
+    if (firstSheet && root.classList.contains('choice-open')) openFirstSheet(false);
     if (O) {
         $('[data-zone]')?.addEventListener('change', () => { session.set(zoneKey, $('[data-zone]').value); renderMode(); renderCart(); });
         const when = $('[data-scheduled]');
@@ -586,6 +647,11 @@ if (dataEl) {
         }
     }
     renderMode();
+    // delivery picked together with another branch in the first-open sheet: that branch's areas come next
+    if (session.get(zoneAskKey) === '1') {
+        session.set(zoneAskKey, '');
+        if (mode === 'online' && otype === 'delivery' && !currentZone()) openZones();
+    }
 
     // ---- send order (a scanned table, or online pickup / delivery) ----
     // a coupon from a campaign link (?coupon=CODE) is kept for this visit and filled in the cart
@@ -951,87 +1017,53 @@ if (dataEl) {
         if (rotates) autoplay(ticker, Number(ticker.dataset.tickerSeconds || 4), () => showLine(lineAt + 1));
     }
 
-    // ---- popup: shown once per always/session/day/once, counted (views & clicks only) ----
-    const P = M.popup;
-    if (P) {
-        const key = `egmenu.popup.${M.tenant}.${P.id}`;
-        let store = null; // reading window.sessionStorage itself throws when the browser blocks site data
-        try { store = P.frequency === 'session' ? sessionStorage : localStorage; } catch {}
-        let seen = null;
-        try { seen = store?.getItem(key); } catch {}
-        const due = P.frequency === 'always' || !seen || (P.frequency === 'day' && seen !== new Date().toDateString());
-        if (due) {
-            setTimeout(() => {
-                const dlg = $('[data-popup]');
-                const img = $('[data-popup-image]', dlg);
-                img.classList.toggle('hidden', !P.image);
-                if (P.image) img.src = P.image;
-                $('[data-popup-title]', dlg).textContent = P.title || (P.item ? M.items[P.item]?.name : '');
-                $('[data-popup-body]', dlg).textContent = P.body || '';
-                const action = $('[data-popup-action]', dlg);
-                action.textContent = P.button || (P.item ? T.order : T.view);
-                action.classList.toggle('hidden', !P.item && !P.link);
-                action.onclick = () => {
-                    fetch(P.eventUrl.replace('__E__', 'click'), { method: 'POST', keepalive: true, headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } }).catch(() => {});
-                    dlg.close();
-                    if (P.item) openItem(P.item); else if (P.link) window.open(P.link, '_blank', 'noopener');
-                };
-                dlg.showModal();
-                try { store?.setItem(key, new Date().toDateString()); } catch {}
-                fetch(P.eventUrl.replace('__E__', 'view'), { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } }).catch(() => {});
-            }, (P.delay || 0) * 1000);
-        }
-    }
-
-    // ---- branch switcher (2+ branches, no table): nearest (location on tap only), current, last visit ----
-    const branchSheet = $('[data-branch-sheet]');
+    // ---- branch part of the first-open sheet (2+ branches, no table): nearest first (location asked on a tap, or
+    // used at once when already allowed), current, last visit, open now, map ----
+    const branchPart = $('[data-branch-sheet]');
     const B = M.branches || [];
-    if (branchSheet && B.length > 1) {
-        const memKey = `egmenu.branch.${M.tenant}`;
+    if (branchPart && B.length > 1) {
         let mem = {};
-        try { mem = JSON.parse(localStorage.getItem(memKey) || '{}') || {}; } catch {}
-        const firstVisit = !mem.current;
+        try { mem = JSON.parse(localStorage.getItem(branchMemKey) || '{}') || {}; } catch {}
         const lastVisit = mem.current && mem.current !== M.branch ? mem.current : (mem.previous ?? null);
-        try { localStorage.setItem(memKey, JSON.stringify({ current: M.branch, previous: lastVisit })); } catch {}
+        try { localStorage.setItem(branchMemKey, JSON.stringify({ current: M.branch, previous: lastVisit })); } catch {}
         let distances = null;
+        const nearBtn = $('[data-branch-near]', branchPart);
+        const note = $('[data-branch-note]', branchPart);
         const tag = (text, strong) => `<span class="rounded-full px-2 py-0.5 text-[11px] font-extrabold ${strong ? 'm-primary' : 'm-surface-2 m-muted'}">${esc(text)}</span>`;
         const km = (d) => T.km.replace('__N__', d < 10 ? d.toFixed(1) : Math.round(d));
-        function renderBranches() {
+        renderBranchPart = () => {
+            const current = B.find((b) => b.id === M.branch)?.slug;
+            const chosen = pickedBranch || current;
             const rows = [...B];
             if (distances) rows.sort((a, b) => (distances[a.id] ?? 1e9) - (distances[b.id] ?? 1e9));
             const nearest = distances ? rows.find((r) => distances[r.id] != null)?.id : null;
-            $('[data-branch-list]', branchSheet).innerHTML = rows.map((b) => {
+            $('[data-branch-list]', branchPart).innerHTML = rows.map((b) => {
+                const on = b.slug === chosen;
                 const tags = [
                     b.id === nearest ? tag(T.nearest, true) : '',
-                    b.id === M.branch ? tag(T.current, b.id !== nearest) : '',
+                    b.id === M.branch ? tag(T.current, false) : '',
                     b.id === lastVisit ? tag(T.lastVisit, false) : '',
                 ].join('');
                 const open = b.open === null ? '' : `<span class="text-xs font-bold ${b.open ? 'text-emerald-700' : 'text-red-600'}">● ${esc(b.open ? T.openNow : T.closedNow)}</span>`;
                 const dist = distances && distances[b.id] != null ? `<span class="m-muted text-xs font-bold" dir="ltr">${esc(km(distances[b.id]))}</span>` : '';
-                return `<div class="m-border rounded-2xl border p-3 ${b.id === M.branch ? 'm-primary-border' : ''}" data-branch-row="${b.id}">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <div class="flex flex-wrap items-center gap-1.5"><b class="text-base">${esc(b.name)}</b>${tags}</div>
-                            ${b.address ? `<div class="m-muted mt-0.5 text-sm">${esc(b.address)}</div>` : ''}
-                            <div class="mt-1 flex flex-wrap items-center gap-3">${open}${dist}${b.hours ? `<span class="m-muted text-xs" dir="auto">${esc(b.hours)}</span>` : ''}</div>
-                        </div>
-                        <div class="flex shrink-0 flex-col items-end gap-2">
-                            <a href="?branch=${encodeURIComponent(b.slug)}" class="m-primary inline-flex min-h-10 items-center rounded-xl px-4 text-sm font-extrabold" data-branch-pick="${esc(b.slug)}">${esc(T.choose)}</a>
-                            ${b.map ? `<a href="${esc(b.map)}" target="_blank" rel="noopener" class="m-primary-text text-xs font-bold">🗺 ${esc(T.onMap)}</a>` : ''}
-                        </div>
-                    </div>
+                return `<div class="m-border flex items-start gap-3 rounded-2xl border p-3 ${on ? 'm-primary-border' : ''}" data-branch-row="${b.id}">
+                    <a href="?branch=${encodeURIComponent(b.slug)}" class="flex min-w-0 flex-1 items-start gap-3" data-branch-pick="${esc(b.slug)}" role="radio" aria-checked="${on ? 'true' : 'false'}">
+                        <span class="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-2 ${on ? 'm-primary border-transparent' : 'm-border'}" aria-hidden="true">${on ? '<span class="size-2 rounded-full bg-current"></span>' : ''}</span>
+                        <span class="min-w-0">
+                            <span class="flex flex-wrap items-center gap-1.5"><b class="text-base">${esc(b.name)}</b>${tags}</span>
+                            ${b.address ? `<span class="m-muted mt-0.5 block text-sm">${esc(b.address)}</span>` : ''}
+                            <span class="mt-1 flex flex-wrap items-center gap-3">${open}${dist}${b.hours ? `<span class="m-muted text-xs" dir="auto">${esc(b.hours)}</span>` : ''}</span>
+                        </span>
+                    </a>
+                    ${b.map ? `<a href="${esc(b.map)}" target="_blank" rel="noopener" class="m-primary-text shrink-0 text-xs font-bold">🗺 ${esc(T.onMap)}</a>` : ''}
                 </div>`;
             }).join('');
-        }
-        const openBranches = () => { renderBranches(); if (!branchSheet.open) branchSheet.showModal(); };
-        $('[data-branch-open]')?.addEventListener('click', openBranches);
-        $('[data-branch-near]', branchSheet)?.addEventListener('click', (e) => {
-            const note = $('[data-branch-note]', branchSheet);
-            const btn = e.currentTarget;
-            if (!navigator.geolocation) { note.textContent = T.noLocation; note.classList.remove('hidden'); return; }
-            note.textContent = T.locating;
-            note.classList.remove('hidden');
-            btn.disabled = true;
+            $('[data-branch-list]', branchPart).setAttribute('role', 'radiogroup');
+        };
+        const locate = (silent) => {
+            if (!navigator.geolocation) { if (!silent) { note.textContent = T.noLocation; note.classList.remove('hidden'); } return; }
+            if (!silent) { note.textContent = T.locating; note.classList.remove('hidden'); }
+            if (nearBtn) nearBtn.disabled = true;
             navigator.geolocation.getCurrentPosition((pos) => {
                 const { latitude, longitude } = pos.coords;
                 const rad = Math.PI / 180;
@@ -1043,19 +1075,78 @@ if (dataEl) {
                     distances[b.id] = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
                 });
                 note.classList.add('hidden');
-                btn.disabled = false;
-                renderBranches();
-            }, () => { note.textContent = T.noLocation; btn.disabled = false; }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
-        });
-        // first visit on the general link with no branch chosen: offer the switcher once, after the intro / order type
-        if (firstVisit && !M.branchChosen) {
-            const clear = () => !root.classList.contains('intro-open') && !root.classList.contains('choice-open');
-            if (clear()) setTimeout(openBranches, 300);
-            else {
-                const watch = new MutationObserver(() => { if (clear()) { watch.disconnect(); setTimeout(openBranches, 300); } });
-                watch.observe(root, { attributes: true, attributeFilter: ['class'] });
-            }
+                nearBtn?.classList.add('hidden');
+                // a first visit with no branch chosen: the nearest one is picked for the guest (they can change it)
+                if (!M.branchChosen && !pickedBranch) {
+                    const near = [...B].filter((b) => distances[b.id] != null).sort((a, b) => distances[a.id] - distances[b.id])[0];
+                    if (near) pickedBranch = near.slug;
+                }
+                renderBranchPart();
+            }, () => {
+                if (nearBtn) nearBtn.disabled = false;
+                if (!silent) note.textContent = T.noLocation;
+            }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+        };
+        nearBtn?.addEventListener('click', () => locate(false));
+        // location already allowed for this menu: nearest first without asking (the browser shows no prompt)
+        if (nearBtn && navigator.permissions?.query) {
+            navigator.permissions.query({ name: 'geolocation' }).then((state) => { if (state.state === 'granted') locate(true); }).catch(() => {});
         }
+        renderBranchPart();
+    }
+
+    // ---- popup banner: never over the intro, the first-open sheet or another open sheet; once per visit unless the
+    // owner chose a day / only once / every time; counted (views & taps only) ----
+    const P = M.popup;
+    const popupBox = $('[data-popup]');
+    if (P && popupBox) {
+        const key = `egmenu.popup.${M.tenant}.${P.id}`;
+        let store = null; // reading window.sessionStorage itself throws when the browser blocks site data
+        try { store = P.frequency === 'session' ? sessionStorage : localStorage; } catch {}
+        let seen = null;
+        try { seen = store?.getItem(key); } catch {}
+        const due = P.frequency === 'always' || !seen || (P.frequency === 'day' && seen !== new Date().toDateString());
+        const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
+        const count = (event) => fetch(P.eventUrl.replace('__E__', event), { method: 'POST', keepalive: true, headers: { 'X-CSRF-TOKEN': csrf() } }).catch(() => {});
+        const covered = () => root.classList.contains('intro-open') || root.classList.contains('choice-open') || !!document.querySelector('dialog[open]');
+        let pending = false;
+        const show = () => {
+            pending = false;
+            if (covered()) { wait(); return; }
+            const img = $('[data-popup-image]', popupBox);
+            img.classList.toggle('hidden', !P.image);
+            if (P.image) img.src = P.image;
+            const action = $('[data-popup-action]', popupBox);
+            if (action) {
+                action.onclick = () => {
+                    count('click');
+                    popupBox.close();
+                    if (P.item) openItem(P.item);
+                    else if (P.category) document.getElementById(`cat-${P.category}`)?.scrollIntoView({ behavior: reducedMotionNow() ? 'auto' : 'smooth' });
+                    else if (P.link) window.open(P.link, '_blank', 'noopener');
+                };
+            }
+            popupBox.showModal();
+            try { store?.setItem(key, new Date().toDateString()); } catch {}
+            count('view');
+        };
+        // after the intro and the first-open sheet are gone, a short breath, then the popup
+        function wait() {
+            const watch = new MutationObserver(() => go());
+            // a sheet the guest opened (an item, the cart) closes without touching the root classes
+            const onClose = () => go();
+            function go() {
+                if (pending || covered()) return;
+                pending = true;
+                watch.disconnect();
+                document.removeEventListener('close', onClose, true);
+                setTimeout(show, 900);
+            }
+            watch.observe(root, { attributes: true, attributeFilter: ['class'] });
+            document.addEventListener('close', onClose, true);
+            go();
+        }
+        if (due) wait();
     }
 
     syncQuick();

@@ -4,7 +4,7 @@
 @section('content')
 @php
     $days = [__('Sun'), __('Mon'), __('Tue'), __('Wed'), __('Thu'), __('Fri'), __('Sat')];
-    $liveBanners = $banners->filter(fn ($b) => $b->is_active && (! $b->ends_on || $b->ends_on->gte(today())))->count();
+    $liveBanners = $banners->filter(fn ($b) => ! $b->is_popup && $b->is_active && (! $b->ends_on || $b->ends_on->gte(today())))->count();
 @endphp
 <x-dash.page-header :title="__('Offers & popups')" :help="__('Offers lower prices automatically on the menu and at the cashier during their hours.')" />
 
@@ -38,28 +38,14 @@
             <p class="empty-state">{{ __('No offers yet. Example: 20% off cold drinks every day 3–6 PM.') }}</p>
         @endforelse
 
-        <h2 class="section-title pt-4">{{ __('Popups') }}</h2>
-        @forelse ($popups as $p)
-            <div class="card flex flex-wrap items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                    @if ($p->image)<img src="/storage/{{ $p->image }}" alt="" class="size-14 rounded-lg object-cover">@endif
-                    <div>
-                        <b>{{ $p->title ?: $p->item?->name }}</b>
-                        @unless ($p->is_active)<span class="badge bg-navy-100 text-navy-500">{{ __('Paused') }}</span>@endunless
-                        <div class="text-sm text-navy-500">{{ __(':views views · :clicks clicks', ['views' => $p->views, 'clicks' => $p->clicks]) }}</div>
-                    </div>
-                </div>
-                <div class="flex gap-2">
-                    <form method="post" action="{{ route('dash.popups.toggle', $p) }}">@csrf<button class="btn-ghost min-h-9 px-3">{{ $p->is_active ? __('Pause') : __('Resume') }}</button></form>
-                    <form method="post" action="{{ route('dash.popups.delete', $p) }}" onsubmit="return confirm(@js(__('Delete this popup?')))">@csrf<button class="btn-ghost min-h-9 px-3 text-red-600">{{ __('Delete') }}</button></form>
-                </div>
-            </div>
-        @empty
-            <p class="empty-state">{{ __('No popups yet. A popup greets guests when they open the menu.') }}</p>
-        @endforelse
-
-        <h2 class="section-title pt-4">{{ __('Menu banners') }} <span class="badge bg-navy-100 text-navy-700">{{ $liveBanners }} / {{ $maxBanners }}</span></h2>
-        <p class="muted -mt-2">{{ __('A swipeable strip of pictures under the menu header. Up to :n active at a time; each may open an item, a category or a link.', ['n' => $maxBanners]) }}</p>
+        {{--
+            Every announcement of the menu in one place: the banners (one of them may open over the menu as soon as it
+            opens, the popup) and the ticker line. Only one thing moves at the top of the menu (App\Support\MenuTicker).
+        --}}
+        <div class="space-y-3 pt-4" id="announcements" data-announcements>
+        <h2 class="section-title">{{ __('Banners & announcements') }} <span class="badge bg-navy-100 text-navy-700" title="{{ __('Banners in the strip') }}">{{ $liveBanners }} / {{ $maxBanners }}</span></h2>
+        <p class="muted -mt-2">{{ __('A swipeable strip of pictures under the menu header. Up to :n active at a time; each may open an item, a category or a link.', ['n' => $maxBanners]) }}
+            {{ __('Mark one "Show as soon as the menu opens" and it greets guests over the menu instead, after they choose how to order.') }}</p>
         @error('banners')<p class="rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ $message }}</p>@enderror
         <form method="post" action="{{ route('dash.banners.autoplay') }}" class="card flex flex-wrap items-center justify-between gap-3" data-banner-autoplay-form>
             @csrf
@@ -71,13 +57,22 @@
             <p class="w-full text-xs text-navy-500">{{ __('It stops while the guest touches it. While the slideshow plays, the ticker stands still so only one thing moves.') }}</p>
         </form>
         @forelse ($banners as $b)
-            <div class="card flex flex-wrap items-center justify-between gap-3">
+            <div @class(['card flex flex-wrap items-center justify-between gap-3', 'ring-2 ring-brand-200' => $b->is_popup && $b->is_active]) data-banner-row="{{ $b->id }}" @if ($b->is_popup) data-banner-popup @endif>
                 <div class="flex items-center gap-3">
-                    <img src="/storage/{{ $b->image }}" alt="" class="h-14 w-24 rounded-lg object-cover">
+                    @if ($b->picture())
+                        <img src="/storage/{{ $b->picture() }}" alt="" class="h-14 w-24 rounded-lg object-cover">
+                    @else
+                        <span class="grid h-14 w-24 place-items-center rounded-lg bg-navy-50 text-2xl" aria-hidden="true">📣</span>
+                    @endif
                     <div>
                         <b>{{ $b->title ?: __('Banner') }}</b>
+                        @if ($b->is_popup)<span class="badge bg-brand-100 text-brand-800">{{ __('Shows as soon as the menu opens') }}</span>@endif
                         @unless ($b->is_active)<span class="badge bg-navy-100 text-navy-500">{{ __('Paused') }}</span>@endunless
                         <div class="text-sm text-navy-500">
+                            @if ($b->is_popup)
+                                {{ ['session' => __('Once per visit'), 'day' => __('Once a day'), 'once' => __('Only once'), 'always' => __('Every time')][$b->popup_frequency] ?? __('Once per visit') }} ·
+                                {{ __(':views views · :clicks clicks', ['views' => $b->views, 'clicks' => $b->clicks]) }} ·
+                            @endif
                             @switch($b->linkType())
                                 @case('item') → {{ $b->item?->name }} @break
                                 @case('category') → {{ $b->category?->name }} @break
@@ -97,31 +92,8 @@
             <p class="empty-state">{{ __('No banners yet. A wide picture (1600×700) works best.') }}</p>
         @endforelse
 
-        {{-- cart goal: "add X more and get Y free", applied by the server when the order is placed --}}
-        <h2 class="section-title pt-4" id="cart-goal">{{ __('Cart goal') }}</h2>
-        <p class="muted -mt-2">{{ __('A progress bar in the guest cart: once the order reaches the amount, the gift is added to the order by itself (table and online orders).') }}</p>
-        <form method="post" action="{{ route('dash.cart-goal.update') }}" class="card grid gap-3 sm:grid-cols-2" data-goal-form>
-            @csrf
-            <label class="flex items-center gap-2 font-bold sm:col-span-2"><input type="checkbox" name="cart_goal_enabled" value="1" @checked($settings['cart_goal_enabled'] === '1') class="size-4 accent-brand-600"> {{ __('Show the cart goal on the menu') }}</label>
-            <div><label class="field-label">{{ __('When the order reaches') }}</label><input class="field" name="cart_goal_amount" type="number" min="1" step="0.5" value="{{ (float) $settings['cart_goal_amount'] ?: '' }}" placeholder="200" data-goal-amount></div>
-            <div><label class="field-label">{{ __('The guest gets') }}</label>
-                <select class="field" name="cart_goal_reward" data-goal-reward>
-                    <option value="item" @selected($settings['cart_goal_reward'] === 'item')>{{ __('A free item') }}</option>
-                    <option value="percent" @selected($settings['cart_goal_reward'] === 'percent')>{{ __('A percent off') }}</option>
-                    <option value="amount" @selected($settings['cart_goal_reward'] === 'amount')>{{ __('An amount off') }}</option>
-                </select>
-            </div>
-            <div data-goal-for="item"><label class="field-label">{{ __('Free item') }}</label>
-                <select class="field" name="cart_goal_item" data-goal-item><option value="">{{ __('Choose an item') }}</option>@foreach ($items as $i)<option value="{{ $i->id }}" @selected((string) $i->id === $settings['cart_goal_item'])>{{ $i->name }}</option>@endforeach</select>
-            </div>
-            <div data-goal-for="value"><label class="field-label">{{ __('Discount value') }}</label><input class="field" name="cart_goal_value" type="number" min="1" step="0.5" value="{{ (float) $settings['cart_goal_value'] ?: '' }}" data-goal-value></div>
-            <div class="sm:col-span-2"><label class="field-label">{{ __('Text on the menu (written for you, you can edit it)') }}</label><input class="field" name="cart_goal_label" maxlength="120" value="{{ $settings['cart_goal_label'] }}" data-goal-label></div>
-            <label class="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" name="cart_goal_with_coupon" value="1" @checked($settings['cart_goal_with_coupon'] === '1') class="size-4 accent-brand-600"> {{ __('Also with a coupon code (off by default: a coupon replaces the gift)') }}</label>
-            <div class="sm:col-span-2"><button class="btn-primary">{{ __('Save cart goal') }}</button></div>
-        </form>
-
         {{-- the ticker under the menu header (App\Support\MenuTicker): offers, cart goal and season come by themselves --}}
-        <h2 class="section-title pt-4" id="ticker">{{ __('Menu ticker') }}</h2>
+        <h3 class="section-title pt-4" id="ticker">{{ __('Menu ticker') }}</h3>
         <p class="muted -mt-2">{{ __('A thin line under the menu header that shows one short sentence at a time. Running offers, the cart goal and the season greeting are added by themselves; write up to :n lines of your own.', ['n' => \App\Support\MenuTicker::MAX_OWNER_LINES]) }}</p>
         {{-- one-line php statements only on this page: a php block would swallow the one-line ones above it --}}
         @php($tickerLines = \App\Support\MenuTicker::ownerLines($settings))
@@ -150,6 +122,31 @@
             @if ($tickerShown < \App\Support\MenuTicker::MAX_OWNER_LINES)</div></details>@endif
             <button class="btn-primary">{{ __('Save ticker') }}</button>
         </form>
+        </div>
+
+        {{-- cart goal: "add X more and get Y free", applied by the server when the order is placed --}}
+        <h2 class="section-title pt-4" id="cart-goal">{{ __('Cart goal') }}</h2>
+        <p class="muted -mt-2">{{ __('A progress bar in the guest cart: once the order reaches the amount, the gift is added to the order by itself (table and online orders).') }}</p>
+        <form method="post" action="{{ route('dash.cart-goal.update') }}" class="card grid gap-3 sm:grid-cols-2" data-goal-form>
+            @csrf
+            <label class="flex items-center gap-2 font-bold sm:col-span-2"><input type="checkbox" name="cart_goal_enabled" value="1" @checked($settings['cart_goal_enabled'] === '1') class="size-4 accent-brand-600"> {{ __('Show the cart goal on the menu') }}</label>
+            <div><label class="field-label">{{ __('When the order reaches') }}</label><input class="field" name="cart_goal_amount" type="number" min="1" step="0.5" value="{{ (float) $settings['cart_goal_amount'] ?: '' }}" placeholder="200" data-goal-amount></div>
+            <div><label class="field-label">{{ __('The guest gets') }}</label>
+                <select class="field" name="cart_goal_reward" data-goal-reward>
+                    <option value="item" @selected($settings['cart_goal_reward'] === 'item')>{{ __('A free item') }}</option>
+                    <option value="percent" @selected($settings['cart_goal_reward'] === 'percent')>{{ __('A percent off') }}</option>
+                    <option value="amount" @selected($settings['cart_goal_reward'] === 'amount')>{{ __('An amount off') }}</option>
+                </select>
+            </div>
+            <div data-goal-for="item"><label class="field-label">{{ __('Free item') }}</label>
+                <select class="field" name="cart_goal_item" data-goal-item><option value="">{{ __('Choose an item') }}</option>@foreach ($items as $i)<option value="{{ $i->id }}" @selected((string) $i->id === $settings['cart_goal_item'])>{{ $i->name }}</option>@endforeach</select>
+            </div>
+            <div data-goal-for="value"><label class="field-label">{{ __('Discount value') }}</label><input class="field" name="cart_goal_value" type="number" min="1" step="0.5" value="{{ (float) $settings['cart_goal_value'] ?: '' }}" data-goal-value></div>
+            <div class="sm:col-span-2"><label class="field-label">{{ __('Text on the menu (written for you, you can edit it)') }}</label><input class="field" name="cart_goal_label" maxlength="120" value="{{ $settings['cart_goal_label'] }}" data-goal-label></div>
+            <label class="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" name="cart_goal_with_coupon" value="1" @checked($settings['cart_goal_with_coupon'] === '1') class="size-4 accent-brand-600"> {{ __('Also with a coupon code (off by default: a coupon replaces the gift)') }}</label>
+            <div class="sm:col-span-2"><button class="btn-primary">{{ __('Save cart goal') }}</button></div>
+        </form>
+
 
         {{-- seasonal looks of the menu --}}
         <h2 class="section-title pt-4" id="seasons">{{ __('Seasons') }}</h2>
@@ -203,38 +200,6 @@
             <button class="btn-primary w-full">{{ __('Save offer') }}</button>
         </form>
 
-        <form method="post" action="{{ route('dash.popups.store') }}" enctype="multipart/form-data" class="card space-y-3">
-            @csrf
-            <h2 class="section-title">{{ __('New popup') }}</h2>
-            <select class="field" name="type" data-popup-type>
-                <option value="image">{{ __('Picture with a link') }}</option>
-                <option value="item">{{ __('Promote a menu item') }}</option>
-            </select>
-            <input class="field" name="title" maxlength="80" placeholder="{{ __('Title') }}">
-            <textarea class="field min-h-16 py-2" name="body" maxlength="300" placeholder="{{ __('Text (optional)') }}"></textarea>
-            <div data-for="image" class="space-y-2">
-                <input class="field py-2" type="file" name="image" accept="image/jpeg,image/png,image/webp">
-                <input class="field" name="link_url" placeholder="https://… ({{ __('optional') }})" dir="ltr">
-            </div>
-            <div data-for="item" class="hidden">
-                <select class="field" name="menu_item_id"><option value="">{{ __('Choose an item') }}</option>@foreach ($items as $i)<option value="{{ $i->id }}">{{ $i->name }}</option>@endforeach</select>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-                <div><label class="field-label">{{ __('Show') }}</label>
-                    <select class="field" name="frequency">
-                        <option value="session">{{ __('Once per visit') }}</option>
-                        <option value="day">{{ __('Once a day') }}</option>
-                        <option value="once">{{ __('Only once') }}</option>
-                        <option value="always">{{ __('Every time') }}</option>
-                    </select>
-                </div>
-                <div><label class="field-label">{{ __('After (seconds)') }}</label><input class="field" name="delay_seconds" type="number" min="0" max="30" value="2"></div>
-                <div><label class="field-label">{{ __('Starts on (optional)') }}</label><input class="field" name="starts_on" type="date"></div>
-                <div><label class="field-label">{{ __('Ends on (optional)') }}</label><input class="field" name="ends_on" type="date"></div>
-            </div>
-            <button class="btn-primary w-full">{{ __('Save popup') }}</button>
-        </form>
-
         <form method="post" action="{{ route('dash.banners.store') }}" enctype="multipart/form-data" class="card space-y-3">
             @csrf
             <h2 class="section-title">{{ __('New banner') }}</h2>
@@ -255,6 +220,23 @@
             <div class="grid grid-cols-2 gap-2">
                 <div><label class="field-label">{{ __('Starts on (optional)') }}</label><input class="field" name="starts_on" type="date"></div>
                 <div><label class="field-label">{{ __('Ends on (optional)') }}</label><input class="field" name="ends_on" type="date"></div>
+            </div>
+            {{-- the popup is a banner too: it opens over the menu (after the first-open sheet), one at a time --}}
+            <div class="rounded-xl border border-navy-100 p-3 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50" data-banner-popup-box>
+                <label class="flex items-start gap-2 text-sm font-semibold">
+                    <input type="checkbox" name="is_popup" value="1" class="mt-0.5 size-4 accent-brand-600" data-banner-popup>
+                    <span>{{ __('Show as soon as the menu opens') }}
+                        <span class="block text-xs font-normal text-navy-500">{{ __('Instead of the strip, it opens over the menu once. Only one at a time: it replaces the one that was on.') }}</span></span>
+                </label>
+                <div class="mt-2 hidden" data-banner-popup-for>
+                    <label class="field-label" for="popup_frequency">{{ __('Show') }}</label>
+                    <select class="field" name="popup_frequency" id="popup_frequency">
+                        <option value="session">{{ __('Once per visit') }}</option>
+                        <option value="day">{{ __('Once a day') }}</option>
+                        <option value="once">{{ __('Only once') }}</option>
+                        <option value="always">{{ __('Every time') }}</option>
+                    </select>
+                </div>
             </div>
             <button class="btn-primary w-full">{{ __('Save banner') }}</button>
         </form>
@@ -287,10 +269,10 @@
 </div>
 <script>
     (() => {
-        const sel = document.querySelector('[data-popup-type]');
-        const sync = () => document.querySelectorAll('[data-for]').forEach((el) => el.classList.toggle('hidden', el.dataset.for !== sel.value));
-        sel.addEventListener('change', sync);
-        sync();
+        const popupBox = document.querySelector('[data-banner-popup]');
+        const syncPopup = () => document.querySelector('[data-banner-popup-for]').classList.toggle('hidden', !popupBox.checked);
+        popupBox.addEventListener('change', syncPopup);
+        syncPopup();
         const link = document.querySelector('[data-banner-link]');
         const syncLink = () => document.querySelectorAll('[data-banner-for]').forEach((el) => el.classList.toggle('hidden', el.dataset.bannerFor !== link.value));
         link.addEventListener('change', syncLink);

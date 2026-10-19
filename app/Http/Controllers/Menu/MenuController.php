@@ -11,7 +11,6 @@ use App\Models\DeliveryZone;
 use App\Models\DiningTable;
 use App\Models\MenuItem;
 use App\Models\MenuVisit;
-use App\Models\Popup;
 use App\Models\Season;
 use App\Services\Entitlements;
 use App\Services\ItemVideo;
@@ -33,6 +32,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
 
 /** Public menu of the current restaurant (tenancy initialised from the URL). */
 class MenuController extends Controller
@@ -89,6 +89,8 @@ class MenuController extends Controller
             $online && $online['delivery'] ? 'delivery' : null,
         ]));
         $choice = $table === null && $settings['order_type_prompt'] === '1' && ($ways[0] ?? null) === 'dine' && $online !== null;
+        // one first-open sheet: how the guest orders (2+ ways) and, with 2+ branches and no table, from which branch
+        $firstSheet = ($table === null && count($ways) > 1) || $branchPicker;
         $calls = $table !== null && Entitlements::current()->allows('qr_ordering');
         $upsell = Entitlements::current()->allows('upsell');
         $available = $categories->flatMap(fn (Category $c) => $c->items)->keyBy('id');
@@ -96,13 +98,14 @@ class MenuController extends Controller
         if ($openItem !== null && $opened === null) {
             return redirect()->route('menu.show');
         }
-        $popup = Entitlements::current()->allows('offers')
-            ? Popup::query()->where('is_active', true)->with('item')->latest('id')->get()->first(fn ($p) => $p->isLive($branch->id) && (! $p->menu_item_id || $available->has($p->menu_item_id)))
-            : null;
-        $banners = Entitlements::current()->allows('offers')
-            ? Banner::query()->where('is_active', true)->orderBy('sort_order')->orderBy('id')->get()->filter(fn (Banner $b) => $b->isLive())->take(Banner::MAX_ACTIVE)->values()
-            : collect();
         $shownCategories = $categories->keyBy('id');
+        // announcements: the banner strip, and the one banner shown as a popup when the menu opens
+        $announcements = Entitlements::current()->allows('offers')
+            ? Banner::query()->where('is_active', true)->with('item')->orderBy('sort_order')->orderBy('id')->get()->filter(fn (Banner $b) => $b->isLive())
+            : collect();
+        $banners = $announcements->reject(fn (Banner $b) => $b->is_popup)->take(Banner::MAX_ACTIVE)->values();
+        $popup = $announcements->filter(fn (Banner $b) => $b->is_popup)->sortByDesc('id')->first();
+        $popupLink = $popup ? self::bannerLink($popup, $available, $shownCategories) : null;
 
         $loyalty = app(LoyaltyService::class)->program();
         $profile = new RestaurantProfile;
@@ -150,6 +153,8 @@ class MenuController extends Controller
             'online' => $online,
             'offers' => $catalog->runningOffers(),
             'popup' => $popup,
+            'popupLink' => $popupLink,
+            'popupLink' => $popupLink,
             'banners' => $banners,
             'shownCategories' => $shownCategories,
             'available' => $available,
@@ -160,12 +165,16 @@ class MenuController extends Controller
             'calls' => $calls,
             'intro' => MenuIntro::style($settings, $request),
             'openNow' => OpeningHours::isOpenAt($branch->working_hours, now()),
+            'firstSheet' => $firstSheet,
+            'branchFirst' => $branchPicker && $chosenBranch === null,
             'data' => [
+                // the banner shown as a popup: never over the intro or the first-open sheet (resources/js/menu.js)
                 'popup' => $popup ? [
-                    'id' => $popup->id, 'type' => $popup->type, 'frequency' => $popup->frequency, 'delay' => $popup->delay_seconds,
-                    'title' => tr($popup->title, $popup->title_en), 'body' => tr((string) $popup->body, (string) $popup->body_en),
-                    'image' => $popup->image ? '/storage/'.$popup->image : ($popup->item?->image ? '/storage/'.$popup->item->image : null),
-                    'item' => $popup->menu_item_id, 'button' => $popup->button_text, 'link' => $popup->link_url,
+                    'id' => $popup->id, 'frequency' => $popup->popup_frequency,
+                    'title' => tr($popup->title, $popup->title_en),
+                    'image' => ($picture = $popup->picture()) ? '/storage/'.$picture : null,
+                    'item' => $popupLink['item'] ?? null, 'category' => $popupLink['category'] ?? null, 'link' => $popupLink['url'] ?? null,
+                    'afterFirstSheet' => $firstSheet,
                     'eventUrl' => route('menu.popup.event', ['popup' => $popup->id, 'event' => '__E__']),
                 ] : null,
                 'tenant' => tenant()->getTenantKey(),
@@ -258,8 +267,9 @@ class MenuController extends Controller
         $table->increment('scans_count', 1, ['last_scanned_at' => now()]);
         MenuVisit::bump('scans');
 
-        // the owner chooses whether a scanned QR opens the menu or the links page (setting qr_target)
-        return redirect()->route(Settings::get('qr_target') === 'links' ? 'menu.links' : 'menu.show');
+        // the owner chooses whether a scanned QR opens the menu or the place's page with its links (setting
+        // qr_target "links": the about page, which carries the links on top)
+        return redirect()->route(Settings::get('qr_target') === 'links' ? 'menu.about' : 'menu.show');
     }
 
     /**
@@ -329,11 +339,29 @@ class MenuController extends Controller
         return DiningTable::query()->where('is_active', true)->with('branch')->find($saved['id'] ?? 0);
     }
 
+    /** Views and taps of the popup banner (counters only, no personal data). */
     public function popupEvent(int $popup, string $event): JsonResponse
     {
-        Popup::query()->whereKey($popup)->increment($event === 'click' ? 'clicks' : 'views');
+        Banner::query()->whereKey($popup)->where('is_popup', true)->increment($event === 'click' ? 'clicks' : 'views');
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Where a banner leads, only to what is on the menu right now: an item, a category, or an address.
+     *
+     * @param  Collection<int, MenuItem>  $available
+     * @param  Collection<int, Category>  $shownCategories
+     * @return array{item?: int, category?: int, url?: string}
+     */
+    private static function bannerLink(Banner $banner, Collection $available, Collection $shownCategories): array
+    {
+        return match ($banner->linkType()) {
+            'item' => $available->has($banner->menu_item_id) ? ['item' => (int) $banner->menu_item_id] : [],
+            'category' => $shownCategories->has($banner->category_id) ? ['category' => (int) $banner->category_id] : [],
+            'url' => ['url' => (string) $banner->link_url],
+            default => [],
+        };
     }
 
     /** The branch the guest chose: ?branch=slug, else the one remembered from an earlier visit (cookie). */

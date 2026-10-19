@@ -24,7 +24,7 @@ class BannersTest extends TenantTestCase
         $owner = $this->owner($a);
         $item = $this->item($a, 'Latte', 60);
 
-        $this->actingAs($owner)->get($this->dashUrl('/marketing'))->assertOk()->assertSee(__('Menu banners'));
+        $this->actingAs($owner)->get($this->dashUrl('/marketing'))->assertOk()->assertSee(__('Banners & announcements'))->assertSee('id="announcements"', false);
         $this->actingAs($owner)->post($this->dashUrl('/marketing/banners'), [
             'image' => UploadedFile::fake()->image('b.jpg', 1600, 700), 'title' => 'لاتيه بنص السعر', 'link_type' => 'item', 'menu_item_id' => $item->id,
         ])->assertRedirect()->assertSessionHasNoErrors();
