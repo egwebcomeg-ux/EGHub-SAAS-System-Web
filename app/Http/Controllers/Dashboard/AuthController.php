@@ -32,7 +32,7 @@ class AuthController extends Controller
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             return back()->withInput(['login' => $login])->withErrors(['login' => __('Wrong login or password.')]);
         }
-        if (! $user->is_active || ! Tenant::query()->whereKey($user->tenant_id)->exists()) {
+        if (! self::mayEnter($user)) {
             return back()->withInput(['login' => $login])->withErrors(['login' => __('Your account is not active.')]);
         }
         // second step: the code from the authenticator app, unless this browser was remembered within 30 days
@@ -47,6 +47,15 @@ class AuthController extends Controller
         $user->forceFill(['last_login_at' => now()])->save();
 
         return redirect()->intended(route('dash.home'));
+    }
+
+    /**
+     * Deactivated users and removed restaurants never get in, whatever the way in (password, Google, Facebook).
+     * A suspended restaurant does: its menu is offline but the dashboard stays reachable to renew.
+     */
+    public static function mayEnter(User $user): bool
+    {
+        return $user->is_active && Tenant::query()->whereKey($user->tenant_id)->exists();
     }
 
     /** One-time signed link from signup (valid 5 minutes, only for a user who never logged in). */

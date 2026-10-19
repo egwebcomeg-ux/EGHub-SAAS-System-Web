@@ -10,6 +10,16 @@
         <h1 class="mt-2 text-2xl font-extrabold sm:text-3xl">{{ __('Create your free account') }}</h1>
         <p class="mb-6 text-sm text-navy-500">{{ __('Your account starts on the free plan and stays free as long as you like. On top, you get :days days of the Complete plan to try ordering, the loyalty card and the rest. No card needed.', ['days' => \App\Services\TenantProvisioner::TRIAL_DAYS]) }}</p>
         <x-flash />
+        @php($social = $social ?? null)
+        @if ($social)
+            @php($providerName = \App\Services\Auth\SocialProviders::label($social['provider']))
+            <div class="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900" data-social-signup="{{ $social['provider'] }}">
+                <span>{{ __('You are signing up with your :provider account. Just add your restaurant details.', ['provider' => $providerName]) }}</span>
+                <a href="{{ route('register', ['social' => 'cancel']) }}" class="font-semibold text-emerald-800 underline">{{ __('Use another email') }}</a>
+            </div>
+        @else
+            <x-social-buttons />
+        @endif
         <form method="post" action="{{ route('register') }}" class="grid gap-4 sm:grid-cols-2" data-signup>
             @csrf
             <div class="sm:col-span-2">
@@ -26,7 +36,7 @@
             </div>
             <div>
                 <label class="field-label" for="owner_name">{{ __('Your name') }}</label>
-                <input class="field" id="owner_name" name="owner_name" value="{{ old('owner_name') }}" required maxlength="80">
+                <input class="field" id="owner_name" name="owner_name" value="{{ old('owner_name', $social['name'] ?? '') }}" required maxlength="80">
             </div>
             <div>
                 <label class="field-label" for="phone">{{ __('Mobile') }}</label>
@@ -35,16 +45,23 @@
             </div>
             <div class="sm:col-span-2">
                 <label class="field-label" for="email">{{ __('Email') }}</label>
-                <input class="field" id="email" name="email" type="email" value="{{ old('email') }}" required dir="ltr">
+                @if ($social)
+                    <input class="field bg-navy-50 text-navy-600" id="email" name="email" type="email" value="{{ $social['email'] }}" readonly aria-readonly="true" dir="ltr">
+                    <p class="mt-1 text-xs text-navy-500">{{ __('No password needed: you will sign in with :provider.', ['provider' => $providerName]) }}</p>
+                @else
+                    <input class="field" id="email" name="email" type="email" value="{{ old('email') }}" required dir="ltr">
+                @endif
             </div>
-            <div>
-                <label class="field-label" for="password">{{ __('Password') }}</label>
-                <input class="field" id="password" name="password" type="password" required minlength="8" autocomplete="new-password" dir="ltr">
-            </div>
-            <div>
-                <label class="field-label" for="password_confirmation">{{ __('Confirm password') }}</label>
-                <input class="field" id="password_confirmation" name="password_confirmation" type="password" required minlength="8" autocomplete="new-password" dir="ltr">
-            </div>
+            @unless ($social)
+                <div>
+                    <label class="field-label" for="password">{{ __('Password') }}</label>
+                    <input class="field" id="password" name="password" type="password" required minlength="8" autocomplete="new-password" dir="ltr">
+                </div>
+                <div>
+                    <label class="field-label" for="password_confirmation">{{ __('Confirm password') }}</label>
+                    <input class="field" id="password_confirmation" name="password_confirmation" type="password" required minlength="8" autocomplete="new-password" dir="ltr">
+                </div>
+            @endunless
             <fieldset class="sm:col-span-2">
                 <legend class="field-label">{{ __('Type of place') }}</legend>
                 <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">

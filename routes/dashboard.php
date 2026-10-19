@@ -41,6 +41,7 @@ use App\Http\Controllers\Dashboard\ReservationsController;
 use App\Http\Controllers\Dashboard\SecurityController;
 use App\Http\Controllers\Dashboard\SettingsController;
 use App\Http\Controllers\Dashboard\ShiftsController;
+use App\Http\Controllers\Dashboard\SocialLoginController;
 use App\Http\Controllers\Dashboard\StationsController;
 use App\Http\Controllers\Dashboard\TablesController;
 use App\Http\Controllers\Dashboard\TableSessionsController;
@@ -50,6 +51,7 @@ use App\Http\Controllers\Dashboard\UsersController;
 use App\Http\Controllers\Dashboard\VouchersController;
 use App\Http\Controllers\Dashboard\WalletController;
 use App\Models\CampaignAutomation;
+use App\Services\Auth\SocialProviders;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
@@ -64,6 +66,11 @@ Route::middleware('admin.locale')->group(function () {
     Route::post('/forgot-password', [PasswordResetController::class, 'send'])->middleware('throttle:5,1')->name('password.email');
     Route::get('/reset-password/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
     Route::post('/reset-password', [PasswordResetController::class, 'update'])->middleware('throttle:10,1')->name('password.update');
+    // "Continue with Google / Facebook" (shown only when the provider's keys are set); also started from egmenu.app/register
+    Route::get('/auth/{provider}/redirect', [SocialLoginController::class, 'redirect'])
+        ->whereIn('provider', array_keys(SocialProviders::PROVIDERS))->middleware('throttle:20,1')->name('social.redirect');
+    Route::get('/auth/{provider}/callback', [SocialLoginController::class, 'callback'])
+        ->whereIn('provider', array_keys(SocialProviders::PROVIDERS))->middleware('throttle:20,1')->name('social.callback');
 });
 
 Route::middleware(['auth:web', 'tenant.user'])->group(function () {

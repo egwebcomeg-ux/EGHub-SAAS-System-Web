@@ -27,6 +27,8 @@ class AuditController extends Controller
         'stock.waste' => ['هالك مخزون', 'Stock waste'],
         'stock.count' => ['جرد مخزون', 'Stock count'],
         'customers.imported' => ['استيراد عملاء', 'Customers imported'],
+        'login.google' => ['دخول بحساب جوجل', 'Signed in with Google'],
+        'login.facebook' => ['دخول بحساب فيسبوك', 'Signed in with Facebook'],
     ];
 
     public function index(Request $request): View

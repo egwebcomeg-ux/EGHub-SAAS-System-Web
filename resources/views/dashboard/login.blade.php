@@ -9,6 +9,7 @@
             <h1 class="mb-1 text-xl font-extrabold">{{ __('Restaurant login') }}</h1>
             <p class="mb-5 text-sm text-navy-500">{{ __('Sign in with your email or mobile number.') }}</p>
             <x-flash />
+            <x-social-buttons />
             <form method="post" action="{{ route('dash.login') }}" class="space-y-4">
                 @csrf
                 <div>
