@@ -108,7 +108,7 @@
 @endif
 
 {{-- ============ ONE IDEA PER CARD ============ --}}
-<section class="py-20 lg:py-28">
+<section class="py-14 lg:py-20">
     <div class="mx-auto max-w-7xl px-4 sm:px-6">
         <div class="mx-auto max-w-2xl text-center" data-reveal>
             <p class="lp-eyebrow">{{ __('Features') }}</p>
@@ -129,7 +129,7 @@
 </section>
 
 {{-- ============ TRY IT: a live demo in the browser ============ --}}
-<section id="demo" class="lp-band py-16 lg:py-24">
+<section id="demo" class="lp-band py-12 lg:py-16">
     <div class="mx-auto max-w-7xl px-4 sm:px-6">
         <div class="mx-auto max-w-2xl text-center" data-reveal>
             <p class="lp-eyebrow">{{ __('Try it here') }}</p>
@@ -141,7 +141,7 @@
 </section>
 
 {{-- ============ CAFE OR RESTAURANT ============ --}}
-<section class="py-20 lg:py-28">
+<section class="py-14 lg:py-20">
     <div class="mx-auto max-w-7xl px-4 sm:px-6">
         <div class="mx-auto max-w-2xl text-center" data-reveal>
             <p class="lp-eyebrow">{{ __('Built for how you work') }}</p>
@@ -173,7 +173,7 @@
 
 {{-- ============ REAL NUMBERS (only above the floors in App\Services\Seo\SocialProof; never placeholders) ============ --}}
 @if ($proofCounters)
-    <section data-real-numbers class="pb-20 lg:pb-28">
+    <section data-real-numbers class="pb-14 lg:pb-20">
         <div class="mx-auto max-w-7xl px-4 sm:px-6">
             <div class="mx-auto max-w-2xl text-center" data-reveal>
                 <p class="lp-eyebrow">{{ __('Real numbers') }}</p>
@@ -198,7 +198,7 @@
 
 {{-- ============ OWNERS IN THEIR OWN WORDS (App\Models\Testimonial: real quotes with consent; hidden while none) ============ --}}
 @if ($testimonials->isNotEmpty())
-    <section data-testimonials class="pb-20 lg:pb-28">
+    <section data-testimonials class="pb-14 lg:pb-20">
         <div class="mx-auto max-w-7xl px-4 sm:px-6">
             <div class="mx-auto max-w-2xl text-center" data-reveal>
                 <p class="lp-eyebrow">{{ __('From our customers') }}</p>
@@ -234,49 +234,65 @@
 @endif
 
 {{-- ============ PRICING TEASER: every plan on one line, the details on /pricing ============ --}}
-<section id="pricing" class="lp-band py-16 lg:py-24">
+<section id="pricing" class="lp-band py-12 lg:py-16">
     <div class="mx-auto max-w-5xl px-4 sm:px-6">
         <div class="mx-auto max-w-2xl text-center" data-reveal>
             <p class="lp-eyebrow">{{ __('Pricing') }}</p>
             <h2 class="lp-h2 mt-3">{{ __('Start free. Pay only when you need more.') }}</h2>
             <p class="lp-lead mt-3">{{ __('Clear prices in Egyptian pounds, with no commission on your orders.') }}</p>
         </div>
-        <ul class="mt-10 grid gap-3 lg:grid-cols-3" data-home-plans>
+        {{-- three equal cards: price, what is in it, one action each (prices and limits from the database) --}}
+        <ul class="mt-10 grid items-stretch gap-4 lg:grid-cols-3" data-home-plans>
             @foreach ($plans as $p)
                 @php
                     $isContact = $p->isContactSales();
                     $isFree = ! $isContact && (float) $p->monthly_price === 0.0;
+                    $limits = $p->entitlements()['limits'] ?? [];
+                    $points = $isContact
+                        ? [__('Everything in Complete'), __('POS, kitchen and bar screens, kiosk'), __('Call center and inventory'), __('More than 5 branches, setup and training')]
+                        : ($isFree
+                            ? [__('QR menu in Arabic and English'), __('Up to :n items', ['n' => $limits['menu_items'] ?? 30]), __('Import the menu from Excel'), __('No card, no time limit')]
+                            : [__('One branch and :n users', ['n' => $limits['staff'] ?? 8]), __('Table and online ordering, delivery'), __('Loyalty card, wallet, offers, campaigns'), __('Reports and your own domain')]);
                 @endphp
-                <li @class(['lp-lift relative flex items-center justify-between gap-3 rounded-2xl border bg-white px-5 py-4 lg:flex-col lg:items-start lg:justify-start lg:py-5',
-                            'border-emerald-600 ring-1 ring-emerald-600' => $isFree, 'border-navy-800 ring-1 ring-navy-800' => !$isFree && $p->is_featured, 'border-navy-100' => !$isFree && !$p->is_featured])
+                <li @class(['lp-lift relative flex flex-col rounded-[24px] border bg-white p-6',
+                            'border-brand-500 ring-2 ring-brand-500/30 shadow-[0_24px_48px_-28px_rgba(242,101,34,.55)]' => $p->is_featured,
+                            'border-navy-100' => ! $p->is_featured])
                     data-home-plan="{{ $p->code }}" data-reveal style="--d: {{ $loop->index * 60 }}ms">
-                    <span class="flex min-w-0 flex-col">
-                        <b class="text-lg font-black text-navy-900">{{ $p->displayName() }}</b>
-                        @if ($isFree)
-                            <span class="text-xs font-bold text-emerald-700">{{ __('Free forever, no card') }}</span>
-                        @elseif ($isContact)
-                            <span class="text-xs font-bold text-navy-600">{{ __('For chains and busy kitchens') }}</span>
-                        @elseif ($p->is_featured)
-                            <span class="text-xs font-bold text-navy-600">{{ __('Most popular') }}</span>
-                        @endif
-                    </span>
-                    <span class="shrink-0 text-end lg:text-start">
+                    @if ($p->is_featured)
+                        <span class="absolute -top-3 start-6 rounded-full bg-brand-600 px-3 py-1 text-xs font-black text-white">{{ __('Most popular') }}</span>
+                    @endif
+                    <b class="text-xl font-black text-navy-900">{{ $p->displayName() }}</b>
+                    <span class="mt-0.5 text-sm text-navy-500">{{ $isFree ? __('Free forever, no card') : ($isContact ? __('For chains and busy kitchens') : __('Everything a cafe or restaurant runs on')) }}</span>
+                    <div class="mt-4 min-h-[4.25rem]">
                         @if ($isContact)
-                            <a href="{{ $p->contactUrl() }}" target="_blank" rel="noopener" class="text-lg font-black text-brand-700 hover:text-brand-800" data-contact-sales-link>{{ __('Contact us') }}</a>
+                            <b class="text-3xl font-black text-navy-900">{{ __('By contact') }}</b>
+                            <span class="block text-xs font-semibold text-navy-500">{{ __('Priced for your branches and screens') }}</span>
                         @else
-                            <b class="text-2xl font-black tracking-tight text-navy-900" dir="ltr">{{ money($p->monthly_price) }}</b>
+                            <b class="text-4xl font-black tracking-tight text-navy-900" dir="ltr">{{ money($p->monthly_price) }}</b>
                             <span class="text-sm font-semibold text-navy-500">{{ __('EGP / month') }}</span>
                             @if ((float) $p->monthly_price > 0 && $p->priceFor(12) < $p->monthly_price * 12)
-                                <span class="block text-xs font-semibold text-emerald-700">{{ __('or :total EGP a year', ['total' => money($p->priceFor(12))]) }}</span>
+                                <span class="block text-xs font-bold text-emerald-700">{{ __('or :total EGP a year', ['total' => money($p->priceFor(12))]) }}</span>
                             @endif
                         @endif
-                    </span>
+                    </div>
+                    <ul class="mt-4 flex-1 space-y-2 border-t border-navy-100 pt-4 text-sm text-navy-700">
+                        @foreach ($points as $point)
+                            <li class="flex items-start gap-2"><x-landing.icon name="check" class="mt-0.5 size-4 shrink-0 text-brand-600" />{{ $point }}</li>
+                        @endforeach
+                    </ul>
+                    @if ($isContact)
+                        <a href="{{ $p->contactUrl() }}" target="_blank" rel="noopener" class="btn-ghost mt-6 min-h-12 w-full rounded-full" data-contact-sales-link>{{ __('Contact us') }}</a>
+                    @elseif ($isFree)
+                        <a href="{{ route('register') }}" class="btn-ghost mt-6 min-h-12 w-full rounded-full">{{ __('Start free') }}</a>
+                    @else
+                        <a href="{{ route('register') }}" class="btn-primary mt-6 min-h-12 w-full rounded-full">{{ __('Try it free for 14 days') }}</a>
+                    @endif
                 </li>
             @endforeach
         </ul>
         <div class="mt-8 flex flex-wrap justify-center gap-3" data-reveal>
-            <a href="{{ route('pricing') }}" class="btn-primary min-h-12 rounded-full px-7 text-base">{{ __('See prices') }}</a>
-            <a href="{{ route('pricing') }}#calculator" class="btn-ghost min-h-12 rounded-full px-6 text-base">{{ __('Work out what you save') }}</a>
+            <a href="{{ route('pricing') }}" class="inline-flex min-h-11 items-center font-extrabold text-navy-600 hover:text-brand-700">{{ __('Compare the plans in detail') }} <span aria-hidden="true" class="ms-1 inline-block rtl:rotate-180">→</span></a>
+            <a href="{{ route('pricing') }}#calculator" class="inline-flex min-h-11 items-center font-extrabold text-navy-600 hover:text-brand-700">{{ __('Work out what you save') }} <span aria-hidden="true" class="ms-1 inline-block rtl:rotate-180">→</span></a>
         </div>
         <p class="mt-4 text-center text-sm text-navy-500">{{ __('By Vodafone Cash or InstaPay from your dashboard. Paying for a whole year at once gets a discount.') }}</p>
     </div>
@@ -305,7 +321,7 @@
 </section>
 
 {{-- ============ FAQ ============ --}}
-<section id="faq" class="py-20 lg:py-28">
+<section id="faq" class="py-14 lg:py-20">
     <div class="mx-auto max-w-3xl px-4 sm:px-6">
         <div class="text-center" data-reveal>
             <p class="lp-eyebrow">{{ __('FAQ') }}</p>

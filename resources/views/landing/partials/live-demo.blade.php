@@ -105,7 +105,16 @@
     <div class="min-w-0 rounded-2xl border border-navy-100 bg-white p-4 max-lg:order-4 lg:col-start-1 lg:row-start-2 lg:self-start">
         <p class="flex items-center gap-2 text-sm font-black text-navy-900"><x-landing.icon name="bell" class="size-4 text-brand-600" />{{ __('Orders') }}</p>
         <div data-demo-orders aria-live="polite" class="mt-3 space-y-3">
-            <p data-demo-empty class="rounded-xl border border-dashed border-navy-200 px-3 py-4 text-center text-sm text-navy-500">{{ __('No orders yet. Add something on the phone and send it.') }}</p>
+            <p data-demo-empty class="rounded-xl border border-dashed border-navy-200 px-3 py-3 text-center text-sm text-navy-500">{{ __('No orders yet. Add something on the phone and send it.') }}</p>
+            {{-- an example of a finished order so the board never looks empty; hidden once the visitor sends one --}}
+            <div data-demo-sample class="rounded-xl border border-navy-100 bg-navy-50/50 p-3 opacity-80">
+                <div class="flex items-center justify-between text-xs font-bold text-navy-500">
+                    <span>{{ __('Table 2') }} · {{ __('Example') }}</span>
+                    <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-800">{{ __('Ready') }}</span>
+                </div>
+                <p class="mt-1.5 text-sm font-bold text-navy-800">2× {{ __('Latte') }} · 1× {{ __('Croissant') }}</p>
+                <p class="mt-0.5 text-xs text-navy-500">{{ __('Total') }}: <bdi dir="ltr">175</bdi> {{ __('EGP') }}</p>
+            </div>
         </div>
     </div>
 </div>
@@ -128,6 +137,7 @@
     var toast = root.querySelector('[data-demo-toast]');
     var orders = root.querySelector('[data-demo-orders]');
     var empty = root.querySelector('[data-demo-empty]');
+    var sample = root.querySelector('[data-demo-sample]');
     var toastTimer = null;
     var fmt = function (n) { return Math.round(n).toLocaleString('en-US'); };
 
@@ -252,6 +262,7 @@
         card.appendChild(foot);
 
         empty.hidden = true;
+        if (sample) sample.hidden = true;
         orders.insertBefore(card, orders.firstChild);
         var cards = orders.querySelectorAll('[data-demo-order]');
         for (var i = 3; i < cards.length; i++) cards[i].remove();
@@ -277,6 +288,7 @@
         });
         orders.querySelectorAll('[data-demo-order]').forEach(function (c) { c.remove(); });
         empty.hidden = false;
+        if (sample) sample.hidden = false;
         toast.hidden = true;
         renderCart();
     });

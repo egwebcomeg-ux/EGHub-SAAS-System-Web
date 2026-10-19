@@ -3843,5 +3843,22 @@
     "Includes one branch and :users users": "فيها فرع واحد و :users مستخدمين",
     "Includes :branches branches and :users users": "فيها :branches فروع و :users مستخدمين",
     "A coupon code or notes": "كود خصم أو ملاحظات",
-    ":lines items · :pieces pieces": ":lines أصناف · :pieces قطعة"
+    ":lines items · :pieces pieces": ":lines أصناف · :pieces قطعة",
+    "Everything in Complete": "كل اللي في الكاملة",
+    "POS, kitchen and bar screens, kiosk": "كاشير وشاشات مطبخ وبار وكشك",
+    "Call center and inventory": "كول سنتر ومخزون",
+    "More than 5 branches, setup and training": "أكتر من ٥ فروع، وتجهيز وتدريب",
+    "QR menu in Arabic and English": "منيو QR بالعربي والإنجليزي",
+    "Up to :n items": "لحد :n صنف",
+    "Import the menu from Excel": "استيراد المنيو من Excel",
+    "No card, no time limit": "من غير كارت ولا مدة",
+    "One branch and :n users": "فرع واحد و:n مستخدمين",
+    "Table and online ordering, delivery": "طلب من الترابيزة وأونلاين وتوصيل",
+    "Loyalty card, wallet, offers, campaigns": "كارت ولاء ومحفظة وعروض وحملات",
+    "Reports and your own domain": "تقارير ودومين باسمك",
+    "Everything a cafe or restaurant runs on": "كل اللي الكافيه أو المطعم بيشتغل بيه",
+    "By contact": "بالتواصل",
+    "Try it free for 14 days": "جرّبها ببلاش ١٤ يوم",
+    "Compare the plans in detail": "قارن الباقات بالتفصيل",
+    "Example": "مثال"
 }
