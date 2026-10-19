@@ -326,9 +326,9 @@ if (dataEl) {
     const cartSheet = $('[data-cart-sheet]');
 
     const optionNames = (item, ids) => item.groups.flatMap((g) => g.options).filter((o) => ids.includes(o.id)).map((o) => o.name).join('، ');
-    const stepper = (i) => `<div class="m-border flex shrink-0 items-center rounded-xl border">
-                    <button type="button" class="size-10 text-lg" data-line="${i}" data-step="-1" aria-label="−">−</button>
-                    <button type="button" class="size-10 text-lg" data-line="${i}" data-step="1" aria-label="+">+</button>
+    const stepper = (i) => `<div class="m-stepper shrink-0">
+                    <button type="button" data-line="${i}" data-step="-1" aria-label="−">−</button>
+                    <button type="button" data-line="${i}" data-step="1" aria-label="+">+</button>
                 </div>`;
 
     // bill of the cart: service on the food in the hall, tax on food + service, the zone fee for delivery
@@ -400,10 +400,10 @@ if (dataEl) {
                     ${l.notes ? `<div class="m-primary-text text-xs">${esc(l.notes)}</div>` : ''}
                     ${price}
                 </div>
-                <div class="m-border flex items-center rounded-xl border">
-                    <button type="button" class="size-10" data-line="${i}" data-step="-1">−</button>
-                    <span class="w-6 text-center font-bold">${l.qty}</span>
-                    <button type="button" class="size-10" data-line="${i}" data-step="1">+</button>
+                <div class="m-stepper shrink-0">
+                    <button type="button" data-line="${i}" data-step="-1" aria-label="−">−</button>
+                    <span>${l.qty}</span>
+                    <button type="button" data-line="${i}" data-step="1" aria-label="+">+</button>
                 </div>
             </li>`;
         }).join('');
@@ -660,6 +660,8 @@ if (dataEl) {
         if (fromLink) sessionStorage.setItem('egm-coupon', fromLink.slice(0, 30));
         const couponField = $('[data-coupon]');
         if (couponField && !couponField.value) couponField.value = sessionStorage.getItem('egm-coupon') || '';
+        // a code already filled in (from a campaign link) keeps the optional extras open so the guest sees it
+        if (couponField?.value) couponField.closest('details')?.setAttribute('open', '');
     } catch {}
     const sendBtn = $('[data-send-order]');
     let clientUuid = null;
@@ -706,6 +708,8 @@ if (dataEl) {
         } catch (err) {
             errorBox.textContent = err.message;
             errorBox.classList.remove('hidden');
+            // a refused coupon: show the field it is about
+            if ($('[data-coupon]')?.value) $('[data-coupon]').closest('details')?.setAttribute('open', '');
             sendBtn.disabled = false;
             sendBtn.textContent = label;
         }

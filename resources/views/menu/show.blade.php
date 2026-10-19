@@ -387,10 +387,10 @@
             </label>
             <div @class(['flex items-center gap-3', 'mt-5' => ! $pro, 'm-surface m-border fixed inset-x-0 bottom-0 z-10 border-t px-5 py-3' => $pro]) data-sheet-actions>
                 <div @class(['flex w-full items-center gap-3', 'mx-auto max-w-2xl' => $pro])>
-                    <div class="m-border flex items-center rounded-xl border">
-                        <button type="button" class="size-11 text-xl" data-qty="-1" aria-label="−">−</button>
-                        <span class="w-8 text-center font-bold" data-sheet-qty>1</span>
-                        <button type="button" class="size-11 text-xl" data-qty="1" aria-label="+">+</button>
+                    <div class="m-stepper">
+                        <button type="button" data-qty="-1" aria-label="−">−</button>
+                        <span data-sheet-qty aria-live="polite">1</span>
+                        <button type="button" data-qty="1" aria-label="+">+</button>
                     </div>
                     <button type="button" class="m-primary min-h-12 flex-1 rounded-xl font-bold" data-add-to-cart>
                         {{ __('Add') }} · <span data-sheet-total></span>
@@ -529,10 +529,16 @@
                 <div class="mt-4 grid gap-3">
                     <input class="field" maxlength="100" data-customer-name placeholder="{{ $online ? __('Your name') : __('Your name (optional)') }}">
                     <input class="field" maxlength="20" inputmode="tel" dir="ltr" data-customer-phone placeholder="{{ $online ? __('Mobile number (required)') : __('Mobile (optional, for offers & loyalty)') }}">
-                    @if (\App\Models\Coupon::query()->where('is_active', true)->exists())
-                        <input class="field uppercase" maxlength="30" dir="ltr" autocomplete="off" data-coupon placeholder="{{ __('Coupon code (optional)') }}">
-                    @endif
-                    <textarea class="field min-h-16 py-2" maxlength="500" data-order-notes placeholder="{{ __('Notes for the order') }}"></textarea>
+                    {{-- optional extras folded away so the cart stays short: a coupon code and notes --}}
+                    <details class="m-surface-2 rounded-xl px-3" data-order-extras>
+                        <summary class="m-primary-text min-h-11 cursor-pointer content-center text-sm font-bold">+ {{ __('A coupon code or notes') }}</summary>
+                        <div class="grid gap-3 pb-3">
+                            @if (\App\Models\Coupon::query()->where('is_active', true)->exists())
+                                <input class="field uppercase" maxlength="30" dir="ltr" autocomplete="off" data-coupon placeholder="{{ __('Coupon code (optional)') }}">
+                            @endif
+                            <textarea class="field min-h-16 py-2" maxlength="500" data-order-notes placeholder="{{ __('Notes for the order') }}"></textarea>
+                        </div>
+                    </details>
                 </div>
                 @if ($data['wallet'])
                     <label class="mt-3 flex items-center gap-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900 ring-1 ring-emerald-200">

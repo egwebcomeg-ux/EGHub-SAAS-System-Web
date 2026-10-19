@@ -10,11 +10,15 @@
     $themeVars = collect($menuTheme['vars'])->map(fn ($v, $k) => "$k: $v;")->implode(' ');
 @endphp
 <style>
-    :root { {{ $themeVars }} @if ($menuTheme['dark']) color-scheme: dark; @endif }
+    :root { {{ $themeVars }} color-scheme: {{ $menuTheme['dark'] ? 'dark' : 'light' }}; }
     body { background: var(--menu-bg); color: var(--menu-text); }
     .m-surface { background-color: var(--menu-surface); color: var(--menu-text); }
     .m-surface-2 { background-color: var(--menu-surface-2); }
     .m-text { color: var(--menu-text); }
+    /* quantity steppers (item sheet, cart, split): always readable on the theme, whatever the phone's own dark mode */
+    .m-stepper { display: inline-flex; align-items: center; border-radius: 9999px; background-color: var(--menu-surface-2); color: var(--menu-text); border: 1px solid var(--menu-border); }
+    .m-stepper > button { width: 2.75rem; height: 2.75rem; font-size: 1.35rem; font-weight: 700; color: var(--menu-text); }
+    .m-stepper > span { min-width: 2rem; text-align: center; font-size: 1.1rem; font-weight: 800; color: var(--menu-text); font-variant-numeric: tabular-nums; }
     .m-muted { color: var(--menu-muted); }
     .m-border { border-color: var(--menu-border); }
     .m-divide > :not(:last-child) { border-color: var(--menu-border); }
