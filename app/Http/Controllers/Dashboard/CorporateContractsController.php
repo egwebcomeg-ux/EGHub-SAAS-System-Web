@@ -206,14 +206,14 @@ class CorporateContractsController extends Controller
         $from = $request->date('from')?->startOfDay();
         $to = $request->date('to')?->endOfDay();
         $rows = CorporateVoucherRedemption::query()->where('corporate_contract_id', $contract->id)
-            ->with(['voucher.customer', 'order:id,number,total', 'branch:id,name,name_en', 'cashier:id,name', 'approver:id,name'])
+            ->with(['voucher.customer', 'order:id,number,total', 'branch:id,name,name_en', 'cashier:id,name', 'approver:id,name', 'refunder:id,name'])
             ->when($from, fn ($q) => $q->where('created_at', '>=', $from))->when($to, fn ($q) => $q->where('created_at', '<=', $to))
             ->orderBy('id')->get();
 
         if (in_array($request->query('format'), ['csv', 'xlsx'], true)) {
             $out = [[__('Date'), __('Branch'), __('Order'), __('Serial'), __('Amount'), __('Lost (one use)'), __('Exception'), __('Cashier')]];
             foreach ($rows->whereNull('refunded_at') as $r) {
-                $out[] = [local_time($r->created_at, 'Y-m-d H:i'), $r->branch ? tr($r->branch->name, $r->branch->name_en) : '', $r->order ? '#'.$r->order->number : '',
+                $out[] = [local_time($r->created_at, 'Y-m-d H:i'), $r->branch ? tr($r->branch->name, $r->branch->name_en) : '', self::billLabel($r),
                     $r->voucher?->serial, $r->amount, $r->forfeited, $r->exception_reason ? $r->exception_reason.' · '.$r->approver?->name : '', $r->cashier?->name];
             }
             $out[] = [__('Total'), '', '', '', round($rows->whereNull('refunded_at')->sum('amount'), 2), round($rows->whereNull('refunded_at')->sum('forfeited'), 2), '', ''];
@@ -225,6 +225,19 @@ class CorporateContractsController extends Controller
             'contract' => $contract, 'rows' => $rows, 'from' => $from, 'to' => $to,
             'total' => round($rows->whereNull('refunded_at')->sum('amount'), 2), 'forfeited' => round($rows->whereNull('refunded_at')->sum('forfeited'), 2),
         ]);
+    }
+
+    /** "#123" for a use on an order, "Paper bill 456 (of 300.00)" for one on a bill written on paper. */
+    public static function billLabel(CorporateVoucherRedemption $r): string
+    {
+        if ($r->order) {
+            return '#'.$r->order->number;
+        }
+        if ($r->isManual()) {
+            return trim(__('Paper bill').' '.($r->reference ?? '')).' ('.__('of :amount', ['amount' => money($r->bill_amount)]).')';
+        }
+
+        return '';
     }
 
     /** @return Collection<int,CorporateVoucher> vouchers matching a code, a serial or a linked mobile */
@@ -246,7 +259,8 @@ class CorporateContractsController extends Controller
             })->orderBy('id')->limit(30)->get();
     }
 
-    private function download(array $rows, string $name, string $format, string $sheet): Response
+    /** Rows as an Excel file (format xlsx) or a UTF-8 CSV; shared with the vouchers report. */
+    public static function download(array $rows, string $name, string $format, string $sheet): Response
     {
         if ($format === 'xlsx') {
             $path = storage_path('app/private/corporate-'.random_token(4).'.xlsx');

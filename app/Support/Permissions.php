@@ -35,7 +35,7 @@ final class Permissions
         'kiosk.manage' => ['الكشك (طلب ذاتي)', 'Self-order kiosks'],
         'reservations.manage' => ['الحجوزات', 'Reservations'],
         'contracts.manage' => ['تعاقدات الشركات (إنشاء وطباعة وتقارير)', 'Corporate contracts (create, print, reports)'],
-        'vouchers.redeem' => ['صرف فاوتشرات الشركات في الكاشير', 'Redeem corporate vouchers at the POS'],
+        'vouchers.redeem' => ['صرف فاوتشرات الشركات (الكاشير وشاشة الصرف)', 'Redeem corporate vouchers (POS and the redeem screen)'],
         'vouchers.exception' => ['الموافقة على استثناء فاوتشر منتهي', 'Approve an expired voucher exception'],
     ];
 

@@ -41,6 +41,8 @@ class AuditController extends Controller
         'corporate.pin_removed' => ['شيل PIN المدير', 'Manager PIN removed'],
         'corporate.linked' => ['ربط فاوتشر بموبايل عميل', 'Voucher linked to a guest mobile'],
         'corporate.refunded' => ['رجوع قيمة فاوتشر (طلب اتلغى)', 'Voucher value returned (order cancelled)'],
+        'corporate.manual' => ['صرف فاوتشرات على فاتورة ورقية', 'Vouchers taken on a paper bill'],
+        'corporate.manual_cancelled' => ['إلغاء صرف فاوتشر على فاتورة ورقية', 'Paper-bill voucher use cancelled'],
     ];
 
     public function index(Request $request): View

@@ -10,6 +10,8 @@
 <x-dash.page-header :title="__('Corporate contracts')" :help="__('A company buys prepaid vouchers for its staff: you print them, the cashier takes them at the POS, and the statement shows every use for settlement.')">
     <x-slot:actions>
         <a href="{{ route('dash.corporate.create') }}" class="btn-primary" data-new-contract>＋ {{ __('New contract') }}</a>
+        <a href="{{ route('dash.corporate.report') }}" class="btn-ghost" data-vouchers-report-link>📊 {{ __('Vouchers report') }}</a>
+        @can('vouchers.redeem')<a href="{{ route('dash.redeem') }}" class="btn-ghost" data-redeem-link>{{ __('Redeem vouchers') }}</a>@endcan
     </x-slot:actions>
 </x-dash.page-header>
 

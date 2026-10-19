@@ -248,7 +248,8 @@ final class CorporateVouchers
         if (! $contract->allowsTime(now())) {
             return $refuse(__('This voucher works only :window.', ['window' => $contract->windowLabel()]));
         }
-        if ($contract->min_order && $total + 0.004 < $contract->min_order) {
+        // a lookup before the bill is known (total 0) doesn't refuse on the minimum: the payment checks it again
+        if ($contract->min_order && $total > 0 && $total + 0.004 < $contract->min_order) {
             return $refuse(__('The order must be at least :amount to use this voucher.', ['amount' => money($contract->min_order)]));
         }
         if ($voucher->isExpired()) {
@@ -287,6 +288,126 @@ final class CorporateVouchers
      */
     public function redeemForOrder(Order $order, array $entries, ?string $phone, User $by): float
     {
+        $branch = Branch::query()->findOrFail($order->branch_id);
+        $due = round((float) $order->total - (float) $order->corporate_amount, 2);
+
+        return $this->redeem($entries, $phone, $by, $branch, (float) $order->total, $due, ['order_id' => $order->id])['covered'];
+    }
+
+    /**
+     * A bill written on paper (no order in the system): the vouchers pay up to $amount, exactly like an order, and
+     * each use is a redemption row without an order, with the bill amount, its reference and a note. Audit-logged.
+     *
+     * @param  list<array{code?:?string, id?:?int, approval?:?string}>  $entries
+     * @return array{batch:string, covered:float, rest:float}
+     */
+    public function redeemManual(array $entries, ?string $phone, float $amount, Branch $branch, User $by, ?string $reference = null, ?string $note = null): array
+    {
+        $amount = round($amount, 2);
+        if ($amount <= 0 || $amount > self::MAX_VALUE * self::MAX_PER_ORDER) {
+            throw new OrderException(__('Enter the bill amount.'));
+        }
+        if ($entries === []) {
+            throw new OrderException(__('Add a corporate voucher first.'));
+        }
+        $reference = ($v = trim((string) $reference)) !== '' ? mb_substr($v, 0, 60) : null;
+        $note = ($v = trim((string) $note)) !== '' ? mb_substr($v, 0, 200) : null;
+
+        return DB::transaction(function () use ($entries, $phone, $amount, $branch, $by, $reference, $note) {
+            $result = $this->redeem($entries, $phone, $by, $branch, $amount, $amount, [
+                'order_id' => null, 'bill_amount' => $amount, 'reference' => $reference, 'note' => $note,
+            ]);
+            if ($result['covered'] <= 0) {
+                throw new OrderException(__('Add a corporate voucher first.'));
+            }
+            Audit::record('corporate.manual', __('Paper bill').($reference ? ' '.$reference : '').' · '.money($amount), [
+                'covered' => $result['covered'], 'vouchers' => implode(', ', $result['serials']), 'branch' => $branch->name,
+            ], $by->id);
+
+            return ['batch' => $result['batch'], 'covered' => $result['covered'], 'rest' => round($amount - $result['covered'], 2)];
+        });
+    }
+
+    /**
+     * A manager cancels the vouchers taken on a paper bill (signed in with vouchers.exception, or their PIN on the
+     * cashier's device): every voucher gets its value back, once. Uses on an order go back by cancelling the order.
+     */
+    public function cancelManual(string $batch, User $by, string $reason, ?int $approverId, ?string $pin): int
+    {
+        $reason = mb_substr(trim($reason), 0, 200);
+        if (mb_strlen($reason) < 3) {
+            throw new OrderException(__('Write a short reason.'));
+        }
+        $first = CorporateVoucherRedemption::query()->with('voucher')->where('batch', $batch)->first()
+            ?? throw new OrderException(__('This redemption was not found.'));
+        if ($first->order_id) {
+            throw new OrderException(__('This was paid on an order: cancel the order to give the value back.'));
+        }
+        if (! $approverId || $approverId === $by->id) {
+            if (! $by->can('vouchers.exception')) {
+                throw new OrderException(__('A manager must approve: choose the manager and enter their PIN.'));
+            }
+            $approver = $by;
+        } else {
+            $approver = $this->checkPin($by, $approverId, (string) $pin, $first->voucher);
+        }
+
+        return DB::transaction(function () use ($batch, $approver, $reason) {
+            $rows = CorporateVoucherRedemption::query()->where('batch', $batch)->whereNull('order_id')->whereNull('refunded_at')->lockForUpdate()->get();
+            if ($rows->isEmpty()) {
+                throw new OrderException(__('This redemption was already cancelled.'));
+            }
+            foreach ($rows as $row) {
+                $voucher = CorporateVoucher::query()->lockForUpdate()->find($row->corporate_voucher_id);
+                if ($voucher) {
+                    $balance = round(min($voucher->value, $voucher->balance + $row->amount + $row->forfeited), 2);
+                    $voucher->update(['balance' => $balance, 'status' => $voucher->status === 'used' && $balance > 0 ? 'active' : $voucher->status]);
+                }
+                $row->update(['refunded_at' => now(), 'refunded_by' => $approver->id, 'refund_reason' => $reason]);
+                Audit::record('corporate.manual_cancelled', ($voucher?->serial ?? '').' · '.__('Paper bill').($row->reference ? ' '.$row->reference : ''), [
+                    'amount' => $row->amount, 'reason' => $reason,
+                ], $approver->id);
+            }
+
+            return $rows->count();
+        });
+    }
+
+    /**
+     * One payment's uses for the confirmation and the guest's receipt: what each voucher gave and what is left on it.
+     *
+     * @return array{batch:string, order:?Order, bill:float, reference:?string, note:?string, covered:float, lost:float, cancelled:bool, at:mixed, branch:?Branch, cashier:?User, lines:list<array<string,mixed>>}
+     */
+    public function batchSummary(string $batch): array
+    {
+        $rows = CorporateVoucherRedemption::query()->with(['voucher.contract', 'order:id,number,total', 'branch', 'cashier:id,name'])
+            ->where('batch', $batch)->orderBy('id')->get();
+        $first = $rows->first() ?? throw new OrderException(__('This redemption was not found.'));
+
+        return [
+            'batch' => $batch, 'order' => $first->order, 'bill' => (float) ($first->order?->total ?? $first->bill_amount ?? 0),
+            'reference' => $first->reference, 'note' => $first->note,
+            'covered' => round((float) $rows->sum('amount'), 2), 'lost' => round((float) $rows->sum('forfeited'), 2),
+            'cancelled' => $rows->every(fn ($r) => $r->refunded_at !== null), 'at' => $first->created_at, 'branch' => $first->branch, 'cashier' => $first->cashier,
+            'lines' => $rows->map(fn (CorporateVoucherRedemption $r) => [
+                'serial' => $r->voucher?->serial, 'company' => $r->voucher?->contract?->name, 'amount' => $r->amount, 'lost' => $r->forfeited,
+                'balance' => (float) ($r->voucher?->balance ?? 0), 'mode' => $r->voucher?->contract?->mode,
+                'expires' => $r->voucher ? local_time($r->voucher->expires_on, 'Y/m/d') : '', 'exception' => $r->exception_reason !== null,
+            ])->values()->all(),
+        ];
+    }
+
+    /**
+     * The shared redemption: checks every voucher presented (locked, earliest expiry first) against this branch and
+     * this bill, then takes up to $due from them. A voucher is spent only once: the UPDATE checks the balance read
+     * under the lock. Every row of this payment shares a batch (one receipt).
+     *
+     * @param  list<array{code?:?string, id?:?int, approval?:?string}>  $entries
+     * @param  array<string,mixed>  $row  extra columns of each redemption row (order_id, bill_amount…)
+     * @return array{batch:string, covered:float, serials:list<string>}
+     */
+    private function redeem(array $entries, ?string $phone, User $by, Branch $branch, float $billTotal, float $due, array $row): array
+    {
         if (! self::enabled()) {
             throw new OrderException(__('Corporate vouchers are not in your plan.'));
         }
@@ -294,7 +415,7 @@ final class CorporateVouchers
             throw new OrderException(__('At most :n vouchers on one order.', ['n' => self::MAX_PER_ORDER]));
         }
         $customer = $phone && ($normalized = normalize_phone($phone)) ? Customer::query()->where('phone', $normalized)->first() : null;
-        $branch = Branch::query()->findOrFail($order->branch_id);
+        $batch = random_token(12);
 
         $picked = [];
         foreach ($entries as $entry) {
@@ -309,14 +430,14 @@ final class CorporateVouchers
             $picked[$voucher->id] = ['presented' => $presented, 'approval' => $entry['approval'] ?? null];
         }
         if ($picked === []) {
-            return 0.0;
+            return ['batch' => $batch, 'covered' => 0.0, 'serials' => []];
         }
 
         $vouchers = CorporateVoucher::query()->with('contract')->whereIn('id', array_keys($picked))->lockForUpdate()
             ->orderBy('expires_on')->orderBy('id')->get();
         $approvals = [];
         foreach ($vouchers as $v) {
-            $check = $this->evaluate($v, $branch, (float) $order->total, $picked[$v->id]['presented']);
+            $check = $this->evaluate($v, $branch, $billTotal, $picked[$v->id]['presented']);
             if (! $check['ok'] && $check['expired'] && ($approval = $this->approval($picked[$v->id]['approval'], $v, $by))) {
                 $approvals[$v->id] = $approval;
                 $check['ok'] = true;
@@ -326,8 +447,8 @@ final class CorporateVouchers
             }
         }
 
-        $due = round((float) $order->total - (float) $order->corporate_amount, 2);
         $covered = 0.0;
+        $serials = [];
         foreach ($vouchers as $v) {
             if ($due <= 0.004) {
                 break;
@@ -341,18 +462,19 @@ final class CorporateVouchers
             if ($updated !== 1) {
                 throw new OrderException(__(':serial was just used on another order. Check it again.', ['serial' => $v->serial]));
             }
-            CorporateVoucherRedemption::query()->create([
-                'corporate_voucher_id' => $v->id, 'corporate_contract_id' => $v->corporate_contract_id, 'order_id' => $order->id,
+            CorporateVoucherRedemption::query()->create($row + [
+                'corporate_voucher_id' => $v->id, 'corporate_contract_id' => $v->corporate_contract_id, 'batch' => $batch,
                 'amount' => $applied, 'forfeited' => $forfeited, 'branch_id' => $branch->id, 'user_id' => $by->id,
                 'approved_by' => $approvals[$v->id]['approver'] ?? null, 'exception_reason' => $approvals[$v->id]['reason'] ?? null,
             ]);
+            $serials[] = $v->serial;
             $due = round($due - $applied, 2);
             $covered = round($covered + $applied, 2);
         }
         $tokens = array_filter(array_column($picked, 'approval'));
         DB::afterCommit(fn () => array_map(fn ($t) => Cache::forget($this->approvalKey((string) $t)), $tokens));
 
-        return $covered;
+        return ['batch' => $batch, 'covered' => $covered, 'serials' => $serials];
     }
 
     /** A cancelled order: every voucher it used gets its value back (and is usable again), once. */

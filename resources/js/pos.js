@@ -1,5 +1,6 @@
 // POS: item grid, ticket, takeaway/table, discount, payment with change, open orders, receipts and the
 // customer-facing display (mirrored through BroadcastChannel). The server recomputes every amount.
+import { canScanQr, planVouchers, scanQr } from './corporate-vouchers';
 
 const dataEl = document.getElementById('pos-data');
 if (dataEl) {
@@ -568,16 +569,7 @@ if (dataEl) {
     let corp = { vouchers: [], phone: null };
     const payTotal = () => (payTarget ? payTarget.total : totals().total);
     // earliest expiry first, until the order is covered (same rule as the server); single-use vouchers lose the rest
-    function corpPlan() {
-        let due = Math.round(payTotal() * 100) / 100;
-        const lines = [...corp.vouchers].sort((a, b) => a.expiresSort.localeCompare(b.expiresSort) || a.id - b.id).map((v) => {
-            const used = Math.min(v.balance, Math.max(0, due));
-            due = Math.round((due - used) * 100) / 100;
-            return { ...v, used, lost: used > 0 && v.mode === 'single' ? Math.round((v.balance - used) * 100) / 100 : 0 };
-        });
-        const covered = lines.reduce((s, l) => s + l.used, 0);
-        return { lines, covered: Math.round(covered * 100) / 100, rest: Math.max(0, Math.round((payTotal() - covered) * 100) / 100) };
-    }
+    const corpPlan = () => planVouchers(corp.vouchers, payTotal());
     const payDue = () => (corp.vouchers.length ? corpPlan().rest : payTotal());
     function renderQuick() {
         const total = payDue();
@@ -805,29 +797,16 @@ if (dataEl) {
         });
 
         // camera scan where the browser can read QR codes (same as the loyalty counter); a USB scanner types into the field
-        if ('BarcodeDetector' in window && navigator.mediaDevices?.getUserMedia) {
+        if (canScanQr()) {
             const scan = $('[data-corp-scan]');
             const video = $('[data-corp-video]');
-            let stream = null;
-            const stop = () => { stream?.getTracks().forEach((t) => t.stop()); stream = null; video.classList.add('hidden'); };
+            let stop = null;
             scan.classList.remove('hidden');
             scan.addEventListener('click', async () => {
-                if (stream) return stop();
-                try {
-                    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                } catch { return showErr(T.corpNoCamera); }
-                video.srcObject = stream;
-                video.classList.remove('hidden');
-                await video.play();
-                const detector = new BarcodeDetector({ formats: ['qr_code'] });
-                const tick = async () => {
-                    if (!stream) return;
-                    const codes = await detector.detect(video).catch(() => []);
-                    if (codes.length) { stop(); lookup(codes[0].rawValue); } else requestAnimationFrame(tick);
-                };
-                tick();
+                if (stop) { stop(); stop = null; return; }
+                stop = await scanQr(video, (code) => { stop = null; lookup(code); }, () => { stop = null; showErr(T.corpNoCamera); });
             });
-            payDialog.addEventListener('close', stop);
+            payDialog.addEventListener('close', () => { stop?.(); stop = null; });
         }
 
         // ---- exception after expiry: a manager approves here (signed in) or with their PIN on this device ----

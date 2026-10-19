@@ -12,6 +12,7 @@ use App\Http\Controllers\Dashboard\CardsController;
 use App\Http\Controllers\Dashboard\CategoriesController;
 use App\Http\Controllers\Dashboard\CorporateContractsController;
 use App\Http\Controllers\Dashboard\CorporateRedeemController;
+use App\Http\Controllers\Dashboard\CorporateReportController;
 use App\Http\Controllers\Dashboard\CouponsController;
 use App\Http\Controllers\Dashboard\CustomerImportController;
 use App\Http\Controllers\Dashboard\CustomersController;
@@ -50,6 +51,7 @@ use App\Http\Controllers\Dashboard\TableSessionsController;
 use App\Http\Controllers\Dashboard\TvScreensController;
 use App\Http\Controllers\Dashboard\TwoFactorController;
 use App\Http\Controllers\Dashboard\UsersController;
+use App\Http\Controllers\Dashboard\VoucherRedeemController;
 use App\Http\Controllers\Dashboard\VouchersController;
 use App\Http\Controllers\Dashboard\WalletController;
 use App\Models\CampaignAutomation;
@@ -403,6 +405,27 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/pos/vouchers/link', [CorporateRedeemController::class, 'link'])->middleware('throttle:30,1')->name('pos.corporate.link');
         Route::post('/pos/vouchers/{voucher}/exception', [CorporateRedeemController::class, 'exception'])->whereNumber('voucher')
             ->middleware('throttle:20,1')->name('pos.corporate.exception');
+    });
+    // ... and on their own screen, without the POS ("صرف الفاوتشرات"): on an open order of the branch or a paper bill.
+    // Named dash.redeem.*: dash.vouchers.* belongs to the loyalty vouchers (Coupons & vouchers).
+    Route::middleware(['feature:corporate_vouchers', 'permission:vouchers.redeem'])->group(function () {
+        Route::get('/vouchers/redeem', [VoucherRedeemController::class, 'index'])->name('redeem');
+        Route::post('/vouchers/redeem/check', [CorporateRedeemController::class, 'check'])->middleware('throttle:60,1')->name('redeem.check');
+        Route::post('/vouchers/redeem/link', [CorporateRedeemController::class, 'link'])->middleware('throttle:30,1')->name('redeem.link');
+        Route::post('/vouchers/redeem/{voucher}/exception', [CorporateRedeemController::class, 'exception'])->whereNumber('voucher')
+            ->middleware('throttle:20,1')->name('redeem.exception');
+        Route::get('/vouchers/redeem/orders', [VoucherRedeemController::class, 'orders'])->name('redeem.orders');
+        Route::post('/vouchers/redeem/orders/{order}/pay', [VoucherRedeemController::class, 'pay'])->whereNumber('order')
+            ->middleware('throttle:30,1')->name('redeem.pay');
+        Route::post('/vouchers/redeem/manual', [VoucherRedeemController::class, 'manual'])->middleware('throttle:30,1')->name('redeem.manual');
+        Route::post('/vouchers/redeem/batches/{batch}/cancel', [VoucherRedeemController::class, 'cancel'])->where('batch', '[a-f0-9]{8,24}')
+            ->middleware('throttle:20,1')->name('redeem.cancel');
+        Route::get('/vouchers/redeem/batches/{batch}/receipt', [VoucherRedeemController::class, 'receipt'])->where('batch', '[a-f0-9]{8,24}')->name('redeem.receipt');
+    });
+    // the vouchers report: issued, redeemed, outstanding, lost, expired; by contract, branch, cashier and day
+    Route::middleware(['feature:corporate_vouchers', 'permission:contracts.manage|reports.view'])->group(function () {
+        Route::get('/corporate/report', [CorporateReportController::class, 'index'])->name('corporate.report');
+        Route::get('/corporate/report/export', [CorporateReportController::class, 'export'])->name('corporate.report.export');
     });
 
     // Kiosk pack: self-order tablets at the counter

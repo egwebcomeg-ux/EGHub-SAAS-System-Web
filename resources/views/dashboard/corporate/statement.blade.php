@@ -31,12 +31,14 @@
             <tr @class(['line-through opacity-60' => $r->refunded_at]) data-statement-row>
                 <td class="whitespace-nowrap">{{ local_time($r->created_at, 'Y/m/d h:i A') }}</td>
                 <td>{{ $r->branch ? tr($r->branch->name, $r->branch->name_en) : '—' }}</td>
-                <td>{{ $r->order ? '#' . $r->order->number : '—' }}</td>
+                <td @if ($r->isManual()) data-statement-paper @endif>{{ \App\Http\Controllers\Dashboard\CorporateContractsController::billLabel($r) ?: '—' }}</td>
                 <td dir="ltr" class="font-bold">{{ $r->voucher?->serial }}</td>
                 <td class="font-extrabold">{{ money($r->amount) }}@if ($r->forfeited > 0) <span class="text-xs font-normal text-navy-500">+ {{ __(':amount lost', ['amount' => money($r->forfeited)]) }}</span>@endif</td>
                 <td>{{ $r->cashier?->name ?? '—' }}</td>
                 <td class="text-sm text-navy-600">
-                    @if ($r->refunded_at){{ __('Order cancelled: value returned') }}@endif
+                    @if ($r->refunded_at && $r->isManual()){{ __('Cancelled by :name: :reason', ['name' => $r->refunder?->name ?? '—', 'reason' => $r->refund_reason]) }}
+                    @elseif ($r->refunded_at){{ __('Order cancelled: value returned') }}@endif
+                    @if ($r->note)<div>{{ $r->note }}</div>@endif
                     @if ($r->exception_reason)⚠ {{ __('Exception after expiry by :name: :reason', ['name' => $r->approver?->name ?? '—', 'reason' => $r->exception_reason]) }}@endif
                 </td>
             </tr>

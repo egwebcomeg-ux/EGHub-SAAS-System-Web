@@ -3,6 +3,7 @@
 namespace App\Services\Reports;
 
 use App\Models\Branch;
+use App\Models\CorporateVoucherRedemption;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -63,7 +64,24 @@ final class SalesReport
             'by_branch' => $this->byBranch($sold),
             'top_items' => $this->topItems($sold->pluck('id')),
             'customers' => ['with_phone' => $customerIds->count(), 'new' => $newCustomers, 'returning' => $customerIds->count() - $newCustomers],
+            'paper_vouchers' => $this->paperVouchers(),
         ];
+    }
+
+    /**
+     * Corporate vouchers taken on bills written on paper ("صرف الفاوتشرات" screen, no order in the system): not in
+     * the sales above, shown next to them so the vouchers' value is never missing from the day.
+     *
+     * @return array{count:int, total:float}
+     */
+    private function paperVouchers(): array
+    {
+        $rows = CorporateVoucherRedemption::query()->whereNull('order_id')->whereNotNull('bill_amount')->whereNull('refunded_at')
+            ->whereBetween('created_at', [$this->from->startOfDay(), $this->to->endOfDay()])
+            ->when($this->branchId, fn ($q) => $q->where('branch_id', $this->branchId))
+            ->get(['batch', 'amount']);
+
+        return ['count' => $rows->pluck('batch')->unique()->count(), 'total' => round((float) $rows->sum('amount'), 2)];
     }
 
     /** Rows for the CSV export: one line per order. */

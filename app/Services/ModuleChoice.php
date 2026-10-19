@@ -49,6 +49,7 @@ final class ModuleChoice
         'dash.coupons' => ['loyalty', 'campaigns'],
         'dash.wallet' => ['wallet'],
         'dash.corporate' => ['wallet', 'loyalty', 'pos'],
+        'dash.redeem' => ['wallet', 'loyalty', 'pos'],
         'dash.inventory' => ['inventory'],
         'dash.zones' => ['online-ordering', 'call-center'],
         'dash.kiosks' => ['kiosk'],

@@ -135,9 +135,21 @@
             @empty
                 <p class="muted">{{ __('No data for this period.') }}</p>
             @endforelse
+            @if ($title === __('Payment methods') && $report['paper_vouchers']['count'] > 0)
+                <p class="mt-3 rounded-xl bg-navy-50 p-2 text-sm text-navy-700" data-report-paper-vouchers>
+                    {{ __('Corporate vouchers on paper bills: :amount (:n bills), not in the sales above.', ['amount' => money($report['paper_vouchers']['total']), 'n' => $report['paper_vouchers']['count']]) }}
+                </p>
+            @endif
         </section>
     @endforeach
 </div>
+
+@if (\App\Services\Entitlements::current()->allows('corporate_vouchers') && auth()->user()->canAny(['contracts.manage', 'reports.view']))
+    <a href="{{ route('dash.corporate.report') }}" class="card mt-4 flex min-h-11 items-center justify-between gap-3 hover:bg-navy-50" data-report-vouchers-link>
+        <span><b>🏢 {{ __('Vouchers report') }}</b> <span class="text-sm text-navy-500">· {{ __('issued, redeemed, still owed, lost and expired, per company') }}</span></span>
+        <span aria-hidden="true" class="rtl:rotate-180">→</span>
+    </a>
+@endif
 
 <div class="mt-4 grid gap-4 xl:grid-cols-3">
     <section class="card overflow-x-auto xl:col-span-2">
