@@ -19,7 +19,7 @@ class PlansController extends Controller
     /** Plans tab: one card per plan, the full comparison behind a toggle. */
     public function index(): View
     {
-        $plans = Plan::query()->with('features')->orderBy('sort_order')->get();
+        $plans = Plan::query()->with('features')->orderByDesc('is_public')->orderBy('sort_order')->get();
 
         return view('admin.plans.index', [
             'plans' => $plans,
