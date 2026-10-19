@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Coupon;
 use App\Models\Customer;
+use App\Services\Corporate\CorporateVouchers;
 use App\Services\Entitlements;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Loyalty\Membership;
@@ -76,9 +77,11 @@ class LoyaltyCardController extends Controller
         $packages = Packages::enabled() ? app(Packages::class)->activeFor($customer) : collect();
         // the discount vouchers this guest holds (only theirs: customer_id), to use with their mobile when ordering
         $vouchers = Entitlements::current()->allows('loyalty_stamps') ? Coupon::heldBy($customer) : collect();
-        abort_unless($program || $wallet || $packages->isNotEmpty() || $vouchers->isNotEmpty() || Membership::enabled(), 404);
+        // corporate vouchers linked to this guest's mobile ("فاوتشراتي")
+        $corporate = CorporateVouchers::enabled() ? app(CorporateVouchers::class)->heldBy($customer) : collect();
+        abort_unless($program || $wallet || $packages->isNotEmpty() || $vouchers->isNotEmpty() || $corporate->isNotEmpty() || Membership::enabled(), 404);
         $shared = [
-            'customer' => $customer, 'settings' => Settings::all(), 'wallet' => $wallet, 'vouchers' => $vouchers,
+            'customer' => $customer, 'settings' => Settings::all(), 'wallet' => $wallet, 'vouchers' => $vouchers, 'corporate' => $corporate,
             'tier' => $membership->tierFor($customer), 'nextTier' => $membership->nextFor($customer), 'packages' => $packages,
             'qr' => Qr::svg(route('menu.card', $token), 220, '#111111'),
             'branches' => Branch::query()->where('is_active', true)->orderBy('sort_order')->get(),

@@ -21,6 +21,7 @@
     @endif
     @include('menu.partials.member-packages')
     @include('menu.partials.member-vouchers')
+    @include('menu.partials.corporate-vouchers')
     <a href="{{ route('menu.show') }}" class="btn-ghost mt-6 w-full">{{ __('Open the menu') }}</a>
 </main>
 @endsection

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Menu\BoardController;
+use App\Http\Controllers\Menu\CorporateVoucherController;
 use App\Http\Controllers\Menu\FeedbackController;
 use App\Http\Controllers\Menu\GiftController;
 use App\Http\Controllers\Menu\ItemViewController;
@@ -44,6 +45,12 @@ Route::get('/card/{token}', [LoyaltyCardController::class, 'show'])->where('toke
 // Gift cards (wallet): the printed card's QR; adds the amount to the wallet of the mobile entered, once
 Route::get('/gift/{code}', [GiftController::class, 'show'])->where('code', '[A-Za-z0-9]{12}')->name('gift');
 Route::post('/gift/{code}', [GiftController::class, 'redeem'])->where('code', '[A-Za-z0-9]{12}')->middleware('throttle:10,1')->name('gift.redeem');
+
+// Corporate vouchers: the printed voucher's QR shows that voucher only and lets the holder link it to their mobile
+Route::get('/voucher/{code}', [CorporateVoucherController::class, 'show'])->where('code', '[A-Za-z0-9-]{10,14}')
+    ->middleware('throttle:30,1')->name('voucher');
+Route::post('/voucher/{code}', [CorporateVoucherController::class, 'link'])->where('code', '[A-Za-z0-9-]{10,14}')
+    ->middleware('throttle:10,1')->name('voucher.link');
 
 Route::post('/call', [TableCallController::class, 'store'])->middleware('throttle:6,1')->name('call');
 Route::post('/feedback', [FeedbackController::class, 'store'])->middleware('throttle:10,1')->name('feedback');

@@ -64,6 +64,10 @@
             @if ($order->tax > 0)<tr><td>{{ __('Tax') }}</td><td class="n">{{ money($order->tax) }}</td></tr>@endif
             @if ($order->delivery_fee > 0)<tr><td>{{ __('Delivery fee') }}</td><td class="n">{{ money($order->delivery_fee) }}</td></tr>@endif
             <tr class="tot"><td>{{ __('Total') }}</td><td class="n">{{ money($order->total) }} {{ tr($settings['currency'], $settings['currency_en']) }}</td></tr>
+            @if ($order->corporate_amount > 0)
+                <tr data-receipt-corporate><td>{{ __('Corporate voucher') }}</td><td class="n">−{{ money($order->corporate_amount) }}</td></tr>
+                @if ($order->total - $order->corporate_amount > 0.004)<tr><td>{{ __('Paid by :method', ['method' => \App\Billing\PaymentMethods::label($order->payment_method ?? 'cash')]) }}</td><td class="n">{{ money($order->total - $order->corporate_amount) }}</td></tr>@endif
+            @endif
         </table>
         <div class="c muted" style="margin-top:6px">
             {{ $order->payment_status === 'paid' ? __('Paid') . ' · ' . \App\Billing\PaymentMethods::label($order->payment_method ?? 'cash') : __('Unpaid') }}

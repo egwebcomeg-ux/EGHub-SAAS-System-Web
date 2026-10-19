@@ -24,6 +24,7 @@
                     {{ $log->subject }}
                     @if (isset($log->meta['from'], $log->meta['to']))<span dir="ltr" class="text-xs text-navy-500">({{ $log->meta['from'] }} → {{ $log->meta['to'] }})</span>@endif
                     @if (! empty($log->meta['reason']))<span class="text-xs text-navy-500">· {{ $log->meta['reason'] }}</span>@endif
+                    @if (! empty($log->meta['cashier']))<span class="text-xs text-navy-500">· {{ __('Cashier: :name', ['name' => $log->meta['cashier']]) }}</span>@endif
                 </td>
             </tr>
         @empty

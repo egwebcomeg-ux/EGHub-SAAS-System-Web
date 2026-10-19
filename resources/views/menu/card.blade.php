@@ -25,6 +25,7 @@
         @endif
         @include('menu.partials.member-packages')
         @include('menu.partials.member-vouchers')
+        @include('menu.partials.corporate-vouchers')
 
         @if ($card->availableRewards->isNotEmpty())
             <div class="mt-5 space-y-2">

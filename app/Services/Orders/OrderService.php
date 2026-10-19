@@ -14,6 +14,7 @@ use App\Models\Shift;
 use App\Models\TableCall;
 use App\Models\TableSession;
 use App\Models\User;
+use App\Services\Corporate\CorporateVouchers;
 use App\Services\Entitlements;
 use App\Services\Inventory\StockService;
 use App\Services\Loyalty\LoyaltyService;
@@ -196,8 +197,14 @@ final class OrderService
         return ['code' => $coupon->code, 'discount' => $off, 'label' => $coupon->headline()];
     }
 
-    /** Collects the money of an order (POS). Cash goes into the cashier's open shift drawer. */
-    public function pay(Order $order, string $method, User $by, ?Shift $shift): Order
+    /**
+     * Collects the money of an order (POS). Cash goes into the cashier's open shift drawer. With corporate vouchers
+     * ($vouchers: codes typed / scanned, or ids of vouchers linked to $voucherPhone) they pay first, earliest expiry
+     * first, and $method pays the rest; when they cover everything the order is paid by "corporate".
+     *
+     * @param  list<array{code?:?string, id?:?int, approval?:?string}>  $vouchers
+     */
+    public function pay(Order $order, string $method, User $by, ?Shift $shift, array $vouchers = [], ?string $voucherPhone = null): Order
     {
         if ($order->payment_status === 'paid') {
             throw new OrderException(__('This order is already paid.'));
@@ -211,17 +218,33 @@ final class OrderService
         if (! $shift && Entitlements::current()->allows('shifts')) {
             throw new OrderException(__('Open a shift first to take payments.'));
         }
+        if ($method === CorporateVouchers::METHOD && $vouchers === []) {
+            throw new OrderException(__('Add a corporate voucher first.'));
+        }
+        if ($vouchers !== [] && $method === WalletService::METHOD) {
+            throw new OrderException(__('With corporate vouchers, pay the rest in cash, by card, InstaPay or a mobile wallet.'));
+        }
 
-        return DB::transaction(function () use ($order, $method, $by, $shift) {
+        return DB::transaction(function () use ($order, $method, $by, $shift, $vouchers, $voucherPhone) {
             // locked: two taps on "pay" (or two cashiers) never take the money twice
             $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
             if ($locked->payment_status === 'paid') {
                 throw new OrderException(__('This order is already paid.'));
             }
+            $covered = $vouchers !== [] ? app(CorporateVouchers::class)->redeemForOrder($locked, $vouchers, $voucherPhone, $by) : 0.0;
+            $rest = round((float) $locked->total - $covered, 2);
+            if ($method === CorporateVouchers::METHOD && $rest > 0.004) {
+                throw new OrderException(__('The vouchers cover :covered of :total: choose how the rest (:rest) is paid.', [
+                    'covered' => money($covered), 'total' => money($locked->total), 'rest' => money($rest),
+                ]));
+            }
+            if ($covered > 0 && $rest <= 0.004) {
+                $method = CorporateVouchers::METHOD;
+            }
             if ($method === WalletService::METHOD) {
                 app(WalletService::class)->payOrder($locked, $by, $shift);
             }
-            $order->update(['payment_status' => 'paid', 'payment_method' => $method, 'shift_id' => $shift?->id]);
+            $order->update(['payment_status' => 'paid', 'payment_method' => $method, 'shift_id' => $shift?->id, 'corporate_amount' => $covered]);
             app(LoyaltyService::class)->orderCompleted($order);
 
             return $order;
@@ -259,7 +282,7 @@ final class OrderService
             match ($to) {
                 'served' => app(LoyaltyService::class)->orderCompleted($order),
                 'cancelled' => [app(LoyaltyService::class)->orderReversed($order), app(StockService::class)->restoreForOrder($order),
-                    app(WalletService::class)->refundOrder($order, $by)],
+                    app(WalletService::class)->refundOrder($order, $by), app(CorporateVouchers::class)->refundOrder($order, $by)],
                 default => null,
             };
             if ($to === 'cancelled') {
@@ -357,7 +380,7 @@ final class OrderService
      */
     public function paySession(TableSession $session, string $method, User $by, ?Shift $shift): int
     {
-        if ($method === WalletService::METHOD) {
+        if ($method === WalletService::METHOD || $method === CorporateVouchers::METHOD) {
             throw new OrderException(__('Prepaid balance is taken per order from the POS.'));
         }
 

@@ -40,6 +40,7 @@ final class PaymentMethods
             'card' => __('Card'),
             'wallet' => __('Mobile wallet'),
             'credit' => __('Wallet balance'),
+            'corporate' => __('Corporate voucher'),
             default => ucfirst($key),
         };
     }

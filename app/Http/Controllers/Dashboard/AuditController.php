@@ -29,6 +29,18 @@ class AuditController extends Controller
         'customers.imported' => ['استيراد عملاء', 'Customers imported'],
         'login.google' => ['دخول بحساب جوجل', 'Signed in with Google'],
         'login.facebook' => ['دخول بحساب فيسبوك', 'Signed in with Facebook'],
+        'corporate.created' => ['إنشاء تعاقد شركة', 'Corporate contract created'],
+        'corporate.updated' => ['تعديل تعاقد شركة', 'Corporate contract edited'],
+        'corporate.status' => ['تغيير حالة تعاقد شركة', 'Corporate contract status changed'],
+        'corporate.extended' => ['مد صلاحية فاوتشرات', 'Voucher expiry extended'],
+        'corporate.voided' => ['إلغاء فاوتشر شركة', 'Corporate voucher voided'],
+        'corporate.printed' => ['طباعة فاوتشرات شركة', 'Corporate vouchers printed'],
+        'corporate.exception' => ['موافقة على فاوتشر منتهي', 'Expired voucher exception approved'],
+        'corporate.pin_failed' => ['PIN مدير غلط', 'Wrong manager PIN'],
+        'corporate.pin_set' => ['تعيين PIN المدير', 'Manager PIN set'],
+        'corporate.pin_removed' => ['شيل PIN المدير', 'Manager PIN removed'],
+        'corporate.linked' => ['ربط فاوتشر بموبايل عميل', 'Voucher linked to a guest mobile'],
+        'corporate.refunded' => ['رجوع قيمة فاوتشر (طلب اتلغى)', 'Voucher value returned (order cancelled)'],
     ];
 
     public function index(Request $request): View

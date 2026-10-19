@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Services\Orders\ShiftService;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonPeriod;
 
@@ -25,7 +26,7 @@ final class SalesReport
     /** @return array<string, mixed> */
     public function build(): array
     {
-        $orders = $this->orders()->get(['id', 'branch_id', 'customer_id', 'status', 'type', 'source', 'payment_status', 'payment_method', 'total', 'discount', 'created_at']);
+        $orders = $this->orders()->get(['id', 'branch_id', 'customer_id', 'status', 'type', 'source', 'payment_status', 'payment_method', 'corporate_amount', 'total', 'discount', 'created_at']);
         $sold = $orders->where('status', '!=', 'cancelled');
         $revenue = round((float) $sold->sum('total'), 2);
 
@@ -56,7 +57,7 @@ final class SalesReport
             'unpaid' => round((float) $sold->where('payment_status', 'unpaid')->sum('total'), 2),
             'days' => $days,
             'hours' => $hours,
-            'by_method' => $this->share($sold->where('payment_status', 'paid'), 'payment_method'),
+            'by_method' => $this->byMethod($sold->where('payment_status', 'paid')),
             'by_source' => $this->share($sold, 'source'),
             'by_type' => $this->share($sold, 'type'),
             'by_branch' => $this->byBranch($sold),
@@ -86,6 +87,26 @@ final class SalesReport
         return $orders->groupBy(fn ($o) => (string) ($o->{$field} ?? ''))
             ->map(fn ($g, $k) => ['key' => $k, 'count' => $g->count(), 'total' => round((float) $g->sum('total'), 2)])
             ->sortByDesc('total')->values()->all();
+    }
+
+    /**
+     * Paid sales by payment method; an order paid partly by corporate vouchers counts under both of its methods, each
+     * with its own part (ShiftService::split).
+     *
+     * @return list<array{key:string, count:int, total:float}> biggest first
+     */
+    private function byMethod($orders): array
+    {
+        $out = [];
+        foreach ($orders as $o) {
+            foreach (ShiftService::split($o) as $method => $amount) {
+                $out[$method] ??= ['key' => $method, 'count' => 0, 'total' => 0.0];
+                $out[$method]['count']++;
+                $out[$method]['total'] = round($out[$method]['total'] + $amount, 2);
+            }
+        }
+
+        return collect($out)->sortByDesc('total')->values()->all();
     }
 
     private function byBranch($orders): array

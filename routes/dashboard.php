@@ -10,6 +10,8 @@ use App\Http\Controllers\Dashboard\CallCenterController;
 use App\Http\Controllers\Dashboard\CampaignsController;
 use App\Http\Controllers\Dashboard\CardsController;
 use App\Http\Controllers\Dashboard\CategoriesController;
+use App\Http\Controllers\Dashboard\CorporateContractsController;
+use App\Http\Controllers\Dashboard\CorporateRedeemController;
 use App\Http\Controllers\Dashboard\CouponsController;
 use App\Http\Controllers\Dashboard\CustomerImportController;
 use App\Http\Controllers\Dashboard\CustomersController;
@@ -378,6 +380,31 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         });
     });
 
+    // Corporate contracts: a company's prepaid vouchers for its staff (managed here, redeemed at the POS)
+    Route::middleware(['feature:corporate_vouchers', 'permission:contracts.manage'])->group(function () {
+        Route::get('/corporate', [CorporateContractsController::class, 'index'])->name('corporate');
+        Route::get('/corporate/create', [CorporateContractsController::class, 'create'])->name('corporate.create');
+        Route::post('/corporate', [CorporateContractsController::class, 'store'])->middleware('throttle:20,1')->name('corporate.store');
+        Route::get('/corporate/{contract}', [CorporateContractsController::class, 'show'])->whereNumber('contract')->name('corporate.show');
+        Route::get('/corporate/{contract}/edit', [CorporateContractsController::class, 'edit'])->whereNumber('contract')->name('corporate.edit');
+        Route::post('/corporate/{contract}', [CorporateContractsController::class, 'update'])->whereNumber('contract')->name('corporate.update');
+        Route::post('/corporate/{contract}/status', [CorporateContractsController::class, 'status'])->whereNumber('contract')->name('corporate.status');
+        Route::post('/corporate/{contract}/extend', [CorporateContractsController::class, 'extend'])->whereNumber('contract')->name('corporate.extend');
+        Route::get('/corporate/{contract}/print', [CorporateContractsController::class, 'print'])->whereNumber('contract')->name('corporate.print');
+        Route::get('/corporate/{contract}/export', [CorporateContractsController::class, 'export'])->whereNumber('contract')->name('corporate.export');
+        Route::get('/corporate/{contract}/statement', [CorporateContractsController::class, 'statement'])->whereNumber('contract')->name('corporate.statement');
+        Route::get('/corporate/vouchers/{voucher}/receipt', [CorporateContractsController::class, 'receipt'])->whereNumber('voucher')->name('corporate.voucher.receipt');
+        Route::post('/corporate/vouchers/{voucher}/extend', [CorporateContractsController::class, 'extendVoucher'])->whereNumber('voucher')->name('corporate.voucher.extend');
+        Route::post('/corporate/vouchers/{voucher}/void', [CorporateContractsController::class, 'voidVoucher'])->whereNumber('voucher')->name('corporate.voucher.void');
+    });
+    // ... and at the POS: look up by code / QR / mobile, exceptions after expiry (manager), link to the guest's mobile
+    Route::middleware(['feature:corporate_vouchers', 'feature:pos', 'permission:pos.use', 'permission:vouchers.redeem'])->group(function () {
+        Route::post('/pos/vouchers/check', [CorporateRedeemController::class, 'check'])->middleware('throttle:60,1')->name('pos.corporate.check');
+        Route::post('/pos/vouchers/link', [CorporateRedeemController::class, 'link'])->middleware('throttle:30,1')->name('pos.corporate.link');
+        Route::post('/pos/vouchers/{voucher}/exception', [CorporateRedeemController::class, 'exception'])->whereNumber('voucher')
+            ->middleware('throttle:20,1')->name('pos.corporate.exception');
+    });
+
     // Kiosk pack: self-order tablets at the counter
     Route::middleware(['feature:kiosk', 'permission:kiosk.manage'])->group(function () {
         Route::get('/kiosks', [KiosksController::class, 'index'])->name('kiosks');
@@ -439,6 +466,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::post('/security/two-factor', [SecurityController::class, 'enable'])->name('security.enable');
     Route::post('/security/two-factor/confirm', [SecurityController::class, 'confirm'])->middleware('throttle:10,1')->name('security.confirm');
     Route::post('/security/two-factor/disable', [SecurityController::class, 'disable'])->middleware('throttle:10,1')->name('security.disable');
+    Route::post('/security/pin', [SecurityController::class, 'pin'])->middleware('throttle:10,1')->name('security.pin');
 });
 
 // ---- Onboarding checklist on the home page (App\Services\Onboarding) and the illustrated tutorial ----

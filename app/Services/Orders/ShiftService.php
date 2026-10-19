@@ -16,8 +16,28 @@ use Illuminate\Support\Facades\DB;
  */
 final class ShiftService
 {
-    /** wallet = mobile wallet (Vodafone Cash...); credit = the guest's prepaid balance (WalletService). */
-    public const METHODS = ['cash', 'card', 'instapay', 'wallet', 'credit'];
+    /**
+     * wallet = mobile wallet (Vodafone Cash...); credit = the guest's prepaid balance (WalletService); corporate = a
+     * company's prepaid vouchers (CorporateVouchers): the part of an order they paid (orders.corporate_amount).
+     */
+    public const METHODS = ['cash', 'card', 'instapay', 'wallet', 'credit', 'corporate'];
+
+    /**
+     * How a paid order's total splits by method: the corporate vouchers' part, and the rest by the order's method.
+     *
+     * @return array<string,float>
+     */
+    public static function split(Order $order): array
+    {
+        $method = $order->payment_method ?? 'cash';
+        $corporate = round((float) ($order->corporate_amount ?? 0), 2);
+        if ($corporate <= 0) {
+            return [$method => (float) $order->total];
+        }
+        $rest = round((float) $order->total - $corporate, 2);
+
+        return array_filter(['corporate' => $corporate, ($method === 'corporate' ? 'cash' : $method) => $rest], fn ($a) => $a > 0.004);
+    }
 
     public function current(User $user): ?Shift
     {
@@ -68,10 +88,12 @@ final class ShiftService
      */
     public function summary(Shift $shift): array
     {
-        $paid = Order::query()->where('shift_id', $shift->id)->where('payment_status', 'paid')->where('status', '!=', 'cancelled')->get(['payment_method', 'total']);
+        $paid = Order::query()->where('shift_id', $shift->id)->where('payment_status', 'paid')->where('status', '!=', 'cancelled')->get(['payment_method', 'total', 'corporate_amount']);
         $byMethod = array_fill_keys(self::METHODS, 0.0);
         foreach ($paid as $o) {
-            $byMethod[$o->payment_method ?? 'cash'] = round(($byMethod[$o->payment_method ?? 'cash'] ?? 0) + $o->total, 2);
+            foreach (self::split($o) as $method => $amount) {
+                $byMethod[$method] = round(($byMethod[$method] ?? 0) + $amount, 2);
+            }
         }
         $in = (float) $shift->movements()->where('type', 'in')->sum('amount');
         $out = (float) $shift->movements()->where('type', 'out')->sum('amount');

@@ -30,6 +30,7 @@
             ['dash.feedback', __('Ratings'), 'M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z', 'customers.view', 'feedback'],
             ['dash.campaigns', __('Campaigns'), 'M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13', 'marketing.manage', 'campaigns'],
             ['dash.wallet', __('Wallet'), 'M20 12V8H6a2 2 0 0 1 0-4h12v4M4 6v12a2 2 0 0 0 2 2h14v-4M18 12a2 2 0 0 0 0 4h4v-4z', 'wallet.manage', 'wallet'],
+            ['dash.corporate', __('Corporate contracts'), 'M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M2 21h20M8 7h4M8 11h4M8 15h4', 'contracts.manage', 'corporate_vouchers'],
         ]],
         [__('Operations'), [
             ['dash.inventory', __('Inventory'), 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8', 'inventory.manage', 'inventory'],

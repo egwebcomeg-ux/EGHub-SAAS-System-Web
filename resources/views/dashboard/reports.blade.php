@@ -3,9 +3,7 @@
 
 @section('content')
 @php
-    $methods = ['cash' => __('Cash'), 'card' => __('Card'), 'instapay' => 'InstaPay', 'wallet' => __('Mobile wallet'), 'credit' => __('Wallet balance'), '' => __('Not set')];
-    $sources = ['qr' => __('QR menu'), 'pos' => __('POS'), 'callcenter' => __('Call center'), 'whatsapp' => __('WhatsApp')];
-    $methods = ['cash' => __('Cash'), 'card' => __('Card'), 'instapay' => 'InstaPay', 'wallet' => __('Mobile wallet'), '' => __('Not set')];
+    $methods = ['cash' => __('Cash'), 'card' => __('Card'), 'instapay' => 'InstaPay', 'wallet' => __('Mobile wallet'), 'credit' => __('Wallet balance'), 'corporate' => __('Corporate voucher'), '' => __('Not set')];
     $sources = ['qr' => __('QR menu'), 'pos' => __('POS'), 'callcenter' => __('Call center'), 'whatsapp' => __('WhatsApp'), 'kiosk' => __('Kiosk')];
     $types = ['dine_in' => __('Dine-in'), 'takeaway' => __('Takeaway'), 'delivery' => __('Delivery')];
     $presets = ['today' => __('Today'), 'yesterday' => __('Yesterday'), '7d' => __('Last 7 days')];

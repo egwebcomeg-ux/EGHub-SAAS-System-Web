@@ -563,6 +563,29 @@ if (dataEl) {
     const payDialog = $('[data-pay-dialog]');
     let payTarget = null; // null = current ticket, else {id,total} of an open order
     let method = 'cash';
+    // corporate vouchers on this payment: [{id, code, serial, company, balance, mode, expiresSort, approval}], and the
+    // guest's mobile when they were found by it (linked vouchers go with the mobile, never with the paper code)
+    let corp = { vouchers: [], phone: null };
+    const payTotal = () => (payTarget ? payTarget.total : totals().total);
+    // earliest expiry first, until the order is covered (same rule as the server); single-use vouchers lose the rest
+    function corpPlan() {
+        let due = Math.round(payTotal() * 100) / 100;
+        const lines = [...corp.vouchers].sort((a, b) => a.expiresSort.localeCompare(b.expiresSort) || a.id - b.id).map((v) => {
+            const used = Math.min(v.balance, Math.max(0, due));
+            due = Math.round((due - used) * 100) / 100;
+            return { ...v, used, lost: used > 0 && v.mode === 'single' ? Math.round((v.balance - used) * 100) / 100 : 0 };
+        });
+        const covered = lines.reduce((s, l) => s + l.used, 0);
+        return { lines, covered: Math.round(covered * 100) / 100, rest: Math.max(0, Math.round((payTotal() - covered) * 100) / 100) };
+    }
+    const payDue = () => (corp.vouchers.length ? corpPlan().rest : payTotal());
+    function renderQuick() {
+        const total = payDue();
+        const round = (n) => Math.ceil(total / n) * n;
+        $('[data-quick]').innerHTML = [...new Set([Math.ceil(total), round(50), round(100), round(200)])]
+            .map((v) => `<button type="button" class="btn-ghost min-h-9 px-3" data-quick-v="${v}">${v}</button>`).join('');
+    }
+    let corpReset = () => {};
     function openPay(target) {
         payTarget = target;
         const total = target ? target.total : totals().total;
@@ -574,9 +597,8 @@ if (dataEl) {
             $('[data-credit-phone]').value = target ? '' : $('[data-customer-phone]').value.trim();
             $('[data-credit-info]').textContent = T.enterPhone;
         }
-        const round = (n) => Math.ceil(total / n) * n;
-        $('[data-quick]').innerHTML = [...new Set([Math.ceil(total), round(50), round(100), round(200)])]
-            .map((v) => `<button type="button" class="btn-ghost min-h-9 px-3" data-quick-v="${v}">${v}</button>`).join('');
+        corpReset();
+        renderQuick();
         setMethod('cash');
         payDialog.showModal();
     }
@@ -611,7 +633,7 @@ if (dataEl) {
     $('[data-credit-phone]')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); creditLookup(); } });
     $$('[data-method]').forEach((b) => b.addEventListener('click', () => setMethod(b.dataset.method)));
     function showChange() {
-        const total = payTarget ? payTarget.total : totals().total;
+        const total = payDue();
         const diff = Number($('[data-tendered]').value || 0) - total;
         $('[data-change]').textContent = $('[data-tendered]').value === '' ? '' : diff >= 0 ? T.change.replace('__A__', fmt(diff)) : T.short.replace('__A__', fmt(-diff));
         $('[data-change]').className = 'text-lg font-bold ' + (diff >= 0 ? 'text-emerald-700' : 'text-red-600');
@@ -627,15 +649,20 @@ if (dataEl) {
         err.classList.add('hidden');
         const creditPhone = method === 'credit' ? $('[data-credit-phone]').value.trim() : '';
         if (method === 'credit' && !creditPhone) { err.textContent = T.enterPhone; err.classList.remove('hidden'); return; }
+        // corporate vouchers pay first; the method chosen pays the rest (or "corporate" when they cover it all)
+        const vouchers = corp.vouchers.map((v) => (v.code ? { code: v.code, approval: v.approval || null } : { id: v.id, approval: v.approval || null }));
+        const extra = vouchers.length ? { vouchers, voucher_phone: corp.phone } : {};
+        const payMethod = vouchers.length && corpPlan().rest <= 0.004 ? 'corporate' : method;
+        if (vouchers.length && payMethod === 'credit') { err.textContent = T.corpNoCredit; err.classList.remove('hidden'); return; }
         try {
             if (payTarget) {
-                await api(D.urls.pay.replace('__ID__', payTarget.id), { method, phone: creditPhone || null });
+                await api(D.urls.pay.replace('__ID__', payTarget.id), { method: payMethod, phone: creditPhone || null, ...extra });
                 payDialog.close();
                 $('[data-open-dialog]').close();
                 done({ id: payTarget.id, number: payTarget.number }, T.paid);
             } else {
                 if (creditPhone) $('[data-customer-phone]').value = creditPhone;
-                const order = await api(D.urls.order, payload(method));
+                const order = await api(D.urls.order, { ...payload(payMethod), ...extra });
                 payDialog.close();
                 done(order, T.paid);
             }
@@ -644,6 +671,202 @@ if (dataEl) {
             err.classList.remove('hidden');
         }
     });
+
+    // ---- corporate vouchers: scan / type the code or the guest's mobile, refusals with their reason, exceptions ----
+    if (D.corporate) {
+        const box = $('[data-corp-panel]');
+        const errBox = $('[data-corp-error]');
+        const showErr = (text) => { errBox.textContent = text || ''; errBox.classList.toggle('hidden', !text); };
+        let found = []; // the last lookup
+        let lookupPhone = null;
+        corpReset = () => {
+            corp = { vouchers: [], phone: null };
+            found = [];
+            lookupPhone = null;
+            $('[data-corp-query]').value = '';
+            $('[data-corp-results]').innerHTML = '';
+            showErr('');
+            box.classList.add('hidden');
+            renderCorp();
+        };
+        $('[data-corp-toggle]').addEventListener('click', () => {
+            box.classList.toggle('hidden');
+            if (!box.classList.contains('hidden')) $('[data-corp-query]').focus();
+        });
+
+        function renderCorp() {
+            const applied = $('[data-corp-applied]');
+            const due = $('[data-pay-due]');
+            if (!corp.vouchers.length) {
+                applied.classList.add('hidden');
+                due.classList.add('hidden');
+                $('[data-corp-count]').textContent = '';
+                $('[data-methods]').classList.remove('opacity-40');
+                return;
+            }
+            const plan = corpPlan();
+            applied.classList.remove('hidden');
+            applied.innerHTML = plan.lines.map((l, i) => `
+                <div class="flex items-start justify-between gap-2 py-1">
+                    <div><b dir="ltr">${esc(l.serial)}</b> · ${esc(l.company)}${l.approval ? ` <span class="badge bg-amber-100 text-amber-800">${esc(T.corpException)}</span>` : ''}
+                        ${l.used <= 0 ? `<div class="text-xs text-navy-500">${esc(T.corpNotNeeded)}</div>` : ''}
+                        ${l.lost > 0 ? `<div class="text-xs font-semibold text-amber-700">⚠ ${esc(T.corpLost.replace('__A__', fmt(l.lost)))}</div>` : ''}</div>
+                    <div class="flex items-center gap-1"><b>${l.used > 0 ? '−' + fmt(l.used) : ''}</b>
+                        <button type="button" class="grid size-11 place-items-center rounded-lg text-red-600 hover:bg-red-50" data-corp-remove="${l.id}" aria-label="${esc(T.remove)}">×</button></div>
+                </div>`).join('');
+            $('[data-corp-count]').textContent = String(corp.vouchers.length);
+            due.classList.remove('hidden');
+            due.innerHTML = plan.rest > 0.004 ? esc(T.corpRest.replace('__A__', fmt(plan.rest))) : `<span class="text-emerald-700">${esc(T.corpCovered)}</span>`;
+            $('[data-methods]').classList.toggle('opacity-40', plan.rest <= 0.004);
+            renderQuick();
+            showChange();
+        }
+        $('[data-corp-applied]').addEventListener('click', (e) => {
+            const b = e.target.closest('[data-corp-remove]');
+            if (!b) return;
+            corp.vouchers = corp.vouchers.filter((v) => String(v.id) !== b.dataset.corpRemove);
+            if (!corp.vouchers.some((v) => !v.code)) corp.phone = null;
+            renderCorp();
+            renderFound();
+        });
+
+        function renderFound() {
+            const inUse = new Set(corp.vouchers.map((v) => v.id));
+            $('[data-corp-results]').innerHTML = found.map((v, i) => `
+                <li class="rounded-xl border ${v.ok ? 'border-emerald-200 bg-emerald-50/40' : 'border-navy-100'} p-3" data-corp-voucher="${esc(v.serial)}">
+                    <div class="flex flex-wrap items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <div class="font-bold"><span dir="ltr">${esc(v.serial)}</span> · ${esc(v.company)}</div>
+                            <div class="text-sm">${esc(T.corpBalance.replace('__B__', fmt(v.balance)).replace('__V__', fmt(v.value)))} · ${esc(v.modeLabel)}</div>
+                            <div class="text-xs text-navy-500">${esc(T.corpUntil.replace('__D__', v.expires))}${v.linked ? ' · 🔒 ' + esc(v.linked) : ''}${v.pending ? ' · ⏳ ' + esc(v.pending) : ''}</div>
+                        </div>
+                        <div class="flex flex-wrap gap-1">
+                            ${v.ok && !inUse.has(v.id) ? `<button type="button" class="btn-primary min-h-11 px-4" data-corp-use="${i}">${esc(T.corpUse)}</button>` : ''}
+                            ${inUse.has(v.id) ? `<span class="badge bg-emerald-100 text-emerald-800">✓ ${esc(T.corpAdded)}</span>` : ''}
+                            ${v.expired && !inUse.has(v.id) ? `<button type="button" class="btn-ghost min-h-11 px-3 text-amber-800" data-corp-exception="${i}">${esc(T.corpAskException)}</button>` : ''}
+                            ${v.pending && lookupPhone ? `<button type="button" class="btn-ghost min-h-11 px-3" data-corp-confirm="${i}">${esc(T.corpConfirmLink)}</button>` : ''}
+                            ${v.code && !v.linked && v.ok ? `<button type="button" class="btn-ghost min-h-11 px-3" data-corp-link="${i}">${esc(T.corpLink)}</button>` : ''}
+                        </div>
+                    </div>
+                    ${v.reason ? `<div class="mt-2 rounded-lg ${v.ok ? 'bg-emerald-50 text-emerald-800' : v.expired ? 'bg-amber-50 text-amber-800' : 'bg-red-50 text-red-700'} px-2 py-1 text-sm font-semibold" data-corp-reason>${esc(v.reason)}</div>` : ''}
+                    ${v.ok && v.mode === 'single' && v.balance > payTotal() + 0.004 ? `<div class="mt-2 text-xs font-semibold text-amber-700">⚠ ${esc(T.corpSingleWarn.replace('__A__', fmt(v.balance - payTotal())))}</div>` : ''}
+                </li>`).join('');
+        }
+
+        async function lookup(raw) {
+            const query = (raw ?? $('[data-corp-query]').value).trim();
+            showErr('');
+            if (!query) return;
+            try {
+                const r = await api(D.urls.corporateCheck, { query, total: payTotal() });
+                lookupPhone = r.by === 'phone' ? r.phone : null;
+                found = r.vouchers.map((v) => (r.by === 'code' ? { ...v, code: v.code } : { ...v, code: null }));
+                if (r.by === 'phone' && !found.length) showErr(T.corpNoneForPhone);
+                renderFound();
+                // a single good voucher scanned / typed goes straight onto the payment
+                if (r.by === 'code' && found.length === 1 && found[0].ok) use(0);
+                $('[data-corp-query]').value = '';
+            } catch (e) {
+                found = [];
+                renderFound();
+                showErr(e.message);
+            }
+        }
+        function use(i, approval = null) {
+            const v = found[i];
+            if (!v || corp.vouchers.some((x) => x.id === v.id)) return;
+            if (!v.code) {
+                if (corp.phone && corp.phone !== lookupPhone) corp.vouchers = corp.vouchers.filter((x) => x.code);
+                corp.phone = lookupPhone;
+            }
+            corp.vouchers.push({ id: v.id, code: v.code, serial: v.serial, company: v.company, balance: v.balance, mode: v.mode, expiresSort: v.expiresSort, approval });
+            renderCorp();
+            renderFound();
+        }
+        $('[data-corp-check]').addEventListener('click', () => lookup());
+        $('[data-corp-query]').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); lookup(); } });
+        $('[data-corp-results]').addEventListener('click', async (e) => {
+            const useBtn = e.target.closest('[data-corp-use]');
+            if (useBtn) return use(Number(useBtn.dataset.corpUse));
+            const exc = e.target.closest('[data-corp-exception]');
+            if (exc) return openException(Number(exc.dataset.corpException));
+            const link = e.target.closest('[data-corp-link], [data-corp-confirm]');
+            if (!link) return;
+            const v = found[Number(link.dataset.corpLink ?? link.dataset.corpConfirm)];
+            const phone = link.dataset.corpConfirm !== undefined ? lookupPhone : (prompt(T.corpLinkAsk, $('[data-customer-phone]').value.trim()) || '').trim();
+            if (!phone) return;
+            try {
+                await api(D.urls.corporateLink, v.code ? { code: v.code, phone, total: payTotal() } : { id: v.id, phone, total: payTotal() });
+                corp.vouchers = corp.vouchers.filter((x) => x.id !== v.id);
+                await lookup(phone); // from now on it goes with the mobile
+            } catch (err) {
+                showErr(err.message);
+            }
+        });
+
+        // camera scan where the browser can read QR codes (same as the loyalty counter); a USB scanner types into the field
+        if ('BarcodeDetector' in window && navigator.mediaDevices?.getUserMedia) {
+            const scan = $('[data-corp-scan]');
+            const video = $('[data-corp-video]');
+            let stream = null;
+            const stop = () => { stream?.getTracks().forEach((t) => t.stop()); stream = null; video.classList.add('hidden'); };
+            scan.classList.remove('hidden');
+            scan.addEventListener('click', async () => {
+                if (stream) return stop();
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                } catch { return showErr(T.corpNoCamera); }
+                video.srcObject = stream;
+                video.classList.remove('hidden');
+                await video.play();
+                const detector = new BarcodeDetector({ formats: ['qr_code'] });
+                const tick = async () => {
+                    if (!stream) return;
+                    const codes = await detector.detect(video).catch(() => []);
+                    if (codes.length) { stop(); lookup(codes[0].rawValue); } else requestAnimationFrame(tick);
+                };
+                tick();
+            });
+            payDialog.addEventListener('close', stop);
+        }
+
+        // ---- exception after expiry: a manager approves here (signed in) or with their PIN on this device ----
+        const excDialog = $('[data-corp-exception-dialog]');
+        let excIndex = null;
+        function openException(i) {
+            excIndex = i;
+            const v = found[i];
+            $('[data-exc-voucher]').textContent = `${v.serial} · ${v.company} · ${v.reason}`;
+            $('[data-exc-reason]').value = '';
+            if ($('[data-exc-pin]')) $('[data-exc-pin]').value = '';
+            $('[data-exc-error]').classList.add('hidden');
+            excDialog.showModal();
+            $('[data-exc-reason]').focus();
+        }
+        $('[data-exc-confirm]').addEventListener('click', async (e) => {
+            const v = found[excIndex];
+            const err = $('[data-exc-error]');
+            err.classList.add('hidden');
+            const body = { reason: $('[data-exc-reason]').value.trim() };
+            if (!D.corporateApprove) {
+                body.approver_id = Number($('[data-exc-manager]')?.value) || null;
+                body.pin = $('[data-exc-pin]')?.value || '';
+            }
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            try {
+                const r = await api(D.urls.corporateException.replace('__ID__', v.id), body);
+                excDialog.close();
+                found[excIndex] = { ...v, ok: true, expired: false, reason: T.corpApprovedBy.replace('__N__', r.approver) };
+                use(excIndex, r.token);
+            } catch (ex) {
+                err.textContent = ex.message;
+                err.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    }
 
     // ---- wallet: top-up and gift cards (taken through the open shift, like a sale) ----
     if (D.walletManage) {

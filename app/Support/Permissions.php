@@ -34,6 +34,9 @@ final class Permissions
         'wallet.manage' => ['المحفظة وكروت الهدايا', 'Wallet & gift cards'],
         'kiosk.manage' => ['الكشك (طلب ذاتي)', 'Self-order kiosks'],
         'reservations.manage' => ['الحجوزات', 'Reservations'],
+        'contracts.manage' => ['تعاقدات الشركات (إنشاء وطباعة وتقارير)', 'Corporate contracts (create, print, reports)'],
+        'vouchers.redeem' => ['صرف فاوتشرات الشركات في الكاشير', 'Redeem corporate vouchers at the POS'],
+        'vouchers.exception' => ['الموافقة على استثناء فاوتشر منتهي', 'Approve an expired voucher exception'],
     ];
 
     /** role => [labels, permissions ('*' = everything)] */
@@ -47,11 +50,12 @@ final class Permissions
             'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'pos.discount', 'callcenter.use', 'shifts.manage',
                 'kitchen.view', 'menu.manage', 'menu.availability', 'inventory.manage', 'tables.manage', 'branches.manage', 'delivery.manage',
                 'customers.view', 'customers.import', 'loyalty.stamp', 'loyalty.manage', 'vouchers.give', 'marketing.manage', 'reports.view', 'settings.manage', 'audit.view',
-                'wallet.manage', 'kiosk.manage', 'reservations.manage'],
+                'wallet.manage', 'kiosk.manage', 'reservations.manage', 'contracts.manage', 'vouchers.redeem', 'vouchers.exception'],
         ],
         'cashier' => [
             'label' => ['كاشير', 'Cashier'],
-            'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'shifts.manage', 'menu.availability', 'customers.view', 'loyalty.stamp', 'wallet.manage'],
+            'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'shifts.manage', 'menu.availability', 'customers.view', 'loyalty.stamp', 'wallet.manage',
+                'vouchers.redeem'],
         ],
         'callcenter' => [
             'label' => ['كول سنتر', 'Call center'],

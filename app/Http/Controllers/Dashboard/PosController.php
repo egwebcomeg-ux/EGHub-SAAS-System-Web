@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\DiningTable;
 use App\Models\MenuItem;
 use App\Models\Order;
+use App\Services\Corporate\CorporateVouchers;
 use App\Services\Entitlements;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Orders\OrderException;
@@ -50,11 +51,19 @@ class PosController extends Controller
                 // prepaid wallet: anyone at the POS can take a payment from the balance; top-ups and gift cards need wallet.manage
                 'wallet' => WalletService::enabled(),
                 'walletManage' => WalletService::enabled() && $request->user()->can('wallet.manage'),
+                // corporate vouchers: any cashier redeems; an expired one needs a manager (here, or their PIN on this device)
+                'corporate' => self::corporateAllowed($request),
+                'corporateApprove' => self::corporateAllowed($request) && $request->user()->can('vouchers.exception'),
+                'approvers' => self::corporateAllowed($request)
+                    ? app(CorporateVouchers::class)->approvers()->reject(fn ($u) => $u->id === $request->user()->id)->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])->values() : [],
                 'urls' => [
                     'order' => route('dash.pos.order'), 'pay' => url('/pos/orders/__ID__/pay'), 'open' => route('dash.pos.open'),
                     'receipt' => url('/orders/__ID__/receipt'), 'display' => route('dash.pos.display'),
                 ] + (self::couponsAllowed() ? ['coupon' => route('dash.pos.coupon')] : []) + (WalletService::enabled() ? [
                     'walletLookup' => route('dash.wallet.lookup'), 'topup' => route('dash.wallet.topup'), 'giftSell' => route('dash.wallet.gift.sell'),
+                ] : []) + (self::corporateAllowed($request) ? [
+                    'corporateCheck' => route('dash.pos.corporate.check'), 'corporateLink' => route('dash.pos.corporate.link'),
+                    'corporateException' => url('/pos/vouchers/__ID__/exception'),
                 ] : []),
                 'tables' => DiningTable::query()->where('branch_id', $branch->id)->where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
                 'categories' => $categories->map(fn (Category $c) => ['id' => $c->id, 'name' => tr($c->name, $c->name_en)])->values(),
@@ -90,7 +99,13 @@ class PosController extends Controller
             'discount' => 'nullable|numeric|min:0',
             'coupon' => 'nullable|string|max:30',
             'pay' => ['nullable', Rule::in(ShiftService::METHODS)],
-        ]);
+        ] + self::voucherRules());
+        if (! empty($data['vouchers']) && ! self::corporateAllowed($request)) {
+            return response()->json(['message' => __('You are not allowed to take corporate vouchers.')], 403);
+        }
+        if (! empty($data['vouchers']) && empty($data['pay'])) {
+            return response()->json(['message' => __('Choose a payment method.')], 422);
+        }
         if (($data['discount'] ?? 0) > 0 && ! $request->user()->can('pos.discount')) {
             return response()->json(['message' => __('You are not allowed to give discounts.')], 403);
         }
@@ -104,10 +119,16 @@ class PosController extends Controller
         }
 
         try {
-            $order = $orders->place($data + ['source' => 'pos'], $branch, $table, $request->user());
-            if (! empty($data['pay']) && $order->payment_status !== 'paid') {
-                $orders->pay($order, $data['pay'], $request->user(), $shifts->current($request->user()));
-            }
+            // with corporate vouchers it is all or nothing: a refused voucher leaves no order behind
+            $run = function () use ($data, $branch, $table, $request, $orders, $shifts) {
+                $order = $orders->place(collect($data)->except(['vouchers', 'voucher_phone'])->all() + ['source' => 'pos'], $branch, $table, $request->user());
+                if (! empty($data['pay']) && $order->payment_status !== 'paid') {
+                    $orders->pay($order, $data['pay'], $request->user(), $shifts->current($request->user()), self::vouchers($data), $data['voucher_phone'] ?? null);
+                }
+
+                return $order;
+            };
+            $order = empty($data['vouchers']) ? $run() : DB::transaction($run);
         } catch (OrderException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -141,10 +162,40 @@ class PosController extends Controller
         return Entitlements::current()->allows('loyalty_stamps|campaigns');
     }
 
+    /** Corporate vouchers at this POS: the plan has them and this user may redeem. */
+    public static function corporateAllowed(Request $request): bool
+    {
+        return CorporateVouchers::enabled() && $request->user()->can('vouchers.redeem');
+    }
+
+    /** @return array<string,mixed> the vouchers sent with a payment: a code typed / scanned, or a linked voucher's id */
+    private static function voucherRules(): array
+    {
+        return [
+            'vouchers' => 'nullable|array|max:'.CorporateVouchers::MAX_PER_ORDER,
+            'vouchers.*.code' => 'nullable|string|max:300',
+            'vouchers.*.id' => 'nullable|integer',
+            'vouchers.*.approval' => 'nullable|string|max:64',
+            'voucher_phone' => 'nullable|string|max:20',
+        ];
+    }
+
+    /** @return list<array{code:?string, id:?int, approval:?string}> */
+    private static function vouchers(array $data): array
+    {
+        return array_values(array_map(fn ($v) => [
+            'code' => isset($v['code']) ? (string) $v['code'] : null, 'id' => isset($v['id']) ? (int) $v['id'] : null,
+            'approval' => isset($v['approval']) ? (string) $v['approval'] : null,
+        ], array_filter((array) ($data['vouchers'] ?? []), 'is_array')));
+    }
+
     public function pay(Request $request, Order $order, OrderService $orders, ShiftService $shifts): JsonResponse
     {
         abort_if($request->user()->branch_id && $request->user()->branch_id !== $order->branch_id, 404);
-        $data = $request->validate(['method' => ['required', Rule::in(ShiftService::METHODS)], 'phone' => 'nullable|string|max:20']);
+        $data = $request->validate(['method' => ['required', Rule::in(ShiftService::METHODS)], 'phone' => 'nullable|string|max:20'] + self::voucherRules());
+        if (! empty($data['vouchers']) && ! self::corporateAllowed($request)) {
+            return response()->json(['message' => __('You are not allowed to take corporate vouchers.')], 403);
+        }
         $customer = null;
         // paying an open (table) order from the wallet: the cashier may name the guest now
         if ($data['method'] === WalletService::METHOD && ! $order->customer_id && ! empty($data['phone'])) {
@@ -159,7 +210,7 @@ class PosController extends Controller
                 if ($customer) {
                     $order->update(['customer_id' => $customer->id, 'customer_phone' => $customer->phone, 'customer_name' => $order->customer_name ?: $customer->name]);
                 }
-                $orders->pay($order, $data['method'], $request->user(), $shifts->current($request->user()));
+                $orders->pay($order, $data['method'], $request->user(), $shifts->current($request->user()), self::vouchers($data), $data['voucher_phone'] ?? null);
             });
         } catch (OrderException $e) {
             return response()->json(['message' => $e->getMessage()], 422);

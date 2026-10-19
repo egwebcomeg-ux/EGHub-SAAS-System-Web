@@ -127,10 +127,31 @@
 </dialog>
 
 {{-- payment --}}
-<dialog class="m-auto w-full max-w-md rounded-2xl p-0 backdrop:bg-black/50" data-pay-dialog>
+<dialog class="m-auto max-h-[95dvh] w-full max-w-md overflow-y-auto rounded-2xl p-0 backdrop:bg-black/50" data-pay-dialog>
     <form method="dialog" class="p-5">
         <h3 class="text-lg font-extrabold">{{ __('Payment') }}</h3>
         <div class="my-3 text-center text-4xl font-extrabold" data-pay-total></div>
+        <div class="-mt-2 mb-3 hidden text-center text-lg font-bold text-brand-700" data-pay-due></div>
+        @if (!empty($data['corporate']))
+            {{-- corporate vouchers pay first (earliest expiry first); the method below pays the rest --}}
+            <div class="mb-3 rounded-xl border border-navy-100 p-2" data-corp-box>
+                <button type="button" class="btn-ghost w-full justify-between" data-corp-toggle>
+                    <span>🏢 {{ __('Corporate voucher') }}</span><span class="badge bg-brand-600 text-white empty:hidden" data-corp-count></span>
+                </button>
+                <div class="mt-2 hidden space-y-2" data-corp-panel>
+                    <div class="flex gap-2">
+                        <input class="field min-w-0 flex-1 uppercase" data-corp-query maxlength="300" dir="ltr" autocomplete="off"
+                               placeholder="{{ __('Scan / type the code, or the guest\'s mobile') }}" aria-label="{{ __('Voucher code or guest mobile') }}">
+                        <button type="button" class="btn-ghost hidden px-3" data-corp-scan aria-label="{{ __('Scan the QR with the camera') }}">📷</button>
+                        <button type="button" class="btn-ghost px-4" data-corp-check>{{ __('Check') }}</button>
+                    </div>
+                    <video class="hidden w-full rounded-xl bg-black" data-corp-video playsinline muted></video>
+                    <p class="hidden rounded-xl bg-red-50 p-2 text-sm font-semibold text-red-700" data-corp-error role="alert"></p>
+                    <ul class="max-h-[40dvh] space-y-2 overflow-y-auto" data-corp-results></ul>
+                    <div class="hidden divide-y divide-emerald-100 rounded-xl bg-emerald-50 px-3 py-1 text-sm" data-corp-applied></div>
+                </div>
+            </div>
+        @endif
         <div class="grid grid-cols-2 gap-2" data-methods>
             @foreach (['cash' => __('Cash'), 'card' => __('Card'), 'instapay' => 'InstaPay', 'wallet' => __('Mobile wallet')] as $key => $label)
                 <button type="button" class="btn-ghost" data-method="{{ $key }}">{{ $label }}</button>
@@ -162,6 +183,38 @@
         </div>
     </form>
 </dialog>
+
+@if (!$cc && !empty($data['corporate']))
+    {{-- exception after expiry: approved by a manager signed in here, or with a manager's PIN on this device --}}
+    <dialog class="m-auto w-full max-w-md rounded-2xl p-0 backdrop:bg-black/50" data-corp-exception-dialog>
+        <form method="dialog" class="space-y-3 p-5">
+            <h3 class="text-lg font-extrabold">{{ __('Exception request') }}</h3>
+            <p class="rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800" data-exc-voucher></p>
+            <label class="block"><span class="field-label">{{ __('Why? (short reason)') }}</span>
+                <textarea class="field min-h-16 py-2" maxlength="200" data-exc-reason placeholder="{{ __('e.g. the company asked to extend, staff came on the last day') }}"></textarea></label>
+            @if (empty($data['corporateApprove']))
+                @if (count($data['approvers']))
+                    <label class="block"><span class="field-label">{{ __('Manager') }}</span>
+                        <select class="field" data-exc-manager>
+                            @foreach ($data['approvers'] as $a)<option value="{{ $a['id'] }}">{{ $a['name'] }}</option>@endforeach
+                        </select></label>
+                    <label class="block"><span class="field-label">{{ __('Manager PIN') }}</span>
+                        <input class="field text-center text-2xl tracking-[.5em]" type="password" inputmode="numeric" maxlength="6" autocomplete="off" dir="ltr" data-exc-pin></label>
+                    <p class="text-xs text-navy-500">{{ __('The manager types their PIN here: you stay signed in.') }}</p>
+                @else
+                    <p class="rounded-xl bg-navy-50 p-3 text-sm" data-exc-no-manager>{{ __('No manager has a PIN yet: a manager can sign in on this device, or set a PIN in Account security.') }}</p>
+                @endif
+            @else
+                <p class="text-sm text-navy-600">{{ __('You approve it as :name. It is recorded in the audit log.', ['name' => auth()->user()->name]) }}</p>
+            @endif
+            <p class="hidden rounded-xl bg-red-50 p-3 text-sm text-red-700" data-exc-error role="alert"></p>
+            <div class="flex gap-2">
+                <button value="cancel" class="btn-ghost flex-1">{{ __('Cancel') }}</button>
+                <button type="button" class="btn-primary flex-1" data-exc-confirm>{{ __('Approve') }}</button>
+            </div>
+        </form>
+    </dialog>
+@endif
 
 @if (!$cc && !empty($data['walletManage']))
     {{-- wallet top-up --}}
@@ -259,6 +312,20 @@
         'voucher' => __('Voucher :code', ['code' => '__C__']), 'voucherRemoved' => __('Voucher removed: the cart changed, apply it again.'),
         'chooseMethod' => __('Choose a payment method.'), 'enterAmount' => __('Enter an amount.'), 'enterPhone' => __('Enter the guest\'s mobile to see the balance.'),
     ];
+    if (! empty($data['corporate'])) {
+        $i18n += [
+            'corpNoCredit' => __('With corporate vouchers, pay the rest in cash, by card, InstaPay or a mobile wallet.'),
+            'corpException' => __('Exception'), 'corpNotNeeded' => __('Not needed for this order: stays as it is.'),
+            'corpLost' => __('One use: :amount of it is lost.', ['amount' => '__A__']), 'remove' => __('Remove'),
+            'corpRest' => __('Left to pay: :amount', ['amount' => '__A__']), 'corpCovered' => __('Fully paid by the vouchers.'),
+            'corpBalance' => __('Balance :balance of :value', ['balance' => '__B__', 'value' => '__V__']), 'corpUntil' => __('Valid until :date', ['date' => '__D__']),
+            'corpUse' => __('Use'), 'corpAdded' => __('Added'), 'corpAskException' => __('Request an exception'),
+            'corpConfirmLink' => __('Confirm the link'), 'corpLink' => __('Link to a mobile'),
+            'corpSingleWarn' => __('The order is smaller than the voucher: :amount will be lost.', ['amount' => '__A__']),
+            'corpNoneForPhone' => __('No vouchers linked to this mobile.'), 'corpLinkAsk' => __('The guest\'s mobile number'),
+            'corpNoCamera' => __('The camera is not available: type the code.'), 'corpApprovedBy' => __('Approved by :name', ['name' => '__N__']),
+        ];
+    }
     if ($cc) {
         $i18n += [
             'zoneFee' => __('Delivery :fee', ['fee' => '__A__']), 'zoneMin' => __('Minimum :amount', ['amount' => '__A__']), 'zoneTime' => __('About :n min', ['n' => '__N__']),

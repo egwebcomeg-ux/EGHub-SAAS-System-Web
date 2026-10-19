@@ -3,7 +3,7 @@
 
 @section('content')
 @php
-    $methods = ['cash' => __('Cash'), 'card' => __('Card'), 'instapay' => 'InstaPay', 'wallet' => __('Mobile wallet'), 'credit' => __('Wallet balance')];
+    $methods = ['cash' => __('Cash'), 'card' => __('Card'), 'instapay' => 'InstaPay', 'wallet' => __('Mobile wallet'), 'credit' => __('Wallet balance'), 'corporate' => __('Corporate voucher')];
 @endphp
 @php
     $posArea = auth()->user()->can('pos.use') && \App\Services\Entitlements::current()->allows('pos');
@@ -45,8 +45,8 @@
             <table class="table-base mt-4">
                 <tbody>
                 @foreach ($methods as $key => $label)
-                    @continue($key === 'credit' && empty($summary['by_method']['credit']))
-                    <tr><td>{{ $label }}</td><td class="text-end font-semibold">{{ money($summary['by_method'][$key]) }}</td></tr>
+                    @continue(in_array($key, ['credit', 'corporate'], true) && empty($summary['by_method'][$key]))
+                    <tr @if ($key === 'corporate') data-shift-corporate @endif><td>{{ $label }}@if ($key === 'corporate') <span class="muted">· {{ __('not cash in the drawer') }}</span>@endif</td><td class="text-end font-semibold">{{ money($summary['by_method'][$key]) }}</td></tr>
                 @endforeach
                 @foreach ($summary['prepaid'] as $key => $amount)
                     <tr><td>{{ __('Wallet top-ups & gift cards') }} · {{ $methods[$key] ?? $key }}</td><td class="text-end font-semibold text-emerald-700">+{{ money($amount) }}</td></tr>

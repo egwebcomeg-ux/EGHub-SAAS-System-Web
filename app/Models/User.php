@@ -23,7 +23,7 @@ class User extends Authenticatable implements HasLocalePreference
 
     protected $guarded = ['id', 'tenant_id'];
 
-    protected $hidden = ['password', 'remember_token'];
+    protected $hidden = ['password', 'remember_token', 'manager_pin'];
 
     /** Emails go out in the language the user picked in the dashboard (Arabic by default). */
     public function preferredLocale(): string
