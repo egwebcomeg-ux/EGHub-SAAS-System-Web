@@ -48,7 +48,8 @@ class KioskTest extends TenantTestCase
         ])->assertSessionHasNoErrors();
         $kiosk = $this->as($a, fn () => Kiosk::query()->firstOrFail());
         $this->assertSame(['takeaway', 'dine_in'], $kiosk->options()['order_types']);
-        $this->actingAs($owner)->get($this->dashUrl('/kiosks'))->assertOk()->assertSee($kiosk->token);
+        $this->actingAs($owner)->get($this->dashUrl('/kiosks'))->assertRedirect(route('dash.devices', ['tab' => 'kiosk']));
+        $this->actingAs($owner)->get($this->dashUrl('/devices?tab=kiosk'))->assertOk()->assertSee($kiosk->token);
 
         $this->get($this->pathUrl('cafe-a', "kiosk/{$kiosk->token}"))->assertOk()->assertSee('Latte');
         $this->order('cafe-a', $kiosk, ['items' => [['item_id' => $latte->id, 'qty' => 2]]])
@@ -117,7 +118,7 @@ class KioskTest extends TenantTestCase
         // staff without the permission cannot manage kiosks even with the pack
         $b = $this->withKioskPack('cafe-b');
         $this->actingAs($this->staff($b, 'cashier', 'cashier@b.test'))->get($this->dashUrl('/kiosks'))->assertForbidden();
-        $this->actingAs($this->staff($b, 'manager', 'manager@b.test'))->get($this->dashUrl('/kiosks'))->assertOk();
+        $this->actingAs($this->staff($b, 'manager', 'manager@b.test'))->get($this->dashUrl('/kiosks'))->assertRedirect(route('dash.devices', ['tab' => 'kiosk']));
     }
 
     public function test_kiosks_are_isolated_per_restaurant(): void

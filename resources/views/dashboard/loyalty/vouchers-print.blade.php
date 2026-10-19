@@ -47,7 +47,7 @@
 @section('body')
 <div class="no-print sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-navy-100 bg-white p-4">
     <div class="flex flex-wrap items-center gap-3">
-        <a href="{{ route('dash.vouchers') }}" class="text-sm font-semibold text-brand-700">{{ __('Back to vouchers') }}</a>
+        <a href="{{ route('dash.coupons') }}" class="text-sm font-semibold text-brand-700">{{ __('Back to coupons') }}</a>
         <span class="text-sm text-navy-500">{{ __(':n vouchers', ['n' => $cards->count()]) }} · {{ __('Turn on “Background graphics” in the print dialog so the colors come out.') }}</span>
     </div>
     <div class="flex flex-wrap gap-2">

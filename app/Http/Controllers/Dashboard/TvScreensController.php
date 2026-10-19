@@ -3,24 +3,18 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
-use App\Models\Branch;
-use App\Models\Category;
 use App\Models\TvScreen;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use Illuminate\View\View;
 
 /** TV menu boards (Business): each screen picks its categories and layout and gets its own link. */
 class TvScreensController extends Controller
 {
-    public function index(): View
+    /** The screens live on the "Screens & devices" page now (DevicesController); the old address opens its TV tab. */
+    public function index(): RedirectResponse
     {
-        return view('dashboard.tv', [
-            'screens' => TvScreen::query()->with('branch')->orderBy('id')->get(),
-            'branches' => Branch::query()->orderBy('sort_order')->get(),
-            'categories' => Category::query()->orderBy('sort_order')->get(['id', 'name', 'name_en']),
-        ]);
+        return redirect()->route('dash.devices', ['tab' => 'tv']);
     }
 
     public function store(Request $request): RedirectResponse

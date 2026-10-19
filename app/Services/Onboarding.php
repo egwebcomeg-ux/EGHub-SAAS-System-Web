@@ -92,11 +92,11 @@ final class Onboarding
         }
         if (self::follows('tv') && $rights->allows('tv_screens')) {
             $steps[] = self::step('tv', __('Set up your first TV screen'), __('Create a screen and open its link on the TV browser.'),
-                TvScreen::query()->exists(), $link('menu.manage', route('dash.tv')));
+                TvScreen::query()->exists(), $link('menu.manage', route('dash.devices', ['tab' => 'tv'])));
         }
         if (self::follows('kiosk') && $rights->allows('kiosk')) {
             $steps[] = self::step('kiosk', __('Set up the kiosk tablet'), __('Create a kiosk and open its link on the tablet at the counter.'),
-                Kiosk::query()->exists(), $link('kiosk.manage', route('dash.kiosks')));
+                Kiosk::query()->exists(), $link('kiosk.manage', route('dash.devices', ['tab' => 'kiosk'])));
         }
         $steps = array_values(array_filter($steps, fn (array $st) => self::follows($st['key'])));
         $steps[] = self::step('whatsapp', __('Confirm your WhatsApp number'), __('One ready message from your phone, no codes to type.'),

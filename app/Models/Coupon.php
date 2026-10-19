@@ -17,6 +17,9 @@ class Coupon extends TenantModel
 {
     public const SOURCES = ['campaign', 'automation', 'voucher', 'batch'];
 
+    /** What the coupons page calls each code: kind => the sources behind it (a voucher splits by whether a guest holds it). */
+    public const KINDS = ['campaign' => ['campaign', 'automation'], 'guest' => ['voucher'], 'batch' => ['batch'], 'public' => ['voucher']];
+
     /** Letters and digits that can't be misread on paper (no 0/O, 1/I/L). */
     private const CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
 
@@ -36,6 +39,40 @@ class Coupon extends TenantModel
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    /** The campaigns that sent this code (a campaign coupon, or a public one picked from the coupons list). */
+    public function campaigns(): HasMany
+    {
+        return $this->hasMany(Campaign::class);
+    }
+
+    /** One kind of the coupons page (Coupon::KINDS). */
+    public function scopeOfKind(Builder $query, string $kind): void
+    {
+        $query->whereIn('source', self::KINDS[$kind] ?? ['-']);
+        if ($kind === 'guest') {
+            $query->whereNotNull('customer_id');
+        } elseif ($kind === 'public') {
+            $query->whereNull('customer_id');
+        }
+    }
+
+    /** campaign | guest | batch | public */
+    public function kind(): string
+    {
+        return match ($this->source) {
+            'campaign', 'automation' => 'campaign',
+            'batch' => 'batch',
+            default => $this->customer_id ? 'guest' : 'public',
+        };
+    }
+
+    public static function kindLabel(string $kind): string
+    {
+        return [
+            'campaign' => __('Campaign'), 'guest' => __('Voucher for a guest'), 'batch' => __('Printed batch'), 'public' => __('Public coupon'),
+        ][$kind] ?? $kind;
     }
 
     /** Vouchers of the loyalty card (single or batch), not the campaign / automation codes. */

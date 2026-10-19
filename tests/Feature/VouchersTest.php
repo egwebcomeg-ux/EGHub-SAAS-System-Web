@@ -60,7 +60,7 @@ class VouchersTest extends TenantTestCase
         $this->assertSame('WELCOME50', $vouchers[0]->code);
         $this->assertSame('voucher', $vouchers[0]->source);
         $this->assertMatchesRegularExpression('/^CAFEA-[2-9A-HJKMNP-Z]{4}$/', $vouchers[1]->code);
-        $this->actingAs($owner)->get($this->dashUrl('/loyalty/vouchers'))->assertOk()->assertSee('WELCOME50')->assertSee($vouchers[1]->code);
+        $this->actingAs($owner)->get($this->dashUrl('/coupons'))->assertOk()->assertSee('WELCOME50')->assertSee($vouchers[1]->code);
 
         $this->actingAs($owner)->get($this->dashUrl("/loyalty/vouchers/print?ids={$vouchers[0]->id}&layout=a4"))->assertOk()
             ->assertSee('data-print-voucher="WELCOME50"', false)->assertSee('<svg', false);
@@ -74,7 +74,7 @@ class VouchersTest extends TenantTestCase
         $this->assertSame(50.0, $order->coupon_discount);
 
         // its usage: one order, its sales and the discount it gave
-        $this->actingAs($owner)->get($this->dashUrl('/loyalty/vouchers?q=welcome'))->assertOk()
+        $this->actingAs($owner)->get($this->dashUrl('/coupons?q=welcome'))->assertOk()
             ->assertSeeInOrder(['data-voucher="WELCOME50"', '<td>1</td>', '<td>150</td>', '<td>50</td>'], false)->assertDontSee($vouchers[1]->code);
     }
 
@@ -242,7 +242,7 @@ class VouchersTest extends TenantTestCase
         $this->actingAs($owner)->get($this->dashUrl("/loyalty/vouchers/print?ids={$theirs->id}"))->assertNotFound();
         $this->actingAs($owner)->get($this->dashUrl('/loyalty/vouchers/export?batch=x'))->assertNotFound();
         $this->actingAs($owner)->post($this->dashUrl("/loyalty/customers/{$guestB->id}/vouchers"), ['type' => 'amount', 'value' => 30, 'days' => 7])->assertNotFound();
-        $this->actingAs($owner)->get($this->dashUrl('/loyalty/vouchers'))->assertOk()->assertDontSee('BONLY');
+        $this->actingAs($owner)->get($this->dashUrl('/coupons'))->assertOk()->assertDontSee('BONLY');
         $this->assertSame(__('This coupon code is not valid.'), $this->order($a, [[$itemA, 1]], '01011112222', 'BONLY'));
         $this->assertTrue($theirs->fresh()->is_active);
     }

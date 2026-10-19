@@ -25,6 +25,10 @@
         @endif
         <div class="ms-auto flex items-center gap-2 text-sm">
             <span class="badge bg-white/10 text-white" data-count>0</span>
+            @if (auth()->user()->can('menu.manage') && \App\Services\Entitlements::current()->allows('kitchen_stations'))
+                {{-- the stations (which station prepares what) are this screen's settings --}}
+                <a href="{{ route('dash.stations') }}" class="flex min-h-10 items-center rounded-lg bg-white/10 px-3 font-semibold hover:bg-white/15" data-kitchen-settings>⚙ {{ __('Kitchen stations') }}</a>
+            @endif
             <button type="button" class="min-h-10 rounded-lg bg-white/10 px-3 font-semibold hover:bg-white/15" data-sound>🔔 {{ __('Enable sound') }}</button>
             <button type="button" class="min-h-10 rounded-lg bg-white/10 px-3 font-semibold hover:bg-white/15" data-fullscreen>⛶ {{ __('Full screen') }}</button>
         </div>

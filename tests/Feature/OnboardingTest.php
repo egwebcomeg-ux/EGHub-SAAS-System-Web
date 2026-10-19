@@ -8,6 +8,7 @@ use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Services\Onboarding;
 use App\Services\Settings;
+use App\Support\BusinessType;
 use Tests\TenantTestCase;
 
 /** The "get your menu ready" checklist on the dashboard home: steps from real data, skip, hide, and the tutorial. */
@@ -34,7 +35,7 @@ class OnboardingTest extends TenantTestCase
         $owner = $this->owner($a);
 
         $page = $this->actingAs($owner)->get($this->dashUrl('/'))->assertOk()
-            ->assertSee('data-onboarding data-percent="0"', false)->assertSee(__('Get your menu ready'))->assertSee('data-help-link', false);
+            ->assertSee('data-onboarding data-percent="0"', false)->assertSee(__('Your next step'))->assertSee('data-help-link', false);
         $this->assertSame(
             ['brand' => 'todo', 'menu' => 'todo', 'tables' => 'todo', 'ordering' => 'todo', 'staff' => 'todo', 'loyalty' => 'todo', 'whatsapp' => 'todo', 'plan' => 'todo'],
             $this->states($a),
@@ -125,6 +126,33 @@ class OnboardingTest extends TenantTestCase
         // a second restaurant is untouched
         $b = $this->restaurant('cafe-b');
         $this->actingAs($this->owner($b))->get($this->dashUrl('/'))->assertOk()->assertSee('data-onboarding', false);
+    }
+
+    public function test_one_next_step_card_picks_modules_first_then_the_next_steps_then_the_suggestions(): void
+    {
+        $a = $this->restaurant('cafe-a', 'pro', true);
+        $owner = $this->owner($a);
+
+        // nothing picked: choosing the modules is the first step, then the first unfinished setup steps
+        $html = $this->actingAs($owner)->get($this->dashUrl('/'))->assertOk()
+            ->assertSee('data-next-step-card', false)->assertSee('data-modules-invite', false)
+            ->assertDontSee('data-home-suggestions', false)->assertDontSee(__('Recommended for your :type', ['type' => BusinessType::label('cafe')]))->getContent();
+        $this->assertSame(1, substr_count($html, 'data-next-step-card'));
+        $this->assertMatchesRegularExpression('/data-next-step="modules".*data-next-step="brand".*data-next-step="menu"/s', $html);
+        $this->assertStringNotContainsString('data-next-step="tables"', $html);
+
+        // a done step leaves the front; picking the modules removes that step and lists them in the same card
+        $this->as($a, fn () => Settings::put(['logo' => 'tenants/cafe-a/brand/logo.webp', 'color_primary' => '#AA0000']));
+        $this->actingAs($owner)->post($this->dashUrl('/modules'), ['modules' => ['table-ordering']]);
+        $html = $this->actingAs($owner)->get($this->dashUrl('/'))->assertOk()->assertDontSee('data-modules-invite', false)
+            ->assertSee('data-home-module="table-ordering"', false)->getContent();
+        $this->assertMatchesRegularExpression('/data-next-step="menu".*data-next-step="tables"/s', $html);
+        $this->assertStringNotContainsString('data-next-step="brand"', $html);
+
+        // setup put away: the suggestions for the place show in the card, the checklist hooks are gone
+        $this->actingAs($owner)->post($this->dashUrl('/onboarding/dismiss'));
+        $this->actingAs($owner)->get($this->dashUrl('/'))->assertOk()->assertSee('data-next-step-card', false)
+            ->assertSee('data-home-suggestions', false)->assertDontSee('data-onboarding', false)->assertDontSee('data-next-step="', false);
     }
 
     public function test_the_tutorial_page_has_illustrated_steps_for_every_staff_member(): void

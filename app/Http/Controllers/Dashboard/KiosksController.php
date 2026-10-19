@@ -5,26 +5,18 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Kiosk;
-use App\Services\Qr;
 use App\Services\Settings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use Illuminate\View\View;
 
 /** Self-order kiosks (kiosk pack): one secret link per tablet, tied to a branch, with its own settings. */
 class KiosksController extends Controller
 {
-    public function index(): View
+    /** The kiosks live on the "Screens & devices" page now (DevicesController); the old address opens its kiosk tab. */
+    public function index(): RedirectResponse
     {
-        $color = Settings::get('color_secondary');
-        $kiosks = Kiosk::query()->with('branch')->orderBy('id')->get();
-
-        return view('dashboard.kiosks', [
-            'kiosks' => $kiosks,
-            'qrs' => $kiosks->mapWithKeys(fn (Kiosk $k) => [$k->id => Qr::svg($k->url(), 160, is_hex_color($color) ? $color : '#0A2540')]),
-            'branches' => Branch::query()->where('is_active', true)->orderBy('sort_order')->get(),
-        ]);
+        return redirect()->route('dash.devices', ['tab' => 'kiosk']);
     }
 
     public function store(Request $request): RedirectResponse

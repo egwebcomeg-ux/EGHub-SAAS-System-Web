@@ -8,7 +8,7 @@
         <p class="dash-help">{{ __('Cashback, membership tiers and prepaid packages — all on the same card the guest already has.') }}</p>
     </div>
     <div class="dash-head-actions">
-        @if (\App\Services\Entitlements::current()->allows('loyalty_stamps'))<a href="{{ route('dash.vouchers') }}" class="btn-ghost">{{ __('Vouchers') }}</a>@endif
+        @if (\App\Services\Entitlements::current()->allows('loyalty_stamps'))<a href="{{ route('dash.coupons') }}" class="btn-ghost">{{ __('Coupons & vouchers') }}</a>@endif
         <a href="{{ route('dash.loyalty.desk') }}" class="btn-ghost">{{ __('Counter') }}</a>
     </div>
 </div>

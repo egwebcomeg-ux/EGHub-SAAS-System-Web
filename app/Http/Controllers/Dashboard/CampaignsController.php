@@ -9,6 +9,7 @@ use App\Services\Audit;
 use App\Services\Marketing\Automations;
 use App\Services\Marketing\Campaigns;
 use App\Services\Notify\GuestNotifier;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,6 +36,8 @@ class CampaignsController extends Controller
             'automations' => $list,
             'results' => $list->map(fn ($a) => $automations->results($a)),
             'coupons' => $tab === 'automations' ? Coupon::query()->where('is_active', true)->whereNull('customer_id')->orderBy('code')->get() : collect(),
+            // a campaign can send a code from the coupons page: open to anyone (no guest, no single-use batch), still good
+            'pickable' => $tab === 'campaigns' ? self::pickable()->orderBy('code')->limit(200)->get() : collect(),
             'balance' => $automations->balance(),
         ]);
     }
@@ -66,6 +69,11 @@ class CampaignsController extends Controller
             'coupon_min_order' => 'nullable|numeric|min:0|max:100000',
             'coupon_expires_at' => 'nullable|date|after:today',
             'coupon_max_uses' => 'nullable|integer|min:1|max:1000000',
+            'coupon_id' => ['nullable', 'integer', function (string $attribute, mixed $value, \Closure $fail) {
+                if (! self::pickable()->whereKey((int) $value)->exists()) {
+                    $fail(__('Pick a coupon from the list.'));
+                }
+            }],
         ], [], ['coupon_code' => __('Coupon code')]);
 
         $preview = $campaigns->preview($data['segment'], isset($data['segment_value']) ? (float) $data['segment_value'] : null);
@@ -77,7 +85,8 @@ class CampaignsController extends Controller
         }
 
         $campaign = DB::transaction(function () use ($data, $request) {
-            $coupon = null;
+            // a new code typed here wins over one picked from the coupons list
+            $coupon = ($data['coupon_code'] ?? '') === '' && ! empty($data['coupon_id']) ? Coupon::query()->find((int) $data['coupon_id']) : null;
             if (($data['coupon_code'] ?? '') !== '') {
                 $coupon = Coupon::query()->create([
                     'code' => $data['coupon_code'], 'type' => $data['coupon_type'], 'value' => $data['coupon_value'],
@@ -104,6 +113,12 @@ class CampaignsController extends Controller
         }
 
         return redirect()->route('dash.campaigns')->with('ok', __('The campaign is scheduled for :time.', ['time' => local_time($campaign->scheduled_at, 'Y/m/d h:i A')]));
+    }
+
+    /** @return Builder<Coupon> codes a campaign may send: no guest attached, not a printed single-use batch, still usable */
+    public static function pickable(): Builder
+    {
+        return Coupon::query()->whereNull('customer_id')->where('source', '!=', 'batch')->usable();
     }
 
     public function cancel(Campaign $campaign): RedirectResponse

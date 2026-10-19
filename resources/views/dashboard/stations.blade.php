@@ -7,7 +7,12 @@
         <h1 class="page-title">{{ __('Kitchen stations') }}</h1>
         <p class="dash-help">{{ __('Each station gets its own kitchen screen with only its items, e.g. grill, drinks, desserts.') }}</p>
     </div>
-    <a href="{{ route('dash.kitchen') }}" class="btn-ghost">{{ __('Open kitchen display') }}</a>
+    <div class="dash-head-actions">
+        <a href="{{ route('dash.kitchen') }}" class="btn-ghost">{{ __('Open kitchen display') }}</a>
+        @if (\App\Http\Controllers\Dashboard\DevicesController::visibleFor(auth()->user()))
+            <a href="{{ route('dash.devices', ['tab' => 'kitchen']) }}" class="btn-ghost">{{ __('Screens & devices') }}</a>
+        @endif
+    </div>
 </div>
 
 <div class="grid gap-4 lg:grid-cols-3">

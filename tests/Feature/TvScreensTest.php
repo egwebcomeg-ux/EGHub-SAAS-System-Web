@@ -18,7 +18,8 @@ class TvScreensTest extends TenantTestCase
             'name' => 'Counter', 'layout' => 'rotate', 'columns' => 2, 'rotate_seconds' => 10, 'theme' => 'dark', 'show_images' => 1,
         ])->assertSessionHasNoErrors();
         $screen = $this->as($a, fn () => TvScreen::query()->first());
-        $this->actingAs($owner)->get($this->dashUrl('/tv-screens'))->assertOk()->assertSee($screen->token);
+        $this->actingAs($owner)->get($this->dashUrl('/tv-screens'))->assertRedirect(route('dash.devices', ['tab' => 'tv']));
+        $this->actingAs($owner)->get($this->dashUrl('/devices?tab=tv'))->assertOk()->assertSee($screen->token);
 
         $this->get($this->subUrl('cafe-a', "tv/{$screen->token}"))->assertOk()->assertSee('Latte')->assertSee('60');
         $before = $this->getJson($this->subUrl('cafe-a', "tv/{$screen->token}/version"))->assertOk()->json('v');

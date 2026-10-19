@@ -37,6 +37,9 @@ class BusinessTypeTest extends TenantTestCase
         app(Billing::class)->setAddon($cafe, 'kitchen_pack', 1);
         $owner = $this->owner($cafe);
         $this->actingAs($owner)->get($this->dashUrl('/kitchen'))->assertSee('شاشة البار');
+        // the suggestions for the place come once the setup checklist is done or put away (one "next step" card)
+        $this->actingAs($owner)->get($this->dashUrl('/'))->assertDontSee('مقترح لـكافيه');
+        $this->actingAs($owner)->post($this->dashUrl('/onboarding/dismiss'));
         $this->actingAs($owner)->get($this->dashUrl('/'))->assertSee('مقترح لـكافيه');
 
         $this->actingAs($owner)->post($this->dashUrl('/settings'), [
@@ -68,6 +71,7 @@ class BusinessTypeTest extends TenantTestCase
         app(Billing::class)->setAddon($shop, 'loyalty_pack', 1);
         $owner = $this->owner($shop);
         $this->actingAs($owner)->get($this->dashUrl('/kitchen'))->assertOk()->assertSee('شاشة التجهيز');
+        $this->actingAs($owner)->post($this->dashUrl('/onboarding/dismiss'));
         $this->actingAs($owner)->get($this->dashUrl('/'))->assertOk()->assertSee('مقترح لـمحل')->assertSee('نقاط الولاء');
         $this->actingAs($owner)->get($this->dashUrl('/loyalty/setup'))->assertOk()->assertSee('value="points"', false)->assertSee('name="type" value="points" class="sr-only" checked', false);
         $this->actingAs($owner)->get($this->dashUrl('/settings'))->assertOk()->assertSee('value="shop"', false);

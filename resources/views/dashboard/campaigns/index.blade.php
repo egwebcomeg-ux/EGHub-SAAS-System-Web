@@ -76,8 +76,24 @@
             @error('message')<div class="field-error">{{ $message }}</div>@enderror
         </div>
 
-        <details class="rounded-xl border border-navy-100 p-3" @if (old('coupon_code')) open @endif>
+        <details class="rounded-xl border border-navy-100 p-3" @if (old('coupon_code') || old('coupon_id')) open @endif>
             <summary class="cursor-pointer font-semibold">{{ __('Add a coupon (optional)') }}</summary>
+            @if ($pickable->isNotEmpty())
+                {{-- a code from the coupons page (public, still good), or a new one below --}}
+                <div class="mt-3" data-coupon-pick-box>
+                    <label class="field-label" for="c-pick">{{ __('Pick a coupon from your list') }}</label>
+                    <select class="field" id="c-pick" name="coupon_id" data-coupon-pick>
+                        <option value="">{{ __('No coupon, or a new one below') }}</option>
+                        @foreach ($pickable as $coupon)
+                            <option value="{{ $coupon->id }}" data-code="{{ $coupon->code }}" @selected((int) old('coupon_id') === $coupon->id)>{{ $coupon->code }} · -{{ $coupon->label() }} · {{ \App\Models\Coupon::kindLabel($coupon->kind()) }}</option>
+                        @endforeach
+                    </select>
+                    @error('coupon_id')<div class="field-error">{{ $message }}</div>@enderror
+                    <p class="mt-1 text-xs text-navy-500">{{ __('All your codes are on the coupons page.') }}
+                        @if (\App\Http\Controllers\Dashboard\CouponsController::visibleFor(auth()->user()))<a href="{{ route('dash.coupons') }}" class="font-semibold text-brand-700 underline">{{ __('Coupons & vouchers') }}</a>@endif</p>
+                </div>
+                <div class="mt-3 text-sm font-semibold text-navy-600">{{ __('Or make a new coupon') }}</div>
+            @endif
             <div class="mt-3 grid gap-3 sm:grid-cols-3">
                 <div>
                     <label class="field-label" for="c-code">{{ __('Coupon code') }}</label>
@@ -212,7 +228,8 @@
     };
 
     const refreshMessage = () => {
-        const code = ($('[data-coupon-code]').value || '').trim().toUpperCase();
+        const picked = $('[data-coupon-pick]')?.selectedOptions[0]?.dataset.code || '';
+        const code = ($('[data-coupon-code]').value || '').trim().toUpperCase() || picked;
         const link = preview.dataset.menuUrl + (code ? '?coupon=' + encodeURIComponent(code) : '');
         const text = (message.value || message.placeholder)
             .replaceAll('{name}', preview.dataset.sampleName).replaceAll('{restaurant}', preview.dataset.sender)
@@ -233,6 +250,7 @@
     value.addEventListener('input', refreshAudience);
     message.addEventListener('input', refreshMessage);
     $('[data-coupon-code]').addEventListener('input', refreshMessage);
+    $('[data-coupon-pick]')?.addEventListener('change', refreshMessage);
     refreshAudience();
     refreshMessage();
 })();

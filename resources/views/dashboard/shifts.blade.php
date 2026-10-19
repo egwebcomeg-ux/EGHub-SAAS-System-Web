@@ -5,10 +5,21 @@
 @php
     $methods = ['cash' => __('Cash'), 'card' => __('Card'), 'instapay' => 'InstaPay', 'wallet' => __('Mobile wallet'), 'credit' => __('Wallet balance')];
 @endphp
-<div class="dash-head">
-    <h1 class="page-title">{{ __('Shifts') }}</h1>
-    @can('pos.use')<a href="{{ route('dash.pos') }}" class="btn-primary">{{ __('Go to POS') }}</a>@endcan
-</div>
+@php
+    $posArea = auth()->user()->can('pos.use') && \App\Services\Entitlements::current()->allows('pos');
+@endphp
+<x-dash.page-header :title="$posArea ? __('POS') : __('Shifts')" :help="__('The cashier screen and its shifts: open a shift with the cash in the drawer, close it with the count.')">
+    <x-slot:actions>
+        @can('pos.use')<a href="{{ route('dash.pos') }}" class="btn-primary">{{ __('Go to POS') }}</a>@endcan
+    </x-slot:actions>
+</x-dash.page-header>
+{{-- shifts are a tab of the POS area (the cashier screen itself opens full screen) --}}
+@if ($posArea)
+    @include('dashboard.partials.tabs', ['label' => __('POS'), 'current' => 'shifts', 'tabs' => [
+        ['pos', __('Cashier screen'), route('dash.pos')],
+        ['shifts', __('Shifts'), route('dash.shifts')],
+    ]])
+@endif
 
 @if (!$current)
     <form method="post" action="{{ route('dash.shifts.open') }}" class="card max-w-md space-y-3">

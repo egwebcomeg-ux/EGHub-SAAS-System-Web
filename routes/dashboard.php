@@ -10,9 +10,11 @@ use App\Http\Controllers\Dashboard\CallCenterController;
 use App\Http\Controllers\Dashboard\CampaignsController;
 use App\Http\Controllers\Dashboard\CardsController;
 use App\Http\Controllers\Dashboard\CategoriesController;
+use App\Http\Controllers\Dashboard\CouponsController;
 use App\Http\Controllers\Dashboard\CustomerImportController;
 use App\Http\Controllers\Dashboard\CustomersController;
 use App\Http\Controllers\Dashboard\DeliveryZonesController;
+use App\Http\Controllers\Dashboard\DevicesController;
 use App\Http\Controllers\Dashboard\DomainController;
 use App\Http\Controllers\Dashboard\FeedbackController;
 use App\Http\Controllers\Dashboard\HomeController;
@@ -248,6 +250,13 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/loyalty/vouchers/print', [VouchersController::class, 'print'])->name('vouchers.print');
         Route::post('/loyalty/vouchers/{voucher}/toggle', [VouchersController::class, 'toggle'])->whereNumber('voucher')->name('vouchers.toggle');
     });
+    // one page for every discount code: campaign coupons and loyalty vouchers (each side for whoever runs it today)
+    Route::middleware(['feature:loyalty_stamps|campaigns', 'permission:loyalty.manage|marketing.manage'])->group(function () {
+        Route::get('/coupons', [CouponsController::class, 'index'])->name('coupons');
+        Route::post('/coupons/{coupon}/toggle', [CouponsController::class, 'toggle'])->whereNumber('coupon')->name('coupons.toggle');
+    });
+    Route::post('/coupons/give', [CouponsController::class, 'give'])
+        ->middleware(['feature:loyalty_stamps', 'permission:vouchers.give', 'throttle:30,1'])->name('coupons.give');
     Route::post('/loyalty/customers/{customer}/vouchers', [VouchersController::class, 'give'])
         ->middleware(['feature:loyalty_stamps', 'permission:vouchers.give'])->whereNumber('customer')->name('vouchers.give');
     // The counter desk also serves the advanced cards (packages, tiers, cashback) when there is no stamp program.
@@ -293,6 +302,9 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/shifts/move', [ShiftsController::class, 'move'])->name('shifts.move');
         Route::post('/shifts/close', [ShiftsController::class, 'close'])->name('shifts.close');
     });
+
+    // Screens & devices: TV boards, kiosks, customer display / order board, kitchen display links (each type by its right)
+    Route::get('/devices', [DevicesController::class, 'index'])->name('devices');
 
     // TV menu boards (Business)
     Route::middleware(['feature:tv_screens', 'permission:menu.manage'])->group(function () {

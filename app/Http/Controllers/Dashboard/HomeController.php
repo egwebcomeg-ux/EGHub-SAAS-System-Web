@@ -35,15 +35,21 @@ class HomeController extends Controller
             : 0;
 
         $items = MenuItem::query()->count();
-        $canBuy = request()->user()->can('billing.manage');
+        $user = request()->user();
+        $canBuy = $user->can('billing.manage');
+        // one "your next step" card: the setup steps while they last, then the suggestions for the place
+        $onboarding = Onboarding::visibleTo($user) ? Onboarding::status($user) : null;
+        $settingUp = $onboarding !== null && ! $onboarding['hidden'];
 
         return view('dashboard.home', [
-            'onboarding' => Onboarding::visibleTo(request()->user()) ? Onboarding::status(request()->user()) : null,
-            'moduleShortcuts' => ModuleChoice::hasChoice() ? ModuleChoice::shortcuts(request()->user()) : null,
-            'canPickModules' => ModuleChoice::canChange(request()->user()),
+            'onboarding' => $onboarding,
+            'settingUp' => $settingUp,
+            'nextSteps' => $settingUp ? array_slice(array_values(array_filter($onboarding['steps'], fn (array $s) => ! $s['done'] && ! $s['skipped'])), 0, 2) : [],
+            'moduleShortcuts' => ModuleChoice::hasChoice() ? ModuleChoice::shortcuts($user) : null,
+            'canPickModules' => ModuleChoice::canChange($user),
             'lowStock' => $lowStock,
             'businessType' => BusinessType::current(),
-            'suggestions' => $canBuy ? array_slice(BusinessType::recommendations(), 0, 4) : [],
+            'suggestions' => $canBuy && ! $settingUp ? array_slice(BusinessType::recommendations(), 0, 4) : [],
             'menuSetupUrl' => $canBuy && $menuSetup->shouldSuggest($items) ? MenuSetupRequest::url() : null,
             'subscription' => tenant()->subscription()->with('plan')->first(),
             'limits' => $limits,

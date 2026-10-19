@@ -32,9 +32,16 @@ class SettingsController extends Controller
 {
     public const FONTS = ['Cairo', 'Tajawal', 'Almarai', 'IBM Plex Sans Arabic', 'Readex Pro', 'El Messiri'];
 
-    public function edit(): View
+    /** The tabs of the page (one form: every tab is sent and saved together, so nothing is lost between tabs). */
+    public const TABS = ['identity', 'menu', 'orders', 'messages', 'languages', 'account'];
+
+    public function edit(Request $request): View
     {
+        $tab = $request->old('settings_tab', $request->query('tab'));
+
         return view('dashboard.settings', [
+            'tab' => in_array($tab, self::TABS, true) ? $tab : self::TABS[0],
+            'tabs' => array_combine(self::TABS, [__('Identity'), __('Menu'), __('Orders'), __('Messages'), __('Languages'), __('Account & security')]),
             's' => Settings::all(), 'fonts' => self::FONTS, 'branding' => Entitlements::current()->allows('full_branding'),
             'themes' => Entitlements::current()->allows('menu_themes'),
             'whatsapp' => Entitlements::current()->allows('whatsapp_notifications'),
@@ -230,7 +237,10 @@ class SettingsController extends Controller
         Settings::put($values);
         Audit::record('settings.updated', '', ['keys' => array_values(array_diff(array_keys($values), ['ai_key']))]);
 
-        return back()->with('ok', __('Settings saved.'));
+        // back on the tab the owner saved from
+        $tab = $request->input('settings_tab');
+
+        return (in_array($tab, self::TABS, true) ? redirect()->route('dash.settings', ['tab' => $tab]) : back())->with('ok', __('Settings saved.'));
     }
 
     /** One tiny request with the saved key and model, so the owner knows the import will work. */

@@ -13,7 +13,7 @@
         <p class="dash-help">{{ __('A digital stamp card on the guest’s phone. Stamps come only from paid orders or from your staff.') }}</p>
     </div>
     <div class="dash-head-actions">
-        <a href="{{ route('dash.vouchers') }}" class="btn-ghost">{{ __('Vouchers') }}</a>
+        <a href="{{ route('dash.coupons') }}" class="btn-ghost">{{ __('Coupons & vouchers') }}</a>
         @if ($program->exists)<a href="{{ tenant()->url('card') }}" target="_blank" rel="noopener" class="btn-ghost">{{ __('Open the guest page') }}</a>@endif
         @can('loyalty.stamp')<a href="{{ route('dash.loyalty.desk') }}" class="btn-primary">{{ __('Counter: stamp a card') }}</a>@endcan
     </div>

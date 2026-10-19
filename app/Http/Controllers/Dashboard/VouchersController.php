@@ -3,10 +3,9 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
-use App\Models\Category;
 use App\Models\Coupon;
 use App\Models\Customer;
-use App\Models\MenuItem;
+use App\Models\User;
 use App\Services\Audit;
 use App\Services\Qr;
 use App\Services\Settings;
@@ -29,41 +28,10 @@ class VouchersController extends Controller
 
     public const PRINT_LAYOUTS = ['a6', 'a4'];
 
-    public function index(Request $request): View
+    /** The vouchers list moved to the one coupons page (CouponsController); old links and filters still land there. */
+    public function index(Request $request): RedirectResponse
     {
-        $q = trim((string) $request->query('q', ''));
-        $status = in_array($request->query('status'), ['active', 'used', 'expired', 'paused'], true) ? (string) $request->query('status') : '';
-        $batch = trim((string) $request->query('batch', ''));
-
-        $vouchers = Coupon::query()->vouchers()->with('customer')
-            ->withCount(['orders as orders_count' => fn ($o) => $o->where('status', '!=', 'cancelled')])
-            ->withSum(['orders as revenue' => fn ($o) => $o->where('status', '!=', 'cancelled')], 'total')
-            ->withSum(['orders as discount_given' => fn ($o) => $o->where('status', '!=', 'cancelled')], 'coupon_discount')
-            ->when($q !== '', fn (Builder $w) => $w->where(fn (Builder $w) => $w->where('code', 'like', '%'.Coupon::normalize($q).'%')
-                ->orWhere('note', 'like', "%$q%")
-                ->orWhereHas('customer', fn (Builder $c) => $c->where('phone', 'like', '%'.(normalize_phone($q) ?? $q).'%')->orWhere('name', 'like', "%$q%"))))
-            ->when($batch !== '', fn (Builder $w) => $w->where('batch', $batch))
-            ->when($status !== '', fn (Builder $w) => $this->whereStatus($w, $status))
-            ->latest('id')->paginate(30)->withQueryString();
-
-        $orders = DB::table('orders')->where('tenant_id', tenant()->getTenantKey())->where('status', '!=', 'cancelled')
-            ->whereIn('coupon_id', Coupon::query()->vouchers()->select('id'));
-
-        return view('dashboard.loyalty.vouchers', [
-            'vouchers' => $vouchers, 'q' => $q, 'status' => $status, 'batch' => $batch,
-            'batches' => Coupon::query()->vouchers()->whereNotNull('batch')->groupBy('batch')
-                ->selectRaw('batch, count(*) as codes, sum(uses) as used, max(id) as last_id')->orderByDesc('last_id')->limit(50)->get(),
-            'stats' => [
-                'total' => Coupon::query()->vouchers()->count(),
-                'active' => $this->whereStatus(Coupon::query()->vouchers(), 'active')->count(),
-                'orders' => (clone $orders)->count(),
-                'revenue' => round((float) (clone $orders)->sum('total'), 2),
-                'discount' => round((float) (clone $orders)->sum('coupon_discount'), 2),
-            ],
-            'categories' => Category::query()->orderBy('sort_order')->get(),
-            'items' => MenuItem::query()->orderBy('name')->get(['id', 'name', 'name_en', 'category_id']),
-            'prefix' => Coupon::defaultPrefix(),
-        ]);
+        return redirect()->route('dash.coupons', array_filter($request->only(['q', 'status', 'batch']), 'is_string'));
     }
 
     /** One voucher: a typed or generated code, optionally held by one guest (by mobile). */
@@ -93,7 +61,7 @@ class VouchersController extends Controller
         ]);
         Audit::record('voucher.created', $voucher->code, ['customer' => $customer?->id, 'type' => $voucher->type, 'value' => $voucher->value]);
 
-        return redirect()->route('dash.vouchers')->with('ok', __('Voucher :code created.', ['code' => $voucher->code]));
+        return redirect()->route('dash.coupons')->with('ok', __('Voucher :code created.', ['code' => $voucher->code]));
     }
 
     /** N unique single-use codes with the same rules, grouped under one batch name (print, CSV). */
@@ -118,7 +86,7 @@ class VouchersController extends Controller
         });
         Audit::record('voucher.batch', $name, ['count' => (int) $data['count']]);
 
-        return redirect()->route('dash.vouchers', ['batch' => $name])->with('ok', __(':n vouchers created in :batch.', ['n' => (int) $data['count'], 'batch' => $name]));
+        return redirect()->route('dash.coupons', ['batch' => $name])->with('ok', __(':n vouchers created in :batch.', ['n' => (int) $data['count'], 'batch' => $name]));
     }
 
     /** Pause or resume one voucher, or a whole batch. */
@@ -194,22 +162,39 @@ class VouchersController extends Controller
     /** Counter desk: a voucher for the guest on the panel, usable once with their mobile. */
     public function give(Request $request, Customer $customer): RedirectResponse
     {
-        $data = $request->validate([
+        $voucher = self::issue($customer, $request->validate(self::giveRules($request)), $request->user());
+
+        return redirect()->route('dash.loyalty.desk', ['q' => $customer->phone])
+            ->with('ok', __('Voucher :code given: :value.', ['code' => $voucher->code, 'value' => $voucher->headline()]));
+    }
+
+    /** @return array<string, mixed> the quick "give a voucher" form (counter desk, coupons page) */
+    public static function giveRules(Request $request): array
+    {
+        return [
             'type' => ['required', Rule::in(['percent', 'amount'])],
             'value' => ['required', 'numeric', 'min:1', $request->input('type') === 'percent' ? 'max:100' : 'max:100000'],
             'days' => 'required|integer|min:1|max:365',
             'min_order' => 'nullable|numeric|min:0|max:100000',
-        ]);
+        ];
+    }
+
+    /**
+     * A single-use voucher held by one guest, good for some days (vouchers.give).
+     *
+     * @param  array<string, mixed>  $data  validated by giveRules()
+     */
+    public static function issue(Customer $customer, array $data, User $by): Coupon
+    {
         $voucher = Coupon::query()->create([
             'code' => Coupon::generateCode(), 'source' => 'voucher', 'customer_id' => $customer->id,
             'type' => $data['type'], 'value' => $data['value'], 'min_order' => $data['min_order'] ?? 0,
             'expires_at' => now()->addDays((int) $data['days'])->endOfDay(), 'max_uses' => 1, 'once_per_customer' => true,
-            'note' => __('Given at the counter by :name', ['name' => mb_substr((string) $request->user()->name, 0, 60)]),
+            'note' => __('Given at the counter by :name', ['name' => mb_substr((string) $by->name, 0, 60)]),
         ]);
         Audit::record('voucher.given', $voucher->code, ['customer' => $customer->id, 'type' => $voucher->type, 'value' => $voucher->value]);
 
-        return redirect()->route('dash.loyalty.desk', ['q' => $customer->phone])
-            ->with('ok', __('Voucher :code given: :value.', ['code' => $voucher->code, 'value' => $voucher->headline()]));
+        return $voucher;
     }
 
     /** @return array<string, mixed> */
@@ -259,7 +244,7 @@ class VouchersController extends Controller
         ];
     }
 
-    private function whereStatus(Builder $query, string $status): Builder
+    public static function whereStatus(Builder $query, string $status): Builder
     {
         return match ($status) {
             'active' => $query->usable()->where(fn ($q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', now())),
