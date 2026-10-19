@@ -137,4 +137,15 @@ class PricingLineupTest extends TenantTestCase
         $this->assertFalse((bool) Plan::query()->where('code', 'pro')->value('is_public'));
         $this->assertFalse((bool) AddonPrice::query()->where('key', 'pos_pack')->value('is_active'));
     }
+
+    public function test_a_launch_discount_shows_the_regular_price_crossed_out_with_its_share(): void
+    {
+        $this->get($this->menuUrl('pricing'))->assertOk()->assertDontSee('data-orig-pct', false);
+
+        Plan::query()->where('code', 'full')->update(['original_price' => 2500]);
+
+        $this->get($this->menuUrl('pricing'))->assertOk()
+            ->assertSee('data-orig-month="2500"', false)->assertSee('خصم 50٪ لفترة الإطلاق');
+        $this->get($this->menuUrl('/'))->assertOk()->assertSee('2,500')->assertSee('خصم 50٪ لفترة الإطلاق');
+    }
 }

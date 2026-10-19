@@ -94,10 +94,14 @@
             <h3 class="text-2xl font-black">{{ $complete->displayName() }}</h3>
             <p class="mt-1 text-sm text-navy-500 lg:min-h-10">{{ tr($complete->tagline, $complete->tagline_en) }}</p>
             <div class="mt-4 flex items-end gap-1.5">
-                @if ($complete->original_price)<span class="mb-1 text-navy-400 line-through">{{ money($complete->original_price) }}</span>@endif
+                @if ($complete->original_price > $complete->monthly_price)<span class="mb-1 text-navy-400 line-through" data-orig data-orig-month="{{ (float) $complete->original_price }}">{{ money($complete->original_price) }}</span>@endif
                 <span class="text-4xl font-black tracking-tight" data-price>{{ money($complete->monthly_price) }}</span>
                 <span class="mb-1 text-sm font-semibold text-navy-500" data-unit data-unit-month="{{ __('EGP / month') }}" data-unit-cycle="{{ __('EGP / year') }}">{{ __('EGP / month') }}</span>
             </div>
+            @if ($complete->original_price > $complete->monthly_price)
+                {{-- launch discount: the regular price is the crossed-out one; the share is recomputed for each payment period --}}
+                <span class="mt-2 inline-flex w-fit rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800" data-orig-pct data-label="{{ __(':pct% off for the launch period') }}">{{ __(':pct% off for the launch period', ['pct' => (int) round((1 - $complete->monthly_price / $complete->original_price) * 100)]) }}</span>
+            @endif
             <p class="mt-2 text-xs text-navy-500 lg:min-h-10" data-billed>{{ __('Billed monthly') }}</p>
             <p class="text-xs text-navy-500" data-monthly-only data-year-price="{{ money($complete->priceFor(12)) }}">{{ __('Or :total EGP for a whole year paid at once.', ['total' => money($complete->priceFor(12))]) }}</p>
 

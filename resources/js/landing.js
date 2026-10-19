@@ -306,6 +306,15 @@ function setCycle(months) {
         price.textContent = nf.format(showTotal ? cycleTotal : perMonth);
         if (!still) { price.classList.remove('lp-pop'); void price.offsetWidth; price.classList.add('lp-pop'); }
         $$('[data-monthly-only]', card).forEach((el) => { el.hidden = months > 1; });
+        // a launch discount: the crossed-out regular price and its share follow the period shown
+        const orig = $('[data-orig]', card);
+        if (orig) {
+            const regular = Number(orig.dataset.origMonth) * (showTotal ? months : 1);
+            const shown = showTotal ? cycleTotal : perMonth;
+            orig.textContent = nf.format(regular);
+            const badge = $('[data-orig-pct]', card);
+            if (badge && regular > 0) badge.textContent = badge.dataset.label.replace(':pct', Math.round((1 - shown / regular) * 100));
+        }
         const unit = $('[data-unit]', card);
         if (unit) unit.textContent = (months === 1 ? unit.dataset.unitMonth : unit.dataset.unitCycle) || unit.textContent;
         $('[data-billed]', card).textContent = months === 1
