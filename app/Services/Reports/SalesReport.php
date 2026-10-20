@@ -7,6 +7,7 @@ use App\Models\CorporateVoucherRedemption;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OrderRefund;
 use App\Services\Orders\ShiftService;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonPeriod;
@@ -27,9 +28,11 @@ final class SalesReport
     /** @return array<string, mixed> */
     public function build(): array
     {
-        $orders = $this->orders()->get(['id', 'branch_id', 'customer_id', 'status', 'type', 'source', 'payment_status', 'payment_method', 'corporate_amount', 'total', 'discount', 'created_at']);
+        $orders = $this->orders()->get(['id', 'branch_id', 'customer_id', 'status', 'type', 'source', 'payment_status', 'payment_method', 'payments', 'corporate_amount', 'total', 'discount', 'created_at']);
         $sold = $orders->where('status', '!=', 'cancelled');
-        $revenue = round((float) $sold->sum('total'), 2);
+        $refunds = $this->refunds();
+        // net of the refunds given in the period (a return lowers the day it happened)
+        $revenue = round((float) $sold->sum('total') - $refunds['total'], 2);
 
         $days = [];
         foreach (CarbonPeriod::create($this->from->startOfDay(), $this->to->startOfDay()) as $day) {
@@ -58,7 +61,8 @@ final class SalesReport
             'unpaid' => round((float) $sold->where('payment_status', 'unpaid')->sum('total'), 2),
             'days' => $days,
             'hours' => $hours,
-            'by_method' => $this->byMethod($sold->where('payment_status', 'paid')),
+            'by_method' => $this->byMethod($sold->where('payment_status', 'paid'), $refunds['by_method']),
+            'refunds' => $refunds,
             'by_source' => $this->share($sold, 'source'),
             'by_type' => $this->share($sold, 'type'),
             'by_branch' => $this->byBranch($sold),
@@ -82,6 +86,21 @@ final class SalesReport
             ->get(['batch', 'amount']);
 
         return ['count' => $rows->pluck('batch')->unique()->count(), 'total' => round((float) $rows->sum('amount'), 2)];
+    }
+
+    /** @return array{count:int, total:float, by_method:array<string,float>} refunds given in the period */
+    private function refunds(): array
+    {
+        $rows = OrderRefund::query()->whereBetween('created_at', [$this->from->startOfDay(), $this->to->endOfDay()])
+            ->when($this->branchId, fn ($q) => $q->where('branch_id', $this->branchId))->get(['amount', 'methods']);
+        $byMethod = [];
+        foreach ($rows as $r) {
+            foreach ((array) $r->methods as $method => $amount) {
+                $byMethod[$method] = round(($byMethod[$method] ?? 0) + (float) $amount, 2);
+            }
+        }
+
+        return ['count' => $rows->count(), 'total' => round((float) $rows->sum('amount'), 2), 'by_method' => $byMethod];
     }
 
     /** Rows for the CSV export: one line per order. */
@@ -113,7 +132,7 @@ final class SalesReport
      *
      * @return list<array{key:string, count:int, total:float}> biggest first
      */
-    private function byMethod($orders): array
+    private function byMethod($orders, array $refunds = []): array
     {
         $out = [];
         foreach ($orders as $o) {
@@ -122,6 +141,10 @@ final class SalesReport
                 $out[$method]['count']++;
                 $out[$method]['total'] = round($out[$method]['total'] + $amount, 2);
             }
+        }
+        foreach ($refunds as $method => $amount) {
+            $out[$method] ??= ['key' => $method, 'count' => 0, 'total' => 0.0];
+            $out[$method]['total'] = round($out[$method]['total'] - $amount, 2);
         }
 
         return collect($out)->sortByDesc('total')->values()->all();

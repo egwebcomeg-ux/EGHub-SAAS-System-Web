@@ -72,7 +72,7 @@
     $navLink = 'relative flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition lg:min-h-10';
     $navOn = 'bg-white/10 text-white before:absolute before:inset-y-2 before:start-0 before:w-1 before:rounded-full before:bg-brand-600';
     // pages that live inside another entry: shifts in the POS area, stations under the kitchen display
-    $within = ['dash.menu' => ['dash.items.*'], 'dash.pos' => ['dash.shifts', 'dash.shifts.*'], 'dash.kitchen' => ['dash.stations', 'dash.stations.*'],
+    $within = ['dash.menu' => ['dash.items.*'], 'dash.pos' => ['dash.shifts', 'dash.shifts.*', 'dash.terminals', 'dash.terminals.*', 'dash.zreport', 'dash.zreport.*'], 'dash.kitchen' => ['dash.stations', 'dash.stations.*'],
         'dash.coupons' => ['dash.vouchers', 'dash.vouchers.*'], 'dash.devices' => ['dash.tv', 'dash.tv.*', 'dash.kiosks', 'dash.kiosks.*']];
     $isActive = fn (string $route) => request()->routeIs($route) || ($route !== 'dash.home' && request()->routeIs($route.'.*')) || request()->routeIs(...($within[$route] ?? ['-']));
     $currentLabel = collect(array_merge($nav, $more))->first(fn ($i) => $isActive($i[0]))[1] ?? null;

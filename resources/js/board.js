@@ -119,7 +119,7 @@ if (board) {
         return `
             <article class="rounded-xl border border-navy-100 bg-navy-50/40 p-3 ${age} ${waiting}">
                 <header class="mb-2 flex items-start justify-between gap-2">
-                    <div><div class="text-xl font-extrabold">#${o.number}</div><div class="text-sm font-semibold text-brand-700">${where}</div></div>
+                    <div><div class="text-xl font-extrabold">#${o.number}${o.offline_ref ? ` <span class="text-xs font-semibold text-navy-500" data-offline-ref>(${esc(t.wasRef.replace('__R__', o.offline_ref))})</span>` : ''}</div><div class="text-sm font-semibold text-brand-700">${where}</div></div>
                     <div class="text-end text-xs text-navy-500"><div>${esc(o.time)}</div><div>${mins}′</div>${o.branch ? `<div>${esc(o.branch)}</div>` : ''}</div>
                 </header>
                 ${parts}
@@ -165,12 +165,17 @@ if (board) {
         render(lastOrders);
     });
     renderChips(null);
+    const searchBox = document.querySelector('[data-board-search]');
+    searchBox?.addEventListener('input', () => render(lastOrders));
 
     function render(orders, counts = null) {
         lastOrders = orders;
         if (counts) renderChips(counts);
         const cols = { new: [], preparing: [], ready: [], done: [] };
-        const match = FILTERS[filter] || FILTERS.all;
+        const chip = FILTERS[filter] || FILTERS.all;
+        // the search box: the order number (#121) or the reference it had offline (OFF-K1-3)
+        const q = (searchBox?.value || '').trim().toLowerCase().replace(/^#/, '');
+        const match = (o) => chip(o) && (!q || String(o.number) === q || (o.offline_ref || '').toLowerCase().includes(q));
         orders.filter(match).forEach((o) => {
             const key = o.status === 'on_way' ? 'ready' : ['served', 'cancelled'].includes(o.status) ? 'done' : o.status;
             cols[key]?.push(o);

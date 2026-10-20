@@ -10,10 +10,12 @@ use App\Models\ItemOption;
 use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
+use App\Models\PosTerminal;
 use App\Models\Shift;
 use App\Models\TableCall;
 use App\Models\TableSession;
 use App\Models\User;
+use App\Services\Audit;
 use App\Services\Corporate\CorporateVouchers;
 use App\Services\Entitlements;
 use App\Services\Inventory\StockService;
@@ -27,6 +29,7 @@ use App\Support\DineIn;
 use App\Support\PrepKind;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -45,7 +48,7 @@ final class OrderService
     /**
      * @param array{client_uuid?:string, items:array<int,array{item_id:int, qty:int, option_ids?:int[], notes?:string}>,
      *              notes?:string, customer_name?:string, customer_phone?:string, type?:string, source?:string,
-     *              delivery_zone?:DeliveryZone, delivery_address?:array<string,string>, pay_wallet?:bool} $data
+     *              delivery_zone?:DeliveryZone, delivery_address?:array<string,string>, pay_wallet?:bool, terminal_id?:?int} $data
      *
      * With `pay_wallet` the order is paid at once from the customer's prepaid balance (whole total, or nothing is placed).
      */
@@ -148,6 +151,7 @@ final class OrderService
                         'delivery_zone_id' => $zone?->id, 'delivery_fee' => $deliveryFee,
                         'delivery_address' => $type === 'delivery' ? ($data['delivery_address'] ?? null) : null,
                         'total' => round($subtotal - $discount + $service + $tax + $deliveryFee, 2), 'created_by' => $by?->id,
+                        'terminal_id' => $data['terminal_id'] ?? null,
                     ]);
                     foreach ($lines as $line) {
                         $order->items()->create($line);
@@ -200,19 +204,28 @@ final class OrderService
     /**
      * Collects the money of an order (POS). Cash goes into the cashier's open shift drawer. With corporate vouchers
      * ($vouchers: codes typed / scanned, or ids of vouchers linked to $voucherPhone) they pay first, earliest expiry
-     * first, and $method pays the rest; when they cover everything the order is paid by "corporate".
+     * first, and $method pays the rest; when they cover everything the order is paid by "corporate". With $parts
+     * (split payment) the rest is paid by several methods (cash, card, InstaPay, mobile wallet) that add up to it:
+     * each line is kept on the order (orders.payments) and counted under its own method in the shift and reports.
      *
      * @param  list<array{code?:?string, id?:?int, approval?:?string}>  $vouchers
+     * @param  list<array{method:string, amount:float|int|string, tendered?:float|int|string|null}>  $parts
      */
-    public function pay(Order $order, string $method, User $by, ?Shift $shift, array $vouchers = [], ?string $voucherPhone = null): Order
+    public function pay(Order $order, string $method, User $by, ?Shift $shift, array $vouchers = [], ?string $voucherPhone = null, array $parts = []): Order
     {
+        $parts = self::paymentParts($parts);
+        if ($parts !== []) {
+            $method = count(array_unique(array_column($parts, 'method'))) > 1 ? self::SPLIT : $parts[0]['method'];
+        } elseif ($method === self::SPLIT) {
+            throw new OrderException(__('Add how each part is paid.'));
+        }
         if ($order->payment_status === 'paid') {
             throw new OrderException(__('This order is already paid.'));
         }
         if ($order->status === 'cancelled') {
             throw new OrderException(__('This order was cancelled.'));
         }
-        if (! in_array($method, ShiftService::METHODS, true)) {
+        if (! in_array($method, ShiftService::METHODS, true) && $method !== self::SPLIT) {
             throw new OrderException(__('Choose a payment method.'));
         }
         if (! $shift && Entitlements::current()->allows('shifts')) {
@@ -225,7 +238,7 @@ final class OrderService
             throw new OrderException(__('With corporate vouchers, pay the rest in cash, by card, InstaPay or a mobile wallet.'));
         }
 
-        return DB::transaction(function () use ($order, $method, $by, $shift, $vouchers, $voucherPhone) {
+        return DB::transaction(function () use ($order, $method, $by, $shift, $vouchers, $voucherPhone, $parts) {
             // locked: two taps on "pay" (or two cashiers) never take the money twice
             $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
             if ($locked->payment_status === 'paid') {
@@ -233,6 +246,12 @@ final class OrderService
             }
             $covered = $vouchers !== [] ? app(CorporateVouchers::class)->redeemForOrder($locked, $vouchers, $voucherPhone, $by) : 0.0;
             $rest = round((float) $locked->total - $covered, 2);
+            if ($parts !== [] && $rest > 0.004 && abs(round(array_sum(array_column($parts, 'amount')), 2) - $rest) > 0.004) {
+                throw new OrderException(__('The parts add up to :sum, the order needs :rest.', ['sum' => money(array_sum(array_column($parts, 'amount'))), 'rest' => money($rest)]));
+            }
+            if ($rest <= 0.004) {
+                $parts = []; // the vouchers paid it all
+            }
             if ($method === CorporateVouchers::METHOD && $rest > 0.004) {
                 throw new OrderException(__('The vouchers cover :covered of :total: choose how the rest (:rest) is paid.', [
                     'covered' => money($covered), 'total' => money($locked->total), 'rest' => money($rest),
@@ -244,16 +263,219 @@ final class OrderService
             if ($method === WalletService::METHOD) {
                 app(WalletService::class)->payOrder($locked, $by, $shift);
             }
-            $order->update(['payment_status' => 'paid', 'payment_method' => $method, 'shift_id' => $shift?->id, 'corporate_amount' => $covered]);
+            $order->update(['payment_status' => 'paid', 'payment_method' => $method, 'shift_id' => $shift?->id, 'corporate_amount' => $covered, 'payments' => $parts ?: null]);
             app(LoyaltyService::class)->orderCompleted($order);
 
             return $order;
         });
     }
 
+    /** Payment methods a POS sale can take while the internet is down (no balance, vouchers or coupons offline). */
+    public const OFFLINE_METHODS = ['cash', 'card', 'instapay', 'wallet'];
+
+    /** orders.payment_method of an order paid by more than one method (its lines are in orders.payments). */
+    public const SPLIT = 'split';
+
+    /** Methods a split payment's parts can use (the guest's balance and the vouchers keep their own flow). */
+    public const SPLIT_METHODS = ['cash', 'card', 'instapay', 'wallet'];
+
+    /**
+     * The parts of a split payment, cleaned: known methods, amounts above zero; cash keeps what the guest handed over
+     * (tendered) when it is at least the part, and the change.
+     *
+     * @param  list<array{method?:string, amount?:mixed, tendered?:mixed}>  $parts
+     * @return list<array{method:string, amount:float, tendered?:float, change?:float}>
+     */
+    public static function paymentParts(array $parts): array
+    {
+        $out = [];
+        foreach (array_slice(array_values(array_filter($parts, 'is_array')), 0, 8) as $p) {
+            $method = (string) ($p['method'] ?? '');
+            $amount = round((float) ($p['amount'] ?? 0), 2);
+            if (! in_array($method, self::SPLIT_METHODS, true)) {
+                throw new OrderException(__('A split payment takes cash, card, InstaPay or a mobile wallet.'));
+            }
+            if ($amount <= 0) {
+                throw new OrderException(__('Each part must be more than zero.'));
+            }
+            $line = ['method' => $method, 'amount' => $amount];
+            $tendered = isset($p['tendered']) && $p['tendered'] !== '' ? round((float) $p['tendered'], 2) : null;
+            if ($method === 'cash' && $tendered !== null && $tendered + 0.004 >= $amount) {
+                $line += ['tendered' => $tendered, 'change' => round($tendered - $amount, 2)];
+            }
+            $out[] = $line;
+        }
+
+        return $out;
+    }
+
+    /**
+     * Saves a sale made at the POS while the internet was down, as it was sold: the price snapshot the device kept is
+     * what the guest paid, even when the menu changed since (then the order is flagged needs_review with the reasons).
+     * The real number is given now; created_at is the time of the sale (created_offline_at), so the shift and the
+     * reports count it where it happened. Idempotent by client_uuid: a sale sent twice is saved once.
+     *
+     * @param array{client_uuid:string, offline_ref:string, created_offline_at:string, offline_since?:?string, type:string,
+     *              table_id?:?int, customer_name?:?string, customer_phone?:?string, notes?:?string, discount?:float,
+     *              subtotal:float, service:float, tax:float, total:float, method:string, tendered?:?float,
+     *              items:list<array{item_id:?int, qty:int, name:string, unit_price:float, option_ids?:list<int>,
+     *              options?:list<array{id?:int, group?:string, name:string, price:float}>, notes?:?string}>} $data
+     * @return array{order:Order, duplicate:bool}
+     *
+     * @throws OrderException a refused sale (shift closed, over the offline limit, amounts that do not add up)
+     */
+    public function placeOffline(array $data, Branch $branch, User $by, Shift $shift, ?PosTerminal $terminal): array
+    {
+        if ($existing = Order::query()->where('client_uuid', $data['client_uuid'])->first()) {
+            return ['order' => $existing, 'duplicate' => true];
+        }
+        $soldAt = rescue(fn () => Carbon::parse($data['created_offline_at']), null, false);
+        if (! $soldAt) {
+            throw new OrderException(__('The time of the sale is missing.'));
+        }
+        if ($shift->branch_id !== $branch->id || ($terminal ? $shift->terminal_id !== $terminal->id : $shift->user_id !== $by->id)) {
+            throw new OrderException(__('This sale belongs to another shift.'));
+        }
+        if (! $shift->isOpen()) {
+            throw new OrderException(__('The shift of this sale was closed before it synced: settle it by hand and mark it resolved.'));
+        }
+        if ($soldAt->gt(now()->addMinutes(5)) || $soldAt->lt($shift->opened_at->copy()->subMinute())) {
+            throw new OrderException(__('The time of the sale is outside its shift: check the device clock.'));
+        }
+        $since = ! empty($data['offline_since']) ? rescue(fn () => Carbon::parse($data['offline_since']), null, false) : null;
+        if ($since && $since->copy()->addHours(Terminals::offlineHours())->addMinutes(5)->lt($soldAt)) {
+            throw new OrderException(__('Sold after the offline limit (:n hours): settle it by hand and mark it resolved.', ['n' => Terminals::offlineHours()]));
+        }
+        $ref = strtoupper((string) $data['offline_ref']);
+        $code = $terminal?->code ?? 'X';
+        if (! preg_match('/^OFF-'.preg_quote($code, '/').'-(\d{1,7})$/', $ref, $m)) {
+            throw new OrderException(__('The offline reference is not of this terminal.'));
+        }
+        if (Order::query()->where('offline_ref', $ref)->exists()) {
+            throw new OrderException(__('Another sale already has the reference :ref.', ['ref' => $ref]));
+        }
+        $parts = self::paymentParts((array) ($data['payments'] ?? []));
+        $method = $parts !== [] ? (count(array_unique(array_column($parts, 'method'))) > 1 ? self::SPLIT : $parts[0]['method']) : (string) $data['method'];
+        if ($method !== self::SPLIT && ! in_array($method, self::OFFLINE_METHODS, true)) {
+            throw new OrderException(__('Offline, only cash, card, InstaPay or a mobile wallet can be taken.'));
+        }
+        $items = array_values((array) $data['items']);
+        if ($items === [] || count($items) > self::MAX_LINES) {
+            throw new OrderException(__('Your cart is empty.'));
+        }
+
+        // the lines as sold, and what the menu says today (a difference is noted for the review)
+        $catalog = MenuCatalog::forBranch($branch)->allDay();
+        $menu = MenuItem::query()->whereIn('id', array_filter(array_map(fn ($l) => (int) ($l['item_id'] ?? 0), $items)))
+            ->with(['optionGroups.options', 'category'])->get()->keyBy('id');
+        $lines = [];
+        $notes = [];
+        foreach ($items as $l) {
+            $qty = (int) ($l['qty'] ?? 0);
+            $unit = round((float) ($l['unit_price'] ?? -1), 2);
+            $name = mb_substr(trim((string) ($l['name'] ?? '')), 0, 150);
+            if ($qty < 1 || $qty > self::MAX_QTY || $unit < 0 || $unit > 100000 || $name === '') {
+                throw new OrderException(__('A line of this sale is not valid.'));
+            }
+            $options = array_values(array_map(fn ($o) => [
+                'id' => isset($o['id']) ? (int) $o['id'] : null, 'group' => mb_substr((string) ($o['group'] ?? ''), 0, 80),
+                'name' => mb_substr((string) ($o['name'] ?? ''), 0, 120), 'price' => round((float) ($o['price'] ?? 0), 2),
+            ], array_filter((array) ($l['options'] ?? []), 'is_array')));
+            $item = $menu->get((int) ($l['item_id'] ?? 0));
+            if (! $item || ! $catalog->isAvailable($item)) {
+                $notes[] = __(':item is no longer on the menu.', ['item' => $name]);
+            } else {
+                $catalog->apply($item);
+                $now = round($item->price + array_sum(array_map(fn ($o) => (float) ($item->optionGroups->flatMap->options->firstWhere('id', $o['id'])?->price ?? $o['price']), $options)), 2);
+                if (abs($now - $unit) > 0.004) {
+                    $notes[] = __(':item was sold at :sold, the menu says :now.', ['item' => $name, 'sold' => money($unit), 'now' => money($now)]);
+                }
+            }
+            $lines[] = [
+                'menu_item_id' => $item?->id, 'kitchen_station_id' => $item?->category?->kitchen_station_id,
+                'prep_kind' => PrepKind::valid($item?->category?->prep_kind), 'name' => $name, 'unit_price' => $unit,
+                'original_price' => null, 'quantity' => $qty, 'options' => $options,
+                'notes' => mb_substr(trim((string) ($l['notes'] ?? '')), 0, 200), 'line_total' => round($unit * $qty, 2),
+            ];
+        }
+
+        $subtotal = round(array_sum(array_column($lines, 'line_total')), 2);
+        $discount = round(max(0.0, (float) ($data['discount'] ?? 0)), 2);
+        $service = round(max(0.0, (float) ($data['service'] ?? 0)), 2);
+        $tax = round(max(0.0, (float) ($data['tax'] ?? 0)), 2);
+        $total = round($subtotal - $discount + $service + $tax, 2);
+        if ($discount > $subtotal || abs($subtotal - (float) $data['subtotal']) > 0.011 || abs($total - (float) $data['total']) > 0.011) {
+            throw new OrderException(__('The amounts of this sale do not add up.'));
+        }
+        if ($discount > 0 && ! $by->can('pos.discount')) {
+            throw new OrderException(__('You are not allowed to give discounts.'));
+        }
+        $type = ($data['type'] ?? '') === 'dine_in' ? 'dine_in' : 'takeaway';
+        $expectedService = $type === 'dine_in' ? round(($subtotal - $discount) * $this->percent('service_percent'), 2) : 0.0;
+        $expectedTax = round(($subtotal - $discount + $service) * $this->percent('tax_percent'), 2);
+        if (abs($expectedService - $service) > 0.011 || abs($expectedTax - $tax) > 0.011) {
+            $notes[] = __('Service / tax differ from today\'s settings.');
+        }
+        $table = $type === 'dine_in' && ! empty($data['table_id']) ? DiningTable::query()->where('branch_id', $branch->id)->find((int) $data['table_id']) : null;
+        if ($parts !== [] && abs(round(array_sum(array_column($parts, 'amount')), 2) - $total) > 0.011) {
+            throw new OrderException(__('The amounts of this sale do not add up.'));
+        }
+        $tendered = isset($data['tendered']) && $method === 'cash' ? round((float) $data['tendered'], 2) : null;
+        $parts = $parts ?: ($total > 0 ? self::paymentParts([['method' => $method, 'amount' => $total, 'tendered' => $tendered]]) : []);
+
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                $order = DB::transaction(function () use ($data, $branch, $by, $shift, $terminal, $lines, $notes, $subtotal, $discount, $service, $tax, $total, $type, $table, $soldAt, $ref, $m, $method, $parts) {
+                    $order = Order::query()->create([
+                        'branch_id' => $branch->id, 'dining_table_id' => $table?->id,
+                        'number' => (int) Order::query()->lockForUpdate()->max('number') + 1,
+                        'client_uuid' => $data['client_uuid'], 'tracking_token' => random_token(12),
+                        'type' => $type, 'source' => 'pos', 'status' => 'served',
+                        'customer_name' => mb_substr(trim((string) ($data['customer_name'] ?? '')), 0, 100),
+                        'customer_phone' => normalize_phone((string) ($data['customer_phone'] ?? '')) ?? '',
+                        'notes' => mb_substr(trim((string) ($data['notes'] ?? '')), 0, 500) ?: null,
+                        'subtotal' => $subtotal, 'discount' => $discount, 'service' => $service, 'tax' => $tax, 'total' => $total,
+                        'payment_status' => 'paid', 'payment_method' => $method, 'shift_id' => $shift->id, 'terminal_id' => $terminal?->id,
+                        'payments' => $parts,
+                        'offline_ref' => $ref, 'created_offline_at' => $soldAt, 'synced_at' => now(),
+                        'needs_review' => $notes !== [], 'review_notes' => $notes ?: null,
+                        'completed_at' => $soldAt, 'created_by' => $by->id, 'created_at' => $soldAt,
+                    ]);
+                    foreach ($lines as $line) {
+                        $order->items()->create($line);
+                    }
+                    OrderStatusHistory::query()->create(['order_id' => $order->id, 'to_status' => 'new', 'user_id' => $by->id, 'created_at' => $soldAt]);
+                    OrderStatusHistory::query()->create(['order_id' => $order->id, 'from_status' => 'new', 'to_status' => 'served', 'user_id' => $by->id]);
+                    app(StockService::class)->deductForOrder($order);
+                    if ($terminal && (int) $m[1] > $terminal->offline_seq) {
+                        PosTerminal::query()->whereKey($terminal->id)->where('offline_seq', '<', (int) $m[1])->update(['offline_seq' => (int) $m[1]]);
+                    }
+
+                    return $order;
+                });
+                break;
+            } catch (QueryException $e) {
+                if ($existing = Order::query()->where('client_uuid', $data['client_uuid'])->first()) {
+                    return ['order' => $existing, 'duplicate' => true];
+                }
+                if ($attempt >= 3) {
+                    throw $e;
+                }
+            }
+        }
+        if ($notes !== []) {
+            Audit::record('pos.offline_review', $order->reference(), ['notes' => $notes]);
+        }
+
+        return ['order' => $order, 'duplicate' => false];
+    }
+
     /** Moves an order to its next status, stamping the time and recording who did it. */
     public function transition(Order $order, string $to, ?User $by = null, ?string $reason = null): Order
     {
+        if ($to === 'cancelled' && $order->refunded_amount > 0) {
+            throw new OrderException(__('This order was refunded: it cannot be cancelled as well.'));
+        }
         if (! $order->canMoveTo($to)) {
             throw new OrderException(__('This order can no longer be moved to ":status".', ['status' => Order::STATUSES[$to][app()->getLocale() === 'en' ? 1 : 0] ?? $to]));
         }

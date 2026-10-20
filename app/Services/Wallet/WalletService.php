@@ -91,6 +91,22 @@ final class WalletService
     }
 
     /**
+     * Part of a paid order goes back to the guest's balance (a partial refund taken as balance). Null without a
+     * customer on the order.
+     */
+    public function refundAmount(Order $order, float $amount, ?User $by = null): ?WalletTransaction
+    {
+        $customer = $order->customer_id ? Customer::query()->find($order->customer_id) : null;
+        if (! $customer || $amount <= 0) {
+            return null;
+        }
+
+        return DB::transaction(fn () => $this->move($customer, round($amount, 2), 'refund', [
+            'order_id' => $order->id, 'user_id' => $by?->id, 'note' => '#'.$order->number,
+        ]));
+    }
+
+    /**
      * Cashback (feature `cashback`): a share of a counted order goes back to the guest's balance. Called once per
      * order from LoyaltyService::orderCompleted (which guards against counting twice). Null when nothing is due.
      */

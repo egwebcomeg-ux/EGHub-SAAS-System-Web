@@ -103,6 +103,8 @@ final class Settings
         'cart_goal_with_coupon' => '0',       // '1' = also given when the guest uses a coupon
         'service_percent' => '0',
         'tax_percent' => '0',
+        // POS offline mode: hours a device may keep selling without internet before it must sync (App\Services\Orders\Terminals)
+        'pos_offline_hours' => '12',
         // AI menu import with the restaurant's own key (ai_key is encrypted, see AiProviders)
         'ai_provider' => '',
         'ai_model' => '',

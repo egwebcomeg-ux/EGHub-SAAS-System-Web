@@ -56,6 +56,31 @@ class StockService
         });
     }
 
+    /**
+     * Some lines came back (a partial refund): puts back their share of what the order took. Only for an order whose
+     * stock was deducted. @param array<int,int> $returned order item id => quantity returned
+     */
+    public function restoreLines(Order $order, array $returned): bool
+    {
+        if (! $order->stock_deducted_at || $returned === []) {
+            return false;
+        }
+        $order->loadMissing('items.menuItem.comboParts');
+        $lines = $order->items->filter(fn ($i) => ($returned[$i->id] ?? 0) > 0)
+            ->map(fn ($i) => (clone $i)->setAttribute('quantity', min($i->quantity, (int) $returned[$i->id])));
+        if ($lines->isEmpty()) {
+            return false;
+        }
+        $partial = (clone $order)->setRelation('items', $lines->values());
+        DB::transaction(function () use ($order, $partial) {
+            foreach ($this->usage($partial) as $ingredientId => $qty) {
+                $this->move($ingredientId, $order->branch_id, 'return', $qty, null, $order->id, 'refund');
+            }
+        });
+
+        return true;
+    }
+
     /** Goods received: adds stock and moves the average cost towards the price paid. */
     public function purchase(Ingredient $ingredient, Branch $branch, float $qty, float $totalCost, ?User $by, ?string $note = null): void
     {

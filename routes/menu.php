@@ -12,6 +12,7 @@ use App\Http\Controllers\Menu\MenuController;
 use App\Http\Controllers\Menu\OrderController;
 use App\Http\Controllers\Menu\ProfileController;
 use App\Http\Controllers\Menu\PwaController;
+use App\Http\Controllers\Menu\ReceiptController;
 use App\Http\Controllers\Menu\ReservationController;
 use App\Http\Controllers\Menu\TableCallController;
 use App\Http\Controllers\Menu\TvController;
@@ -28,6 +29,9 @@ Route::get('/t/{token}', [MenuController::class, 'table'])->where('token', '[a-f
 Route::post('/order', [OrderController::class, 'store'])->middleware('throttle:menu-orders')->name('order');
 Route::get('/o/{token}', [OrderController::class, 'show'])->where('token', '[a-f0-9]{24}')->name('order.show');
 Route::get('/o/{token}/status', [OrderController::class, 'status'])->where('token', '[a-f0-9]{24}')->name('order.status');
+// the read-only receipt (QR on the printed receipt, WhatsApp link from the POS): signed, nothing personal
+Route::get('/r/{order}/{signature}', [ReceiptController::class, 'show'])->whereNumber('order')->where('signature', '[a-f0-9]{32}')
+    ->middleware('throttle:60,1')->name('receipt');
 
 // Order-number board for a screen in the hall (POS pack)
 Route::get('/board', [BoardController::class, 'show'])->name('board');

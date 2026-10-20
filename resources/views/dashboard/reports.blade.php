@@ -51,7 +51,7 @@
 {{-- headline numbers: stat tiles, not charts --}}
 <div class="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
     @foreach ([
-        [__('Sales'), money($report['revenue']) . ' ' . $cur, $report['discounts'] > 0 ? __('after :amount discounts', ['amount' => money($report['discounts'])]) : null],
+        [__('Sales'), money($report['revenue']) . ' ' . $cur, trim(($report['discounts'] > 0 ? __('after :amount discounts', ['amount' => money($report['discounts'])]) : '') . ($report['refunds']['count'] ? ' · ' . __('after :amount refunds', ['amount' => money($report['refunds']['total'])]) : ''), ' ·') ?: null],
         [__('Orders'), $report['orders'], $report['cancelled'] ? __(':n cancelled', ['n' => $report['cancelled']]) : null],
         [__('Average order'), money($report['average']) . ' ' . $cur, null],
         [__('Not paid yet'), money($report['unpaid']) . ' ' . $cur, null],

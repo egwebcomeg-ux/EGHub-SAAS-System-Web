@@ -195,7 +195,7 @@ class OrdersController extends Controller
     private function present(Order $o): array
     {
         return [
-            'id' => $o->id, 'number' => $o->number, 'status' => $o->status, 'status_label' => $o->statusLabel(),
+            'id' => $o->id, 'number' => $o->number, 'offline_ref' => $o->offline_ref, 'status' => $o->status, 'status_label' => $o->statusLabel(),
             'type' => $o->type, 'type_label' => Order::TYPES[$o->type][app()->getLocale() === 'en' ? 1 : 0] ?? $o->type,
             'source' => $o->source, 'table' => $o->table?->name, 'branch' => $o->branch ? tr($o->branch->name, $o->branch->name_en) : null,
             'customer' => trim($o->customer_name.' '.$o->customer_phone), 'notes' => $o->notes,

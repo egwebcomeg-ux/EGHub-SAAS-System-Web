@@ -41,6 +41,7 @@ final class PaymentMethods
             'wallet' => __('Mobile wallet'),
             'credit' => __('Wallet balance'),
             'corporate' => __('Corporate voucher'),
+            'split' => __('Split payment'),
             default => ucfirst($key),
         };
     }

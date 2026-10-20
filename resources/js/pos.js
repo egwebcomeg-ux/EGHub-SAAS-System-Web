@@ -1,6 +1,7 @@
 // POS: item grid, ticket, takeaway/table, discount, payment with change, open orders, receipts and the
 // customer-facing display (mirrored through BroadcastChannel). The server recomputes every amount.
 import { canScanQr, planVouchers, scanQr } from './corporate-vouchers';
+import { createOffline, NetworkError, printLocalReceipt } from './pos-offline';
 
 const dataEl = document.getElementById('pos-data');
 if (dataEl) {
@@ -10,7 +11,7 @@ if (dataEl) {
     const $$ = (s, r = document) => [...r.querySelectorAll(s)];
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     const fmt = (n) => `${Math.round(n * 100) / 100} ${D.currency}`;
-    const csrf = $('meta[name="csrf-token"]').content;
+    const session = { csrf: $('meta[name="csrf-token"]').content };
     const items = Object.fromEntries(D.items.map((i) => [i.id, i]));
     const display = 'BroadcastChannel' in window ? new BroadcastChannel('egmenu-pos') : null;
     const uuid = () => crypto.randomUUID?.() ?? 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -27,22 +28,29 @@ if (dataEl) {
     const zones = Object.fromEntries((D.zones || []).map((z) => [z.id, z]));
     let state = { type: CC ? 'delivery' : 'takeaway', table: '', lines: [], category: 'all' };
     let lastOrderId = null;
+    let lastOffline = null; // the last sale saved on this device while offline (printed from here)
+    // offline mode (POS only): terminal, catalog and the sales made without internet, synced when it is back
+    const off = !CC && D.tenant ? createOffline(D, session) : null;
 
+    // every request of the screen: a lost connection throws NetworkError (with a readable message), a refusal Error
     async function api(url, body, method = 'POST') {
+        if (off) {
+            try {
+                return await off.request(url, { method, body });
+            } catch (e) {
+                if (e instanceof NetworkError) e.message = T.noInternet;
+                throw e;
+            }
+        }
         const res = await fetch(url, {
-            method, headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
+            method, headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': session.csrf },
             body: body ? JSON.stringify(body) : undefined,
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.message || (data.errors ? Object.values(data.errors)[0][0] : res.status));
         return data;
     }
-    async function getJson(url) {
-        const res = await fetch(url, { headers: { Accept: 'application/json' } });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.message || (data.errors ? Object.values(data.errors)[0][0] : res.status));
-        return data;
-    }
+    const getJson = (url) => api(url, null, 'GET');
 
     // ---- menu grid ----
     function renderCats() {
@@ -240,9 +248,9 @@ if (dataEl) {
         render();
     }
 
-    function payload(pay) {
+    function payload(pay, clientUuid = uuid()) {
         const p = {
-            client_uuid: uuid(), type: state.type, table_id: state.type === 'dine_in' ? Number(state.table) || null : null,
+            client_uuid: clientUuid, type: state.type, table_id: state.type === 'dine_in' ? Number(state.table) || null : null,
             items: state.lines, discount: totals().staff, pay: pay || null,
             customer_name: $('[data-customer-name]').value.trim(), customer_phone: $('[data-customer-phone]').value.trim(), notes: $('[data-notes]').value.trim(),
         };
@@ -544,8 +552,21 @@ if (dataEl) {
 
     // ---- send / pay ----
     const doneDialog = $('[data-done-dialog]');
+    // ---- the receipt's link on WhatsApp (wa.me: the guest's mobile when known, else pick the chat) ----
+    let lastShare = null;
+    function shareReceipt(o) {
+        const text = T.shareText.replace('__R__', o.ref).replace('__U__', o.share);
+        const digits = String(o.phone || '').replace(/\D/g, '');
+        const intl = digits ? (digits.startsWith('20') ? digits : '20' + digits.replace(/^0/, '')) : '';
+        window.open('https://wa.me/' + intl + '?text=' + encodeURIComponent(text), '_blank', 'noopener');
+    }
+    $('[data-share-wa]')?.addEventListener('click', () => { if (lastShare) shareReceipt(lastShare); });
+
     function done(order, status) {
         lastOrderId = order.id;
+        lastOffline = null;
+        lastShare = order.receipt_url ? { ref: '#' + order.number, share: order.receipt_url, phone: order.phone || '' } : null;
+        $('[data-share-wa]')?.classList.toggle('hidden', !lastShare);
         $('[data-done-number]').textContent = '#' + order.number;
         $('[data-done-status]').textContent = status;
         reset();
@@ -553,11 +574,13 @@ if (dataEl) {
         doneDialog.showModal();
     }
     $$('[data-print]').forEach((b) => b.addEventListener('click', () => {
+        if (lastOffline) return printLocalReceipt(lastOffline, D.receiptHeader, T, b.dataset.print === 'kitchen');
         if (lastOrderId) window.open(D.urls.receipt.replace('__ID__', lastOrderId) + (b.dataset.print === 'kitchen' ? '?copy=kitchen' : ''), '_blank', 'width=420,height=700');
     }));
 
     $('[data-send]').addEventListener('click', async () => {
         if (!canSubmit()) return;
+        if (off && !off.online) return alert(T.offSend);
         try { done(await api(D.urls.order, payload(null)), CC ? T.placed : T.sent); } catch (err) { alert(err.message); }
     });
 
@@ -590,6 +613,8 @@ if (dataEl) {
             $('[data-credit-info]').textContent = T.enterPhone;
         }
         corpReset();
+        split = null;
+        renderSplit();
         renderQuick();
         setMethod('cash');
         payDialog.showModal();
@@ -600,7 +625,8 @@ if (dataEl) {
             b.classList.toggle('ring-2', b.dataset.method === m);
             b.classList.toggle('ring-brand-500', b.dataset.method === m);
         });
-        $('[data-cash-box]').classList.toggle('hidden', m !== 'cash');
+        $('[data-cash-box]').classList.toggle('hidden', m !== 'cash' && !(split || []).some((p) => p.method === 'cash'));
+        if (split) renderSplit();
         $('[data-credit-box]')?.classList.toggle('hidden', m !== 'credit');
         if (m === 'credit') $('[data-credit-phone]').value ? creditLookup() : $('[data-credit-phone]').focus();
     }
@@ -624,8 +650,62 @@ if (dataEl) {
     $('[data-credit-lookup]')?.addEventListener('click', creditLookup);
     $('[data-credit-phone]')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); creditLookup(); } });
     $$('[data-method]').forEach((b) => b.addEventListener('click', () => setMethod(b.dataset.method)));
+    // ---- split payment: several methods for one order (cash + card + InstaPay …); what is left goes on the chosen method ----
+    let split = null; // null = one method; else [{method, amount}]
+    const splitSum = () => Math.round((split || []).reduce((s, p) => s + p.amount, 0) * 100) / 100;
+    const splitRest = () => Math.max(0, Math.round((payDue() - splitSum()) * 100) / 100);
+    // the cash the guest hands over covers the cash parts (and the rest, when it goes on cash)
+    const cashDue = () => (split ? split.filter((p) => p.method === 'cash').reduce((s, p) => s + p.amount, 0) + (method === 'cash' ? splitRest() : 0) : payDue());
+    function renderSplit() {
+        const box = $('[data-split-box]');
+        if (!box) return;
+        box.classList.toggle('hidden', !split);
+        $('[data-split-toggle]').setAttribute('aria-pressed', split ? 'true' : 'false');
+        $('[data-split-toggle]').classList.toggle('ring-2', !!split);
+        $('[data-method="credit"]')?.classList.toggle('hidden', !!split);
+        if (!split) return;
+        $('[data-split-list]').innerHTML = split.map((p, i) => `<li class="flex items-center justify-between gap-2 py-1.5">
+            <span class="font-semibold">${esc(T.methods[p.method] || p.method)}</span>
+            <span class="flex items-center gap-1"><b>${fmt(p.amount)}</b><button type="button" class="grid size-11 place-items-center rounded-lg text-red-600 hover:bg-red-50" data-split-remove="${i}" aria-label="${esc(T.remove)}">×</button></span></li>`).join('');
+        const rest = splitRest();
+        $('[data-split-rest]').textContent = rest > 0.004 ? T.splitRest.replace('__A__', fmt(rest)).replace('__M__', T.methods[method] || method) : T.splitDone;
+        $('[data-split-amount]').placeholder = rest > 0 ? String(rest) : '';
+        showChange();
+    }
+    $('[data-split-toggle]')?.addEventListener('click', () => {
+        split = split ? null : [];
+        if (split && method === 'credit') setMethod('cash');
+        renderSplit();
+        if (split) $('[data-split-amount]').focus();
+    });
+    function addSplitPart() {
+        const rest = splitRest();
+        const amount = Math.round(Math.min(rest, Number($('[data-split-amount]').value || rest)) * 100) / 100;
+        if (!(amount > 0) || !T.methods[method]) return;
+        split.push({ method, amount });
+        $('[data-split-amount]').value = '';
+        renderSplit();
+    }
+    $('[data-split-add]')?.addEventListener('click', addSplitPart);
+    $('[data-split-amount]')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addSplitPart(); } });
+    $('[data-split-list]')?.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-split-remove]');
+        if (b) { split.splice(Number(b.dataset.splitRemove), 1); renderSplit(); }
+    });
+    /** the parts to send (null = one method): the rest goes on the chosen method; cash keeps what was handed over */
+    function splitParts() {
+        if (!split || !split.length) return null;
+        const parts = split.map((p) => ({ ...p }));
+        const rest = splitRest();
+        if (rest > 0.004) parts.push({ method, amount: rest });
+        const tendered = $('[data-tendered]').value;
+        const cash = parts.find((p) => p.method === 'cash');
+        if (cash && tendered !== '') cash.tendered = Math.max(0, Number(tendered) - parts.filter((p) => p.method === 'cash' && p !== cash).reduce((s, p) => s + p.amount, 0));
+        return parts;
+    }
+
     function showChange() {
-        const total = payDue();
+        const total = cashDue();
         const diff = Number($('[data-tendered]').value || 0) - total;
         $('[data-change]').textContent = $('[data-tendered]').value === '' ? '' : diff >= 0 ? T.change.replace('__A__', fmt(diff)) : T.short.replace('__A__', fmt(-diff));
         $('[data-change]').className = 'text-lg font-bold ' + (diff >= 0 ? 'text-emerald-700' : 'text-red-600');
@@ -644,25 +724,86 @@ if (dataEl) {
         // corporate vouchers pay first; the method chosen pays the rest (or "corporate" when they cover it all)
         const vouchers = corp.vouchers.map((v) => (v.code ? { code: v.code, approval: v.approval || null } : { id: v.id, approval: v.approval || null }));
         const extra = vouchers.length ? { vouchers, voucher_phone: corp.phone } : {};
-        const payMethod = vouchers.length && corpPlan().rest <= 0.004 ? 'corporate' : method;
+        const parts = vouchers.length && corpPlan().rest <= 0.004 ? null : splitParts();
+        if (parts && parts.some((p) => !T.methods[p.method])) { err.textContent = T.splitMethods; err.classList.remove('hidden'); return; }
+        const single = parts ? [...new Set(parts.map((p) => p.method))] : [];
+        const payMethod = vouchers.length && corpPlan().rest <= 0.004 ? 'corporate' : parts ? (single.length > 1 ? 'split' : single[0]) : method;
+        if (parts) extra.payments = parts;
         if (vouchers.length && payMethod === 'credit') { err.textContent = T.corpNoCredit; err.classList.remove('hidden'); return; }
+        const saleUuid = uuid();
+        const fail = (text) => { err.textContent = text; err.classList.remove('hidden'); };
+        // no internet: the sale is kept on this device and synced later (cash, card, InstaPay, mobile wallet only)
+        if (off && !off.online && !payTarget) return sellOffline(payMethod, vouchers.length > 0, saleUuid, fail, parts);
         try {
             if (payTarget) {
-                await api(D.urls.pay.replace('__ID__', payTarget.id), { method: payMethod, phone: creditPhone || null, ...extra });
+                const r = await api(D.urls.pay.replace('__ID__', payTarget.id), { method: payMethod, phone: creditPhone || null, ...extra });
                 payDialog.close();
                 $('[data-open-dialog]').close();
-                done({ id: payTarget.id, number: payTarget.number }, T.paid);
+                done({ id: payTarget.id, number: payTarget.number, receipt_url: r.receipt_url, phone: r.phone }, T.paid);
             } else {
                 if (creditPhone) $('[data-customer-phone]').value = creditPhone;
-                const order = await api(D.urls.order, { ...payload(payMethod), ...extra });
+                const order = await api(D.urls.order, { ...payload(payMethod, saleUuid), ...extra });
                 payDialog.close();
                 done(order, T.paid);
             }
         } catch (e) {
-            err.textContent = e.message;
-            err.classList.remove('hidden');
+            // the connection dropped on the way: keep it offline under the same id (the server saves it once)
+            if (e instanceof NetworkError && off && !payTarget) return sellOffline(payMethod, vouchers.length > 0, saleUuid, fail, parts);
+            fail(e.message);
         }
     });
+
+    // ---- a sale made offline: priced from the catalog kept on the device, numbered OFF-{terminal}-{n} ----
+    const r2 = (n) => Math.round(n * 100) / 100;
+    async function sellOffline(payMethod, withVouchers, clientUuid, fail, parts = null) {
+        if (withVouchers || payMethod === 'corporate') return fail(T.offNoVouchers);
+        if (payMethod === 'credit') return fail(T.offNoCredit);
+        if (!(parts ? parts.every((p) => D.offlineMethods.includes(p.method)) : D.offlineMethods.includes(payMethod))) return fail(T.offMethods);
+        if (state.coupon) return fail(T.offNoCoupon);
+        const blocked = off.blockReason(D.shift);
+        if (blocked) return fail(T['offBlock_' + blocked] || T.noInternet);
+        const all = D.items.flatMap((i) => i.groups.flatMap((g) => g.options.map((o) => ({ ...o, group: g.name }))));
+        const lines = state.lines.map((l) => {
+            const item = items[l.item_id];
+            return {
+                item_id: item.id, qty: l.qty, name: item.name, unit_price: r2(unit(l)), option_ids: l.option_ids, notes: l.notes || null,
+                options: l.option_ids.map((id) => all.find((o) => o.id === id)).filter(Boolean).map((o) => ({ id: o.id, group: o.group, name: o.name, price: o.price })),
+            };
+        });
+        const subtotal = r2(lines.reduce((sum, l) => sum + r2(l.unit_price * l.qty), 0));
+        const discount = r2(Math.min(subtotal, totals().staff));
+        const service = state.type === 'dine_in' ? r2((subtotal - discount) * D.service / 100) : 0;
+        const tax = r2((subtotal - discount + service) * D.tax / 100);
+        const total = r2(subtotal - discount + service + tax);
+        const tendered = payMethod === 'cash' && $('[data-tendered]').value !== '' ? Number($('[data-tendered]').value) : null;
+        const now = new Date().toISOString();
+        const sale = {
+            client_uuid: clientUuid, offline_ref: off.nextRef(), created_offline_at: now, offline_since: off.offlineSince() || now,
+            shift_id: D.shift.id, type: state.type, table_id: state.type === 'dine_in' ? Number(state.table) || null : null, items: lines,
+            customer_name: $('[data-customer-name]').value.trim(), customer_phone: $('[data-customer-phone]').value.trim(), notes: $('[data-notes]').value.trim(),
+            discount, subtotal, service, tax, total, method: payMethod, tendered,
+        };
+        if (parts) {
+            // the parts were taken from the displayed total: the last one absorbs any rounding difference
+            const diff = Math.round((total - parts.reduce((s, p) => s + p.amount, 0)) * 100) / 100;
+            parts[parts.length - 1].amount = Math.round((parts[parts.length - 1].amount + diff) * 100) / 100;
+            sale.payments = parts;
+        }
+        try {
+            await off.queue({ client_uuid: clientUuid, offline_ref: sale.offline_ref, created_offline_at: now, total, payload: sale });
+        } catch {
+            return fail(T.offSaveFailed);
+        }
+        payDialog.close();
+        lastOrderId = null;
+        lastOffline = { payload: sale };
+        lastShare = null;
+        $('[data-share-wa]')?.classList.add('hidden');
+        $('[data-done-number]').textContent = sale.offline_ref;
+        $('[data-done-status]').textContent = T.savedOffline;
+        reset();
+        doneDialog.showModal();
+    }
 
     // ---- corporate vouchers: scan / type the code or the guest's mobile, refusals with their reason, exceptions ----
     if (D.corporate) {
@@ -942,7 +1083,7 @@ if (dataEl) {
     // ---- open (unpaid) orders ----
     async function refreshOpen() {
         try {
-            const { orders } = await (await fetch(D.urls.open, { headers: { Accept: 'application/json' } })).json();
+            const { orders } = await getJson(D.urls.open);
             $('[data-open-count]').textContent = orders.length;
             $('[data-open-list]').innerHTML = orders.length ? orders.map((o) => `
                 <li class="flex items-center justify-between gap-3 py-3">
@@ -976,9 +1117,388 @@ if (dataEl) {
     $$('[data-ticket-close]').forEach((b) => b.addEventListener('click', () => setTicket(false)));
     ticketBackdrop?.addEventListener('click', () => setTicket(false));
 
+    // ---- offline mode: status bar, terminal of this device, sync log ----
+    if (off) {
+        const net = $('[data-net]');
+        const banner = $('[data-offline-banner]');
+        const syncBtn = $('[data-sync-open]');
+        const fmtTime = (iso) => new Date(iso).toLocaleTimeString('ar-EG', { hour: 'numeric', minute: '2-digit' });
+        function renderNet() {
+            const pending = off.pending().length;
+            const refused = off.log.filter((e) => e.status === 'refused').length;
+            net.textContent = off.online ? T.online : T.offline;
+            net.className = 'badge min-h-9 px-3 ' + (off.online ? 'bg-emerald-100 text-emerald-800' : 'bg-red-600 text-white');
+            net.dataset.state = off.online ? 'online' : 'offline';
+            syncBtn.classList.toggle('hidden', !off.log.length && off.online);
+            $('[data-sync-count]').textContent = off.syncing && pending ? T.syncing : refused ? T.refusedCount.replace('__N__', refused) : T.pendingCount.replace('__N__', pending);
+            syncBtn.classList.toggle('bg-amber-100', pending > 0 && !refused);
+            syncBtn.classList.toggle('bg-red-100', refused > 0);
+            const blocked = off.online ? null : off.blockReason(D.shift);
+            banner.classList.toggle('hidden', off.online);
+            banner.textContent = off.online ? '' : blocked ? T['offBlock_' + blocked] : T.offlineBanner.replace('__H__', D.offlineHours);
+            banner.classList.toggle('bg-red-50', !!blocked);
+            banner.classList.toggle('text-red-800', !!blocked);
+            // what cannot work without internet is switched off, with a short note in the payment window
+            $$('[data-method="credit"], [data-corp-toggle], [data-coupon-apply], [data-topup-open], [data-gift-open], [data-send]').forEach((b) => { b.disabled = !off.online; });
+            $('[data-pay-offline]')?.classList.toggle('hidden', off.online);
+            const t = off.terminal();
+            $('[data-terminal-label]').textContent = t ? `${t.code} · ${t.name}` : T.pickTerminal;
+            $('[data-terminal-open]').classList.toggle('ring-2', !t && D.terminals.length > 0);
+            if ($('[data-sync-dialog]').open) renderLog();
+        }
+        const statusLabel = (e) => ({ pending: T.stPending, synced: T.stSynced, refused: T.stRefused, resolved: T.stResolved })[e.status] || e.status;
+        function renderLog() {
+            $('[data-sync-list]').innerHTML = off.log.length ? off.log.map((e) => `
+                <li class="py-3" data-sync-entry="${esc(e.offline_ref)}">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div><b dir="ltr">${esc(e.offline_ref)}</b>${e.number ? ` → <b>#${e.number}</b>` : ''} · ${fmt(e.total)} <span class="text-xs text-navy-500">${esc(fmtTime(e.created_offline_at))}</span></div>
+                        <span class="badge ${e.status === 'synced' ? 'bg-emerald-100 text-emerald-800' : e.status === 'refused' ? 'bg-red-100 text-red-700' : e.status === 'resolved' ? 'bg-navy-100 text-navy-700' : 'bg-amber-100 text-amber-800'}">${esc(statusLabel(e))}</span>
+                    </div>
+                    ${e.number ? `<div class="text-xs text-navy-500">${esc(T.wasRef.replace('__N__', e.number).replace('__R__', e.offline_ref))}${e.review ? ' · ⚠ ' + esc(T.needsReview) : ''}</div>` : ''}
+                    ${e.error && e.status !== 'synced' ? `<div class="mt-1 rounded-lg bg-red-50 px-2 py-1 text-sm font-semibold text-red-700">${esc(e.error)}</div>` : ''}
+                    ${e.resolved_note ? `<div class="mt-1 text-xs text-navy-500">${esc(e.resolved_note)}</div>` : ''}
+                    ${e.status === 'refused' ? `<div class="mt-2 flex gap-2"><button type="button" class="btn-ghost min-h-11 px-3" data-sync-retry="${esc(e.client_uuid)}">${esc(T.retry)}</button>
+                        <button type="button" class="btn-ghost min-h-11 px-3" data-sync-resolve="${esc(e.client_uuid)}">${esc(T.markResolved)}</button></div>` : ''}
+                </li>`).join('') : `<li class="py-8 text-center text-navy-500">${esc(T.noQueued)}</li>`;
+        }
+        syncBtn.addEventListener('click', () => { renderLog(); $('[data-sync-dialog]').showModal(); });
+        $('[data-sync-now]').addEventListener('click', () => off.ping().then(() => off.sync()));
+        $('[data-sync-list]').addEventListener('click', (e) => {
+            const retry = e.target.closest('[data-sync-retry]');
+            if (retry) return off.retry(retry.dataset.syncRetry);
+            const res = e.target.closest('[data-sync-resolve]');
+            if (res && confirm(T.resolveAsk)) off.resolve(res.dataset.syncResolve, prompt(T.resolveNote) || '');
+        });
+
+        // ---- this device's terminal ----
+        const termDialog = $('[data-terminal-dialog]');
+        function renderTerminals() {
+            const mine = off.terminal();
+            $('[data-terminal-list]').innerHTML = D.terminals.length ? D.terminals.map((t) => `
+                <li class="flex items-center justify-between gap-2 py-2">
+                    <div><span class="badge bg-navy-800 text-white" dir="ltr">${esc(t.code)}</span> <b>${esc(t.name)}</b>
+                        ${mine && mine.id === t.id ? `<span class="badge bg-emerald-100 text-emerald-800">${esc(T.thisDevice)}</span>` : t.claimed ? `<span class="text-xs text-navy-500">${esc(T.otherDevice)}</span>` : ''}</div>
+                    ${mine && mine.id === t.id ? '' : `<button type="button" class="btn-primary min-h-11 px-4" data-claim="${t.id}" data-claimed="${t.claimed ? 1 : 0}">${esc(T.useTerminal)}</button>`}
+                </li>`).join('') : `<li class="py-6 text-center text-navy-500">${esc(T.noTerminals)}</li>`;
+        }
+        $('[data-terminal-open]').addEventListener('click', () => { renderTerminals(); $('[data-terminal-error]').classList.add('hidden'); termDialog.showModal(); });
+        $('[data-terminal-list]').addEventListener('click', async (e) => {
+            const b = e.target.closest('[data-claim]');
+            if (!b) return;
+            const err = $('[data-terminal-error]');
+            err.classList.add('hidden');
+            const takeover = b.dataset.claimed === '1';
+            if (takeover && !confirm(T.takeoverAsk)) return;
+            try {
+                const r = await api(D.urls.claim.replace('__ID__', b.dataset.claim), { takeover, device: navigator.userAgent.slice(0, 120) });
+                off.setTerminal(r);
+                D.terminals = D.terminals.map((t) => (t.id === r.id ? { ...t, claimed: true } : t));
+                termDialog.close();
+            } catch (ex) {
+                err.textContent = ex.message;
+                err.classList.remove('hidden');
+            }
+        });
+
+        // ---- the catalog: refreshed while online, read back from the device when the page opened offline ----
+        function applyCatalog(c) {
+            if (!c) return;
+            ['items', 'categories', 'tables', 'terminals', 'service', 'tax', 'shift', 'offlineHours', 'receiptHeader'].forEach((k) => { if (k in c) D[k] = c[k]; });
+            Object.keys(items).forEach((k) => delete items[k]);
+            D.items.forEach((i) => { items[i.id] = i; });
+            state.lines = state.lines.filter((l) => items[l.item_id]);
+            renderCats();
+            renderItems();
+            render();
+            renderNet();
+        }
+        async function refreshCatalog() {
+            try {
+                applyCatalog(await off.refreshCatalog());
+            } catch {}
+        }
+        off.onChange(renderNet);
+        (async () => {
+            const saved = await off.loadCatalog();
+            if (saved && saved.fetchedAt > D.generatedAt) applyCatalog(saved);
+            if (await off.ping()) {
+                off.saveShell();
+                refreshCatalog();
+            }
+            off.start();
+            renderNet();
+        })();
+        setInterval(() => { if (off.online) refreshCatalog(); }, 5 * 60000);
+        renderNet();
+    }
+
+    // ---- held tickets ("تعليق"): on the server for every terminal of the branch, on the device while offline ----
+    let refreshHolds = async () => {};
+    if (!CC && $('[data-hold]')) {
+        const holdDialog = $('[data-hold-dialog]');
+        const holdsDialog = $('[data-holds-dialog]');
+        let holds = [];
+        const cartNow = () => ({
+            type: state.type, table: state.table || null, lines: state.lines.map((l) => ({ ...l })),
+            customer_name: $('[data-customer-name]').value.trim(), customer_phone: $('[data-customer-phone]').value.trim(), notes: $('[data-notes]').value.trim(),
+            discount: Number($('[data-discount]')?.value || 0), discount_kind: $('[data-discount-kind]')?.value || 'amount',
+        });
+        $('[data-hold]').addEventListener('click', () => {
+            if (!state.lines.length) return;
+            const table = D.tables.find((x) => String(x.id) === String(state.table));
+            $('[data-hold-label]').value = state.type === 'dine_in' && table ? T.table.replace('__N__', table.name) : $('[data-customer-name]').value.trim();
+            $('[data-hold-error]').classList.add('hidden');
+            holdDialog.showModal();
+            $('[data-hold-label]').focus();
+        });
+        async function holdNow() {
+            const label = $('[data-hold-label]').value.trim();
+            const err = $('[data-hold-error]');
+            if (!label) { err.textContent = T.holdName; err.classList.remove('hidden'); return; }
+            const body = { label, total: Math.round(totals().total * 100) / 100, cart: cartNow() };
+            const local = () => off?.saveLocalHold({ id: 'L' + uuid(), ...body, count: state.lines.reduce((n, l) => n + l.qty, 0), time: new Date().toISOString(), local: true });
+            try {
+                if (off && !off.online) await local();
+                else await api(D.urls.holdsStore, body);
+            } catch (e) {
+                if (!(e instanceof NetworkError) || !off) { err.textContent = e.message; err.classList.remove('hidden'); return; }
+                await local();
+            }
+            holdDialog.close();
+            reset();
+            refreshHolds();
+        }
+        $('[data-hold-confirm]').addEventListener('click', holdNow);
+        $('[data-hold-label]').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); holdNow(); } });
+
+        refreshHolds = async () => {
+            let server = [];
+            if (!off || off.online) {
+                try { server = (await getJson(D.urls.holds)).holds; } catch {}
+            }
+            const local = off ? (await off.localHolds()).map((h) => ({ ...h, time: new Date(h.time).toLocaleTimeString('ar-EG', { hour: 'numeric', minute: '2-digit' }) })) : [];
+            holds = [...local, ...server];
+            $('[data-holds-count]').textContent = holds.length;
+            $('[data-holds-list]').innerHTML = holds.length ? holds.map((h, i) => `
+                <li class="flex items-center justify-between gap-3 py-3" data-held="${esc(h.label)}">
+                    <div class="min-w-0"><b>${esc(h.label)}</b>${h.local ? ` <span class="badge bg-amber-100 text-amber-800">${esc(T.onThisDevice)}</span>` : ''}
+                        <div class="text-xs text-navy-500">${esc(T.itemsCount.replace('__N__', h.count))} · ${esc(h.time)}${h.by ? ' · ' + esc(h.by) : ''}${h.terminal ? ' · ' + esc(h.terminal) : ''}</div></div>
+                    <div class="flex shrink-0 items-center gap-2"><b>${fmt(h.total)}</b>
+                        <button type="button" class="btn-primary min-h-11 px-4" data-resume="${i}">${esc(T.resume)}</button>
+                        ${D.canDiscardHold || h.local ? `<button type="button" class="grid size-11 place-items-center rounded-lg text-red-600 hover:bg-red-50" data-discard="${i}" aria-label="${esc(T.discard)}" title="${esc(T.discard)}">🗑</button>` : ''}</div>
+                </li>`).join('') : `<li class="py-8 text-center text-navy-500">${esc(T.noHolds)}</li>`;
+        };
+        function applyCart(cart) {
+            state.type = cart.type === 'dine_in' ? 'dine_in' : 'takeaway';
+            state.table = cart.table ? String(cart.table) : '';
+            if ($('[data-table]')) $('[data-table]').value = state.table;
+            state.lines = (cart.lines || []).filter((l) => items[l.item_id]).map((l) => ({ item_id: l.item_id, qty: l.qty, option_ids: l.option_ids || [], notes: l.notes || '' }));
+            state.coupon = null;
+            $('[data-customer-name]').value = cart.customer_name || '';
+            $('[data-customer-phone]').value = cart.customer_phone || '';
+            $('[data-notes]').value = cart.notes || '';
+            if ($('[data-discount]')) $('[data-discount]').value = cart.discount || 0;
+            if ($('[data-discount-kind]')) $('[data-discount-kind]').value = cart.discount_kind || 'amount';
+            render();
+        }
+        $('[data-holds-open]').addEventListener('click', async () => { await refreshHolds(); holdsDialog.showModal(); });
+        $('[data-holds-list]').addEventListener('click', async (e) => {
+            const resume = e.target.closest('[data-resume]');
+            const discard = e.target.closest('[data-discard]');
+            const h = holds[Number((resume || discard)?.dataset.resume ?? (resume || discard)?.dataset.discard)];
+            if (!h) return;
+            try {
+                if (resume) {
+                    if (state.lines.length && !confirm(T.replaceAsk)) return;
+                    if (h.local) {
+                        await off.deleteLocalHold(h.id);
+                        applyCart(h.cart);
+                    } else {
+                        applyCart((await api(D.urls.holdsResume.replace('__ID__', h.id), {})).cart);
+                    }
+                    holdsDialog.close();
+                } else if (confirm(T.discardAsk)) {
+                    if (h.local) await off.deleteLocalHold(h.id);
+                    else await api(D.urls.holdsDiscard.replace('__ID__', h.id), {});
+                }
+            } catch (ex) {
+                alert(ex.message);
+            }
+            refreshHolds();
+        });
+        refreshHolds();
+    }
+
+    // ---- recent paid orders: find by number or OFF-K1-3, reprint, share, refund with a manager's OK ----
+    if (!CC && $('[data-orders-open]')) {
+        const ordersDialog = $('[data-orders-dialog]');
+        const refundDialog = $('[data-refund-dialog]');
+        let recent = [];
+        let target = null;
+        let returning = {}; // order item id => quantity coming back
+        const r2m = (n) => Math.round(n * 100) / 100;
+        async function loadRecent() {
+            const list = $('[data-orders-list]');
+            try {
+                recent = (await getJson(D.urls.recent + '?q=' + encodeURIComponent($('[data-orders-q]').value.trim()))).orders;
+            } catch (e) {
+                list.innerHTML = `<li class="py-8 text-center text-red-600">${esc(e.message)}</li>`;
+                return;
+            }
+            list.innerHTML = recent.length ? recent.map((o, i) => `
+                <li class="flex flex-wrap items-center justify-between gap-2 py-3" data-recent="${o.number}">
+                    <div class="min-w-0"><b>${esc(o.ref)}</b>
+                        ${o.refund_status ? `<span class="badge ${o.refund_status === 'full' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}">${esc(o.refund_status === 'full' ? T.refundedFull : T.refundedPart.replace('__A__', fmt(o.refunded)))}</span>` : ''}
+                        <div class="text-xs text-navy-500">${esc(o.time)} · ${esc(o.method)} · ${fmt(o.total)}</div></div>
+                    <div class="flex shrink-0 gap-1">
+                        <button type="button" class="btn-ghost min-h-11 px-3" data-recent-print="${i}" title="${esc(T.printReceipt)}" aria-label="${esc(T.printReceipt)}">🖨</button>
+                        ${D.share ? `<button type="button" class="btn-ghost min-h-11 px-3" data-recent-share="${i}" title="${esc(T.shareWhatsApp)}" aria-label="${esc(T.shareWhatsApp)}">📲</button>` : ''}
+                        ${o.refund_status !== 'full' ? `<button type="button" class="btn-ghost min-h-11 px-3 text-red-700" data-recent-refund="${i}">↩ ${esc(T.refund)}</button>` : ''}
+                    </div>
+                </li>`).join('') : `<li class="py-8 text-center text-navy-500">${esc(T.noOrdersFound)}</li>`;
+        }
+        $('[data-orders-open]').addEventListener('click', () => {
+            if (off && !off.online) return alert(T.noInternet);
+            $('[data-orders-q]').value = '';
+            loadRecent();
+            ordersDialog.showModal();
+            $('[data-orders-q]').focus();
+        });
+        let searchTimer = null;
+        $('[data-orders-q]').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(loadRecent, 300); });
+        $('[data-orders-list]').addEventListener('click', (e) => {
+            const p = e.target.closest('[data-recent-print]');
+            if (p) return window.open(recent[Number(p.dataset.recentPrint)].receipt, '_blank', 'width=420,height=700');
+            const s = e.target.closest('[data-recent-share]');
+            if (s) return shareReceipt(recent[Number(s.dataset.recentShare)]);
+            const r = e.target.closest('[data-recent-refund]');
+            if (r) openRefund(recent[Number(r.dataset.recentRefund)]);
+        });
+
+        const isFull = () => $('[data-refund-mode]:checked')?.value === 'full';
+        function refundAmount() {
+            if (!target) return 0;
+            if (isFull()) return r2m(target.total - target.refunded);
+            return r2m(target.items.reduce((s, i) => s + r2m(i.unit * (returning[i.id] || 0) * target.factor), 0));
+        }
+        function renderRefund() {
+            const full = isFull();
+            $('[data-refund-lines]').classList.toggle('hidden', full);
+            $('[data-refund-lines]').innerHTML = target.items.map((i) => `
+                <li class="flex items-center justify-between gap-2 py-2 ${i.left ? '' : 'opacity-40'}">
+                    <div class="min-w-0"><div class="font-semibold">${esc(i.name)}</div><div class="text-xs text-navy-500">${esc(T.leftOf.replace('__L__', i.left).replace('__Q__', i.qty))}</div></div>
+                    <div class="flex items-center rounded-lg border border-navy-100">
+                        <button type="button" class="size-11" data-refund-step="-1" data-id="${i.id}" ${i.left ? '' : 'disabled'}>−</button><b class="w-7 text-center">${returning[i.id] || 0}</b>
+                        <button type="button" class="size-11" data-refund-step="1" data-id="${i.id}" ${i.left ? '' : 'disabled'}>+</button></div>
+                </li>`).join('');
+            $('[data-refund-amount]').textContent = fmt(refundAmount());
+            const asPaid = $('[data-refund-method] option[value=""]');
+            asPaid.disabled = !full;
+            if (!full && $('[data-refund-method]').value === '') $('[data-refund-method]').value = D.offlineMethods.includes(target.paid_by) ? target.paid_by : 'cash';
+            $('[data-refund-method] option[value="credit"]').disabled = !target.customer;
+            $('[data-refund-corporate]').classList.toggle('hidden', !(target.corporate > 0));
+        }
+        function openRefund(o) {
+            target = o;
+            returning = {};
+            $('[data-refund-title]').textContent = o.ref + ' · ' + fmt(o.total);
+            $('[data-refund-mode][value="full"]').checked = true;
+            $('[data-refund-method]').value = '';
+            $('[data-refund-reason]').value = '';
+            if ($('[data-refund-pin]')) $('[data-refund-pin]').value = '';
+            $('[data-refund-error]').classList.add('hidden');
+            renderRefund();
+            refundDialog.showModal();
+        }
+        $$('[data-refund-mode]').forEach((r) => r.addEventListener('change', renderRefund));
+        $('[data-refund-lines]').addEventListener('click', (e) => {
+            const b = e.target.closest('[data-refund-step]');
+            if (!b) return;
+            const item = target.items.find((i) => String(i.id) === b.dataset.id);
+            returning[item.id] = Math.max(0, Math.min(item.left, (returning[item.id] || 0) + Number(b.dataset.refundStep)));
+            renderRefund();
+        });
+        $('[data-refund-confirm]').addEventListener('click', async (e) => {
+            const err = $('[data-refund-error]');
+            err.classList.add('hidden');
+            const body = {
+                full: isFull(), method: $('[data-refund-method]').value || null, reason: $('[data-refund-reason]').value.trim(),
+                lines: Object.entries(returning).filter(([, q]) => q > 0).map(([id, qty]) => ({ order_item_id: Number(id), qty })),
+            };
+            if (!D.canRefund) {
+                body.approver_id = Number($('[data-refund-manager]')?.value) || null;
+                body.pin = $('[data-refund-pin]')?.value || '';
+            }
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            const win = window.open('about:blank', '_blank', 'width=420,height=700'); // opened on the tap so it is not blocked
+            try {
+                const r = await api(D.urls.refund.replace('__ID__', target.id), body);
+                if (win) win.location = r.receipt; else window.open(r.receipt, '_blank');
+                refundDialog.close();
+                loadRecent();
+            } catch (ex) {
+                win?.close();
+                err.textContent = ex.message;
+                err.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    }
+
+    // ---- cash in / out of the drawer (float, expenses): goes on the open shift, the expected cash follows ----
+    if ($('[data-cash-open]')) {
+        const cashDialog = $('[data-cash-dialog]');
+        const show = (sel, text) => { $(sel).textContent = text || ''; $(sel).classList.toggle('hidden', !text); };
+        $('[data-cash-open]').addEventListener('click', () => {
+            if (off && !off.online) return alert(T.noInternet);
+            ['[data-cash-amount]', '[data-cash-reason]', '[data-cash-category]'].forEach((s) => { $(s).value = ''; });
+            show('[data-cash-error]', '');
+            show('[data-cash-done]', '');
+            cashDialog.showModal();
+            $('[data-cash-amount]').focus();
+        });
+        $('[data-cash-confirm]').addEventListener('click', async (e) => {
+            show('[data-cash-error]', '');
+            const amount = Number($('[data-cash-amount]').value);
+            if (!(amount > 0)) return show('[data-cash-error]', T.enterAmount);
+            if (!$('[data-cash-reason]').value.trim()) return show('[data-cash-error]', T.cashReason);
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            try {
+                const r = await api(D.urls.cashMove, {
+                    type: $('[data-cash-type]:checked').value, amount, reason: $('[data-cash-reason]').value.trim(), category: $('[data-cash-category]').value || null,
+                });
+                show('[data-cash-done]', T.cashSaved.replace('__A__', fmt(r.expected_cash)));
+                $('[data-cash-amount]').value = '';
+                $('[data-cash-reason]').value = '';
+            } catch (ex) {
+                show('[data-cash-error]', ex.message);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    }
+
+    // ---- keyboard: / search, F2 pay, F4 hold, F8 open orders, ? the shortcuts (Esc closes any window) ----
+    const typing = (el) => el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
+    const anyDialogOpen = () => $$('dialog').some((d) => d.open);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'F2') { e.preventDefault(); if (!anyDialogOpen()) $('[data-pay]')?.click(); return; }
+        if (e.key === 'F4') { e.preventDefault(); if (!anyDialogOpen()) $('[data-hold]')?.click(); return; }
+        if (e.key === 'F8') { e.preventDefault(); if (!anyDialogOpen()) $('[data-open-orders]')?.click(); return; }
+        if (e.key === 'F9') { e.preventDefault(); if (!anyDialogOpen()) $('[data-orders-open]')?.click(); return; }
+        if (typing(document.activeElement) || anyDialogOpen()) return;
+        if (e.key === '/') { e.preventDefault(); $('[data-search]').focus(); }
+        if (e.key === '?') { e.preventDefault(); $('[data-help-dialog]')?.showModal(); }
+        if (e.key === 'Escape') setTicket(false);
+    });
+    $('[data-help-open]')?.addEventListener('click', () => $('[data-help-dialog]').showModal());
+
     renderCats();
     renderItems();
     render();
     refreshOpen();
-    setInterval(refreshOpen, 30000);
+    setInterval(() => { if (!off || off.online) { refreshOpen(); refreshHolds(); } }, 30000);
 }

@@ -11,6 +11,8 @@ final class Permissions
         'orders.manage' => ['تغيير حالة الطلبات', 'Update orders'],
         'pos.use' => ['تسجيل طلبات (كاشير / ويتر)', 'Take orders (POS / waiter)'],
         'pos.discount' => ['عمل خصم على الطلب', 'Give order discounts'],
+        'pos.hold.discard' => ['إلغاء الطلبات المعلّقة', 'Discard held tickets'],
+        'pos.refund' => ['مرتجع ورد فلوس (موافقة المدير)', 'Refunds and returns (manager approval)'],
         'callcenter.use' => ['شاشة الكول سنتر', 'Call-center screen'],
         'shifts.manage' => ['فتح وقفل الورديات والدرج', 'Open/close shifts & cash drawer'],
         'delivery.manage' => ['مناطق التوصيل', 'Delivery zones'],
@@ -47,7 +49,7 @@ final class Permissions
         ],
         'manager' => [
             'label' => ['مدير', 'Manager'],
-            'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'pos.discount', 'callcenter.use', 'shifts.manage',
+            'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'pos.discount', 'pos.hold.discard', 'pos.refund', 'callcenter.use', 'shifts.manage',
                 'kitchen.view', 'menu.manage', 'menu.availability', 'inventory.manage', 'tables.manage', 'branches.manage', 'delivery.manage',
                 'customers.view', 'customers.import', 'loyalty.stamp', 'loyalty.manage', 'vouchers.give', 'marketing.manage', 'reports.view', 'settings.manage', 'audit.view',
                 'wallet.manage', 'kiosk.manage', 'reservations.manage', 'contracts.manage', 'vouchers.redeem', 'vouchers.exception'],

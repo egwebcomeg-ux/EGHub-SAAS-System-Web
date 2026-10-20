@@ -30,6 +30,11 @@ class Shift extends TenantModel
         return $this->belongsTo(Branch::class);
     }
 
+    public function terminal(): BelongsTo
+    {
+        return $this->belongsTo(PosTerminal::class, 'terminal_id');
+    }
+
     public function movements(): HasMany
     {
         return $this->hasMany(CashMovement::class);

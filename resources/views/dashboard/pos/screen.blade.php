@@ -19,6 +19,12 @@
             </form>
         @endif
         <div class="ms-auto flex flex-wrap items-center gap-2 whitespace-nowrap max-md:-mx-3 max-md:w-full max-md:flex-nowrap max-md:overflow-x-auto max-md:px-3 max-md:pb-1 max-md:[scrollbar-width:none] [&>*]:shrink-0">
+            @unless ($cc)
+                {{-- offline mode: connection, sales waiting to sync (opens the sync log), this device's terminal --}}
+                <span class="badge min-h-9 bg-emerald-100 px-3 text-emerald-800" data-net data-state="online" role="status" aria-live="polite">{{ __('Connected') }}</span>
+                <button type="button" class="btn-ghost hidden min-h-9 px-3" data-sync-open>⟳ <span data-sync-count></span></button>
+                <button type="button" class="btn-ghost min-h-9 px-3 ring-brand-500" data-terminal-open title="{{ __('The terminal of this device') }}">🖥 <span data-terminal-label>{{ __('Choose the terminal') }}</span></button>
+            @endunless
             @if ($data['shifts'] && !$cc)
                 <a href="{{ route('dash.shifts') }}" @class(['badge min-h-9 px-3', 'bg-emerald-100 text-emerald-800' => $shift, 'bg-amber-100 text-amber-800' => !$shift])>
                     {{ $shift ? __('Shift open since :time', ['time' => local_time($shift->opened_at, 'h:i A')]) : __('No open shift') }}
@@ -29,10 +35,23 @@
                 <button type="button" class="btn-ghost min-h-9 px-3" data-gift-open>🎁 {{ __('Gift card') }}</button>
             @endif
             <button type="button" class="btn-ghost min-h-9 px-3" data-open-orders>{{ __('Open orders') }} <span class="badge bg-brand-600 text-white" data-open-count>0</span></button>
+            @unless ($cc)
+                <button type="button" class="btn-ghost min-h-9 px-3" data-holds-open>⏸ {{ __('Held') }} <span class="badge bg-navy-700 text-white" data-holds-count>0</span></button>
+                <button type="button" class="btn-ghost min-h-9 px-3" data-orders-open title="F9">🧾 {{ __('Orders & refunds') }}</button>
+                @if (!empty($data['canCash']))
+                    <button type="button" class="btn-ghost min-h-9 px-3" data-cash-open>💵 {{ __('Cash in / out') }}</button>
+                @endif
+            @endunless
             <button type="button" @class(['btn-ghost min-h-9 px-3', 'hidden' => $cc]) data-customer-display title="{{ __('Opens a window to drag onto the screen facing the guest') }}">🖥 {{ __('Customer display') }}</button>
+            @unless ($cc)
+                <button type="button" class="btn-ghost min-h-9 min-w-9 px-3 font-extrabold" data-help-open aria-label="{{ __('Keyboard shortcuts') }}" title="{{ __('Keyboard shortcuts') }}">?</button>
+            @endunless
         </div>
     </header>
 
+    @unless ($cc)
+        <div class="hidden bg-amber-50 px-4 py-2 text-sm font-bold text-amber-900" data-offline-banner role="alert"></div>
+    @endunless
     @if ($needsShift)
         <div class="bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800">
             {{ __('Open a shift to take payments. You can still send orders to the kitchen.') }}
@@ -106,7 +125,10 @@
                     <button type="button" class="btn-ghost" data-send>{{ __('Send to kitchen') }}</button>
                     <button type="button" class="btn-primary" data-pay>{{ __('Pay') }}</button>
                 </div>
-                <button type="button" class="min-h-10 w-full text-center text-xs font-semibold text-red-600" data-clear>{{ __('Clear') }}</button>
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" class="btn-ghost min-h-11" data-hold title="F4">⏸ {{ __('Hold') }}</button>
+                    <button type="button" class="min-h-11 w-full rounded-xl text-center text-sm font-semibold text-red-600 hover:bg-red-50" data-clear>{{ __('Clear') }}</button>
+                </div>
             </div>
         </aside>
         @endif
@@ -160,6 +182,21 @@
                 <button type="button" class="btn-ghost col-span-2" data-method="credit">💳 {{ __('From the guest\'s balance') }}</button>
             @endif
         </div>
+        @unless ($cc)
+            {{-- split payment: part by one method, part by another; what is left goes on the method chosen --}}
+            <div class="mt-3">
+                <button type="button" class="btn-ghost w-full" data-split-toggle aria-pressed="false">➗ {{ __('Split the payment') }}</button>
+                <div class="mt-2 hidden space-y-2 rounded-xl border border-navy-100 p-3" data-split-box>
+                    <ul class="divide-y divide-navy-50 text-sm" data-split-list></ul>
+                    <div class="flex gap-2">
+                        <input class="field min-w-0 flex-1 text-lg" type="number" min="0" step="0.5" inputmode="decimal" data-split-amount aria-label="{{ __('Amount of this part') }}">
+                        <button type="button" class="btn-primary px-4" data-split-add>{{ __('Add part') }}</button>
+                    </div>
+                    <p class="text-sm font-bold text-brand-700" data-split-rest role="status"></p>
+                    <p class="text-xs text-navy-500">{{ __('Pick the method above, type the amount, then add the part.') }}</p>
+                </div>
+            </div>
+        @endunless
         @if (!empty($data['wallet']))
             <div class="mt-4 hidden space-y-2" data-credit-box>
                 <label class="field-label" for="credit-phone">{{ __('Guest mobile') }}</label>
@@ -176,6 +213,9 @@
             <div class="flex flex-wrap gap-2" data-quick></div>
             <div class="text-lg font-bold" data-change></div>
         </div>
+        @unless ($cc)
+            <p class="mt-3 hidden rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-900" data-pay-offline>{{ __('No internet: cash, card, InstaPay or a mobile wallet only. Balance, vouchers, coupons and stamps come back when the internet is back.') }}</p>
+        @endunless
         <p class="mt-3 hidden rounded-xl bg-red-50 p-3 text-sm text-red-700" data-pay-error></p>
         <div class="mt-4 flex gap-2">
             <button value="cancel" class="btn-ghost flex-1">{{ __('Cancel') }}</button>
@@ -280,6 +320,152 @@
     </form>
 </dialog>
 
+@unless ($cc)
+    {{-- this device's terminal --}}
+    <dialog class="m-auto w-full max-w-md rounded-2xl p-0 backdrop:bg-black/50" data-terminal-dialog>
+        <form method="dialog" class="p-5">
+            <div class="mb-2 flex items-center justify-between">
+                <h3 class="text-lg font-extrabold">{{ __('The terminal of this device') }}</h3>
+                <button value="cancel" class="grid size-11 place-items-center rounded-xl text-2xl leading-none text-navy-500 hover:bg-navy-50" aria-label="{{ __('Close') }}">×</button>
+            </div>
+            <p class="mb-3 text-sm text-navy-600">{{ __('Pick the till this device stands at. Its shifts and the sales it makes offline carry the terminal code.') }}</p>
+            <ul class="max-h-[50dvh] divide-y divide-navy-50 overflow-y-auto" data-terminal-list></ul>
+            <p class="mt-3 hidden rounded-xl bg-red-50 p-3 text-sm text-red-700" data-terminal-error role="alert"></p>
+        </form>
+    </dialog>
+
+    {{-- sales made offline: waiting, synced (with their real number), refused (retry / mark resolved) --}}
+    <dialog class="m-auto w-full max-w-lg rounded-2xl p-0 backdrop:bg-black/50" data-sync-dialog>
+        <form method="dialog" class="p-5">
+            <div class="mb-3 flex items-center justify-between gap-2">
+                <h3 class="text-lg font-extrabold">{{ __('Offline sales') }}</h3>
+                <div class="flex items-center gap-2">
+                    <button type="button" class="btn-primary min-h-11 px-4" data-sync-now>{{ __('Sync now') }}</button>
+                    <button value="cancel" class="grid size-11 place-items-center rounded-xl text-2xl leading-none text-navy-500 hover:bg-navy-50" aria-label="{{ __('Close') }}">×</button>
+                </div>
+            </div>
+            <ul class="max-h-[60dvh] divide-y divide-navy-50 overflow-y-auto" data-sync-list></ul>
+        </form>
+    </dialog>
+
+    {{-- hold the current ticket under a name / table note --}}
+    <dialog class="m-auto w-full max-w-sm rounded-2xl p-0 backdrop:bg-black/50" data-hold-dialog>
+        <form method="dialog" class="space-y-3 p-5">
+            <h3 class="text-lg font-extrabold">{{ __('Hold the order') }}</h3>
+            <label class="block"><span class="field-label">{{ __('Name or table note') }}</span>
+                <input class="field text-lg" maxlength="80" data-hold-label placeholder="{{ __('e.g. Ahmed, table 4, the man in blue') }}"></label>
+            <p class="hidden rounded-xl bg-red-50 p-3 text-sm text-red-700" data-hold-error role="alert"></p>
+            <div class="flex gap-2">
+                <button value="cancel" class="btn-ghost flex-1">{{ __('Cancel') }}</button>
+                <button type="button" class="btn-primary flex-1" data-hold-confirm>{{ __('Hold') }}</button>
+            </div>
+        </form>
+    </dialog>
+
+    {{-- held tickets of the branch (and of this device while offline) --}}
+    <dialog class="m-auto w-full max-w-lg rounded-2xl p-0 backdrop:bg-black/50" data-holds-dialog>
+        <form method="dialog" class="p-5">
+            <div class="mb-3 flex items-center justify-between">
+                <h3 class="text-lg font-extrabold">{{ __('Held orders') }}</h3>
+                <button value="cancel" class="grid size-11 place-items-center rounded-xl text-2xl leading-none text-navy-500 hover:bg-navy-50" aria-label="{{ __('Close') }}">×</button>
+            </div>
+            <ul class="max-h-[60dvh] divide-y divide-navy-50 overflow-y-auto" data-holds-list></ul>
+        </form>
+    </dialog>
+
+    {{-- the branch's recent paid orders: search, reprint, share, refund --}}
+    <dialog class="m-auto w-full max-w-xl rounded-2xl p-0 backdrop:bg-black/50" data-orders-dialog>
+        <form method="dialog" class="p-5">
+            <div class="mb-3 flex items-center justify-between">
+                <h3 class="text-lg font-extrabold">{{ __('Orders & refunds') }}</h3>
+                <button value="cancel" class="grid size-11 place-items-center rounded-xl text-2xl leading-none text-navy-500 hover:bg-navy-50" aria-label="{{ __('Close') }}">×</button>
+            </div>
+            <input type="search" class="field mb-2" data-orders-q maxlength="24" dir="auto" placeholder="{{ __('Search: order number or OFF-K1-3') }}" aria-label="{{ __('Search orders') }}">
+            <ul class="max-h-[60dvh] divide-y divide-navy-50 overflow-y-auto" data-orders-list></ul>
+        </form>
+    </dialog>
+
+    {{-- refund / return: the whole order or some lines, the reason, a manager's OK --}}
+    <dialog class="m-auto max-h-[95dvh] w-full max-w-md overflow-y-auto rounded-2xl p-0 backdrop:bg-black/50" data-refund-dialog>
+        <form method="dialog" class="space-y-3 p-5">
+            <h3 class="text-lg font-extrabold">↩ {{ __('Refund') }} <span class="text-base font-bold text-navy-600" data-refund-title></span></h3>
+            <div class="grid grid-cols-2 gap-2">
+                <label class="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-navy-100 px-3 font-bold has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50"><input type="radio" name="refund_mode" value="full" data-refund-mode class="sr-only" checked> {{ __('The whole order') }}</label>
+                <label class="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-navy-100 px-3 font-bold has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50"><input type="radio" name="refund_mode" value="lines" data-refund-mode class="sr-only"> {{ __('Some items') }}</label>
+            </div>
+            <ul class="hidden divide-y divide-navy-50" data-refund-lines></ul>
+            <p class="hidden rounded-xl bg-navy-50 p-2 text-xs text-navy-700" data-refund-corporate>{{ __('Corporate vouchers get their value back only with the whole order.') }}</p>
+            <label class="block"><span class="field-label">{{ __('Money goes back by') }}</span>
+                <select class="field" data-refund-method>
+                    <option value="">{{ __('The way it was paid') }}</option>
+                    <option value="cash">{{ __('Cash') }}</option><option value="card">{{ __('Card') }}</option>
+                    <option value="instapay">InstaPay</option><option value="wallet">{{ __('Mobile wallet') }}</option>
+                    @if (!empty($data['wallet']))<option value="credit">{{ __('Wallet balance') }}</option>@endif
+                </select></label>
+            <label class="block"><span class="field-label">{{ __('Reason') }}</span>
+                <textarea class="field min-h-16 py-2" maxlength="200" data-refund-reason placeholder="{{ __('e.g. wrong item, the guest did not like it') }}"></textarea></label>
+            @if (empty($data['canRefund']))
+                @if (count($data['refundApprovers']))
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="block"><span class="field-label">{{ __('Manager') }}</span>
+                            <select class="field" data-refund-manager>@foreach ($data['refundApprovers'] as $a)<option value="{{ $a['id'] }}">{{ $a['name'] }}</option>@endforeach</select></label>
+                        <label class="block"><span class="field-label">{{ __('Manager PIN') }}</span>
+                            <input class="field text-center text-xl tracking-[.4em]" type="password" inputmode="numeric" maxlength="6" autocomplete="off" dir="ltr" data-refund-pin></label>
+                    </div>
+                @else
+                    <p class="rounded-xl bg-navy-50 p-3 text-sm">{{ __('No manager has a PIN yet: a manager can sign in on this device, or set a PIN in Account security.') }}</p>
+                @endif
+            @else
+                <p class="text-sm text-navy-600">{{ __('You approve it as :name. It is recorded in the audit log.', ['name' => auth()->user()->name]) }}</p>
+            @endif
+            <div class="flex items-center justify-between rounded-xl bg-red-50 p-3 text-red-800"><span class="font-semibold">{{ __('To give back') }}</span><b class="text-2xl" data-refund-amount></b></div>
+            <p class="hidden rounded-xl bg-red-50 p-3 text-sm text-red-700" data-refund-error role="alert"></p>
+            <div class="flex gap-2">
+                <button value="cancel" class="btn-ghost flex-1">{{ __('Cancel') }}</button>
+                <button type="button" class="btn-primary flex-1" data-refund-confirm>{{ __('Refund & print') }}</button>
+            </div>
+        </form>
+    </dialog>
+
+    @if (!empty($data['canCash']))
+        {{-- cash put into / taken out of the drawer of the open shift (float, an expense …) --}}
+        <dialog class="m-auto w-full max-w-sm rounded-2xl p-0 backdrop:bg-black/50" data-cash-dialog>
+            <form method="dialog" class="space-y-3 p-5">
+                <h3 class="text-lg font-extrabold">💵 {{ __('Cash in / out') }}</h3>
+                <div class="grid grid-cols-2 gap-2">
+                    <label class="flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-navy-100 font-bold has-[:checked]:border-red-500 has-[:checked]:bg-red-50"><input type="radio" name="cash_type" value="out" class="sr-only" data-cash-type checked> {{ __('Cash out') }}</label>
+                    <label class="flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-navy-100 font-bold has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50"><input type="radio" name="cash_type" value="in" class="sr-only" data-cash-type> {{ __('Cash in') }}</label>
+                </div>
+                <input class="field text-2xl" type="number" min="1" step="1" inputmode="decimal" placeholder="{{ __('Amount') }}" data-cash-amount aria-label="{{ __('Amount') }}">
+                <select class="field" data-cash-category aria-label="{{ __('Category') }}">
+                    <option value="">{{ __('Category (optional)') }}</option>
+                    @foreach (\App\Models\CashMovement::CATEGORIES as $key => $label)<option value="{{ $key }}">{{ tr($label[0], $label[1]) }}</option>@endforeach
+                </select>
+                <input class="field" maxlength="120" data-cash-reason placeholder="{{ __('Reason, e.g. buying ice') }}" aria-label="{{ __('Reason') }}">
+                <p class="hidden rounded-xl bg-red-50 p-3 text-sm text-red-700" data-cash-error role="alert"></p>
+                <p class="hidden rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-800" data-cash-done role="status"></p>
+                <div class="flex gap-2">
+                    <button value="cancel" class="btn-ghost flex-1">{{ __('Close') }}</button>
+                    <button type="button" class="btn-primary flex-1" data-cash-confirm>{{ __('Save') }}</button>
+                </div>
+            </form>
+        </dialog>
+    @endif
+
+    {{-- keyboard shortcuts --}}
+    <dialog class="m-auto w-full max-w-sm rounded-2xl p-0 backdrop:bg-black/50" data-help-dialog>
+        <form method="dialog" class="p-5">
+            <h3 class="mb-3 text-lg font-extrabold">{{ __('Keyboard shortcuts') }}</h3>
+            <dl class="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 text-sm">
+                @foreach (['/' => __('Search items'), 'F2' => __('Pay'), 'F4' => __('Hold the order'), 'F8' => __('Open orders'), 'F9' => __('Orders & refunds'), 'Esc' => __('Close the window'), '?' => __('This list')] as $key => $what)
+                    <dt><kbd class="inline-grid min-w-10 place-items-center rounded-lg border border-navy-200 bg-navy-50 px-2 py-1 font-mono font-bold" dir="ltr">{{ $key }}</kbd></dt><dd>{{ $what }}</dd>
+                @endforeach
+            </dl>
+            <button value="ok" class="btn-primary mt-4 w-full">{{ __('Got it') }}</button>
+        </form>
+    </dialog>
+@endunless
+
 {{-- done --}}
 <dialog class="m-auto w-full max-w-sm rounded-2xl p-0 text-center backdrop:bg-black/50" data-done-dialog>
     <form method="dialog" class="p-6">
@@ -290,6 +476,7 @@
             <button type="button" class="btn-ghost" data-print="customer">{{ __('Print receipt') }}</button>
             <button type="button" class="btn-ghost" data-print="kitchen">{{ __('Kitchen ticket') }}</button>
         </div>
+        <button type="button" class="btn-ghost mt-2 hidden w-full text-emerald-700" data-share-wa>📲 {{ __('Send the receipt on WhatsApp') }}</button>
         <button value="ok" class="btn-primary mt-3 w-full">{{ __('New order') }}</button>
     </form>
 </dialog>
@@ -311,7 +498,48 @@
         'topupDone' => __('Added. New balance: :amount', ['amount' => '__A__']), 'printSlip' => __('Print slip'),
         'voucher' => __('Voucher :code', ['code' => '__C__']), 'voucherRemoved' => __('Voucher removed: the cart changed, apply it again.'),
         'chooseMethod' => __('Choose a payment method.'), 'enterAmount' => __('Enter an amount.'), 'enterPhone' => __('Enter the guest\'s mobile to see the balance.'),
+        'shareText' => __('Your receipt :ref from :brand: :url', ['ref' => '__R__', 'brand' => tr(\App\Services\Settings::get('brand_name'), \App\Services\Settings::get('brand_name_en')) ?: tenant()->name, 'url' => '__U__']),
     ];
+    if (! $cc) {
+        // offline mode, the sync log and the receipt printed from the device
+        $i18n += [
+            'noInternet' => __('No internet connection.'), 'online' => __('Connected'), 'offline' => __('Offline'),
+            'pendingCount' => __(':n orders waiting', ['n' => '__N__']), 'refusedCount' => __(':n refused: open the log', ['n' => '__N__']), 'syncing' => __('Syncing…'),
+            'offlineBanner' => __('No internet: you can keep selling (cash, card, InstaPay, mobile wallet) for up to :hours hours. The sales sync when it is back.', ['hours' => '__H__']),
+            'offBlock_terminal' => __('No internet, and this device has no terminal: offline sales need a terminal.'),
+            'offBlock_shift' => __('No internet, and no open shift: open a shift (online) before going offline.'),
+            'offBlock_shiftTerminal' => __('No internet: the open shift is not on this device\'s terminal, so offline sales are off.'),
+            'offBlock_limit' => __('Offline for too long: new sales are stopped until the device syncs.'),
+            'offBlock_nodb' => __('This browser cannot keep sales offline.'),
+            'offNoVouchers' => __('Corporate vouchers need the internet.'), 'offNoCredit' => __('The guest\'s balance needs the internet.'),
+            'offNoCoupon' => __('Remove the voucher code: codes need the internet.'), 'offMethods' => __('Offline, only cash, card, InstaPay or a mobile wallet can be taken.'),
+            'offSend' => __('No internet: take the payment now (the kitchen ticket prints from here), or wait for the internet.'),
+            'offSaveFailed' => __('This sale could not be saved on the device.'), 'savedOffline' => __('Saved on this device · syncs when the internet is back'),
+            'stPending' => __('Waiting'), 'stSynced' => __('Synced'), 'stRefused' => __('Refused'), 'stResolved' => __('Resolved'),
+            'wasRef' => __('#:number (was :ref)', ['number' => '__N__', 'ref' => '__R__']), 'needsReview' => __('Needs review'),
+            'retry' => __('Try again'), 'markResolved' => __('Mark resolved'), 'noQueued' => __('No offline sales on this device.'),
+            'resolveAsk' => __('Mark this sale resolved? It will not be sent again.'), 'resolveNote' => __('How was it settled? (optional)'),
+            'pickTerminal' => __('Choose the terminal'), 'thisDevice' => __('This device'), 'otherDevice' => __('Used by another device'),
+            'useTerminal' => __('Use'), 'noTerminals' => __('No terminals yet: the owner or a manager adds them in POS → Terminals.'),
+            'takeoverAsk' => __('Another device uses this terminal. Take it over? That device stops selling offline.'),
+            'kitchenTicket' => __('Kitchen ticket'), 'dineIn' => __('Dine-in'), 'changeLabel' => __('Change'), 'thanks' => __('Thank you for your visit!'),
+            'offlineReceiptNote' => __('Saved offline: the order number follows when the device syncs.'),
+            'methods' => ['cash' => __('Cash'), 'card' => __('Card'), 'instapay' => 'InstaPay', 'wallet' => __('Mobile wallet')],
+            // held tickets
+            'holdName' => __('Write a name or a table note.'), 'onThisDevice' => __('On this device'), 'itemsCount' => __(':n items', ['n' => '__N__']),
+            'resume' => __('Continue the order'), 'discard' => __('Discard'), 'noHolds' => __('No held orders.'),
+            'replaceAsk' => __('The order on the screen will be replaced. Go on?'), 'discardAsk' => __('Discard this held order?'),
+            // split payment
+            'splitRest' => __('Left: :amount (goes on :method)', ['amount' => '__A__', 'method' => '__M__']), 'splitDone' => __('The parts cover the order.'),
+            'splitMethods' => __('A split payment takes cash, card, InstaPay or a mobile wallet.'), 'remove' => __('Remove'),
+            // orders & refunds
+            'refund' => __('Refund'), 'refundedFull' => __('Refunded'), 'refundedPart' => __('Refunded :amount', ['amount' => '__A__']),
+            'printReceipt' => __('Print receipt'), 'shareWhatsApp' => __('Send the receipt on WhatsApp'), 'noOrdersFound' => __('No paid orders found.'),
+            'leftOf' => __(':left of :qty left', ['left' => '__L__', 'qty' => '__Q__']),
+            // cash in / out
+            'cashSaved' => __('Saved. Expected cash in the drawer: :amount', ['amount' => '__A__']), 'cashReason' => __('Write the reason.'),
+        ];
+    }
     if (! empty($data['corporate'])) {
         $i18n += [
             'corpNoCredit' => __('With corporate vouchers, pay the rest in cash, by card, InstaPay or a mobile wallet.'),

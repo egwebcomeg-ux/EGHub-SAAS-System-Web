@@ -75,6 +75,7 @@ class Order extends TenantModel
             'tax' => 'float',
             'total' => 'float',
             'corporate_amount' => 'float',
+            'refunded_amount' => 'float',
             'delivery_fee' => 'float',
             'delivery_address' => 'array',
             'scheduled_for' => 'datetime',
@@ -84,6 +85,11 @@ class Order extends TenantModel
             'cancelled_at' => 'datetime',
             'loyalty_applied_at' => 'datetime',
             'stock_deducted_at' => 'datetime',
+            'created_offline_at' => 'datetime',
+            'synced_at' => 'datetime',
+            'needs_review' => 'boolean',
+            'review_notes' => 'array',
+            'payments' => 'array',
         ];
     }
 
@@ -111,6 +117,31 @@ class Order extends TenantModel
     public function table(): BelongsTo
     {
         return $this->belongsTo(DiningTable::class, 'dining_table_id');
+    }
+
+    public function terminal(): BelongsTo
+    {
+        return $this->belongsTo(PosTerminal::class, 'terminal_id');
+    }
+
+    /** "#121" or, for a sale made offline, "#121 (كان OFF-K1-3)". */
+    public function reference(): string
+    {
+        return '#'.$this->number.($this->offline_ref ? ' ('.__('was :ref', ['ref' => $this->offline_ref]).')' : '');
+    }
+
+    /**
+     * The receipt's public read-only page on the restaurant's own address (QR on the printed receipt, WhatsApp link):
+     * /r/{id}/{signature}. The signature is an HMAC of the restaurant, the order and its private tracking token.
+     */
+    public function receiptUrl(): string
+    {
+        return tenant()->url('r/'.$this->id.'/'.$this->receiptSignature());
+    }
+
+    public function receiptSignature(): string
+    {
+        return substr(hash_hmac('sha256', 'receipt|'.$this->tenant_id.'|'.$this->id.'|'.$this->tracking_token, (string) config('app.key')), 0, 32);
     }
 
     public function tableSession(): BelongsTo
@@ -161,6 +192,11 @@ class Order extends TenantModel
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(OrderRefund::class);
     }
 
     public function history(): HasMany

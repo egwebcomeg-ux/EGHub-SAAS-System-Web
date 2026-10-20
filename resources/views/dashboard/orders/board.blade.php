@@ -17,6 +17,7 @@
         'customTime' => __('Until when? (HH:MM)'),
         'foodReady' => __('Food ready'), 'drinksReady' => __('Drinks ready'),
         'partReady' => __('ready'), 'partWaiting' => __('not yet'), 'noMatch' => __('No orders match this filter'),
+        'wasRef' => __('was :ref', ['ref' => '__R__']),
     ];
     $canManage = auth()->user()->can('orders.manage');
     // quick filters: [key, label]; the counts come live from the feed
@@ -72,6 +73,9 @@
 <div class="mb-4 hidden flex-wrap gap-2" data-reservations></div>
 
 {{-- quick filters with live counts (remembered on this device) --}}
+<div class="mb-3 max-w-sm">
+    <input type="search" class="field" data-board-search maxlength="24" dir="auto" placeholder="{{ __('Search: order number or OFF-K1-3') }}" aria-label="{{ __('Search orders') }}">
+</div>
 <div class="-mx-1 mb-4 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible" data-chips role="toolbar" aria-label="{{ __('Filter orders') }}">
     @foreach ($chips as [$key, $label])
         <button type="button" data-chip="{{ $key }}" aria-pressed="false"

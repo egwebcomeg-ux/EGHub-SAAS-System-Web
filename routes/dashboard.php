@@ -20,6 +20,7 @@ use App\Http\Controllers\Dashboard\DeliveryZonesController;
 use App\Http\Controllers\Dashboard\DevicesController;
 use App\Http\Controllers\Dashboard\DomainController;
 use App\Http\Controllers\Dashboard\FeedbackController;
+use App\Http\Controllers\Dashboard\HoldsController;
 use App\Http\Controllers\Dashboard\HomeController;
 use App\Http\Controllers\Dashboard\InventoryController;
 use App\Http\Controllers\Dashboard\ItemsController;
@@ -39,6 +40,7 @@ use App\Http\Controllers\Dashboard\PhoneVerificationController;
 use App\Http\Controllers\Dashboard\PosController;
 use App\Http\Controllers\Dashboard\PrintMenuController;
 use App\Http\Controllers\Dashboard\PwaController;
+use App\Http\Controllers\Dashboard\RefundsController;
 use App\Http\Controllers\Dashboard\ReportsController;
 use App\Http\Controllers\Dashboard\ReservationsController;
 use App\Http\Controllers\Dashboard\SecurityController;
@@ -48,12 +50,14 @@ use App\Http\Controllers\Dashboard\SocialLoginController;
 use App\Http\Controllers\Dashboard\StationsController;
 use App\Http\Controllers\Dashboard\TablesController;
 use App\Http\Controllers\Dashboard\TableSessionsController;
+use App\Http\Controllers\Dashboard\TerminalsController;
 use App\Http\Controllers\Dashboard\TvScreensController;
 use App\Http\Controllers\Dashboard\TwoFactorController;
 use App\Http\Controllers\Dashboard\UsersController;
 use App\Http\Controllers\Dashboard\VoucherRedeemController;
 use App\Http\Controllers\Dashboard\VouchersController;
 use App\Http\Controllers\Dashboard\WalletController;
+use App\Http\Controllers\Dashboard\ZReportController;
 use App\Models\CampaignAutomation;
 use App\Services\Auth\SocialProviders;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -306,6 +310,30 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/pos/orders/{order}/pay', [PosController::class, 'pay'])->name('pos.pay');
         Route::get('/pos/open', [PosController::class, 'open'])->name('pos.open');
         Route::get('/pos/display', [PosController::class, 'display'])->name('pos.display');
+        // offline mode: the catalog the device keeps, an "online?" check, and the sales made offline, one by one
+        Route::get('/pos/catalog', [PosController::class, 'catalog'])->name('pos.catalog');
+        Route::get('/pos/ping', [PosController::class, 'ping'])->name('pos.ping');
+        Route::post('/pos/sync', [PosController::class, 'sync'])->middleware('throttle:240,1')->name('pos.sync');
+        Route::post('/pos/terminals/{terminal}/claim', [PosController::class, 'claim'])->whereNumber('terminal')->middleware('throttle:20,1')->name('pos.claim');
+        // held tickets ("تعليق"): park, list, resume on any terminal of the branch, discard (pos.hold.discard)
+        Route::get('/pos/holds', [HoldsController::class, 'index'])->name('pos.holds');
+        Route::post('/pos/holds', [HoldsController::class, 'store'])->middleware('throttle:60,1')->name('pos.holds.store');
+        Route::post('/pos/holds/{held}/resume', [HoldsController::class, 'resume'])->whereNumber('held')->name('pos.holds.resume');
+        Route::post('/pos/holds/{held}/discard', [HoldsController::class, 'discard'])->whereNumber('held')->name('pos.holds.discard');
+        // the recent paid orders (search by number or OFF-K1-3), refunds with a manager's approval and the refund slip
+        Route::get('/pos/orders/recent', [RefundsController::class, 'recent'])->name('pos.orders.recent');
+        Route::post('/pos/orders/{order}/refund', [RefundsController::class, 'store'])->whereNumber('order')->middleware('throttle:30,1')->name('pos.refund');
+        Route::get('/pos/refunds/{refund}/receipt', [RefundsController::class, 'receipt'])->whereNumber('refund')->name('pos.refunds.receipt');
+    });
+    // end of day (Z) report: per branch / terminal / day, on screen, printed (80mm / A4) or as CSV / Excel
+    Route::get('/pos/z-report', [ZReportController::class, 'show'])->middleware(['feature:pos', 'permission:reports.view|shifts.manage'])->name('zreport');
+    // POS terminals of each branch (owner / manager) and how long a device may sell offline
+    Route::middleware(['feature:pos', 'permission:branches.manage'])->group(function () {
+        Route::get('/pos/terminals', [TerminalsController::class, 'index'])->name('terminals');
+        Route::post('/pos/terminals', [TerminalsController::class, 'store'])->name('terminals.store');
+        Route::post('/pos/terminals/settings', [TerminalsController::class, 'settings'])->name('terminals.settings');
+        Route::post('/pos/terminals/{terminal}', [TerminalsController::class, 'update'])->whereNumber('terminal')->name('terminals.update');
+        Route::post('/pos/terminals/{terminal}/release', [TerminalsController::class, 'release'])->whereNumber('terminal')->name('terminals.release');
     });
     Route::middleware(['feature:shifts', 'permission:shifts.manage'])->group(function () {
         Route::get('/shifts', [ShiftsController::class, 'index'])->name('shifts');

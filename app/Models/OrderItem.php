@@ -16,6 +16,7 @@ class OrderItem extends TenantModel
             'unit_price' => 'float',
             'original_price' => 'float',
             'line_total' => 'float',
+            'refunded_qty' => 'integer',
             'options' => 'array',
             'ready_at' => 'datetime',
         ];

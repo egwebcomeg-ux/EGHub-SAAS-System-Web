@@ -6,13 +6,13 @@
 <p class="muted mb-4" dir="ltr">{{ $user->email ?? $user->phone }}</p>
 @include('auth.two-factor-settings')
 
-@if ($user->can('vouchers.exception') && \App\Services\Corporate\CorporateVouchers::enabled())
-    {{-- manager PIN: approves an expired corporate voucher on the cashier's device without signing the cashier out --}}
+@if (\App\Http\Controllers\Dashboard\SecurityController::mayHavePin($user))
+    {{-- manager PIN: approves an expired corporate voucher or a refund on the cashier's device without signing the cashier out --}}
     <section class="card mt-4 max-w-5xl" data-manager-pin>
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <h2 class="section-title">{{ __('Manager PIN') }}</h2>
-                <p class="mt-1 text-sm text-navy-500">{{ __('4 to 6 digits you type on the cashier\'s screen to approve an expired corporate voucher, without the cashier signing out. Keep it to yourself.') }}</p>
+                <p class="mt-1 text-sm text-navy-500">{{ __('4 to 6 digits you type on the cashier\'s screen to approve an expired corporate voucher or a refund, without the cashier signing out. Keep it to yourself.') }}</p>
             </div>
             @if ($user->manager_pin)
                 <span class="badge bg-emerald-100 text-emerald-800" data-pin-state="on">✓ {{ __('Set') }}</span>

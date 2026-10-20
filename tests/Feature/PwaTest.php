@@ -118,7 +118,7 @@ class PwaTest extends TenantTestCase
         $this->get($this->menuUrl())->assertOk()->assertDontSee('rel="manifest"', false);
     }
 
-    public function test_the_dashboard_installs_as_egmenu_with_a_static_only_service_worker(): void
+    public function test_the_dashboard_installs_as_egmenu_with_a_service_worker_that_only_keeps_the_pos_page(): void
     {
         $a = $this->restaurant('cafe-a');
 
@@ -133,7 +133,9 @@ class PwaTest extends TenantTestCase
         }
 
         $response = $this->get($this->dashUrl('/sw.js'))->assertOk()->assertHeader('Service-Worker-Allowed', '/')
-            ->assertSee("'egmenu-dashboard-v1'", false)->assertSee("startsWith('/build/')", false)->assertDontSee('OFFLINE', false)->assertDontSee('navigate', false);
+            ->assertSee("'egmenu-dashboard-v2'", false)->assertSee("startsWith('/build/')", false)->assertDontSee('OFFLINE', false)
+            // the only page it keeps is the POS (offline sales); every other navigation goes to the server
+            ->assertSee("if (url.pathname === '/pos') event.respondWith(posPage(request));", false)->assertSee("'egmenu-pos-shell-v1'", false);
         $this->assertStringStartsWith('application/javascript', (string) $response->headers->get('Content-Type'));
 
         $this->actingAs($this->owner($a))->get($this->dashUrl('/'))->assertOk()

@@ -28,9 +28,10 @@
         <div class="c muted">{{ tr($order->branch->name, $order->branch->name_en) }}@if ($order->branch->phone) · {{ $order->branch->phone }}@endif</div>
     @endif
     <div class="big">#{{ $order->number }}</div>
+    @if ($order->offline_ref)<div class="c muted" data-receipt-offline>({{ __('was :ref', ['ref' => $order->offline_ref]) }})</div>@endif
     <div class="c">
         {{ \App\Models\Order::TYPES[$order->type][app()->getLocale() === 'en' ? 1 : 0] }}@if ($order->table) · {{ __('Table :name', ['name' => $order->table->name]) }}@endif
-        <div class="muted">{{ local_time($order->created_at) }}</div>
+        <div class="muted">{{ local_time($order->created_at) }}@if ($order->terminal) · {{ $order->terminal->label() }}@endif</div>
         @if ($order->customer_name || $order->customer_phone)<div>{{ $order->customer_name }} {{ $order->customer_phone }}</div>@endif
         @if ($order->delivery_address)
             <div style="font-weight:700">{{ $order->delivery_address['zone'] ?? '' }}</div>
@@ -69,11 +70,23 @@
                 @if ($order->total - $order->corporate_amount > 0.004)<tr><td>{{ __('Paid by :method', ['method' => \App\Billing\PaymentMethods::label($order->payment_method ?? 'cash')]) }}</td><td class="n">{{ money($order->total - $order->corporate_amount) }}</td></tr>@endif
             @endif
         </table>
+        @if ($order->payment_status === 'paid' && is_array($order->payments) && (count($order->payments) > 1 || ! empty($order->payments[0]['tendered'])))
+            {{-- how it was paid, line by line (split payment), and the change given back for cash --}}
+            <table data-receipt-payments>
+                @foreach ($order->payments as $p)
+                    <tr><td>{{ \App\Billing\PaymentMethods::label($p['method']) }}</td><td class="n">{{ money($p['amount']) }}</td></tr>
+                    @if (! empty($p['tendered']))<tr class="muted"><td>{{ __('Cash received') }} {{ money($p['tendered']) }}</td><td class="n">{{ __('Change') }} {{ money($p['change'] ?? 0) }}</td></tr>@endif
+                @endforeach
+            </table>
+        @endif
         <div class="c muted" style="margin-top:6px">
             {{ $order->payment_status === 'paid' ? __('Paid') . ' · ' . \App\Billing\PaymentMethods::label($order->payment_method ?? 'cash') : __('Unpaid') }}
         </div>
         <hr>
         <div class="c">{{ __('Thank you for your visit!') }}</div>
+        {{-- the same receipt on the guest's phone (signed link, nothing personal on it) --}}
+        <div class="c" style="margin-top:4px" data-receipt-qr>{!! \App\Services\Qr::svg($order->receiptUrl(), 150) !!}</div>
+        <div class="c muted">{{ __('Scan to keep this receipt on your phone') }}</div>
         <div class="c muted">{{ tenant()->url() }}</div>
     @endunless
 </body>
