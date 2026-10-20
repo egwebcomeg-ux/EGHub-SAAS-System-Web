@@ -9,6 +9,7 @@ use App\Models\TableCall;
 use App\Services\Audit;
 use App\Services\Entitlements;
 use App\Services\Orders\BusyMode;
+use App\Services\Orders\DeliveryService;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use App\Services\Settings;
@@ -37,7 +38,7 @@ class OrdersController extends Controller
         $orders = $this->scoped($request)
             ->where(fn ($q) => $q->whereIn('status', ['new', 'preparing', 'ready', 'on_way'])
                 ->orWhere(fn ($q) => $q->whereIn('status', ['served', 'cancelled'])->where('updated_at', '>=', now()->subHours(3))))
-            ->with(['items', 'table', 'branch'])->orderBy('id')->limit(200)->get();
+            ->with(['items', 'table', 'branch', 'driver'])->orderBy('id')->limit(200)->get();
 
         $branch = $request->user()->branch_id;
         $calls = TableCall::query()->whereNull('handled_at')->when($branch, fn ($q) => $q->where('branch_id', $branch))
@@ -53,7 +54,24 @@ class OrdersController extends Controller
             ])->values(),
             'reservations' => $this->pendingReservations($request),
             'counts' => self::counts($orders),
+            'drivers' => self::assignableDrivers($request),
         ]);
+    }
+
+    /**
+     * The drivers the board can give delivery orders to (delivery plan feature and the assign permission), with the
+     * branch each works for (null = every branch).
+     *
+     * @return list<array{id:int, name:string, branch_id:?int}>
+     */
+    public static function assignableDrivers(Request $request): array
+    {
+        if (! Entitlements::current()->allows('delivery_zones|online_ordering') || ! $request->user()->can('delivery.assign')) {
+            return [];
+        }
+
+        return DeliveryService::drivers($request->user()->branch_id)
+            ->map(fn ($d) => ['id' => $d->id, 'name' => $d->name, 'branch_id' => $d->branch_id])->values()->all();
     }
 
     /**
@@ -92,7 +110,7 @@ class OrdersController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        return response()->json(['ok' => true, 'order' => $this->present($order->fresh()->load(['items', 'table', 'branch']))]);
+        return response()->json(['ok' => true, 'order' => $this->present($order->fresh()->load(['items', 'table', 'branch', 'driver']))]);
     }
 
     /** Bookings waiting for confirmation (reservations feature), shown in the strip on top of the board. */
@@ -164,7 +182,7 @@ class OrdersController extends Controller
             Audit::record('order.cancelled', '#'.$order->number, ['id' => $order->id, 'reason' => $data['reason'] ?? null]);
         }
 
-        return response()->json(['ok' => true, 'order' => $this->present($order->load(['items', 'table', 'branch']))]);
+        return response()->json(['ok' => true, 'order' => $this->present($order->load(['items', 'table', 'branch', 'driver']))]);
     }
 
     /** 80mm receipt for the thermal printer (customer copy, or kitchen copy without prices). */
@@ -173,7 +191,7 @@ class OrdersController extends Controller
         abort_unless($this->visible($request, $order), 404);
 
         return view('dashboard.orders.receipt', [
-            'order' => $order->load(['items', 'table', 'branch']),
+            'order' => $order->load(['items', 'table', 'branch', 'driver']),
             'settings' => Settings::all(),
             'kitchen' => $request->query('copy') === 'kitchen',
         ]);
@@ -204,7 +222,11 @@ class OrdersController extends Controller
             'total' => money($o->total), 'created_at' => $o->created_at->toIso8601String(),
             'time' => local_time($o->created_at, 'h:i A'),
             'reason' => $o->status === 'cancelled' ? $o->cancelReasonLabel() : null,
-            'next' => array_values(array_filter(Order::TRANSITIONS[$o->status] ?? [], fn ($s) => $o->canMoveTo($s))),
+            // on_way → ready is how a failed delivery comes back (the driver reports it), not a board button
+            'next' => array_values(array_filter(Order::TRANSITIONS[$o->status] ?? [], fn ($s) => $o->canMoveTo($s) && ! ($o->status === 'on_way' && $s === 'ready'))),
+            'branch_id' => $o->branch_id, 'driver_id' => $o->driver_id, 'driver' => $o->driver?->name,
+            'delivery_status' => $o->delivery_status, 'delivery_label' => $o->deliveryStatusLabel(),
+            'delivery_reason' => $o->delivery_status === 'failed' ? $o->delivery_fail_reason : null,
             'kinds' => $o->kinds(),
             'parts' => collect($o->parts())->map(fn (bool $ready, string $kind) => ['kind' => $kind, 'label' => PrepKind::label($kind), 'ready' => $ready])->values(),
             'items' => $o->items->map(fn ($i) => [

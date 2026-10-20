@@ -52,6 +52,7 @@ final class ModuleChoice
         'dash.redeem' => ['wallet', 'loyalty', 'pos'],
         'dash.inventory' => ['inventory'],
         'dash.zones' => ['online-ordering', 'call-center'],
+        'dash.drivers' => ['online-ordering', 'call-center'],
         'dash.kiosks' => ['kiosk'],
         'dash.devices' => ['tv-screens', 'kiosk', 'kitchen-display', 'pos'],
         'dash.reports' => ['reports'],

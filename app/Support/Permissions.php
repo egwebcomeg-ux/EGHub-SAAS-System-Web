@@ -16,6 +16,9 @@ final class Permissions
         'callcenter.use' => ['شاشة الكول سنتر', 'Call-center screen'],
         'shifts.manage' => ['فتح وقفل الورديات والدرج', 'Open/close shifts & cash drawer'],
         'delivery.manage' => ['مناطق التوصيل', 'Delivery zones'],
+        'delivery.assign' => ['تحديد الطيار لطلبات التوصيل', 'Assign drivers to delivery orders'],
+        'delivery.drivers' => ['متابعة الطيارين وتسوية فلوسهم', 'Track drivers and settle their cash'],
+        'delivery.drive' => ['شاشة الطيار (طلباتي للتوصيل)', 'Driver screen (my deliveries)'],
         'kitchen.view' => ['شاشة المطبخ', 'Kitchen display'],
         'menu.manage' => ['إدارة المنيو والأقسام', 'Manage menu'],
         'menu.availability' => ['تحديد الأصناف اللي خلصت', 'Mark items sold out'],
@@ -52,16 +55,17 @@ final class Permissions
             'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'pos.discount', 'pos.hold.discard', 'pos.refund', 'callcenter.use', 'shifts.manage',
                 'kitchen.view', 'menu.manage', 'menu.availability', 'inventory.manage', 'tables.manage', 'branches.manage', 'delivery.manage',
                 'customers.view', 'customers.import', 'loyalty.stamp', 'loyalty.manage', 'vouchers.give', 'marketing.manage', 'reports.view', 'settings.manage', 'audit.view',
-                'wallet.manage', 'kiosk.manage', 'reservations.manage', 'contracts.manage', 'vouchers.redeem', 'vouchers.exception'],
+                'wallet.manage', 'kiosk.manage', 'reservations.manage', 'contracts.manage', 'vouchers.redeem', 'vouchers.exception',
+                'delivery.assign', 'delivery.drivers'],
         ],
         'cashier' => [
             'label' => ['كاشير', 'Cashier'],
             'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'shifts.manage', 'menu.availability', 'customers.view', 'loyalty.stamp', 'wallet.manage',
-                'vouchers.redeem'],
+                'vouchers.redeem', 'delivery.assign'],
         ],
         'callcenter' => [
             'label' => ['كول سنتر', 'Call center'],
-            'permissions' => ['orders.view', 'orders.manage', 'callcenter.use', 'customers.view', 'loyalty.stamp'],
+            'permissions' => ['orders.view', 'orders.manage', 'callcenter.use', 'customers.view', 'loyalty.stamp', 'delivery.assign'],
         ],
         'kitchen' => [
             'label' => ['مطبخ', 'Kitchen'],
@@ -70,6 +74,11 @@ final class Permissions
         'waiter' => [
             'label' => ['ويتر', 'Waiter'],
             'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'menu.availability'],
+        ],
+        // a delivery driver sees only the orders given to them (App\Http\Controllers\Dashboard\DriverController)
+        'driver' => [
+            'label' => ['طيار توصيل', 'Delivery driver'],
+            'permissions' => ['delivery.drive'],
         ],
     ];
 

@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Order;
+use App\Services\Orders\DeliveryService;
 use Illuminate\Support\Carbon;
 
 /**
@@ -31,7 +32,8 @@ final class OrderTracking
      * @return array{status:string, label:string, final:bool, cancelled:bool, headline:string, step:int,
      *               steps:list<array{key:string, label:string, done:bool, current:bool, time:?string}>,
      *               parts:list<array{kind:string, label:string, ready:bool}>,
-     *               eta:?array{kind:string, at:string, time:string, text:string, late:bool, minutes:?int}, now:string}
+     *               eta:?array{kind:string, at:string, time:string, text:string, late:bool, minutes:?int},
+     *               driver:?array{name:string, lat:?float, lng:?float, at:?string, minutes:?int}, now:string}
      */
     public function toArray(): array
     {
@@ -74,6 +76,8 @@ final class OrderTracking
             'steps' => $steps,
             'parts' => $parts,
             'eta' => $this->eta($onWayAt),
+            // the driver's first name and latest position, only while this order is out for delivery with them
+            'driver' => DeliveryService::guestView($order),
             'now' => now()->toIso8601String(),
         ];
     }

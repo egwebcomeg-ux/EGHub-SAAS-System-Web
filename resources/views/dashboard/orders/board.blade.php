@@ -18,6 +18,7 @@
         'foodReady' => __('Food ready'), 'drinksReady' => __('Drinks ready'),
         'partReady' => __('ready'), 'partWaiting' => __('not yet'), 'noMatch' => __('No orders match this filter'),
         'wasRef' => __('was :ref', ['ref' => '__R__']),
+        'driver' => __('Driver'), 'chooseDriver' => __('Choose a driver…'), 'noDriver' => __('No driver'),
     ];
     $canManage = auth()->user()->can('orders.manage');
     // quick filters: [key, label]; the counts come live from the feed
@@ -90,6 +91,7 @@
      data-feed="{{ route('dash.orders.feed') }}"
      data-status-url="{{ url('/orders/__ID__/status') }}"
      data-part-url="{{ url('/orders/__ID__/part-ready') }}"
+     data-driver-url="{{ url('/orders/__ID__/driver') }}"
      data-call-url="{{ url('/orders/calls/__ID__') }}"
      data-reservation-url="{{ url('/reservations/__ID__/status') }}"
      data-poll="{{ $poll }}"

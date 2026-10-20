@@ -19,6 +19,8 @@ use App\Http\Controllers\Dashboard\CustomersController;
 use App\Http\Controllers\Dashboard\DeliveryZonesController;
 use App\Http\Controllers\Dashboard\DevicesController;
 use App\Http\Controllers\Dashboard\DomainController;
+use App\Http\Controllers\Dashboard\DriverController;
+use App\Http\Controllers\Dashboard\DriversController;
 use App\Http\Controllers\Dashboard\FeedbackController;
 use App\Http\Controllers\Dashboard\HoldsController;
 use App\Http\Controllers\Dashboard\HomeController;
@@ -363,6 +365,26 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/delivery-zones/{zone}/area', [DeliveryZonesController::class, 'polygon'])->name('zones.polygon');
         Route::post('/delivery-zones/{zone}/delete', [DeliveryZonesController::class, 'destroy'])->name('zones.delete');
     });
+
+    // Delivery drivers (same plan feature as delivery): the driver's own screen and its JSON actions (the driver app
+    // wraps these), giving orders to drivers, and the live drivers page with their cash
+    Route::middleware(['feature:delivery_zones|online_ordering', 'permission:delivery.drive'])->group(function () {
+        Route::get('/driver', [DriverController::class, 'screen'])->name('driver');
+        Route::get('/driver/orders', [DriverController::class, 'orders'])->name('driver.orders');
+        Route::post('/driver/orders/{order}/picked-up', [DriverController::class, 'pickUp'])->whereNumber('order')->middleware('throttle:30,1')->name('driver.picked-up');
+        Route::post('/driver/orders/{order}/delivered', [DriverController::class, 'deliver'])->whereNumber('order')->middleware('throttle:30,1')->name('driver.delivered');
+        Route::post('/driver/orders/{order}/failed', [DriverController::class, 'fail'])->whereNumber('order')->middleware('throttle:30,1')->name('driver.failed');
+        Route::post('/driver/location', [DriverController::class, 'location'])->middleware('throttle:12,1')->name('driver.location');
+    });
+    Route::middleware(['feature:delivery_zones|online_ordering', 'permission:delivery.assign'])->group(function () {
+        Route::post('/orders/{order}/driver', [DriversController::class, 'assign'])->whereNumber('order')->name('orders.driver');
+    });
+    Route::middleware(['feature:delivery_zones|online_ordering', 'permission:delivery.assign|delivery.drivers'])->group(function () {
+        Route::get('/drivers', [DriversController::class, 'index'])->name('drivers');
+        Route::get('/drivers/feed', [DriversController::class, 'feed'])->name('drivers.feed');
+    });
+    Route::post('/drivers/{driver}/settle', [DriversController::class, 'settle'])->whereNumber('driver')
+        ->middleware(['feature:delivery_zones|online_ordering', 'permission:delivery.drivers'])->name('drivers.settle');
 
     // Call-center pack: phone orders with delivery zones
     Route::middleware(['feature:call_center', 'permission:callcenter.use'])->group(function () {

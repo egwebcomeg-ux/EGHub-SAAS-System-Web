@@ -34,6 +34,10 @@
                 <button type="button" class="btn-ghost min-h-9 px-3" data-topup-open>💳 {{ __('Top up balance') }}</button>
                 <button type="button" class="btn-ghost min-h-9 px-3" data-gift-open>🎁 {{ __('Gift card') }}</button>
             @endif
+            @if ($cc && auth()->user()->canAny(['delivery.assign', 'delivery.drivers']) && \App\Services\Entitlements::current()->allows('delivery_zones|online_ordering'))
+                {{-- delivery orders taken here get their driver on the drivers page (or the orders board) --}}
+                <a href="{{ route('dash.drivers') }}" class="btn-ghost min-h-9 px-3" target="_blank" rel="noopener" data-drivers-link>🛵 {{ __('Drivers') }}</a>
+            @endif
             <button type="button" class="btn-ghost min-h-9 px-3" data-open-orders>{{ __('Open orders') }} <span class="badge bg-brand-600 text-white" data-open-count>0</span></button>
             @unless ($cc)
                 <button type="button" class="btn-ghost min-h-9 px-3" data-holds-open>⏸ {{ __('Held') }} <span class="badge bg-navy-700 text-white" data-holds-count>0</span></button>

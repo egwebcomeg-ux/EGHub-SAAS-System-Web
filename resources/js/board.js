@@ -10,6 +10,7 @@ if (board) {
     const baseTitle = document.title.replace(/^\(\d+\) .*? · /, '').replace(/^\(\d+\) /, '');
     let lastMaxId = null;
     let lastCallId = null;
+    let drivers = []; // who delivery orders can go to (empty without the delivery feature or the assign permission)
     let soundOn = false;
     try { soundOn = localStorage.getItem('egmenu.sound') === '1'; } catch {}
     let audio = null;
@@ -116,6 +117,16 @@ if (board) {
         const buttons = canManage ? partButtons + o.next.filter((s) => s !== 'cancelled' && !(split && s === 'ready')).map((s) => `
             <button class="btn-primary min-h-10 flex-1" data-move="${o.id}" data-to="${s}">${esc(t[s])}</button>`).join('')
             + (o.next.includes('cancelled') ? `<button class="btn-ghost min-h-10 px-3 text-red-600" data-move="${o.id}" data-to="cancelled">${esc(t.cancel)}</button>` : '') : '';
+        // delivery: the driver's step, and who takes it (assign / reassign until the driver has left with it)
+        const open = !['served', 'cancelled'].includes(o.status);
+        const choices = drivers.filter((d) => !d.branch_id || d.branch_id === o.branch_id);
+        const driverPick = o.type === 'delivery' && open && o.delivery_status !== 'picked_up' && choices.length
+            ? `<select class="field mt-2 min-h-10 py-0 text-sm" data-driver-select="${o.id}" aria-label="${esc(t.driver)}">
+                <option value="">${esc(o.driver_id ? t.noDriver : t.chooseDriver)}</option>
+                ${choices.map((d) => `<option value="${d.id}" ${d.id === o.driver_id && o.delivery_status === 'assigned' ? 'selected' : ''}>🛵 ${esc(d.name)}</option>`).join('')}
+            </select>` : '';
+        const driverInfo = o.delivery_status ? `
+            <p class="mt-1 text-xs font-semibold ${o.delivery_status === 'failed' ? 'text-red-700' : 'text-navy-700'}" data-driver-info>🛵 ${esc(o.driver || '')} · ${esc(o.delivery_label)}${o.delivery_reason ? ` · <span class="font-normal">${esc(o.delivery_reason)}</span>` : ''}</p>` : '';
         return `
             <article class="rounded-xl border border-navy-100 bg-navy-50/40 p-3 ${age} ${waiting}">
                 <header class="mb-2 flex items-start justify-between gap-2">
@@ -128,6 +139,7 @@ if (board) {
                 ${o.customer ? `<p class="mt-1 text-xs text-navy-500">${esc(o.customer)}</p>` : ''}
                 ${o.address ? `<p class="mt-1 text-xs font-semibold text-navy-700">📍 ${esc(o.address)}</p>` : ''}
                 ${o.scheduled ? `<p class="mt-1 rounded-lg bg-amber-50 p-1.5 text-xs font-bold text-amber-800">🕒 ${esc(o.scheduled)}</p>` : ''}
+                ${driverInfo}${driverPick}
                 <div class="mt-2 text-sm font-bold">${esc(o.total)} ${esc(t.currency)}</div>
                 ${buttons ? `<div class="mt-3 flex flex-wrap gap-2">${buttons}</div>` : ''}
                 ${['served', 'cancelled'].includes(o.status) ? `<div class="mt-2 text-xs font-bold text-navy-500">${esc(o.status_label)}${o.reason ? ` · <span class="font-normal">${esc(o.reason)}</span>` : ''}</div>` : ''}
@@ -171,6 +183,8 @@ if (board) {
     function render(orders, counts = null) {
         lastOrders = orders;
         if (counts) renderChips(counts);
+        // a driver list someone is choosing in is not redrawn under their finger (the next poll catches up)
+        if (document.activeElement?.matches?.('[data-driver-select]')) return;
         const cols = { new: [], preparing: [], ready: [], done: [] };
         const chip = FILTERS[filter] || FILTERS.all;
         // the search box: the order number (#121) or the reference it had offline (OFF-K1-3)
@@ -307,6 +321,7 @@ if (board) {
             const data = await res.json();
             if (lastMaxId !== null && data.max_id > lastMaxId) chime();
             lastMaxId = data.max_id;
+            drivers = data.drivers || [];
             render(data.orders, data.counts);
             renderBusy(data.busy || null);
             renderCalls(data.calls || []);
@@ -321,6 +336,7 @@ if (board) {
 
     async function refresh() {
         const data = await (await fetch(board.dataset.feed, { headers: { Accept: 'application/json' } })).json();
+        drivers = data.drivers || drivers;
         render(data.orders, data.counts);
     }
 
@@ -357,6 +373,21 @@ if (board) {
             alert(body.message || res.status);
         }
         lastMaxId = lastMaxId ?? 0;
+        await refresh();
+    });
+
+    // give a delivery order to a driver (or take it back) right from its card
+    board.parentElement.addEventListener('change', async (e) => {
+        const select = e.target.closest('[data-driver-select]');
+        if (!select) return;
+        select.disabled = true;
+        const res = await fetch(board.dataset.driverUrl.replace('__ID__', select.dataset.driverSelect), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
+            body: JSON.stringify({ driver_id: select.value ? Number(select.value) : null }),
+        });
+        if (!res.ok) alert((await res.json().catch(() => ({}))).message || res.status);
+        select.blur();
         await refresh();
     });
 

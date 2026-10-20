@@ -498,6 +498,7 @@ final class OrderService
             if ($to === 'cancelled') {
                 $order->cancel_reason = $reason ? mb_substr($reason, 0, 200) : null;
             }
+            DeliveryService::syncWithStatus($order, $from, $to); // the driver's steps follow the order (picked up, delivered)
             $order->save();
             OrderStatusHistory::query()->create(['order_id' => $order->id, 'from_status' => $from, 'to_status' => $to, 'user_id' => $by?->id]);
             // the visit, spend and loyalty stamps count once the guest got the order (or paid, see pay())
@@ -517,7 +518,9 @@ final class OrderService
             if ($to === 'cancelled' && $order->table_session_id) {
                 $order->tableSession?->refreshTotal();
             }
-            DB::afterCommit(fn () => app(GuestNotifier::class)->orderMoved($order, $to)); // WhatsApp "ready" / "on the way"
+            if (! ($from === 'on_way' && $to === 'ready')) { // a failed delivery back at the restaurant is no "ready" news for the guest
+                DB::afterCommit(fn () => app(GuestNotifier::class)->orderMoved($order, $to)); // WhatsApp "ready" / "on the way"
+            }
 
             return $order;
         });

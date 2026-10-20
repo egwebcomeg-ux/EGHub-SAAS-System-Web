@@ -14,13 +14,18 @@ use App\Services\MenuSetupRequest;
 use App\Services\ModuleChoice;
 use App\Services\Onboarding;
 use App\Support\BusinessType;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class HomeController extends Controller
 {
-    public function index(MenuSetupRequest $menuSetup): View
+    public function index(MenuSetupRequest $menuSetup): View|RedirectResponse
     {
         $rights = Entitlements::current();
+        // a delivery driver has one screen: their deliveries (the future driver app opens the same page)
+        if (request()->user()->hasRole('driver') && $rights->allows('delivery_zones|online_ordering')) {
+            return redirect()->route('dash.driver');
+        }
         $limits = [];
         foreach (array_keys(Plan::LIMITS) as $key) {
             $limits[$key] = ['label' => Plan::label($key), 'used' => $rights->usage($key), 'limit' => $rights->limit($key)];

@@ -138,6 +138,23 @@
         @endif
     </div>
 
+    @if ($order->type === 'delivery' && ! $final)
+        {{-- the driver on the map, only while this order is out for delivery with them (filled by the status feed) --}}
+        @include('partials.leaflet')
+        @php($driver = $tracking['driver'])
+        <div class="card mt-4" data-driver-box @if (! $driver) hidden @endif>
+            <div class="flex items-center gap-3">
+                <span class="grid size-11 shrink-0 place-items-center rounded-full text-xl" style="background: color-mix(in srgb, var(--menu-accent) 14%, transparent)" aria-hidden="true">🛵</span>
+                <div class="min-w-0">
+                    <div class="font-extrabold" data-driver-name>{{ $driver ? __(':name is bringing your order', ['name' => $driver['name']]) : '' }}</div>
+                    <div class="text-xs m-muted" data-driver-seen></div>
+                </div>
+            </div>
+            <div class="mt-3 h-56 overflow-hidden rounded-xl" dir="ltr" data-driver-map @if (! ($driver['lat'] ?? null)) hidden @endif></div>
+            <p class="mt-3 rounded-xl m-surface-2 px-3 py-2 text-sm m-muted" data-driver-waiting @if ($driver['lat'] ?? null) hidden @endif>{{ __('The driver’s position shows here as soon as it arrives.') }}</p>
+        </div>
+    @endif
+
     @if ($order->status === 'served' && \App\Services\Entitlements::current()->allows('feedback'))
         @include('partials.rate-us', ['orderToken' => $order->tracking_token])
     @endif
@@ -287,10 +304,43 @@
                 pop(el);
             });
             renderEta(d.eta);
+            renderDriver(d.driver);
             state = d;
         }
 
-        const signature = (d) => JSON.stringify([d.status, d.steps, d.parts, d.eta && d.eta.at, d.headline]);
+        // ---- the driver on the map (Leaflet from the CDN), only while the order is out for delivery ----
+        const driverBox = root.querySelector('[data-driver-box]');
+        const dt = @js(['bringing' => __(':name is bringing your order', ['name' => '__N__']), 'seen' => __('Location updated :n min ago', ['n' => '__N__']), 'now' => __('Location updated just now')]);
+        const destination = @js(isset($order->delivery_address['lat'], $order->delivery_address['lng']) ? [(float) $order->delivery_address['lat'], (float) $order->delivery_address['lng']] : null);
+        let driverMap = null;
+        let driverMarker = null;
+        function renderDriver(driver) {
+            if (!driverBox) return;
+            driverBox.hidden = !driver;
+            if (!driver) return;
+            driverBox.querySelector('[data-driver-name]').textContent = dt.bringing.replace('__N__', driver.name);
+            const has = driver.lat !== null && driver.lng !== null;
+            driverBox.querySelector('[data-driver-waiting]').hidden = has;
+            const mapEl = driverBox.querySelector('[data-driver-map]');
+            mapEl.hidden = !has;
+            driverBox.querySelector('[data-driver-seen]').textContent = has ? (driver.minutes > 0 ? dt.seen.replace('__N__', driver.minutes) : dt.now) : '';
+            if (!has || !window.L) return;
+            const pos = [driver.lat, driver.lng];
+            if (!driverMap) {
+                driverMap = L.map(mapEl, { zoomControl: false, attributionControl: true }).setView(pos, 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(driverMap);
+                driverMarker = L.circleMarker(pos, { radius: 10, color: '#fff', weight: 3, fillColor: getComputedStyle(root).getPropertyValue('--menu-accent').trim() || '#F26522', fillOpacity: 1 }).addTo(driverMap);
+                if (destination) {
+                    L.circleMarker(destination, { radius: 7, color: '#0A2540', weight: 2, fillColor: '#fff', fillOpacity: 1 }).addTo(driverMap);
+                    driverMap.fitBounds([pos, destination], { padding: [30, 30], maxZoom: 16 });
+                }
+            } else {
+                driverMarker.setLatLng(pos);
+                if (!destination) driverMap.panTo(pos);
+            }
+        }
+
+        const signature = (d) => JSON.stringify([d.status, d.steps, d.parts, d.eta && d.eta.at, d.headline, d.driver]);
 
         async function tick() {
             timer = null;
@@ -302,6 +352,7 @@
                 const d = await res.json();
                 offset = Date.parse(d.now) - Date.now();
                 if (signature(d) !== signature(state)) { render(d); delay = 8000; } else { delay = Math.min(delay * 1.25, 30000); }
+                if (d.driver) delay = Math.min(delay, 15000); // the driver moves: keep the map fresh
             } catch (e) {
                 delay = Math.min(delay * 2, 60000);
             }
@@ -320,6 +371,7 @@
         });
         setInterval(() => { if (!document.hidden) renderEta(state.eta); }, 30000);
         renderEta(state.eta);
+        renderDriver(state.driver);
         schedule();
     })();
 </script>

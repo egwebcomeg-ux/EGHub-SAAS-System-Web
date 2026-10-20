@@ -9,8 +9,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A guest / POS / call-center order. Status flow: new → preparing → ready → served, and for delivery
- * ready → on_way → served. Cancelable until served. Status changes go through OrderService so every change is
- * recorded in order_status_histories with its timestamp column.
+ * ready → on_way → served (on_way → ready when the delivery failed and the order is back at the restaurant).
+ * Cancelable until served. Status changes go through OrderService so every change is recorded in
+ * order_status_histories with its timestamp column. A delivery order can have a driver (App\Services\Orders\Delivery):
+ * delivery_status assigned → picked_up (order on_way) → delivered (order served), or failed with a reason.
  */
 class Order extends TenantModel
 {
@@ -27,7 +29,7 @@ class Order extends TenantModel
         'new' => ['preparing', 'cancelled'],
         'preparing' => ['ready', 'cancelled'],
         'ready' => ['served', 'on_way', 'cancelled'],
-        'on_way' => ['served', 'cancelled'],
+        'on_way' => ['served', 'ready', 'cancelled'],
         'served' => [],
         'cancelled' => [],
     ];
@@ -45,6 +47,14 @@ class Order extends TenantModel
         'dine_in' => ['صالة', 'Dine-in'],
         'takeaway' => ['تيك أواي', 'Takeaway'],
         'delivery' => ['توصيل', 'Delivery'],
+    ];
+
+    /** The driver's steps of a delivery order. */
+    public const DELIVERY_STATUSES = [
+        'assigned' => ['اتحدد الطيار', 'Assigned'],
+        'picked_up' => ['خرج للتوصيل', 'Out for delivery'],
+        'delivered' => ['اتسلّم للعميل', 'Delivered'],
+        'failed' => ['التوصيل ما تمّش', 'Delivery failed'],
     ];
 
     /** Orders guests place themselves (the board alarm rings for these until someone accepts them). */
@@ -87,6 +97,12 @@ class Order extends TenantModel
             'stock_deducted_at' => 'datetime',
             'created_offline_at' => 'datetime',
             'synced_at' => 'datetime',
+            'driver_assigned_at' => 'datetime',
+            'picked_up_at' => 'datetime',
+            'delivered_at' => 'datetime',
+            'delivery_failed_at' => 'datetime',
+            'cash_collected' => 'float',
+            'cash_settled_at' => 'datetime',
             'needs_review' => 'boolean',
             'review_notes' => 'array',
             'payments' => 'array',
@@ -100,6 +116,27 @@ class Order extends TenantModel
         }
 
         return in_array($status, self::TRANSITIONS[$this->status] ?? [], true);
+    }
+
+    public function deliveryStatusLabel(): ?string
+    {
+        if (! $this->delivery_status) {
+            return null;
+        }
+        $l = self::DELIVERY_STATUSES[$this->delivery_status] ?? [$this->delivery_status, $this->delivery_status];
+
+        return app()->getLocale() === 'en' ? $l[1] : $l[0];
+    }
+
+    /** What the driver collects at the door: the total of an order not paid yet, nothing for a paid one. */
+    public function amountToCollect(): float
+    {
+        return $this->payment_status === 'paid' ? 0.0 : round((float) $this->total, 2);
+    }
+
+    public function driver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'driver_id');
     }
 
     public function statusLabel(): string
