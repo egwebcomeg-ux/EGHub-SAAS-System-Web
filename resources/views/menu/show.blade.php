@@ -698,6 +698,15 @@
                                 <span class="m-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg> {{ __('The address in detail') }}</span>
                                 <textarea class="field min-h-16 py-2" maxlength="300" data-address placeholder="{{ __('Street, building, floor, apartment, landmark') }}"></textarea>
                             </label>
+                            {{-- optional pin on the map: the driver navigates straight to it (with drawn zones it picks the zone too) --}}
+                            <div class="space-y-2" data-pin-box>
+                                <button type="button" class="m-border flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border font-bold" data-pin-open>🗺️ <span data-pin-open-text>{{ __('Pin my location on the map') }}</span></button>
+                                <div class="hidden items-center justify-between gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-900 ring-1 ring-emerald-200" data-pin-done>
+                                    <span>📍 {{ __('Your location is pinned: the driver comes straight to it.') }}</span>
+                                    <button type="button" class="shrink-0 font-bold underline" data-pin-clear>{{ __('Remove') }}</button>
+                                </div>
+                                <p class="hidden rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 ring-1 ring-amber-200" data-pin-outside>{{ __('Sorry, we do not deliver to your location yet.') }}</p>
+                            </div>
                         </div>
                         @if ($online['scheduled'])
                             {{-- as soon as possible by default; a set time only for the guest who asks for one --}}
@@ -864,6 +873,25 @@
             @endforeach
         </form>
     </dialog>
+
+    {{-- "pin my location": a draggable pin on the map (Leaflet loads on demand), "use my current location", confirm --}}
+    <dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/50 sm:m-auto sm:max-w-lg" data-pin-sheet aria-labelledby="pin-sheet-title">
+        <form method="dialog" class="m-surface max-h-[92dvh] overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl">
+            <div class="mb-1 flex items-center justify-between">
+                <h3 id="pin-sheet-title" class="text-xl font-extrabold">📍 {{ __('Where exactly are you?') }}</h3>
+                <button value="cancel" class="m-muted text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
+            </div>
+            <p class="m-muted mb-3 text-sm">{{ __('Drag the pin to your door, or tap the map. The driver navigates straight to it.') }}</p>
+            <div class="h-72 overflow-hidden rounded-2xl bg-black/5" dir="ltr" data-pin-map></div>
+            <p class="m-muted mt-2 hidden text-center text-sm" data-pin-loading>{{ __('Loading the map…') }}</p>
+            <p class="mt-2 hidden rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 ring-1 ring-amber-200" data-pin-sheet-outside>{{ __('This point is outside our delivery areas. Move the pin closer, or choose your area from the list.') }}</p>
+            <p class="mt-2 hidden rounded-xl bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-900 ring-1 ring-emerald-200" data-pin-zone></p>
+            <div class="mt-3 grid grid-cols-2 gap-2">
+                <button type="button" class="m-border min-h-12 rounded-2xl border font-bold" data-pin-locate>🎯 {{ __('Use my current location') }}</button>
+                <button type="button" class="m-primary min-h-12 rounded-2xl font-extrabold" data-pin-confirm>✓ {{ __('Confirm the location') }}</button>
+            </div>
+        </form>
+    </dialog>
 @endif
 
 <script type="application/json" id="menu-data">{!! json_encode($data, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>
@@ -900,6 +928,9 @@
         'linkCopied' => __('Link copied'),
         'missing' => __('To send, add: :list', ['list' => '__L__']), 'missingName' => __('your name'), 'missingPhone' => __('your mobile'),
         'missingZone' => __('your area'), 'missingAddress' => __('the address'),
+        'pinOutside' => __('The pinned location is outside our delivery areas.'), 'pinInZone' => __('Your pin is in :zone', ['zone' => '__Z__']),
+        'pinChange' => __('Change my location on the map'), 'pinNoLocation' => __('We could not get your location. Drag the pin to your door.'),
+        'pinMapFailed' => __('The map could not load. Write the address in detail instead.'),
         'missingMin' => __('Add :left more to reach the minimum order of your area (:min)', ['left' => '__A__', 'min' => '__M__']),
         'etaPickup' => __('Ready for pickup in about :n minutes', ['n' => '__N__']), 'etaDelivery' => __('At your door in about :n minutes', ['n' => '__N__']),
         'offersSaved' => __('You save :amount with the offers', ['amount' => '__A__']),

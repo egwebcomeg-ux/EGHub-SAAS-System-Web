@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Shift;
 use App\Models\User;
 use App\Services\Audit;
+use App\Services\Notify\GuestNotifier;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +37,12 @@ final class DeliveryService
 
     /** The guest stops seeing a position older than this. */
     public const FRESH_MINUTES = 15;
+
+    /**
+     * How a guest can pay the driver at the door (the POS method keys): cash stays with the driver until the manager
+     * settles it; card (the driver's machine), InstaPay and a mobile wallet reach the restaurant at once.
+     */
+    public const DOOR_METHODS = ['cash', 'card', 'instapay', 'wallet'];
 
     public function __construct(private OrderService $orders) {}
 
@@ -95,6 +102,9 @@ final class DeliveryService
                 'delivery_failed_at' => null, 'delivery_fail_reason' => null,
             ])->save();
             Audit::record('order.driver', '#'.$order->number, ['id' => $order->id, 'driver' => $driver?->id, 'by' => $by->id]);
+            if ($driver) {
+                DB::afterCommit(fn () => app(GuestNotifier::class)->driverAssigned($order, $driver)); // WhatsApp to the driver (setting)
+            }
 
             return $order;
         });
@@ -111,12 +121,30 @@ final class DeliveryService
         return $this->orders->transition($order, 'on_way', $driver);
     }
 
-    /** The guest got the order: it is served, and what was collected at the door is noted for the driver. */
-    public function deliver(Order $order, User $driver): Order
+    /**
+     * The guest got the order: it is served. For an order not paid yet $method says how the guest paid at the door
+     * (DOOR_METHODS, cash when not given): cash is noted as collected by the driver until the manager settles it;
+     * card, InstaPay and a mobile wallet are paid at once through the POS payment (into the branch's open shift when
+     * one is open, so the shift and the reports count them) and the driver holds nothing for them.
+     */
+    public function deliver(Order $order, User $driver, ?string $method = null): Order
     {
         $this->ensureTheirs($order, $driver, ['picked_up']);
+        $method = $order->payment_status === 'paid' ? null : ($method ?: 'cash');
+        if ($method !== null && ! in_array($method, self::DOOR_METHODS, true)) {
+            throw new OrderException(__('Choose how the guest paid: cash, card, InstaPay or a mobile wallet.'));
+        }
 
-        return $this->orders->transition($order, 'served', $driver);
+        return DB::transaction(function () use ($order, $driver, $method) {
+            $order->forceFill(['delivery_payment_method' => $method]);
+            $this->orders->transition($order, 'served', $driver); // syncWithStatus() notes the cash collected (cash only)
+            if ($method !== null && $method !== 'cash') {
+                $shift = Shift::query()->whereNull('closed_at')->where('branch_id', $order->branch_id)->latest('id')->first();
+                $this->orders->pay($order, $method, $driver, $shift, withoutShift: $shift === null);
+            }
+
+            return $order;
+        });
     }
 
     /** The delivery did not happen: noted with its reason, and an order out for delivery is back at the restaurant. */
@@ -153,9 +181,12 @@ final class DeliveryService
         if ($to === 'on_way' && $order->delivery_status === 'assigned') {
             $order->forceFill(['delivery_status' => 'picked_up', 'picked_up_at' => now()]);
         } elseif ($to === 'served' && in_array($order->delivery_status, ['assigned', 'picked_up'], true)) {
+            // the driver holds cash only: a card / InstaPay / wallet payment at the door is paid at once (deliver())
+            $cash = in_array($order->delivery_payment_method, [null, 'cash'], true) ? $order->amountToCollect() : 0.0;
             $order->forceFill([
                 'delivery_status' => 'delivered', 'delivered_at' => now(), 'picked_up_at' => $order->picked_up_at ?? now(),
-                'cash_collected' => $order->amountToCollect(),
+                'delivery_payment_method' => $order->payment_status === 'paid' ? null : ($order->delivery_payment_method ?? 'cash'),
+                'cash_collected' => $cash,
             ]);
         } elseif ($to === 'ready' && $from === 'on_way' && $order->delivery_status === 'picked_up') {
             $order->forceFill(['delivery_status' => 'failed', 'delivery_failed_at' => now(), 'delivery_fail_reason' => __('Back at the restaurant')]);
@@ -260,6 +291,17 @@ final class DeliveryService
         return Order::query()->where('driver_id', $driver->id)->where('delivery_status', 'delivered')->where('status', 'served')
             ->where('cash_collected', '>', 0)->whereNull('cash_settled_at')
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId));
+    }
+
+    /**
+     * The stored trail of an order (the driver's positions while it was out for delivery), oldest first.
+     *
+     * @return list<array{lat:float, lng:float, at:string}>
+     */
+    public static function trail(Order $order): array
+    {
+        return DeliveryTrackPoint::query()->where('order_id', $order->id)->orderBy('recorded_at')->orderBy('id')->get()
+            ->map(fn (DeliveryTrackPoint $p) => ['lat' => $p->lat, 'lng' => $p->lng, 'at' => $p->recorded_at->toIso8601String()])->values()->all();
     }
 
     /** "Open in Google Maps" for the address: the pinned point when there is one, else the written address. */

@@ -116,6 +116,7 @@ final class Settings
         'wa_reservation_confirmed' => '0',
         'wa_loyalty_reward' => '0',
         'wa_order_to_staff' => '0',         // new table/online/kiosk orders also go to the branch's own WhatsApp number
+        'wa_driver_assigned' => '0',        // a delivery order given to a driver: a WhatsApp to the driver's own number
         'wa_sender_name' => '',
         // cashback (feature cashback): this share of every counted order goes back to the guest's wallet balance
         'cashback_percent' => '0',

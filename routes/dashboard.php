@@ -382,6 +382,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::middleware(['feature:delivery_zones|online_ordering', 'permission:delivery.assign|delivery.drivers'])->group(function () {
         Route::get('/drivers', [DriversController::class, 'index'])->name('drivers');
         Route::get('/drivers/feed', [DriversController::class, 'feed'])->name('drivers.feed');
+        Route::get('/drivers/orders/{order}/trail', [DriversController::class, 'trail'])->whereNumber('order')->name('drivers.trail');
     });
     Route::post('/drivers/{driver}/settle', [DriversController::class, 'settle'])->whereNumber('driver')
         ->middleware(['feature:delivery_zones|online_ordering', 'permission:delivery.drivers'])->name('drivers.settle');

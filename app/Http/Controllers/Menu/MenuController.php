@@ -26,6 +26,7 @@ use App\Services\Wallet\WalletService;
 use App\Support\DineIn;
 use App\Support\ItemBadges;
 use App\Support\ItemPlaceholder;
+use App\Support\Leaflet;
 use App\Support\MenuIntro;
 use App\Support\MenuLayouts;
 use App\Support\MenuThemes;
@@ -210,6 +211,11 @@ class MenuController extends Controller
                 ])->values() : [],
                 // "outside every zone": the guest can still ask the branch on WhatsApp
                 'whatsapp' => ($wa = (string) ($branch->whatsapp ?: $settings['whatsapp'] ?: $branch->phone)) !== '' ? whatsapp_number($wa) : null,
+                // "pin my location" at the delivery step: the map library loads on demand (App\Support\Leaflet), the
+                // map opens on the branch; with drawn zones the pin picks the zone and must fall inside one
+                'leaflet' => $online && $online['delivery'] ? Leaflet::assets() : null,
+                'zoneMode' => $settings['delivery_zone_mode'] === 'map' ? 'map' : 'manual',
+                'branchPoint' => $branch->lat !== null && $branch->lng !== null ? [(float) $branch->lat, (float) $branch->lng] : null,
                 'canOrder' => $canOrder,
                 // first mode of the cart; on the general link the guest's choice (sessionStorage) switches hall <-> online
                 'mode' => $cartMode,

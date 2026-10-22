@@ -333,6 +333,7 @@
                         'wa_reservation_confirmed' => [__('Reservation confirmed'), __('When you confirm a table booking')],
                         'wa_loyalty_reward' => [__('Loyalty reward earned'), __('When a guest\'s card reaches a reward')],
                         'wa_order_to_staff' => [__('New orders to your own WhatsApp'), __('Table, online and kiosk orders go to each branch\'s WhatsApp number (or the restaurant\'s) as well as the order board')],
+                        'wa_driver_assigned' => [__('Delivery orders to the driver'), __('When a delivery order is given to a driver, the order and the address go to the driver\'s own number')],
                     ];
                 @endphp
                 <div class="space-y-2">

@@ -11,6 +11,7 @@ use App\Services\Settings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Validation\Rule;
 
 /**
  * The delivery driver's screen (/driver): their own active orders with big buttons — picked up, delivered, failed —
@@ -49,9 +50,12 @@ class DriverController extends Controller
         return $this->act($request, $order, fn () => $delivery->pickUp($order, $request->user()));
     }
 
+    /** Delivered; `method` says how an unpaid order was paid at the door (DeliveryService::DOOR_METHODS, cash by default). */
     public function deliver(Request $request, Order $order, DeliveryService $delivery): JsonResponse
     {
-        return $this->act($request, $order, fn () => $delivery->deliver($order, $request->user()));
+        $method = $request->validate(['method' => ['nullable', 'string', Rule::in(DeliveryService::DOOR_METHODS)]])['method'] ?? null;
+
+        return $this->act($request, $order, fn () => $delivery->deliver($order, $request->user(), $method));
     }
 
     public function fail(Request $request, Order $order, DeliveryService $delivery): JsonResponse
@@ -110,9 +114,12 @@ class DriverController extends Controller
             'items' => $o->items->map(fn ($i) => ['name' => $i->name, 'qty' => $i->quantity])->values()->all(),
             'total' => (float) $o->total, 'collect' => $collect, 'collect_text' => money($collect),
             'paid' => $o->payment_status === 'paid',
-            'payment' => $o->payment_status === 'paid' ? __('Paid already: collect nothing') : __('Cash on delivery'),
+            'payment' => $o->payment_status === 'paid' ? __('Paid already: collect nothing') : __('Collect on delivery'),
             'assigned_at' => $o->driver_assigned_at ? local_time($o->driver_assigned_at, 'h:i A') : null,
+            'assigned_at_iso' => $o->driver_assigned_at?->toIso8601String(),
             'picked_up_at' => $o->picked_up_at ? local_time($o->picked_up_at, 'h:i A') : null,
+            'picked_up_at_iso' => $o->picked_up_at?->toIso8601String(),
+            'pinned' => isset($address['lat'], $address['lng']),
         ];
     }
 }

@@ -45,6 +45,9 @@ class OrderController extends Controller
             'branch_id' => 'nullable|integer',
             'zone_id' => 'nullable|integer',
             'address' => 'nullable|string|max:300',
+            // the guest's pin on the map (optional; inside the zone's drawn area when the zones are drawn)
+            'lat' => 'nullable|numeric|between:-90,90|required_with:lng',
+            'lng' => 'nullable|numeric|between:-180,180|required_with:lat',
             'scheduled_for' => 'nullable|date',
             'pay_wallet' => 'nullable|boolean',
         ]);
@@ -100,7 +103,7 @@ class OrderController extends Controller
             if (trim((string) ($data['address'] ?? '')) === '') {
                 throw new OrderException(__('Write the delivery address.'));
             }
-            $address = ['zone' => $zone->label(), 'text' => trim($data['address'])];
+            $address = ['zone' => $zone->label(), 'text' => trim($data['address'])] + $this->pin($data, $zone);
         }
 
         $scheduled = null;
@@ -122,6 +125,28 @@ class OrderController extends Controller
         }
 
         return $order;
+    }
+
+    /**
+     * The point the guest pinned on the map, kept with the address (the driver navigates to it, the tracking map
+     * shows it). It must fall inside the zone's drawn area (a sub-area without its own area uses its parent's); a
+     * zone without a drawn area (manual zones) takes any pin.
+     *
+     * @param  array<string,mixed>  $data
+     * @return array{lat?:float, lng?:float}
+     */
+    private function pin(array $data, DeliveryZone $zone): array
+    {
+        if (! isset($data['lat'], $data['lng'])) {
+            return [];
+        }
+        $point = [round((float) $data['lat'], 6), round((float) $data['lng'], 6)];
+        $area = $zone->polygon ? $zone : $zone->parent;
+        if ($area?->polygon && ! $area->contains(...$point)) {
+            throw new OrderException(__('The pinned location is outside :zone.', ['zone' => $zone->label()]));
+        }
+
+        return ['lat' => $point[0], 'lng' => $point[1]];
     }
 
     public function show(string $token): View

@@ -210,8 +210,10 @@ final class OrderService
      *
      * @param  list<array{code?:?string, id?:?int, approval?:?string}>  $vouchers
      * @param  list<array{method:string, amount:float|int|string, tendered?:float|int|string|null}>  $parts
+     * @param  bool  $withoutShift  a payment taken away from the counter (the driver's card machine at the door) is
+     *                              recorded even when no shift is open: no drawer is involved
      */
-    public function pay(Order $order, string $method, User $by, ?Shift $shift, array $vouchers = [], ?string $voucherPhone = null, array $parts = []): Order
+    public function pay(Order $order, string $method, User $by, ?Shift $shift, array $vouchers = [], ?string $voucherPhone = null, array $parts = [], bool $withoutShift = false): Order
     {
         $parts = self::paymentParts($parts);
         if ($parts !== []) {
@@ -228,7 +230,7 @@ final class OrderService
         if (! in_array($method, ShiftService::METHODS, true) && $method !== self::SPLIT) {
             throw new OrderException(__('Choose a payment method.'));
         }
-        if (! $shift && Entitlements::current()->allows('shifts')) {
+        if (! $shift && ! $withoutShift && Entitlements::current()->allows('shifts')) {
             throw new OrderException(__('Open a shift first to take payments.'));
         }
         if ($method === CorporateVouchers::METHOD && $vouchers === []) {

@@ -18,6 +18,7 @@ final class Templates
         'campaign' => ['text'],
         'automation' => ['text'],
         'order_staff' => ['text'],     // new-order alert to the branch's / restaurant's own WhatsApp number
+        'driver_assigned' => ['text'], // "an order is with you" to the delivery driver's own number
     ];
 
     private const TEXT = [
@@ -44,6 +45,7 @@ final class Templates
         'campaign' => ['ar' => '{text}', 'en' => '{text}'],
         'automation' => ['ar' => '{text}', 'en' => '{text}'],
         'order_staff' => ['ar' => '{text}', 'en' => '{text}'],
+        'driver_assigned' => ['ar' => '{text}', 'en' => '{text}'],
     ];
 
     /**

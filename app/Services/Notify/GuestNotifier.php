@@ -4,7 +4,9 @@ namespace App\Services\Notify;
 
 use App\Models\Customer;
 use App\Models\Order;
+use App\Models\User;
 use App\Services\Entitlements;
+use App\Services\Orders\DeliveryService;
 use App\Services\Settings;
 use App\Services\WhatsApp\WhatsApp;
 use Illuminate\Support\Carbon;
@@ -24,6 +26,7 @@ final class GuestNotifier
         'reservation_confirmed' => 'wa_reservation_confirmed',
         'loyalty_reward' => 'wa_loyalty_reward',
         'order_staff' => 'wa_order_to_staff',
+        'driver_assigned' => 'wa_driver_assigned',
     ];
 
     /** Orders the guest placed without staff in front of them get a "we received it" message. */
@@ -80,6 +83,32 @@ final class GuestNotifier
                 .($order->delivery_address ? "\n📍 ".trim(($order->delivery_address['zone'] ?? '').' - '.($order->delivery_address['text'] ?? ''), ' -') : '')
                 .($order->notes ? "\n📝 ".$order->notes : '')
                 ."\n".platform_url('app', 'orders');
+
+            return ['text' => $text];
+        }, null);
+    }
+
+    /**
+     * "This order is with you" to the driver's own WhatsApp number when a delivery order is given to them (setting
+     * wa_driver_assigned): the number, the guest, the address with its map link and what to collect at the door.
+     */
+    public function driverAssigned(Order $order, User $driver): void
+    {
+        $this->send('driver_assigned', (string) $driver->phone, function () use ($order, $driver) {
+            $order->loadMissing('branch');
+            $en = WhatsApp::locale() === 'en';
+            $address = (array) ($order->delivery_address ?? []);
+            $where = trim(($address['zone'] ?? '').' - '.($address['text'] ?? ''), ' -');
+            $maps = DeliveryService::mapsUrl($order);
+            $collect = $order->amountToCollect();
+            $who = trim($order->customer_name.' '.$order->customer_phone);
+            $text = ($en ? "Hi {$driver->name}, order #{$order->number} is with you 🛵" : "يا {$driver->name}، طلب #{$order->number} معاك 🛵")
+                .($order->branch ? ' · '.tr($order->branch->name, $order->branch->name_en) : '')
+                .($who !== '' ? "\n".($en ? 'Guest: ' : 'العميل: ').$who : '')
+                .($where !== '' ? "\n📍 ".$where : '')
+                .($maps ? "\n".$maps : '')
+                ."\n".($en ? 'Collect: ' : 'تحصيل: ').($collect > 0 ? money($collect).' '.($en ? 'EGP' : 'ج.م') : ($en ? 'paid already' : 'مدفوع'))
+                ."\n".($en ? 'Your screen: ' : 'شاشتك: ').platform_url('app', 'driver');
 
             return ['text' => $text];
         }, null);

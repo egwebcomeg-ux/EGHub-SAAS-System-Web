@@ -744,6 +744,127 @@ if (dataEl) {
         }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 });
     }
 
+    // ---- "pin my location": a draggable pin on the map (Leaflet loaded on demand from the pinned CDN copy) ----
+    // The point goes with the address (the driver navigates to it, the tracking map shows it). With drawn zones
+    // (map mode) the pin picks the zone by itself and must fall inside one; with manual zones it is optional.
+    const pinSheet = $('[data-pin-sheet]');
+    const pinKey = `egmenu.pin.${M.tenant}`;
+    let pin = null;
+    try { pin = JSON.parse(session.get(pinKey) || 'null'); } catch { pin = null; }
+    const zoneOf = (lat, lng) => {
+        const hits = (O?.zones || []).filter((z) => z.polygon && inside(z.polygon, lat, lng));
+        return hits.find((z) => z.parent) || hits[0] || null; // a drawn street inside a drawn area wins over the area
+    };
+    const zonesDrawn = () => M.zoneMode === 'map' && (O?.zones || []).some((z) => z.polygon);
+    const pinOutside = () => !!pin && zonesDrawn() && !zoneOf(pin.lat, pin.lng);
+    const pinOpenLabel = $('[data-pin-open-text]')?.textContent || '';
+    function renderPin() {
+        const box = $('[data-pin-box]');
+        if (!box) return;
+        $('[data-pin-done]', box).classList.toggle('hidden', !pin);
+        $('[data-pin-done]', box).classList.toggle('flex', !!pin);
+        $('[data-pin-open-text]', box).textContent = pin ? T.pinChange : pinOpenLabel;
+        $('[data-pin-outside]', box).classList.toggle('hidden', !pinOutside());
+    }
+    function setPin(point) {
+        pin = point;
+        session.set(pinKey, point ? JSON.stringify(point) : '');
+        renderPin();
+        renderSendHelp();
+    }
+    let leafletLoading = null;
+    function loadLeaflet() {
+        if (window.L) return Promise.resolve();
+        if (!M.leaflet) return Promise.reject(new Error('no leaflet'));
+        leafletLoading ??= new Promise((resolve, reject) => {
+            const css = document.createElement('link');
+            css.rel = 'stylesheet';
+            css.href = M.leaflet.css;
+            css.integrity = M.leaflet.cssIntegrity;
+            css.crossOrigin = '';
+            document.head.appendChild(css);
+            const js = document.createElement('script');
+            js.src = M.leaflet.js;
+            js.integrity = M.leaflet.jsIntegrity;
+            js.crossOrigin = '';
+            js.onload = () => resolve();
+            js.onerror = () => { leafletLoading = null; reject(new Error('leaflet failed')); };
+            document.head.appendChild(js);
+        });
+        return leafletLoading;
+    }
+    let pinMap = null;
+    let pinMarker = null;
+    function pinCenter() {
+        if (pin) return [pin.lat, pin.lng];
+        const zone = currentZone();
+        const poly = zone?.polygon || (O?.zones || []).find((z) => z.polygon)?.polygon;
+        if (poly) return [poly.reduce((s, p) => s + p[0], 0) / poly.length, poly.reduce((s, p) => s + p[1], 0) / poly.length];
+        return M.branchPoint || [30.0444, 31.2357];
+    }
+    function pinMoved() {
+        const { lat, lng } = pinMarker.getLatLng();
+        const zone = zonesDrawn() ? zoneOf(lat, lng) : null;
+        $('[data-pin-zone]', pinSheet).classList.toggle('hidden', !zone);
+        if (zone) $('[data-pin-zone]', pinSheet).textContent = T.pinInZone.replace('__Z__', zone.name);
+        $('[data-pin-sheet-outside]', pinSheet).classList.toggle('hidden', !(zonesDrawn() && !zone));
+    }
+    async function openPin() {
+        if (!pinSheet) return;
+        pinSheet.showModal();
+        $('[data-pin-loading]', pinSheet).classList.remove('hidden');
+        try {
+            await loadLeaflet();
+        } catch {
+            $('[data-pin-loading]', pinSheet).textContent = T.pinMapFailed;
+            return;
+        }
+        $('[data-pin-loading]', pinSheet).classList.add('hidden');
+        const center = pinCenter();
+        if (!pinMap) {
+            pinMap = L.map($('[data-pin-map]', pinSheet), { zoomControl: true }).setView(center, pin ? 17 : 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(pinMap);
+            // the delivery areas as faint outlines, so the guest sees where the pin may go
+            (O?.zones || []).filter((z) => z.polygon).forEach((z) => L.polygon(z.polygon, { color: '#0A2540', weight: 1.5, fillOpacity: 0.06 }).addTo(pinMap));
+            pinMarker = L.marker(center, { draggable: true, autoPan: true }).addTo(pinMap);
+            pinMarker.on('dragend', pinMoved);
+            pinMap.on('click', (e) => { pinMarker.setLatLng(e.latlng); pinMoved(); });
+        } else {
+            pinMarker.setLatLng(center);
+            pinMap.setView(center, pin ? 17 : 14);
+        }
+        setTimeout(() => pinMap.invalidateSize(), 50); // the dialog was hidden when the map measured itself
+        pinMoved();
+    }
+    $('[data-pin-open]')?.addEventListener('click', openPin);
+    $('[data-pin-clear]')?.addEventListener('click', () => setPin(null));
+    pinSheet?.addEventListener('click', (e) => {
+        if (e.target.closest('[data-pin-locate]')) {
+            const btn = e.target.closest('[data-pin-locate]');
+            if (!navigator.geolocation || !pinMarker) return;
+            btn.disabled = true;
+            navigator.geolocation.getCurrentPosition((pos) => {
+                btn.disabled = false;
+                const here = [pos.coords.latitude, pos.coords.longitude];
+                pinMarker.setLatLng(here);
+                pinMap.setView(here, 17);
+                pinMoved();
+            }, () => {
+                btn.disabled = false;
+                alert(T.pinNoLocation);
+            }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+        } else if (e.target.closest('[data-pin-confirm]')) {
+            if (!pinMarker) return;
+            const { lat, lng } = pinMarker.getLatLng();
+            const zone = zonesDrawn() ? zoneOf(lat, lng) : null;
+            if (zonesDrawn() && !zone) return pinMoved(); // outside every drawn area: the warning stays up
+            setPin({ lat: Math.round(lat * 1e6) / 1e6, lng: Math.round(lng * 1e6) / 1e6 });
+            if (zone) pickZone(zone.id);
+            pinSheet.close();
+        }
+    });
+    renderPin();
+
     // a remembered choice on the general link (the "how will you order?" screen or the cart switch)
     if (O) {
         const savedZone = session.get(zoneKey);
@@ -794,6 +915,7 @@ if (dataEl) {
             if (!$('[data-customer-phone]').value.trim()) return fail(T.phoneRequired);
             if (otype === 'delivery' && !currentZone()) return fail(T.chooseZone);
             if (otype === 'delivery' && !$('[data-address]').value.trim()) return fail(T.enterAddress);
+            if (otype === 'delivery' && pinOutside()) return fail(T.pinOutside);
         }
         sendBtn.disabled = true;
         sendBtn.dataset.busy = '1';
@@ -815,6 +937,7 @@ if (dataEl) {
                     ...(mode === 'online' ? {
                         type: otype, branch_id: O.branch, zone_id: currentZone()?.id ?? null,
                         address: $('[data-address]')?.value.trim() || null, scheduled_for: $('[data-scheduled]')?.value || null,
+                        ...(otype === 'delivery' && pin ? { lat: pin.lat, lng: pin.lng } : {}),
                     } : {}),
                 }),
             });

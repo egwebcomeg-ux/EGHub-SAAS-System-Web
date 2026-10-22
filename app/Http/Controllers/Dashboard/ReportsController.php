@@ -7,6 +7,8 @@ use App\Models\Branch;
 use App\Models\DiningTable;
 use App\Models\MenuVisit;
 use App\Services\Entitlements;
+use App\Services\Orders\DeliveryService;
+use App\Services\Orders\DriverStats;
 use App\Services\Reports\AdvancedReport;
 use App\Services\Reports\SalesReport;
 use App\Services\Settings;
@@ -40,6 +42,10 @@ class ReportsController extends Controller
             'topTables' => DiningTable::query()->where('scans_count', '>', 0)->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                 ->orderByDesc('scans_count')->limit(5)->get(['name', 'scans_count', 'last_scanned_at']),
             'branches' => $request->user()->branch_id ? collect() : Branch::query()->orderBy('sort_order')->get(),
+            // delivery drivers in the range (plan feature of delivery): only the drivers who delivered or failed something
+            'delivery' => Entitlements::current()->allows('delivery_zones|online_ordering')
+                ? (new DriverStats($from->startOfDay(), $to->endOfDay(), $branchId))->active(DeliveryService::driverQuery()->orderBy('name')->get())
+                : [],
         ]);
     }
 

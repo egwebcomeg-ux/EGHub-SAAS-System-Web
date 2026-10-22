@@ -1,6 +1,7 @@
-// Driver screen: the driver's own orders with big buttons (picked up / delivered / did not deliver), refreshed every
-// few seconds, and the phone's position sent every `ping` seconds while an order is out for delivery — only while
-// this page is visible, with the state always shown on top. The server refuses positions when nothing is out.
+// Driver screen: the driver's own orders with big buttons (picked up / delivered with how the guest paid / did not
+// deliver), refreshed every `ping` seconds and on demand, with a banner + sound + vibration when a new order is given
+// to them, and the phone's position sent every `ping` seconds while an order is out for delivery — only while this
+// page is visible, with the state always shown on top. The server refuses positions when nothing is out.
 
 const dataEl = document.getElementById('driver-data');
 if (dataEl) {
@@ -13,8 +14,15 @@ if (dataEl) {
     const geoText = geoBox.querySelector('[data-geo-text]');
     const offline = document.querySelector('[data-offline]');
     const dialog = document.querySelector('[data-fail-dialog]');
+    const deliverDialog = document.querySelector('[data-deliver-dialog]');
+    const banner = document.querySelector('[data-new-banner]');
+    const refreshBtn = document.querySelector('[data-refresh]');
+    const refreshed = document.querySelector('[data-refreshed]');
+    const soundBtn = document.querySelector('[data-sound]');
     const pingMs = Math.max(10, Number(D.ping || 20)) * 1000;
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    const minutesSince = (iso) => (iso ? Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000)) : null);
+    const timeNow = () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     let orders = D.orders || [];
     let sharing = false;
     let watchId = null;
@@ -34,10 +42,19 @@ if (dataEl) {
     }
 
     // ---- the orders ----
+    function since(o) {
+        if (o.delivery_status === 'picked_up') {
+            const n = minutesSince(o.picked_up_at_iso);
+            return n === null ? '' : t.sincePicked.replace('__N__', n);
+        }
+        const n = minutesSince(o.assigned_at_iso);
+        return n === null ? '' : (n < 1 ? t.sinceAssignedNow : t.sinceAssigned.replace('__N__', n));
+    }
+
     function card(o) {
         const out = o.delivery_status === 'picked_up';
         const phone = o.phone ? `<a href="tel:${esc(o.phone)}" class="btn-navy min-h-14 flex-1 text-base" dir="ltr">📞 ${esc(o.phone)}</a>` : '';
-        const nav = o.maps ? `<a href="${esc(o.maps)}" target="_blank" rel="noopener" class="btn-ghost min-h-14 flex-1 text-base">🧭 ${esc(t.navigate)}</a>` : '';
+        const nav = o.maps ? `<a href="${esc(o.maps)}" target="_blank" rel="noopener" class="btn-ghost min-h-14 flex-1 text-base">🧭 ${esc(o.pinned ? t.navigatePin : t.navigate)}</a>` : '';
         const main = out
             ? `<button class="min-h-16 w-full rounded-2xl bg-emerald-600 text-lg font-black text-white shadow active:bg-emerald-700" data-act="delivered" data-id="${o.id}">✅ ${esc(t.delivered)}</button>`
             : o.ready
@@ -46,12 +63,12 @@ if (dataEl) {
         return `
             <article class="card space-y-3 p-4 ${out ? 'ring-2 ring-emerald-500' : ''}" data-order="${o.id}">
                 <header class="flex items-start justify-between gap-3">
-                    <div>
+                    <div class="min-w-0">
                         <div class="text-3xl font-black" dir="ltr">#${o.number}</div>
                         <span class="badge ${out ? 'bg-emerald-100 text-emerald-800' : 'bg-navy-100 text-navy-700'}">${esc(o.delivery_label)}</span>
-                        ${o.picked_up_at ? `<span class="text-xs text-navy-500">${esc(t.pickedAt.replace('__T__', o.picked_up_at))}</span>` : ''}
+                        <div class="mt-1 text-xs font-semibold text-navy-500" data-since="${o.id}">${esc(since(o))}</div>
                     </div>
-                    <div class="text-end">
+                    <div class="shrink-0 text-end">
                         <div class="text-xs font-bold text-navy-500">${esc(t.collect)}</div>
                         <div class="text-2xl font-black ${o.collect > 0 ? 'text-brand-700' : 'text-emerald-700'}">${esc(o.collect_text)} <span class="text-sm">${esc(D.currency)}</span></div>
                         <div class="text-xs font-semibold text-navy-500">${esc(o.payment)}</div>
@@ -82,16 +99,97 @@ if (dataEl) {
         syncWatch();
     }
 
+    // "with you for N min" ticks every minute without redrawing the cards
+    setInterval(() => {
+        orders.forEach((o) => {
+            const el = list.querySelector(`[data-since="${o.id}"]`);
+            if (el) el.textContent = since(o);
+        });
+    }, 60000);
+
+    // ---- a new order given to this driver: banner, sound and vibration ----
+    let known = new Set(orders.map((o) => o.id));
+    let soundOn = true;
+    try { soundOn = localStorage.getItem('egmenu.driver.sound') !== '0'; } catch {}
+    let audio = null;
+    const unlockAudio = () => {
+        try {
+            audio ??= new (window.AudioContext || window.webkitAudioContext)();
+            if (audio.state === 'suspended') audio.resume();
+        } catch {}
+    };
+    document.addEventListener('pointerdown', unlockAudio, { passive: true }); // browsers allow sound only after a tap
+    function beep() {
+        if (!soundOn || !audio || audio.state !== 'running') return;
+        try {
+            [0, 0.25, 0.5].forEach((at) => {
+                const osc = audio.createOscillator();
+                const gain = audio.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = 880;
+                gain.gain.setValueAtTime(0.0001, audio.currentTime + at);
+                gain.gain.exponentialRampToValueAtTime(0.4, audio.currentTime + at + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + at + 0.2);
+                osc.connect(gain).connect(audio.destination);
+                osc.start(audio.currentTime + at);
+                osc.stop(audio.currentTime + at + 0.22);
+            });
+        } catch {}
+    }
+    function renderSound() {
+        soundBtn.textContent = soundOn ? '🔔' : '🔕';
+        soundBtn.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
+        soundBtn.setAttribute('aria-label', soundOn ? t.soundOn : t.soundOff);
+        soundBtn.title = soundOn ? t.soundOn : t.soundOff;
+    }
+    soundBtn.addEventListener('click', () => {
+        soundOn = !soundOn;
+        try { localStorage.setItem('egmenu.driver.sound', soundOn ? '1' : '0'); } catch {}
+        renderSound();
+        if (soundOn) { unlockAudio(); beep(); }
+    });
+    renderSound();
+    function announce(fresh) {
+        banner.querySelector('[data-new-text]').textContent = fresh.length === 1 ? t.newOrder.replace('__N__', fresh[0].number) : t.newOrders.replace('__N__', fresh.length);
+        banner.classList.remove('hidden');
+        banner.classList.add('flex');
+        beep();
+        try { navigator.vibrate?.([300, 150, 300, 150, 500]); } catch {}
+    }
+    banner.querySelector('[data-new-dismiss]').addEventListener('click', () => {
+        banner.classList.add('hidden');
+        banner.classList.remove('flex');
+    });
+
+    let refreshing = false;
     async function refresh() {
+        if (refreshing) return;
+        refreshing = true;
+        refreshBtn.querySelector('[data-refresh-icon]').classList.add('animate-spin');
         try {
             const r = await api(D.urls.orders);
             if (!r.ok) throw new Error(r.status);
             orders = r.data.orders || [];
+            const fresh = orders.filter((o) => !known.has(o.id));
+            known = new Set(orders.map((o) => o.id));
             offline.classList.add('hidden');
             render();
+            if (fresh.length) announce(fresh);
+            refreshed.textContent = t.refreshed.replace('__T__', timeNow());
         } catch {
             offline.classList.remove('hidden');
+        } finally {
+            refreshing = false;
+            refreshBtn.querySelector('[data-refresh-icon]').classList.remove('animate-spin');
         }
+    }
+    refreshBtn.addEventListener('click', () => { refresh(); if (sharing && lastPos) sendPosition(true); });
+
+    async function act(action, id, body = {}) {
+        const r = await api(D.urls[action].replace('__ID__', id), body).catch(() => ({ ok: false, data: {} }));
+        if (!r.ok) alert(r.data.message || t.offline);
+        await refresh();
+        return r.ok;
     }
 
     list.addEventListener('click', async (e) => {
@@ -100,14 +198,44 @@ if (dataEl) {
         const id = btn.dataset.id;
         const order = orders.find((o) => String(o.id) === id);
         if (btn.dataset.act === 'failed') return openFail(id);
-        if (btn.dataset.act === 'delivered' && !confirm(t.deliveredSure.replace('__A__', `${order?.collect_text ?? ''} ${D.currency}`))) return;
+        if (btn.dataset.act === 'delivered') return openDeliver(order);
         if (btn.dataset.act === 'pickedUp') startWatch(); // the tap is a good moment for the browser to ask for location
         btn.disabled = true;
-        const r = await api(D.urls[btn.dataset.act].replace('__ID__', id), {}).catch(() => ({ ok: false, data: {} }));
-        if (!r.ok) alert(r.data.message || t.offline);
-        await refresh();
+        await act(btn.dataset.act, id);
         btn.disabled = false; // still on the page when nothing changed
         if (btn.dataset.act === 'pickedUp') sendPosition(true);
+    });
+
+    // ---- delivered: how did the guest pay? one big button per method (a paid order only confirms) ----
+    let deliverId = null;
+    const methodIcons = { cash: '💵', card: '💳', instapay: '📲', wallet: '📱' };
+    function openDeliver(order) {
+        if (!order) return;
+        deliverId = order.id;
+        const amount = `${order.collect_text} ${D.currency}`;
+        deliverDialog.querySelector('[data-deliver-title]').textContent = order.paid ? t.deliveredPaid : t.howPaid.replace('__A__', amount);
+        deliverDialog.querySelector('[data-deliver-error]').classList.add('hidden');
+        const box = deliverDialog.querySelector('[data-deliver-methods]');
+        const paidBtn = deliverDialog.querySelector('[data-deliver-paid]');
+        box.innerHTML = order.paid ? '' : D.methods.map((m) => `
+            <button type="button" class="flex min-h-16 w-full items-center gap-3 rounded-2xl border-2 ${m === 'cash' ? 'border-emerald-600 bg-emerald-50' : 'border-navy-100 bg-white'} px-4 text-start active:bg-navy-50" data-method="${m}">
+                <span class="text-2xl">${methodIcons[m] || '💰'}</span>
+                <span class="min-w-0 flex-1"><span class="block text-base font-black">${esc(t.methods[m] || m)}</span><span class="block text-xs font-semibold text-navy-500">${esc(t.methodHints[m] || '')}</span></span>
+            </button>`).join('');
+        paidBtn.classList.toggle('hidden', !order.paid);
+        deliverDialog.showModal();
+    }
+    async function sendDelivered(method) {
+        deliverDialog.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+        const ok = await act('delivered', deliverId, method ? { method } : {});
+        deliverDialog.querySelectorAll('button').forEach((b) => { b.disabled = false; });
+        if (ok) deliverDialog.close();
+    }
+    deliverDialog.addEventListener('click', (e) => {
+        const m = e.target.closest('[data-method]');
+        if (m) return sendDelivered(m.dataset.method);
+        if (e.target.closest('[data-deliver-paid]')) return sendDelivered(null);
+        if (e.target.closest('[data-deliver-cancel]')) deliverDialog.close();
     });
 
     // ---- did not deliver: a reason, then send ----
@@ -185,7 +313,7 @@ if (dataEl) {
         const { latitude: lat, longitude: lng, accuracy } = lastPos.coords;
         const r = await api(D.urls.location, { lat, lng, accuracy: Math.round(accuracy || 0) }).catch(() => ({ ok: false, status: 0, data: {} }));
         if (r.ok) {
-            lastSent = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            lastSent = timeNow();
             setGeo('on');
         } else if (r.status === 409) {
             refresh(); // nothing is out with this driver any more
@@ -194,13 +322,17 @@ if (dataEl) {
 
     setInterval(() => sendPosition(), pingMs);
     setInterval(() => { if (!document.hidden) refresh(); }, pingMs);
+    // the phone was locked / another app was open: back in front, the list and the location pick up at once
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
             syncWatch();
             return;
         }
         refresh();
+        syncWatch();
     });
+    window.addEventListener('online', () => refresh());
 
     render();
+    refreshed.textContent = t.refreshed.replace('__T__', timeNow());
 }

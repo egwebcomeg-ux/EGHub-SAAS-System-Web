@@ -1,5 +1,6 @@
 // Drivers page: a live map (Leaflet from the CDN, window.L) and list of the drivers with their orders, last seen
-// time and the cash they hold, and the delivery orders waiting for a driver. Polls the feed every `poll` seconds.
+// time, today's numbers and the cash they hold, the delivery orders waiting for a driver, and the stored trail of a
+// delivered order drawn on the same map. Polls the feed every `poll` seconds.
 
 const dataEl = document.getElementById('drivers-data');
 if (dataEl) {
@@ -8,9 +9,14 @@ if (dataEl) {
     const csrf = document.querySelector('meta[name="csrf-token"]').content;
     const driversBox = document.querySelector('[data-drivers]');
     const waitingBox = document.querySelector('[data-waiting]');
+    const trailPick = document.querySelector('[data-trail-pick]');
+    const trailClear = document.querySelector('[data-trail-clear]');
+    const trailInfo = document.querySelector('[data-trail-info]');
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     const fmt = (n) => Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
+    const minutesSince = (iso) => (iso ? Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000)) : null);
     let drivers = [];
+    let recent = [];
 
     let map = null;
     const markers = {};
@@ -47,22 +53,75 @@ if (dataEl) {
         }
     }
 
+    // ---- the trail of a delivered order: a line from the pick-up to the door, with the address pin ----
+    let trailLayer = null;
+    function clearTrail() {
+        if (trailLayer) { trailLayer.remove(); trailLayer = null; }
+        trailClear.classList.add('hidden');
+        trailInfo.classList.add('hidden');
+        trailPick.value = '';
+    }
+    async function showTrail(id) {
+        if (!map || !id) return clearTrail();
+        try {
+            const res = await fetch(D.urls.trail.replace('__ID__', id), { headers: { Accept: 'application/json' }, cache: 'no-store' });
+            if (!res.ok) throw new Error(res.status);
+            const data = await res.json();
+            if (trailLayer) trailLayer.remove();
+            trailLayer = L.layerGroup().addTo(map);
+            const line = data.points.map((p) => [p.lat, p.lng]);
+            const bounds = [...line];
+            if (line.length > 1) L.polyline(line, { color: '#0A2540', weight: 4, opacity: 0.8 }).addTo(trailLayer);
+            if (line.length) {
+                L.circleMarker(line[0], { radius: 7, color: '#fff', weight: 2, fillColor: '#0E9F6E', fillOpacity: 1 }).bindTooltip(t.pickedUp).addTo(trailLayer);
+                L.circleMarker(line[line.length - 1], { radius: 7, color: '#fff', weight: 2, fillColor: '#f26522', fillOpacity: 1 }).bindTooltip(t.delivered).addTo(trailLayer);
+            }
+            if (data.destination) {
+                const dest = [data.destination.lat, data.destination.lng];
+                bounds.push(dest);
+                L.circleMarker(dest, { radius: 8, color: '#0A2540', weight: 2, fillColor: '#fff', fillOpacity: 1 }).bindTooltip(t.destination).addTo(trailLayer);
+            }
+            if (bounds.length) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+            trailInfo.textContent = line.length
+                ? t.trailOf.replace('__N__', data.number).replace('__D__', data.driver || '').replace('__F__', data.picked_up_at || '').replace('__T__', data.delivered_at || '')
+                : t.noTrail;
+            trailInfo.classList.remove('hidden');
+            trailClear.classList.remove('hidden');
+        } catch {
+            clearTrail();
+        }
+    }
+    trailPick.addEventListener('change', () => showTrail(trailPick.value));
+    trailClear.addEventListener('click', clearTrail);
+    function renderRecent() {
+        const current = trailPick.value;
+        const options = [`<option value="">${esc(t.chooseTrail)}</option>`].concat(recent.map((o) =>
+            `<option value="${o.id}">#${o.number} · ${esc(o.driver || '')} · ${esc(o.time || '')}${o.minutes !== null ? ' · ' + esc(t.minutes.replace('__N__', o.minutes)) : ''}${o.method ? ' · ' + esc(t.methods[o.method] || o.method) : ''}</option>`));
+        trailPick.innerHTML = options.join('');
+        if (current && recent.some((o) => String(o.id) === current)) trailPick.value = current;
+    }
+
     function driverCard(d) {
         const seen = d.location ? t.lastSeen.replace('__T__', d.location.time).replace('__N__', d.location.minutes) : t.neverSeen;
-        const orders = d.orders.length ? d.orders.map((o) => `
-            <li class="flex items-start gap-2"><b dir="ltr">#${o.number}</b><span class="badge ${o.delivery_status === 'picked_up' ? 'bg-emerald-100 text-emerald-800' : 'bg-navy-100 text-navy-700'}">${esc(o.label)}</span><span class="text-navy-500">${esc(o.address)}</span></li>`).join('')
-            : `<li class="text-navy-500">${esc(t.free)}</li>`;
+        const orders = d.orders.length ? d.orders.map((o) => {
+            const since = minutesSince(o.assigned_at_iso);
+            return `
+            <li class="flex flex-wrap items-start gap-2"><b dir="ltr">#${o.number}</b><span class="badge ${o.delivery_status === 'picked_up' ? 'bg-emerald-100 text-emerald-800' : 'bg-navy-100 text-navy-700'}">${esc(o.label)}</span>${since !== null ? `<span class="text-xs ${since > 45 ? 'font-bold text-red-700' : 'text-navy-500'}">${esc(t.sinceAssigned.replace('__N__', since))}</span>` : ''}<span class="text-navy-500">${esc(o.address)}</span></li>`;
+        }).join('') : `<li class="text-navy-500">${esc(t.free)}</li>`;
+        const stats = [[t.deliveredToday.replace('__N__', d.delivered_today), '']];
+        if (d.failed_today) stats.push([t.failedToday.replace('__N__', d.failed_today), 'text-red-700']);
+        if (d.avg_minutes !== null && d.avg_minutes !== undefined) stats.push([t.avgMinutes.replace('__N__', d.avg_minutes), '']);
         const cash = D.canSettle ? `
             <div class="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-navy-50 px-3 py-2 text-sm">
                 <span><b>${esc(t.holding.replace('__A__', `${fmt(d.holding)} ${t.currency}`).replace('__N__', d.holding_orders))}</b>
-                <span class="block text-xs text-navy-500">${esc(t.collectedToday.replace('__A__', `${fmt(d.collected_today)} ${t.currency}`))}</span></span>
+                <span class="block text-xs text-navy-500">${esc(t.collectedToday.replace('__A__', `${fmt(d.collected_today)} ${t.currency}`))}${d.other_today > 0 ? ` · ${esc(t.otherToday.replace('__A__', `${fmt(d.other_today)} ${t.currency}`))}` : ''}</span></span>
                 ${d.holding > 0 ? `<button class="btn-primary min-h-10 px-4" data-settle="${d.id}">${esc(t.settle)}</button>` : ''}
             </div>` : '';
         return `
             <article class="rounded-xl border border-navy-100 p-3" data-driver="${d.id}">
                 <header class="flex items-start justify-between gap-2">
                     <div><div class="font-bold">${esc(d.name)}</div>${d.phone ? `<a href="tel:${esc(d.phone)}" class="text-xs text-navy-600" dir="ltr">${esc(d.phone)}</a>` : ''}</div>
-                    <div class="text-end text-xs text-navy-500"><div>${esc(seen)}</div><div>${esc(t.deliveredToday.replace('__N__', d.delivered_today))}</div></div>
+                    <div class="text-end text-xs text-navy-500"><div>${esc(seen)}</div>${stats.map(([text, cls]) => `<div class="${cls}">${esc(text)}</div>`).join('')}</div>
                 </header>
                 <ul class="mt-2 space-y-1 text-sm">${orders}</ul>
                 ${cash}
@@ -92,10 +151,12 @@ if (dataEl) {
             if (!res.ok) throw new Error(res.status);
             const data = await res.json();
             drivers = data.drivers || [];
+            recent = data.recent || [];
             // a list the manager is choosing in is not redrawn under their finger
-            if (!document.activeElement?.matches?.('[data-assign]')) {
+            if (!document.activeElement?.matches?.('[data-assign], [data-trail-pick]')) {
                 driversBox.innerHTML = drivers.length ? drivers.map(driverCard).join('') : `<p class="py-6 text-center text-sm text-navy-500">${esc(t.noDrivers)}</p>`;
                 waitingBox.innerHTML = (data.waiting || []).length ? data.waiting.map(waitingCard).join('') : `<p class="py-6 text-center text-sm text-navy-500">${esc(t.noWaiting)}</p>`;
+                renderRecent();
             }
             renderMap();
             document.querySelector('[data-live-dot]')?.classList.replace('bg-red-500', 'bg-emerald-500');

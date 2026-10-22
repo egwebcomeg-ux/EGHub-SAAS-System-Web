@@ -204,6 +204,48 @@
     </div>
 </div>
 
+@if ($delivery !== [])
+    {{-- delivery drivers in the range: who delivered what, how fast, and what they took at the door --}}
+    <section class="card mt-4 overflow-x-auto" id="delivery">
+        <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 class="section-title">{{ __('Delivery') }}</h2>
+            <a href="{{ route('dash.drivers') }}" class="text-sm font-semibold text-brand-700">{{ __('Drivers') }} →</a>
+        </div>
+        <table class="w-full text-sm">
+            <thead class="text-xs text-navy-500">
+                <tr>
+                    <th class="py-1 text-start font-semibold">{{ __('Driver') }}</th>
+                    <th class="py-1 text-end font-semibold">{{ __('Delivered') }}</th>
+                    <th class="py-1 text-end font-semibold">{{ __('Failed') }}</th>
+                    <th class="py-1 text-end font-semibold">{{ __('Minutes to the door') }}</th>
+                    <th class="py-1 text-end font-semibold">{{ __('Cash at the door') }}</th>
+                    <th class="py-1 text-end font-semibold">{{ __('Card / InstaPay / wallet') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($delivery as $r)
+                    <tr class="border-t border-navy-50">
+                        <td class="py-1.5 font-semibold">{{ $r['name'] }}</td>
+                        <td class="py-1.5 text-end" dir="ltr">{{ $r['delivered'] }}</td>
+                        <td class="py-1.5 text-end {{ $r['failed'] ? 'text-red-700' : '' }}" dir="ltr">{{ $r['failed'] }}</td>
+                        <td class="py-1.5 text-end" dir="ltr">{{ $r['avg_minutes'] ?? '—' }}</td>
+                        <td class="py-1.5 text-end" dir="ltr">{{ money($r['cash']) }}</td>
+                        <td class="py-1.5 text-end" dir="ltr">{{ money($r['other']) }}</td>
+                    </tr>
+                @endforeach
+                <tr class="border-t-2 border-navy-100 font-bold">
+                    <td class="py-1.5">{{ __('Total') }}</td>
+                    <td class="py-1.5 text-end" dir="ltr">{{ array_sum(array_column($delivery, 'delivered')) }}</td>
+                    <td class="py-1.5 text-end" dir="ltr">{{ array_sum(array_column($delivery, 'failed')) }}</td>
+                    <td class="py-1.5 text-end" dir="ltr">—</td>
+                    <td class="py-1.5 text-end" dir="ltr">{{ money(array_sum(array_column($delivery, 'cash'))) }} {{ $cur }}</td>
+                    <td class="py-1.5 text-end" dir="ltr">{{ money(array_sum(array_column($delivery, 'other'))) }} {{ $cur }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+@endif
+
 @if ($extra)
     @include('dashboard.reports-advanced', ['x' => $extra])
 @else
