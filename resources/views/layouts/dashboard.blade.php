@@ -3,70 +3,15 @@
 @php
     $user = auth()->user();
     $sub = tenant()->subscription()->with('plan')->first();
-    $rights = \App\Services\Entitlements::current();
-    // groups of [route, label, svg path, permission, plan feature]; a group with nothing allowed is hidden
-    $groups = [
-        [null, [
-            ['dash.home', __('Home'), 'M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z', null, null],
-        ]],
-        [__('Orders & service'), [
-            ['dash.orders', __('Orders'), 'M9 5h10M9 12h10M9 19h10M4 5h.01M4 12h.01M4 19h.01', 'orders.view', 'order_board'],
-            ['dash.pos', __('POS'), 'M3 4h18v12H3zM8 20h8M12 16v4', 'pos.use', 'pos'],
-            ['dash.callcenter', __('Call center'), 'M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z', 'callcenter.use', 'call_center'],
-            ['dash.zones', __('Delivery zones'), 'M1 3h15v13H1zM16 8h4l3 3v5h-7zM5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z', 'delivery.manage', 'delivery_zones|online_ordering'],
-            ['dash.drivers', __('Drivers'), 'M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11zM9 10l2 2 4-4', 'delivery.assign|delivery.drivers', 'delivery_zones|online_ordering'],
-            ['dash.driver', __('My deliveries'), 'M5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM8 18.5h8M3 13h9l3-5h3l3 5v5h-2', $user->hasRole('driver'), 'delivery_zones|online_ordering'],
-            ['dash.kitchen', \App\Support\BusinessType::prepScreen(), 'M6 13.9A4 4 0 0 1 7 6a5 5 0 0 1 10 0 4 4 0 0 1 1 7.9V20H6zM6 17h12', 'kitchen.view', 'kitchen_display'],
-            ['dash.shifts', __('Shifts'), 'M12 8v4l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z', 'shifts.manage', 'shifts', 'pos-fallback'],
-            ['dash.reservations', __('Reservations'), 'M8 2v4M16 2v4M3 9h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM9 15l2 2 4-4', 'reservations.manage', 'reservations'],
-        ]],
-        [__('Menu'), [
-            ['dash.menu', __('Menu'), 'M4 4h16v16H4zM4 9h16M9 9v11', 'menu.manage', null],
-            ['dash.tables', __('Tables & QR'), 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2z', 'tables.manage', null],
-        ]],
-        [__('Customers & marketing'), [
-            ['dash.customers', __('Customers'), 'M17 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M10 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM21 20v-2a4 4 0 0 0-3-3.9M16 2.1a4 4 0 0 1 0 7.8', 'customers.view', 'customers'],
-            ['dash.loyalty.desk', __('Loyalty card'), 'M3 6h18v12H3zM7 10h.01M11 10h.01M15 10h.01M7 14h.01M11 14h.01', 'loyalty.stamp', 'loyalty_stamps|prepaid_packages|membership|cashback'],
-            ['dash.marketing', __('Offers & popups'), 'M7 7h.01M3 11V3h8l10 10-8 8L3 11z', 'marketing.manage', 'offers'],
-            ['dash.coupons', __('Coupons & vouchers'), 'M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4zM9 9h.01M15 15h.01M15 9l-6 6', \App\Http\Controllers\Dashboard\CouponsController::visibleFor($user), null],
-            ['dash.feedback', __('Ratings'), 'M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z', 'customers.view', 'feedback'],
-            ['dash.campaigns', __('Campaigns'), 'M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13', 'marketing.manage', 'campaigns'],
-            ['dash.wallet', __('Wallet'), 'M20 12V8H6a2 2 0 0 1 0-4h12v4M4 6v12a2 2 0 0 0 2 2h14v-4M18 12a2 2 0 0 0 0 4h4v-4z', 'wallet.manage', 'wallet'],
-            ['dash.corporate', __('Corporate contracts'), 'M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M2 21h20M8 7h4M8 11h4M8 15h4', 'contracts.manage', 'corporate_vouchers'],
-            ['dash.redeem', __('Redeem vouchers'), 'M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4zM8 12l2.5 2.5L16 9', 'vouchers.redeem', 'corporate_vouchers'],
-        ]],
-        [__('Operations'), [
-            ['dash.inventory', __('Inventory'), 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8', 'inventory.manage', 'inventory'],
-            ['dash.devices', __('Screens & devices'), 'M2 5h14v10H2zM6 19h6M9 15v4M18 8h4v12h-4zM20 17h.01', \App\Http\Controllers\Dashboard\DevicesController::visibleFor($user), null],
-        ]],
-        [__('Management'), [
-            ['dash.reports', __('Reports'), 'M4 20V10M10 20V4M16 20v-7M22 20H2', 'reports.view', 'daily_reports'],
-            ['dash.branches', __('Branches'), 'M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z', 'branches.manage', null],
-            ['dash.users', __('Users & roles'), 'M16 11a4 4 0 1 0-8 0M4 21a8 8 0 0 1 16 0', 'users.manage', null],
-            ['dash.audit', __('Audit log'), 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2M9 5h6M9 12h6M9 16h4', 'audit.view', 'audit_log'],
-            ['dash.domain', __('Your own domain'), 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18', 'settings.manage', null],
-            ['dash.billing', __('Subscription'), 'M3 6h18v12H3zM3 10h18M7 15h3', 'billing.manage', null],
-            ['dash.settings', __('Settings'), 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.8 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.8-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 4.6V4.5a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.8 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 11h.1a2 2 0 1 1 0 4z', 'settings.manage', null],
-        ]],
-    ];
-    // permission: null (everyone), a bool worked out by the page itself, or 'a|b' (any of them)
-    $allowed = fn (array $i) => (is_bool($i[3]) ? $i[3] : (! $i[3] || $user->canAny(explode('|', $i[3])))) && (! $i[4] || $rights->allows($i[4]));
-    // shifts are a tab of the POS area: their own entry only for someone who manages shifts without the POS
-    $posOpen = $allowed(collect($groups[1][1])->firstWhere(0, 'dash.pos'));
-    $groups[1][1] = array_values(array_filter($groups[1][1], fn ($i) => ($i[5] ?? null) !== 'pos-fallback' || ! $posOpen));
-    $groups = array_values(array_filter(array_map(fn ($g) => [$g[0], array_values(array_filter($g[1], $allowed))], $groups), fn ($g) => $g[1] !== []));
+    // the apps (route, label, icon, rules) live once in App\Support\DashboardApps: the home grid reads the same list.
+    // The home page passes its copy along so the list is worked out once per request.
+    $apps = $dashboardApps ?? \App\Support\DashboardApps::forUser($user);
+    $groups = $apps['groups'];
     // the modules the owner picked come first; the rest wait under "more modules" (focus only, every link still works)
-    $more = [];
-    if (\App\Services\ModuleChoice::hasChoice()) {
-        foreach ($groups as $gi => $g) {
-            $groups[$gi][1] = array_values(array_filter($g[1], fn ($i) => \App\Services\ModuleChoice::focuses($i[0])));
-            array_push($more, ...array_values(array_filter($g[1], fn ($i) => ! \App\Services\ModuleChoice::focuses($i[0]))));
-        }
-        $groups = array_values(array_filter($groups, fn ($g) => $g[1] !== []));
-    }
-    $inMore = collect($more)->contains(fn ($i) => request()->routeIs($i[0]) || request()->routeIs($i[0].'.*'));
+    $more = $apps['more'];
+    $inMore = collect($more)->contains(fn ($i) => request()->routeIs($i['route']) || request()->routeIs($i['route'].'.*'));
     $canPickModules = \App\Services\ModuleChoice::canChange($user);
-    $nav = array_merge(...array_map(fn ($g) => $g[1], $groups));
+    $nav = array_merge(...array_map(fn ($g) => $g['apps'], $groups));
 @endphp
 
 @section('body')
@@ -77,7 +22,7 @@
     $within = ['dash.menu' => ['dash.items.*'], 'dash.pos' => ['dash.shifts', 'dash.shifts.*', 'dash.terminals', 'dash.terminals.*', 'dash.zreport', 'dash.zreport.*'], 'dash.kitchen' => ['dash.stations', 'dash.stations.*'],
         'dash.coupons' => ['dash.vouchers', 'dash.vouchers.*'], 'dash.devices' => ['dash.tv', 'dash.tv.*', 'dash.kiosks', 'dash.kiosks.*']];
     $isActive = fn (string $route) => request()->routeIs($route) || ($route !== 'dash.home' && request()->routeIs($route.'.*')) || request()->routeIs(...($within[$route] ?? ['-']));
-    $currentLabel = collect(array_merge($nav, $more))->first(fn ($i) => $isActive($i[0]))[1] ?? null;
+    $currentLabel = collect(array_merge($nav, $more))->first(fn ($i) => $isActive($i['route']))['label'] ?? null;
 @endphp
 <div class="dash-app flex min-h-screen">
     {{-- Sidebar: sticky on desktop, an off-canvas drawer under 1024px (resources/js/dash-ui.js). --}}
@@ -91,10 +36,10 @@
             </button>
         </div>
         <nav class="flex-1 space-y-4 overflow-y-auto overscroll-contain px-3 pb-4 [scrollbar-color:rgba(255,255,255,.15)_transparent] [scrollbar-width:thin]">
-            @foreach ($groups as [$title, $items])
+            @foreach ($groups as ['title' => $title, 'apps' => $items])
                 <div class="space-y-0.5">
                     @if ($title)<div class="px-3 pb-1 text-[11px] font-bold tracking-wide text-white/40">{{ $title }}</div>@endif
-                    @foreach ($items as [$route, $label, $icon])
+                    @foreach ($items as ['route' => $route, 'label' => $label, 'icon' => $icon])
                         @php($active = $isActive($route))
                         <a href="{{ route($route) }}" @if ($active) aria-current="page" @endif @class([$navLink, $navOn => $active, 'text-white/70 hover:bg-white/5 hover:text-white' => ! $active])>
                             <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ $icon }}"/></svg>
@@ -112,7 +57,7 @@
                         <svg class="size-4 shrink-0 transition group-open/more:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                     </summary>
                     <div class="ms-5 mt-0.5 space-y-0.5 border-s border-white/10 ps-2">
-                        @foreach ($more as [$route, $label, $icon])
+                        @foreach ($more as ['route' => $route, 'label' => $label, 'icon' => $icon])
                             @php($active = request()->routeIs($route) || request()->routeIs($route.'.*'))
                             <a href="{{ route($route) }}" data-nav-more-item="{{ $route }}" @if ($active) aria-current="page" @endif @class([$navLink, $navOn => $active, 'text-white/60 hover:bg-white/5 hover:text-white' => ! $active])>
                                 <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ $icon }}"/></svg>
@@ -159,6 +104,10 @@
                 <button type="button" class="grid size-11 shrink-0 place-items-center rounded-xl text-navy-800 hover:bg-navy-50 lg:hidden" data-dash-nav-toggle aria-controls="dash-nav" aria-expanded="false" aria-label="{{ __('Main menu') }}">
                     <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
                 </button>
+                <a href="{{ route('dash.home') }}" @class(['grid size-11 shrink-0 place-items-center rounded-xl lg:hidden', 'bg-brand-50 text-brand-700' => request()->routeIs('dash.home'), 'text-navy-800 hover:bg-navy-50' => ! request()->routeIs('dash.home')])
+                   data-header-apps aria-label="{{ __('Apps') }}" title="{{ __('Apps') }}">
+                    <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ \App\Support\DashboardApps::APPS_ICON }}"/></svg>
+                </a>
                 <div class="min-w-0 leading-tight">
                     <div class="truncate font-bold">{{ tenant()->name }}</div>
                     <div class="truncate text-xs text-navy-500">

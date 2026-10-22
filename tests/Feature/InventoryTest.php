@@ -82,8 +82,8 @@ class InventoryTest extends TenantTestCase
         $this->assertSame(450.0, $this->stock($a, $milk));
         $this->assertSame(1, $this->as($a, fn () => StockMovement::query()->where('type', 'count')->count()));
 
-        // under its alert level: shown on the dashboard home
-        $this->actingAs($owner)->get($this->dashUrl('/'))->assertSee('1 خامات قربت تخلص');
+        // under its alert level: counted on the Inventory tile of the dashboard home
+        $this->actingAs($owner)->get($this->dashUrl('/'))->assertSee('data-app-badge="dash.inventory">1<', false);
         $this->actingAs($owner)->get($this->dashUrl('/inventory/recipes'))->assertOk()->assertSee('Latte');
         $this->actingAs($owner)->get($this->dashUrl('/inventory/movements'))->assertOk()->assertSee('#'.$order->number);
     }

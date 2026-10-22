@@ -29,6 +29,13 @@
     --color-navy-800: #0a2540;
     --color-navy-900: #061a2e;
 
+    /* the apps screen (dashboard home): one hue per app group, the brand orange and blue plus a few accents */
+    --color-app-orders: #f26522;
+    --color-app-menu: #005ba6;
+    --color-app-customers: #0f8f7e;
+    --color-app-operations: #6d4bd6;
+    --color-app-management: #0a2540;
+
     --radius-card: 1rem;
 }
 
@@ -184,6 +191,33 @@
 @utility tab-pill {
     @apply flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-4 text-sm font-bold transition;
 }
+
+/*
+ * The apps screen (dashboard/home.blade.php + components/dash/app-tile.blade.php): large tiles like a phone's home
+ * screen, a coloured 56px square per app with the name under it; the whole tile is the tap target.
+ */
+@utility app-tile {
+    @apply relative flex min-h-24 flex-col items-center gap-2 rounded-2xl border border-transparent bg-white px-1.5 py-3 text-center transition hover:-translate-y-0.5 hover:border-navy-100 hover:shadow-[0_10px_24px_-14px_rgba(10,37,64,.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 active:translate-y-0;
+}
+
+@utility app-tile-icon {
+    @apply grid size-14 place-items-center rounded-2xl text-white shadow-sm;
+}
+
+@utility app-tile-label {
+    @apply line-clamp-2 w-full text-xs leading-snug font-bold text-navy-800 sm:text-[13px];
+}
+
+@utility app-tile-badge {
+    @apply absolute -top-1.5 -end-1.5 min-w-5 rounded-full bg-red-600 px-1.5 text-center text-[11px] leading-5 font-bold text-white tabular-nums ring-2 ring-white;
+}
+
+@utility app-tile-lock {
+    @apply absolute -end-1 -bottom-1 grid size-6 place-items-center rounded-full bg-white text-navy-500 shadow ring-1 ring-navy-100;
+}
+
+.app-tile-locked { @apply border-dashed border-navy-200 bg-white/70 hover:border-brand-500; }
+.app-tile-locked .app-tile-label { @apply text-navy-500; }
 
 @layer base {
     /* dialogs always fit the visible screen (phone toolbars and the keyboard included) and scroll inside */
