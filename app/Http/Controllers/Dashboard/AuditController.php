@@ -47,6 +47,9 @@ class AuditController extends Controller
         'corporate.refunded' => ['رجوع قيمة فاوتشر (طلب اتلغى)', 'Voucher value returned (order cancelled)'],
         'corporate.manual' => ['صرف فاوتشرات على فاتورة ورقية', 'Vouchers taken on a paper bill'],
         'corporate.manual_cancelled' => ['إلغاء صرف فاوتشر على فاتورة ورقية', 'Paper-bill voucher use cancelled'],
+        'backup.created' => ['إنشاء نسخة احتياطية', 'Backup created'],
+        'backup.downloaded' => ['تحميل نسخة احتياطية', 'Backup downloaded'],
+        'backup.deleted' => ['حذف نسخة احتياطية', 'Backup deleted'],
     ];
 
     public function index(Request $request): View

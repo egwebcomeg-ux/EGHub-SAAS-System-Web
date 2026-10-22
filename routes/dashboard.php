@@ -3,6 +3,7 @@
 use App\Http\Controllers\Dashboard\AuditController;
 use App\Http\Controllers\Dashboard\AuthController;
 use App\Http\Controllers\Dashboard\AutomationsController;
+use App\Http\Controllers\Dashboard\BackupsController;
 use App\Http\Controllers\Dashboard\BillingController;
 use App\Http\Controllers\Dashboard\BranchesController;
 use App\Http\Controllers\Dashboard\BranchMenuController;
@@ -122,6 +123,17 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/domain/connect', [DomainController::class, 'connect'])->middleware('throttle:10,1')->name('domain.connect');
         Route::post('/domain/check', [DomainController::class, 'check'])->middleware('throttle:10,1')->name('domain.check');
         Route::post('/domain/delete', [DomainController::class, 'destroy'])->name('domain.delete');
+
+        // backups of the whole restaurant: owner only (backups.manage is never granted to staff); the page explains
+        // on a plan without the feature, creating / downloading / deleting need it
+        Route::middleware('permission:backups.manage')->group(function () {
+            Route::get('/backups', [BackupsController::class, 'index'])->name('backups');
+            Route::middleware('feature:backups')->group(function () {
+                Route::post('/backups', [BackupsController::class, 'store'])->middleware('throttle:10,1')->name('backups.store');
+                Route::get('/backups/{backup}/download', [BackupsController::class, 'download'])->whereNumber('backup')->middleware('signed')->name('backups.download');
+                Route::post('/backups/{backup}/delete', [BackupsController::class, 'destroy'])->whereNumber('backup')->name('backups.delete');
+            });
+        });
     });
 
     // Menu editor

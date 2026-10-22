@@ -61,6 +61,7 @@ class Plan extends Model
         'inventory' => ['مخزون وتكلفة وصفات', 'Inventory & recipe costing', 'operations'],
         'staff_roles' => ['صلاحيات موظفين مخصصة', 'Custom staff permissions', 'management'],
         'audit_log' => ['سجل العمليات', 'Audit log', 'management'],
+        'backups' => ['نسخة احتياطية من بيانات المطعم (أسبوعية وعند الطلب)', 'Restaurant data backups (weekly and on demand)', 'management'],
         // platform
         'custom_domain' => ['دومين خاص', 'Custom domain', 'platform'],
         'hide_badge' => ['إخفاء شارة egmenu', 'Remove egmenu badge', 'platform'],

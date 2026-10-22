@@ -46,13 +46,14 @@ final class Permissions
         'contracts.manage' => ['تعاقدات الشركات (إنشاء وطباعة وتقارير)', 'Corporate contracts (create, print, reports)'],
         'vouchers.redeem' => ['صرف فاوتشرات الشركات (الكاشير وشاشة الصرف)', 'Redeem corporate vouchers (POS and the redeem screen)'],
         'vouchers.exception' => ['الموافقة على استثناء فاوتشر منتهي', 'Approve an expired voucher exception'],
+        'backups.manage' => ['النسخ الاحتياطية (إنشاء وتحميل)', 'Backups (create & download)'],
     ];
 
     /**
-     * Permissions only the owner role holds: the team and the subscription. Never granted to a staff member on top
-     * of their role, whatever the plan allows.
+     * Permissions only the owner role holds: the team, the subscription and the backups (a whole copy of the
+     * restaurant's data). Never granted to a staff member on top of their role, whatever the plan allows.
      */
-    public const OWNER_ONLY = ['users.manage', 'billing.manage'];
+    public const OWNER_ONLY = ['users.manage', 'billing.manage', 'backups.manage'];
 
     /** Permission prefix => [arabic, english] group label, in the order the team page lists them. */
     public const GROUPS = [
@@ -79,6 +80,7 @@ final class Permissions
         'settings' => ['الإعدادات', 'Settings'],
         'users' => ['المستخدمين', 'Users'],
         'billing' => ['الاشتراك', 'Subscription'],
+        'backups' => ['النسخ الاحتياطية', 'Backups'],
     ];
 
     /** role => [labels, permissions ('*' = everything), hint shown under the role on the team page] */

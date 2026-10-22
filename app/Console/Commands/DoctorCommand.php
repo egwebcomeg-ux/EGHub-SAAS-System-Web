@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\Backups\TenantBackups;
 use App\Support\Permissions;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -37,6 +38,7 @@ class DoctorCommand extends Command
                 $this->check("Migrations ran ($table table)", Schema::hasTable($table), 'run php artisan migrate --force');
             }
             $this->check('Queue table reachable', $this->queueReachable(), 'jobs table missing: run migrate');
+            $this->check('Migrations ran (tenant_backups table)', Schema::hasTable('tenant_backups'), 'run php artisan migrate --force (the restaurant backups need it)', warn: true);
             $this->check('Roles seeded (driver role)', $this->roleExists('driver'), 'run php artisan db:seed --class=RoleSeeder --force');
             $missing = $this->missingPermissions();
             $this->check('Permissions seeded ('.count(Permissions::ALL).' keys)', $missing === [],
@@ -58,6 +60,10 @@ class DoctorCommand extends Command
         $last = cache()->get('egmenu:last_backup_at');
         $this->check('Backup within 36 hours', $last && $last > now()->subHours(36)->timestamp,
             $last ? 'last '.now()->setTimestamp($last)->diffForHumans() : 'no backup recorded yet', warn: true);
+
+        $lastTenants = cache()->get(TenantBackups::LAST_RUN_KEY);
+        $this->check('Restaurant backups ran within 8 days', $lastTenants && $lastTenants > now()->subDays(8)->timestamp,
+            $lastTenants ? 'last '.now()->setTimestamp($lastTenants)->diffForHumans() : 'no weekly run recorded yet (egmenu:tenant-backups, Sunday 03:30)', warn: true);
 
         $this->newLine();
         $this->line($this->failures ? "<fg=red>$this->failures check(s) failed</>" : '<fg=green>All good</>');

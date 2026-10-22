@@ -52,6 +52,8 @@ Artisan::command('egmenu:auto-cancel', function (AutoCancel $autoCancel) {
 Schedule::command('egmenu:billing')->dailyAt('03:00')->withoutOverlapping();
 Schedule::command('egmenu:loyalty-expire')->dailyAt('03:30')->withoutOverlapping();
 Schedule::command('egmenu:backup')->dailyAt('02:30')->withoutOverlapping();
+// per-restaurant backup zips the owners download (plans with the `backups` feature), Sunday night after the platform backup
+Schedule::command('egmenu:tenant-backups')->weeklyOn(0, '03:30')->withoutOverlapping();
 Schedule::command('egmenu:campaigns')->everyMinute()->withoutOverlapping();
 Schedule::command('egmenu:auto-cancel')->everyMinute()->withoutOverlapping();
 Schedule::command('egmenu:weekly-report')->weeklyOn(1, '08:00')->withoutOverlapping();
