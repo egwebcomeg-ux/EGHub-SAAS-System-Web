@@ -37,6 +37,8 @@ class PosOfflineTest extends TenantTestCase
 
     private function shop(string $slug = 'cafe-a'): void
     {
+        // mid-afternoon: shifts open and offline sales happen a few hours earlier and must stay on "today" when the suite runs around midnight
+        $this->travelTo(now()->setTime(15, 0));
         $this->tenant = $this->restaurant($slug, 'basic');
         app(Billing::class)->setAddon($this->tenant, 'pos_pack', 1);
         $this->latte = $this->item($this->tenant, 'Latte', 60);
@@ -263,7 +265,7 @@ class PosOfflineTest extends TenantTestCase
         $this->openShift($this->cashier, $device, 0)->assertSessionHasNoErrors();
         $shift = $this->shift($this->cashier);
         $soldAt = now()->addMinutes(30);
-        $this->travelBack();
+        $this->travelTo(now()->addDay()->setTime(15, 0)); // the next afternoon, not the real clock
         $this->sync($this->sale($shift, $device, 1, ['at' => $soldAt->toIso8601String(), 'offline_since' => $soldAt->copy()->subMinutes(10)->toIso8601String()]), $device)->assertOk();
 
         $day = CarbonImmutable::parse($soldAt)->startOfDay();

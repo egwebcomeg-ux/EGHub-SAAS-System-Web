@@ -31,6 +31,8 @@ class PosZReportTest extends TenantTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // mid-afternoon: the day's sales below go back a few hours and must stay on "today" when the suite runs around midnight
+        $this->travelTo(now()->setTime(15, 0));
         $this->tenant = $this->restaurant('cafe-a', 'basic');
         app(Billing::class)->setAddon($this->tenant, 'pos_pack', 1);
         $this->latte = $this->item($this->tenant, 'Latte', 60);
@@ -63,7 +65,7 @@ class PosZReportTest extends TenantTestCase
         $this->travelTo(now()->subHours(3));
         $this->actingAs($this->cashier)->post($this->dashUrl('/shifts/open'), ['opening_cash' => 100, 'terminal_id' => $this->device['id'], 'terminal_token' => $this->device['token']])
             ->assertSessionHasNoErrors();
-        $this->travelBack();
+        $this->travelTo(now()->addHours(3)); // back to the frozen afternoon, not to the real clock
         $this->actingAs($this->manager)->post($this->dashUrl('/shifts/open'), ['opening_cash' => 0])->assertSessionHasNoErrors();
         $shift = $this->as($this->tenant, fn () => Shift::query()->where('user_id', $this->cashier->id)->firstOrFail());
 
