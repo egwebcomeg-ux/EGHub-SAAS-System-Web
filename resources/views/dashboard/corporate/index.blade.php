@@ -30,7 +30,7 @@
 </form>
 
 @if ($found !== null)
-    <section class="card mb-4" data-search-results>
+    <section class="card mb-4 overflow-x-auto" data-search-results>
         <h2 class="section-title mb-2">{{ __('Search results') }}</h2>
         @if ($found->isEmpty())
             <p class="empty-state">{{ __('No voucher matches.') }}</p>
@@ -66,7 +66,7 @@
     </section>
 @endif
 
-<section class="card" data-contracts>
+<section class="card overflow-x-auto" data-contracts>
     @if ($contracts->isEmpty())
         <div class="empty-state py-10 text-center">
             <div class="text-4xl" aria-hidden="true">🏢</div>

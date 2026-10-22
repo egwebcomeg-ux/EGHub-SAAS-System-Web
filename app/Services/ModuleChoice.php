@@ -48,11 +48,11 @@ final class ModuleChoice
         'dash.campaigns' => ['campaigns'],
         'dash.coupons' => ['loyalty', 'campaigns'],
         'dash.wallet' => ['wallet'],
-        'dash.corporate' => ['wallet', 'loyalty', 'pos'],
-        'dash.redeem' => ['wallet', 'loyalty', 'pos'],
+        'dash.corporate' => ['corporate-vouchers'],
+        'dash.redeem' => ['corporate-vouchers'],
         'dash.inventory' => ['inventory'],
         'dash.zones' => ['online-ordering', 'call-center'],
-        'dash.drivers' => ['online-ordering', 'call-center'],
+        'dash.drivers' => ['delivery-drivers'],
         'dash.kiosks' => ['kiosk'],
         'dash.devices' => ['tv-screens', 'kiosk', 'kitchen-display', 'pos'],
         'dash.reports' => ['reports'],
@@ -75,10 +75,12 @@ final class ModuleChoice
         'whatsapp' => ['dash.settings', 'settings.manage', null],
         'campaigns' => ['dash.campaigns', 'marketing.manage', null],
         'wallet' => ['dash.wallet', 'wallet.manage', null],
+        'corporate-vouchers' => ['dash.corporate', 'contracts.manage', null],
         'pos' => ['dash.pos', 'pos.use', null],
         'kiosk' => ['dash.kiosks', 'kiosk.manage', null],
         'kitchen-display' => ['dash.kitchen', 'kitchen.view', null],
         'call-center' => ['dash.callcenter', 'callcenter.use', null],
+        'delivery-drivers' => ['dash.drivers', 'delivery.assign', null],
         'inventory' => ['dash.inventory', 'inventory.manage', null],
         'reports' => ['dash.reports', 'reports.view', null],
         'multi-branch' => ['dash.branches', 'branches.manage', null],
@@ -136,8 +138,9 @@ final class ModuleChoice
     public static function defaults(string $businessType): array
     {
         return self::clean(match ($businessType) {
-            'restaurant' => ['table-ordering', 'online-ordering', 'kitchen-display', 'reservations', 'reports'],
-            'both' => ['table-ordering', 'online-ordering', 'kitchen-display', 'loyalty', 'reports'],
+            // a restaurant that delivers has riders: the drivers module comes with its online ordering
+            'restaurant' => ['table-ordering', 'online-ordering', 'kitchen-display', 'delivery-drivers', 'reservations', 'reports'],
+            'both' => ['table-ordering', 'online-ordering', 'kitchen-display', 'delivery-drivers', 'loyalty', 'reports'],
             'shop' => ['online-ordering', 'pos', 'loyalty', 'offers'],
             default => ['table-ordering', 'loyalty', 'offers', 'reports'],
         });
@@ -226,7 +229,7 @@ final class ModuleChoice
         $contact = null;
         if (! $best && $missing !== []) {
             $contact = $pricing['plans']->first(fn (Plan $p) => $p->isContactSales() && collect($modules)
-                ->every(fn (array $m) => $m['feature'] === null || ! empty($pricing['matrix'][$p->id]['features'][$m['feature']])));
+                ->every(fn (array $m) => SiteModules::enabled($pricing['matrix'][$p->id]['features'] ?? [], $m['feature'])));
         }
 
         return ['included' => $included, 'missing' => $missing, 'trialing' => $trialing, 'plan' => $rights->plan, 'best' => $best, 'contact' => $contact];
@@ -252,7 +255,7 @@ final class ModuleChoice
                 continue;
             }
             $features = $pricing['matrix'][$plan->id]['features'] ?? [];
-            $needed = array_values(array_filter($modules, fn (array $m) => $m['feature'] !== null && empty($features[$m['feature']])));
+            $needed = array_values(array_filter($modules, fn (array $m) => ! SiteModules::enabled($features, $m['feature'])));
             $addons = self::packsFor($needed, $packs->filter(fn (AddonPrice $a) => $a->availableFor($plan))->values(), $tenant);
             if ($addons === null) {
                 continue;
@@ -286,7 +289,7 @@ final class ModuleChoice
         if ($needed === []) {
             return collect();
         }
-        $sells = fn (AddonPrice $a, array $m) => in_array($a->key, $m['addons'], true) && in_array($m['feature'], (array) $a->features, true);
+        $sells = fn (AddonPrice $a, array $m) => in_array($a->key, $m['addons'], true) && SiteModules::sells($a->features, $m['feature']);
         $cheapestFor = fn (array $m) => $packs->filter(fn (AddonPrice $a) => $sells($a, $m))->sortBy(fn (AddonPrice $a) => $a->priceFor($tenant))->first();
 
         $fill = function (array $rest, Collection $start) use ($cheapestFor, $sells): ?Collection {

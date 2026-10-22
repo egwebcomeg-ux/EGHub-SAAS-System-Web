@@ -49,6 +49,7 @@ class TerminalsController extends Controller
 
     public function update(Request $request, PosTerminal $terminal): RedirectResponse
     {
+        $this->ownBranch($request, $terminal);
         $data = $request->validate(['name' => 'required|string|max:60', 'is_active' => 'nullable|boolean']);
         $terminal->update(['name' => mb_substr(trim($data['name']), 0, 60), 'is_active' => $request->boolean('is_active')]);
         Audit::record('pos.terminal_updated', $terminal->label(), ['active' => $terminal->is_active]);
@@ -56,11 +57,19 @@ class TerminalsController extends Controller
         return back()->with('ok', __('Saved.'));
     }
 
-    public function release(PosTerminal $terminal, Terminals $terminals): RedirectResponse
+    public function release(Request $request, PosTerminal $terminal, Terminals $terminals): RedirectResponse
     {
+        $this->ownBranch($request, $terminal);
         $terminals->release($terminal);
 
         return back()->with('ok', __('The device was signed off this terminal.'));
+    }
+
+    /** A manager tied to one branch only touches that branch's terminals (the route is already tenant-scoped). */
+    private function ownBranch(Request $request, PosTerminal $terminal): void
+    {
+        $user = $request->user();
+        abort_if($user->branch_id && $user->branch_id !== $terminal->branch_id, 404);
     }
 
     public function settings(Request $request): RedirectResponse

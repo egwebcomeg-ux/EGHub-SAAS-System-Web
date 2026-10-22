@@ -122,6 +122,8 @@ final class BusinessType
             'kitchen_display' => [self::prepScreen($type), __('Orders go straight to the screen with timers, no paper tickets.')],
             'call_center' => [__('Call center & delivery'), __('Phone orders with the caller’s saved addresses and delivery zones.')],
             'inventory' => [__('Inventory'), __('Recipes deduct stock with every order; know your food cost.')],
+            // delivery drivers come with delivery zones (Complete): worth pointing out to places that deliver
+            'delivery_zones' => [__('Delivery drivers'), __('Give delivery orders to your riders, follow them on a map and settle their cash.')],
         ];
         if ($type === 'shop') {
             $all['loyalty_stamps'] = [__('Loyalty points'), __('Customers collect points on every pound they spend and come back to use them.')];
@@ -131,8 +133,8 @@ final class BusinessType
             $all['inventory'] = [__('Inventory'), __('Every sale deducts stock; know what to reorder and what you earn on each product.')];
         }
         $order = match ($type) {
-            'restaurant' => ['kitchen_display', 'call_center', 'inventory', 'pos', 'offers', 'loyalty_stamps'],
-            'both' => ['kitchen_display', 'loyalty_stamps', 'pos', 'call_center', 'offers', 'inventory'],
+            'restaurant' => ['kitchen_display', 'call_center', 'inventory', 'pos', 'delivery_zones', 'offers', 'loyalty_stamps'],
+            'both' => ['kitchen_display', 'loyalty_stamps', 'pos', 'call_center', 'delivery_zones', 'offers', 'inventory'],
             'shop' => ['pos', 'offers', 'loyalty_stamps', 'call_center', 'inventory', 'kitchen_display'],
             default => ['loyalty_stamps', 'offers', 'pos', 'kitchen_display', 'inventory', 'call_center'],
         };

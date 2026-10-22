@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Services\Orders\OrderService;
 use App\Services\Settings;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Route;
 use Tests\TenantTestCase;
 
 /** The guest's "where is my order" page (/o/{token}) and the status feed it polls. */
@@ -184,5 +185,14 @@ class OrderTrackingTest extends TenantTestCase
         $this->getJson($this->subUrl('cafe-b', "o/{$order->tracking_token}/status"))->assertNotFound();
         $this->get($this->pathUrl('cafe-b', "o/{$order->tracking_token}"))->assertNotFound();
         $this->get($this->subUrl('cafe-a', "o/{$order->tracking_token}"))->assertOk();
+    }
+
+    public function test_the_status_poll_is_rate_limited_per_guest(): void
+    {
+        foreach (['menu.order.status', 'path.order.status', 'custom.order.status'] as $name) {
+            $route = Route::getRoutes()->getByName($name);
+            $this->assertNotNull($route, $name);
+            $this->assertContains('throttle:60,1', $route->gatherMiddleware(), $name);
+        }
     }
 }

@@ -8,6 +8,7 @@ use App\Models\Ingredient;
 use App\Models\Kiosk;
 use App\Models\LoyaltyProgram;
 use App\Models\MenuItem;
+use App\Models\PosTerminal;
 use App\Models\TvScreen;
 use App\Models\User;
 
@@ -21,7 +22,7 @@ use App\Models\User;
  */
 final class Onboarding
 {
-    public const STEPS = ['brand', 'menu', 'tables', 'ordering', 'staff', 'loyalty', 'reservations', 'zones', 'inventory', 'tv', 'kiosk', 'whatsapp', 'plan'];
+    public const STEPS = ['brand', 'menu', 'tables', 'ordering', 'staff', 'loyalty', 'reservations', 'zones', 'drivers', 'inventory', 'terminals', 'tv', 'kiosk', 'whatsapp', 'plan'];
 
     /** Steps that belong to modules: step => the picked modules any of which keeps it in the checklist. */
     public const MODULE_STEPS = [
@@ -29,13 +30,15 @@ final class Onboarding
         'loyalty' => ['loyalty'],
         'reservations' => ['reservations'],
         'zones' => ['online-ordering', 'call-center'],
+        'drivers' => ['online-ordering', 'call-center', 'delivery-drivers'],
         'inventory' => ['inventory'],
+        'terminals' => ['pos'],
         'tv' => ['tv-screens'],
         'kiosk' => ['kiosk'],
     ];
 
     /** Setup steps that only appear once their module was picked; without a pick the checklist stays as it was. */
-    private const PICKED_ONLY = ['reservations', 'zones', 'inventory', 'tv', 'kiosk'];
+    private const PICKED_ONLY = ['reservations', 'zones', 'drivers', 'inventory', 'terminals', 'tv', 'kiosk'];
 
     public const MENU_ITEMS_WITH_PHOTOS = 5;
 
@@ -86,9 +89,17 @@ final class Onboarding
             $steps[] = self::step('zones', __('Add your delivery areas'), __('Each area with its delivery fee, so guests see the right total.'),
                 DeliveryZone::query()->exists(), $link('delivery.manage', route('dash.zones')));
         }
+        if (self::follows('drivers') && $rights->allows('delivery_zones|online_ordering')) {
+            $steps[] = self::step('drivers', __('Add a driver'), __('A rider with the driver role gets their deliveries on their phone, and guests follow the ride live.'),
+                User::role('driver')->exists(), $link('users.manage', route('dash.users')));
+        }
         if (self::follows('inventory') && $rights->allows('inventory')) {
             $steps[] = self::step('inventory', __('Add your ingredients'), __('Add the ingredients and their stock, then link them to your recipes.'),
                 Ingredient::query()->exists(), $link('inventory.manage', route('dash.inventory')));
+        }
+        if (self::follows('terminals') && $rights->allows('pos')) {
+            $steps[] = self::step('terminals', __('Name your POS terminals'), __('“Cashier 1”, “K2”: each till gets a name and a code, so shifts, sales and offline numbers say where they came from.'),
+                PosTerminal::query()->exists(), $link('branches.manage', route('dash.terminals')));
         }
         if (self::follows('tv') && $rights->allows('tv_screens')) {
             $steps[] = self::step('tv', __('Set up your first TV screen'), __('Create a screen and open its link on the TV browser.'),

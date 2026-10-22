@@ -8,7 +8,7 @@
         'menu' => __('Put the menu online in your guests’ languages, on paper and on the TVs, and keep every copy up to date from one place.'),
         'orders' => __('Orders from the table and from your own link with no commission, and table bookings, on one live board.'),
         'customers' => __('Bring guests back with a stamp card, offers, WhatsApp messages and a prepaid balance.'),
-        'operations' => __('For busier places: a cashier, a self-order tablet, kitchen screens and stock. Add only the ones you need, on top of a paid plan.'),
+        'operations' => __('For busier places and chains: a cashier, a self-order tablet, kitchen screens and stock, in the Enterprise plan set up with you.'),
         'management' => __('Numbers you can read, more branches, your own domain and a place in the directory.'),
     ];
 @endphp

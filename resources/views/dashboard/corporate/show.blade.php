@@ -82,7 +82,7 @@
     'all' => __('All'), 'active' => __('Active'), 'expired' => __('Expired'), 'used' => __('Used up'), 'unprinted' => __('Not printed'), 'linked' => __('Linked to a mobile'), 'void' => __('Voided'),
 ])->map(fn ($label, $key) => [$key, $label, route('dash.corporate.show', ['contract' => $contract, 'filter' => $key])])->values()->all()])
 
-<section class="card" data-vouchers>
+<section class="card overflow-x-auto" data-vouchers>
     <table class="table-base">
         <thead><tr><th>{{ __('Serial') }}</th><th>{{ __('Code') }}</th><th>{{ __('Balance') }}</th><th>{{ __('Status') }}</th><th>{{ __('Valid until') }}</th><th>{{ __('Linked mobile') }}</th><th>{{ __('Prints') }}</th><th></th></tr></thead>
         <tbody>

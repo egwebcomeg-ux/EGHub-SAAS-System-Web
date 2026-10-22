@@ -2,7 +2,11 @@
 
 namespace App\Support;
 
-/** Dashboard permissions and the default permission set of each staff role. */
+/**
+ * Dashboard permissions and the default permission set of each staff role. With the `staff_roles` plan feature the
+ * owner may add permissions to one staff member on top of their role (spatie direct permissions, see
+ * App\Http\Controllers\Dashboard\UsersController); the owner-only ones are never handed out that way.
+ */
 final class Permissions
 {
     /** key => [arabic, english] */
@@ -44,11 +48,45 @@ final class Permissions
         'vouchers.exception' => ['الموافقة على استثناء فاوتشر منتهي', 'Approve an expired voucher exception'],
     ];
 
-    /** role => [labels, permissions ('*' = everything)] */
+    /**
+     * Permissions only the owner role holds: the team and the subscription. Never granted to a staff member on top
+     * of their role, whatever the plan allows.
+     */
+    public const OWNER_ONLY = ['users.manage', 'billing.manage'];
+
+    /** Permission prefix => [arabic, english] group label, in the order the team page lists them. */
+    public const GROUPS = [
+        'orders' => ['الطلبات', 'Orders'],
+        'pos' => ['الكاشير', 'POS'],
+        'shifts' => ['الورديات', 'Shifts'],
+        'callcenter' => ['الكول سنتر', 'Call center'],
+        'delivery' => ['التوصيل', 'Delivery'],
+        'kitchen' => ['المطبخ', 'Kitchen'],
+        'menu' => ['المنيو', 'Menu'],
+        'inventory' => ['المخزون', 'Inventory'],
+        'tables' => ['الترابيزات', 'Tables'],
+        'branches' => ['الفروع', 'Branches'],
+        'customers' => ['العملاء', 'Customers'],
+        'loyalty' => ['الولاء', 'Loyalty'],
+        'vouchers' => ['الفاوتشرات', 'Vouchers'],
+        'contracts' => ['تعاقدات الشركات', 'Corporate contracts'],
+        'wallet' => ['المحفظة', 'Wallet'],
+        'marketing' => ['التسويق', 'Marketing'],
+        'reservations' => ['الحجوزات', 'Reservations'],
+        'kiosk' => ['الكشك', 'Kiosk'],
+        'reports' => ['التقارير', 'Reports'],
+        'audit' => ['سجل العمليات', 'Audit log'],
+        'settings' => ['الإعدادات', 'Settings'],
+        'users' => ['المستخدمين', 'Users'],
+        'billing' => ['الاشتراك', 'Subscription'],
+    ];
+
+    /** role => [labels, permissions ('*' = everything), hint shown under the role on the team page] */
     public const ROLES = [
         'owner' => [
             'label' => ['المالك', 'Owner'],
             'permissions' => '*',
+            'hint' => ['كل حاجة، ومنها الفريق والصلاحيات والاشتراك', 'Everything, including the team, permissions and the subscription'],
         ],
         'manager' => [
             'label' => ['مدير', 'Manager'],
@@ -57,43 +95,55 @@ final class Permissions
                 'customers.view', 'customers.import', 'loyalty.stamp', 'loyalty.manage', 'vouchers.give', 'marketing.manage', 'reports.view', 'settings.manage', 'audit.view',
                 'wallet.manage', 'kiosk.manage', 'reservations.manage', 'contracts.manage', 'vouchers.redeem', 'vouchers.exception',
                 'delivery.assign', 'delivery.drivers'],
+            'hint' => ['كل الشغل اليومي والتقارير والإعدادات، من غير المستخدمين والاشتراك', 'Day-to-day work, reports and settings, without users and the subscription'],
         ],
         'cashier' => [
             'label' => ['كاشير', 'Cashier'],
             'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'shifts.manage', 'menu.availability', 'customers.view', 'loyalty.stamp', 'wallet.manage',
                 'vouchers.redeem', 'delivery.assign'],
+            'hint' => ['الكاشير والورديات والطلبات، وصرف الفاوتشرات وتحديد الطيار', 'The POS, shifts and orders, redeeming vouchers and assigning drivers'],
         ],
         'callcenter' => [
             'label' => ['كول سنتر', 'Call center'],
             'permissions' => ['orders.view', 'orders.manage', 'callcenter.use', 'customers.view', 'loyalty.stamp', 'delivery.assign'],
+            'hint' => ['طلبات التليفون والعملاء وتحديد الطيار', 'Phone orders, the customer list and assigning drivers'],
         ],
         'kitchen' => [
             'label' => ['مطبخ', 'Kitchen'],
             'permissions' => ['kitchen.view', 'menu.availability'],
+            'hint' => ['شاشة المطبخ وتحديد الأصناف اللي خلصت فقط', 'The kitchen display and marking items sold out, nothing else'],
         ],
         'waiter' => [
             'label' => ['ويتر', 'Waiter'],
             'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'menu.availability'],
+            'hint' => ['تسجيل طلبات الترابيزات ومتابعتها', 'Taking table orders and following them'],
         ],
         // a delivery driver sees only the orders given to them (App\Http\Controllers\Dashboard\DriverController)
         'driver' => [
             'label' => ['طيار توصيل', 'Delivery driver'],
             'permissions' => ['delivery.drive'],
+            'hint' => ['شاشة الطيار على الموبايل: طلباته للتوصيل فقط', 'The driver screen on the phone: their own deliveries only'],
         ],
     ];
 
     public static function label(string $permission): string
     {
-        $l = self::ALL[$permission] ?? [$permission, $permission];
-
-        return app()->getLocale() === 'en' ? $l[1] : $l[0];
+        return self::pick(self::ALL[$permission] ?? [$permission, $permission]);
     }
 
     public static function roleLabel(string $role): string
     {
-        $l = self::ROLES[$role]['label'] ?? [$role, $role];
+        return self::pick(self::ROLES[$role]['label'] ?? [$role, $role]);
+    }
 
-        return app()->getLocale() === 'en' ? $l[1] : $l[0];
+    public static function roleHint(string $role): string
+    {
+        return self::pick(self::ROLES[$role]['hint'] ?? ['', '']);
+    }
+
+    public static function groupLabel(string $group): string
+    {
+        return self::pick(self::GROUPS[$group] ?? [$group, $group]);
     }
 
     /** @return string[] */
@@ -102,5 +152,40 @@ final class Permissions
         $p = self::ROLES[$role]['permissions'] ?? [];
 
         return $p === '*' ? array_keys(self::ALL) : $p;
+    }
+
+    /** @return list<string> the permissions a staff member may get on top of their role */
+    public static function grantable(): array
+    {
+        return array_values(array_diff(array_keys(self::ALL), self::OWNER_ONLY));
+    }
+
+    /**
+     * The grantable permissions by group, in GROUPS order (a prefix missing from GROUPS makes its own group).
+     *
+     * @return array<string, array{label: string, permissions: list<string>}>
+     */
+    public static function grouped(): array
+    {
+        $byGroup = [];
+        foreach (self::grantable() as $key) {
+            $byGroup[strtok($key, '.')][] = $key;
+        }
+        $order = array_keys(self::GROUPS);
+        $position = fn (string $group) => ($i = array_search($group, $order, true)) === false ? PHP_INT_MAX : $i;
+        uksort($byGroup, fn (string $a, string $b) => $position($a) <=> $position($b));
+
+        $out = [];
+        foreach ($byGroup as $group => $keys) {
+            $out[$group] = ['label' => self::groupLabel($group), 'permissions' => $keys];
+        }
+
+        return $out;
+    }
+
+    /** @param array{0: string, 1: string} $pair */
+    private static function pick(array $pair): string
+    {
+        return app()->getLocale() === 'en' ? $pair[1] : $pair[0];
     }
 }

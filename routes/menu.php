@@ -28,7 +28,7 @@ Route::get('/t/{token}', [MenuController::class, 'table'])->where('token', '[a-f
 
 Route::post('/order', [OrderController::class, 'store'])->middleware('throttle:menu-orders')->name('order');
 Route::get('/o/{token}', [OrderController::class, 'show'])->where('token', '[a-f0-9]{24}')->name('order.show');
-Route::get('/o/{token}/status', [OrderController::class, 'status'])->where('token', '[a-f0-9]{24}')->name('order.status');
+Route::get('/o/{token}/status', [OrderController::class, 'status'])->where('token', '[a-f0-9]{24}')->middleware('throttle:60,1')->name('order.status');
 // the read-only receipt (QR on the printed receipt, WhatsApp link from the POS): signed, nothing personal
 Route::get('/r/{order}/{signature}', [ReceiptController::class, 'show'])->whereNumber('order')->where('signature', '[a-f0-9]{32}')
     ->middleware('throttle:60,1')->name('receipt');

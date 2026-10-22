@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\PlatformAdmin;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Tests\TenantTestCase;
 
 class OpsTest extends TenantTestCase
@@ -46,6 +48,16 @@ class OpsTest extends TenantTestCase
         mkdir($public.'/storage', 0777, true);
         app()->usePublicPath($public);
         $this->artisan('egmenu:doctor')->assertSuccessful();
+
+        // roles and permissions come from the RoleSeeder: a missing driver role or permission key fails the check
+        DB::table('roles')->where('name', 'driver')->delete();
+        DB::table('permissions')->where('name', 'delivery.drive')->delete();
+        $this->assertSame(1, Artisan::call('egmenu:doctor'));
+        $output = Artisan::output();
+        $this->assertStringContainsString('FAIL  Roles seeded (driver role) - run php artisan db:seed --class=RoleSeeder', $output);
+        $this->assertStringContainsString('missing delivery.drive', $output);
+        $this->assertStringContainsString('OK    Migrations ran (driver_locations table)', $output);
+
         rmdir($public.'/storage');
         rmdir($public);
     }

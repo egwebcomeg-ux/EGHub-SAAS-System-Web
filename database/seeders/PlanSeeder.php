@@ -52,7 +52,9 @@ class PlanSeeder extends Seeder
                 'tagline_en' => 'Your QR menu online at no cost, until you need more',
                 'features' => ['excel_import'],
                 'limits' => ['branches' => 1, 'menu_items' => 30, 'staff' => 1, 'tables' => 5, 'ai_imports_per_month' => 0]],
-            ['code' => 'full', 'name' => 'الكاملة', 'name_en' => 'Complete', 'monthly_price' => 1250, 'sort_order' => 10, 'is_featured' => true,
+            // 1,250 a month shown against the regular 2,500 (the launch discount). A plan that already exists keeps the
+            // prices the super admin set, crossed-out price included (clearing it ends the launch period).
+            ['code' => 'full', 'name' => 'الكاملة', 'name_en' => 'Complete', 'monthly_price' => 1250, 'original_price' => 2500, 'sort_order' => 10, 'is_featured' => true,
                 'cycles' => ['6' => 10, '12' => 20],
                 'tagline' => 'كل حاجة للمطعم أو الكافيه: الطلبات والتوصيل والحجز والولاء والمحفظة والتسويق والتقارير',
                 'tagline_en' => 'Everything for one place: ordering, delivery, bookings, loyalty, wallet, marketing and reports',
@@ -89,7 +91,8 @@ class PlanSeeder extends Seeder
         foreach ($plans as $p) {
             $plan = Plan::query()->firstOrCreate(['code' => $p['code']], [
                 'name' => $p['name'], 'name_en' => $p['name_en'], 'tagline' => $p['tagline'], 'tagline_en' => $p['tagline_en'],
-                'monthly_price' => $p['monthly_price'], 'cycle_discounts' => $p['cycles'] ?? $cycles, 'sort_order' => $p['sort_order'],
+                'monthly_price' => $p['monthly_price'], 'original_price' => $p['original_price'] ?? null,
+                'cycle_discounts' => $p['cycles'] ?? $cycles, 'sort_order' => $p['sort_order'],
                 'is_featured' => $p['is_featured'] ?? false, 'contact_sales' => $p['contact_sales'] ?? false,
             ]);
             foreach (Plan::FEATURES as $key => $_) {

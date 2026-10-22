@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Branch;
 use App\Models\Category;
 use App\Models\MenuItem;
 use App\Models\Subscription;
@@ -159,14 +160,63 @@ class OnboardingTest extends TenantTestCase
     {
         $a = $this->restaurant('cafe-a');
 
+        // the Pro plan: delivery (drivers) yes, the POS and corporate vouchers no
         $this->actingAs($this->owner($a))->get($this->dashUrl('/help'))->assertOk()
             ->assertSee(__('Dashboard tutorial'))->assertSee('data-help-steps', false)
             ->assertSee('/img/site/menu-editor-sm.webp', false)->assertSee('/img/site/tables-sm.webp', false)
-            ->assertSee(route('dash.menu'), false)->assertSee(route('dash.users'), false);
+            ->assertSee(route('dash.menu'), false)->assertSee(route('dash.users'), false)
+            ->assertSee('data-help-step="dash.drivers"', false)->assertSee(route('dash.drivers'), false)
+            ->assertDontSee('data-help-step="dash.terminals"', false)->assertDontSee('data-help-step="dash.corporate"', false)
+            ->assertSee('data-help-count="9"', false)->assertSee(__(':n short steps from an empty account to a menu guests scan every day.', ['n' => 9]));
         $this->assertFileExists(public_path('img/site/menu-editor-sm.webp'));
 
-        // a waiter can read it too, without links to pages they cannot open
+        // a waiter can read it too, without the steps of pages they cannot open
         $this->actingAs($this->staff($a, 'waiter', 'w@cafe-a.test'))->get($this->dashUrl('/help'))->assertOk()
-            ->assertDontSee(route('dash.users'), false);
+            ->assertDontSee(route('dash.users'), false)->assertDontSee('data-help-step="dash.drivers"', false)
+            ->assertSee('data-help-step="dash.orders"', false)->assertSee('data-help-count="2"', false);
+
+        // Enterprise: the POS terminals, drivers, corporate contracts and the redeem screen have their steps
+        $e = $this->restaurant('cafe-e', 'enterprise');
+        $this->actingAs($this->owner($e))->get($this->dashUrl('/help'))->assertOk()
+            ->assertSee(route('dash.terminals'), false)->assertSee(route('dash.drivers'), false)
+            ->assertSee(route('dash.corporate'), false)->assertSee(route('dash.redeem'), false)
+            ->assertSee('data-help-count="12"', false);
+        // a cashier redeems vouchers but signs no contracts
+        $this->actingAs($this->staff($e, 'cashier', 'c@cafe-e.test'))->get($this->dashUrl('/help'))->assertOk()
+            ->assertSee('data-help-step="dash.redeem"', false)->assertDontSee('data-help-step="dash.corporate"', false)
+            ->assertDontSee('data-help-step="dash.terminals"', false);
+    }
+
+    public function test_the_checklist_asks_for_pos_terminals_and_a_driver_once_those_modules_are_picked(): void
+    {
+        $e = $this->restaurant('cafe-a', 'enterprise');
+        $owner = $this->owner($e);
+        $this->assertArrayNotHasKey('terminals', $this->states($e));
+        $this->assertArrayNotHasKey('drivers', $this->states($e));
+
+        $this->actingAs($owner)->post($this->dashUrl('/modules'), ['modules' => ['pos', 'online-ordering']]);
+        $states = $this->states($e);
+        $this->assertSame('todo', $states['terminals']);
+        $this->assertSame('todo', $states['drivers']);
+        $this->actingAs($owner)->get($this->dashUrl('/'))->assertOk()->assertSee(route('dash.terminals'), false);
+
+        $this->actingAs($owner)->post($this->dashUrl('/pos/terminals'), ['branch_id' => $this->as($e, fn () => Branch::query()->value('id')), 'name' => 'Cashier 1'])
+            ->assertSessionHasNoErrors();
+        $this->actingAs($owner)->post($this->dashUrl('/users'), ['name' => 'Hassan', 'phone' => '01111111111', 'role' => 'driver', 'password' => 'Secret-pass-123'])
+            ->assertSessionHasNoErrors();
+        $states = $this->states($e);
+        $this->assertSame('done', $states['terminals']);
+        $this->assertSame('done', $states['drivers']);
+
+        // the drivers module alone keeps the driver step; a plan without the POS never shows the terminals one
+        $this->actingAs($owner)->post($this->dashUrl('/modules'), ['modules' => ['delivery-drivers']]);
+        $states = $this->states($e);
+        $this->assertSame('done', $states['drivers']);
+        $this->assertArrayNotHasKey('terminals', $states);
+        $p = $this->restaurant('cafe-p', 'pro');
+        $this->actingAs($this->owner($p))->post($this->dashUrl('/modules'), ['modules' => ['pos', 'online-ordering']]);
+        $states = $this->states($p);
+        $this->assertArrayNotHasKey('terminals', $states);
+        $this->assertSame('todo', $states['drivers']);
     }
 }

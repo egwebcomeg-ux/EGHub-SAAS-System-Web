@@ -140,6 +140,12 @@ class PricingLineupTest extends TenantTestCase
 
     public function test_a_launch_discount_shows_the_regular_price_crossed_out_with_its_share(): void
     {
+        // a fresh install seeds the Complete plan at 1,250 against the regular 2,500; the super admin ends the
+        // launch period by clearing the crossed-out price, and a seeder re-run leaves that alone
+        $this->assertSame(2500.0, Plan::query()->where('code', 'full')->value('original_price') + 0.0);
+        Plan::query()->where('code', 'full')->update(['original_price' => null]);
+        $this->seed(PlanSeeder::class);
+        $this->assertNull(Plan::query()->where('code', 'full')->value('original_price'));
         $this->get($this->menuUrl('pricing'))->assertOk()->assertDontSee('data-orig-pct', false);
 
         Plan::query()->where('code', 'full')->update(['original_price' => 2500]);

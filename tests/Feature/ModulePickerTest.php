@@ -46,7 +46,8 @@ class ModulePickerTest extends TenantTestCase
         $tenant = Tenant::query()->findOrFail('new-grill');
         $html = $this->actingAs($this->owner($tenant))->get($this->dashUrl('/modules?welcome=1'))->assertOk()
             ->assertSee(__('One quick step before you start'))->assertSee('data-modules-skip', false)->getContent();
-        $this->assertSame(['qr-menu', 'table-ordering', 'online-ordering', 'reservations', 'kitchen-display', 'reports'], $this->ticked($html));
+        // a restaurant delivers: its riders' module is ticked along with online ordering
+        $this->assertSame(['qr-menu', 'table-ordering', 'online-ordering', 'reservations', 'kitchen-display', 'delivery-drivers', 'reports'], $this->ticked($html));
         $this->assertSame('', $this->savedModules($tenant), 'showing the step saves nothing');
     }
 
@@ -100,7 +101,8 @@ class ModulePickerTest extends TenantTestCase
 
         $this->actingAs($this->owner($a))->post($this->dashUrl('/modules'), ['modules' => ['reservations', 'online-ordering']]);
 
-        $this->assertSame(['brand', 'menu', 'tables', 'ordering', 'staff', 'reservations', 'zones', 'whatsapp', 'plan'], array_keys($this->steps($a)));
+        // online ordering brings delivery areas and a driver to add
+        $this->assertSame(['brand', 'menu', 'tables', 'ordering', 'staff', 'reservations', 'zones', 'drivers', 'whatsapp', 'plan'], array_keys($this->steps($a)));
         $this->as($a, fn () => Settings::put(['reservations_enabled' => '1']));
         $this->assertSame('done', $this->steps($a)['reservations']);
 

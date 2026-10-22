@@ -11,6 +11,7 @@ use App\Models\Shift;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Orders\ShiftService;
+use App\Services\Orders\Terminals;
 use App\Services\Reports\SalesReport;
 use App\Services\Settings;
 use Carbon\CarbonImmutable;
@@ -190,6 +191,25 @@ class PosOfflineTest extends TenantTestCase
         $this->openShift($other, $device)->assertSessionHasNoErrors();
         $this->assertNull($this->as($b, fn () => Shift::query()->firstOrFail()->terminal_id));
         $this->actingAs($this->owner($b))->get($this->dashUrl('/pos/terminals'))->assertOk()->assertDontSee('data-terminal="K1"', false);
+    }
+
+    public function test_a_manager_tied_to_a_branch_only_touches_the_terminals_of_that_branch(): void
+    {
+        $this->shop();
+        $k1 = $this->terminal();
+        $device = $this->claim($k1, $this->cashier);
+        $second = $this->as($this->tenant, fn () => Branch::query()->create(['name' => 'Second', 'slug' => 'second']));
+        $this->as($this->tenant, fn () => $this->manager->update(['branch_id' => $second->id]));
+
+        $this->actingAs($this->manager)->post($this->dashUrl("/pos/terminals/{$k1->id}/release"))->assertNotFound();
+        $this->actingAs($this->manager)->post($this->dashUrl("/pos/terminals/{$k1->id}"), ['name' => 'Renamed'])->assertNotFound();
+        $fresh = $this->as($this->tenant, fn () => PosTerminal::query()->findOrFail($k1->id));
+        $this->assertSame('Cashier 1', $fresh->name);
+        $this->assertTrue($fresh->holds($device['token']));
+
+        // their own branch's terminal is theirs to manage
+        $own = $this->as($this->tenant, fn () => app(Terminals::class)->create($second, 'Bar', 'B1'));
+        $this->actingAs($this->manager)->post($this->dashUrl("/pos/terminals/{$own->id}/release"))->assertSessionHasNoErrors()->assertRedirect();
     }
 
     public function test_an_offline_sale_syncs_once_with_its_real_number_reference_and_time(): void

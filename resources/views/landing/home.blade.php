@@ -354,7 +354,7 @@
     <div class="mx-auto max-w-3xl px-4 text-center sm:px-6" data-reveal>
         <x-logo :size="44" :text="false" />
         <h2 class="lp-h2 mt-4">{{ __('Your menu can be live today') }}</h2>
-        <p class="lp-lead mt-3">{{ __('Sign up, add your items and print the codes. If you need help, we set it up with you.') }}</p>
+        <p class="lp-lead mt-3">{{ __('Sign up with your email or your Google account, add your items and print the codes. If you need help, we set it up with you.') }}</p>
         <div class="mt-8 flex flex-wrap justify-center gap-3">
             <a href="{{ route('register') }}" class="btn-primary min-h-12 rounded-full px-8 text-base">{{ __('Start free') }}</a>
             <a href="{{ route('pricing') }}" class="btn-ghost min-h-12 rounded-full px-6 text-base">{{ __('See prices') }}</a>

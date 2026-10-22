@@ -87,7 +87,7 @@ final class SiteModules
     public static function availability(array $module, Collection $plans, array $matrix, Collection $addons): array
     {
         $key = $module['feature'];
-        $in = $key === null ? $plans->values() : $plans->filter(fn (Plan $p) => ! empty($matrix[$p->id]['features'][$key]))->values();
+        $in = $plans->filter(fn (Plan $p) => self::enabled($matrix[$p->id]['features'] ?? [], $key))->values();
         $listed = $addons->filter(fn (AddonPrice $a) => in_array($a->key, $module['addons'], true))
             ->sortBy(fn (AddonPrice $a) => array_search($a->key, $module['addons'], true))->values();
 
@@ -98,6 +98,36 @@ final class SiteModules
             'addons' => $listed->reject(fn (AddonPrice $a) => $a->isCreditPack())->values(),
             'credits' => $listed->filter(fn (AddonPrice $a) => $a->isCreditPack())->values(),
         ];
+    }
+
+    /**
+     * Whether a plan's feature set switches a module on: no feature = always; "a|b" = either one (delivery drivers
+     * come with delivery zones or with online ordering).
+     *
+     * @param  array<string,bool>  $features
+     */
+    public static function enabled(array $features, ?string $key): bool
+    {
+        if ($key === null) {
+            return true;
+        }
+        foreach (explode('|', $key) as $one) {
+            if (! empty($features[$one])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Whether an add-on pack (its `features` list) sells a module's feature ("a|b": any of them).
+     *
+     * @param  list<string>|null  $packFeatures
+     */
+    public static function sells(?array $packFeatures, ?string $key): bool
+    {
+        return $key !== null && array_intersect(explode('|', $key), $packFeatures ?? []) !== [];
     }
 
     /**
@@ -349,9 +379,9 @@ final class SiteModules
                 'faq' => [
                     [__('How does the customer pay?'), __('Cash on delivery or at pickup; the order total, fee and notes are clear on your board.')],
                     [__('Is there really no commission?'), __('None. EgMenu charges the monthly subscription only.')],
-                    [__('Do I need my own riders?'), __('Yes, you deliver with your own team; EgMenu organises the orders, zones and fees.')],
+                    [__('Do I need my own riders?'), __('Yes, you deliver with your own team: give each order to one of your drivers, who gets it on the driver screen on their phone, and the guest follows the ride live on the tracking map.')],
                 ],
-                'related' => ['call-center', 'table-ordering', 'custom-domain'],
+                'related' => ['delivery-drivers', 'call-center', 'table-ordering'],
             ],
             [
                 'slug' => 'reservations', 'group' => 'orders', 'icon' => 'calendar', 'for' => ['cafe', 'restaurant'],
@@ -544,20 +574,55 @@ final class SiteModules
                 ],
                 'related' => ['loyalty', 'campaigns', 'online-ordering'],
             ],
+            [
+                'slug' => 'corporate-vouchers', 'group' => 'customers', 'icon' => 'file', 'for' => ['cafe', 'restaurant'],
+                'name' => __('Corporate contracts'),
+                'tagline' => __('A company pays up front for vouchers its staff spend at your place'),
+                'summary' => __('Contracts, prepaid vouchers, a redeem screen, manager exceptions and a report.'),
+                'feature' => 'corporate_vouchers', 'addons' => [],
+                'shot' => 'corporate', 'frame' => 'browser', 'url' => 'app.egmenu.app/corporate', 'phone' => null,
+                'gallery' => [['redeem', 'browser', 'app.egmenu.app/vouchers/redeem', __('The redeem screen: no POS needed; the cashier types the code, picks the open order or a paper bill, and the voucher is taken.')]],
+                'benefits' => [
+                    ['file', __('A contract per company'), __('“300 vouchers of 200 EGP, valid until June”: the company pays once, you print the vouchers with a serial, a code and a QR.')],
+                    ['cash', __('Spent like money'), __('At the POS or on the redeem screen the cashier takes the voucher against the bill; what is left stays on it, or not, as the contract says.')],
+                    ['shield', __('Manager exceptions'), __('An expired voucher is refused unless a manager approves the exception with their PIN, and the exception is logged.')],
+                    ['tablet', __('A redeem screen without a POS'), __('A simple screen for places without the POS: the code, the open order or a paper bill, a receipt.')],
+                    ['chart', __('A report the company can read'), __('Issued, redeemed, outstanding, lost and expired value by contract, branch and cashier, with exports and a statement per contract.')],
+                ],
+                'steps' => [
+                    [__('Create the contract'), __('Delta Co. buys 300 vouchers of 200 EGP for its staff.')],
+                    [__('Print'), __('Each voucher has a serial, a code and a QR.')],
+                    [__('Redeem'), __('Sara pays her 180 EGP lunch with voucher 0042.')],
+                    [__('Report'), __('Delta sees 212 redeemed, 88 left, and what expired.')],
+                ],
+                'who' => [
+                    'cafe' => __('Coffee vouchers for the offices nearby: the company pays monthly, its staff come every morning.'),
+                    'restaurant' => __('Lunch contracts with the companies around you, settled in advance, with a statement per contract.'),
+                ],
+                'faq' => [
+                    [__('Does the cashier need the POS?'), __('No. The redeem screen works on its own: the code, the order or a paper bill, and a receipt. With the POS the voucher is a payment method too.')],
+                    [__('What if a voucher is lost?'), __('Void it from the contract page; it stops working at once and shows as lost in the report.')],
+                    [__('Can a voucher be linked to one person?'), __('Yes, to a mobile number, so only that guest uses it; the report shows who redeemed what.')],
+                    [__('Which plan has it?'), __('The Complete plan and the Enterprise plan.')],
+                ],
+                'related' => ['wallet', 'pos', 'reports'],
+            ],
 
             // ---------------- operations (add-ons) ----------------
             [
                 'slug' => 'pos', 'group' => 'operations', 'icon' => 'cash', 'for' => ['cafe', 'restaurant'],
                 'name' => __('POS cashier'),
-                'tagline' => __('A cashier screen for counter orders, shifts and the cash drawer'),
-                'summary' => __('Counter orders, payments, shifts and a customer display.'),
+                'tagline' => __('A cashier screen for counter orders, shifts and the cash drawer, that keeps selling offline'),
+                'summary' => __('Named terminals, offline sales, held tickets, split payments, refunds, cash in and out and a Z report.'),
                 'feature' => 'pos', 'addons' => ['pos_pack', 'ops_bundle'],
                 'shot' => 'pos', 'frame' => 'browser', 'url' => 'app.egmenu.app/pos', 'phone' => null,
                 'benefits' => [
                     ['zap', __('Fast at the counter'), __('Tap items, adjust quantities, add a discount, take the money.')],
-                    ['cash', __('Shifts and drawer'), __('Open a shift with the opening cash and close it with a count; differences are clear.')],
-                    ['tv', __('Customer display'), __('A second screen shows the guest their order and the order numbers that are ready.')],
-                    ['layers', __('One board for all orders'), __('Counter, table and online orders meet on the same board and the same reports.')],
+                    ['layers', __('Named terminals'), __('“Cashier 1”, “K2”: each till has a name and a code, so every shift, sale and offline number says which till it came from.')],
+                    ['shield', __('Keeps selling offline'), __('The internet drops and the cashier keeps taking cash, card, InstaPay and wallet payments; the sales sync with real numbers once it is back.')],
+                    ['clock', __('Held tickets'), __('Park an order while the guest decides, serve the next one, and bring it back with one tap.')],
+                    ['cash', __('Split payments and refunds'), __('Half cash, half card. A refund or return needs a manager’s approval and goes to the shift it belongs to.')],
+                    ['wallet', __('Cash in and out, and the Z report'), __('Record the cash added to or taken from the drawer, close the day with the Z report: sales by payment method, by shift and by cashier, with any differences clear.')],
                 ],
                 'steps' => [
                     [__('Tap items'), __('Cheesecake, a croissant and two cookies.')],
@@ -566,15 +631,18 @@ final class SiteModules
                     [__('Close the shift'), __('The drawer total matches the sales.')],
                 ],
                 'who' => [
-                    'cafe' => __('Takeaway at the counter with an order number board for pickup.'),
-                    'restaurant' => __('A cashier for walk-ins and dine-in bills next to the table orders.'),
+                    'cafe' => __('Takeaway at the counter with an order number board for pickup, even when the Wi-Fi drops.'),
+                    'restaurant' => __('A cashier per branch for walk-ins and dine-in bills, with refunds approved by the manager and a Z report at closing.'),
                 ],
                 'faq' => [
-                    [__('Do I need special hardware?'), __('No. Any tablet or computer with a browser; a receipt printer is optional.')],
+                    [__('Do I need special hardware?'), __('No. Any tablet or computer with a browser; a receipt printer is optional, and receipts can also be shared by WhatsApp or a QR code.')],
+                    [__('What happens when the internet drops?'), __('The terminal keeps selling: cash, card, InstaPay and mobile wallet. Each sale gets an OFF reference (OFF-K1-3) and is sent with its real number as soon as the connection is back, for as many hours as you allow.')],
+                    [__('Can a cashier give a refund?'), __('Only with a manager’s approval: the manager enters their PIN on the spot, and the refund is recorded on the shift and in the Z report.')],
+                    [__('What is in the Z report?'), __('The day’s sales by payment method, by terminal, by shift and by cashier, with cash in and out, refunds and the drawer difference. Export it or print it at closing.')],
                     [__('Is the POS in every plan?'), __('No. The POS is part of the Enterprise plan, set up with you; message us and we agree the price for your place.')],
-                    [__('Does it work with several cashiers?'), __('Yes, each cashier has an account, and each shift is tied to the person who opened it.')],
+                    [__('Does it work with several cashiers?'), __('Yes, each cashier has an account and each terminal a name, and each shift is tied to the person and the till that opened it.')],
                 ],
-                'related' => ['kitchen-display', 'reports', 'loyalty'],
+                'related' => ['kitchen-display', 'reports', 'corporate-vouchers'],
             ],
             [
                 'slug' => 'kiosk', 'group' => 'operations', 'icon' => 'tablet', 'for' => ['cafe', 'restaurant'],
@@ -664,7 +732,40 @@ final class SiteModules
                     [__('Are zones drawn on a map?'), __('Yes, with a fee and a minimum order per zone and sub-areas.')],
                     [__('Which plan has it?'), __('The Enterprise plan. Delivery zones and the customer list are already in the Complete plan.')],
                 ],
-                'related' => ['online-ordering', 'kitchen-display', 'pos'],
+                'related' => ['delivery-drivers', 'online-ordering', 'kitchen-display'],
+            ],
+            [
+                'slug' => 'delivery-drivers', 'group' => 'operations', 'icon' => 'scooter', 'for' => ['cafe', 'restaurant'],
+                'name' => __('Delivery drivers'),
+                'tagline' => __('Your riders on their phones, the guest watching the ride live'),
+                'summary' => __('Give each order to a driver, follow them on a map, settle their cash.'),
+                // the same plan feature as delivery itself: either delivery zones or online ordering switches it on
+                'feature' => 'delivery_zones|online_ordering', 'addons' => ['online_pack', 'callcenter_pack', 'ops_bundle'],
+                'shot' => 'drivers', 'frame' => 'browser', 'url' => 'app.egmenu.app/drivers', 'phone' => 'm-driver',
+                'benefits' => [
+                    ['users', __('A driver role'), __('Each rider has their own login that opens one thing: their deliveries. Nothing else of the dashboard.')],
+                    ['bell', __('Assign from the board or the call center'), __('Pick the driver on the order as it goes out, from the order board or the call-center screen; the cashier can too.')],
+                    ['tablet', __('A driver screen on the phone'), __('The rider sees the address, the amount to collect and a map button, and taps picked up, delivered, or could not deliver with the reason.')],
+                    ['flag', __('Live tracking for the guest'), __('While the order is on its way the guest sees the rider move on the tracking map, from the same link as the order.')],
+                    ['cash', __('Cash settlement'), __('The cash each driver collected shows against them until it is settled into the shift, so nothing goes missing between the road and the drawer.')],
+                ],
+                'steps' => [
+                    [__('Assign'), __('Order #64 goes to Hassan from the order board.')],
+                    [__('Picked up'), __('Hassan taps picked up on his phone and heads out.')],
+                    [__('Live on the map'), __('Karim watches the scooter come closer on the tracking page.')],
+                    [__('Delivered and settled'), __('Delivered; the 205 EGP in cash settle into the shift.')],
+                ],
+                'who' => [
+                    'cafe' => __('One rider for the morning coffee round, with the cash he brings back on record.'),
+                    'restaurant' => __('A delivery desk with several riders: who has what, where they are, and what cash each one holds.'),
+                ],
+                'faq' => [
+                    [__('Does the driver need an app?'), __('No. The driver screen opens in the phone browser and can be added to the home screen like an app; the location is sent while an order is out for delivery.')],
+                    [__('What does the guest see?'), __('The order’s tracking page: its steps, and while it is on the way, the rider moving on a map.')],
+                    [__('What if the delivery fails?'), __('The driver marks it as not delivered with a reason; the order comes back to the board for the team to call the guest or send it again.')],
+                    [__('Which plan has it?'), __('It comes with delivery: the Complete plan (delivery zones and online ordering) and the Enterprise plan.')],
+                ],
+                'related' => ['online-ordering', 'call-center', 'reports'],
             ],
             [
                 'slug' => 'inventory', 'group' => 'operations', 'icon' => 'box', 'for' => ['cafe', 'restaurant'],

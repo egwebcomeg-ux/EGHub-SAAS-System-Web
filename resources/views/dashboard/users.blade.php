@@ -4,7 +4,7 @@
 @section('content')
 <x-dash.page-header :title="__('Users & roles')" :help="__('Add your team and choose what each one can see and do.')" />
 
-<div class="grid gap-4 xl:grid-cols-3">
+<div class="grid gap-4 xl:grid-cols-3" data-users-page data-role-info='@json($roleInfo)'>
     <div class="card overflow-x-auto xl:col-span-2">
         <table class="table-base">
             <thead><tr><th>{{ __('Name') }}</th><th>{{ __('Login') }}</th><th>{{ __('Role') }}</th><th>{{ __('Branch') }}</th><th>{{ __('Status') }}</th><th></th></tr></thead>
@@ -13,7 +13,12 @@
                 <tr>
                     <td class="font-semibold">{{ $u->name }}</td>
                     <td dir="ltr" class="text-start text-navy-500">{{ $u->email ?? $u->phone }}</td>
-                    <td>{{ $u->roleName() }}</td>
+                    <td>
+                        {{ $u->roleName() }}
+                        @if ($canCustomize && $u->permissions->isNotEmpty())
+                            <span class="badge bg-brand-50 text-brand-700" title="{{ $u->permissions->map(fn ($p) => \App\Support\Permissions::label($p->name))->join(' · ') }}" data-extra-badge>+{{ $u->permissions->count() }} {{ __('extra') }}</span>
+                        @endif
+                    </td>
                     <td>{{ $u->branch ? tr($u->branch->name, $u->branch->name_en) : __('All branches') }}</td>
                     <td>
                         <span class="badge {{ $u->is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-navy-100 text-navy-500' }}">{{ $u->is_active ? __('Active') : __('Disabled') }}</span>
@@ -46,6 +51,41 @@
         @else
             <p class="text-sm text-navy-500">{{ \App\Services\Entitlements::current()->upgradeMessage('staff') }}</p>
         @endif
+        @unless ($canCustomize)
+            <p class="mt-3 text-xs text-navy-500" data-permissions-locked>{{ __('Custom permissions per staff member (on top of their role) come with the Complete plan.') }}</p>
+        @endunless
     </div>
 </div>
+
+<script>
+    (() => {
+        const page = document.querySelector('[data-users-page]');
+        const info = JSON.parse(page.dataset.roleInfo);
+        // each form: the role's hint and permissions under the select; the role's permissions ticked and locked in
+        // the extra list, the rest free (extra permissions); the owner role hides the list (it has everything)
+        page.querySelectorAll('form').forEach((form) => {
+            const select = form.querySelector('[data-role]');
+            if (!select) return;
+            const extra = form.querySelector('[data-extra-permissions]');
+            const sync = () => {
+                const role = info[select.value] || { hint: '', permissions: [], labels: [] };
+                form.querySelector('[data-role-hint]').textContent = role.hint;
+                form.querySelector('[data-role-permissions]').textContent = role.labels.join(' · ');
+                if (!extra) return;
+                extra.classList.toggle('hidden', select.value === 'owner');
+                let count = 0;
+                extra.querySelectorAll('[data-permission]').forEach((box) => {
+                    const inRole = role.permissions.includes(box.dataset.permission);
+                    if (inRole) { box.checked = true; }
+                    box.disabled = inRole || box.dataset.grantable !== '1';
+                    if (!inRole && box.checked) { count++; }
+                });
+                extra.querySelector('[data-extra-count]').textContent = count ? `(${count})` : '';
+            };
+            select.addEventListener('change', sync);
+            extra?.addEventListener('change', sync);
+            sync();
+        });
+    })();
+</script>
 @endsection

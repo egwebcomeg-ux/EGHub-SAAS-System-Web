@@ -21,6 +21,7 @@ class AuditController extends Controller
         'modules.updated' => ['تغيير الموديولات المستخدمة', 'Modules in use changed'],
         'user.created' => ['إضافة مستخدم', 'User added'],
         'user.updated' => ['تعديل مستخدم', 'User updated'],
+        'user.permissions' => ['تغيير صلاحيات مستخدم زيادة عن دوره', 'Extra user permissions changed'],
         'order.cancelled' => ['إلغاء طلب', 'Order cancelled'],
         'order.driver' => ['تحديد طيار لطلب', 'Driver assigned'],
         'delivery.failed' => ['توصيل ما تمّش', 'Delivery failed'],

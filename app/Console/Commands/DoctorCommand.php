@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Support\Permissions;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -32,8 +33,17 @@ class DoctorCommand extends Command
         if ($dbOk) {
             $this->check('Database connection', true, config('database.default'));
             $this->check('Migrations ran (plans table)', Schema::hasTable('plans'), 'run php artisan migrate --force');
+            foreach (['pos_terminals', 'driver_locations', 'corporate_vouchers'] as $table) {
+                $this->check("Migrations ran ($table table)", Schema::hasTable($table), 'run php artisan migrate --force');
+            }
             $this->check('Queue table reachable', $this->queueReachable(), 'jobs table missing: run migrate');
+            $this->check('Roles seeded (driver role)', $this->roleExists('driver'), 'run php artisan db:seed --class=RoleSeeder --force');
+            $missing = $this->missingPermissions();
+            $this->check('Permissions seeded ('.count(Permissions::ALL).' keys)', $missing === [],
+                $missing === [] ? '' : 'missing '.implode(', ', $missing).': run php artisan db:seed --class=RoleSeeder --force');
         }
+
+        $this->check('Google sign-in configured', filled(config('services.google.client_id')), 'GOOGLE_CLIENT_ID is empty: the Google button stays hidden', warn: true);
 
         $link = public_path('storage');
         $this->check('storage link exists', is_link($link) || is_dir($link), 'run php artisan storage:link');
@@ -66,6 +76,30 @@ class DoctorCommand extends Command
             return true;
         } catch (\Throwable) {
             return false;
+        }
+    }
+
+    private function roleExists(string $role): bool
+    {
+        try {
+            return Schema::hasTable('roles') && DB::table('roles')->where('name', $role)->where('guard_name', 'web')->exists();
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /** @return list<string> permission keys of App\Support\Permissions::ALL missing from the permissions table */
+    private function missingPermissions(): array
+    {
+        try {
+            if (! Schema::hasTable('permissions')) {
+                return array_keys(Permissions::ALL);
+            }
+            $have = DB::table('permissions')->where('guard_name', 'web')->pluck('name')->all();
+
+            return array_values(array_diff(array_keys(Permissions::ALL), $have));
+        } catch (\Throwable) {
+            return array_keys(Permissions::ALL);
         }
     }
 
