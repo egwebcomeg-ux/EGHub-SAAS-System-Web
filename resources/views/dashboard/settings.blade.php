@@ -245,7 +245,7 @@
                 </label>
                 <label class="field-label" for="menu_intro">{{ __('Opening animation of the menu') }}</label>
                 <select class="field" name="menu_intro" id="menu_intro">
-                    @foreach (['logo' => __('Your logo rises over your color (light)'), 'full' => __('Logo, pattern and your tagline (full)'), 'off' => __('Off')] as $key => $label)
+                    @foreach (['logo' => __('Your logo rises over your color (light)'), 'full' => __('Logo, pattern and your tagline (full)'), 'mascot' => __('Your brand character rolls in (mascot)'), 'off' => __('Off')] as $key => $label)
                         <option value="{{ $key }}" @selected($s['menu_intro'] === $key)>{{ $label }}</option>
                     @endforeach
                 </select>
@@ -260,6 +260,26 @@
                         <option value="{{ $key }}" @selected(($s['intro_background'] ?? 'auto') === $key)>{{ $label }}</option>
                     @endforeach
                 </select>
+                {{-- the brand character intro and header (App\Services\BrandAssets): SVG is cleaned of anything that is not drawing --}}
+                <fieldset class="mt-4 space-y-3 rounded-2xl border border-navy-100 p-3" data-mascot-pieces>
+                    <input type="hidden" name="mascot_sent" value="1">
+                    <legend class="px-1 text-sm font-bold">{{ __('Brand character (mascot intro)') }}</legend>
+                    <p class="text-xs text-navy-500">{{ __('SVG, PNG or WebP up to 2 MB. Only the character is needed; any missing piece is skipped.') }}</p>
+                    @foreach (\App\Services\BrandAssets::PIECES as $key => $label)
+                        <div>
+                            <label class="field-label" for="{{ $key }}">{{ __($label) }}</label>
+                            @if ($s[$key] ?? '')
+                                <div class="mb-2 flex items-center gap-3">
+                                    <img src="{{ \App\Services\BrandAssets::url($s[$key]) }}" alt="" class="h-12 max-w-24 rounded-lg border border-navy-100 bg-navy-50 object-contain" data-mascot-preview="{{ $key }}">
+                                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="remove_{{ $key }}" value="1" class="size-4 accent-brand-600"> {{ __('Remove') }}</label>
+                                </div>
+                            @endif
+                            <input class="field py-2" type="file" id="{{ $key }}" name="{{ $key }}" accept="image/svg+xml,image/png,image/webp,image/jpeg">
+                        </div>
+                    @endforeach
+                    <label class="flex items-start gap-2 text-sm"><input type="checkbox" name="menu_header_brand" value="1" @checked(($s['menu_header_brand'] ?? '0') === '1') class="mt-0.5 size-4 accent-brand-600">
+                        <span>{{ __('Brand pattern and the peeking character in the menu header') }}</span></label>
+                </fieldset>
             </div>
         </section>
     </div>

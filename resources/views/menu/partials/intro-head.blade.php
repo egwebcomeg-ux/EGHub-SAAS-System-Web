@@ -8,7 +8,8 @@
     $branchKey = 'egmenu.branch.' . tenant()->getTenantKey();
     // "always": every time the menu is opened (a scan, a link, a new tab) — but not when coming back from another page
     // of the same menu (order tracking, card); "session": once per browser session
-    $introAlways = \App\Services\Settings::get('menu_intro_repeat') !== 'session';
+    // (the mascot intro is longer: once per browser session, like the brand it comes from)
+    $introAlways = $intro !== 'mascot' && \App\Services\Settings::get('menu_intro_repeat') !== 'session';
 @endphp
 <script>
     (function () {
@@ -99,6 +100,49 @@
     .m-intro--light .m-intro-tagline { color: var(--menu-muted); }
     .m-intro--light .m-intro-skip { color: var(--menu-muted); }
 
+    /* mascot intro (port of the Scratch cafe intro): the page colour, a drifting pattern tile, a soft white glow */
+    .m-intro--mascot { --intro-end: 2.6s; --roll-from: -120vw; --roll-over: 3vw; --spin: -720deg; --tilt: 14deg;
+        background: var(--menu-bg); color: var(--menu-text); }
+    [dir="rtl"] .m-intro--mascot { --roll-from: 120vw; --roll-over: -3vw; --spin: 720deg; --tilt: -14deg; }
+    .m-mascot-pattern { position: absolute; top: -240px; left: -240px; right: 0; bottom: 0; pointer-events: none;
+        background-size: 240px; background-repeat: repeat; opacity: .08; animation: m-pattern-drift 60s linear infinite; }
+    .m-mascot-glow { position: absolute; width: 120vmax; height: 120vmax; border-radius: 50%; pointer-events: none;
+        background: radial-gradient(circle, #fff 0%, rgba(255, 255, 255, 0) 55%); opacity: .9; }
+    .m-mascot-stage { position: relative; display: flex; flex-direction: column; align-items: center; gap: min(2.2vh, 18px); padding: 0 24px; text-align: center; }
+    .m-char { position: relative; height: min(27vh, 230px); aspect-ratio: 1; max-width: 62vw; }
+    .m-char-move, .m-char-squash, .m-char-float { position: absolute; inset: 0; }
+    .m-char img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+    .m-char-bean { transform-origin: 57% 49%; }
+    .m-char-speed { transform-origin: 30% 72%; }
+    [dir="rtl"] .m-char img { transform: scaleX(-1); }
+    .m-char-spark { position: absolute; top: 4%; inset-inline-end: 0; color: var(--menu-accent); font-size: min(5vh, 38px); line-height: 1; opacity: 0; }
+    .m-mascot-logo { height: min(13vh, 112px); max-width: 76vw; object-fit: contain; opacity: 0; }
+    .m-mascot-name { height: auto; font-size: clamp(2rem, 9vw, 3rem); font-weight: 900; color: var(--menu-accent); }
+    .m-mascot-slogan { height: min(17vh, 150px); max-width: 52vw; object-fit: contain; opacity: 0; transform: rotate(-4deg); }
+    .m-mascot-tagline { height: auto; max-width: 22rem; font-size: 1.15rem; font-weight: 900; color: var(--menu-accent); }
+    .m-intro--mascot .m-intro-skip { color: color-mix(in srgb, var(--menu-text) 50%, transparent); }
+    .m-intro--mascot .m-char-move { animation: m-roll-in 1s cubic-bezier(.22, .85, .32, 1) both; }
+    .m-intro--mascot .m-char-bean { animation: m-roll-spin 1s cubic-bezier(.22, .85, .32, 1) both; }
+    .m-intro--mascot .m-char-speed { animation: m-speed-trail 1.1s ease-out both; }
+    .m-intro--mascot .m-char-squash { animation: m-land .5s .95s ease-out both; }
+    .m-intro--mascot .m-char-spark { animation: m-spark .7s 1.5s ease-out both; }
+    .m-intro--mascot .m-mascot-logo { animation: m-intro-fade .6s 1.05s cubic-bezier(.2, .8, .2, 1) both; }
+    .m-intro--mascot .m-mascot-slogan { animation: m-slogan-pop .65s 1.45s cubic-bezier(.3, 1.5, .5, 1) both; }
+    .m-intro--mascot .m-char-float { animation: m-float 3.2s 1.5s ease-in-out infinite; }
+    /* the bean keeps its mirror in RTL while it spins */
+    [dir="rtl"] .m-intro--mascot .m-char-bean { animation-name: m-roll-spin-rtl; }
+    [dir="rtl"] .m-intro--mascot .m-char-speed { animation-name: m-speed-trail-rtl; }
+    @keyframes m-pattern-drift { to { transform: translate(240px, 240px); } }
+    @keyframes m-roll-in { 0% { transform: translateX(var(--roll-from)); } 78% { transform: translateX(var(--roll-over)); } 100% { transform: none; } }
+    @keyframes m-roll-spin { 0% { transform: rotate(var(--spin)); } 78% { transform: rotate(var(--tilt)); } 100% { transform: none; } }
+    @keyframes m-roll-spin-rtl { 0% { transform: scaleX(-1) rotate(var(--spin)); } 78% { transform: scaleX(-1) rotate(var(--tilt)); } 100% { transform: scaleX(-1); } }
+    @keyframes m-speed-trail { 0%, 70% { transform: scaleX(2.4); } 100% { transform: none; } }
+    @keyframes m-speed-trail-rtl { 0%, 70% { transform: scaleX(-2.4); } 100% { transform: scaleX(-1); } }
+    @keyframes m-land { 30% { transform: scale(1.12, .86) translateY(6%); } 60% { transform: scale(.95, 1.06) translateY(-4%); } 100% { transform: none; } }
+    @keyframes m-spark { 0% { opacity: 0; transform: scale(.2) rotate(-40deg); } 50% { opacity: 1; transform: scale(1.2) rotate(10deg); } 100% { opacity: 0; transform: scale(.6) rotate(40deg); } }
+    @keyframes m-slogan-pop { from { opacity: 0; transform: scale(.3) rotate(-14deg); } to { opacity: 1; transform: rotate(-4deg); } }
+    @keyframes m-float { 50% { transform: translateY(-5%) rotate(2deg); } }
+
     /* the first-open sheet, one step: the branch (2+), then a tap on an order type continues */
     .m-choice {
         position: fixed; inset: 0; z-index: 90; align-items: flex-end; justify-content: center; padding: 0;
@@ -108,41 +152,43 @@
         animation: m-choice-fade .3s ease both;
     }
     .m-choice-card {
-        width: 100%; max-width: 30rem; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain;
+        width: 100%; max-width: 30rem; max-height: 94dvh; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
         border-radius: 28px 28px 0 0; padding: 0 18px calc(18px + env(safe-area-inset-bottom));
-        display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center;
+        display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
         box-shadow: 0 -20px 60px -24px rgba(0, 0, 0, .6); animation: m-choice-rise .45s cubic-bezier(.2, .8, .2, 1) both;
     }
     .m-choice-hero {
-        align-self: stretch; margin: 0 -18px; height: 88px; flex-shrink: 0; border-radius: 28px 28px 0 0;
+        align-self: stretch; margin: 0 -18px; height: 68px; flex-shrink: 0; border-radius: 28px 28px 0 0;
         background: radial-gradient(120% 140% at 85% 0%, color-mix(in srgb, var(--menu-accent) 85%, #fff) 0%, transparent 55%),
             linear-gradient(135deg, var(--menu-secondary), color-mix(in srgb, var(--menu-secondary) 55%, var(--menu-accent)));
         background-size: cover; background-position: center;
     }
     .m-choice-close { background: rgba(0, 0, 0, .35); color: #fff; }
-    .m-choice-brand { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: -46px; }
-    .m-choice-logo { height: 76px; width: auto; max-width: 9rem; object-fit: contain; filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .28)); }
+    .m-choice-brand { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: -40px; }
+    /* a bare (transparent) logo sits on the sheet colour, so it never melts into the brand-coloured band above */
+    .m-choice-logo { height: 66px; width: auto; max-width: 10rem; object-fit: contain; border-radius: 20px; padding: 6px 12px;
+        background: var(--menu-surface); box-shadow: 0 10px 24px -12px rgba(0, 0, 0, .35); }
     .m-choice-logo--tile { background: #fff; border-radius: 22px; padding: 6px; box-shadow: 0 0 0 4px var(--menu-surface), 0 10px 24px -8px rgba(0, 0, 0, .35); filter: none; }
-    .m-choice-logo--name { display: grid; place-items: center; width: 76px; border-radius: 24px; font-size: 2.2rem; font-weight: 900; box-shadow: 0 0 0 4px var(--menu-surface); filter: none; }
+    .m-choice-logo--name { background: var(--menu-accent); color: var(--menu-accent-text); padding: 0; display: grid; place-items: center; width: 66px; border-radius: 22px; font-size: 2rem; font-weight: 900; box-shadow: 0 0 0 4px var(--menu-surface); filter: none; }
     .m-choice-name { font-size: .95rem; font-weight: 800; color: var(--menu-muted); }
     /* "nearest branch to me": prominent, asks for the location only on the tap */
     .m-choice-near { background: color-mix(in srgb, var(--menu-accent) 12%, var(--menu-surface)); color: var(--menu-accent); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--menu-accent) 45%, transparent); }
     .m-choice-near:disabled { opacity: .6; }
     /* branches: compact radio rows, the list scrolls inside the sheet */
-    .m-choice-branches { max-height: min(15rem, 34dvh); overflow-y: auto; overscroll-behavior: contain; padding: 2px; }
-    .m-branch-row { display: flex; align-items: center; gap: 10px; min-height: 3.25rem; border-radius: 16px; padding: 8px 12px;
+    .m-choice-branches { max-height: min(12.5rem, 30dvh); overflow-y: auto; overscroll-behavior: contain; padding: 2px; }
+    .m-branch-row { display: flex; align-items: center; gap: 10px; min-height: 3rem; border-radius: 16px; padding: 6px 12px;
         background: var(--menu-surface-2); color: var(--menu-text); box-shadow: inset 0 0 0 1px var(--menu-border); transition: box-shadow .15s ease, background-color .15s ease; }
     .m-branch-row.is-on { background: color-mix(in srgb, var(--menu-accent) 10%, var(--menu-surface)); box-shadow: inset 0 0 0 2px var(--menu-accent); }
     .m-branch-dot { width: 20px; height: 20px; flex-shrink: 0; border-radius: 999px; box-shadow: inset 0 0 0 2px var(--menu-border); }
     .m-branch-row.is-on .m-branch-dot { background: var(--menu-accent); box-shadow: inset 0 0 0 5px color-mix(in srgb, var(--menu-accent) 60%, var(--menu-surface)); }
     /* the order types: big cards, a tap continues */
-    .m-way-card { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 4.75rem; border-radius: 20px; padding: 12px 14px;
+    .m-way-card { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 4.25rem; border-radius: 20px; padding: 10px 14px;
         background: var(--menu-surface-2); color: var(--menu-text); box-shadow: inset 0 0 0 1.5px var(--menu-border);
         transition: transform .15s ease, box-shadow .15s ease, background-color .15s ease; -webkit-tap-highlight-color: transparent; }
     .m-way-card:hover, .m-way-card:focus-visible { box-shadow: inset 0 0 0 2px var(--menu-accent); }
     .m-way-card:active { transform: scale(.97); }
     .m-way-card[aria-pressed="true"] { background: color-mix(in srgb, var(--menu-accent) 10%, var(--menu-surface)); box-shadow: inset 0 0 0 2px var(--menu-accent); }
-    .m-way-icon { display: grid; place-items: center; width: 52px; height: 52px; flex-shrink: 0; border-radius: 16px; background: var(--menu-accent); color: var(--menu-accent-text); box-shadow: 0 8px 18px -10px var(--menu-accent); }
+    .m-way-icon { display: grid; place-items: center; width: 48px; height: 48px; flex-shrink: 0; border-radius: 16px; background: var(--menu-accent); color: var(--menu-accent-text); box-shadow: 0 8px 18px -10px var(--menu-accent); }
     .m-way-icon svg { width: 28px; height: 28px; }
     .m-way-go { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 999px; color: var(--menu-accent); background: color-mix(in srgb, var(--menu-accent) 12%, transparent); }
     .m-way-go svg { width: 18px; height: 18px; }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\MenuItem;
 use App\Services\Audit;
+use App\Services\BrandAssets;
 use App\Services\Entitlements;
 use App\Services\ImageService;
 use App\Services\Import\Ai\AiException;
@@ -111,6 +112,10 @@ class SettingsController extends Controller
             'menu_intro' => ['nullable', Rule::in(MenuIntro::STYLES)],
             'menu_intro_repeat' => ['nullable', Rule::in(['always', 'session'])],
             'intro_background' => ['nullable', Rule::in(MenuIntro::BACKGROUNDS)],
+            'intro_mascot' => 'nullable|file|max:2048|extensions:svg,png,webp,jpg,jpeg',
+            'intro_mascot_speed' => 'nullable|file|max:2048|extensions:svg,png,webp,jpg,jpeg',
+            'intro_slogan' => 'nullable|file|max:2048|extensions:svg,png,webp,jpg,jpeg',
+            'intro_pattern' => 'nullable|file|max:2048|extensions:svg,png,webp,jpg,jpeg',
             'logo_background' => ['nullable', Rule::in(['auto', 'white', 'none'])],
             'menu_layout' => ['nullable', Rule::in(MenuLayouts::CHOICES)],
             'menu_display' => ['nullable', Rule::in(['simple', 'pro'])],
@@ -122,7 +127,7 @@ class SettingsController extends Controller
             'tiktok_pixel_id' => ['nullable', 'string', TrackingPixels::RULES['tiktok_pixel_id']],
         ], [], ['meta_pixel_id' => 'Meta Pixel ID', 'ga4_measurement_id' => 'GA4 Measurement ID', 'tiktok_pixel_id' => 'TikTok Pixel ID']);
 
-        $values = collect($data)->except(['logo', 'cover', 'ai_key', 'cuisine', 'menu_locales', 'menu_badge_filters'])->map(fn ($v) => (string) ($v ?? ''))->all();
+        $values = collect($data)->except(['logo', 'cover', 'ai_key', 'cuisine', 'menu_locales', 'menu_badge_filters', ...array_keys(BrandAssets::PIECES)])->map(fn ($v) => (string) ($v ?? ''))->all();
         if (($values['qr_target'] ?? '') === '') {
             unset($values['qr_target']); // not sent: keep the current target
         }
@@ -245,6 +250,20 @@ class SettingsController extends Controller
                 $images->delete(Settings::get($key));
                 $values[$key] = '';
             }
+        }
+        // the mascot intro pieces (PNG / WebP / JPEG, or a sanitised SVG) and the header pattern + peeking character
+        $brandAssets = app(BrandAssets::class);
+        foreach (array_keys(BrandAssets::PIECES) as $key) {
+            if ($request->hasFile($key)) {
+                $brandAssets->delete(Settings::get($key));
+                $values[$key] = $brandAssets->store($request->file($key));
+            } elseif ($request->boolean("remove_$key")) {
+                $brandAssets->delete(Settings::get($key));
+                $values[$key] = '';
+            }
+        }
+        if ($request->boolean('mascot_sent')) {
+            $values['menu_header_brand'] = $request->boolean('menu_header_brand') ? '1' : '0';
         }
         Settings::put($values);
         Audit::record('settings.updated', '', ['keys' => array_values(array_diff(array_keys($values), ['ai_key']))]);

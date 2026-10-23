@@ -11,7 +11,8 @@ use Illuminate\Http\Request;
  */
 final class MenuIntro
 {
-    public const STYLES = ['off', 'logo', 'full'];
+    /** mascot = the brand character rolls in (setting intro_mascot; without it the logo intro plays) */
+    public const STYLES = ['off', 'logo', 'full', 'mascot'];
 
     public const BACKGROUNDS = ['auto', 'brand', 'light'];
 
@@ -24,6 +25,10 @@ final class MenuIntro
         $style = in_array($settings['menu_intro'] ?? 'logo', self::STYLES, true) ? $settings['menu_intro'] : 'logo';
         if ($style === 'off' || self::isBot((string) $request->userAgent())) {
             return 'off';
+        }
+        // the character is the one piece the mascot intro cannot do without
+        if ($style === 'mascot' && (string) ($settings['intro_mascot'] ?? '') === '') {
+            return 'logo';
         }
 
         return $style;

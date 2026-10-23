@@ -76,6 +76,13 @@ final class Settings
         'menu_intro_repeat' => 'always',  // always (every time the menu is opened) | session (once per browser session)
         // colours of the intro screen: auto (light when the page is light and the logo bare) | brand | light
         'intro_background' => 'auto',
+        // the "mascot" intro pieces (App\Services\BrandAssets): character, optional speed lines, slogan, pattern tile
+        'intro_mascot' => '',
+        'intro_mascot_speed' => '',
+        'intro_slogan' => '',
+        'intro_pattern' => '',
+        // the guest menu header: the brand pattern and the character peeking at the start side ('1' on)
+        'menu_header_brand' => '0',
         // behind the logo on the guest pages: auto (no tile on dark templates, white on light ones) | white | none
         'logo_background' => 'auto',
         // items without a photo show a themed placeholder tile (icon from the category) instead of nothing

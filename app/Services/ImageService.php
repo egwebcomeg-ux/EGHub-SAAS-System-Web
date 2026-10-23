@@ -25,6 +25,8 @@ final class ImageService
         // logos stay lossless (sharp edges, full alpha), so a transparent logo looks crisp on dark templates
         'logo' => ['brand', 512, 512, false, true],
         'cover' => ['brand', 1600, 700, false],
+        // brand character, slogan and pattern tile of the mascot intro (App\Services\BrandAssets), lossless like the logo
+        'mascot' => ['brand', 900, 900, false, true],
         'banner' => ['banners', 1600, 700, false],
         'post' => ['blog', 1600, 900, false],            // platform blog covers (no tenant)
         'testimonial' => ['testimonials', 400, 400, false], // owner photos on the marketing site (no tenant)

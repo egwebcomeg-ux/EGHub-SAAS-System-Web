@@ -121,9 +121,19 @@
     .m-label { display: flex; align-items: center; gap: .35rem; margin-bottom: .3rem; font-size: .85rem; font-weight: 700; color: var(--menu-text); }
     .m-label svg { width: 1rem; height: 1rem; color: var(--menu-accent); flex-shrink: 0; }
     .m-send:disabled { opacity: .55; cursor: not-allowed; }
+    /* header brand pieces (setting menu_header_brand): the pattern at 7% fading down, the character peeking in */
+    .m-brand-pattern { position: absolute; inset: 0; pointer-events: none; background-size: 200px; background-repeat: repeat; opacity: .07;
+        -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent); mask-image: linear-gradient(to bottom, #000 40%, transparent); }
+    .m-brand-peek { position: absolute; top: 14px; inset-inline-end: -14px; width: 78px; transform: rotate(-12deg); pointer-events: none;
+        animation: m-peek-bob 4s ease-in-out infinite; }
+    /* drawn for Arabic pages (as on the Scratch menu); English pages get it mirrored on the other side */
+    [dir="ltr"] .m-brand-peek { transform: rotate(12deg) scaleX(-1); animation-name: m-peek-bob-ltr; }
+    @keyframes m-peek-bob { 50% { transform: rotate(-6deg) translateY(4px); } }
+    @keyframes m-peek-bob-ltr { 50% { transform: rotate(6deg) translateY(4px) scaleX(-1); } }
+    @media (min-width: 640px) { .m-brand-peek { width: 110px; inset-inline-end: 4%; top: 18px; } }
     @media (prefers-reduced-motion: reduce) {
         .m-ticker-line, .m-toast, .m-dot span, .m-cat-ring { transition: none; }
-        .m-bump { animation: none; }
+        .m-bump, .m-brand-peek { animation: none; }
     }
 </style>
 @if ($season)
@@ -142,6 +152,15 @@
     @endif
     @if ($settings['cover'])
         <img src="/storage/{{ $settings['cover'] }}" alt="" class="relative h-40 w-full object-cover opacity-90 sm:h-56" @if ($season?->banner) data-season-banner @endif>
+    @endif
+    @if (($settings['menu_header_brand'] ?? '0') === '1')
+        {{-- the brand pattern fading down the header and the character peeking in (setting menu_header_brand) --}}
+        @if ($headerPattern = \App\Services\BrandAssets::url($settings['intro_pattern'] ?? ''))
+            <div class="m-brand-pattern" style="background-image: url('{{ $headerPattern }}')" aria-hidden="true" data-brand-pattern></div>
+        @endif
+        @if ($headerPeek = \App\Services\BrandAssets::url($settings['intro_mascot'] ?? ''))
+            <img src="{{ $headerPeek }}" alt="" class="m-brand-peek" aria-hidden="true" data-brand-peek>
+        @endif
     @endif
     <div class="relative mx-auto flex max-w-2xl items-center gap-3 px-4 py-4">
         @if ($settings['logo'])

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Menu\BoardController;
+use App\Http\Controllers\Menu\BrandAssetController;
 use App\Http\Controllers\Menu\CardAppController;
 use App\Http\Controllers\Menu\CorporateVoucherController;
 use App\Http\Controllers\Menu\FeedbackController;
@@ -23,6 +24,8 @@ use Illuminate\Support\Facades\Route;
 // alias) and a custom domain (IdentifyTenantByDomain).
 Route::get('/', [MenuController::class, 'show'])->name('show');
 Route::get('/about', [ProfileController::class, 'show'])->name('about');
+// the restaurant's SVG brand pieces (mascot intro, header pattern), served with a no-script CSP
+Route::get('/brand/{file}', [BrandAssetController::class, 'show'])->where('file', '[0-9a-f-]{36}\.svg')->name('brand.asset');
 // shareable link of one item: the menu with the item opened (full page in the professional display)
 Route::get('/item/{item}', [MenuController::class, 'item'])->whereNumber('item')->name('item');
 Route::get('/t/{token}', [MenuController::class, 'table'])->where('token', '[a-f0-9]{20}')->name('table');

@@ -4842,5 +4842,15 @@
     "Text color": "لون الكلام",
     "Arabic only": "عربي بس",
     "English only": "إنجليزي بس",
-    "Your menu now uses the style of your file.": "المنيو بقى بنفس شكل الملف بتاعك."
+    "Your menu now uses the style of your file.": "المنيو بقى بنفس شكل الملف بتاعك.",
+    "Brand character": "شخصية البراند",
+    "Second layer of the character (speed lines)": "طبقة تانية للشخصية (خطوط السرعة)",
+    "Slogan picture": "صورة الشعار",
+    "Pattern tile": "وحدة النقشة",
+    "Your brand character rolls in (mascot)": "شخصية البراند بتدخل وهي بتلف (شخصية البراند)",
+    "Brand character (mascot intro)": "شخصية البراند (افتتاحية الشخصية)",
+    "SVG, PNG or WebP up to 2 MB. Only the character is needed; any missing piece is skipped.": "SVG أو PNG أو WebP لحد 2 ميجا. الشخصية بس هي المطلوبة، وأي حتة ناقصة بتتشال من الحركة.",
+    "Brand pattern and the peeking character in the menu header": "نقشة البراند والشخصية وهي بتبص في هيدر المنيو",
+    "The SVG file is too big (1.5 MB at most).": "ملف الـSVG كبير (1.5 ميجا بالكتير).",
+    "This SVG file could not be read safely. Upload a PNG instead.": "مقدرناش نقرا ملف الـSVG ده بأمان. ارفع PNG بداله."
 }

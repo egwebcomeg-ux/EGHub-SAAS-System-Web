@@ -12,7 +12,42 @@
     $introTagline = trim(tr($settings['tagline'], $settings['tagline_en']));
     $introLight = ($introBackground ?? 'brand') === 'light';
 @endphp
-@if ($intro !== 'off')
+@if ($intro === 'mascot')
+    @php
+        $mascot = \App\Services\BrandAssets::url($settings['intro_mascot']);
+        $mascotSpeed = \App\Services\BrandAssets::url($settings['intro_mascot_speed'] ?? '');
+        $mascotSlogan = \App\Services\BrandAssets::url($settings['intro_slogan'] ?? '');
+        $mascotPattern = \App\Services\BrandAssets::url($settings['intro_pattern'] ?? '');
+    @endphp
+    {{-- the brand character rolls in spinning (mirrored in RTL), its speed lines trail and settle, it lands with a
+         squash, a spark pops, the logo rises, the slogan pops, then the character floats until the screen fades --}}
+    <div class="m-intro m-intro--mascot" data-intro data-intro-style="mascot" aria-hidden="true">
+        @if ($mascotPattern)
+            <div class="m-mascot-pattern" style="background-image: url('{{ $mascotPattern }}')" data-mascot-pattern></div>
+        @endif
+        <div class="m-mascot-glow"></div>
+        <div class="m-mascot-stage">
+            <div class="m-char">
+                <div class="m-char-float"><div class="m-char-move"><div class="m-char-squash">
+                    @if ($mascotSpeed)<img src="{{ $mascotSpeed }}" alt="" class="m-char-speed" data-mascot-speed>@endif
+                    <img src="{{ $mascot }}" alt="" class="m-char-bean" data-mascot>
+                </div></div></div>
+                <span class="m-char-spark">✦</span>
+            </div>
+            @if ($settings['logo'])
+                <img src="/storage/{{ $settings['logo'] }}" alt="" class="m-mascot-logo" fetchpriority="low">
+            @else
+                <span class="m-mascot-logo m-mascot-name">{{ $brand }}</span>
+            @endif
+            @if ($mascotSlogan)
+                <img src="{{ $mascotSlogan }}" alt="" class="m-mascot-slogan" data-mascot-slogan>
+            @elseif ($introTagline !== '')
+                <p class="m-mascot-slogan m-mascot-tagline">{{ $introTagline }}</p>
+            @endif
+        </div>
+        <span class="m-intro-skip">{{ __('Tap to skip') }}</span>
+    </div>
+@elseif ($intro !== 'off')
     <div @class(['m-intro m-intro--' . $intro, 'm-intro--light' => $introLight]) data-intro data-intro-background="{{ $introLight ? 'light' : 'brand' }}" aria-hidden="true">
         <div class="m-intro-glow"></div>
         @if ($intro === 'full')
@@ -64,7 +99,7 @@
                         <h3 id="branch-sheet-title" class="m-muted text-sm font-extrabold">📍 {{ $waysMenu ? __('From which branch?') : __('Prices and what is available follow the branch you choose.') }}</h3>
                     </div>
                     @if ($branches->contains(fn ($b) => $b->lat !== null))
-                        <button type="button" class="m-choice-near mb-2 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold" data-branch-near>
+                        <button type="button" class="m-choice-near mb-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold" data-branch-near>
                             <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 22 2l-9 19-2-8-8-2Z"/></svg>
                             {{ __('Nearest branch to me') }}
                         </button>
