@@ -44,6 +44,9 @@
 </div>
 @if ($canCustomize ?? false)
     {{-- extra permissions on top of the role (hidden for the owner role, who has everything) --}}
+    {{-- the role whose permissions are ticked and locked below when the form is sent (kept by the team page script);
+         UsersController never saves those as extras --}}
+    <input type="hidden" name="permissions_role" value="{{ $role }}" data-permissions-role>
     <details class="rounded-xl border border-navy-100 p-2" data-extra-permissions @if (count($direct) > 0) open @endif>
         <summary class="cursor-pointer text-sm font-semibold">
             {{ __('Extra permissions') }} <span class="text-navy-500" data-extra-count>{{ count($direct) ? '('.count($direct).')' : '' }}</span>

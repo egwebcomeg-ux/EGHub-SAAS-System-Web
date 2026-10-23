@@ -62,28 +62,37 @@
         const page = document.querySelector('[data-users-page]');
         const info = JSON.parse(page.dataset.roleInfo);
         // each form: the role's hint and permissions under the select; the role's permissions ticked and locked in
-        // the extra list, the rest free (extra permissions); the owner role hides the list (it has everything)
+        // the extra list, the rest free (extra permissions); the owner role hides the list (it has everything).
+        // A box is ticked by the role or by the member's own extras (data-own): switching the role recomputes the
+        // role boxes, so the previous role's boxes never stay ticked and get saved as extras.
         page.querySelectorAll('form').forEach((form) => {
             const select = form.querySelector('[data-role]');
             if (!select) return;
             const extra = form.querySelector('[data-extra-permissions]');
+            const roleField = form.querySelector('[data-permissions-role]');
+            extra?.querySelectorAll('[data-permission]').forEach((box) => { box.dataset.own = box.checked ? '1' : '0'; });
             const sync = () => {
                 const role = info[select.value] || { hint: '', permissions: [], labels: [] };
                 form.querySelector('[data-role-hint]').textContent = role.hint;
                 form.querySelector('[data-role-permissions]').textContent = role.labels.join(' · ');
+                if (roleField) { roleField.value = select.value; }
                 if (!extra) return;
                 extra.classList.toggle('hidden', select.value === 'owner');
                 let count = 0;
                 extra.querySelectorAll('[data-permission]').forEach((box) => {
                     const inRole = role.permissions.includes(box.dataset.permission);
-                    if (inRole) { box.checked = true; }
+                    box.checked = inRole || box.dataset.own === '1';
                     box.disabled = inRole || box.dataset.grantable !== '1';
                     if (!inRole && box.checked) { count++; }
                 });
                 extra.querySelector('[data-extra-count]').textContent = count ? `(${count})` : '';
             };
             select.addEventListener('change', sync);
-            extra?.addEventListener('change', sync);
+            extra?.addEventListener('change', (event) => {
+                const box = event.target.closest('[data-permission]');
+                if (box && !box.disabled) { box.dataset.own = box.checked ? '1' : '0'; }
+                sync();
+            });
             sync();
         });
     })();

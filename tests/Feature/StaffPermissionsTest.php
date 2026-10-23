@@ -73,6 +73,31 @@ class StaffPermissionsTest extends TenantTestCase
         $this->assertSame(['orders.view'], $this->directPermissions($a, $nour));
     }
 
+    public function test_switching_the_role_in_the_form_never_saves_the_previous_roles_boxes_as_extras(): void
+    {
+        $a = $this->restaurant('cafe-a', 'full');
+        $this->actingAs($this->owner($a))->get($this->dashUrl('/users'))->assertOk()
+            ->assertSee('name="permissions_role" value="cashier"', false)->assertSee("box.dataset.own === '1'", false);
+
+        // the add form opened on cashier (its boxes ticked and locked), then switched to driver: the cashier boxes
+        // come along as posted for the role they were drawn for
+        $this->actingAs($this->owner($a))->post($this->dashUrl('/users'), [
+            'name' => 'Sayed', 'phone' => '01055555555', 'role' => 'driver', 'password' => 'Secret-pass-123',
+            'permissions' => Permissions::of('cashier'), 'permissions_role' => 'cashier',
+        ])->assertSessionHasNoErrors();
+
+        $driver = $this->as($a, fn () => User::query()->where('phone', '01055555555')->firstOrFail());
+        $this->assertTrue($driver->hasRole('driver'));
+        $this->assertSame([], $this->directPermissions($a, $driver));
+
+        // an extra really ticked for the driver (the boxes drawn for the driver role) is kept
+        $this->actingAs($this->owner($a))->post($this->dashUrl("/users/{$driver->id}"), [
+            'name' => 'Sayed', 'phone' => '01055555555', 'role' => 'driver', 'is_active' => '1',
+            'permissions' => ['orders.view'], 'permissions_role' => 'driver',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame(['orders.view'], $this->directPermissions($a, $driver));
+    }
+
     public function test_without_the_feature_the_extra_permissions_are_hidden_and_ignored(): void
     {
         $a = $this->restaurant('cafe-a', 'pro');

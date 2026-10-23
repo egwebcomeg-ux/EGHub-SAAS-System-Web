@@ -114,6 +114,7 @@ class UsersController extends Controller
         if ($this->canCustomize()) {
             $rules['permissions'] = ['nullable', 'array', 'max:'.count(Permissions::ALL)];
             $rules['permissions.*'] = ['string', Rule::in($this->grantableBy($request->user()))];
+            $rules['permissions_role'] = ['nullable', 'string', Rule::in(array_keys(Permissions::ROLES))];
         }
 
         return $request->validate($rules, [
@@ -123,7 +124,9 @@ class UsersController extends Controller
 
     /**
      * Stores the permissions ticked beyond the role as direct permissions, so unticking them all puts the member
-     * back on the role's defaults. The owner role holds everything already and keeps none.
+     * back on the role's defaults. The owner role holds everything already and keeps none. What the new role holds
+     * is never an extra, and neither is what the form showed ticked and locked for another role (permissions_role:
+     * the role the boxes were drawn for), so switching the role in the form never turns its boxes into extras.
      *
      * @param  array<string,mixed>  $data
      */
@@ -133,8 +136,10 @@ class UsersController extends Controller
             return;
         }
         $before = $user->permissions->pluck('name')->sort()->values()->all();
+        $shownRole = $data['permissions_role'] ?? null;
+        $lockedInForm = is_string($shownRole) && $shownRole !== $data['role'] ? Permissions::of($shownRole) : [];
         $wanted = $data['role'] === 'owner' ? []
-            : array_values(array_diff(array_unique((array) ($data['permissions'] ?? [])), Permissions::of($data['role']), Permissions::OWNER_ONLY));
+            : array_values(array_diff(array_unique((array) ($data['permissions'] ?? [])), Permissions::of($data['role']), $lockedInForm, Permissions::OWNER_ONLY));
         sort($wanted);
         if ($wanted === $before) {
             return;
