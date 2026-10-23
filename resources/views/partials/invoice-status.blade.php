@@ -1,4 +1,5 @@
-@php($pending = $invoice->status === 'open' && $invoice->payments->contains('status', 'pending'))
+{{-- a transfer the restaurant claimed is "awaiting confirmation"; an online checkout in progress is not a claim --}}
+@php($pending = $invoice->status === 'open' && $invoice->payments->contains(fn ($p) => $p->status === 'pending' && ! $p->isOnline()))
 @if ($invoice->status === 'paid')
     <span class="badge bg-emerald-100 text-emerald-800">{{ __('Paid') }}</span>
 @elseif ($invoice->status === 'void')

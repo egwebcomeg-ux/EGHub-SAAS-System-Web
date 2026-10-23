@@ -61,7 +61,9 @@ use App\Http\Controllers\Dashboard\VoucherRedeemController;
 use App\Http\Controllers\Dashboard\VouchersController;
 use App\Http\Controllers\Dashboard\WalletController;
 use App\Http\Controllers\Dashboard\ZReportController;
+use App\Http\Controllers\Platform\BillingWebhookController;
 use App\Models\CampaignAutomation;
+use App\Models\Payment;
 use App\Services\Auth\SocialProviders;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Session\Middleware\StartSession;
@@ -83,6 +85,11 @@ Route::middleware('admin.locale')->group(function () {
     Route::get('/auth/{provider}/callback', [SocialLoginController::class, 'callback'])
         ->whereIn('provider', array_keys(SocialProviders::PROVIDERS))->middleware('throttle:20,1')->name('social.callback');
 });
+
+// The online payment gateway's server-to-server webhook (Kashier: https://app.<domain>/billing/kashier/webhook).
+// No login and no CSRF (bootstrap/app.php): the gateway's signature is the only proof, checked in the controller.
+Route::post('/billing/{gateway}/webhook', [BillingWebhookController::class, 'receive'])
+    ->whereIn('gateway', Payment::ONLINE_GATEWAYS)->middleware('throttle:120,1')->name('billing.webhook');
 
 Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -107,6 +114,9 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/billing/addons/{key}', [BillingController::class, 'addon'])->where('key', '[a-z0-9_]+')->name('billing.addon');
         Route::get('/billing/invoices/{number}', [BillingController::class, 'invoice'])->name('billing.invoice');
         Route::post('/billing/invoices/{number}/claim', [BillingController::class, 'claim'])->middleware('throttle:10,1')->name('billing.claim');
+        Route::post('/billing/invoices/{number}/pay', [BillingController::class, 'pay'])->middleware('throttle:10,1')->name('billing.pay');
+        // the gateway sends the restaurant back here (checks the database, never the query string)
+        Route::get('/billing/invoices/{number}/return', [BillingController::class, 'returned'])->middleware('throttle:30,1')->name('billing.return');
     });
 
     Route::middleware('permission:settings.manage')->group(function () {

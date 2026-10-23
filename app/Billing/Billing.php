@@ -20,7 +20,8 @@ use Illuminate\Support\Facades\Notification;
  *  - choosing a plan restarts the period today; the unused value of a paid period is credited;
  *  - renewing the same plan extends the period from its end;
  *  - a payment is applied exactly once (payments.idempotency_key is unique);
- *  - manual transfers (InstaPay / Vodafone Cash) are "claimed" by the restaurant and confirmed by EgWeb.
+ *  - manual transfers (InstaPay / Vodafone Cash) are "claimed" by the restaurant and confirmed by EgWeb;
+ *  - online payments (App\Billing\OnlinePayments) are confirmed by the gateway's signed webhook through markPaid.
  */
 final class Billing
 {
@@ -183,11 +184,11 @@ final class Billing
     /** The restaurant says it transferred the money: recorded as a pending payment for EgWeb to confirm. */
     public function claimManualPayment(Invoice $invoice, string $method, string $reference, ?string $sender): Payment
     {
-        $payment = Payment::query()->updateOrCreate(
-            ['invoice_id' => $invoice->id, 'status' => 'pending'],
-            ['gateway' => $method, 'reference' => $reference, 'idempotency_key' => 'claim:'.$invoice->id.':'.random_token(4),
-                'amount' => $invoice->total, 'payload' => ['sender' => $sender]],
-        );
+        // one open claim per invoice; an online checkout left pending (Payment::ONLINE_GATEWAYS) is a separate attempt
+        $payment = Payment::query()->where('invoice_id', $invoice->id)->where('status', 'pending')
+            ->whereNotIn('gateway', Payment::ONLINE_GATEWAYS)->first() ?? new Payment(['invoice_id' => $invoice->id, 'status' => 'pending']);
+        $payment->fill(['gateway' => $method, 'reference' => $reference, 'idempotency_key' => 'claim:'.$invoice->id.':'.random_token(4),
+            'amount' => $invoice->total, 'payload' => ['sender' => $sender]])->save();
         Notification::send(PlatformAdmin::notifiable('billing.manage'), new PaymentClaimed($payment));
 
         return $payment;
@@ -196,21 +197,29 @@ final class Billing
     /**
      * Records a successful payment and applies the invoice. Idempotent: the same key (gateway transaction id,
      * or the admin confirmation) is applied once; later deliveries return false and change nothing.
+     * $attempt is the online checkout being settled (its row becomes the succeeded payment); without it the pending
+     * manual claim is the one confirmed, or a new payment row is written.
+     *
+     * @param  array<string, mixed>  $extra  more payment columns to store (method, installments ...)
      */
-    public function markPaid(Invoice $invoice, string $gateway, ?string $reference, float $amount, string $idempotencyKey, ?int $recordedBy = null): bool
+    public function markPaid(Invoice $invoice, string $gateway, ?string $reference, float $amount, string $idempotencyKey, ?int $recordedBy = null,
+        ?Payment $attempt = null, array $extra = []): bool
     {
-        $applied = DB::transaction(function () use ($invoice, $gateway, $reference, $amount, $idempotencyKey, $recordedBy) {
+        $applied = DB::transaction(function () use ($invoice, $gateway, $reference, $amount, $idempotencyKey, $recordedBy, $attempt, $extra) {
             $invoice = Invoice::query()->lockForUpdate()->find($invoice->id);
             if ($invoice->status !== 'open' || Payment::query()->where('idempotency_key', $idempotencyKey)->exists()) {
                 return false;
             }
-            $pending = Payment::query()->where('invoice_id', $invoice->id)->where('status', 'pending')->first();
+            $pending = $attempt && $attempt->invoice_id === $invoice->id
+                ? Payment::query()->lockForUpdate()->find($attempt->id)
+                : Payment::query()->where('invoice_id', $invoice->id)->where('status', 'pending')
+                    ->whereNotIn('gateway', Payment::ONLINE_GATEWAYS)->first();
             if ($pending) {
                 $pending->update(['status' => 'succeeded', 'gateway' => $gateway, 'reference' => $reference ?? $pending->reference,
-                    'amount' => $amount, 'idempotency_key' => $idempotencyKey, 'recorded_by' => $recordedBy]);
+                    'amount' => $amount, 'idempotency_key' => $idempotencyKey, 'recorded_by' => $recordedBy, 'failure_reason' => null] + $extra);
             } else {
                 Payment::query()->create(['invoice_id' => $invoice->id, 'gateway' => $gateway, 'reference' => $reference,
-                    'idempotency_key' => $idempotencyKey, 'amount' => $amount, 'status' => 'succeeded', 'recorded_by' => $recordedBy]);
+                    'idempotency_key' => $idempotencyKey, 'amount' => $amount, 'status' => 'succeeded', 'recorded_by' => $recordedBy] + $extra);
             }
             $invoice->update(['status' => 'paid', 'paid_at' => now()]);
             $this->apply($invoice);

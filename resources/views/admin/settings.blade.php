@@ -23,14 +23,58 @@
         </div>
     </div>
 
-    <div class="card">
-        <h2 class="mb-3 text-lg font-bold">{{ __('Online gateways') }}</h2>
-        <div class="flex flex-wrap gap-6">
-            @foreach (['paymob' => 'Paymob', 'kashier' => 'Kashier', 'geidea' => 'Geidea'] as $key => $label)
-                <label class="flex items-center gap-2 font-semibold"><input type="checkbox" name="gateway_{{ $key }}_enabled" value="1" @checked($s["gateway_{$key}_enabled"] === '1') class="size-4 accent-brand-600"> {{ $label }}</label>
-            @endforeach
+    <div class="card space-y-4" id="online-payments" data-online-payments>
+        <div>
+            <h2 class="text-lg font-bold">{{ __('Online payments (Kashier)') }}</h2>
+            <p class="text-sm text-navy-500">{{ __('Restaurants pay their invoices on Kashier’s page; the plan switches on by itself when Kashier confirms. Installments are offered on yearly invoices and from the minimum amount below.') }}</p>
         </div>
-        <p class="mt-2 text-xs text-navy-500">{{ __('The gateway integrations are built in the billing phase; until then these switches only record the choice.') }}</p>
+        <label class="flex items-center gap-2 font-semibold"><input type="checkbox" name="gateway_kashier_enabled" value="1" @checked($s['gateway_kashier_enabled'] === '1') class="size-4 accent-brand-600"> {{ __('Accept online payments') }}</label>
+        @unless ($kashier['configured'])
+            <p class="rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">{{ __('Kashier keys are missing in .env: restaurants do not see online payment until they are set.') }}</p>
+        @endunless
+
+        <div class="grid gap-4 sm:grid-cols-2">
+            <fieldset>
+                <legend class="field-label">{{ __('Pay now') }}</legend>
+                <div class="space-y-1.5">
+                    @foreach (\App\Billing\OnlinePayments::METHODS as $key => $method)
+                        @continue($method['installments'])
+                        <label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="kashier_methods[]" value="{{ $key }}" @checked(in_array($key, $kashier['methods'], true)) class="size-4 accent-brand-600"> {{ \App\Billing\OnlinePayments::label($key) }}</label>
+                    @endforeach
+                </div>
+            </fieldset>
+            <fieldset>
+                <legend class="field-label">{{ __('Installments') }}</legend>
+                <div class="grid grid-cols-2 gap-1.5">
+                    @foreach (\App\Billing\OnlinePayments::METHODS as $key => $method)
+                        @continue(! $method['installments'])
+                        <label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="kashier_methods[]" value="{{ $key }}" @checked(in_array($key, $kashier['methods'], true)) class="size-4 accent-brand-600"> {{ \App\Billing\OnlinePayments::label($key) }}</label>
+                    @endforeach
+                </div>
+                <p class="mt-1 text-xs text-navy-500">{{ __('Tick only the providers activated on your Kashier account; the site promises installments only with the ones ticked here.') }}</p>
+            </fieldset>
+            <div>
+                <label class="field-label">{{ __('Also offer installments from this amount (EGP, optional)') }}</label>
+                <input class="field" type="number" min="0" step="1" name="kashier_installments_min" value="{{ $s['kashier_installments_min'] }}" dir="ltr" placeholder="0">
+            </div>
+        </div>
+
+        <dl class="grid gap-3 text-sm sm:grid-cols-[auto_1fr] sm:gap-x-6">
+            @foreach ($kashier['keys'] as $key)
+                <dt class="font-semibold" dir="ltr">{{ $key['env'] }}</dt>
+                <dd><span class="badge {{ $key['set'] ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-700' }}">{{ $key['set'] ? '✓ ' . __('Set') : '✗ ' . __('Not set') }}</span></dd>
+            @endforeach
+            <dt class="font-semibold" dir="ltr">KASHIER_MODE</dt>
+            <dd><span class="badge {{ $kashier['mode'] === 'live' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">{{ $kashier['mode'] === 'live' ? __('Live') : __('Test') }}</span></dd>
+            <dt class="font-semibold">{{ __('Webhook URL') }}</dt>
+            <dd class="flex flex-wrap items-center gap-2" dir="ltr">
+                <code class="rounded bg-navy-50 px-2 py-1">{{ $kashier['webhook_url'] }}</code>
+                <button type="button" class="btn-ghost min-h-8 px-2 text-xs" data-copy="{{ $kashier['webhook_url'] }}">{{ __('Copy') }}</button>
+            </dd>
+            <dt class="font-semibold">{{ __('Return address') }}</dt>
+            <dd dir="ltr" class="text-start"><code class="rounded bg-navy-50 px-2 py-1">{{ $kashier['return_url'] }}</code></dd>
+        </dl>
+        <p class="text-xs text-navy-500">{{ __('Both addresses are sent with every payment, so nothing has to be pasted in Kashier. Edit .env and run php artisan config:clear to change the keys.') }}</p>
     </div>
 
     <div class="card grid gap-4 sm:grid-cols-2" data-launch-offer-settings>

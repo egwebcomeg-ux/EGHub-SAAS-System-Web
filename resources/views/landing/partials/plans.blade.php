@@ -15,6 +15,8 @@
     $staffAddon = $addons->firstWhere('key', 'staff');
     $offer = $complete && $complete->code === \App\Billing\LaunchOffer::PLAN && \App\Billing\LaunchOffer::isRunning();
     $maxBranches = \App\Models\AddonPrice::MAX_SELF_SERVE_EXTRA_BRANCHES + 1;
+    // "pay online ..., the yearly plan in installments with valU ..." only when that is live (App\Billing\OnlinePayments)
+    $installmentsPromise = app(\App\Billing\OnlinePayments::class)->installmentsPromise();
     $chevron = '<svg class="lp-chev size-5 text-navy-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5.3 7.3a1 1 0 0 1 1.4 0L10 10.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 0-1.4z"/></svg>';
     $check = '<svg class="mt-1 size-4 shrink-0 text-emerald-600" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L8 12.6l7.3-7.3a1 1 0 0 1 1.4 0z"/></svg>';
 
@@ -104,6 +106,9 @@
             @endif
             <p class="mt-2 text-xs text-navy-500 lg:min-h-10" data-billed>{{ __('Billed monthly') }}</p>
             <p class="text-xs text-navy-500" data-monthly-only data-year-price="{{ money($complete->priceFor(12)) }}">{{ __('Or :total EGP for a whole year paid at once.', ['total' => money($complete->priceFor(12))]) }}</p>
+            @if ($installmentsPromise)
+                <p class="mt-1 text-xs font-bold text-emerald-800" data-installments-promise>{{ $installmentsPromise }}</p>
+            @endif
 
             <ul class="mt-3 space-y-2 border-t border-navy-100 pt-4 text-sm">
                 <li class="flex items-start gap-2 font-bold">{!! $check !!}<span>{{ $branches === 1 ? __('Includes one branch and :users users', ['users' => $users ?? '∞']) : __('Includes :branches branches and :users users', ['branches' => $branches ?? '∞', 'users' => $users ?? '∞']) }}</span></li>

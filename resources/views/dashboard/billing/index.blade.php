@@ -77,6 +77,9 @@
                         </label>
                     @endforeach
                 </div>
+                @if ($installmentsPromise)
+                    <p class="-mt-3 mb-4 text-xs font-semibold text-emerald-800" data-installments-promise>{{ $installmentsPromise }}</p>
+                @endif
             @else
                 <input type="hidden" name="months" value="1">
             @endif
@@ -172,7 +175,13 @@
                     <td>{{ money($inv->total) }} {{ __('EGP') }}</td>
                     <td>@include('partials.invoice-status', ['invoice' => $inv])</td>
                     <td>{{ local_time($inv->created_at, 'Y/m/d') }}</td>
-                    <td><a href="{{ route('dash.billing.invoice', $inv->number) }}" class="text-brand-700">{{ __('View') }}</a></td>
+                    <td>
+                        @if ($onlineEnabled && $inv->status === 'open' && $inv->total > 0)
+                            <a href="{{ route('dash.billing.invoice', $inv->number) }}#pay-online" class="btn-primary min-h-9 px-3" data-pay-online-link>{{ __('Pay online') }}</a>
+                        @else
+                            <a href="{{ route('dash.billing.invoice', $inv->number) }}" class="text-brand-700">{{ __('View') }}</a>
+                        @endif
+                    </td>
                 </tr>
             @endforeach
             </tbody>

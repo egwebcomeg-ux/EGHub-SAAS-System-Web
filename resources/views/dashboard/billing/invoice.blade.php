@@ -23,7 +23,48 @@
         </table>
     </section>
 
-    <section class="card lg:col-span-2">
+    <div class="space-y-4 lg:col-span-2">
+    @if ($invoice->status === 'open' && ($payNow || $installments))
+        <section class="card" id="pay-online" data-pay-online>
+            <h2 class="mb-1 text-lg font-bold">{{ __('Pay online') }}</h2>
+            <p class="mb-3 text-sm text-navy-500">{{ __('You pay on Kashier’s secure page; your plan switches on by itself once the payment is confirmed.') }}</p>
+            @if ($online?->status === 'pending' && $online->created_at->gt(now()->subHours(2)))
+                <p class="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800" data-online-processing>
+                    {{ __('A payment is being confirmed…') }}
+                    <a href="{{ route('dash.billing.return', $invoice->number) }}" class="underline">{{ __('Check again') }}</a>
+                </p>
+            @elseif ($online?->status === 'failed')
+                <p class="mb-3 rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-700" data-online-failed>{{ __('The last online payment did not go through. You can try again.') }}</p>
+            @endif
+            @error('online')<p class="mb-3 text-sm font-semibold text-red-700">{{ $message }}</p>@enderror
+
+            @if ($payNow)
+                <form method="post" action="{{ route('dash.billing.pay', $invoice->number) }}" class="rounded-xl border border-navy-100 p-3" data-pay-now>
+                    @csrf
+                    <input type="hidden" name="plan" value="now">
+                    <div class="mb-2 font-bold">{{ __('Pay now: :amount EGP', ['amount' => money($invoice->total)]) }}</div>
+                    <div class="mb-3 flex flex-wrap gap-1.5">
+                        @foreach ($payNow as $m)<span class="rounded-full bg-navy-50 px-2.5 py-1 text-xs font-bold text-navy-700">{{ \App\Billing\OnlinePayments::label($m) }}</span>@endforeach
+                    </div>
+                    <button class="btn-primary w-full">{{ __('Pay now') }}</button>
+                </form>
+            @endif
+            @if ($installments)
+                <form method="post" action="{{ route('dash.billing.pay', $invoice->number) }}" class="mt-3 rounded-xl border border-navy-100 p-3" data-pay-installments>
+                    @csrf
+                    <input type="hidden" name="plan" value="installments">
+                    <div class="mb-1 font-bold">{{ __('Pay in installments') }}</div>
+                    <p class="mb-2 text-xs text-navy-500">{{ __('The provider shows its plans and approves you on the next page.') }}</p>
+                    <div class="mb-3 flex flex-wrap gap-1.5">
+                        @foreach ($installments as $m)<span class="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-700" data-installment-provider="{{ $m }}">{{ \App\Billing\OnlinePayments::label($m) }}</span>@endforeach
+                    </div>
+                    <button class="btn-navy w-full">{{ __('Pay in installments') }}</button>
+                </form>
+            @endif
+        </section>
+    @endif
+
+    <section class="card">
         @if ($invoice->status === 'paid')
             <p class="font-semibold text-emerald-700">{{ __('Paid on :date. Thank you!', ['date' => local_time($invoice->paid_at, 'Y/m/d')]) }}</p>
         @elseif ($invoice->status === 'void')
@@ -31,9 +72,9 @@
         @elseif ($pending)
             <p class="font-semibold text-amber-800">{{ __('We received your transfer details (:ref) and will confirm shortly.', ['ref' => $pending->reference]) }}</p>
         @elseif (!$methods)
-            <p class="text-navy-500">{{ __('Contact EgWeb support to pay this invoice.') }}</p>
+            <p class="text-navy-500">{{ $payNow || $installments ? __('Prefer a transfer? Contact EgWeb support.') : __('Contact EgWeb support to pay this invoice.') }}</p>
         @else
-            <h2 class="mb-2 text-lg font-bold">{{ __('How to pay') }}</h2>
+            <h2 class="mb-2 text-lg font-bold">{{ $payNow || $installments ? __('Or pay by transfer') : __('How to pay') }}</h2>
             <ol class="mb-4 space-y-2 text-sm">
                 @foreach ($methods as $m)
                     <li class="rounded-xl bg-navy-50 p-3">
@@ -56,5 +97,6 @@
             </form>
         @endif
     </section>
+    </div>
 </div>
 @endsection

@@ -5,9 +5,9 @@ namespace App\Billing;
 use App\Models\PlatformSetting;
 
 /**
- * How a restaurant can pay its subscription today. Manual methods are switched on in the super admin
- * (Payment settings). Online gateways (Paymob, Kashier, Geidea) plug in later behind the same list: each gets a
- * class implementing a `checkout(Invoice): url` + webhook that ends in Billing::markPaid(..., idempotencyKey).
+ * How a restaurant can pay its subscription by hand. Manual methods are switched on in the super admin
+ * (Payment settings) and confirmed by EgWeb. Paying online (Kashier) is App\Billing\OnlinePayments: a gateway
+ * behind App\Billing\Gateways\PaymentGateway whose signed webhook ends in Billing::markPaid(..., idempotencyKey).
  */
 final class PaymentMethods
 {
@@ -36,6 +36,7 @@ final class PaymentMethods
             'instapay' => 'InstaPay',
             'vodafone_cash' => __('Vodafone Cash'),
             'manual' => __('Manual'),
+            'kashier' => 'Kashier',
             'cash' => __('Cash'),
             'card' => __('Card'),
             'wallet' => __('Mobile wallet'),

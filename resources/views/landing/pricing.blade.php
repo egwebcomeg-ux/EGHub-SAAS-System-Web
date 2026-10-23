@@ -4,6 +4,10 @@
 
 @php
     $groups = collect(\App\Models\Plan::GROUPS);
+    // online payment copy appears only once EgWeb switched it on (App\Billing\OnlinePayments)
+    $onlinePayments = app(\App\Billing\OnlinePayments::class);
+    $payOnline = $onlinePayments->payNowMethods() !== [];
+    $installmentsPromise = $onlinePayments->installmentsPromise();
     $planByCode = $plans->keyBy('code');
     $extraBranchOff = (int) round((1 - \App\Models\AddonPrice::EXTRA_BRANCH_SHARE) * 100);
     $limitPacks = $addons->where('type', 'limit')->values();
@@ -31,7 +35,7 @@
     <div class="mx-auto max-w-3xl px-4 pt-10 pb-12 text-center sm:px-6 lg:pt-14 lg:pb-16">
         <p class="lp-eyebrow" data-reveal>{{ __('Pricing') }}</p>
         <h1 class="mt-4 text-[2rem] leading-[1.3] font-black tracking-tight sm:text-5xl sm:leading-[1.25]" data-reveal style="--d: 70ms">{{ __('Start free. Pay only when you need more.') }}</h1>
-        <p class="lp-lead mx-auto mt-4 max-w-2xl" data-reveal style="--d: 140ms">{{ __('Prices in Egyptian pounds, paid by InstaPay or Vodafone Cash. No commission on your orders and no contract.') }}</p>
+        <p class="lp-lead mx-auto mt-4 max-w-2xl" data-reveal style="--d: 140ms">{{ $payOnline ? __('Prices in Egyptian pounds, paid online or by InstaPay or Vodafone Cash. No commission on your orders and no contract.') : __('Prices in Egyptian pounds, paid by InstaPay or Vodafone Cash. No commission on your orders and no contract.') }}</p>
     </div>
 </section>
 
@@ -181,7 +185,11 @@
 <section class="lp-band lp-glow mb-8 py-16 lg:py-20">
     <div class="mx-auto max-w-3xl px-4 text-center sm:px-6" data-reveal>
         <h2 class="lp-h2">{{ __('Questions about paying?') }}</h2>
-        <p class="lp-lead mt-3">{{ __('You pay from your dashboard by InstaPay or Vodafone Cash. Paying for 12 months at once takes :pct% off the plan and its add-ons. There is no contract and you can stop whenever you want; your menu then stays on the free plan.', ['pct' => money((float) ($plans->firstWhere('is_featured', true)?->cycle_discounts['12'] ?? 0))]) }}</p>
+        @php($yearPct = money((float) ($plans->firstWhere('is_featured', true)?->cycle_discounts['12'] ?? 0)))
+        <p class="lp-lead mt-3">{{ $payOnline
+            ? __('You pay from your dashboard online or by InstaPay or Vodafone Cash. Paying for 12 months at once takes :pct% off the plan and its add-ons. There is no contract and you can stop whenever you want; your menu then stays on the free plan.', ['pct' => $yearPct])
+            : __('You pay from your dashboard by InstaPay or Vodafone Cash. Paying for 12 months at once takes :pct% off the plan and its add-ons. There is no contract and you can stop whenever you want; your menu then stays on the free plan.', ['pct' => $yearPct]) }}</p>
+        @if ($installmentsPromise)<p class="mt-2 text-sm font-bold text-emerald-800" data-installments-promise>{{ $installmentsPromise }}</p>@endif
         <a href="{{ route('register') }}" class="btn-primary mt-6 min-h-12 rounded-full px-7 text-base">{{ __('Start free') }}</a>
     </div>
 </section>

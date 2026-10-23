@@ -2,31 +2,33 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Billing\OnlinePayments;
 use App\Http\Controllers\Controller;
 use App\Models\PlatformSetting;
 use App\Services\WhatsApp\PhoneVerification;
 use App\Support\SocialLinks;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * How restaurants pay EgWeb. Manual methods (InstaPay, Vodafone Cash) work today: the restaurant transfers,
- * the admin confirms and extends the subscription. Gateways (Paymob, Kashier, Geidea) are switched on here once
- * a contract exists; their keys stay in .env, never in the database.
+ * How restaurants pay EgWeb. Manual methods (InstaPay, Vodafone Cash): the restaurant transfers, the admin confirms
+ * and extends the subscription. Online (Kashier, App\Billing\OnlinePayments): switched on here with the methods
+ * offered; its keys stay in .env, never in the database, and are only shown here as set / missing.
  */
 class SettingsController extends Controller
 {
     public const KEYS = [
         'pay_instapay_enabled', 'pay_instapay_handle', 'pay_vodafone_enabled', 'pay_vodafone_number', 'pay_instructions',
-        'gateway_paymob_enabled', 'gateway_kashier_enabled', 'gateway_geidea_enabled', 'support_whatsapp', 'support_email',
+        'gateway_kashier_enabled', 'kashier_methods', 'kashier_installments_min', 'support_whatsapp', 'support_email',
         'sales_whatsapp', 'contact_email', 'server_ip', 'domain_cart_url',
         // launch offer (App\Billing\LaunchOffer): the second branch free for the first year of a Complete subscription
         'launch_offer_branch_enabled', 'launch_offer_branch_ends',
         'social_facebook', 'social_instagram', 'social_tiktok', 'social_youtube', 'social_linkedin', 'social_x',
     ];
 
-    public function edit(): View
+    public function edit(OnlinePayments $online): View
     {
         $values = [];
         foreach (self::KEYS as $key) {
@@ -44,6 +46,16 @@ class SettingsController extends Controller
                 'app_secret_set' => trim((string) config('whatsapp.app_secret')) !== '',
                 'provider_secret_set' => trim((string) config('whatsapp.webhook.secret')) !== '',
             ],
+            // read-only: which Kashier keys are in .env (never their values) and the addresses to give Kashier
+            'kashier' => [
+                'keys' => collect(['merchant_id' => 'KASHIER_MERCHANT_ID', 'api_key' => 'KASHIER_API_KEY', 'secret_key' => 'KASHIER_SECRET_KEY'])
+                    ->map(fn (string $env, string $key) => ['env' => $env, 'set' => trim((string) config("services.kashier.$key")) !== ''])->all(),
+                'mode' => config('services.kashier.mode') === 'live' ? 'live' : 'test',
+                'configured' => $online->gateway()->isConfigured(),
+                'webhook_url' => route('dash.billing.webhook', 'kashier'),
+                'return_url' => route('dash.billing.return', 'EGM-XXXXXX-XXXXX'),
+                'methods' => explode(',', $values['kashier_methods']),
+            ],
         ]);
     }
 
@@ -60,9 +72,16 @@ class SettingsController extends Controller
             'server_ip' => 'nullable|ip',
             'domain_cart_url' => 'nullable|url|max:300',
             'launch_offer_branch_ends' => 'nullable|date',
+            'kashier_methods' => 'nullable|array',
+            'kashier_methods.*' => ['string', Rule::in(array_keys(OnlinePayments::METHODS))],
+            'kashier_installments_min' => 'nullable|numeric|min:0|max:1000000',
         ] + collect(SocialLinks::NETWORKS)->mapWithKeys(fn ($network, string $key) => [SocialLinks::key($key) => 'nullable|url:https|max:300'])->all());
         foreach (self::KEYS as $key) {
-            $value = str_ends_with($key, '_enabled') ? ($request->boolean($key) ? '1' : '0') : (string) $request->input($key, '');
+            $value = match (true) {
+                str_ends_with($key, '_enabled') => $request->boolean($key) ? '1' : '0',
+                $key === 'kashier_methods' => implode(',', array_intersect(array_keys(OnlinePayments::METHODS), (array) $request->input($key, []))),
+                default => (string) $request->input($key, ''),
+            };
             PlatformSetting::put($key, $value);
         }
 

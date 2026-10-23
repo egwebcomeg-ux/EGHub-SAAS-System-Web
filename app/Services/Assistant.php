@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Billing\LaunchOffer;
+use App\Billing\OnlinePayments;
 use App\Models\AddonPrice;
 use App\Models\Plan;
 use App\Models\PlatformSetting;
@@ -204,7 +205,8 @@ TXT;
     /** Everything the assistant may say, as text: the live plans and add-ons, the modules, and fixed facts. */
     public static function knowledge(string $lang): string
     {
-        $stamp = (string) Plan::query()->max('updated_at').'|'.(string) AddonPrice::query()->max('updated_at').'|'.app()->getLocale();
+        $stamp = (string) Plan::query()->max('updated_at').'|'.(string) AddonPrice::query()->max('updated_at').'|'.app()->getLocale()
+            .'|'.self::paymentFact();
 
         return Cache::remember("assistant:kb:$lang:".md5($stamp), 3600, function () use ($lang) {
             return 'REFERENCE (current as of '.now()->format('Y-m-d').")\n\n"
@@ -274,6 +276,21 @@ TXT;
         return implode("\n", $out);
     }
 
+    /** How the subscription is paid, as switched on right now (online through Kashier only once EgWeb turned it on). */
+    private static function paymentFact(): string
+    {
+        $online = app(OnlinePayments::class);
+        $now = array_map(fn (string $m) => OnlinePayments::METHODS[$m]['en'], $online->payNowMethods());
+        $installments = array_map(fn (string $m) => OnlinePayments::METHODS[$m]['en'], $online->installmentMethods());
+        if ($now === [] && $installments === []) {
+            return '- Subscription payment: InstaPay or Vodafone Cash from the dashboard (send the receipt, EgWeb confirms); card payment is not available yet.';
+        }
+
+        return '- Subscription payment: online from the dashboard invoice page'.($now ? ' ('.implode(', ', $now).')' : '')
+            .', or InstaPay / Vodafone Cash (send the receipt, EgWeb confirms).'
+            .($installments ? ' Yearly invoices can be paid in installments with: '.implode(', ', $installments).'.' : '');
+    }
+
     private static function facts(string $lang): string
     {
         $sales = self::salesWhatsApp();
@@ -285,7 +302,7 @@ TXT;
             '- Plans: Free (the QR menu), Complete (every module except the operations ones: one branch and 8 users included, extra branches up to 5 in all as an add-on with 8 more users each, and packs of 5 more users), and Enterprise for chains and busy places (POS, kitchen display, kiosk, call center, inventory, more than 5 branches, setup and training) with a price agreed with the sales team.',
             LaunchOffer::isRunning() ? '- Launch offer: a new subscription to the Complete plan gets its first extra branch free for the first 12 months.' : null,
             '- Free plan: the QR menu online with the egmenu badge, no ordering; limits are in the plans above. No ads, ever, on any plan.',
-            '- Subscription payment: InstaPay or Vodafone Cash from the dashboard (send the receipt, EgWeb confirms); card payment is not available yet.',
+            self::paymentFact(),
             '- No commission on orders on any plan; you pay only the subscription or add-ons.',
             '- WhatsApp messages to guests (order updates, bookings, loyalty rewards, campaigns, automations) use message credits sold once (wa_500 / wa_2000 add-ons).',
             '- EgWeb services (menu entry and data entry, food photography, printed QR stands and menus, training, custom domain and branded email) are one-time paid services: https://egmenu.app/services — prices are listed there.',

@@ -20,13 +20,15 @@
         'restaurant' => ['plate', __('For a restaurant like Sofra'), __('Accurate orders to the kitchen, delivery without commission, and costs under control.'), ['table-ordering', 'online-ordering', 'reservations', 'kitchen-display', 'call-center', 'inventory']],
     ];
 
+    // matches what is switched on: online (App\Billing\OnlinePayments) only once EgWeb turned it on
+    $howToPay = app(\App\Billing\OnlinePayments::class)->howToPay();
     $faq = [
         [__('Is the free plan really free?'), __('Yes. Your menu stays online with its QR codes at no cost and with no time limit, with a small egmenu badge. You pay only if you choose the Complete plan.')],
         [__('Do my guests need to download an app?'), __('No. They scan the QR code and the menu opens in the browser.')],
         [__('Do I need special devices?'), __('No. The dashboard works on any phone, tablet or computer, and guests use their own phones.')],
         [__('What happens after the :days days of the Complete plan?', ['days' => $trial]), __('Nothing breaks. If you do not choose a plan, the account goes back to the free plan: the menu and QR codes keep working and everything you set up is kept.')],
         [__('Can I change prices myself?'), __('Yes, at any time from your dashboard. The QR menu, the printed menu and the TV screens all update.')],
-        [__('How do I pay the subscription?'), __('By Vodafone Cash or InstaPay from your dashboard. Paying for a whole year at once gets a discount.')],
+        [__('How do I pay the subscription?'), $howToPay],
         [__('I have a chain or a busy kitchen. Which plan is mine?'), __('Enterprise: the POS, kitchen screens, the kiosk, the call center, stock and more than 5 branches, set up with you. Message us and we agree a price for your place.')],
         [__('I run a cafe or a shop, not a restaurant. Is EgMenu for me?'), __('Yes. When you sign up you choose cafe, restaurant, both or a shop (a bakery, a butcher, a juice bar), and EgMenu sets up the right categories, a bar or prep screen instead of a kitchen and a loyalty card ready to switch on.')],
         [__('Is my data safe?'), __('Every restaurant’s data is kept separate and is visible only to its own staff, each with the permissions you give them.')],
@@ -300,7 +302,7 @@
             <a href="{{ route('pricing') }}" class="inline-flex min-h-11 items-center font-extrabold text-navy-600 hover:text-brand-700">{{ __('Compare the plans in detail') }} <span aria-hidden="true" class="ms-1 inline-block rtl:rotate-180">→</span></a>
             <a href="{{ route('pricing') }}#calculator" class="inline-flex min-h-11 items-center font-extrabold text-navy-600 hover:text-brand-700">{{ __('Work out what you save') }} <span aria-hidden="true" class="ms-1 inline-block rtl:rotate-180">→</span></a>
         </div>
-        <p class="mt-4 text-center text-sm text-navy-500">{{ __('By Vodafone Cash or InstaPay from your dashboard. Paying for a whole year at once gets a discount.') }}</p>
+        <p class="mt-4 text-center text-sm text-navy-500">{{ $howToPay }}</p>
     </div>
 </section>
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Billing\Billing;
 use App\Billing\Credits;
 use App\Billing\LaunchOffer;
+use App\Billing\OnlinePayments;
 use App\Billing\PaymentMethods;
 use App\Http\Controllers\Controller;
 use App\Models\AddonPrice;
@@ -13,16 +14,18 @@ use App\Models\Plan;
 use App\Services\Entitlements;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * The restaurant's own subscription: compare plans, get an invoice, pay by transfer and send the reference.
+ * The restaurant's own subscription: compare plans, get an invoice, pay it online (OnlinePayments: card, wallets,
+ * installments) or by transfer and send the reference.
  * Invoices are platform rows (no tenant scope), so every lookup here filters by the current tenant explicitly.
  */
 class BillingController extends Controller
 {
-    public function index(Credits $credits): View
+    public function index(Credits $credits, OnlinePayments $online): View
     {
         $subscription = tenant()->subscription()->with('plan')->first();
         // the public line-up, plus an older plan the restaurant is still on so it can renew it
@@ -43,6 +46,8 @@ class BillingController extends Controller
             'creditPacks' => AddonPrice::query()->where('is_active', true)->where('type', 'credits')->orderBy('sort_order')->get(),
             'creditBalance' => $credits->balance(tenant()),
             'myAddons' => $myAddons,
+            'onlineEnabled' => $online->payNowMethods() !== [] || $online->installmentMethods() !== [],
+            'installmentsPromise' => $online->installmentsPromise(),
         ]);
     }
 
@@ -91,16 +96,59 @@ class BillingController extends Controller
         return redirect()->route('dash.billing.invoice', $invoice->number);
     }
 
-    public function invoice(string $number): View
+    public function invoice(string $number, OnlinePayments $online): View
     {
-        $invoice = $this->find($number);
+        $invoice = $this->find($number)->load('plan', 'payments');
+        $open = $invoice->status === 'open' && $invoice->total > 0;
 
         return view('dashboard.billing.invoice', [
-            'invoice' => $invoice->load('plan', 'payments'),
+            'invoice' => $invoice,
             'methods' => PaymentMethods::manual(),
             'instructions' => PaymentMethods::instructions(),
-            'pending' => $invoice->payments->firstWhere('status', 'pending'),
+            // a transfer the restaurant claimed and EgWeb has not confirmed yet (online attempts are not claims)
+            'pending' => $invoice->payments->first(fn ($p) => $p->status === 'pending' && ! $p->isOnline()),
+            'online' => $invoice->payments->filter(fn ($p) => $p->isOnline())->sortByDesc('id')->first(),
+            'payNow' => $open ? $online->payNowMethods() : [],
+            'installments' => $open && $online->installmentsAllowedFor($invoice) ? $online->installmentMethods() : [],
         ]);
+    }
+
+    /** "Pay online": opens the gateway's hosted checkout for this invoice (now, or in installments). */
+    public function pay(Request $request, string $number, OnlinePayments $online): RedirectResponse
+    {
+        $invoice = $this->find($number);
+        abort_unless($invoice->status === 'open', 404);
+        $data = $request->validate(['plan' => ['required', Rule::in(OnlinePayments::PLANS)]]);
+        try {
+            $url = $online->start($invoice, $data['plan'], route('dash.billing.return', $invoice->number), route('dash.billing.webhook', $online->gateway()->key()));
+        } catch (\DomainException) {
+            return back()->withErrors(['online' => __('This way of paying is not available for this invoice.')]);
+        } catch (\RuntimeException $e) {
+            Log::warning('Online checkout failed', ['invoice' => $invoice->number, 'error' => $e->getMessage()]);
+
+            return back()->withErrors(['online' => __('Online payment is unavailable right now. Try again in a few minutes or pay by transfer.')]);
+        }
+
+        return redirect()->away($url);
+    }
+
+    /**
+     * Where the gateway sends the restaurant back. Its query string is never trusted: the invoice and the payment are
+     * read from the database (asking the gateway server-to-server while the attempt is still pending).
+     */
+    public function returned(string $number, OnlinePayments $online): RedirectResponse
+    {
+        $invoice = $this->find($number);
+        $payment = $online->refresh($invoice);
+        $to = redirect()->route('dash.billing.invoice', $invoice->number);
+        if ($invoice->fresh()->status === 'paid') {
+            return $to->with('ok', __('Payment received. Thank you! Your subscription is updated.'));
+        }
+        if ($payment?->status === 'failed') {
+            return $to->withErrors(['online' => __('The payment did not go through. You can try again or choose another way to pay.')]);
+        }
+
+        return $to->with('ok', __('We are confirming your payment with the bank. This page updates once it is done.'));
     }
 
     /** "I transferred the money": stored as a pending payment; EgWeb confirms it from the super admin. */

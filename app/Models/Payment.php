@@ -15,7 +15,17 @@ class Payment extends Model
         return [
             'amount' => 'float',
             'payload' => 'array',
+            'installments' => 'boolean',
         ];
+    }
+
+    /** Gateways the restaurant pays through online (the rest are manual transfers EgWeb confirms by hand). */
+    public const ONLINE_GATEWAYS = ['kashier'];
+
+    /** Paid (or being paid) through an online gateway, not a transfer the restaurant claims. */
+    public function isOnline(): bool
+    {
+        return in_array($this->gateway, self::ONLINE_GATEWAYS, true);
     }
 
     public function invoice(): BelongsTo

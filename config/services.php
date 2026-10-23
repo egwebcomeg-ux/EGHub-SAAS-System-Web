@@ -55,6 +55,19 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI') ?: $socialCallback('google'),
     ],
 
+    /*
+    | Kashier (developers.kashier.io): restaurants pay their EgMenu invoices online (App\Billing\Gateways\KashierGateway).
+    | merchant_id (MID-xxx-xxx), api_key = the Payment API key (signs webhooks), secret_key = the merchant secret key
+    | (opens payment sessions). mode: test | live. Which methods are offered is chosen in the super admin settings.
+    */
+    'kashier' => [
+        'merchant_id' => env('KASHIER_MERCHANT_ID'),
+        'api_key' => env('KASHIER_API_KEY'),
+        'secret_key' => env('KASHIER_SECRET_KEY'),
+        'mode' => env('KASHIER_MODE', 'test'),
+        'base_url' => env('KASHIER_BASE_URL'),
+    ],
+
     'facebook' => [
         'client_id' => env('FACEBOOK_CLIENT_ID'),
         'client_secret' => env('FACEBOOK_CLIENT_SECRET'),

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Billing\Gateways\KashierGateway;
+use App\Billing\Gateways\PaymentGateway;
 use App\Services\Notify\ReservationNotifier;
 use App\Services\Notify\WhatsAppReservationNotifier;
 use App\Services\WhatsApp\Drivers\LogDriver;
@@ -29,6 +31,8 @@ class AppServiceProvider extends ServiceProvider
         // Reservations (built separately) call this when a booking is confirmed; it is a no-op unless the
         // restaurant has WhatsApp notifications and the "reservation confirmed" toggle on.
         $this->app->bind(ReservationNotifier::class, WhatsAppReservationNotifier::class);
+        // Online subscription payments: Kashier is the gateway EgWeb has a contract with (App\Billing\OnlinePayments)
+        $this->app->bind(PaymentGateway::class, KashierGateway::class);
     }
 
     /**
