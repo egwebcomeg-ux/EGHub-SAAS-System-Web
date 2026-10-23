@@ -89,6 +89,19 @@ class PlansAndEntitlementsTest extends TenantTestCase
         $this->actingAs($this->owner($with))->get($this->dashUrl('/_test/pos'))->assertOk()->assertSee('pos-ok');
     }
 
+    public function test_a_feature_only_enterprise_has_points_to_sales_instead_of_an_upgrade(): void
+    {
+        $complete = $this->restaurant('cafe-full', 'full');
+        $this->assertSame('enterprise', Entitlements::salesOnlyPlanFor('pos')?->code);
+
+        $this->actingAs($this->owner($complete))->get($this->dashUrl('/pos'))->assertForbidden()
+            ->assertSee('data-sales-only', false)->assertSee('data-contact-sales-link', false)->assertSee('Enterprise')
+            ->assertDontSee('رقّي باقتك');
+
+        // a feature a plan the restaurant can pick has: the upgrade message stays
+        $this->assertNull(Entitlements::salesOnlyPlanFor('offers'));
+    }
+
     public function test_admin_edits_a_plan_and_rights_change(): void
     {
         $a = $this->restaurant('cafe-a', 'basic');

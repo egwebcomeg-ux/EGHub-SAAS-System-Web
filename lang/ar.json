@@ -4249,7 +4249,7 @@
     "Terminal": "جهاز الكاشير",
     "All terminals": "كل الأجهزة",
     "Terminal: :name": "الجهاز: :name",
-    "Search: order number or OFF-K1-3": "دوّر: رقم الطلب أو OFF-K1-3",
+    "Search: order number or OFF-K1-3": "دوّر: رقم الطلب أو ⁦OFF-K1-3⁩",
     "Search orders": "دوّر في الطلبات",
     "The terminal of this device": "الجهاز ده أنهي كاشير؟",
     "Choose the terminal": "اختار جهاز الكاشير",
@@ -4896,5 +4896,10 @@
     "Deletes its menu, orders, customers, staff, invoices, domains, uploads and backups. This cannot be undone.": "بيمسح المنيو والطلبات والعملاء والموظفين والفواتير والدومينات والصور والنسخ الاحتياطية. مفيش رجوع في الخطوة دي.",
     "Delete :name for good? This cannot be undone.": "تمسح :name نهائياً؟ مفيش رجوع في الخطوة دي.",
     "Type the restaurant link to confirm:": "اكتب لينك المطعم عشان تأكّد:",
-    "Delete anyway, even if it paid in the last 30 days": "امسح برضه، حتى لو دفع في آخر 30 يوم"
+    "Delete anyway, even if it paid in the last 30 days": "امسح برضه، حتى لو دفع في آخر 30 يوم",
+    "There is already a category named «:name». Choose another name or edit that one.": "فيه قسم اسمه «:name» بالفعل. اختار اسم تاني أو عدّل القسم ده.",
+    "Available in the :plan plan": "متاحة في باقة :plan",
+    "Available in the :plan plan — talk to us": "متاحة في باقة :plan — كلّمنا",
+    "\":feature\" comes with the :plan plan, set up with you. Message us and we agree a price for your place.": "«:feature» بتيجي مع باقة :plan، وبنجهّزها معاك. ابعتلنا ونتفق على سعر يناسب مكانك.",
+    "Branch menu link": "لينك منيو الفرع"
 }

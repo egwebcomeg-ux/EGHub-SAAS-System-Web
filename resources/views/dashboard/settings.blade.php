@@ -91,7 +91,8 @@
         <section class="card grid gap-4 sm:grid-cols-2" id="seo">
             <div class="sm:col-span-2">
                 <h2 class="text-lg font-bold">{{ __('Showing up in search') }}</h2>
-                <p class="text-sm text-navy-500">{{ __('Used on your page :url, in the EgMenu restaurant directory and by Google.', ['url' => tenant()->url('about')]) }}</p>
+                {{-- the address isolated left-to-right inside the Arabic sentence, so it never breaks at its hyphens --}}
+                <p class="text-sm text-navy-500">{!! str_replace(':url', '<bdi dir="ltr" class="break-all font-mono text-xs">'.e(tenant()->url('about')).'</bdi>', e(__('Used on your page :url, in the EgMenu restaurant directory and by Google.'))) !!}</p>
             </div>
             <div>
                 <label class="field-label" for="city">{{ __('City') }}</label>

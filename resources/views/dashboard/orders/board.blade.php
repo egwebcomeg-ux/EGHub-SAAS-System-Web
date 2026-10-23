@@ -81,7 +81,7 @@
 
 {{-- quick filters with live counts (remembered on this device) --}}
 <div class="mb-3 max-w-sm">
-    <input type="search" class="field" data-board-search maxlength="24" dir="auto" placeholder="{{ __('Search: order number or OFF-K1-3') }}" aria-label="{{ __('Search orders') }}">
+    <input type="search" class="field" data-board-search maxlength="24" placeholder="{{ __('Search: order number or OFF-K1-3') }}" aria-label="{{ __('Search orders') }}">
 </div>
 <div class="-mx-1 mb-4 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible" data-chips role="toolbar" aria-label="{{ __('Filter orders') }}">
     @foreach ($chips as [$key, $label])

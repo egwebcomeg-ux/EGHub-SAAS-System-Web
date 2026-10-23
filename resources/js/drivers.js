@@ -172,8 +172,10 @@ if (dataEl) {
             body: JSON.stringify(body),
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) alert(data.message || res.status);
-        else if (data.message) alert(data.message);
+        // the dashboard's toast (resources/js/dash-ui.js), never a bare browser alert
+        const say = (message, kind) => (window.dashToast ? window.dashToast(String(message), { kind }) : alert(message));
+        if (!res.ok) say(data.message || res.status, 'error');
+        else if (data.message) say(data.message, 'ok');
         return res.ok;
     }
 

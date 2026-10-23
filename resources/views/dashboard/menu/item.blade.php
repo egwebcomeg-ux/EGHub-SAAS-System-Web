@@ -211,8 +211,9 @@
     </div>
 </template>
 <template id="option-template">
-    <div class="grid grid-cols-[1fr_1fr_6rem_auto] gap-2" data-option>
-        <input class="field" data-name="name" placeholder="{{ __('Choice, e.g. Large') }}" required maxlength="60">
+    {{-- on a phone: the Arabic name on its own line, then English name, price and remove; one row from sm up --}}
+    <div class="grid grid-cols-[minmax(0,1fr)_5.5rem_auto] gap-2 border-b border-navy-50 pb-2 last:border-0 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_6rem_auto] sm:border-0 sm:pb-0" data-option>
+        <input class="field col-span-3 sm:col-span-1" data-name="name" placeholder="{{ __('Choice, e.g. Large') }}" required maxlength="60">
         <input class="field" data-name="name_en" placeholder="{{ __('Name (English)') }}" maxlength="60" dir="ltr">
         <input class="field" data-name="price" type="number" step="0.01" min="0" placeholder="+0">
         <button type="button" class="btn-ghost min-h-11 px-3 text-red-600" data-remove-option aria-label="{{ __('Remove') }}">×</button>

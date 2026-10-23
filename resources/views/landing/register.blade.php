@@ -30,7 +30,7 @@
                 <label class="field-label" for="slug">{{ __('Your menu link') }}</label>
                 <div class="flex items-center gap-1" dir="ltr">
                     <span class="shrink-0 text-sm text-navy-500">{{ central_domain() }}/</span>
-                    <input class="field" id="slug" name="slug" value="{{ old('slug') }}" required pattern="[a-z0-9-]{3,30}" maxlength="30" placeholder="my-cafe" autocomplete="off">
+                    <input class="field" id="slug" name="slug" value="{{ old('slug') }}" required pattern="[a-z0-9\-]{3,30}" maxlength="30" placeholder="my-cafe" autocomplete="off">
                 </div>
                 <p class="mt-1 text-xs" data-slug-hint>{{ __('3-30 lowercase English letters, numbers or hyphens.') }}</p>
             </div>

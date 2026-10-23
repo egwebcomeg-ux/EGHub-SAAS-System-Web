@@ -13,8 +13,15 @@
                     <h2 class="text-lg font-bold">{{ $b->name }} <span class="text-sm font-normal text-navy-500">· {{ __(':n tables', ['n' => $b->tables_count]) }}</span></h2>
                     <div class="flex flex-wrap items-center gap-3 whitespace-nowrap">
                         @if (\App\Services\Entitlements::current()->allows('branch_pricing'))<a href="{{ route('dash.branches.menu', $b) }}" class="btn-ghost min-h-9 px-3">{{ __('Prices & availability') }}</a>@endif
-                        <a href="{{ tenant()->url('?branch=' . $b->slug) }}" target="_blank" rel="noopener" class="text-sm text-brand-700" dir="ltr">?branch={{ $b->slug }}</a>
                     </div>
+                </div>
+                {{-- the branch's own menu link (opens the menu on this branch): shown whole, with copy and open --}}
+                @php($branchLink = tenant()->url('?branch=' . $b->slug))
+                <div class="flex flex-wrap items-center gap-2 rounded-xl bg-navy-50 px-3 py-2 text-sm sm:col-span-2" data-branch-link>
+                    <span class="font-semibold text-navy-700">{{ __('Branch menu link') }}</span>
+                    <bdi dir="ltr" class="min-w-0 flex-1 break-all font-mono text-xs text-navy-600">{{ $branchLink }}</bdi>
+                    <button type="button" class="btn-ghost min-h-9 px-3 text-xs" data-copy="{{ $branchLink }}">{{ __('Copy') }}</button>
+                    <a href="{{ $branchLink }}" target="_blank" rel="noopener" class="btn-ghost min-h-9 px-3 text-xs">{{ __('Open') }}</a>
                 </div>
                 @include('dashboard.partials.branch-fields', ['b' => $b])
                 <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="is_active" value="1" @checked($b->is_active) class="size-4 accent-brand-600"> {{ __('Active') }}</label>
@@ -35,4 +42,10 @@
         @endif
     </div>
 </div>
+
+<script>
+    document.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = @js(__('Copied')); } catch (e) { prompt('', b.dataset.copy); }
+    }));
+</script>
 @endsection

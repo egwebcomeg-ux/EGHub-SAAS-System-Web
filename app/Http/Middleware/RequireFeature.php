@@ -18,7 +18,11 @@ class RequireFeature
                 return response()->json(['message' => $rights->upgradeMessage($feature)], 403);
             }
 
-            return response()->view('dashboard.locked', ['feature' => $feature, 'message' => $rights->upgradeMessage($feature)], 403);
+            return response()->view('dashboard.locked', [
+                'feature' => $feature, 'message' => $rights->upgradeMessage($feature),
+                // only in Enterprise (contact sales): say so with the sales link instead of "upgrade your plan"
+                'salesPlan' => Entitlements::salesOnlyPlanFor($feature),
+            ], 403);
         }
 
         return $next($request);

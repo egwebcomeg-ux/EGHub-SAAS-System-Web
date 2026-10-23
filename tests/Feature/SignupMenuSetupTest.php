@@ -24,7 +24,9 @@ class SignupMenuSetupTest extends TenantTestCase
     {
         $this->get($this->menuUrl('register'))->assertOk()
             ->assertSee('name="menu_setup"', false)->assertSee('عايز فريق EgMenu يدخّل المنيو بدالي')->assertSee('من 300 جنيه')
-            ->assertSee('value="shop"', false)->assertSee('محل');
+            ->assertSee('value="shop"', false)->assertSee('محل')
+            // the hyphen escaped: Chrome compiles pattern="" with the v flag, where a bare "-" in a class is invalid
+            ->assertSee('pattern="[a-z0-9\-]{3,30}"', false);
     }
 
     public function test_ticked_creates_a_menu_setup_request_and_emails_the_admins(): void

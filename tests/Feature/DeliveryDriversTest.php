@@ -307,7 +307,8 @@ class DeliveryDriversTest extends TenantTestCase
         $this->actingAs($this->staff($a, 'callcenter', 'cc@cafe-a.test'))->postJson($this->dashUrl("/drivers/{$driver->id}/settle"))->assertForbidden();
 
         $this->actingAs($manager)->postJson($this->dashUrl("/drivers/{$driver->id}/settle"))->assertOk()
-            ->assertJsonPath('orders', 2)->assertJsonPath('amount', 440);
+            ->assertJsonPath('orders', 2)->assertJsonPath('amount', 440)
+            ->assertJsonPath('message', 'اتسوّى 2 طلب: 440 ج.م.'); // the money with its currency, shown in the dashboard toast
         foreach ([$first, $second] as $order) {
             $order->refresh();
             $this->assertSame('paid', $order->payment_status);

@@ -88,6 +88,22 @@ class HomeAppsTest extends TenantTestCase
         $this->assertStringNotContainsString(route('dash.billing'), $html);
     }
 
+    public function test_a_locked_pick_whose_page_already_has_a_tile_shows_one_tile_and_the_checklist_leads_a_new_account(): void
+    {
+        $a = $this->restaurant('cafe-a', 'pro');   // Pro: the branches page yes, per-branch prices no
+        $owner = $this->owner($a);
+        $this->actingAs($owner)->post($this->dashUrl('/modules'), ['modules' => ['multi-branch', 'pos']]);
+
+        $html = $this->actingAs($owner)->get($this->dashUrl('/'))->assertOk()->getContent();
+        $this->assertSame(1, substr_count($html, 'data-app="dash.branches"'));
+        // one tile named Branches: the open page, marked as the picked module, not a second locked one
+        $this->assertSame(1, substr_count($html, 'data-search="'.mb_strtolower(__('Branches')).'"'));
+        $this->assertMatchesRegularExpression('/data-home-module="multi-branch" data-app-tile\s+data-app="dash.branches"/', $html);
+
+        // setup not finished: the checklist comes before the apps grid
+        $this->assertLessThan(strpos($html, 'data-home-apps'), strpos($html, 'data-onboarding'));
+    }
+
     public function test_the_counters_show_what_is_waiting_in_this_restaurant_only(): void
     {
         $a = $this->restaurant('cafe-a', 'pro');

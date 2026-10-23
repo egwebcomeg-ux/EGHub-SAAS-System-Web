@@ -11,6 +11,7 @@ use App\Services\Orders\DeliveryService;
 use App\Services\Orders\DriverStats;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\ShiftService;
+use App\Services\Settings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -156,6 +157,8 @@ class DriversController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        return response()->json(['ok' => true, 'message' => __(':n orders settled: :amount.', ['n' => $result['orders'], 'amount' => money($result['amount'])])] + $result);
+        $currency = tr(Settings::get('currency'), Settings::get('currency_en'));
+
+        return response()->json(['ok' => true, 'message' => __(':n orders settled: :amount.', ['n' => $result['orders'], 'amount' => money($result['amount']).' '.$currency])] + $result);
     }
 }

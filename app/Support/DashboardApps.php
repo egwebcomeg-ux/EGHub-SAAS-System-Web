@@ -209,6 +209,12 @@ final class DashboardApps
         foreach ($picked ? ModuleChoice::shortcuts($user) : [] as $shortcut) {
             $module = $shortcut['module'];
             $extra = null;
+            // a locked module whose page already has a tile (Branches: the page is open, per-branch prices are not)
+            // keeps that one tile instead of a second, locked one
+            $page = ModuleChoice::PAGES[$module['slug']][0] ?? null;
+            if ($shortcut['locked'] && $page && self::mark($groups, $more, route($page), $module['slug'])) {
+                continue;
+            }
             if ($shortcut['locked']) {
                 $extra = ['route' => null, 'label' => $module['name'], 'icon' => null, 'landingIcon' => $module['icon'], 'group' => $module['group'],
                     'url' => $shortcut['url'], 'module' => $module['slug'], 'locked' => true];

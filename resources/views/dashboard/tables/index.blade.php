@@ -18,7 +18,7 @@
         <h2 class="mb-3 text-lg font-bold">{{ __('Your menu link') }}</h2>
         @include('dashboard.partials.menu-links')
         <div class="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-navy-50 p-3 text-sm" data-qr-target="{{ $qrTarget }}">
-            <span>{{ __('Links page') }}: <code dir="ltr" class="rounded-lg bg-white px-2 py-1">{{ tenant()->url('links') }}</code></span>
+            <span>{{ __('Links page') }}: <bdi dir="ltr" class="break-all"><code class="rounded-lg bg-white px-2 py-1">{{ tenant()->url('links') }}</code></bdi></span>
             <span class="font-semibold">{{ $qrTarget === 'links' ? __('Your QR codes open the links page.') : __('Your QR codes open the menu.') }}</span>
             @can('settings.manage')<a href="{{ route('dash.settings') }}#links-page" class="text-brand-700 underline">{{ __('Change') }}</a>@endcan
         </div>

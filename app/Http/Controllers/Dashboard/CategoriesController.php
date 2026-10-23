@@ -30,7 +30,7 @@ class CategoriesController extends Controller
 
     public function update(Request $request, Category $category, ImageService $images): RedirectResponse
     {
-        $data = $this->validated($request);
+        $data = $this->validated($request, $category);
         $data['is_active'] = $request->boolean('is_active');
         if ($request->hasFile('image')) {
             $images->delete($category->image);
@@ -72,14 +72,22 @@ class CategoriesController extends Controller
     }
 
     /**
-     * Name, texts and the optional daypart (visible_from–visible_until on chosen weekdays; both times or none).
+     * Name, texts and the optional daypart (visible_from–visible_until on chosen weekdays; both times or none). The
+     * name is unique in this restaurant (the tenant scope of Category), whatever its case or the spaces around it.
      *
      * @return array<string,mixed>
      */
-    private function validated(Request $request): array
+    private function validated(Request $request, ?Category $category = null): array
     {
         $data = $request->validate([
-            'name' => 'required|string|max:80',
+            'name' => ['required', 'string', 'max:80', function (string $attribute, mixed $value, \Closure $fail) use ($category) {
+                $name = mb_strtolower(trim((string) $value));
+                $taken = Category::query()->when($category, fn ($q) => $q->whereKeyNot($category->id))->pluck('name')
+                    ->contains(fn ($other) => mb_strtolower(trim((string) $other)) === $name);
+                if ($taken) {
+                    $fail(__('There is already a category named «:name». Choose another name or edit that one.', ['name' => trim((string) $value)]));
+                }
+            }],
             'name_en' => 'nullable|string|max:80',
             'description' => 'nullable|string|max:200',
             'description_en' => 'nullable|string|max:200',

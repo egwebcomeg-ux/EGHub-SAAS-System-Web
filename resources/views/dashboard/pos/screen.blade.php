@@ -393,7 +393,7 @@
                 <h3 class="text-lg font-extrabold">{{ __('Orders & refunds') }}</h3>
                 <button value="cancel" class="grid size-11 place-items-center rounded-xl text-2xl leading-none text-navy-500 hover:bg-navy-50" aria-label="{{ __('Close') }}">×</button>
             </div>
-            <input type="search" class="field mb-2" data-orders-q maxlength="24" dir="auto" placeholder="{{ __('Search: order number or OFF-K1-3') }}" aria-label="{{ __('Search orders') }}">
+            <input type="search" class="field mb-2" data-orders-q maxlength="24" placeholder="{{ __('Search: order number or OFF-K1-3') }}" aria-label="{{ __('Search orders') }}">
             <ul class="max-h-[60dvh] divide-y divide-navy-50 overflow-y-auto" data-orders-list></ul>
         </form>
     </dialog>

@@ -127,6 +127,24 @@ final class Entitlements
         return $limit === null || $this->usage($key) + $n <= $limit;
     }
 
+    /**
+     * The contact-sales plan (Enterprise) when it is the only way to get $feature ("a|b": any of them): no plan a
+     * restaurant can pick itself and no add-on on sale includes it. Null when an upgrade or an add-on unlocks it.
+     */
+    public static function salesOnlyPlanFor(string $feature): ?Plan
+    {
+        $keys = explode('|', $feature);
+        $has = fn (Plan $plan) => collect($keys)->contains(fn (string $k) => (bool) ($plan->entitlements()['features'][$k] ?? false));
+        $plans = Plan::query()->with('features')->orderBy('sort_order')->get();
+        if ($plans->contains(fn (Plan $plan) => $plan->isSelfServe() && $has($plan))) {
+            return null;
+        }
+        $inAddon = AddonPrice::query()->where('is_active', true)->whereIn('type', ['feature', 'limit'])->get()
+            ->contains(fn (AddonPrice $a) => array_intersect($keys, (array) $a->features) !== []);
+
+        return $inAddon ? null : $plans->first(fn (Plan $plan) => $plan->isContactSales() && $has($plan));
+    }
+
     /** Message shown when a limit or feature blocks an action. */
     public function upgradeMessage(string $key): string
     {

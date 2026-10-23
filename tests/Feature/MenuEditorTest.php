@@ -14,6 +14,22 @@ use Tests\TenantTestCase;
 
 class MenuEditorTest extends TenantTestCase
 {
+    public function test_a_category_name_is_unique_in_the_restaurant_whatever_its_case_or_spaces(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $owner = $this->owner($a);
+        $this->actingAs($owner)->post($this->dashUrl('/menu/categories'), ['name' => 'Desserts'])->assertSessionHasNoErrors();
+        $this->actingAs($owner)->post($this->dashUrl('/menu/categories'), ['name' => '  desserts '])
+            ->assertSessionHasErrors(['name' => 'فيه قسم اسمه «desserts» بالفعل. اختار اسم تاني أو عدّل القسم ده.']);
+        $this->assertSame(1, $this->as($a, fn () => Category::query()->where('name', 'like', '%esserts%')->count()));
+
+        // saving the same category keeps its name; another restaurant may use it
+        $cat = $this->as($a, fn () => Category::query()->where('name', 'Desserts')->first());
+        $this->actingAs($owner)->post($this->dashUrl("/menu/categories/{$cat->id}"), ['name' => 'Desserts', 'is_active' => '1'])->assertSessionHasNoErrors();
+        $b = $this->restaurant('cafe-b');
+        $this->actingAs($this->owner($b))->post($this->dashUrl('/menu/categories'), ['name' => 'Desserts'])->assertSessionHasNoErrors();
+    }
+
     public function test_owner_creates_an_item_with_sizes_extras_and_a_photo(): void
     {
         Storage::fake('public');
