@@ -39,6 +39,13 @@
     .m-ph { background: var(--menu-surface-2); color: var(--menu-accent); box-shadow: inset 0 0 0 1px var(--menu-border); }
     .m-chip { display: inline-flex; min-height: 2.25rem; align-items: center; gap: .35rem; border-radius: 999px; padding: 0 .85rem;
         font-size: .85rem; font-weight: 800; background: rgba(255, 255, 255, .14); color: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28); }
+    /* the light header (setting header_background): the page's surface, the brand's text colour, a hairline under it */
+    .m-header-light { background: var(--menu-surface); color: var(--menu-text); box-shadow: inset 0 -1px 0 var(--menu-border); }
+    .m-header-light h1 { color: var(--menu-secondary); }
+    .m-header-light .text-white\/75, .m-header-light .text-white\/80, .m-header-light .text-white\/90 { color: var(--menu-muted); }
+    .m-header-light .border-white\/30 { border-color: var(--menu-border); }
+    .m-header-light [data-logo] { filter: none; }
+    .m-header-light .m-chip { background: var(--menu-surface-2); color: var(--menu-text); box-shadow: inset 0 0 0 1px var(--menu-border); }
     .m-goal-track { height: .55rem; border-radius: 999px; background: var(--menu-surface-2); box-shadow: inset 0 0 0 1px var(--menu-border); overflow: hidden; }
     .m-goal-fill { height: 100%; border-radius: inherit; background: var(--menu-accent); transition: width .4s ease; }
     .m-tag { background: color-mix(in srgb, var(--menu-text) 8%, transparent); }
@@ -146,7 +153,7 @@
 
 @section('body')
 @include('menu.partials.intro')
-<header class="m-secondary relative overflow-hidden" data-menu-header>
+<header @class(['relative overflow-hidden', ($headerBackground ?? 'brand') === 'light' ? 'm-header-light' : 'm-secondary']) data-menu-header data-header-background="{{ $headerBackground ?? 'brand' }}">
     @if ($season && $season->decoration)
         <div class="m-season-deco" data-season-deco="{{ $season->pattern() }}" aria-hidden="true"></div>
     @endif

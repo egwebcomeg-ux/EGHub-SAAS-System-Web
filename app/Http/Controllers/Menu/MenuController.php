@@ -176,6 +176,9 @@ class MenuController extends Controller
             'intro' => MenuIntro::style($settings, $request),
             'introBackground' => MenuIntro::background($settings, MenuThemes::logoTile($theme, $settings),
                 MenuThemes::tokens($theme, $settings)['vars']['--menu-bg']),
+            // the same rule for the header: a bare logo in the brand colour would vanish on a header of that colour
+            'headerBackground' => MenuIntro::background($settings, MenuThemes::logoTile($theme, $settings),
+                MenuThemes::tokens($theme, $settings)['vars']['--menu-bg'], 'header_background'),
             'openNow' => OpeningHours::isOpenAt($branch->working_hours, now()),
             'firstSheet' => $firstSheet,
             'branchFirst' => $branchPicker && $chosenBranch === null,

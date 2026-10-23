@@ -4852,5 +4852,6 @@
     "SVG, PNG or WebP up to 2 MB. Only the character is needed; any missing piece is skipped.": "SVG أو PNG أو WebP لحد 2 ميجا. الشخصية بس هي المطلوبة، وأي حتة ناقصة بتتشال من الحركة.",
     "Brand pattern and the peeking character in the menu header": "نقشة البراند والشخصية وهي بتبص في هيدر المنيو",
     "The SVG file is too big (1.5 MB at most).": "ملف الـSVG كبير (1.5 ميجا بالكتير).",
-    "This SVG file could not be read safely. Upload a PNG instead.": "مقدرناش نقرا ملف الـSVG ده بأمان. ارفع PNG بداله."
+    "This SVG file could not be read safely. Upload a PNG instead.": "مقدرناش نقرا ملف الـSVG ده بأمان. ارفع PNG بداله.",
+    "Colours of the menu header": "ألوان هيدر المنيو"
 }

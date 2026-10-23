@@ -112,6 +112,7 @@ class SettingsController extends Controller
             'menu_intro' => ['nullable', Rule::in(MenuIntro::STYLES)],
             'menu_intro_repeat' => ['nullable', Rule::in(['always', 'session'])],
             'intro_background' => ['nullable', Rule::in(MenuIntro::BACKGROUNDS)],
+            'header_background' => ['nullable', Rule::in(MenuIntro::BACKGROUNDS)],
             'intro_mascot' => 'nullable|file|max:2048|extensions:svg,png,webp,jpg,jpeg',
             'intro_mascot_speed' => 'nullable|file|max:2048|extensions:svg,png,webp,jpg,jpeg',
             'intro_slogan' => 'nullable|file|max:2048|extensions:svg,png,webp,jpg,jpeg',
@@ -157,6 +158,9 @@ class SettingsController extends Controller
         // the hall: kept empty while it equals the default, so a later plan upgrade turns table ordering on by itself
         unset($values['dine_in_mode'], $values['menu_intro']);
         // the intro colours: not sent = keep them
+        if (($values['header_background'] ?? '') === '') {
+            unset($values['header_background']);
+        }
         if (($values['intro_background'] ?? '') === '') {
             unset($values['intro_background']);
         }

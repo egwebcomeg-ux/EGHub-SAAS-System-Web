@@ -21,6 +21,17 @@ class MenuIntroBackgroundTest extends TestCase
         $this->assertSame('brand', MenuIntro::background(['logo' => ''] + $settings, false, '#FDFBE6'));
     }
 
+    public function test_the_header_follows_the_same_rule_from_its_own_setting(): void
+    {
+        $settings = ['intro_background' => 'brand', 'header_background' => 'auto', 'logo' => 'tenants/scratch/brand/logo.webp'];
+
+        $this->assertSame('light', MenuIntro::background($settings, false, '#FBF7F1', 'header_background'));
+        $this->assertSame('brand', MenuIntro::background($settings, true, '#FBF7F1', 'header_background'));
+        $this->assertSame('brand', MenuIntro::background(['header_background' => 'brand'] + $settings, false, '#FBF7F1', 'header_background'));
+        // the intro keeps its own choice
+        $this->assertSame('brand', MenuIntro::background($settings, false, '#FBF7F1'));
+    }
+
     public function test_the_owner_choice_wins(): void
     {
         $this->assertSame('brand', MenuIntro::background(['intro_background' => 'brand', 'logo' => 'x.webp'], false, '#FFFFFF'));

@@ -41,9 +41,9 @@ final class MenuIntro
      *
      * @return 'brand'|'light'
      */
-    public static function background(array $settings, bool $logoTile, string $pageBackground): string
+    public static function background(array $settings, bool $logoTile, string $pageBackground, string $key = 'intro_background'): string
     {
-        $choice = in_array($settings['intro_background'] ?? 'auto', self::BACKGROUNDS, true) ? $settings['intro_background'] : 'auto';
+        $choice = in_array($settings[$key] ?? 'auto', self::BACKGROUNDS, true) ? $settings[$key] : 'auto';
         if ($choice !== 'auto') {
             return $choice;
         }

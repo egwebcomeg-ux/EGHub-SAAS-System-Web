@@ -254,6 +254,12 @@
                     <option value="session" @selected($s['menu_intro_repeat'] === 'session')>{{ __('Once per visit') }}</option>
                 </select>
                 <p class="mt-1 text-xs text-navy-500">{{ __('About 2 seconds; the guest can tap to skip it.') }}</p>
+                <label class="field-label mt-3" for="header_background">{{ __('Colours of the menu header') }}</label>
+                <select class="field" name="header_background" id="header_background" data-header-background>
+                    @foreach (['auto' => __('Automatic (light when your logo has no white tile)'), 'brand' => __('Your header colour'), 'light' => __('Light: your page background')] as $key => $label)
+                        <option value="{{ $key }}" @selected(($s['header_background'] ?? 'auto') === $key)>{{ $label }}</option>
+                    @endforeach
+                </select>
                 <label class="field-label mt-3" for="intro_background">{{ __('Colours of the opening screen') }}</label>
                 <select class="field" name="intro_background" id="intro_background" data-intro-background>
                     @foreach (['auto' => __('Automatic (light when your logo has no white tile)'), 'brand' => __('Your header colour'), 'light' => __('Light: your page background')] as $key => $label)
