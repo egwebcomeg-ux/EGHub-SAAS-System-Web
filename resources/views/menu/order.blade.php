@@ -138,6 +138,11 @@
         @endif
     </div>
 
+    @if (! $final && \App\Services\Orders\Pager::enabled() && \App\Services\Orders\Pager::forOrder($order))
+        {{-- the guest pager: the same order, but the phone rings when it is ready --}}
+        <a href="{{ $order->pagerUrl() }}" class="trk-action btn-ghost mt-4 border" data-pager-link>🔔 {{ __('Ring my phone when it is ready') }}</a>
+    @endif
+
     @if ($order->type === 'delivery' && ! $final)
         {{-- the driver on the map, only while this order is out for delivery with them (filled by the status feed) --}}
         @include('partials.leaflet')

@@ -8,6 +8,7 @@
         'start' => __('Start'), 'ready' => __('Ready'), 'new' => __('New'), 'preparing' => __('Preparing'),
         'table' => __('Table :name', ['name' => '__N__']), 'empty' => __('No orders right now'), 'scheduled' => __('Scheduled :time', ['time' => '__T__']),
         'foodReady' => __('Food ready'), 'drinksReady' => __('Drinks ready'),
+        'pager' => \App\Services\Orders\Pager::staffTexts(),
     ];
     $chips = [['all', __('All')], ['dine_in', __('Dine-in')], ['takeaway', __('Takeaway')], ['delivery', __('Delivery')], ['food', '🍽 '.__('Food')], ['drinks', '☕ '.__('Drinks')]];
 @endphp

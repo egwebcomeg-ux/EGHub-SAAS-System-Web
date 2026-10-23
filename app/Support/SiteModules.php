@@ -413,6 +413,41 @@ final class SiteModules
                 ],
                 'related' => ['table-ordering', 'whatsapp', 'qr-menu'],
             ],
+            [
+                'slug' => 'pager', 'group' => 'orders', 'icon' => 'bell', 'for' => ['cafe', 'restaurant'],
+                'name' => __('Guest pager'),
+                'tagline' => __('The guest’s phone is the pager: it rings when the order is ready'),
+                'summary' => __('No pager devices to buy, charge or lose. The guest scans a QR, keeps the page open, and you call them with one tap.'),
+                'feature' => 'pager', 'addons' => ['pager_pack'],
+                'shot' => 'pager-station', 'frame' => 'tablet', 'url' => '', 'phone' => 'm-pager',
+                'benefits' => [
+                    ['qr', __('A QR instead of a buzzer'), __('The QR prints on the receipt and the takeaway ticket; on another POS, type the order number on the pager station and show the big QR.')],
+                    ['bell', __('Rings when it is ready'), __('Mark the order ready and the guest’s phone rings by itself: a loud chime, the phone vibrating and the screen in your colours. Or tap “Call”, as often as you need.')],
+                    ['phone', __('No app, no account'), __('It opens in the phone’s browser. Nothing to download, no sign-up, nothing personal kept.')],
+                    ['check', __('You know who is listening'), __('Each card shows “the guest has the page open”, so you know when to call out the number instead.')],
+                    ['chat', __('WhatsApp when the page is closed'), __('If the order has a mobile number and WhatsApp messages are in your plan, send “your order is ready” on WhatsApp with one tap.')],
+                    ['star', __('A rating after the pickup'), __('One tap: happy guests are sent to your Google reviews, the others write to you privately.')],
+                ],
+                'steps' => [
+                    [__('Number and QR'), __('Order 42: the cashier taps +1 and the tablet shows the QR.')],
+                    [__('The guest scans'), __('Karim scans and keeps the page open; no app.')],
+                    [__('Ready, call'), __('The kitchen marks it ready and his phone rings.')],
+                    [__('Picked up'), __('He shows the screen, taps “I picked it up” and rates.')],
+                ],
+                'who' => [
+                    'cafe' => __('Takeaway coffee at rush hour: nobody crowds the counter, and nobody shouts names.'),
+                    'restaurant' => __('Food courts and busy counters where guests sit anywhere while the kitchen works.'),
+                ],
+                'faq' => [
+                    [__('Does the guest need to install anything?'), __('No. The QR opens a page in the phone’s browser, with no app and no account.')],
+                    [__('Does the phone ring with the page closed?'), __('No, be honest with your guests: the page must stay open. On most Android phones it still rings with the screen locked for a while; on an iPhone keep the page on the screen. When the page is closed the card says so, and you call out the number or send WhatsApp.')],
+                    [__('Why “Test the sound”?'), __('Phones only let a page play sound after a tap. One tap on “Test the sound” turns the volume up for the call later.')],
+                    [__('We use another POS. Does it work?'), __('Yes. The pager station works on its own: type the number your POS gave, show the QR, and call from the queue.')],
+                    [__('Can it call on WhatsApp instead?'), __('When the order has a mobile number and WhatsApp messages are in your plan, yes, with one tap. Each message uses one WhatsApp credit.')],
+                    [__('Which plan has it?'), __('The Complete and Enterprise plans, or on its own as an add-on on top of any plan.')],
+                ],
+                'related' => ['pos', 'kitchen-display', 'online-ordering'],
+            ],
 
             // ---------------- customers ----------------
             [

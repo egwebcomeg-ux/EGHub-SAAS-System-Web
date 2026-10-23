@@ -9,6 +9,7 @@ use App\Models\MenuVisit;
 use App\Services\Entitlements;
 use App\Services\Orders\DeliveryService;
 use App\Services\Orders\DriverStats;
+use App\Services\Orders\Pager;
 use App\Services\Reports\AdvancedReport;
 use App\Services\Reports\SalesReport;
 use App\Services\Settings;
@@ -46,6 +47,8 @@ class ReportsController extends Controller
             'delivery' => Entitlements::current()->allows('delivery_zones|online_ordering')
                 ? (new DriverStats($from->startOfDay(), $to->endOfDay(), $branchId))->active(DeliveryService::driverQuery()->orderBy('name')->get())
                 : [],
+            // the guest pager (plan feature pager): waits and calls of the paged orders and station tickets
+            'pager' => Pager::enabled() ? Pager::report($from, $to, $branchId) : null,
         ]);
     }
 

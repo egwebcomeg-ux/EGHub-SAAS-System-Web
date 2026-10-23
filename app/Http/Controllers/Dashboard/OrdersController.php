@@ -12,6 +12,7 @@ use App\Services\Orders\BusyMode;
 use App\Services\Orders\DeliveryService;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
+use App\Services\Orders\Pager;
 use App\Services\Settings;
 use App\Support\PrepKind;
 use Illuminate\Database\Eloquent\Collection;
@@ -185,15 +186,31 @@ class OrdersController extends Controller
         return response()->json(['ok' => true, 'order' => $this->present($order->load(['items', 'table', 'branch', 'driver']))]);
     }
 
-    /** 80mm receipt for the thermal printer (customer copy, or kitchen copy without prices). */
+    /**
+     * 80mm receipt for the thermal printer (customer copy, or kitchen copy without prices). With the guest pager the
+     * customer copy carries the pager QR ("scan so we can call you"), and copy=pager prints only the number and that
+     * QR (a takeaway ticket to hand over).
+     */
     public function receipt(Request $request, Order $order): View
     {
         abort_unless($this->visible($request, $order), 404);
+        $copy = $request->query('copy');
+        // with only the pager right (the kitchen), only the guest's pager ticket prints: no prices, no customer
+        abort_unless($copy === 'pager' || $request->user()->canAny(['orders.view', 'pos.use']), 403);
+        $pager = Pager::enabled() && Pager::forOrder($order) && ! Pager::isDone($order) ? $order->pagerUrl() : null;
+        if ($copy === 'pager') {
+            abort_unless($pager, 404);
+
+            return view('dashboard.pager-ticket', [
+                'number' => $order->number, 'url' => $pager, 'branch' => $order->branch, 'settings' => Settings::all(), 'at' => $order->created_at,
+            ]);
+        }
 
         return view('dashboard.orders.receipt', [
             'order' => $order->load(['items', 'table', 'branch', 'driver']),
             'settings' => Settings::all(),
-            'kitchen' => $request->query('copy') === 'kitchen',
+            'kitchen' => $copy === 'kitchen',
+            'pagerUrl' => $pager,
         ]);
     }
 
@@ -227,6 +244,7 @@ class OrdersController extends Controller
             'branch_id' => $o->branch_id, 'driver_id' => $o->driver_id, 'driver' => $o->driver?->name,
             'delivery_status' => $o->delivery_status, 'delivery_label' => $o->deliveryStatusLabel(),
             'delivery_reason' => $o->delivery_status === 'failed' ? $o->delivery_fail_reason : null,
+            'pager' => PagerController::orderView($o, request()),
             'kinds' => $o->kinds(),
             'parts' => collect($o->parts())->map(fn (bool $ready, string $kind) => ['kind' => $kind, 'label' => PrepKind::label($kind), 'ready' => $ready])->values(),
             'items' => $o->items->map(fn ($i) => [

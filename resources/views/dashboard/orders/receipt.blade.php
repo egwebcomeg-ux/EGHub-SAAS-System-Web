@@ -82,6 +82,15 @@
         <div class="c muted" style="margin-top:6px">
             {{ $order->payment_status === 'paid' ? __('Paid') . ' · ' . \App\Billing\PaymentMethods::label($order->payment_method ?? 'cash') : __('Unpaid') }}
         </div>
+        @if ($pagerUrl ?? null)
+            {{-- the guest pager: the guest's phone rings when the order is ready (App\Services\Orders\Pager) --}}
+            <hr>
+            <div class="c" data-receipt-pager>
+                <div style="font-weight:800;font-size:14px">📣 {{ __('Scan so we can call you when your order is ready') }}</div>
+                <div style="margin-top:4px">{!! \App\Services\Qr::svg($pagerUrl, 170) !!}</div>
+                <div class="muted">{{ __('Keep the page open on your phone. No app needed.') }}</div>
+            </div>
+        @endif
         <hr>
         <div class="c">{{ __('Thank you for your visit!') }}</div>
         {{-- the same receipt on the guest's phone (signed link, nothing personal on it) --}}

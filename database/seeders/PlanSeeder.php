@@ -21,7 +21,7 @@ class PlanSeeder extends Seeder
     public const LEGACY = ['starter', 'basic', 'pro', 'business'];
 
     /** Add-ons still on sale under the new line-up; every other feature pack is switched off. */
-    public const STILL_SOLD = ['wa_500', 'wa_2000', 'featured_listing', 'branches', 'staff', 'menu_items', 'tables'];
+    public const STILL_SOLD = ['wa_500', 'wa_2000', 'featured_listing', 'branches', 'staff', 'menu_items', 'tables', 'pager_pack'];
 
     /** The operations features as they were when the older plans were made (delivery zones was one of them). */
     private const LEGACY_OPERATIONS = ['pos', 'shifts', 'customer_display', 'kitchen_display', 'kitchen_stations', 'call_center', 'delivery_zones', 'kiosk', 'inventory'];
@@ -36,7 +36,7 @@ class PlanSeeder extends Seeder
         $pro = array_merge($basic, ['online_ordering', 'scheduled_orders', 'daily_reports', 'menu_themes', 'printed_menu',
             'offers', 'upsell', 'ai_import', 'customers', 'loyalty_stamps', 'custom_domain', 'whatsapp_notifications', 'reservations']);
         // Business = every menu feature; operations were add-ons. A featured directory listing is paid placement.
-        // A feature added to the catalogue later (e.g. corporate_vouchers, backups, knowledge_base) is switched on here for Business, Complete
+        // A feature added to the catalogue later (e.g. corporate_vouchers, backups, knowledge_base, pager) is switched on here for Business, Complete
         // and Enterprise on the next run, and stays off for the smaller plans; nothing a plan already had changes.
         $business = array_values(array_diff(array_keys(Plan::FEATURES), self::LEGACY_OPERATIONS, ['featured_listing']));
         // Complete = every module except operations (POS, kitchen, kiosk, call center, inventory) and per-branch
@@ -234,6 +234,12 @@ class PlanSeeder extends Seeder
                 'description' => 'تابلت عند الكاشير: العميل يختار ويطلب بنفسه وياخد رقم طلبه ويدفع عند الكاشير',
                 'description_en' => 'A tablet at the counter: guests order by themselves, get their order number and pay at the cashier',
                 'features' => ['kiosk']],
+            // the guest pager on its own, on top of any plan (the free one included): the station works without the order board
+            ['key' => 'pager_pack', 'type' => 'feature', 'monthly_price' => 150, 'sort_order' => 4,
+                'name' => 'النداء على الزبون', 'name_en' => 'Guest pager',
+                'description' => 'بدل أجهزة البيجر: الزبون يمسح QR وموبايله يرن لما طلبه يجهز، من غير تطبيق ولا حساب. لوحدها فوق أي باقة',
+                'description_en' => 'Instead of pager devices: the guest scans a QR and their phone rings when the order is ready, no app and no account. On its own, on top of any plan',
+                'features' => ['pager']],
             ['key' => 'reservations_pack', 'type' => 'feature', 'monthly_price' => 149, 'sort_order' => 8, 'min_plan' => 'basic',
                 'name' => 'حجز الترابيزات', 'name_en' => 'Table reservations',
                 'description' => 'العميل يحجز ترابيزة من لينك المنيو بميعاد وعدد أفراد، وانت تأكد وتتابع الحجوزات من لوحة الطلبات',

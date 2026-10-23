@@ -3,6 +3,7 @@
 import { canScanQr, planVouchers, scanQr } from './corporate-vouchers';
 import { createOffline, NetworkError, printLocalReceipt } from './pos-offline';
 import './kb-drawer';
+import { bindPager, pagerButtons, pagerStatus } from './pager-call';
 
 const dataEl = document.getElementById('pos-data');
 if (dataEl) {
@@ -1350,7 +1351,8 @@ if (dataEl) {
                 <li class="flex flex-wrap items-center justify-between gap-2 py-3" data-recent="${o.number}">
                     <div class="min-w-0"><b>${esc(o.ref)}</b>
                         ${o.refund_status ? `<span class="badge ${o.refund_status === 'full' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}">${esc(o.refund_status === 'full' ? T.refundedFull : T.refundedPart.replace('__A__', fmt(o.refunded)))}</span>` : ''}
-                        <div class="text-xs text-navy-500">${esc(o.time)} · ${esc(o.method)} · ${fmt(o.total)}</div></div>
+                        <div class="text-xs text-navy-500">${esc(o.time)} · ${esc(o.method)} · ${fmt(o.total)}</div>
+                        ${o.pager && T.pager ? pagerStatus(o.pager, T.pager) + pagerButtons({ ...o.pager, print: null }, T.pager, o.id) : ''}</div>
                     <div class="flex shrink-0 gap-1">
                         <button type="button" class="btn-ghost min-h-11 px-3" data-recent-print="${i}" title="${esc(T.printReceipt)}" aria-label="${esc(T.printReceipt)}">🖨</button>
                         ${D.share ? `<button type="button" class="btn-ghost min-h-11 px-3" data-recent-share="${i}" title="${esc(T.shareWhatsApp)}" aria-label="${esc(T.shareWhatsApp)}">📲</button>` : ''}
@@ -1367,6 +1369,7 @@ if (dataEl) {
         });
         let searchTimer = null;
         $('[data-orders-q]').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(loadRecent, 300); });
+        bindPager($('[data-orders-list]'), () => loadRecent());
         $('[data-orders-list]').addEventListener('click', (e) => {
             const p = e.target.closest('[data-recent-print]');
             if (p) return window.open(recent[Number(p.dataset.recentPrint)].receipt, '_blank', 'width=420,height=700');

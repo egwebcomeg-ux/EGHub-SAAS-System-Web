@@ -19,6 +19,7 @@
         'partReady' => __('ready'), 'partWaiting' => __('not yet'), 'noMatch' => __('No orders match this filter'),
         'wasRef' => __('was :ref', ['ref' => '__R__']),
         'driver' => __('Driver'), 'chooseDriver' => __('Choose a driver…'), 'noDriver' => __('No driver'),
+        'pager' => \App\Services\Orders\Pager::staffTexts(),
     ];
     $canManage = auth()->user()->can('orders.manage');
     // quick filters: [key, label]; the counts come live from the feed

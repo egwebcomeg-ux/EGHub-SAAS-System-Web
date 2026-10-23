@@ -123,6 +123,36 @@ final class GuestNotifier
         };
     }
 
+    /**
+     * Whether staff can send the guest of this order a "your order is ready" WhatsApp by hand (the pager's fallback
+     * when the guest closed the page): WhatsApp messages in the plan and a mobile number on the order.
+     */
+    public static function canCallOnWhatsApp(Order $order): bool
+    {
+        return Entitlements::current()->allows('whatsapp_notifications') && normalize_phone((string) $order->customer_phone) !== null;
+    }
+
+    /**
+     * "Your order is ready" on WhatsApp, sent by staff from the pager's "send on WhatsApp" (not the automatic
+     * message, so its on/off setting does not apply). Links to the pager page. One credit, like every message.
+     */
+    public function orderReadyCall(Order $order): bool
+    {
+        if (! self::canCallOnWhatsApp($order)) {
+            return false;
+        }
+        try {
+            return $this->whatsapp->queue((string) $order->customer_phone, 'order_ready', [
+                'name' => $order->customer_name, 'restaurant' => self::senderName(), 'number' => (string) $order->number,
+                'link' => $order->pagerUrl(),
+            ], $order->customer_id) !== null;
+        } catch (\Throwable $e) {
+            report($e);
+
+            return false;
+        }
+    }
+
     public function rewardEarned(?Customer $customer, string $reward): void
     {
         if (! $customer) {

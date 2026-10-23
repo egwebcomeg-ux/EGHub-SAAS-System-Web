@@ -106,6 +106,10 @@ class Order extends TenantModel
             'needs_review' => 'boolean',
             'review_notes' => 'array',
             'payments' => 'array',
+            'pager_calls' => 'integer',
+            'pager_called_at' => 'datetime',
+            'pager_seen_at' => 'datetime',
+            'pager_picked_up_at' => 'datetime',
         ];
     }
 
@@ -179,6 +183,21 @@ class Order extends TenantModel
     public function receiptSignature(): string
     {
         return substr(hash_hmac('sha256', 'receipt|'.$this->tenant_id.'|'.$this->id.'|'.$this->tracking_token, (string) config('app.key')), 0, 32);
+    }
+
+    /**
+     * The guest pager of this order (App\Services\Orders\Pager) on the restaurant's own address: /p/{id}-{signature}
+     * from the QR on the receipt. The signature is an HMAC of the restaurant, the order and its private tracking
+     * token, so the link opens this order's pager only and says nothing of the tracking page's address or items.
+     */
+    public function pagerKey(): string
+    {
+        return $this->id.'-'.substr(hash_hmac('sha256', 'pager|'.$this->tenant_id.'|'.$this->id.'|'.$this->tracking_token, (string) config('app.key')), 0, 24);
+    }
+
+    public function pagerUrl(): string
+    {
+        return tenant()->url('p/'.$this->pagerKey());
     }
 
     public function tableSession(): BelongsTo

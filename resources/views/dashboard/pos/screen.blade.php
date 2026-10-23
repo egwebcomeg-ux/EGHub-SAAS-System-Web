@@ -553,6 +553,7 @@
             'refund' => __('Refund'), 'refundedFull' => __('Refunded'), 'refundedPart' => __('Refunded :amount', ['amount' => '__A__']),
             'printReceipt' => __('Print receipt'), 'shareWhatsApp' => __('Send the receipt on WhatsApp'), 'noOrdersFound' => __('No paid orders found.'),
             'leftOf' => __(':left of :qty left', ['left' => '__L__', 'qty' => '__Q__']),
+            'pager' => \App\Services\Orders\Pager::staffTexts(),
             // cash in / out
             'cashSaved' => __('Saved. Expected cash in the drawer: :amount', ['amount' => '__A__']), 'cashReason' => __('Write the reason.'),
         ];

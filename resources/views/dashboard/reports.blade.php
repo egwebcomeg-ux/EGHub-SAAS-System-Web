@@ -246,6 +246,58 @@
     </section>
 @endif
 
+@if ($pager)
+    {{-- the guest pager: how long guests waited for the call, then to pick up, and how many had the page open --}}
+    @php($pt = $pager['total'])
+    <section class="card mt-4 overflow-x-auto" id="pager" data-pager-report>
+        <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 class="section-title">📣 {{ __('Guest pager') }}</h2>
+            @can('pager.use')<a href="{{ route('dash.pager') }}" class="text-sm font-semibold text-brand-700">{{ __('Pager station') }} →</a>@endcan
+        </div>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
+            @foreach ([
+                [__('Paged orders'), $pt['paged']],
+                [__('Average wait for the call'), $pt['wait'] === null ? '—' : __(':n min', ['n' => $pt['wait']])],
+                [__('From the call to the pickup'), $pt['pickup'] === null ? '—' : __(':n min', ['n' => $pt['pickup']])],
+                [__('Calls'), $pt['calls']],
+                [__('Guests with the page open'), $pt['connected'] === null ? '—' : $pt['connected'] . '%'],
+            ] as [$label, $value])
+                <div class="rounded-2xl bg-navy-50 p-3">
+                    <div class="text-xs font-semibold text-navy-500">{{ $label }}</div>
+                    <div class="mt-1 text-xl font-extrabold" dir="ltr">{{ $value }}</div>
+                </div>
+            @endforeach
+        </div>
+        @if (count($pager['days']) > 1)
+            <table class="mt-4 w-full text-sm">
+                <thead class="text-xs text-navy-500">
+                    <tr>
+                        <th class="py-1 text-start font-semibold">{{ __('Day') }}</th>
+                        <th class="py-1 text-end font-semibold">{{ __('Paged orders') }}</th>
+                        <th class="py-1 text-end font-semibold">{{ __('Average wait for the call') }}</th>
+                        <th class="py-1 text-end font-semibold">{{ __('From the call to the pickup') }}</th>
+                        <th class="py-1 text-end font-semibold">{{ __('Calls') }}</th>
+                        <th class="py-1 text-end font-semibold">{{ __('Guests with the page open') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($pager['days'] as $d)
+                        <tr class="border-t border-navy-50">
+                            <td class="py-1.5 font-semibold" dir="ltr">{{ $d['day'] }}</td>
+                            <td class="py-1.5 text-end" dir="ltr">{{ $d['paged'] }}</td>
+                            <td class="py-1.5 text-end" dir="ltr">{{ $d['wait'] ?? '—' }}</td>
+                            <td class="py-1.5 text-end" dir="ltr">{{ $d['pickup'] ?? '—' }}</td>
+                            <td class="py-1.5 text-end" dir="ltr">{{ $d['calls'] }}</td>
+                            <td class="py-1.5 text-end" dir="ltr">{{ $d['connected'] === null ? '—' : $d['connected'] . '%' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+        <p class="mt-3 text-xs text-navy-500">{{ __('Minutes. The wait runs from the order (or the station ticket) to ready or the first call; the pickup is when the guest tapped “I picked it up”.') }}</p>
+    </section>
+@endif
+
 @if ($extra)
     @include('dashboard.reports-advanced', ['x' => $extra])
 @else

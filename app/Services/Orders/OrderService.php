@@ -516,6 +516,9 @@ final class OrderService
             if ($to === 'ready') {
                 // the whole order is ready: every part with it (food / drinks, every station)
                 $order->items()->whereNull('ready_at')->update(['ready_at' => now()]);
+                if ($from !== 'on_way') {
+                    Pager::orderReady($order); // the guest's phone rings (pager feature, auto-call setting)
+                }
             }
             if ($to === 'cancelled' && $order->table_session_id) {
                 $order->tableSession?->refreshTotal();

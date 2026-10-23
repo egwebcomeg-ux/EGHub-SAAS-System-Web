@@ -44,7 +44,7 @@ class KitchenController extends Controller
             ->where(fn ($q) => $q->whereNull('scheduled_for')->orWhere('scheduled_for', '<=', now()->addMinutes(self::SCHEDULE_LEAD_MINUTES)))
             ->with(['items', 'table'])->orderBy('id')->limit(60)->get();
 
-        $tickets = $orders->map(function (Order $o) use ($station) {
+        $tickets = $orders->map(function (Order $o) use ($station, $request) {
             $lines = $station ? $o->items->where('kitchen_station_id', $station->id) : $o->items;
             // nothing (left) for this screen: its lines are all bumped while another station still works
             if ($lines->isEmpty() || ($station && $lines->every(fn (OrderItem $i) => $i->ready_at !== null))) {
@@ -56,6 +56,8 @@ class KitchenController extends Controller
                 'type_label' => Order::TYPES[$o->type][app()->getLocale() === 'en' ? 1 : 0] ?? $o->type,
                 'table' => $o->table?->name, 'notes' => $o->notes, 'since' => ($o->preparing_at ?? $o->created_at)->toIso8601String(),
                 'created' => $o->created_at->toIso8601String(), 'scheduled' => $o->scheduled_for?->toIso8601String(),
+                // the guest pager: whether the guest has the page open, "Call" and the guest's pager ticket to print
+                'pager' => PagerController::orderView($o, $request),
                 'items' => $lines->map(fn (OrderItem $i) => [
                     'id' => $i->id, 'name' => $i->name, 'qty' => $i->quantity, 'notes' => $i->notes, 'done' => $i->ready_at !== null,
                     'kind' => $i->prep_kind ?: PrepKind::FOOD,

@@ -41,13 +41,13 @@ class TenantBackupBuilder
         'two_factor_confirmed_at', 'manager_pin', 'device_token', 'phone_verification_code'];
 
     /** table => columns that are secret links to the shop's devices (kiosk / TV screens open with them). */
-    private const REDACTED_BY_TABLE = ['kiosks' => ['token'], 'tv_screens' => ['token'], 'pos_terminals' => ['token']];
+    private const REDACTED_BY_TABLE = ['kiosks' => ['token'], 'tv_screens' => ['token'], 'pos_terminals' => ['token'], 'pager_tickets' => ['token']];
 
     /** Settings keys whose value is a credential (the AI key is the restaurant's own paid key). */
     private const REDACTED_SETTINGS = ['ai_key'];
 
     /** Tables of raw traffic: only the last N months are kept, like the orders. */
-    private const RECENT_ONLY = ['menu_item_views', 'menu_visits', 'driver_locations', 'delivery_track_points', 'whatsapp_messages'];
+    private const RECENT_ONLY = ['menu_item_views', 'menu_visits', 'driver_locations', 'delivery_track_points', 'whatsapp_messages', 'pager_tickets'];
 
     /** Rows per chunk when streaming a table, and the most rows one Excel sheet gets. */
     private const CHUNK = 500;

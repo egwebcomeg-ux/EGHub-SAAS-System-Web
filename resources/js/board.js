@@ -1,6 +1,7 @@
 // Live order board: polls the feed every few seconds, rebuilds the columns, chimes when a new order arrives and
 // keeps ringing while an online / QR order waits to be accepted (moved to "preparing").
 import './kb-drawer';
+import { bindPager, pagerButtons, pagerStatus } from './pager-call';
 
 const board = document.getElementById('board');
 if (board) {
@@ -141,6 +142,7 @@ if (board) {
                 ${o.address ? `<p class="mt-1 text-xs font-semibold text-navy-700">📍 ${esc(o.address)}</p>` : ''}
                 ${o.scheduled ? `<p class="mt-1 rounded-lg bg-amber-50 p-1.5 text-xs font-bold text-amber-800">🕒 ${esc(o.scheduled)}</p>` : ''}
                 ${driverInfo}${driverPick}
+                ${o.pager && open && (o.pager.seen || o.status === 'ready') ? pagerStatus(o.pager, t.pager) + (o.status === 'ready' ? pagerButtons(o.pager, t.pager, o.id) : '') : ''}
                 <div class="mt-2 text-sm font-bold">${esc(o.total)} ${esc(t.currency)}</div>
                 ${buttons ? `<div class="mt-3 flex flex-wrap gap-2">${buttons}</div>` : ''}
                 ${['served', 'cancelled'].includes(o.status) ? `<div class="mt-2 text-xs font-bold text-navy-500">${esc(o.status_label)}${o.reason ? ` · <span class="font-normal">${esc(o.reason)}</span>` : ''}</div>` : ''}
@@ -340,6 +342,9 @@ if (board) {
         drivers = data.drivers || drivers;
         render(data.orders, data.counts);
     }
+
+    // the guest pager: "Call" rings the guest's phone again, WhatsApp when the page is closed
+    bindPager(board.parentElement, () => refresh());
 
     // "food ready" / "drinks ready": marks that part; the order moves to ready with the last part
     board.parentElement.addEventListener('click', async (e) => {

@@ -12,6 +12,7 @@ use App\Http\Controllers\Menu\LinksController;
 use App\Http\Controllers\Menu\LoyaltyCardController;
 use App\Http\Controllers\Menu\MenuController;
 use App\Http\Controllers\Menu\OrderController;
+use App\Http\Controllers\Menu\PagerController;
 use App\Http\Controllers\Menu\ProfileController;
 use App\Http\Controllers\Menu\PwaController;
 use App\Http\Controllers\Menu\ReceiptController;
@@ -38,6 +39,15 @@ Route::get('/o/{token}/status', [OrderController::class, 'status'])->where('toke
 // the read-only receipt (QR on the printed receipt, WhatsApp link from the POS): signed, nothing personal
 Route::get('/r/{order}/{signature}', [ReceiptController::class, 'show'])->whereNumber('order')->where('signature', '[a-f0-9]{32}')
     ->middleware('throttle:60,1')->name('receipt');
+
+// The guest pager (plan feature pager): the QR on the receipt or the pager-station ticket. The phone rings while the
+// page is open; the state is polled every few seconds (limiter "pager": per page and device, not per shop Wi-Fi)
+Route::prefix('/p/{key}')->where(['key' => PagerController::KEY])->name('pager')->group(function () {
+    Route::get('/', [PagerController::class, 'show']);
+    Route::get('/state', [PagerController::class, 'state'])->middleware('throttle:pager')->name('.state');
+    Route::post('/picked-up', [PagerController::class, 'pickedUp'])->middleware('throttle:10,1')->name('.picked');
+    Route::post('/rate', [PagerController::class, 'rate'])->middleware('throttle:10,1')->name('.rate');
+});
 
 // Order-number board for a screen in the hall (POS pack)
 Route::get('/board', [BoardController::class, 'show'])->name('board');

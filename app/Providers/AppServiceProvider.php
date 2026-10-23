@@ -55,6 +55,8 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('signup', fn (Request $r) => Limit::perHour(5)->by($r->ip()));
         // Guests placing orders from a menu: generous for a table of friends, tight for scripts.
         RateLimiter::for('menu-orders', fn (Request $r) => Limit::perMinute(6)->by($r->ip().'|'.$r->path()));
+        // The guest pager page polls every 5 s: a budget per page and device (many guests share the shop's Wi-Fi).
+        RateLimiter::for('pager', fn (Request $r) => Limit::perMinute(40)->by($r->ip().'|'.$r->path()));
         // The website assistant costs money per answer: a chat's worth per visitor, and a daily ceiling for everyone.
         RateLimiter::for('assistant', fn (Request $r) => [
             Limit::perMinutes(10, 20)->by('as:'.$r->ip()),

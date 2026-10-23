@@ -1,6 +1,8 @@
 // Kitchen display: polls the feed, oldest ticket first; green → amber after 10 min → red after 20 (Filetto rule).
 // "Start" moves a new ticket to preparing, "Ready" bumps it (only this station's lines when a station is chosen).
 
+import { bindPager, pagerButtons, pagerStatus } from './pager-call';
+
 const kds = document.getElementById('kds');
 if (kds) {
     const T = JSON.parse(kds.dataset.i18n);
@@ -98,6 +100,7 @@ if (kds) {
                 ${t.notes ? `<p class="mx-4 mb-3 rounded-lg bg-amber-100 p-2 text-sm font-bold text-amber-900">⚠ ${esc(t.notes)}</p>` : ''}
                 ${t.status === 'new' ? `<div class="px-3 pb-2"><button class="min-h-12 w-full rounded-xl bg-sky-100 text-lg font-bold text-sky-900" data-bump="${t.id}" data-action="start">${esc(T.start)}</button></div>` : ''}
                 <div class="grid ${split ? 'grid-cols-2' : 'grid-cols-1'} gap-2 p-3 pt-0">${readyButtons(t)}</div>
+                ${t.pager ? `<div class="px-3 pb-3">${t.pager.seen ? pagerStatus(t.pager, T.pager) : ''}${pagerButtons(t.pager.seen ? t.pager : { ...t.pager, call: null }, T.pager, t.id)}</div>` : ''}
             </article>`;
         }).join('');
     }
@@ -115,6 +118,8 @@ if (kds) {
         try { await load(); } catch {}
         setTimeout(poll, 4000);
     }
+
+    bindPager(kds, () => load().catch(() => {}));
 
     kds.addEventListener('click', async (e) => {
         const b = e.target.closest('[data-bump]');

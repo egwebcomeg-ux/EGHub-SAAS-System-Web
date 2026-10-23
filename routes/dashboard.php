@@ -39,6 +39,7 @@ use App\Http\Controllers\Dashboard\ModulesController;
 use App\Http\Controllers\Dashboard\NotificationsController;
 use App\Http\Controllers\Dashboard\OnboardingController;
 use App\Http\Controllers\Dashboard\OrdersController;
+use App\Http\Controllers\Dashboard\PagerController;
 use App\Http\Controllers\Dashboard\PasswordResetController;
 use App\Http\Controllers\Dashboard\PhoneVerificationController;
 use App\Http\Controllers\Dashboard\PosController;
@@ -222,12 +223,26 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         });
     });
 
+    // The guest pager (plan feature pager): the station for places on another POS, and "Call" on an order's card
+    Route::middleware(['feature:pager', 'permission:pager.use'])->prefix('/pager')->name('pager')->group(function () {
+        Route::get('/', [PagerController::class, 'station']);
+        Route::get('/feed', [PagerController::class, 'feed'])->name('.feed');
+        Route::post('/tickets', [PagerController::class, 'store'])->middleware('throttle:60,1')->name('.tickets.store');
+        Route::post('/tickets/{ticket}/call', [PagerController::class, 'callTicket'])->whereNumber('ticket')->middleware('throttle:60,1')->name('.tickets.call');
+        Route::post('/tickets/{ticket}/picked-up', [PagerController::class, 'pickedUp'])->whereNumber('ticket')->name('.tickets.picked');
+        Route::get('/tickets/{ticket}/print', [PagerController::class, 'print'])->whereNumber('ticket')->name('.tickets.print');
+        Route::get('/tickets/{ticket}/qr', [PagerController::class, 'showQr'])->whereNumber('ticket')->name('.tickets.qr');
+        Route::post('/settings', [PagerController::class, 'settings'])->name('.settings');
+        Route::post('/orders/{order}/call', [PagerController::class, 'callOrder'])->whereNumber('order')->middleware('throttle:60,1')->name('.orders.call');
+        Route::post('/orders/{order}/whatsapp', [PagerController::class, 'whatsappOrder'])->whereNumber('order')->middleware('throttle:10,1')->name('.orders.whatsapp');
+    });
+
     // the bell in the dashboard header: new / ready orders, waiter calls, bookings, low stock (each by its right)
     Route::get('/notifications', [NotificationsController::class, 'index'])->name('notifications');
     Route::post('/notifications/seen', [NotificationsController::class, 'seen'])->name('notifications.seen');
 
     Route::get('/orders/{order}/receipt', [OrdersController::class, 'receipt'])
-        ->middleware('permission:orders.view|pos.use')->name('orders.receipt');
+        ->middleware('permission:orders.view|pos.use|pager.use')->name('orders.receipt');
 
     // ---- Reports (daily on Pro, advanced on Business) ----
     Route::middleware(['feature:daily_reports', 'permission:reports.view'])->group(function () {

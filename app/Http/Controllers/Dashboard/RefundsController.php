@@ -41,6 +41,8 @@ class RefundsController extends Controller
             'corporate' => $o->corporate_amount, 'customer' => (bool) $o->customer_id, 'factor' => $o->subtotal > 0 ? $o->total / $o->subtotal : 0,
             'time' => local_time($o->created_at, $o->created_at->isToday() ? 'h:i A' : 'd/m h:i A'),
             'receipt' => route('dash.orders.receipt', $o), 'share' => $o->receiptUrl(), 'phone' => $o->customer_phone,
+            // the guest pager: "Call" on an order still open at the counter (null without the pager or for a table / delivery)
+            'pager' => in_array($o->status, ['served', 'cancelled'], true) ? null : PagerController::orderView($o, $request),
             'items' => $o->items->map(fn (OrderItem $i) => [
                 'id' => $i->id, 'name' => $i->name, 'qty' => $i->quantity, 'left' => $i->quantity - $i->refunded_qty, 'unit' => $i->unit_price,
             ])->values(),

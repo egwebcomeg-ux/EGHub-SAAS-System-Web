@@ -126,6 +126,7 @@ final class DashboardApps
             $app('orders', 'dash.drivers', __('Drivers'), 'M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11zM9 10l2 2 4-4', 'delivery.assign|delivery.drivers', 'delivery_zones|online_ordering'),
             $app('orders', 'dash.driver', __('My deliveries'), 'M5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM8 18.5h8M3 13h9l3-5h3l3 5v5h-2', $user->hasRole('driver'), 'delivery_zones|online_ordering'),
             $app('orders', 'dash.kitchen', BusinessType::prepScreen(), 'M6 13.9A4 4 0 0 1 7 6a5 5 0 0 1 10 0 4 4 0 0 1 1 7.9V20H6zM6 17h12', 'kitchen.view', 'kitchen_display'),
+            $app('orders', 'dash.pager', __('Guest pager'), 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0M2 8a10 10 0 0 1 2-5M22 8a10 10 0 0 0-2-5', 'pager.use', 'pager'),
             $app('orders', 'dash.shifts', __('Shifts'), 'M12 8v4l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z', 'shifts.manage', 'shifts') + ['fallback' => self::POS_FALLBACK],
             $app('orders', 'dash.reservations', __('Reservations'), 'M8 2v4M16 2v4M3 9h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM9 15l2 2 4-4', 'reservations.manage', 'reservations'),
 

@@ -24,6 +24,7 @@ final class Permissions
         'delivery.drivers' => ['متابعة الطيارين وتسوية فلوسهم', 'Track drivers and settle their cash'],
         'delivery.drive' => ['شاشة الطيار (طلباتي للتوصيل)', 'Driver screen (my deliveries)'],
         'kitchen.view' => ['شاشة المطبخ', 'Kitchen display'],
+        'pager.use' => ['النداء على الزبون (زرار «نادي» وشاشة النداء)', 'Guest pager (the “Call” button and the pager station)'],
         'menu.manage' => ['إدارة المنيو والأقسام', 'Manage menu'],
         'menu.availability' => ['تحديد الأصناف اللي خلصت', 'Mark items sold out'],
         'inventory.manage' => ['المخزون والوصفات', 'Inventory & recipes'],
@@ -65,6 +66,7 @@ final class Permissions
         'callcenter' => ['الكول سنتر', 'Call center'],
         'delivery' => ['التوصيل', 'Delivery'],
         'kitchen' => ['المطبخ', 'Kitchen'],
+        'pager' => ['النداء على الزبون', 'Guest pager'],
         'menu' => ['المنيو', 'Menu'],
         'inventory' => ['المخزون', 'Inventory'],
         'tables' => ['الترابيزات', 'Tables'],
@@ -99,13 +101,13 @@ final class Permissions
                 'kitchen.view', 'menu.manage', 'menu.availability', 'inventory.manage', 'tables.manage', 'branches.manage', 'delivery.manage',
                 'customers.view', 'customers.import', 'loyalty.stamp', 'loyalty.manage', 'vouchers.give', 'marketing.manage', 'reports.view', 'settings.manage', 'audit.view',
                 'wallet.manage', 'kiosk.manage', 'reservations.manage', 'contracts.manage', 'vouchers.redeem', 'vouchers.exception',
-                'delivery.assign', 'delivery.drivers', 'kb.manage', 'kb.view'],
+                'delivery.assign', 'delivery.drivers', 'kb.manage', 'kb.view', 'pager.use'],
             'hint' => ['كل الشغل اليومي والتقارير والإعدادات، من غير المستخدمين والاشتراك', 'Day-to-day work, reports and settings, without users and the subscription'],
         ],
         'cashier' => [
             'label' => ['كاشير', 'Cashier'],
             'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'shifts.manage', 'menu.availability', 'customers.view', 'loyalty.stamp', 'wallet.manage',
-                'vouchers.redeem', 'delivery.assign', 'kb.view'],
+                'vouchers.redeem', 'delivery.assign', 'kb.view', 'pager.use'],
             'hint' => ['الكاشير والورديات والطلبات، وصرف الفاوتشرات وتحديد الطيار', 'The POS, shifts and orders, redeeming vouchers and assigning drivers'],
         ],
         'callcenter' => [
@@ -115,12 +117,12 @@ final class Permissions
         ],
         'kitchen' => [
             'label' => ['مطبخ', 'Kitchen'],
-            'permissions' => ['kitchen.view', 'menu.availability'],
-            'hint' => ['شاشة المطبخ وتحديد الأصناف اللي خلصت فقط', 'The kitchen display and marking items sold out, nothing else'],
+            'permissions' => ['kitchen.view', 'menu.availability', 'pager.use'],
+            'hint' => ['شاشة المطبخ وتحديد الأصناف اللي خلصت والنداء على الزبون فقط', 'The kitchen display, marking items sold out and calling the guest, nothing else'],
         ],
         'waiter' => [
             'label' => ['ويتر', 'Waiter'],
-            'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'menu.availability', 'kb.view'],
+            'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'menu.availability', 'kb.view', 'pager.use'],
             'hint' => ['تسجيل طلبات الترابيزات ومتابعتها', 'Taking table orders and following them'],
         ],
         // a delivery driver sees only the orders given to them (App\Http\Controllers\Dashboard\DriverController)

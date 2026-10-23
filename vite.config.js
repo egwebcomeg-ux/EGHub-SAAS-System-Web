@@ -6,7 +6,7 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/menu.js', 'resources/js/board.js', 'resources/js/menu-editor.js', 'resources/js/pos.js', 'resources/js/kitchen.js', 'resources/js/zones-map.js', 'resources/css/landing.css', 'resources/js/landing.js', 'resources/js/kiosk.js', 'resources/js/notifications.js', 'resources/js/dash-ui.js', 'resources/js/voucher-redeem.js', 'resources/js/driver.js', 'resources/js/drivers.js', 'resources/js/dash-home.js', 'resources/js/qr-tool.js'],
+            input: ['resources/css/app.css', 'resources/js/menu.js', 'resources/js/board.js', 'resources/js/menu-editor.js', 'resources/js/pos.js', 'resources/js/kitchen.js', 'resources/js/zones-map.js', 'resources/css/landing.css', 'resources/js/landing.js', 'resources/js/kiosk.js', 'resources/js/notifications.js', 'resources/js/dash-ui.js', 'resources/js/voucher-redeem.js', 'resources/js/driver.js', 'resources/js/drivers.js', 'resources/js/dash-home.js', 'resources/js/qr-tool.js', 'resources/js/pager.js', 'resources/js/pager-station.js'],
             refresh: true,
             fonts: [
                 // Arabic + Latin glyphs: without the arabic subset, Arabic text silently fell back to the OS font.

@@ -29,6 +29,7 @@ class Plan extends Model
         'scheduled_orders' => ['طلب بميعاد (العميل يختار وقت الاستلام)', 'Scheduled orders (guest picks the time)', 'orders'],
         'reservations' => ['حجز ترابيزات أونلاين', 'Table reservations', 'orders'],
         'delivery_zones' => ['مناطق التوصيل ورسوم كل منطقة', 'Delivery zones and fees', 'orders'],
+        'pager' => ['النداء على الزبون (موبايله هو البيجر)', 'Guest pager (the guest’s phone rings when the order is ready)', 'orders'],
         // operations: in the Enterprise plan only (older subscribers may still hold them as add-on packs)
         'pos' => ['كاشير POS', 'POS cashier', 'operations'],
         'shifts' => ['ورديات الكاشير والدرج', 'Cashier shifts & cash drawer', 'operations'],
