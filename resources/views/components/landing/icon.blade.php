@@ -44,6 +44,7 @@
         'translate' => 'M4 5h9M8.5 3v2M11 5c-1 4.5-3.5 7.5-7 9.5M6.5 9c1.2 2.2 3 3.8 5.5 5M13 21l4-10 4 10M14.5 17.5h5',
         'star' => 'M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5-4.8-4.6 6.6-.9z',
         'trend' => 'M3 17l6-6 4 4 8-8M15 7h6v6',
+        'book' => 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5M9.5 8.5a2.5 2.5 0 1 1 3 2.4c-.6.2-1 .7-1 1.3M11.5 14.5h.01',
     ];
 @endphp
 <svg {{ $attributes->merge(['class' => 'size-6']) }} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ $paths[$name] ?? $paths['check'] }}"/></svg>

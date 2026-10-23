@@ -2,6 +2,7 @@
 // customer-facing display (mirrored through BroadcastChannel). The server recomputes every amount.
 import { canScanQr, planVouchers, scanQr } from './corporate-vouchers';
 import { createOffline, NetworkError, printLocalReceipt } from './pos-offline';
+import './kb-drawer';
 
 const dataEl = document.getElementById('pos-data');
 if (dataEl) {

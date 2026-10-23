@@ -33,6 +33,10 @@
     .l-btn { display: flex; align-items: center; gap: .75rem; min-height: 3.5rem; padding: 0 1.25rem; border-radius: 1.25rem; font-weight: 800; font-size: 1.05rem; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
     .l-btn.m-card { border: 1px solid var(--menu-border); background: var(--menu-surface); color: var(--menu-text); }
     .l-btn > span:first-child { font-size: 1.4rem; width: 2rem; text-align: center; }
+    .faq-item { border: 1px solid var(--menu-border); color: var(--menu-text); }
+    .faq-item[open] { box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+    .faq-answer { color: var(--menu-muted); }
+    .faq-answer a { color: var(--menu-accent, currentColor); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
 </style>
 @endpush
 
@@ -143,6 +147,24 @@
                             @if ($wa && $branches->count() > 1)<a href="https://wa.me/{{ whatsapp_number($wa) }}" target="_blank" rel="noopener" class="btn-ghost min-h-10 px-3 text-sm">💬 {{ __('WhatsApp') }}</a>@endif
                         </div>
                     </article>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
+    @if ($faq)
+        {{-- the knowledge base's public answers (App\Services\KnowledgeBase), also in the FAQPage JSON-LD above --}}
+        <section id="faq" class="scroll-mt-4" data-faq>
+            <h2 class="mb-3 text-xl font-extrabold">{{ __('Frequently asked questions') }}</h2>
+            <div class="space-y-2">
+                @foreach ($faq as $entry)
+                    <details class="faq-item group rounded-2xl m-surface shadow-sm" data-faq-item="{{ $entry['id'] }}">
+                        <summary class="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 py-3 font-bold [&::-webkit-details-marker]:hidden">
+                            <span class="min-w-0 flex-1" dir="auto">{{ $entry['question'] }}</span>
+                            <span class="m-muted shrink-0 text-lg transition-transform group-open:rotate-45" aria-hidden="true">＋</span>
+                        </summary>
+                        <div class="faq-answer px-4 pb-4 leading-relaxed" dir="auto">{{ \App\Services\KnowledgeBase::format($entry['answer']) }}</div>
+                    </details>
                 @endforeach
             </div>
         </section>

@@ -29,6 +29,7 @@ use App\Http\Controllers\Dashboard\InventoryController;
 use App\Http\Controllers\Dashboard\ItemsController;
 use App\Http\Controllers\Dashboard\KiosksController;
 use App\Http\Controllers\Dashboard\KitchenController;
+use App\Http\Controllers\Dashboard\KnowledgeBaseController;
 use App\Http\Controllers\Dashboard\LoyaltyController;
 use App\Http\Controllers\Dashboard\MarketingController;
 use App\Http\Controllers\Dashboard\MenuExportController;
@@ -454,6 +455,25 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
             Route::post('/wallet/customers/{customer}/adjust', [WalletController::class, 'adjust'])->whereNumber('customer')->name('wallet.adjust');
         });
     });
+
+    // Knowledge base ("الأسئلة والأجوبة"): written by the owner or a manager, read by the team in the call center, the POS
+    // and the order board (feed), the public answers also on the guest menu's about page
+    Route::middleware(['feature:knowledge_base', 'permission:kb.manage'])->group(function () {
+        Route::get('/kb', [KnowledgeBaseController::class, 'index'])->name('kb');
+        Route::get('/kb/create', [KnowledgeBaseController::class, 'create'])->name('kb.create');
+        Route::post('/kb', [KnowledgeBaseController::class, 'store'])->middleware('throttle:60,1')->name('kb.store');
+        Route::post('/kb/suggested', [KnowledgeBaseController::class, 'suggested'])->middleware('throttle:10,1')->name('kb.suggested');
+        Route::get('/kb/{article}/edit', [KnowledgeBaseController::class, 'edit'])->whereNumber('article')->name('kb.edit');
+        Route::post('/kb/{article}', [KnowledgeBaseController::class, 'update'])->whereNumber('article')->name('kb.update');
+        Route::post('/kb/{article}/toggle', [KnowledgeBaseController::class, 'toggle'])->whereNumber('article')->name('kb.toggle');
+        Route::post('/kb/{article}/move', [KnowledgeBaseController::class, 'move'])->whereNumber('article')->name('kb.move');
+        Route::post('/kb/{article}/delete', [KnowledgeBaseController::class, 'destroy'])->whereNumber('article')->name('kb.delete');
+        Route::post('/kb/categories', [KnowledgeBaseController::class, 'storeCategory'])->name('kb.categories.store');
+        Route::post('/kb/categories/{category}', [KnowledgeBaseController::class, 'updateCategory'])->whereNumber('category')->name('kb.categories.update');
+        Route::post('/kb/categories/{category}/move', [KnowledgeBaseController::class, 'moveCategory'])->whereNumber('category')->name('kb.categories.move');
+        Route::post('/kb/categories/{category}/delete', [KnowledgeBaseController::class, 'destroyCategory'])->whereNumber('category')->name('kb.categories.delete');
+    });
+    Route::get('/kb/feed', [KnowledgeBaseController::class, 'feed'])->middleware(['feature:knowledge_base', 'permission:kb.view'])->name('kb.feed');
 
     // Corporate contracts: a company's prepaid vouchers for its staff (managed here, redeemed at the POS)
     Route::middleware(['feature:corporate_vouchers', 'permission:contracts.manage'])->group(function () {

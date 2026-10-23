@@ -34,6 +34,8 @@ class CallCenterController extends Controller
         $data['mode'] = 'callcenter';
         // top-ups and gift-card sales are counter actions: their dialogs are not on this screen, so pos.js must not wire them
         $data['walletManage'] = false;
+        // nor are corporate vouchers: no payment is taken here, and without their dialogs pos.js stopped on this screen
+        $data['corporate'] = false;
         $data['urls']['order'] = route('dash.callcenter.order');
         $data['urls']['lookup'] = route('dash.callcenter.lookup');
         // manual: main area, then its street / sub-area (as the guest picks it); map: one list plus the map pin

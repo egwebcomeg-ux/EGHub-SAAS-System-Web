@@ -1,5 +1,6 @@
 // Live order board: polls the feed every few seconds, rebuilds the columns, chimes when a new order arrives and
 // keeps ringing while an online / QR order waits to be accepted (moved to "preparing").
+import './kb-drawer';
 
 const board = document.getElementById('board');
 if (board) {

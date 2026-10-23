@@ -607,6 +607,38 @@ final class SiteModules
                 ],
                 'related' => ['wallet', 'pos', 'reports'],
             ],
+            [
+                'slug' => 'knowledge-base', 'group' => 'customers', 'icon' => 'book', 'for' => ['cafe', 'restaurant'],
+                'name' => __('Knowledge base'),
+                'tagline' => __('The answers your team gives every day, written once and found in a second'),
+                'summary' => __('Questions and answers for the call center and the cashier, and an FAQ for guests on the menu.'),
+                'feature' => 'knowledge_base', 'addons' => [],
+                'shot' => 'knowledge-base', 'frame' => 'browser', 'url' => 'app.egmenu.app/kb', 'phone' => 'm-faq',
+                'benefits' => [
+                    ['chat', __('One answer for everyone'), __('Opening hours, delivery areas, parking, allergens, payment: written once by the owner, so every caller hears the same thing.')],
+                    ['shield', __('Staff only, or public'), __('Each answer says where it shows: only to the team (policies, what to do when a guest complains), or to guests too.')],
+                    ['phone', __('In the call center in a second'), __('Type two letters in the call-center screen and the answer is there, with a button that copies it for WhatsApp.')],
+                    ['cash', __('At the POS and the order board'), __('The same search opens from the cashier screen and the order board, so a new waiter answers like an old one.')],
+                    ['globe', __('An FAQ on your menu'), __('The public answers show on your place’s page as frequently asked questions, in Arabic and English, and search engines read them too.')],
+                ],
+                'steps' => [
+                    [__('Write the answer'), __('“Do you deliver to Maadi?” Yes, a 25 EGP fee.')],
+                    [__('Choose where it shows'), __('Public: the team and the guests.')],
+                    [__('Find it on a call'), __('Mona types “Maadi” and copies the answer to WhatsApp.')],
+                    [__('Guests read it'), __('The FAQ on the menu answers before anyone calls.')],
+                ],
+                'who' => [
+                    'cafe' => __('Wi-Fi, milk alternatives, opening hours: what every new barista is asked on day one.'),
+                    'restaurant' => __('Delivery areas, bookings, allergens and the refund policy, the same on every phone call and at every table.'),
+                ],
+                'faq' => [
+                    [__('Do I have to write everything myself?'), __('No. One button adds ten suggested questions for your type of place as drafts, with [brackets] where your own details go; nothing shows until you fill them in and turn them on.')],
+                    [__('Can a guest see the staff answers?'), __('Never. Only the answers you mark public reach the menu; the staff ones stay in the dashboard.')],
+                    [__('Who can edit the answers?'), __('The owner and the managers. The call center, the cashiers and the waiters read them.')],
+                    [__('Which plan has it?'), __('The Complete plan and the Enterprise plan.')],
+                ],
+                'related' => ['call-center', 'pos', 'qr-menu'],
+            ],
 
             // ---------------- operations (add-ons) ----------------
             [

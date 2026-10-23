@@ -34,7 +34,7 @@ class DoctorCommand extends Command
         if ($dbOk) {
             $this->check('Database connection', true, config('database.default'));
             $this->check('Migrations ran (plans table)', Schema::hasTable('plans'), 'run php artisan migrate --force');
-            foreach (['pos_terminals', 'driver_locations', 'corporate_vouchers'] as $table) {
+            foreach (['pos_terminals', 'driver_locations', 'corporate_vouchers', 'kb_articles'] as $table) {
                 $this->check("Migrations ran ($table table)", Schema::hasTable($table), 'run php artisan migrate --force');
             }
             $this->check('Queue table reachable', $this->queueReachable(), 'jobs table missing: run migrate');

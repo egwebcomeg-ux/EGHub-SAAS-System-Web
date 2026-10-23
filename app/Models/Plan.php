@@ -55,6 +55,7 @@ class Plan extends Model
         'prepaid_packages' => ['باقات مسبقة الدفع (اشتراك ١٠ قهوة مثلاً)', 'Prepaid packages (e.g. a 10-coffee pass)', 'marketing'],
         'membership' => ['مستويات عضوية بخصم تلقائي', 'Membership tiers with an automatic discount', 'marketing'],
         'corporate_vouchers' => ['تعاقدات الشركات (فاوتشرات مدفوعة مقدماً لموظفيها)', 'Corporate contracts (prepaid vouchers for a company\'s staff)', 'marketing'],
+        'knowledge_base' => ['الأسئلة والأجوبة (للفريق، وأسئلة شائعة للعملاء على المنيو)', 'Knowledge base (for the team, and an FAQ for guests on the menu)', 'marketing'],
         // management
         'daily_reports' => ['تقارير يومية', 'Daily reports', 'management'],
         'advanced_reports' => ['تقارير متقدمة', 'Advanced reports', 'management'],

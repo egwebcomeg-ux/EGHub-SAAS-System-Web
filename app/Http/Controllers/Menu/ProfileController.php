@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Menu;
 
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use App\Services\KnowledgeBase;
 use App\Services\Reservations\ReservationService;
 use App\Services\Seo\RestaurantProfile;
 use Illuminate\View\View;
@@ -23,6 +24,7 @@ class ProfileController extends Controller
         $branches = $profile->branches();
         $main = $branches->first();
         $categories = RestaurantProfile::catalog($main);
+        $faq = KnowledgeBase::publicArticles();
 
         return view('menu.about', [
             'profile' => $profile,
@@ -32,7 +34,9 @@ class ProfileController extends Controller
             'itemsCount' => $categories->sum(fn ($c) => $c->items->count()),
             'rating' => $profile->rating(),
             'ordering' => $main ? $profile->ordering($main) : ['table' => false, 'takeaway' => false, 'delivery' => false],
-            'schemas' => [$profile->placeSchema($branches), $profile->menuSchema($categories)],
+            'schemas' => array_merge([$profile->placeSchema($branches), $profile->menuSchema($categories)], $faq ? [KnowledgeBase::faqSchema($faq)] : []),
+            // the knowledge base's public answers, as frequently asked questions
+            'faq' => $faq,
             // the links block on top
             'online' => $main !== null && MenuController::onlineOptions($main, $settings) !== null,
             'reservations' => ReservationService::enabled(),

@@ -47,6 +47,8 @@ final class Permissions
         'vouchers.redeem' => ['صرف فاوتشرات الشركات (الكاشير وشاشة الصرف)', 'Redeem corporate vouchers (POS and the redeem screen)'],
         'vouchers.exception' => ['الموافقة على استثناء فاوتشر منتهي', 'Approve an expired voucher exception'],
         'backups.manage' => ['النسخ الاحتياطية (إنشاء وتحميل)', 'Backups (create & download)'],
+        'kb.manage' => ['كتابة الأسئلة والأجوبة وتعديلها', 'Write and edit the knowledge base'],
+        'kb.view' => ['قراءة الأسئلة والأجوبة (الكول سنتر والكاشير ولوحة الطلبات)', 'Read the knowledge base (call center, POS, order board)'],
     ];
 
     /**
@@ -74,6 +76,7 @@ final class Permissions
         'wallet' => ['المحفظة', 'Wallet'],
         'marketing' => ['التسويق', 'Marketing'],
         'reservations' => ['الحجوزات', 'Reservations'],
+        'kb' => ['الأسئلة والأجوبة', 'Knowledge base'],
         'kiosk' => ['الكشك', 'Kiosk'],
         'reports' => ['التقارير', 'Reports'],
         'audit' => ['سجل العمليات', 'Audit log'],
@@ -96,18 +99,18 @@ final class Permissions
                 'kitchen.view', 'menu.manage', 'menu.availability', 'inventory.manage', 'tables.manage', 'branches.manage', 'delivery.manage',
                 'customers.view', 'customers.import', 'loyalty.stamp', 'loyalty.manage', 'vouchers.give', 'marketing.manage', 'reports.view', 'settings.manage', 'audit.view',
                 'wallet.manage', 'kiosk.manage', 'reservations.manage', 'contracts.manage', 'vouchers.redeem', 'vouchers.exception',
-                'delivery.assign', 'delivery.drivers'],
+                'delivery.assign', 'delivery.drivers', 'kb.manage', 'kb.view'],
             'hint' => ['كل الشغل اليومي والتقارير والإعدادات، من غير المستخدمين والاشتراك', 'Day-to-day work, reports and settings, without users and the subscription'],
         ],
         'cashier' => [
             'label' => ['كاشير', 'Cashier'],
             'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'shifts.manage', 'menu.availability', 'customers.view', 'loyalty.stamp', 'wallet.manage',
-                'vouchers.redeem', 'delivery.assign'],
+                'vouchers.redeem', 'delivery.assign', 'kb.view'],
             'hint' => ['الكاشير والورديات والطلبات، وصرف الفاوتشرات وتحديد الطيار', 'The POS, shifts and orders, redeeming vouchers and assigning drivers'],
         ],
         'callcenter' => [
             'label' => ['كول سنتر', 'Call center'],
-            'permissions' => ['orders.view', 'orders.manage', 'callcenter.use', 'customers.view', 'loyalty.stamp', 'delivery.assign'],
+            'permissions' => ['orders.view', 'orders.manage', 'callcenter.use', 'customers.view', 'loyalty.stamp', 'delivery.assign', 'kb.view'],
             'hint' => ['طلبات التليفون والعملاء وتحديد الطيار', 'Phone orders, the customer list and assigning drivers'],
         ],
         'kitchen' => [
@@ -117,7 +120,7 @@ final class Permissions
         ],
         'waiter' => [
             'label' => ['ويتر', 'Waiter'],
-            'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'menu.availability'],
+            'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'menu.availability', 'kb.view'],
             'hint' => ['تسجيل طلبات الترابيزات ومتابعتها', 'Taking table orders and following them'],
         ],
         // a delivery driver sees only the orders given to them (App\Http\Controllers\Dashboard\DriverController)

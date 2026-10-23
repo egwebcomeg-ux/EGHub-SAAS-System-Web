@@ -36,7 +36,7 @@ class PlanSeeder extends Seeder
         $pro = array_merge($basic, ['online_ordering', 'scheduled_orders', 'daily_reports', 'menu_themes', 'printed_menu',
             'offers', 'upsell', 'ai_import', 'customers', 'loyalty_stamps', 'custom_domain', 'whatsapp_notifications', 'reservations']);
         // Business = every menu feature; operations were add-ons. A featured directory listing is paid placement.
-        // A feature added to the catalogue later (e.g. corporate_vouchers, backups) is switched on here for Business, Complete
+        // A feature added to the catalogue later (e.g. corporate_vouchers, backups, knowledge_base) is switched on here for Business, Complete
         // and Enterprise on the next run, and stays off for the smaller plans; nothing a plan already had changes.
         $business = array_values(array_diff(array_keys(Plan::FEATURES), self::LEGACY_OPERATIONS, ['featured_listing']));
         // Complete = every module except operations (POS, kitchen, kiosk, call center, inventory) and per-branch

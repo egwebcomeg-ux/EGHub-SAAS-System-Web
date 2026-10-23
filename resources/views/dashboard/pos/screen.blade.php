@@ -1,6 +1,7 @@
 @extends('layouts.base', ['viteEntries' => ['resources/js/pos.js']])
 @php
     $cc = ($mode ?? 'pos') === 'callcenter';
+    $kb = \App\Services\KnowledgeBase::canOpen(auth()->user());
 @endphp
 @section('title', ($cc ? __('Call center') : __('POS')) . ' · ' . tenant()->name)
 @section('body_class', 'bg-navy-50 text-navy-900 overflow-hidden')
@@ -37,6 +38,14 @@
             @if ($cc && auth()->user()->canAny(['delivery.assign', 'delivery.drivers']) && \App\Services\Entitlements::current()->allows('delivery_zones|online_ordering'))
                 {{-- delivery orders taken here get their driver on the drivers page (or the orders board) --}}
                 <a href="{{ route('dash.drivers') }}" class="btn-ghost min-h-9 px-3" target="_blank" rel="noopener" data-drivers-link>🛵 {{ __('Drivers') }}</a>
+            @endif
+            @if ($kb)
+                {{-- the knowledge base: the answers the team gives on the phone and at the counter (F1) --}}
+                @if ($cc)
+                    <button type="button" class="btn-ghost min-h-9 px-3" data-kb-open title="F1">📖 {{ __('Knowledge base') }}</button>
+                @else
+                    <button type="button" class="btn-ghost min-h-9 min-w-9 px-3" data-kb-open aria-label="{{ __('Knowledge base') }}" title="{{ __('Knowledge base') }} (F1)">📖</button>
+                @endif
             @endif
             <button type="button" class="btn-ghost min-h-9 px-3" data-open-orders>{{ __('Open orders') }} <span class="badge bg-brand-600 text-white" data-open-count>0</span></button>
             @unless ($cc)
@@ -461,7 +470,7 @@
         <form method="dialog" class="p-5">
             <h3 class="mb-3 text-lg font-extrabold">{{ __('Keyboard shortcuts') }}</h3>
             <dl class="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 text-sm">
-                @foreach (['/' => __('Search items'), 'F2' => __('Pay'), 'F4' => __('Hold the order'), 'F8' => __('Open orders'), 'F9' => __('Orders & refunds'), 'Esc' => __('Close the window'), '?' => __('This list')] as $key => $what)
+                @foreach (['/' => __('Search items'), 'F2' => __('Pay'), 'F4' => __('Hold the order'), 'F8' => __('Open orders'), 'F9' => __('Orders & refunds')] + ($kb ? ['F1' => __('Knowledge base')] : []) + ['Esc' => __('Close the window'), '?' => __('This list')] as $key => $what)
                     <dt><kbd class="inline-grid min-w-10 place-items-center rounded-lg border border-navy-200 bg-navy-50 px-2 py-1 font-mono font-bold" dir="ltr">{{ $key }}</kbd></dt><dd>{{ $what }}</dd>
                 @endforeach
             </dl>
@@ -469,6 +478,10 @@
         </form>
     </dialog>
 @endunless
+
+@if ($kb)
+    @include('dashboard.partials.kb-drawer')
+@endif
 
 {{-- done --}}
 <dialog class="m-auto w-full max-w-sm rounded-2xl p-0 text-center backdrop:bg-black/50" data-done-dialog>

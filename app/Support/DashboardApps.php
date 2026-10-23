@@ -141,6 +141,7 @@ final class DashboardApps
             $app('customers', 'dash.wallet', __('Wallet'), 'M20 12V8H6a2 2 0 0 1 0-4h12v4M4 6v12a2 2 0 0 0 2 2h14v-4M18 12a2 2 0 0 0 0 4h4v-4z', 'wallet.manage', 'wallet'),
             $app('customers', 'dash.corporate', __('Corporate contracts'), 'M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M2 21h20M8 7h4M8 11h4M8 15h4', 'contracts.manage', 'corporate_vouchers'),
             $app('customers', 'dash.redeem', __('Redeem vouchers'), 'M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4zM8 12l2.5 2.5L16 9', 'vouchers.redeem', 'corporate_vouchers'),
+            $app('customers', 'dash.kb', __('Knowledge base'), 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5M9.5 8.5a2.5 2.5 0 1 1 3 2.4c-.6.2-1 .7-1 1.3M11.5 14.5h.01', 'kb.manage', 'knowledge_base'),
 
             $app('operations', 'dash.inventory', __('Inventory'), 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8', 'inventory.manage', 'inventory'),
             $app('operations', 'dash.devices', __('Screens & devices'), 'M2 5h14v10H2zM6 19h6M9 15v4M18 8h4v12h-4zM20 17h.01', DevicesController::visibleFor($user), null),

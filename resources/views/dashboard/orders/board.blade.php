@@ -37,8 +37,14 @@
         <span class="flex items-center gap-2 text-navy-500"><span class="size-2 animate-pulse rounded-full bg-emerald-500" data-live-dot></span> {{ __('Live') }}</span>
         <button type="button" class="btn-ghost min-h-9 px-3" data-sound>🔔 {{ __('Enable sound') }}</button>
         <button type="button" class="btn-ghost min-h-9 px-3" data-alarm-mute title="{{ __('The alarm repeats while a new online or QR order waits to be accepted.') }}">🚨 {{ __('Alarm on') }}</button>
+        @if ($kb = \App\Services\KnowledgeBase::canOpen(auth()->user()))
+            <button type="button" class="btn-ghost min-h-9 px-3" data-kb-open title="F1">📖 {{ __('Knowledge base') }}</button>
+        @endif
     </div>
 </div>
+@if ($kb)
+    @include('dashboard.partials.kb-drawer')
+@endif
 @include('dashboard.orders.partials.tabs')
 
 {{-- browsers only play sound after the first tap on the page --}}

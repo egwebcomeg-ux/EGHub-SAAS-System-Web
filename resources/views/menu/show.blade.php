@@ -463,6 +463,10 @@
             @endforeach
         </div>
         @if ($branch->address)<div>{{ $branch->address }}@if ($branch->working_hours) · {{ $branch->working_hours }}@endif</div>@endif
+        @if (\App\Services\KnowledgeBase::hasPublic())
+            {{-- the knowledge base's public answers live on the about page: a quiet link down here, never a banner on top --}}
+            <div><a href="{{ route('menu.about') }}#faq" class="font-semibold underline underline-offset-2" data-faq-link>{{ __('Frequently asked questions') }}</a></div>
+        @endif
         @unless (\App\Services\Entitlements::current()->allows('hide_badge'))
             <a href="{{ platform_url(null) }}" class="inline-flex items-center gap-1 text-xs">{{ __('Powered by') }} <x-logo :size="14" class="!gap-1 [&_span]:text-xs" /></a>
         @endunless

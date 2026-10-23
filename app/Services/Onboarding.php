@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\DeliveryZone;
 use App\Models\DiningTable;
 use App\Models\Ingredient;
+use App\Models\KbArticle;
 use App\Models\Kiosk;
 use App\Models\LoyaltyProgram;
 use App\Models\MenuItem;
@@ -22,7 +23,7 @@ use App\Models\User;
  */
 final class Onboarding
 {
-    public const STEPS = ['brand', 'menu', 'tables', 'ordering', 'staff', 'loyalty', 'reservations', 'zones', 'drivers', 'inventory', 'terminals', 'tv', 'kiosk', 'whatsapp', 'plan'];
+    public const STEPS = ['brand', 'menu', 'tables', 'ordering', 'staff', 'loyalty', 'reservations', 'zones', 'drivers', 'inventory', 'terminals', 'tv', 'kiosk', 'kb', 'whatsapp', 'plan'];
 
     /** Steps that belong to modules: step => the picked modules any of which keeps it in the checklist. */
     public const MODULE_STEPS = [
@@ -35,10 +36,11 @@ final class Onboarding
         'terminals' => ['pos'],
         'tv' => ['tv-screens'],
         'kiosk' => ['kiosk'],
+        'kb' => ['knowledge-base'],
     ];
 
     /** Setup steps that only appear once their module was picked; without a pick the checklist stays as it was. */
-    private const PICKED_ONLY = ['reservations', 'zones', 'drivers', 'inventory', 'terminals', 'tv', 'kiosk'];
+    private const PICKED_ONLY = ['reservations', 'zones', 'drivers', 'inventory', 'terminals', 'tv', 'kiosk', 'kb'];
 
     public const MENU_ITEMS_WITH_PHOTOS = 5;
 
@@ -108,6 +110,10 @@ final class Onboarding
         if (self::follows('kiosk') && $rights->allows('kiosk')) {
             $steps[] = self::step('kiosk', __('Set up the kiosk tablet'), __('Create a kiosk and open its link on the tablet at the counter.'),
                 Kiosk::query()->exists(), $link('kiosk.manage', route('dash.devices', ['tab' => 'kiosk'])));
+        }
+        if (self::follows('kb') && $rights->allows('knowledge_base')) {
+            $steps[] = self::step('kb', __('Write the answers your team gives every day'), __('Opening hours, delivery areas, parking, payment: the call center finds them in a second, and the public ones show to guests on the menu.'),
+                KbArticle::query()->where('is_active', true)->exists(), $link('kb.manage', route('dash.kb')));
         }
         $steps = array_values(array_filter($steps, fn (array $st) => self::follows($st['key'])));
         $steps[] = self::step('whatsapp', __('Confirm your WhatsApp number'), __('One ready message from your phone, no codes to type.'),
