@@ -205,11 +205,7 @@
         {{-- the end side stays clear on desktop: the floating "Ask us" button sits in that corner --}}
         <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-3 px-4 py-5 pb-28 text-xs sm:px-6 lg:pe-56 lg:pb-6" data-footer-bottom>
             <span>© {{ date('Y') }} EgMenu</span>
-            <a href="https://egweb.com.eg" target="_blank" rel="noopener" data-egweb-badge
-               class="inline-flex h-9 items-center gap-2 rounded-full border border-white/15 bg-white/5 ps-3.5 pe-3 text-white/70 transition hover:border-white/30 hover:bg-white/10 hover:text-white">
-                <span>{{ __('by') }}</span>
-                <img src="{{ versioned_asset('img/brand/egweb-on-dark.webp') }}" alt="EgWeb" width="68" height="22" class="h-[22px] w-auto" loading="lazy">
-            </a>
+            <x-egweb-badge tone="dark" />
             <a href="?lang={{ $other }}" lang="{{ $other }}" data-footer-lang
                class="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/15 px-3.5 text-white/70 transition hover:border-white/30 hover:text-white">
                 <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>

@@ -73,7 +73,10 @@
                 </div>
             @endforeach
         </nav>
-        <div class="border-t border-white/10 px-5 py-4 text-xs text-white/50">{{ \App\Support\PlatformBrand::siteName() }} · by EgWeb</div>
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-white/10 px-5 py-4 text-xs text-white/50">
+            <span>{{ \App\Support\PlatformBrand::siteName() }}</span>
+            <x-egweb-badge tone="dark" />
+        </div>
     </aside>
 
     <div class="flex min-h-screen min-w-0 flex-col lg:ps-68">

@@ -7,7 +7,7 @@
     $suggestionsHas = fn (array $sug) => \App\Services\Entitlements::current()->allows($sug['feature']);
     $showNextStep = $settingUp || $pickModules || $suggestions;
     // one hue per app group (tokens in resources/css/app.css)
-    $hues = ['orders' => 'bg-app-orders', 'menu' => 'bg-app-menu', 'customers' => 'bg-app-customers', 'operations' => 'bg-app-operations', 'management' => 'bg-app-management'];
+    $hues = \App\Support\DashboardApps::HUES;
     $tileGrid = 'grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8';
 @endphp
 <x-dash.page-header :title="__('Welcome, :name', ['name' => \Illuminate\Support\Str::of(auth()->user()->name)->before(' ')])" :help="__('Every part of your dashboard is an app here. Tap one to open it.')">

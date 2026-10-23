@@ -4645,5 +4645,7 @@
     "Your backup is being prepared. Refresh this page in a minute or two.": "النسخة الاحتياطية بتتجهّز. حدّث الصفحة بعد دقيقة أو اتنين.",
     "Backup deleted.": "اتحذفت النسخة الاحتياطية.",
     "A backup is being prepared right now. Wait for it to finish.": "فيه نسخة احتياطية بتتجهّز دلوقتي. استنى لما تخلص.",
-    "You can take one backup per :minutes minutes. Try again in :wait minutes.": "تقدر تعمل نسخة احتياطية واحدة كل :minutes دقيقة. جرّب تاني بعد :wait دقيقة."
+    "You can take one backup per :minutes minutes. Try again in :wait minutes.": "تقدر تعمل نسخة احتياطية واحدة كل :minutes دقيقة. جرّب تاني بعد :wait دقيقة.",
+    "Show the full menu": "اعرض القايمة كاملة",
+    "Show the slim menu": "صغّر القايمة"
 }

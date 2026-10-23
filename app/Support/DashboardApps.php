@@ -30,6 +30,67 @@ final class DashboardApps
     /** The grid icon of the apps screen. */
     public const APPS_ICON = 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z';
 
+    /** The group a page outside every app (security, modules, help…) belongs to in the rail and the app header. */
+    public const GROUP_FALLBACK = 'management';
+
+    /** @var array<string, string> group key => its colour (tokens --color-app-* in resources/css/app.css) */
+    public const HUES = [
+        'orders' => 'bg-app-orders', 'menu' => 'bg-app-menu', 'customers' => 'bg-app-customers',
+        'operations' => 'bg-app-operations', 'management' => 'bg-app-management',
+    ];
+
+    /** @var array<string, string> group key => the icon of the group as an app (the app header strip) */
+    public const GROUP_ICONS = [
+        'orders' => 'M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0',
+        'menu' => 'M4 4h16v16H4zM4 9h16M9 9v11',
+        'customers' => 'M17 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M10 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM21 20v-2a4 4 0 0 0-3-3.9M16 2.1a4 4 0 0 1 0 7.8',
+        'operations' => 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8',
+        'management' => 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
+    ];
+
+    /**
+     * Pages that live inside another app: shifts, terminals and the Z report in the POS, stations under the kitchen
+     * display, items in the menu, vouchers with the coupons, the TV and kiosks with the screens.
+     *
+     * @var array<string, list<string>>
+     */
+    public const WITHIN = [
+        'dash.menu' => ['dash.items.*'],
+        'dash.pos' => ['dash.shifts', 'dash.shifts.*', 'dash.terminals', 'dash.terminals.*', 'dash.zreport', 'dash.zreport.*'],
+        'dash.kitchen' => ['dash.stations', 'dash.stations.*'],
+        'dash.coupons' => ['dash.vouchers', 'dash.vouchers.*'],
+        'dash.devices' => ['dash.tv', 'dash.tv.*', 'dash.kiosks', 'dash.kiosks.*'],
+    ];
+
+    /** Whether the current page is this app's page, one of its sub-pages, or a page that lives inside it (WITHIN). */
+    public static function isActive(string $route): bool
+    {
+        return request()->routeIs($route)
+            || ($route !== 'dash.home' && request()->routeIs($route.'.*'))
+            || request()->routeIs(...(self::WITHIN[$route] ?? ['-']));
+    }
+
+    /**
+     * The app (group) the current page belongs to, for the slim rail and the app header strip: its key, title and the
+     * apps of the group this user may open. A page of an app under "more" brings its own entry along; a page outside
+     * every app (security, modules, help…) shows the Management group.
+     *
+     * @param  array{groups: list<Group>, more: list<App>}  $apps  what forUser() returned
+     * @return array{key: string, title: ?string, apps: list<App>, current: ?App}
+     */
+    public static function currentGroup(array $apps): array
+    {
+        $everything = array_merge(array_merge(...array_map(fn (array $g) => $g['apps'], $apps['groups'])), $apps['more']);
+        $current = collect($everything)->first(fn (array $app) => $app['route'] !== 'dash.home' && self::isActive($app['route']));
+        $key = $current['group'] ?? self::GROUP_FALLBACK;
+        $inGroup = collect($apps['groups'])->firstWhere('key', $key)['apps'] ?? [];
+        if ($current && ! in_array($current['route'], array_column($inGroup, 'route'), true)) {
+            $inGroup[] = $current;
+        }
+
+        return ['key' => $key, 'title' => self::groups()[$key] ?? null, 'apps' => $inGroup, 'current' => $current];
+    }
+
     /** @return array<string, ?string> group key => title, in sidebar order (the home group has no title) */
     public static function groups(): array
     {

@@ -253,6 +253,19 @@
     html.dash-nav-lock { overflow: hidden; }
 }
 
+/*
+ * Desktop: Odoo-style. The home page (the apps grid) has no sidebar (lg:hidden in the layout); inside an app the
+ * slim rail shows instead of the full sidebar, until the rail's chevron expands it (data-nav-expanded on .dash-app,
+ * remembered by resources/js/dash-ui.js). The top bar shows the logo whenever the full sidebar is not there.
+ */
+@media (min-width: 1024px) {
+    .dash-app:not([data-dash-home]):not([data-nav-expanded]) .dash-nav { display: none; }
+    .dash-app[data-nav-expanded] .dash-rail,
+    .dash-app[data-nav-expanded] .dash-head-logo { display: none; }
+}
+.dash-app-tabs { scrollbar-width: none; }
+.dash-app-tabs::-webkit-scrollbar { display: none; }
+
 /* phones: a <details> popover that opens as a bottom sheet gets a dimmed backdrop; tapping it closes the sheet
    (the backdrop belongs to the summary, so the tap toggles the details) */
 @media (max-width: 639.98px) {

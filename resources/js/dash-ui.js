@@ -33,6 +33,34 @@ document.addEventListener('keydown', (e) => {
 });
 window.matchMedia('(min-width: 1024px)').addEventListener('change', (e) => e.matches && setNav(false));
 
+/*
+ * Desktop, inside an app: the slim rail ([data-dash-rail]) or the full sidebar. The chevron on either one switches,
+ * and the browser remembers the choice (the layout reads it back before the first paint).
+ */
+const dashApp = document.querySelector('[data-dash-app]');
+const railToggles = document.querySelectorAll('[data-dash-rail-toggle]');
+const EXPANDED_KEY = 'dash-nav-expanded';
+
+function setExpanded(expanded) {
+    dashApp.toggleAttribute('data-nav-expanded', expanded);
+    railToggles.forEach((t) => t.setAttribute('aria-expanded', expanded ? 'true' : 'false'));
+    try {
+        localStorage.setItem(EXPANDED_KEY, expanded ? '1' : '0');
+    } catch {
+        // private window or blocked storage: the choice lasts for this page only
+    }
+}
+
+if (dashApp && railToggles.length) {
+    railToggles.forEach((t) => t.setAttribute('aria-expanded', dashApp.hasAttribute('data-nav-expanded') ? 'true' : 'false'));
+    railToggles.forEach((t) => t.addEventListener('click', () => {
+        const expanded = !dashApp.hasAttribute('data-nav-expanded');
+        setExpanded(expanded);
+        // keep the focus on the chevron of the menu that is now showing
+        [...railToggles].find((other) => other !== t)?.focus();
+    }));
+}
+
 /** Copies each column title into its cells (data-label) so a phone shows "Title: value" rows. */
 function labelTable(table) {
     const head = table.tHead?.rows[table.tHead.rows.length - 1];

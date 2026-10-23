@@ -113,6 +113,37 @@ class HomeAppsTest extends TenantTestCase
             ->assertDontSee('data-app-badge="dash.reservations"', false);
     }
 
+    public function test_inside_an_app_the_rail_and_the_app_header_show_only_the_apps_of_its_group(): void
+    {
+        $a = $this->restaurant('cafe-a', 'pro');
+        $owner = $this->owner($a);
+
+        // the home page has the full grid and no rail
+        $this->actingAs($owner)->get($this->dashUrl('/'))->assertOk()
+            ->assertSee('data-dash-home', false)->assertDontSee('data-dash-rail', false)->assertDontSee('data-app-header=', false);
+
+        $html = $this->actingAs($owner)->get($this->dashUrl('/orders'))->assertOk()
+            ->assertSee('data-dash-rail', false)->assertSee('data-dash-rail-toggle', false)->assertSee('data-app-header="orders"', false)
+            ->assertSee('id="dash-nav"', false) // the full sidebar is still there to expand to
+            ->getContent();
+        $this->assertMatchesRegularExpression('#href="'.preg_quote(route('dash.orders'), '#').'"\s+aria-current="page"\s+data-rail-item="dash.orders"#', $html);
+        $this->assertStringContainsString('data-app-tab="dash.orders"', $html);
+        $this->assertStringNotContainsString('data-rail-item="dash.menu"', $html);
+        $this->assertStringNotContainsString('data-rail-item="dash.customers"', $html);
+        $this->assertStringNotContainsString('data-app-tab="dash.menu"', $html);
+        $this->assertStringContainsString('data-rail-item="dash.settings"', $html); // settings stays at the rail's bottom
+
+        // a page inside another app (an item of the menu) shows the menu app; a page outside every app shows Management
+        $this->actingAs($owner)->get($this->dashUrl('/menu/items/create'))->assertOk()
+            ->assertSee('data-app-header="menu"', false)->assertSee('data-rail-item="dash.tables"', false);
+        $this->actingAs($owner)->get($this->dashUrl('/security'))->assertOk()
+            ->assertSee('data-app-header="management"', false)->assertSee('data-rail-item="dash.users"', false);
+
+        // a waiter has no settings: no settings link in the rail either
+        $waiter = $this->staff($a, 'waiter', 'w@cafe-a.test');
+        $this->actingAs($waiter)->get($this->dashUrl('/orders'))->assertOk()->assertDontSee('data-rail-item="dash.settings"', false);
+    }
+
     public function test_apps_outside_the_pick_wait_under_more_apps_and_still_open(): void
     {
         $a = $this->restaurant('cafe-a', 'pro', true);
