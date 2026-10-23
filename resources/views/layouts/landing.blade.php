@@ -144,15 +144,14 @@
 
 <footer class="bg-[#0f1729] text-white/70">
     <div class="mx-auto max-w-7xl px-4 pt-14 pb-10 sm:px-6">
-        <div class="grid gap-10 lg:grid-cols-[1.3fr_3fr]">
+        <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,3.6fr)]">
             <div>
                 <x-logo :size="34" :light="true" />
                 <p class="mt-4 max-w-xs text-sm leading-relaxed">{{ __('A QR menu, ordering and a loyalty card for cafes and restaurants in Egypt. Made by EgWeb.') }}</p>
                 <a href="{{ route('register') }}" class="btn-primary mt-5 min-h-11">{{ __('Start free') }}</a>
                 @if ($contacts)
-                    <ul data-footer-contacts class="mt-6 flex flex-wrap items-center gap-x-2 gap-y-2 text-sm" aria-label="{{ __('Contact us') }}">
+                    <ul data-footer-contacts class="mt-6 space-y-2.5 text-sm" aria-label="{{ __('Contact us') }}">
                         @foreach ($contacts as $contact)
-                            @unless ($loop->first)<li aria-hidden="true" class="text-white/30">·</li>@endunless
                             <li class="min-w-0">
                                 <a href="{{ $contact['href'] }}" @if ($contact['icon']) target="_blank" rel="noopener" @endif class="inline-flex max-w-full items-center gap-1.5 text-white/80 hover:text-white">
                                     @if ($contact['icon'])<x-landing.icon :name="$contact['icon']" class="size-4 shrink-0 text-emerald-400" />@endif
@@ -175,7 +174,7 @@
                 @endif
             </div>
             {{-- phones: the module lists live in the menu drawer, so the footer keeps only the EgMenu links --}}
-            <div class="grid grid-cols-2 gap-8 text-sm sm:grid-cols-3 lg:grid-cols-6">
+            <div class="grid grid-cols-2 gap-x-6 gap-y-8 text-sm sm:grid-cols-3 lg:grid-cols-6">
                 @foreach ($siteGroups as $g => [$groupLabel, $groupIcon])
                     <div class="max-sm:hidden">
                         <div class="mb-3 font-extrabold text-white">{{ $groupLabel }}</div>
@@ -203,9 +202,19 @@
         </div>
     </div>
     <div class="border-t border-white/10">
-        <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-5 pb-24 text-xs sm:px-6 lg:pb-5">
-            <span>© {{ date('Y') }} EgMenu · {{ __('by') }} <a href="https://egweb.com.eg" target="_blank" rel="noopener" class="font-bold text-white/90 hover:text-white">EgWeb</a></span>
-            <a href="?lang={{ $other }}" class="hover:text-white" lang="{{ $other }}">{{ $other === 'en' ? 'English' : 'عربي' }}</a>
+        {{-- the end side stays clear on desktop: the floating "Ask us" button sits in that corner --}}
+        <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-3 px-4 py-5 pb-28 text-xs sm:px-6 lg:pe-56 lg:pb-6" data-footer-bottom>
+            <span>© {{ date('Y') }} EgMenu</span>
+            <a href="https://egweb.com.eg" target="_blank" rel="noopener" data-egweb-badge
+               class="inline-flex h-9 items-center gap-2 rounded-full border border-white/15 bg-white/5 ps-3.5 pe-3 text-white/70 transition hover:border-white/30 hover:bg-white/10 hover:text-white">
+                <span>{{ __('by') }}</span>
+                <img src="{{ versioned_asset('img/brand/egweb-on-dark.webp') }}" alt="EgWeb" width="68" height="22" class="h-[22px] w-auto" loading="lazy">
+            </a>
+            <a href="?lang={{ $other }}" lang="{{ $other }}" data-footer-lang
+               class="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/15 px-3.5 text-white/70 transition hover:border-white/30 hover:text-white">
+                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>
+                {{ $other === 'en' ? 'English' : 'عربي' }}
+            </a>
         </div>
     </div>
 </footer>
