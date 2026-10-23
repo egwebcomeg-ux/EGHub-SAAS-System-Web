@@ -64,8 +64,25 @@
                 deferred = e;
                 if (due) setTimeout(() => show('android'), 3000);
             });
-            window.addEventListener('appinstalled', () => { state.installed = true; save(); hide(); });
+            window.addEventListener('appinstalled', () => { state.installed = true; save(); hide(); openers.forEach((b) => { b.hidden = true; }); });
             if (ios && due) setTimeout(() => { if (!deferred) show('ios'); }, 3000);
+
+            // the guest asks for it ("add the menu to your phone" in the footer): the system dialog when the browser
+            // offers one, otherwise the same banner with the iPhone / browser-menu steps
+            const openers = document.querySelectorAll('[data-pwa-open]');
+            if (!standalone) {
+                openers.forEach((b) => {
+                    b.hidden = false;
+                    b.addEventListener('click', async () => {
+                        if (deferred) {
+                            try { await deferred.prompt(); } catch (e) {}
+                            deferred = null;
+                            return;
+                        }
+                        show('ios');
+                    });
+                });
+            }
         })();
     </script>
 @endif

@@ -467,6 +467,11 @@
             {{-- the knowledge base's public answers live on the about page: a quiet link down here, never a banner on top --}}
             <div><a href="{{ route('menu.about') }}#faq" class="font-semibold underline underline-offset-2" data-faq-link>{{ __('Frequently asked questions') }}</a></div>
         @endif
+        {{-- the menu as an app on the phone: hidden by partials/pwa-scripts once it runs installed --}}
+        <div><button type="button" class="inline-flex min-h-10 items-center gap-2 rounded-full border px-4 font-semibold" style="border-color: var(--menu-border); color: var(--menu-text)" data-pwa-open hidden>
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM12 18h.01M12 6v7M9 10l3 3 3-3"/></svg>
+            {{ __('Add the menu to your phone') }}
+        </button></div>
         @unless (\App\Services\Entitlements::current()->allows('hide_badge'))
             <a href="{{ platform_url(null) }}" class="inline-flex items-center gap-1 text-xs">{{ __('Powered by') }} <x-logo :size="14" class="!gap-1 [&_span]:text-xs" /></a>
         @endunless

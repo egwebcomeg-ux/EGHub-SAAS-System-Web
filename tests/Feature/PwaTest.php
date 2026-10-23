@@ -111,7 +111,9 @@ class PwaTest extends TenantTestCase
             ->assertSee('<meta name="apple-mobile-web-app-title" content="كافيه أ">', false)
             ->assertSee('<link rel="apple-touch-icon" href="'.$this->pathUrl('cafe-a', 'icon-192.png').'">', false)
             ->assertSee('serviceWorker.register("'.$this->pathUrl('cafe-a', 'sw.js').'"', false)
-            ->assertSee('id="pwa-install-prompt"', false)->assertSee('beforeinstallprompt', false)->assertSee(__('Add the menu to your home screen'));
+            ->assertSee('id="pwa-install-prompt"', false)->assertSee('beforeinstallprompt', false)->assertSee(__('Add the menu to your home screen'))
+            // and a button the guest can use any time, not only when the banner decides to show
+            ->assertSee('data-pwa-open hidden', false)->assertSee(__('Add the menu to your phone'));
 
         // the profile page is part of the app but never prompts; the landing page is not an app
         $this->get($this->pathUrl('cafe-a', 'about'))->assertOk()->assertSee('rel="manifest"', false)->assertDontSee('id="pwa-install-prompt"', false);
