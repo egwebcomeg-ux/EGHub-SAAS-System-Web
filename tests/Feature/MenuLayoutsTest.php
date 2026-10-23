@@ -54,6 +54,23 @@ class MenuLayoutsTest extends TenantTestCase
         $this->assertSame([$drinks->id => 'text', $mains->id => 'text', $photos->id => 'bistro'], $this->layouts('cafe-a'));
     }
 
+    public function test_without_a_photo_the_list_and_cafe_rows_keep_the_price_on_the_name_line(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $this->menu($a);
+
+        foreach (['list'] as $layout) {
+            $this->as($a, fn () => Settings::put(['menu_theme' => 'classic', 'menu_layout' => $layout, 'item_placeholder' => '0']));
+            $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('data-item-row', false)->assertDontSee('data-placeholder=', false);
+        }
+        $this->as($a, fn () => Settings::put(['menu_theme' => 'cafe', 'menu_layout' => 'auto', 'item_placeholder' => '0']));
+        $this->get($this->subUrl('cafe-a'))->assertOk()->assertDontSee('☕', false);
+
+        // with placeholder tiles on, the rows keep their photo column
+        $this->as($a, fn () => Settings::put(['menu_theme' => 'classic', 'menu_layout' => 'list', 'item_placeholder' => '1']));
+        $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('data-placeholder=', false);
+    }
+
     public function test_the_menu_setting_and_the_category_override(): void
     {
         $a = $this->restaurant('cafe-a');

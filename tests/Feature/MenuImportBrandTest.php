@@ -102,6 +102,8 @@ class MenuImportBrandTest extends TenantTestCase
         $this->assertSame('#FDFBE6', $settings['color_bg']);
         $this->assertSame('Playfair Display', $settings['font']);
         $this->assertSame('classic', $settings['menu_theme']);
+        $this->assertSame('0', $settings['item_placeholder']); // no item photos yet: no empty tiles
+        $this->assertSame('white', $settings['logo_background']);
         $this->assertSame('en', $settings['default_locale']); // an English-only file
         $this->assertSame($logo, $settings['logo']);          // the restaurant had no logo yet
         $this->assertSame(1, $this->as($a, fn () => AuditLog::query()->where('action', 'branding.from_import')->count()));

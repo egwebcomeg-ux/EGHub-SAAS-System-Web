@@ -2,6 +2,7 @@
 
 namespace App\Services\Import;
 
+use App\Models\MenuItem;
 use App\Services\Audit;
 use App\Services\Entitlements;
 use App\Services\ImageService;
@@ -158,6 +159,17 @@ final class BrandStyle
         // brand's colours: the file's style moves the menu to the classic template, which follows them
         if (isset($values['color_secondary']) && in_array((string) Settings::get('menu_theme'), self::OWN_HEADER_THEMES, true)) {
             $values['menu_theme'] = 'classic';
+        }
+        if ($values !== []) {
+            // a menu brought as a PDF / photo design has no item photos yet: no empty placeholder tiles, the price
+            // on the name's line (menu/items/classic.blade.php); they come back once photos are added
+            if (! MenuItem::query()->whereNotNull('image')->where('image', '!=', '')->exists()) {
+                $values['item_placeholder'] = '0';
+            }
+            // the cut-out logo is drawn in the brand colour, on a header of the brand colour: a light tile behind it
+            if (isset($values['logo'])) {
+                $values['logo_background'] = 'white';
+            }
         }
         if (isset($values['logo'])) {
             $old = (string) Settings::get('logo');
