@@ -91,6 +91,24 @@
                             <button class="btn-primary">{{ $program->type === 'points' ? __('Add points') : __('Add stamp') }}</button>
                         </form>
                     @endif
+
+                    @if ($customer->card_token)
+                        @php($cardUrl = tenant()->url('card/'.$customer->card_token))
+                        @php($cardMessage = __('Your loyalty card at :place: :url', ['place' => tenant()->name, 'url' => $cardUrl]))
+                        <div class="mt-4 rounded-xl border border-navy-100 bg-navy-50/60 p-3" data-card-link>
+                            <div class="text-sm font-bold text-navy-900">{{ __("The guest's card link") }}</div>
+                            <p class="muted mt-0.5 text-xs">{{ __('Send it to the guest: they see their stamps, rewards and balance on their phone, and save it to the home screen.') }}</p>
+                            <div class="mt-2 flex flex-wrap items-center gap-2">
+                                <input class="field min-w-0 flex-1 text-sm" value="{{ $cardUrl }}" dir="ltr" readonly onclick="this.select()" aria-label="{{ __("The guest's card link") }}">
+                                @if ($customer->phone)
+                                    <a href="https://wa.me/{{ whatsapp_number($customer->phone) }}?text={{ rawurlencode($cardMessage) }}" target="_blank" rel="noopener" class="btn-primary min-h-10 px-3" data-card-whatsapp>{{ __('Send on WhatsApp') }}</a>
+                                @endif
+                                <button type="button" class="btn-ghost min-h-10 px-3" data-copy="{{ $cardUrl }}"
+                                        onclick="navigator.clipboard?.writeText(this.dataset.copy).then(() => { this.textContent = @js(__('Copied')) })">{{ __('Copy') }}</button>
+                                <a href="{{ $cardUrl }}" target="_blank" rel="noopener" class="btn-ghost min-h-10 px-3">{{ __('Open') }}</a>
+                            </div>
+                        </div>
+                    @endif
                 </section>
 
                 @if ($packages->isNotEmpty())

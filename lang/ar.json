@@ -4647,5 +4647,9 @@
     "A backup is being prepared right now. Wait for it to finish.": "فيه نسخة احتياطية بتتجهّز دلوقتي. استنى لما تخلص.",
     "You can take one backup per :minutes minutes. Try again in :wait minutes.": "تقدر تعمل نسخة احتياطية واحدة كل :minutes دقيقة. جرّب تاني بعد :wait دقيقة.",
     "Show the full menu": "اعرض القايمة كاملة",
-    "Show the slim menu": "صغّر القايمة"
+    "Show the slim menu": "صغّر القايمة",
+    "Your loyalty card at :place: :url": "كارت الولاء بتاعك في :place: :url",
+    "The guest's card link": "لينك كارت الضيف",
+    "Send it to the guest: they see their stamps, rewards and balance on their phone, and save it to the home screen.": "ابعته للضيف: هيشوف أختامه ومكافآته ورصيده على موبايله، ويقدر يحفظه على الشاشة الرئيسية.",
+    "Send on WhatsApp": "ابعته واتساب"
 }

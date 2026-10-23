@@ -169,6 +169,21 @@ class LoyaltyTest extends TenantTestCase
         $this->assertSame(0, $card->fresh()->stamps);
     }
 
+    public function test_the_counter_gives_the_guest_their_own_card_link_by_whatsapp(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $this->program($a);
+        $card = $this->as($a, fn () => app(LoyaltyService::class)->enroll('01066666666', 'Sara', 'counter'));
+        $token = $this->as($a, fn () => Customer::query()->where('phone', '01066666666')->value('card_token'));
+        $cashier = $this->staff($a, 'cashier', 'c@cafe-a.test');
+
+        $this->actingAs($cashier)->get($this->dashUrl('/loyalty?q=01066666666'))->assertOk()
+            ->assertSee('data-card-link', false)
+            ->assertSee("/card/$token", false)
+            ->assertSee('https://wa.me/201066666666?text=', false);
+        $this->assertNotNull($card);
+    }
+
     public function test_cards_and_customers_stay_inside_their_restaurant(): void
     {
         $a = $this->restaurant('cafe-a');
