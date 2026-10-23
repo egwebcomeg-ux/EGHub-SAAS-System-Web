@@ -202,6 +202,8 @@
                         <li><a href="{{ route('pricing') }}" class="hover:text-white">{{ __('Pricing') }}</a></li>
                         <li><a href="{{ route('services') }}" class="hover:text-white">{{ __('Services') }}</a></li>
                         <li><a href="{{ route('blog') }}" class="hover:text-white">{{ __('Blog') }}</a></li>
+                        {{-- free tools --}}
+                        <li><a href="{{ route('tools.qr') }}" class="hover:text-white">{{ __('Free QR code generator') }}</a></li>
                         <li><a href="{{ route('directory') }}" class="hover:text-white">{{ __('Restaurant directory') }}</a></li>
                         <li><a href="{{ platform_url('app', '/login') }}" class="hover:text-white">{{ __('Log in') }}</a></li>
                         <li><a href="{{ route('terms') }}" class="hover:text-white">{{ __('Terms of service') }}</a></li>

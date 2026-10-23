@@ -5,6 +5,7 @@ use App\Http\Controllers\Platform\BlogController;
 use App\Http\Controllers\Platform\DirectoryController;
 use App\Http\Controllers\Platform\FeaturesController;
 use App\Http\Controllers\Platform\LandingController;
+use App\Http\Controllers\Platform\QrToolController;
 use App\Http\Controllers\Platform\SeoController;
 use App\Http\Controllers\Platform\ServicesController;
 use App\Http\Controllers\Platform\SignupController;
@@ -48,6 +49,9 @@ Route::domain($domain)->group(function () use ($slug) {
         Route::get('/rss.xml', [BlogController::class, 'rss'])->name('blog.rss');
         // the website assistant ("اسألنا"): one chat turn per request, costs money → its own limiter
         Route::post('/assistant', [AssistantController::class, 'chat'])->middleware('throttle:assistant')->name('assistant');
+        // free tools: the styled QR code generator (the browser draws the code, the server only returns its module matrix)
+        Route::get('/qr-code-generator', [QrToolController::class, 'show'])->name('tools.qr');
+        Route::post('/qr-code-generator/matrix', [QrToolController::class, 'matrix'])->middleware('throttle:60,1')->name('tools.qr.matrix');
         Route::get('/terms', [LandingController::class, 'terms'])->name('terms');
         Route::get('/privacy', [LandingController::class, 'privacy'])->name('privacy');
         Route::get('/refund-policy', [LandingController::class, 'refund'])->name('refund');
