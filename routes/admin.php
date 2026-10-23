@@ -46,6 +46,8 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         Route::post('/tenants/{tenant}/directory', [TenantsController::class, 'directory'])->name('tenants.directory');
         Route::post('/tenants/{tenant}/suspend', [TenantsController::class, 'suspend'])->name('tenants.suspend');
         Route::post('/tenants/{tenant}/activate', [TenantsController::class, 'activate'])->name('tenants.activate');
+        // delete for good: the platform owner only (checked in the controller), with the slug typed to confirm
+        Route::post('/tenants/{tenant}/delete', [TenantsController::class, 'destroy'])->middleware('throttle:10,1')->name('tenants.destroy');
         Route::post('/tenants/{tenant}/users/{user}/verify-phone', [TenantsController::class, 'verifyPhone'])->whereNumber('user')->name('tenants.verify-phone');
         Route::post('/tenants/{tenant}/users/{user}/reset-link', [TenantUsersController::class, 'sendResetLink'])->whereNumber('user')->middleware('throttle:10,1')->name('tenants.users.reset-link');
         Route::post('/tenants/{tenant}/users/{user}/password', [TenantUsersController::class, 'setPassword'])->whereNumber('user')->middleware('throttle:10,1')->name('tenants.users.password');

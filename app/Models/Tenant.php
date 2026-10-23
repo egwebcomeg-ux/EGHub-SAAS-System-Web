@@ -13,7 +13,8 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
 
 /**
  * A restaurant or cafe. Its id is the slug of its public menu: egmenu.app/{slug} (canonical), {slug}.egmenu.app (alias).
- * Data is never hard-deleted by the app: soft delete keeps everything restorable, suspension only takes the menu offline.
+ * Soft delete keeps everything restorable and suspension only takes the menu offline; only the platform owner's
+ * "delete permanently" (App\Services\TenantEraser) removes a restaurant and its rows for good.
  */
 class Tenant extends BaseTenant
 {

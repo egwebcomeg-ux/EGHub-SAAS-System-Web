@@ -4887,5 +4887,14 @@
     "Checking the code…": "بنراجع الكود…",
     "Subscribe": "اشترك",
     "Write the InstaPay address restaurants pay to before switching InstaPay on.": "اكتب عنوان InstaPay اللي المطاعم هتحوّل عليه قبل ما تشغّل InstaPay.",
-    "Write the Vodafone Cash number restaurants pay to before switching it on.": "اكتب رقم فودافون كاش اللي المطاعم هتحوّل عليه قبل ما تشغّله."
+    "Write the Vodafone Cash number restaurants pay to before switching it on.": "اكتب رقم فودافون كاش اللي المطاعم هتحوّل عليه قبل ما تشغّله.",
+    "Only the platform owner can delete a restaurant for good.": "مالك المنصة بس اللي يقدر يمسح مطعم نهائياً.",
+    "Type the restaurant link (:slug) exactly to confirm.": "اكتب لينك المطعم (:slug) زي ما هو بالظبط عشان تأكّد.",
+    ":name was deleted for good.": "اتمسح :name نهائياً.",
+    "This restaurant paid an invoice in the last :days days. Tick \"delete anyway\" to delete it.": "المطعم ده دفع فاتورة في آخر :days يوم. علّم على \"امسح برضه\" عشان تمسحه.",
+    "Delete restaurant permanently": "امسح المطعم نهائياً",
+    "Deletes its menu, orders, customers, staff, invoices, domains, uploads and backups. This cannot be undone.": "بيمسح المنيو والطلبات والعملاء والموظفين والفواتير والدومينات والصور والنسخ الاحتياطية. مفيش رجوع في الخطوة دي.",
+    "Delete :name for good? This cannot be undone.": "تمسح :name نهائياً؟ مفيش رجوع في الخطوة دي.",
+    "Type the restaurant link to confirm:": "اكتب لينك المطعم عشان تأكّد:",
+    "Delete anyway, even if it paid in the last 30 days": "امسح برضه، حتى لو دفع في آخر 30 يوم"
 }

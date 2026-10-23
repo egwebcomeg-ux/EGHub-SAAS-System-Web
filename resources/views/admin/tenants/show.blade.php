@@ -315,4 +315,23 @@
         </ul>
     </section>
 @endif
+
+@if (auth('admin')->user()?->isOwner() && auth('admin')->user()->allows('tenants.manage'))
+    {{-- delete for good (App\Services\TenantEraser): the slug typed to confirm; a recent payment needs "delete anyway" --}}
+    <section class="card mt-4 border border-red-200" data-tenant-delete>
+        <h2 class="section-title mb-1 text-red-700">{{ __('Delete restaurant permanently') }}</h2>
+        <p class="muted mb-3">{{ __('Deletes its menu, orders, customers, staff, invoices, domains, uploads and backups. This cannot be undone.') }}</p>
+        <form method="post" action="{{ route('admin.tenants.destroy', $tenant) }}" class="grid max-w-md gap-3" onsubmit="return confirm(@js(__('Delete :name for good? This cannot be undone.', ['name' => $tenant->name])))">
+            @csrf
+            <label class="block">
+                <span class="field-label">{{ __('Type the restaurant link to confirm:') }} <bdi dir="ltr" class="font-mono">{{ $tenant->id }}</bdi></span>
+                <input class="field" name="confirm_slug" dir="ltr" autocomplete="off" required>
+            </label>
+            @error('confirm_slug')<div class="field-error">{{ $message }}</div>@enderror
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="force" value="1" class="size-4 accent-red-600"> {{ __('Delete anyway, even if it paid in the last 30 days') }}</label>
+            @error('delete')<div class="field-error">{{ $message }}</div>@enderror
+            <button class="btn-danger">{{ __('Delete restaurant permanently') }}</button>
+        </form>
+    </section>
+@endif
 @endsection

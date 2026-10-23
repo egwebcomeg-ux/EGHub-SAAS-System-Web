@@ -10,6 +10,7 @@ use App\Models\AddonPrice;
 use App\Models\AuditLog;
 use App\Models\CreditTransaction;
 use App\Models\Plan;
+use App\Models\PlatformAuditLog;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\User;
@@ -17,6 +18,7 @@ use App\Services\Audit;
 use App\Services\Entitlements;
 use App\Services\Seo\SocialProof;
 use App\Services\Settings;
+use App\Services\TenantEraser;
 use App\Services\TenantProvisioner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -267,5 +269,33 @@ class TenantsController extends Controller
         $tenant->update(['status' => 'active', 'suspended_at' => null]);
 
         return back()->with('ok', __('Restaurant activated.'));
+    }
+
+    /**
+     * Deletes the restaurant for good (TenantEraser): the platform owner only, with the slug typed to confirm; one
+     * that paid in the last 30 days needs "delete anyway". Recorded in the platform audit log, which outlives it.
+     */
+    public function destroy(Request $request, Tenant $tenant, TenantEraser $eraser): RedirectResponse
+    {
+        $admin = $request->user('admin');
+        abort_unless($admin->isOwner(), 403, __('Only the platform owner can delete a restaurant for good.'));
+        $request->validate([
+            'confirm_slug' => ['required', 'string', Rule::in([$tenant->id])],
+            'force' => 'nullable|boolean',
+        ], ['confirm_slug.in' => __('Type the restaurant link (:slug) exactly to confirm.', ['slug' => $tenant->id])]);
+
+        $name = $tenant->name;
+        $paidRecently = $eraser->paidRecently($tenant);
+        try {
+            $result = $eraser->erase($tenant, $request->boolean('force'));
+        } catch (\DomainException $e) {
+            return back()->withErrors(['delete' => $e->getMessage()]);
+        }
+        PlatformAuditLog::record($admin, 'tenant.deleted', $tenant->id, [
+            'name' => $name, 'forced' => $request->boolean('force'), 'paid_recently' => $paidRecently,
+            'rows' => array_sum($result['rows']), 'folders' => $result['folders'],
+        ]);
+
+        return redirect()->route('admin.tenants')->with('ok', __(':name was deleted for good.', ['name' => $name]));
     }
 }
