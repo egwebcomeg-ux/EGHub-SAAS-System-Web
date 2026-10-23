@@ -6,7 +6,8 @@ use App\Services\Settings;
 
 /**
  * Progressive web app declarations: every restaurant menu installs as its own app (name, colors and icon from the
- * restaurant's settings, scoped to its path or host), the dashboard as "EgMenu". layouts.base reads forRequest()
+ * restaurant's settings, scoped to its path or host), each guest's loyalty card as its own small app scoped to the
+ * card's path ("كارتي"), the dashboard as "EgMenu". layouts.base reads forRequest()
  * to add the manifest link, the Apple metas and the service worker registration on the right pages only.
  */
 final class Pwa
@@ -27,6 +28,15 @@ final class Pwa
             return [
                 'manifest' => route('dash.manifest'), 'sw' => route('dash.sw'), 'scope' => '/', 'theme' => self::THEME,
                 'icon' => versioned_asset('icons/egmenu-192.png'), 'title' => 'EgMenu', 'key' => 'dashboard', 'install' => false,
+            ];
+        }
+        if (tenant() && preg_match('/^(menu|path|custom)\.card$/', $name) && is_string($token = request()->route('token'))) {
+            $s = Settings::all();
+
+            return [
+                'manifest' => route('menu.card.manifest', $token), 'sw' => route('menu.card.sw', $token), 'scope' => self::cardScope($token),
+                'theme' => is_hex_color($s['color_secondary']) ? $s['color_secondary'] : self::THEME,
+                'icon' => route('menu.icon', ['size' => 192]), 'title' => __('My card'), 'key' => 'card-'.$token, 'install' => false,
             ];
         }
         if (! tenant() || ! preg_match('/^(menu|path|custom)\.(show|about)$/', $name)) {
@@ -72,6 +82,44 @@ final class Pwa
                 'src' => route('menu.icon', ['size' => $size]), 'sizes' => "{$size}x{$size}", 'type' => 'image/png', 'purpose' => 'any maskable',
             ], PwaIcons::SIZES),
         ];
+    }
+
+    /**
+     * One guest's loyalty card as its own small app, next to the menu app: its own id and scope (the card's
+     * path), opening straight on the card. Only this token is in it.
+     *
+     * @return array<string,mixed>
+     */
+    public static function cardManifest(string $token): array
+    {
+        $s = Settings::all();
+        $brand = self::brand($s);
+        $scope = self::cardScope($token);
+        $locale = app()->getLocale();
+
+        return [
+            'id' => $scope,
+            'name' => __(':name · My card', ['name' => $brand]),
+            'short_name' => __('My card'),
+            'description' => __('Your loyalty card at :name', ['name' => $brand]),
+            'lang' => $locale,
+            'dir' => $locale === 'ar' ? 'rtl' : 'ltr',
+            'start_url' => $scope.'?source=pwa',
+            'scope' => $scope,
+            'display' => 'standalone',
+            'orientation' => 'portrait',
+            'background_color' => is_hex_color($s['color_bg']) ? $s['color_bg'] : self::BACKGROUND,
+            'theme_color' => is_hex_color($s['color_secondary']) ? $s['color_secondary'] : self::THEME,
+            'icons' => array_map(fn (int $size) => [
+                'src' => route('menu.icon', ['size' => $size]), 'sizes' => "{$size}x{$size}", 'type' => 'image/png', 'purpose' => 'any maskable',
+            ], PwaIcons::SIZES),
+        ];
+    }
+
+    /** Path the card app owns: "/{slug}/card/{token}" or "/card/{token}" (no trailing slash: the card page itself). */
+    public static function cardScope(string $token): string
+    {
+        return (string) parse_url(route('menu.card', $token), PHP_URL_PATH);
     }
 
     /** @return array<string,mixed> */

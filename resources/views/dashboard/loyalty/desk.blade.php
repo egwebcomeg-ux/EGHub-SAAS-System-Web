@@ -107,6 +107,7 @@
                                         onclick="navigator.clipboard?.writeText(this.dataset.copy).then(() => { this.textContent = @js(__('Copied')) })">{{ __('Copy') }}</button>
                                 <a href="{{ $cardUrl }}" target="_blank" rel="noopener" class="btn-ghost min-h-10 px-3">{{ __('Open') }}</a>
                             </div>
+                            <p class="muted mt-2 text-xs" data-card-install-hint>{{ __('The guest can add the card to their phone from the link') }}</p>
                         </div>
                     @endif
                 </section>

@@ -4783,5 +4783,22 @@
     "Yes: the delivery fee is 25 EGP and it takes about 40 minutes.": "أيوه: رسوم التوصيل ٢٥ ج وبياخد حوالي ٤٠ دقيقة.",
     "What are your opening hours?": "مواعيد العمل إيه؟",
     "A guest complains about an order: what do I do?": "عميل بيشتكي من طلب، أعمل إيه؟",
-    "Is there parking?": "فيه مكان أركن فيه؟"
+    "Is there parking?": "فيه مكان أركن فيه؟",
+    "My card": "كارتي",
+    ":name · My card": ":name · كارتي",
+    "Your loyalty card at :name": "كارت الولاء بتاعك في :name",
+    "Loyalty card of :name": "كارت الولاء - :name",
+    "Add the card to your phone": "أضف الكارت لموبايلك",
+    "Save the card picture": "حفظ صورة الكارت",
+    "Add to Apple Wallet": "أضف إلى Apple Wallet",
+    "Save to Google Wallet": "احفظ في Google Wallet",
+    "Last updated": "آخر تحديث",
+    "No connection: this is the card as last saved on your phone.": "مفيش اتصال: ده الكارت زي ما اتحفظ آخر مرة على موبايلك.",
+    "Two steps, and the card opens from your home screen like an app.": "خطوتين بس، والكارت يفتح من الشاشة الرئيسية زي أي تطبيق.",
+    "At the bottom of Safari (at the top on iPad).": "تحت في Safari (فوق في الآيباد).",
+    "Or open the browser menu (⋮).": "أو افتح قائمة المتصفح (⋮).",
+    "Choose \"Add to Home Screen\"": "اختار «إضافة إلى الشاشة الرئيسية»",
+    "Then \"Add\": the card is on your home screen.": "وبعدين «إضافة»: الكارت هيبقى على الشاشة الرئيسية.",
+    "The guest can add the card to their phone from the link": "الضيف يقدر يضيف الكارت لموبايله من اللينك",
+    "Tier": "المستوى"
 }

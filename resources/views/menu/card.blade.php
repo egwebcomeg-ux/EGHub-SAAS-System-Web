@@ -3,8 +3,6 @@
 @section('body_class', 'm-surface-2 m-text')
 
 @push('head')
-<meta name="theme-color" content="{{ $program->card_design['bg'] ?? '#B5451B' }}">
-<meta name="apple-mobile-web-app-capable" content="yes">
 @include('menu.partials.theme')
 @endpush
 
@@ -38,7 +36,7 @@
             </div>
         @endif
         <p class="mt-5 text-center text-sm m-muted">{{ __('Show the QR to the cashier with every order to collect your stamps.') }}</p>
-        <p class="mt-1 text-center text-xs m-muted">{{ __('Tip: add this page to your home screen to keep the card one tap away.') }}</p>
+        @include('menu.partials.card-app')
     </section>
 
     <section data-face="back" class="hidden space-y-4">

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Menu\BoardController;
+use App\Http\Controllers\Menu\CardAppController;
 use App\Http\Controllers\Menu\CorporateVoucherController;
 use App\Http\Controllers\Menu\FeedbackController;
 use App\Http\Controllers\Menu\GiftController;
@@ -45,6 +46,15 @@ Route::get('/tv/{token}/version', [TvController::class, 'version'])->where('toke
 Route::get('/card', [LoyaltyCardController::class, 'join'])->name('card.join');
 Route::post('/card', [LoyaltyCardController::class, 'store'])->middleware('throttle:10,1')->name('card.store');
 Route::get('/card/{token}', [LoyaltyCardController::class, 'show'])->where('token', '[a-f0-9]{24}')->name('card');
+// the card as its own small app on the guest's phone (App\Services\Pwa::cardManifest), its live state, a picture, wallet passes
+Route::prefix('/card/{token}')->where(['token' => '[a-f0-9]{24}'])->name('card.')->group(function () {
+    Route::get('/manifest.webmanifest', [CardAppController::class, 'manifest'])->middleware('throttle:30,1')->name('manifest');
+    Route::get('/sw.js', [CardAppController::class, 'serviceWorker'])->middleware('throttle:30,1')->name('sw');
+    Route::get('/state', [CardAppController::class, 'state'])->middleware('throttle:30,1')->name('state');
+    Route::get('/image.svg', [CardAppController::class, 'image'])->middleware('throttle:10,1')->name('image');
+    Route::get('/wallet/google', [CardAppController::class, 'googleWallet'])->middleware('throttle:10,1')->name('wallet.google');
+    Route::get('/wallet/apple', [CardAppController::class, 'appleWallet'])->middleware('throttle:10,1')->name('wallet.apple');
+});
 
 // Gift cards (wallet): the printed card's QR; adds the amount to the wallet of the mobile entered, once
 Route::get('/gift/{code}', [GiftController::class, 'show'])->where('code', '[A-Za-z0-9]{12}')->name('gift');

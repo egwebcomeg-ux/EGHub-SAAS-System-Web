@@ -68,6 +68,28 @@ return [
         'base_url' => env('KASHIER_BASE_URL'),
     ],
 
+    /*
+    | The guest's loyalty card in Apple Wallet / Google Wallet (App\Services\Loyalty\WalletPasses). Each button shows
+    | on the card page only when its keys are set and the files exist. Paths are absolute or relative to the app root.
+    | Apple: the Pass Type ID (pass.app.egmenu...), the Team ID, the Pass Type ID certificate (.p12 + its password, or
+    | a PEM with the certificate and its key) and Apple's WWDR intermediate certificate (PEM). OpenSSL 3 cannot read
+    | Apple's older .p12 encryption: convert it once with `openssl pkcs12 -legacy -in pass.p12 -out pass.pem -nodes`.
+    | Google: the Wallet issuer ID and the JSON key file of a service account that has access to that issuer.
+    */
+    'wallet' => [
+        'apple' => [
+            'pass_type_id' => env('WALLET_APPLE_PASS_TYPE_ID'),
+            'team_id' => env('WALLET_APPLE_TEAM_ID'),
+            'certificate' => env('WALLET_APPLE_CERT_PATH'),
+            'certificate_password' => env('WALLET_APPLE_CERT_PASSWORD'),
+            'wwdr_certificate' => env('WALLET_APPLE_WWDR_CERT_PATH'),
+        ],
+        'google' => [
+            'issuer_id' => env('WALLET_GOOGLE_ISSUER_ID'),
+            'service_account' => env('WALLET_GOOGLE_SERVICE_ACCOUNT_PATH'),
+        ],
+    ],
+
     'facebook' => [
         'client_id' => env('FACEBOOK_CLIENT_ID'),
         'client_secret' => env('FACEBOOK_CLIENT_SECRET'),

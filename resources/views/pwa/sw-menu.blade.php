@@ -33,7 +33,8 @@ self.addEventListener('fetch', (event) => {
 
     // Pages: always try the network first; offline, the last copy of that page, else the offline page.
     if (request.mode === 'navigate' || (request.headers.get('accept') || '').includes('text/html')) {
-        if (!sameOrigin) return;
+        // a guest's loyalty card is its own app with its own worker: never kept in the menu's cache
+        if (!sameOrigin || url.pathname.startsWith(SCOPE + 'card/')) return;
         event.respondWith(
             fetch(request)
                 .then((response) => { if (response.ok) put(request, response); return response; })

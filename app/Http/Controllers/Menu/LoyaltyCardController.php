@@ -8,9 +8,11 @@ use App\Models\Coupon;
 use App\Models\Customer;
 use App\Services\Corporate\CorporateVouchers;
 use App\Services\Entitlements;
+use App\Services\Loyalty\CardState;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Loyalty\Membership;
 use App\Services\Loyalty\Packages;
+use App\Services\Loyalty\WalletPasses;
 use App\Services\Qr;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
@@ -64,7 +66,7 @@ class LoyaltyCardController extends Controller
     }
 
     /** The card link is the guest's key: opening it remembers the card on this phone (menu "My card", wallet). */
-    public function show(string $token, LoyaltyService $loyalty): Response
+    public function show(string $token, LoyaltyService $loyalty, CardState $cards, WalletPasses $walletPasses): Response
     {
         $customer = Customer::query()->where('card_token', $token)->firstOrFail();
         $program = $loyalty->program();
@@ -85,6 +87,8 @@ class LoyaltyCardController extends Controller
             'tier' => $membership->tierFor($customer), 'nextTier' => $membership->nextFor($customer), 'packages' => $packages,
             'qr' => Qr::svg(route('menu.card', $token), 220, '#111111'),
             'branches' => Branch::query()->where('is_active', true)->orderBy('sort_order')->get(),
+            // the card as an app on the phone: live state version, wallet buttons only when the platform has the keys
+            'cardState' => $cards->for($customer) ?? abort(404), 'walletPasses' => $walletPasses,
         ];
         $view = $program
             ? view('menu.card', $shared + [
@@ -93,7 +97,7 @@ class LoyaltyCardController extends Controller
             ])
             : view('menu.wallet', $shared);
 
-        return response($view)->withCookie(cookie()->forever($this->cookie(), $token));
+        return response($view, 200, CardAppController::PRIVATE_HEADERS)->withCookie(cookie()->forever($this->cookie(), $token));
     }
 
     private function cookie(): string
