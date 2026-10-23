@@ -1,3 +1,11 @@
+# PHP limits for uploads (menu photos up to 10 MB, PDF menus): LiteSpeed reads php_value here, not .user.ini
+<IfModule LiteSpeed>
+    php_value upload_max_filesize 12M
+    php_value post_max_size 16M
+    php_value memory_limit 256M
+    php_value max_execution_time 120
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
