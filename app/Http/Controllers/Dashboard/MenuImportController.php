@@ -7,11 +7,13 @@ use App\Jobs\ProcessMenuImport;
 use App\Models\MenuImport;
 use App\Services\Entitlements;
 use App\Services\Import\Ai\AiProviders;
+use App\Services\Import\BrandStyle;
 use App\Services\Import\ExcelMenuParser;
 use App\Services\Import\MenuDraft;
 use App\Services\Import\MenuImporter;
 use App\Services\Import\SpreadsheetReader;
 use App\Services\Import\XlsxWriter;
+use App\Services\Settings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -102,7 +104,12 @@ class MenuImportController extends Controller
 
     public function review(MenuImport $import): View
     {
-        return view('dashboard.menu.import-review', ['import' => $import]);
+        return view('dashboard.menu.import-review', [
+            'import' => $import,
+            'brand' => $import->status === 'parsed' ? BrandStyle::normalize($import->result['brand'] ?? null) : null,
+            'brandAllowed' => BrandStyle::allowed(),
+            'hasLogo' => (string) Settings::get('logo') !== '',
+        ]);
     }
 
     public function status(MenuImport $import): JsonResponse
@@ -139,12 +146,21 @@ class MenuImportController extends Controller
                 'allergens' => (string) ($row['allergens'] ?? ''),
             ];
         }
+        $brand = BrandStyle::normalize($import->result['brand'] ?? null);
         try {
             $result = $importer->apply($import, ['categories' => array_values($categories)], $data['mode']);
         } catch (\RuntimeException $e) {
             return back()->withErrors(['apply' => $e->getMessage()]);
         }
+        // the style of the file (colours, font, logo, language) goes with the import while "apply this style" is ticked
+        $styled = [];
+        if ($brand !== null && $request->boolean('apply_style')) {
+            $styled = BrandStyle::apply($brand, $request->boolean('replace_logo'), 'import #'.$import->id);
+        } else {
+            BrandStyle::discardLogo($brand);
+        }
+        $message = __(':created items added, :updated updated.', $result);
 
-        return redirect()->route('dash.menu')->with('ok', __(':created items added, :updated updated.', $result));
+        return redirect()->route('dash.menu')->with('ok', $styled !== [] ? $message.' '.__('Your menu now uses the style of your file.') : $message);
     }
 }

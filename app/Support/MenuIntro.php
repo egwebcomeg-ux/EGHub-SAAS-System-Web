@@ -13,6 +13,8 @@ final class MenuIntro
 {
     public const STYLES = ['off', 'logo', 'full'];
 
+    public const BACKGROUNDS = ['auto', 'brand', 'light'];
+
     /** User agents of crawlers and link-preview fetchers. */
     private const BOTS = '/bot|crawl|spider|slurp|facebookexternalhit|whatsapp|telegram|preview|embedly|bingpreview/i';
 
@@ -25,6 +27,25 @@ final class MenuIntro
         }
 
         return $style;
+    }
+
+    /**
+     * The colours of the intro screen (setting intro_background): brand = the header colour with the accent glow,
+     * light = the page background with accent rings and dots and the logo as drawn. auto picks light when the page
+     * background is light and the logo is shown bare (no white tile): a dark logo on the dark brand colour would vanish.
+     *
+     * @return 'brand'|'light'
+     */
+    public static function background(array $settings, bool $logoTile, string $pageBackground): string
+    {
+        $choice = in_array($settings['intro_background'] ?? 'auto', self::BACKGROUNDS, true) ? $settings['intro_background'] : 'auto';
+        if ($choice !== 'auto') {
+            return $choice;
+        }
+        $lightPage = is_hex_color($pageBackground) && MenuThemes::textOn($pageBackground) !== '#FFFFFF';
+        $bareLogo = (string) ($settings['logo'] ?? '') !== '' && ! $logoTile;
+
+        return $lightPage && $bareLogo ? 'light' : 'brand';
     }
 
     public static function isBot(string $userAgent): bool

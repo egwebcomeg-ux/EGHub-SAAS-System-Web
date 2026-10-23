@@ -88,6 +88,26 @@ final class StandStyles
         ];
     }
 
+    /** The language printed on the cards: the restaurant's own (Settings default_locale), whatever the dashboard is in. */
+    public static function locale(): string
+    {
+        return Settings::get('default_locale') === 'en' ? 'en' : 'ar';
+    }
+
+    /** A card text in the restaurant's language. */
+    public static function text(string $key, array $replace = []): string
+    {
+        return __($key, $replace, self::locale());
+    }
+
+    /** The restaurant's name as printed on the cards (the English one on an English menu, when set). */
+    public static function brand(array $settings): string
+    {
+        $english = self::locale() === 'en' && (string) $settings['brand_name_en'] !== '';
+
+        return ($english ? (string) $settings['brand_name_en'] : (string) $settings['brand_name']) ?: (string) tenant()->name;
+    }
+
     /** Guests can call the waiter from a scanned table only when table ordering is in the plan and switched on. */
     public static function canCallWaiter(): bool
     {

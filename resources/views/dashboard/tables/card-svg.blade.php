@@ -26,7 +26,7 @@
     $tableY = $y + 40 + $tableSize;
     $lineY = $tableY + 80;
 @endphp
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="105mm" height="148mm" viewBox="0 0 {{ $w }} {{ $h }}" direction="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="105mm" height="148mm" viewBox="0 0 {{ $w }} {{ $h }}" direction="{{ ($locale ?? app()->getLocale()) === 'ar' ? 'rtl' : 'ltr' }}">
     <title>{{ $brand }} · {{ $tableLabel }}</title>
     <defs>
         <linearGradient id="bg" x1="0" y1="0" x2="0.35" y2="1">

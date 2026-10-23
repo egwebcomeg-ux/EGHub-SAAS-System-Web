@@ -6,11 +6,13 @@ use App\Models\Branch;
 use App\Models\DiningTable;
 use App\Models\Tenant;
 use App\Services\Settings;
+use Illuminate\Support\Str;
 use Tests\TenantTestCase;
 
 /**
  * One first-open sheet after the intro: how the guest orders on top and, with 2+ branches and no table QR, the branch
- * list in the same sheet, one "Let's order". A table QR skips it; one branch never shows the branch part.
+ * list in the same sheet, one step (a tap on the order type continues). A table QR skips it; one branch never shows
+ * the branch part.
  */
 class FirstOpenSheetTest extends TenantTestCase
 {
@@ -26,13 +28,14 @@ class FirstOpenSheetTest extends TenantTestCase
         return $a;
     }
 
-    public function test_order_type_and_branch_share_one_sheet_with_one_confirm(): void
+    public function test_branch_and_order_type_share_one_sheet_and_a_tap_on_the_type_continues(): void
     {
         $this->twoBranches();
         $html = $this->get($this->subUrl('cafe-a'))->assertOk()
-            ->assertSee(['هتطلب إزاي؟', 'من أنهي فرع؟', 'يلا نطلب', 'أقرب فرع ليا'])
+            ->assertSee(['هتطلب إزاي؟', 'من أنهي فرع؟', 'أقرب فرع ليا', 'اطلب على ترابيزتك'])
             ->assertSee('data-way="dine"', false)->assertSee('data-branch-pick="zamalek"', false)
-            ->assertSee('data-first-confirm', false)
+            // one step: no separate "Let's order" button
+            ->assertDontSee('data-first-confirm', false)->assertDontSee('يلا نطلب')
             // the header chips reopen the same sheet
             ->assertSee('data-way-chip', false)->assertSee('data-branch-open', false)
             ->getContent();
@@ -40,15 +43,45 @@ class FirstOpenSheetTest extends TenantTestCase
         $this->assertSame(1, substr_count($html, 'data-order-choice'));
         $this->assertSame(1, substr_count($html, 'data-branch-sheet'));
         $this->assertStringNotContainsString('<dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/50 sm:m-auto sm:max-w-lg" data-branch-sheet', $html);
-        // the branch part sits inside the sheet, after the order type and before the confirm
+        // the branch is chosen first, then the order type cards
         $sheet = substr($html, strpos($html, 'data-order-choice'));
-        $this->assertTrue(strpos($sheet, 'data-way="dine"') < strpos($sheet, 'data-branch-sheet'));
-        $this->assertTrue(strpos($sheet, 'data-branch-sheet') < strpos($sheet, 'data-first-confirm'));
+        $this->assertTrue(strpos($sheet, 'data-branch-sheet') < strpos($sheet, 'data-way="dine"'));
+        // two branches: no search box (it comes from 5)
+        $this->assertStringNotContainsString('data-branch-search', $sheet);
         // a first visit with no branch chosen opens it before the first paint (once: the browser remembers the branch)
         $this->assertStringContainsString('egmenu.branch.cafe-a', $html);
         $this->assertSame(1, substr_count($html, "root.classList.add('choice-open')"));
         // reduced motion: the sheet does not slide in
         $this->assertStringContainsString('@media (prefers-reduced-motion: reduce) { .m-choice-card { animation: none; } }', $html);
+    }
+
+    public function test_many_branches_get_a_search_and_the_nearest_button(): void
+    {
+        $a = $this->restaurant('chain', 'full');
+        $this->as($a, function () {
+            Branch::query()->first()->update(['name' => 'Maadi', 'lat' => 29.9602, 'lng' => 31.2569]);
+            foreach (['Zamalek', 'Heliopolis', 'Dokki', 'Nasr City'] as $name) {
+                Branch::query()->create(['name' => $name, 'slug' => Str::slug($name)]);
+            }
+        });
+
+        $this->get($this->subUrl('chain'))->assertOk()
+            ->assertSee('data-branch-search', false)->assertSee('دوّر على الفرع')
+            ->assertSee('data-branch-near', false)->assertSee('data-branch-pick="nasr-city"', false);
+    }
+
+    public function test_a_bare_logo_on_a_light_page_gets_the_light_intro(): void
+    {
+        $a = $this->restaurant('dukes');
+        $this->as($a, fn () => Settings::put(['logo' => 'tenants/dukes/brand/logo.webp', 'logo_background' => 'none',
+            'color_primary' => '#9F2241', 'color_secondary' => '#72253D', 'color_bg' => '#FDFBE6']));
+        $this->get($this->subUrl('dukes'))->assertOk()->assertSee('data-intro-background="light"', false)->assertSee('m-intro--light', false);
+
+        $this->as($a, fn () => Settings::put(['intro_background' => 'brand']));
+        $this->get($this->subUrl('dukes'))->assertOk()->assertSee('data-intro-background="brand"', false);
+
+        // the owner picks it in the settings (menu tab)
+        $this->actingAs($this->owner($a))->get($this->dashUrl('/settings?tab=menu'))->assertOk()->assertSee('name="intro_background"', false);
     }
 
     public function test_a_table_qr_skips_the_sheet(): void

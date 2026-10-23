@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\MenuImport;
 use App\Services\Import\Ai\AiException;
 use App\Services\Import\Ai\AiProviders;
+use App\Services\Import\BrandLogo;
 use App\Services\Import\MenuDraft;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -27,7 +28,7 @@ class ProcessMenuImport implements ShouldQueue
 
     public function __construct(public int $importId) {}
 
-    public function handle(): void
+    public function handle(BrandLogo $logos): void
     {
         $import = MenuImport::query()->find($this->importId);
         if (! $import || $import->status !== 'pending') {
@@ -35,14 +36,21 @@ class ProcessMenuImport implements ShouldQueue
         }
         $paths = json_decode($import->file, true) ?: [];
         try {
-            $files = array_map(fn ($p) => [
+            $uploads = array_map(fn ($p) => [
                 'mime' => str_ends_with($p, '.pdf') ? 'application/pdf' : (Storage::disk('local')->mimeType($p) ?: 'image/jpeg'),
-                'data' => base64_encode((string) Storage::disk('local')->get($p)),
+                'bytes' => (string) Storage::disk('local')->get($p),
             ], $paths);
+            $files = array_map(fn ($f) => ['mime' => $f['mime'], 'data' => base64_encode($f['bytes'])], $uploads);
 
             $draft = MenuDraft::normalize(AiProviders::make()->extract($files));
             if (MenuDraft::itemCount($draft) === 0) {
                 throw new AiException(__('No menu items were found. Try clearer photos.'));
+            }
+            // the look of the file: the logo cut out of it and, without colours from the AI, its dominant colours
+            $brand = $logos->enrich($draft['brand'] ?? null, $uploads);
+            unset($draft['brand']);
+            if ($brand !== null) {
+                $draft['brand'] = $brand;
             }
             $import->update(['status' => 'parsed', 'result' => $draft, 'error' => null]);
         } catch (AiException|\RuntimeException $e) {

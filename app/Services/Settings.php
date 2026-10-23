@@ -74,6 +74,8 @@ final class Settings
         // branded splash on the first open per session (App\Support\MenuIntro): off | logo | full
         'menu_intro' => 'logo',
         'menu_intro_repeat' => 'always',  // always (every time the menu is opened) | session (once per browser session)
+        // colours of the intro screen: auto (light when the page is light and the logo bare) | brand | light
+        'intro_background' => 'auto',
         // behind the logo on the guest pages: auto (no tile on dark templates, white on light ones) | white | none
         'logo_background' => 'auto',
         // items without a photo show a themed placeholder tile (icon from the category) instead of nothing

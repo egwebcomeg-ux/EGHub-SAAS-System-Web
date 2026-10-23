@@ -23,9 +23,9 @@
 @include('menu.partials.seo-head', ['profile' => $profile, 'schemas' => $schemas])
 @include('menu.partials.pixels')
 {{-- theme-color, manifest and the home-screen icon come from partials.pwa-head (layouts.base) --}}
-@if ($settings['font'] !== 'Cairo')
+@if ($fontCss = \App\Support\MenuFonts::cssUrl($settings['font']))
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family={{ urlencode($settings['font']) }}:wght@400;600;700;800&display=swap">
+    <link rel="stylesheet" href="{{ $fontCss }}">
 @endif
 @include('menu.partials.theme')
 <style>

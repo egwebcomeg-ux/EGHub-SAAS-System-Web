@@ -613,31 +613,27 @@ if (dataEl) {
     }
     document.addEventListener('click', (e) => {
         const b = e.target.closest('[data-way], [data-online] [data-otype]');
-        // in the first-open sheet a way is only picked; "Let's order" applies it
+        // the first-open sheet handles its own cards (they may move to another branch first)
         if (!b || b.closest('[data-order-choice]')) return;
         chooseWay(b.dataset.way || b.dataset.otype);
     });
 
-    // ---- the first-open sheet: order type on top, the branch (2+ branches, no table) below, one confirm ----
+    // ---- the first-open sheet, one step: the branch (2+ branches, no table) on top, a tap on an order type continues ----
     const firstSheet = $('[data-order-choice]');
-    let pickedWay = null;
     let pickedBranch = null;
     const branchMemKey = `egmenu.branch.${M.tenant}`;
     const zoneAskKey = `egmenu.zoneAsk.${M.tenant}`;
+    const wayCards = () => firstSheet?.querySelectorAll('[data-way-pick] [data-way]') ?? [];
+    // the way chosen before (this sheet or the cart switch) is marked, so a reopen shows what is on
     function markWays() {
-        firstSheet?.querySelectorAll('[data-way-pick] [data-way]').forEach((b) => {
-            const on = b.dataset.way === pickedWay;
-            b.setAttribute('aria-pressed', on ? 'true' : 'false');
-            b.classList.toggle('m-way-on', on);
-            b.classList.toggle('m-surface-2', !on);
-            b.classList.toggle('m-border', !on);
+        const saved = session.get(wayKey);
+        wayCards().forEach((b) => {
+            b.setAttribute('aria-pressed', b.dataset.way === saved ? 'true' : 'false');
+            b.classList.remove('is-going');
         });
     }
     function openFirstSheet(reopen, focus) {
         if (!firstSheet) return;
-        // the way chosen before (this sheet or the cart switch), else the first one offered
-        const savedWay = session.get(wayKey);
-        pickedWay = savedWay && (M.ways || []).includes(savedWay) ? savedWay : (M.ways || [])[0] ?? null;
         markWays();
         renderBranchPart?.();
         root.classList.add('choice-open');
@@ -647,31 +643,46 @@ if (dataEl) {
     const closeFirstSheet = () => root.classList.remove('choice-open', 'choice-reopen');
     const reducedMotionNow = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     let renderBranchPart = null;
+    // the guest's choice: the way (if any) is remembered and applied; another branch reloads its own menu
+    function finishFirstSheet(way) {
+        const current = (M.branches || []).find((b) => b.id === M.branch)?.slug;
+        const moving = pickedBranch && pickedBranch !== current;
+        if (way && (M.ways || []).includes(way)) {
+            if (!H.table) session.set(wayKey, way);
+            applyWay(way);
+        }
+        if (moving) {
+            // the other branch's menu (prices, what is available) loads; its delivery areas are asked there
+            if (way === 'delivery') session.set(zoneAskKey, '1');
+            const url = new URL(location.href);
+            url.searchParams.set('branch', pickedBranch);
+            location.href = url.toString();
+            return;
+        }
+        closeFirstSheet();
+        if (way === 'delivery' && !currentZone()) openZones();
+    }
     if (firstSheet) {
+        const hasWays = wayCards().length > 0;
         firstSheet.addEventListener('click', (e) => {
             const way = e.target.closest('[data-way-pick] [data-way]');
-            if (way) { pickedWay = way.dataset.way; markWays(); return; }
-            const pick = e.target.closest('[data-branch-pick]');
-            if (pick) { e.preventDefault(); pickedBranch = pick.dataset.branchPick; renderBranchPart?.(); return; }
-            if (e.target.closest('[data-choice-close]')) closeFirstSheet();
-        });
-        $('[data-first-confirm]', firstSheet)?.addEventListener('click', () => {
-            const current = (M.branches || []).find((b) => b.id === M.branch)?.slug;
-            const moving = pickedBranch && pickedBranch !== current;
-            if (pickedWay && (M.ways || []).includes(pickedWay)) {
-                if (!H.table) session.set(wayKey, pickedWay);
-                applyWay(pickedWay);
-            }
-            if (moving) {
-                // the other branch's menu (prices, what is available) loads; its delivery areas are asked there
-                if (pickedWay === 'delivery') session.set(zoneAskKey, '1');
-                const url = new URL(location.href);
-                url.searchParams.set('branch', pickedBranch);
-                location.href = url.toString();
+            if (way) {
+                // a short "pressed" flash on the card, then on to the menu
+                way.classList.add('is-going');
+                way.setAttribute('aria-pressed', 'true');
+                setTimeout(() => finishFirstSheet(way.dataset.way), reducedMotionNow() ? 0 : 160);
                 return;
             }
-            closeFirstSheet();
-            if (pickedWay === 'delivery' && !currentZone()) openZones();
+            const pick = e.target.closest('[data-branch-pick]');
+            if (pick) {
+                e.preventDefault();
+                pickedBranch = pick.dataset.branchPick;
+                renderBranchPart?.();
+                // only a branch to choose: the tap is the choice
+                if (!hasWays) finishFirstSheet(null);
+                return;
+            }
+            if (e.target.closest('[data-choice-close]')) closeFirstSheet();
         });
         // the chips in the header reopen it; the branch chip brings the branch list into view
         $('[data-way-chip]')?.addEventListener('click', () => openFirstSheet(true));
@@ -1360,35 +1371,35 @@ if (dataEl) {
         const note = $('[data-branch-note]', branchPart);
         const tag = (text, strong) => `<span class="rounded-full px-2 py-0.5 text-[11px] font-extrabold ${strong ? 'm-primary' : 'm-surface-2 m-muted'}">${esc(text)}</span>`;
         const km = (d) => T.km.replace('__N__', d < 10 ? d.toFixed(1) : Math.round(d));
+        const search = $('[data-branch-search]', branchPart);
+        const fold = (s) => String(s || '').toLowerCase().replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
         renderBranchPart = () => {
             const current = B.find((b) => b.id === M.branch)?.slug;
             const chosen = pickedBranch || current;
-            const rows = [...B];
+            const q = fold(search?.value.trim());
+            // nearest first once the location is known; branches without coordinates after the ones with
+            const rows = B.filter((b) => !q || fold(`${b.name} ${b.address || ''}`).includes(q));
             if (distances) rows.sort((a, b) => (distances[a.id] ?? 1e9) - (distances[b.id] ?? 1e9));
             const nearest = distances ? rows.find((r) => distances[r.id] != null)?.id : null;
             $('[data-branch-list]', branchPart).innerHTML = rows.map((b) => {
                 const on = b.slug === chosen;
                 const tags = [
                     b.id === nearest ? tag(T.nearest, true) : '',
-                    b.id === M.branch ? tag(T.current, false) : '',
-                    b.id === lastVisit ? tag(T.lastVisit, false) : '',
+                    b.id === lastVisit && b.id !== nearest ? tag(T.lastVisit, false) : '',
                 ].join('');
-                const open = b.open === null ? '' : `<span class="text-xs font-bold ${b.open ? 'text-emerald-700' : 'text-red-600'}">● ${esc(b.open ? T.openNow : T.closedNow)}</span>`;
-                const dist = distances && distances[b.id] != null ? `<span class="m-muted text-xs font-bold" dir="ltr">${esc(km(distances[b.id]))}</span>` : '';
-                return `<div class="m-border flex items-start gap-3 rounded-2xl border p-3 ${on ? 'm-primary-border' : ''}" data-branch-row="${b.id}">
-                    <a href="?branch=${encodeURIComponent(b.slug)}" class="flex min-w-0 flex-1 items-start gap-3" data-branch-pick="${esc(b.slug)}" role="radio" aria-checked="${on ? 'true' : 'false'}">
-                        <span class="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-2 ${on ? 'm-primary border-transparent' : 'm-border'}" aria-hidden="true">${on ? '<span class="size-2 rounded-full bg-current"></span>' : ''}</span>
-                        <span class="min-w-0">
-                            <span class="flex flex-wrap items-center gap-1.5"><b class="text-base">${esc(b.name)}</b>${tags}</span>
-                            ${b.address ? `<span class="m-muted mt-0.5 block text-sm">${esc(b.address)}</span>` : ''}
-                            <span class="mt-1 flex flex-wrap items-center gap-3">${open}${dist}${b.hours ? `<span class="m-muted text-xs" dir="auto">${esc(b.hours)}</span>` : ''}</span>
-                        </span>
-                    </a>
-                    ${b.map ? `<a href="${esc(b.map)}" target="_blank" rel="noopener" class="m-primary-text shrink-0 text-xs font-bold">🗺 ${esc(T.onMap)}</a>` : ''}
-                </div>`;
-            }).join('');
-            $('[data-branch-list]', branchPart).setAttribute('role', 'radiogroup');
+                const open = b.open === null ? '' : `<span class="text-[11px] font-bold ${b.open ? 'text-emerald-700' : 'text-red-600'}">● ${esc(b.open ? T.openNow : T.closedNow)}</span>`;
+                const dist = distances && distances[b.id] != null ? `<span class="m-primary-text text-xs font-extrabold" dir="ltr" data-branch-km>${esc(km(distances[b.id]))}</span>` : '';
+                return `<a href="?branch=${encodeURIComponent(b.slug)}" class="m-branch-row ${on ? 'is-on' : ''}" data-branch-row="${b.id}" data-branch-pick="${esc(b.slug)}" role="radio" aria-checked="${on ? 'true' : 'false'}">
+                    <span class="m-branch-dot" aria-hidden="true"></span>
+                    <span class="min-w-0 flex-1">
+                        <span class="flex items-center gap-1.5"><b class="truncate">${esc(b.name)}</b>${tags}</span>
+                        <span class="flex items-center gap-2">${b.address ? `<span class="m-muted min-w-0 truncate text-xs">${esc(b.address)}</span>` : ''}${open}</span>
+                    </span>
+                    ${dist}
+                </a>`;
+            }).join('') || `<p class="m-muted py-3 text-center text-sm">${esc(T.noBranchMatch)}</p>`;
         };
+        search?.addEventListener('input', () => renderBranchPart());
         const locate = (silent) => {
             if (!navigator.geolocation) { if (!silent) { note.textContent = T.noLocation; note.classList.remove('hidden'); } return; }
             if (!silent) { note.textContent = T.locating; note.classList.remove('hidden'); }
@@ -1405,8 +1416,9 @@ if (dataEl) {
                 });
                 note.classList.add('hidden');
                 nearBtn?.classList.add('hidden');
-                // a first visit with no branch chosen: the nearest one is picked for the guest (they can change it)
-                if (!M.branchChosen && !pickedBranch) {
+                // a tap on "nearest to me", or a first visit with no branch chosen: the nearest one is picked for the
+                // guest (they can change it)
+                if (!silent || (!M.branchChosen && !pickedBranch)) {
                     const near = [...B].filter((b) => distances[b.id] != null).sort((a, b) => distances[a.id] - distances[b.id])[0];
                     if (near) pickedBranch = near.slug;
                 }

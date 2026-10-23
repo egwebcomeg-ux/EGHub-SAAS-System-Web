@@ -34,7 +34,7 @@ final class MenuDraft
             'type' => 'object', 'properties' => [
                 'name' => ['type' => 'string'], 'name_en' => ['type' => 'string'], 'items' => ['type' => 'array', 'items' => $item],
             ], 'required' => ['name', 'name_en', 'items'], 'additionalProperties' => false,
-        ]]], 'required' => ['categories'], 'additionalProperties' => false];
+        ]], 'brand' => BrandStyle::schema()], 'required' => ['categories', 'brand'], 'additionalProperties' => false];
     }
 
     /** Instructions for reading a menu photo/PDF (all providers). */
@@ -51,11 +51,21 @@ final class MenuDraft
             - Paid add-ons printed for an item or a section go in "extras" with their own price.
             - Leave descriptions empty unless the menu prints one. Do not invent items, prices or descriptions.
             - If a price is unreadable, use 0.
+            Also describe the look of the printed menu in "brand" (used to style the restaurant's QR menu the same way):
+            - "primary": the main brand / accent colour (titles, frames, prices) as #RRGGBB; "secondary": a second, darker
+              brand colour (header bands, dark panels); "background": the page / paper colour; "text": the body text colour.
+              Use "" for any colour you cannot see clearly. Never guess colours of a black-and-white scan.
+            - "heading_font_style": the style of the section titles: serif, sans, rounded, script, display (bold decorative
+              Latin), arabic_naskh (calligraphic Arabic), arabic_kufi (geometric Arabic), or "" when unsure.
+            - "language": "ar" when the menu is printed in Arabic only, "en" for English only, "both" for both.
+            - "logo_box": where the restaurant's logo is printed: "page" (1 = the first photo or PDF page) and x, y, w, h as
+              fractions 0..1 of that page's width and height (x, y = the top-left corner), a tight box around the logo mark
+              and name only. Set "found" to false (and the numbers to 0) when there is no logo.
             Return only the JSON object that matches the schema.
             TXT;
     }
 
-    /** Cleans any decoded structure into a valid draft. @return array{categories: list<array>} */
+    /** Cleans any decoded structure into a valid draft. @return array{categories: list<array>, brand?: array} */
     public static function normalize(mixed $raw): array
     {
         $out = [];
@@ -86,7 +96,13 @@ final class MenuDraft
             $out[] = ['name' => $name !== '' ? $name : __('Menu'), 'name_en' => self::text($cat['name_en'] ?? '', 80), 'items' => $items];
         }
 
-        return ['categories' => $out];
+        $draft = ['categories' => $out];
+        // the look of the file (AI imports only): optional, checked strictly (App\Services\Import\BrandStyle)
+        if (is_array($raw) && ($brand = BrandStyle::normalize($raw['brand'] ?? null)) !== null) {
+            $draft['brand'] = $brand;
+        }
+
+        return $draft;
     }
 
     public static function itemCount(array $draft): int

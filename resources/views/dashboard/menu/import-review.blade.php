@@ -46,6 +46,9 @@
             </div>
         </div>
         <x-flash />
+        @if ($brand)
+            @include('dashboard.menu.partials.import-brand', ['brand' => $brand, 'allowed' => $brandAllowed, 'hasLogo' => $hasLogo])
+        @endif
         <div class="card overflow-x-auto p-0">
             <table class="table-base min-w-[64rem]">
                 <thead><tr><th class="w-10"></th><th>{{ __('Category') }}</th><th>{{ __('Name (Arabic)') }}</th><th>{{ __('Name (English)') }}</th><th class="w-24">{{ __('Price') }}</th><th>{{ __('Sizes') }}</th><th>{{ __('Extras') }}</th></tr></thead>

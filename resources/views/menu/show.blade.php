@@ -26,9 +26,9 @@
 @include('menu.partials.seo-head', ['profile' => $profile, 'schemas' => $schemas, 'share' => $share])
 @include('menu.partials.pixels')
 {{-- theme-color, manifest and the home-screen icon come from partials.pwa-head (layouts.base) --}}
-@if ($settings['font'] !== 'Cairo')
+@if ($fontCss = \App\Support\MenuFonts::cssUrl($settings['font']))
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family={{ urlencode($settings['font']) }}:wght@400;600;700;800&display=swap">
+    <link rel="stylesheet" href="{{ $fontCss }}">
 @endif
 @include('menu.partials.theme', ['theme' => $theme, 'season' => $season])
 <style>
@@ -928,7 +928,7 @@
         'goalListDone' => __('You reached the goal! Tell the waiter about your :reward.'),
         'goalCoupon' => __('The gift does not combine with a coupon code.'), 'goalFree' => __('Free'),
         'wayChips' => $wayChips,
-        'current' => __('Current'), 'nearest' => __('Nearest'), 'lastVisit' => __('Last visit'),
+        'current' => __('Current'), 'nearest' => __('Nearest'), 'lastVisit' => __('Last visit'), 'noBranchMatch' => __('No branch matches your search.'),
         // open / closed labels of the branch rows only when the switcher is there (the header shows the state otherwise)
         'openNow' => $branchPicker ? __('Open now') : '', 'closedNow' => $branchPicker ? __('Closed now') : '', 'onMap' => __('Map'), 'km' => __(':n km', ['n' => '__N__']),
         'locating' => __('Finding your location…'), 'noLocation' => __('We could not get your location. Choose the branch from the list.'),

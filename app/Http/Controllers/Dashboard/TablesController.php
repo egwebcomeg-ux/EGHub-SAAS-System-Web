@@ -150,19 +150,20 @@ class TablesController extends Controller
         $options = $design['options'];
         $canCallWaiter = StandStyles::canCallWaiter();
         $wifi = $options['wifi_name'] === '' ? null
-            : 'Wi-Fi: '.$options['wifi_name'].($options['wifi_password'] !== '' ? ' · '.__('Password').': '.$options['wifi_password'] : '');
+            : 'Wi-Fi: '.$options['wifi_name'].($options['wifi_password'] !== '' ? ' · '.StandStyles::text('Password').': '.$options['wifi_password'] : '');
 
         $svg = '<?xml version="1.0" encoding="UTF-8"?>'."\n".view('dashboard.tables.card-svg', [
             'design' => $design,
             'palette' => StandStyles::palette($design['style']),
-            'brand' => tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name,
+            'brand' => StandStyles::brand($settings),
+            'locale' => StandStyles::locale(),
             'logo' => $this->logoDataUrl($settings['logo']),
             'headline' => $this->tableHeadline($settings['qr_target'] === 'links', $canCallWaiter),
-            'tableLabel' => __('Table :name', ['name' => $table->name]),
+            'tableLabel' => StandStyles::text('Table :name', ['name' => $table->name]),
             'qr' => Qr::svg($table->menuUrl(), 300, StandStyles::qrColor($settings['color_secondary']), 2),
             'lines' => array_values(array_filter([
-                $canCallWaiter && $options['waiter'] ? __('Call the waiter from your phone') : null,
-                $options['payment'] ? __('Pay cash or InstaPay') : null,
+                $canCallWaiter && $options['waiter'] ? StandStyles::text('Call the waiter from your phone') : null,
+                $options['payment'] ? StandStyles::text('Pay cash or InstaPay') : null,
                 $wifi,
             ])),
             'url' => $options['url'] ? $this->shortUrl(tenant()->url()) : null,
@@ -177,11 +178,11 @@ class TablesController extends Controller
 
     private function tableHeadline(bool $toLinks, bool $canOrder): string
     {
-        return match (true) {
-            $toLinks => __('Scan for the menu, ordering and our links'),
-            $canOrder => __('Scan the code and order'),
-            default => __('Scan to see the menu'),
-        };
+        return StandStyles::text(match (true) {
+            $toLinks => 'Scan for the menu, ordering and our links',
+            $canOrder => 'Scan the code and order',
+            default => 'Scan to see the menu',
+        });
     }
 
     /** egmenu.app/rosto: the menu address without the scheme, short enough to type. */

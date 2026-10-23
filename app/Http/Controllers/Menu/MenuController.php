@@ -174,6 +174,8 @@ class MenuController extends Controller
             'choice' => $choice,
             'calls' => $calls,
             'intro' => MenuIntro::style($settings, $request),
+            'introBackground' => MenuIntro::background($settings, MenuThemes::logoTile($theme, $settings),
+                MenuThemes::tokens($theme, $settings)['vars']['--menu-bg']),
             'openNow' => OpeningHours::isOpenAt($branch->working_hours, now()),
             'firstSheet' => $firstSheet,
             'branchFirst' => $branchPicker && $chosenBranch === null,

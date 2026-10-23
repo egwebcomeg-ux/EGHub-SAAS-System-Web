@@ -18,6 +18,7 @@ use App\Support\Cities;
 use App\Support\Cuisines;
 use App\Support\DineIn;
 use App\Support\ItemBadges;
+use App\Support\MenuFonts;
 use App\Support\MenuIntro;
 use App\Support\MenuLayouts;
 use App\Support\MenuLocales;
@@ -30,7 +31,7 @@ use Illuminate\View\View;
 /** Brand, look, contact and ordering settings of the restaurant. */
 class SettingsController extends Controller
 {
-    public const FONTS = ['Cairo', 'Tajawal', 'Almarai', 'IBM Plex Sans Arabic', 'Readex Pro', 'El Messiri'];
+    public const FONTS = MenuFonts::NAMES;
 
     /** The tabs of the page (one form: every tab is sent and saved together, so nothing is lost between tabs). */
     public const TABS = ['identity', 'menu', 'orders', 'messages', 'languages', 'account'];
@@ -109,6 +110,7 @@ class SettingsController extends Controller
             'dine_in_notice' => 'nullable|string|max:200',
             'menu_intro' => ['nullable', Rule::in(MenuIntro::STYLES)],
             'menu_intro_repeat' => ['nullable', Rule::in(['always', 'session'])],
+            'intro_background' => ['nullable', Rule::in(MenuIntro::BACKGROUNDS)],
             'logo_background' => ['nullable', Rule::in(['auto', 'white', 'none'])],
             'menu_layout' => ['nullable', Rule::in(MenuLayouts::CHOICES)],
             'menu_display' => ['nullable', Rule::in(['simple', 'pro'])],
@@ -149,6 +151,10 @@ class SettingsController extends Controller
         $values['ordering_enabled'] = $request->boolean('ordering_enabled') ? '1' : '0';
         // the hall: kept empty while it equals the default, so a later plan upgrade turns table ordering on by itself
         unset($values['dine_in_mode'], $values['menu_intro']);
+        // the intro colours: not sent = keep them
+        if (($values['intro_background'] ?? '') === '') {
+            unset($values['intro_background']);
+        }
         if ($request->boolean('dine_in_sent')) {
             $next = $values + Settings::all();
             $mode = (string) ($data['dine_in_mode'] ?? '');

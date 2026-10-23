@@ -4,7 +4,9 @@
 
 @use('App\Support\StandStyles')
 @php
-    $brand = tr($settings['brand_name'], $settings['brand_name_en']) ?: tenant()->name;
+    // the cards speak the restaurant's language (default_locale), not the dashboard's
+    $cardLocale = StandStyles::locale();
+    $brand = StandStyles::brand($settings);
     $logo = $settings['logo'] ? '/storage/' . $settings['logo'] : null;
     $options = $design['options'];
     $pageRules = [
@@ -14,11 +16,13 @@
     ];
     $card = fn (array $c) => [
         'style' => $design['style'], 'options' => $options, 'brand' => $brand, 'logo' => $logo, 'waiter' => $canCallWaiter,
-        'headline' => $tableHeadline, 'table' => __('Table :name', ['name' => $c['table']->name]), 'qr' => $c['qr'], 'url' => $shortUrl,
+        'headline' => $tableHeadline, 'table' => StandStyles::text('Table :name', ['name' => $c['table']->name]), 'qr' => $c['qr'], 'url' => $shortUrl,
+        'locale' => $cardLocale,
     ];
     $menuCard = [
         'style' => $design['style'], 'options' => $options, 'brand' => $brand, 'logo' => $logo, 'waiter' => false, 'table' => null,
-        'headline' => $toLinks ? __('Scan for the menu, ordering and our links') : __('Scan to see the menu'), 'qr' => $menuQr, 'url' => $shortUrl,
+        'headline' => StandStyles::text($toLinks ? 'Scan for the menu, ordering and our links' : 'Scan to see the menu'), 'qr' => $menuQr, 'url' => $shortUrl,
+        'locale' => $cardLocale,
     ];
     $singleTable = ! $onlyMenu && $cards->count() === 1 ? $cards->first()['table'] : null;
     $previewCard = $onlyMenu ? $menuCard : ($cards->isNotEmpty() ? $card($cards->first()) : null);

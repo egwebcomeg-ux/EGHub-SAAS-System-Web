@@ -101,6 +101,24 @@ class TableStandsTest extends TenantTestCase
         $this->actingAs($this->owner($a))->get($this->dashUrl("/tables/{$other->id}/svg"))->assertNotFound();
     }
 
+    public function test_an_english_restaurant_prints_its_cards_in_english_whatever_the_dashboard_language(): void
+    {
+        $a = $this->restaurant('cafe-a', 'starter');
+        $this->as($a, fn () => Settings::put(['default_locale' => 'en', 'brand_name' => 'روستو', 'brand_name_en' => 'Rosto']));
+        $owner = $this->owner($a);
+
+        // the dashboard itself stays Arabic, the cards are English and left-to-right
+        $this->actingAs($owner)->get($this->dashUrl('/tables/print'))->assertOk()
+            ->assertSee('تصميم الستاند')->assertSee('Scan to see the menu')->assertSee('Table 1')->assertSee('Rosto')
+            ->assertSee('lang="en" dir="ltr"', false)->assertDontSee('امسح عشان تشوف المنيو');
+
+        $table = $this->as($a, fn () => DiningTable::query()->firstOrFail());
+        $svg = $this->actingAs($owner)->get($this->dashUrl("/tables/{$table->id}/svg"))->assertOk()->getContent();
+        $this->assertStringContainsString('direction="ltr"', $svg);
+        $this->assertStringContainsString('Table '.$table->name, $svg);
+        $this->assertStringContainsString('Scan to see the menu', $svg);
+    }
+
     public function test_the_services_page_has_the_stand_studio(): void
     {
         $this->get($this->menuUrl('services'))->assertOk()
