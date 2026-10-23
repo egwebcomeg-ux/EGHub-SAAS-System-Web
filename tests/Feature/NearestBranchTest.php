@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Branch;
 use App\Models\BranchItem;
+use App\Models\DeliveryZone;
 use App\Models\DiningTable;
 use App\Models\MenuItem;
 use App\Models\Tenant;
+use App\Services\Settings;
 use App\Support\MapsLink;
 use Tests\TenantTestCase;
 
@@ -79,6 +81,45 @@ class NearestBranchTest extends TenantTestCase
         $solo = $this->get($this->subUrl('solo'))->assertOk()->assertDontSee('data-branch-open', false)
             ->assertHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
         $this->assertSame([], $this->menuData($solo->getContent())['branches']);
+    }
+
+    public function test_one_branch_with_delivery_allows_the_location_for_the_map_pin(): void
+    {
+        $a = $this->restaurant('solo', 'pro');
+        $this->item($a, 'Latte', 60);
+        $this->as($a, function () {
+            Settings::put(['online_delivery' => '1']);
+            DeliveryZone::query()->create(['branch_id' => Branch::query()->value('id'), 'name' => 'Maadi', 'fee' => 20]);
+        });
+
+        // typed (manual) zones, one branch: "use my current location" on the pin still needs the browser location
+        $this->get($this->subUrl('solo'))->assertOk()
+            ->assertHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
+    }
+
+    public function test_delivery_is_offered_per_branch_and_greyed_out_where_the_branch_has_no_zone(): void
+    {
+        $a = $this->twoBranches();
+        $this->as($a, function () {
+            Settings::put(['online_delivery' => '1', 'online_takeaway' => '1']);
+            DeliveryZone::query()->create(['branch_id' => Branch::query()->where('slug', 'main')->value('id'), 'name' => 'Maadi', 'fee' => 20]);
+        });
+
+        // the branch on screen (Zamalek) has no zone: the sheet still lists delivery (Maadi has it), greyed out
+        $res = $this->get($this->subUrl('cafe-a').'?branch=zamalek')->assertOk()
+            ->assertSee('data-way-missing', false)->assertSee('data-way="delivery"', false);
+        $data = $this->menuData($res->getContent());
+        $this->assertNotContains('delivery', $data['ways']);
+        $ways = array_column($data['branches'], 'ways', 'name');
+        $this->assertContains('delivery', $ways['Maadi']);
+        $this->assertNotContains('delivery', $ways['Zamalek']);
+        $this->assertContains('takeaway', $ways['Zamalek']);
+        $this->assertMatchesRegularExpression('/data-way="delivery"[^>]*disabled/', $res->getContent());
+
+        // on Maadi the delivery card is live
+        $maadi = $this->get($this->subUrl('cafe-a').'?branch=main')->assertOk()->getContent();
+        $this->assertContains('delivery', $this->menuData($maadi)['ways']);
+        $this->assertDoesNotMatchRegularExpression('/data-way="delivery"[^>]*disabled/', $maadi);
     }
 
     public function test_the_branch_form_takes_the_coordinates_from_a_maps_link(): void

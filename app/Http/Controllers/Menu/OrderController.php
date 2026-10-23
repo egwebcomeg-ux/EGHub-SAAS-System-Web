@@ -75,6 +75,34 @@ class OrderController extends Controller
     }
 
     /**
+     * The coupon line of the cart before sending: what the code takes off these lines, priced exactly like the
+     * order will be (OrderService::quoteCoupon), at the scanned table's branch or the branch of the online cart.
+     */
+    public function coupon(Request $request, OrderService $orders): JsonResponse
+    {
+        $data = $request->validate([
+            'coupon' => 'required|string|max:30',
+            'items' => 'required|array|min:1|max:'.OrderService::MAX_LINES,
+            'items.*.item_id' => 'required|integer',
+            'items.*.qty' => 'required|integer|min:1|max:'.OrderService::MAX_QTY,
+            'items.*.option_ids' => 'array|max:30',
+            'items.*.option_ids.*' => 'integer',
+            'customer_phone' => 'nullable|string|max:20',
+            'branch_id' => 'nullable|integer',
+        ]);
+        $table = MenuController::currentTable($request);
+        $branch = $table?->branch
+            ?? Branch::query()->where('is_active', true)->find($data['branch_id'] ?? 0)
+            ?? MenuCatalog::defaultBranch();
+        unset($data['branch_id']);
+        try {
+            return response()->json($orders->quoteCoupon($data, $branch));
+        } catch (OrderException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
      * Takeaway or delivery from the menu link (plan feature online_ordering). A mobile number is required so the
      * restaurant can call back; delivery needs a zone of the branch (fee + minimum) and an address.
      */

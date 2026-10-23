@@ -34,7 +34,9 @@ class OnlineOrderingTest extends TenantTestCase
             return DeliveryZone::query()->create(['branch_id' => Branch::query()->first()->id, 'name' => 'Maadi', 'fee' => 25, 'min_order' => 100]);
         });
 
-        $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('data-otype="takeaway"', false)->assertSee('Maadi');
+        $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('data-otype="takeaway"', false)->assertSee('Maadi')
+            // the name and mobile are kept on the phone for the next order, with a "not you?" link to clear them
+            ->assertSee('data-guest-forget', false);
 
         $this->order($a, ['type' => 'takeaway'])->assertOk()->assertJsonStructure(['url']);
         $this->order($a, ['type' => 'delivery', 'zone_id' => $zone->id, 'address' => '9 Road 233'])->assertOk();

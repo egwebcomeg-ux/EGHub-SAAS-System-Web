@@ -32,6 +32,7 @@ use App\Support\MenuLayouts;
 use App\Support\MenuThemes;
 use App\Support\MenuTicker;
 use App\Support\OpeningHours;
+use App\Support\OrderTracking;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -92,9 +93,16 @@ class MenuController extends Controller
             $online && $online['takeaway'] ? 'takeaway' : null,
             $online && $online['delivery'] ? 'delivery' : null,
         ]));
+        // the ways of every branch (2+ branches, no table): the start sheet offers a way when some branch has it and
+        // greys it out, with a switch to a branch that has it, while the chosen branch does not (resources/js/menu.js)
+        $branchWays = $branchPicker ? self::branchWays($activeBranches, $settings, $hall) : [];
+        $sheetWays = $branchPicker
+            ? array_values(array_filter(['dine', 'takeaway', 'delivery'], fn (string $w) => in_array($w, $ways, true)
+                || collect($branchWays)->contains(fn (array $bw) => in_array($w, $bw, true))))
+            : $ways;
         $choice = $table === null && $settings['order_type_prompt'] === '1' && ($ways[0] ?? null) === 'dine' && $online !== null;
         // one first-open sheet: how the guest orders (2+ ways) and, with 2+ branches and no table, from which branch
-        $firstSheet = ($table === null && count($ways) > 1) || $branchPicker;
+        $firstSheet = ($table === null && count($sheetWays) > 1) || $branchPicker;
         $calls = $table !== null && Entitlements::current()->allows('qr_ordering');
         $upsell = Entitlements::current()->allows('upsell');
         $available = $categories->flatMap(fn (Category $c) => $c->items)->keyBy('id');
@@ -171,6 +179,7 @@ class MenuController extends Controller
             'busy' => $table === null ? BusyMode::state() : null,
             'hall' => $hall,
             'ways' => $ways,
+            'sheetWays' => $sheetWays,
             'choice' => $choice,
             'calls' => $calls,
             'intro' => MenuIntro::style($settings, $request),
@@ -213,6 +222,7 @@ class MenuController extends Controller
                     'id' => $b->id, 'slug' => $b->slug, 'name' => tr($b->name, $b->name_en), 'address' => $b->address,
                     'lat' => $b->lat, 'lng' => $b->lng, 'map' => $b->maps_url ?: ($b->lat !== null ? "https://www.google.com/maps?q={$b->lat},{$b->lng}" : null),
                     'open' => OpeningHours::isOpenAt($b->working_hours, now()), 'hours' => $b->working_hours,
+                    'ways' => $branchWays[$b->id] ?? [],
                 ])->values() : [],
                 // "outside every zone": the guest can still ask the branch on WhatsApp
                 'whatsapp' => ($wa = (string) ($branch->whatsapp ?: $settings['whatsapp'] ?: $branch->phone)) !== '' ? whatsapp_number($wa) : null,
@@ -233,6 +243,7 @@ class MenuController extends Controller
                 'online' => $online,
                 'currency' => tr($settings['currency'], $settings['currency_en']),
                 'orderUrl' => route('menu.order'),
+                'couponUrl' => route('menu.coupon'),
                 'viewUrl' => route('menu.item.view', ['item' => 0]),
                 'service' => (float) $settings['service_percent'],
                 'tax' => (float) $settings['tax_percent'],
@@ -261,8 +272,9 @@ class MenuController extends Controller
                 ]]),
             ],
         ]);
-        // geolocation only on this page and only for "nearest branch" / "detect my area" (asked on a tap)
-        if ($branchPicker || $zonesDrawn) {
+        // geolocation only on this page and only for "nearest branch", "detect my area" and "use my current location"
+        // on the delivery pin (each asked on a tap)
+        if ($branchPicker || $zonesDrawn || ($online && $online['delivery'])) {
             $response->header('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
         }
         if ($chosenBranch) {
@@ -394,6 +406,8 @@ class MenuController extends Controller
                 ->sortBy(fn ($z) => $z->label())->map(fn ($z) => [
                     'id' => $z->id, 'name' => $z->label(), 'fee' => (float) ($z->effective('fee') ?? 0),
                     'min' => (float) ($z->effective('min_order') ?? 0), 'minutes' => $z->effective('estimated_minutes'),
+                    // to the door from sending: preparation + the zone's time, as the tracking page counts it
+                    'eta' => OrderTracking::deliveryMinutes((int) $z->effective('estimated_minutes'), $settings),
                     'parent' => $z->parent_id, 'polygon' => is_array($z->polygon) && count($z->polygon) >= 3 ? $z->polygon : null,
                 ])->values()->all()
             : [];
@@ -404,8 +418,31 @@ class MenuController extends Controller
 
         return [
             'branch' => $branch->id, 'takeaway' => $takeaway, 'delivery' => $zones !== [], 'zones' => $zones,
-            'scheduled' => Entitlements::current()->allows('scheduled_orders'), 'prep' => (int) $settings['online_prep_minutes'],
+            'scheduled' => Entitlements::current()->allows('scheduled_orders'), 'prep' => OrderTracking::prepMinutes($settings),
         ];
+    }
+
+    /**
+     * The ways to order of each active branch, for the start sheet: the hall (one setting for all), takeaway (on for
+     * all) and delivery only where the branch has an active zone, nothing while online ordering is off or busy.
+     *
+     * @param  Collection<int, Branch>  $branches
+     * @param  array{mode:string}  $hall
+     * @return array<int, list<string>>
+     */
+    public static function branchWays(Collection $branches, array $settings, array $hall): array
+    {
+        $online = Entitlements::current()->allows('online_ordering') && $settings['ordering_enabled'] === '1' && ! BusyMode::isBusy();
+        $delivering = $online && $settings['online_delivery'] === '1'
+            ? DeliveryZone::query()->where('is_active', true)->whereIn('branch_id', $branches->pluck('id'))->distinct()->pluck('branch_id')->all()
+            : [];
+        $takeaway = $online && $settings['online_takeaway'] === '1';
+
+        return $branches->mapWithKeys(fn (Branch $b) => [$b->id => array_values(array_filter([
+            $hall['mode'] !== 'off' ? 'dine' : null,
+            $takeaway ? 'takeaway' : null,
+            in_array($b->id, $delivering) ? 'delivery' : null,
+        ]))])->all();
     }
 
     /**

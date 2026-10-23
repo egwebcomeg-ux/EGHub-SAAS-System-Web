@@ -184,7 +184,7 @@
                         @if ($item->options)<span class="block text-xs m-muted">{{ collect($item->options)->pluck('name')->implode('، ') }}</span>@endif
                         @if ($item->notes)<span class="block text-xs m-primary-text">{{ $item->notes }}</span>@endif
                     </span>
-                    <span class="shrink-0 tabular-nums">{{ money($item->line_total) }}</span>
+                    <span class="shrink-0 tabular-nums">{{ money($item->line_total) }} {{ $currency }}</span>
                 </li>
             @endforeach
         </ul>
@@ -193,23 +193,23 @@
         @endif
         <div class="mt-3 space-y-1 border-t m-border pt-3 text-sm" data-totals>
             @if ($order->subtotal != $order->total)
-                <div class="flex justify-between"><span>{{ __('Subtotal') }}</span><span>{{ money($order->subtotal) }}</span></div>
+                <div class="flex justify-between"><span>{{ __('Subtotal') }}</span><span>{{ money($order->subtotal) }} {{ $currency }}</span></div>
             @endif
             @if ($order->coupon_discount > 0)
-                <div class="flex justify-between m-primary-text" data-coupon><span>{{ __('Coupon :code', ['code' => $order->coupon_code]) }}</span><span dir="ltr">−{{ money($order->coupon_discount) }}</span></div>
+                <div class="flex justify-between m-primary-text" data-coupon><span>{{ __('Coupon :code', ['code' => $order->coupon_code]) }}</span><span dir="ltr">−{{ money($order->coupon_discount) }} {{ $currency }}</span></div>
             @endif
             @if ($order->goal_reward)
-                <div class="flex justify-between gap-3 font-semibold m-primary-text" data-goal-reward><span>🎁 {{ $order->goal_reward }}</span>@if ($order->goal_discount > 0)<span dir="ltr">−{{ money($order->goal_discount) }}</span>@endif</div>
+                <div class="flex justify-between gap-3 font-semibold m-primary-text" data-goal-reward><span>🎁 {{ $order->goal_reward }}</span>@if ($order->goal_discount > 0)<span dir="ltr">−{{ money($order->goal_discount) }} {{ $currency }}</span>@endif</div>
             @endif
             @if ($order->member_discount > 0)
-                <div class="flex justify-between m-primary-text"><span>{{ __('Member discount (:tier)', ['tier' => $order->member_tier]) }}</span><span dir="ltr">−{{ money($order->member_discount) }}</span></div>
+                <div class="flex justify-between m-primary-text"><span>{{ __('Member discount (:tier)', ['tier' => $order->member_tier]) }}</span><span dir="ltr">−{{ money($order->member_discount) }} {{ $currency }}</span></div>
             @endif
             @if ($otherDiscount > 0)
                 <div class="flex justify-between m-primary-text"><span>{{ __('Discount') }}</span><span dir="ltr">−{{ money($otherDiscount) }}</span></div>
             @endif
-            @if ($order->service > 0)<div class="flex justify-between"><span>{{ __('Service') }}</span><span>{{ money($order->service) }}</span></div>@endif
-            @if ($order->tax > 0)<div class="flex justify-between"><span>{{ __('Tax') }}</span><span>{{ money($order->tax) }}</span></div>@endif
-            @if ($order->delivery_fee > 0)<div class="flex justify-between" data-delivery-fee><span>{{ __('Delivery fee') }}</span><span>{{ money($order->delivery_fee) }}</span></div>@endif
+            @if ($order->service > 0)<div class="flex justify-between"><span>{{ __('Service') }}</span><span>{{ money($order->service) }} {{ $currency }}</span></div>@endif
+            @if ($order->tax > 0)<div class="flex justify-between"><span>{{ __('Tax') }}</span><span>{{ money($order->tax) }} {{ $currency }}</span></div>@endif
+            @if ($order->delivery_fee > 0)<div class="flex justify-between" data-delivery-fee><span>{{ __('Delivery fee') }}</span><span>{{ money($order->delivery_fee) }} {{ $currency }}</span></div>@endif
             <div class="flex justify-between pt-1 text-base font-extrabold"><span>{{ __('Total') }}</span><span>{{ money($order->total) }} {{ $currency }}</span></div>
             @if ($order->payment_status === 'paid' && $order->payment_method === 'credit')
                 <div class="mt-1 rounded-lg bg-emerald-50 px-3 py-2 text-center font-semibold text-emerald-800" data-paid-wallet>

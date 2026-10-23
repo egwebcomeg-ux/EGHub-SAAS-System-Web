@@ -26,6 +26,9 @@ if (dataEl) {
     const inHall = () => mode === 'table' || mode === 'list';
     const hidePrices = () => inHall() && !H.prices;
     const wayKey = `egmenu.way.${M.tenant}`;
+    // the cart's coupon preview (see quoteCoupon) and its re-check timer
+    let couponQuote = null;
+    let couponTimer = null;
 
     // ---- cart storage (each restaurant has its own cart) ----
     let cart = [];
@@ -411,11 +414,14 @@ if (dataEl) {
     function totals() {
         const subtotal = cart.reduce((s, l) => s + unitPrice(M.items[l.item_id], l.option_ids) * l.qty, 0);
         const goal = goalState(subtotal);
-        const service = inHall() ? (subtotal - goal.off) * M.service / 100 : 0;
-        const tax = mode === 'none' ? 0 : (subtotal - goal.off + service) * M.tax / 100;
+        // the coupon the server priced for exactly these lines and this code (couponFor)
+        const coupon = couponFor();
+        const couponOff = coupon ? Math.min(coupon.discount, subtotal - goal.off) : 0;
+        const service = inHall() ? (subtotal - goal.off - couponOff) * M.service / 100 : 0;
+        const tax = mode === 'none' ? 0 : (subtotal - goal.off - couponOff + service) * M.tax / 100;
         const zone = currentZone();
         const fee = zone ? zone.fee : 0;
-        return { subtotal, goal, service, tax, fee, zone, total: subtotal - goal.off + service + tax + fee };
+        return { subtotal, goal, coupon, service, tax, fee, zone, total: subtotal - goal.off - couponOff + service + tax + fee };
     }
 
     // ---- cart goal ("add X and get Y free"): progress only; the server decides the reward with its own prices ----
@@ -448,7 +454,63 @@ if (dataEl) {
         $('[data-goal-fill]', box).style.width = `${g.pct}%`;
         box.classList.toggle('m-primary-border', g.reached);
     }
-    $('[data-coupon]')?.addEventListener('input', () => { if (G) renderCart(); });
+    $('[data-coupon]')?.addEventListener('input', () => { if (G || couponQuote) renderCart(); });
+
+    // ---- coupon preview before sending: the server prices the code for these lines (Menu\OrderController::coupon);
+    // the bill shows its line and the new total, and asks again when the lines change ----
+    const couponField = () => $('[data-coupon]');
+    const linesKey = () => JSON.stringify(cart.map((l) => [l.item_id, l.qty, l.option_ids]));
+    const couponCode = () => (couponField()?.value || '').trim().toUpperCase();
+    function couponFor() {
+        if (!couponQuote || mode === 'list' || mode === 'none') return null;
+        return couponQuote.typed === couponCode() && couponQuote.key === linesKey() ? couponQuote : null;
+    }
+    function couponStatus(text, ok) {
+        const box = $('[data-coupon-status]');
+        if (!box) return;
+        box.textContent = text || '';
+        box.classList.toggle('hidden', !text);
+        box.classList.toggle('text-emerald-700', !!ok);
+        box.classList.toggle('text-red-600', ok === false);
+    }
+    async function quoteCoupon() {
+        const code = couponCode();
+        if (!couponField() || !M.couponUrl) return;
+        if (!code || !cart.length) { couponQuote = null; couponStatus(''); renderCart(); return; }
+        couponStatus(T.couponChecking);
+        const key = linesKey();
+        try {
+            const res = await fetch(M.couponUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+                body: JSON.stringify({
+                    coupon: code, customer_phone: $('[data-customer-phone]')?.value.trim() || null, branch_id: O?.branch ?? null,
+                    items: cart.map((l) => ({ item_id: l.item_id, qty: l.qty, option_ids: l.option_ids })),
+                }),
+            });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                couponQuote = { typed: code, key, discount: 0, failed: true };
+                couponStatus(body.message || (body.errors ? Object.values(body.errors)[0][0] : ''), false);
+            } else {
+                couponQuote = { typed: code, key, discount: Number(body.discount) || 0, code: body.code };
+                couponStatus(T.couponApplied.replace('__A__', fmt(couponQuote.discount)), true);
+            }
+        } catch {
+            couponQuote = null;
+            couponStatus('');
+        }
+        renderCart();
+    }
+    $('[data-coupon-apply]')?.addEventListener('click', quoteCoupon);
+    couponField()?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); quoteCoupon(); } });
+    couponField()?.addEventListener('input', () => { if (couponQuote && couponQuote.typed !== couponCode()) { couponQuote = null; couponStatus(''); } });
+    // the lines changed after a code was applied: price it again (a refused code waits for another tap)
+    function requoteCoupon() {
+        if (!couponQuote || couponQuote.failed || couponQuote.typed !== couponCode() || couponQuote.key === linesKey()) return;
+        clearTimeout(couponTimer);
+        couponTimer = setTimeout(quoteCoupon, 400);
+    }
 
     function renderCart() {
         const list = mode === 'list';
@@ -500,15 +562,18 @@ if (dataEl) {
         $('[data-bill]', cartSheet)?.classList.toggle('hidden', hidePrices() || !cart.length);
         // savings of the running offers: the price before the offer is real data of the menu (MenuCatalog)
         const saved = cart.reduce((s, l) => { const it = M.items[l.item_id]; return s + (it.offerFrom ? (it.offerFrom - it.price) * l.qty : 0); }, 0);
-        const breakdown = t.service || t.tax || t.fee || t.goal.off;
-        summary.innerHTML = (breakdown ? row(T.subtotal, t.subtotal) + (t.goal.off ? row(`🎁 ${G.rewardName}`, -t.goal.off) : '') + (t.service ? row(T.service, t.service) : '') + (t.tax ? row(T.tax, t.tax) : '') + (t.fee ? row(T.deliveryFee, t.fee) : '') : '')
+        const couponOff = t.coupon ? Math.min(t.coupon.discount, t.subtotal - t.goal.off) : 0;
+        const breakdown = t.service || t.tax || t.fee || t.goal.off || couponOff;
+        requoteCoupon();
+        summary.innerHTML = (breakdown ? row(T.subtotal, t.subtotal) + (t.goal.off ? row(`🎁 ${G.rewardName}`, -t.goal.off) : '') + (couponOff ? row(`🎟 ${T.couponLine.replace('__C__', t.coupon.code)}`, -couponOff) : '') + (t.service ? row(T.service, t.service) : '') + (t.tax ? row(T.tax, t.tax) : '') + (t.fee ? row(T.deliveryFee, t.fee) : '') : '')
             + (breakdown ? `<div class="m-border mt-1 border-t pt-1.5">${row(T.total, t.total, true)}</div>` : row(T.total, t.total, true))
             + (saved > 0.005 ? `<div class="text-xs font-bold text-emerald-700" data-offers-saved>🏷 ${esc(T.offersSaved.replace('__A__', fmt(saved)))}</div>` : '')
             + (t.zone && t.zone.min > t.subtotal ? `<div class="mt-1 text-xs font-semibold text-amber-700">${esc(T.minOrder.replace('__A__', fmt(t.zone.min)))}</div>` : '');
-        // the expected time: the zone's minutes for delivery, else the kitchen's preparation time (online orders)
+        // the expected time, as the tracking page counts it: preparation + the zone's minutes for delivery, else the
+        // kitchen's preparation time (online orders)
         const eta = $('[data-cart-eta]', cartSheet);
         if (eta) {
-            const minutes = mode === 'online' ? (otype === 'delivery' ? (t.zone?.minutes || null) : O?.prep) : null;
+            const minutes = mode === 'online' ? (otype === 'delivery' ? (t.zone?.eta || null) : O?.prep) : null;
             eta.textContent = minutes ? `⏱ ${(otype === 'delivery' ? T.etaDelivery : T.etaPickup).replace('__N__', minutes)}` : '';
             eta.classList.toggle('hidden', !minutes);
             eta.classList.toggle('flex', !!minutes);
@@ -636,6 +701,7 @@ if (dataEl) {
         if (!firstSheet) return;
         markWays();
         renderBranchPart?.();
+        syncWayCards();
         root.classList.add('choice-open');
         if (reopen) root.classList.add('choice-reopen');
         if (focus) setTimeout(() => $(focus, firstSheet)?.scrollIntoView({ block: 'start', behavior: reducedMotionNow() ? 'auto' : 'smooth' }), 50);
@@ -643,14 +709,54 @@ if (dataEl) {
     const closeFirstSheet = () => root.classList.remove('choice-open', 'choice-reopen');
     const reducedMotionNow = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     let renderBranchPart = null;
+    let branchDistances = null;
+    // the branch picked in the sheet (or the one on screen) and the ways it offers
+    const sheetBranch = () => {
+        const list = M.branches || [];
+        const current = list.find((b) => b.id === M.branch);
+        return list.find((b) => b.slug === (pickedBranch || current?.slug)) || current || null;
+    };
+    const waysOf = (b) => (b ? b.ways || [] : M.ways || []);
+    // 2+ branches: a way the picked branch lacks (delivery without a zone there) is greyed out, with a note and a
+    // one-tap switch to the nearest branch that has it; the guest's way is never changed behind their back
+    const wayMissing = firstSheet?.querySelector('[data-way-missing]');
+    function syncWayCards() {
+        if (!(M.branches || []).length) return;
+        const chosen = sheetBranch();
+        let missing = null;
+        wayCards().forEach((card) => {
+            const here = waysOf(chosen).includes(card.dataset.way);
+            card.disabled = !here;
+            if (!here && !missing) missing = card.dataset.way;
+        });
+        if (!wayMissing) return;
+        wayMissing.classList.toggle('hidden', !missing);
+        if (!missing) return;
+        const others = (M.branches || []).filter((b) => b !== chosen && waysOf(b).includes(missing));
+        if (branchDistances) others.sort((a, b) => (branchDistances[a.id] ?? 1e9) - (branchDistances[b.id] ?? 1e9));
+        const other = others[0];
+        const name = chosen?.name || '';
+        $('[data-way-missing-text]', wayMissing).textContent = missing === 'delivery'
+            ? (other ? T.noDeliveryTry.replace('__B__', name).replace('__O__', other.name) : T.noDeliveryHere.replace('__B__', name))
+            : T.wayNotHere;
+        const btn = $('[data-way-missing-switch]', wayMissing);
+        btn.classList.toggle('hidden', !other);
+        if (other) {
+            btn.textContent = T.switchBranch.replace('__B__', other.name);
+            btn.onclick = () => { pickedBranch = other.slug; renderBranchPart?.(); syncWayCards(); };
+        }
+    }
     // the guest's choice: the way (if any) is remembered and applied; another branch reloads its own menu
     function finishFirstSheet(way) {
         const current = (M.branches || []).find((b) => b.id === M.branch)?.slug;
         const moving = pickedBranch && pickedBranch !== current;
-        if (way && (M.ways || []).includes(way)) {
-            if (!H.table) session.set(wayKey, way);
-            applyWay(way);
+        // a way the picked branch does not offer is not taken (its card is greyed out with a note)
+        if (way && (M.branches || []).length && !waysOf(sheetBranch()).includes(way)) {
+            syncWayCards();
+            return;
         }
+        if (way && !H.table && (moving || (M.ways || []).includes(way))) session.set(wayKey, way);
+        if (way && !moving && (M.ways || []).includes(way)) applyWay(way);
         if (moving) {
             // the other branch's menu (prices, what is available) loads; its delivery areas are asked there
             if (way === 'delivery') session.set(zoneAskKey, '1');
@@ -678,6 +784,7 @@ if (dataEl) {
                 e.preventDefault();
                 pickedBranch = pick.dataset.branchPick;
                 renderBranchPart?.();
+                syncWayCards();
                 // only a branch to choose: the tap is the choice
                 if (!hasWays) finishFirstSheet(null);
                 return;
@@ -886,6 +993,14 @@ if (dataEl) {
         const saved = session.get(wayKey);
         if (saved && M.ways.includes(saved)) applyWay(saved);
     }
+    // the remembered way is not offered by this branch (delivery without a zone here): say it, never switch silently
+    {
+        const saved = !H.table ? session.get(wayKey) : null;
+        if (saved && saved !== 'dine' && !(M.ways || []).includes(saved)) {
+            session.set(wayKey, '');
+            if (saved === 'delivery') setTimeout(() => toast(T.noDeliveryHere.replace('__B__', sheetBranch()?.name || '')), 400);
+        }
+    }
     // the first-open sheet opened before the first paint (intro-head): show the remembered way picked in it
     if (firstSheet && root.classList.contains('choice-open')) openFirstSheet(false);
     if (O) {
@@ -958,6 +1073,7 @@ if (dataEl) {
                 throw new Error(body.message || first || res.status);
             }
             rememberLastOrder();
+            rememberGuest();
             cart = [];
             save();
             window.location.href = body.url;
@@ -971,6 +1087,34 @@ if (dataEl) {
             sendBtn.textContent = label;
             renderSendHelp();
         }
+    });
+
+    // ---- the guest's name and mobile, kept on this phone after an order and filled in next time ("not you?" clears) ----
+    const guestKey = `egmenu.guest.${M.tenant}`;
+    const guestForget = $('[data-guest-forget]');
+    function rememberGuest() {
+        const name = $('[data-customer-name]')?.value.trim() || '';
+        const phone = $('[data-customer-phone]')?.value.trim() || '';
+        if (!name && !phone) return;
+        try { localStorage.setItem(guestKey, JSON.stringify({ name, phone })); } catch {}
+    }
+    try {
+        const saved = JSON.parse(localStorage.getItem(guestKey) || 'null');
+        const nameField = $('[data-customer-name]');
+        const phoneField = $('[data-customer-phone]');
+        if (saved && nameField && phoneField && (saved.name || saved.phone)) {
+            if (!nameField.value) nameField.value = String(saved.name || '').slice(0, 100);
+            if (!phoneField.value) phoneField.value = String(saved.phone || '').slice(0, 20);
+            guestForget?.classList.remove('hidden');
+        }
+    } catch {}
+    guestForget?.addEventListener('click', () => {
+        try { localStorage.removeItem(guestKey); } catch {}
+        $('[data-customer-name]').value = '';
+        $('[data-customer-phone]').value = '';
+        guestForget.classList.add('hidden');
+        $('[data-customer-name]').focus();
+        renderSendHelp?.();
     });
 
     // ---- "اطلب تاني": the last order placed from this phone, and ?reorder={token} from the order page ----
@@ -1414,6 +1558,7 @@ if (dataEl) {
                         + Math.cos(latitude * rad) * Math.cos(b.lat * rad) * Math.sin(((b.lng - longitude) * rad) / 2) ** 2;
                     distances[b.id] = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
                 });
+                branchDistances = distances;
                 note.classList.add('hidden');
                 nearBtn?.classList.add('hidden');
                 // a tap on "nearest to me", or a first visit with no branch chosen: the nearest one is picked for the
@@ -1423,6 +1568,7 @@ if (dataEl) {
                     if (near) pickedBranch = near.slug;
                 }
                 renderBranchPart();
+                syncWayCards();
             }, () => {
                 if (nearBtn) nearBtn.disabled = false;
                 if (!silent) note.textContent = T.noLocation;

@@ -219,6 +219,25 @@ class CampaignsTest extends TenantTestCase
         $this->assertSame('FREE50', $this->as($a, fn () => Order::query()->latest('id')->first()->coupon_code));
     }
 
+    public function test_the_cart_previews_the_coupon_discount_before_sending_without_using_it(): void
+    {
+        $a = $this->restaurant('cafe-a', 'business');
+        $item = $this->item($a, 'Latte', 100);
+        $this->as($a, fn () => Coupon::query()->create(['code' => 'BACK20', 'type' => 'percent', 'value' => 20, 'max_discount' => 30, 'min_order' => 150]));
+        $this->get($this->pathUrl('cafe-a'))->assertOk()->assertSee('data-coupon-apply', false)->assertSee('data-coupon-status', false);
+
+        $quote = fn (int $qty, string $code = 'back20') => $this->postJson($this->pathUrl('cafe-a', 'coupon'), [
+            'coupon' => $code, 'items' => [['item_id' => $item->id, 'qty' => $qty]], 'customer_phone' => '01000000001',
+        ]);
+        // priced like the order: 20% of 200 = 40, capped at 30
+        $quote(2)->assertOk()->assertJson(['code' => 'BACK20', 'discount' => 30]);
+        // under the minimum, or an unknown code: the reason, nothing taken off
+        $quote(1)->assertStatus(422)->assertJsonStructure(['message']);
+        $quote(2, 'NOPE')->assertStatus(422);
+        // a preview never counts as a use
+        $this->assertSame(0, $this->as($a, fn () => Coupon::query()->sole()->uses));
+    }
+
     public function test_the_customer_page_sets_the_whatsapp_opt_out(): void
     {
         $a = $this->restaurant('cafe-a', 'business');

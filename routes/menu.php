@@ -31,6 +31,8 @@ Route::get('/item/{item}', [MenuController::class, 'item'])->whereNumber('item')
 Route::get('/t/{token}', [MenuController::class, 'table'])->where('token', '[a-f0-9]{20}')->name('table');
 
 Route::post('/order', [OrderController::class, 'store'])->middleware('throttle:menu-orders')->name('order');
+// the cart's coupon preview before sending, priced like the order
+Route::post('/coupon', [OrderController::class, 'coupon'])->middleware('throttle:20,1')->name('coupon');
 Route::get('/o/{token}', [OrderController::class, 'show'])->where('token', '[a-f0-9]{24}')->name('order.show');
 Route::get('/o/{token}/status', [OrderController::class, 'status'])->where('token', '[a-f0-9]{24}')->middleware('throttle:60,1')->name('order.status');
 // the read-only receipt (QR on the printed receipt, WhatsApp link from the POS): signed, nothing personal

@@ -17,7 +17,9 @@
     $currency = tr($settings['currency'], $settings['currency_en']);
     $featured = $categories->flatMap->items->where('is_featured', true)->take(8);
     // the order-type chip and sheet: the general link with more than one way to order
-    $waysMenu = ! $table && count($ways) > 1;
+    // (with 2+ branches: the ways of all branches, a way the chosen branch lacks is greyed out in the sheet)
+    $sheetWays ??= $ways;
+    $waysMenu = ! $table && count($sheetWays) > 1;
     $wayChips = ['dine' => '🍽 ' . __('In the place'), 'takeaway' => '🛍 ' . __('Takeaway'), 'delivery' => '🛵 ' . __('Delivery')];
     $logoClass = $logoTile ? 'rounded-2xl bg-white p-1 shadow-lg' : 'drop-shadow-[0_2px_6px_rgba(0,0,0,.35)]';
 @endphp
@@ -191,7 +193,7 @@
                 <span class="m-primary inline-flex min-h-9 items-center rounded-full px-3 text-sm font-bold" data-table-chip>🍽 {{ __('Table :name', ['name' => $table->name]) }}@if ($branches->count() > 1) · {{ tr($branch->name, $branch->name_en) }}@endif</span>
             @else
                 @if ($waysMenu)
-                    <button type="button" class="m-chip" data-way-chip aria-label="{{ __('How will you order?') }}"><span data-way-chip-label>{{ $wayChips[$ways[0]] }}</span> <span aria-hidden="true">▾</span></button>
+                    <button type="button" class="m-chip" data-way-chip aria-label="{{ __('How will you order?') }}"><span data-way-chip-label>{{ $wayChips[$ways[0] ?? $sheetWays[0]] }}</span> <span aria-hidden="true">▾</span></button>
                 @endif
                 @if ($branchPicker)
                     <button type="button" class="m-chip" data-branch-open>📍 <span class="max-w-40 truncate">{{ tr($branch->name, $branch->name_en) }}</span> <span aria-hidden="true">▾</span></button>
@@ -387,7 +389,8 @@
 @endif
 
 {{-- running offers show in the ticker under the header; m-quick-off hides the quick "+" while the cart cannot order --}}
-<main @class(['mx-auto max-w-2xl px-4 pt-5 pb-32', 'm-quick-off' => ! $quickOn]) data-menu-main>
+{{-- the floating 🛎 of a scanned table: room under the list so it never sits on the last card's "+" --}}
+<main @class(['mx-auto max-w-2xl px-4 pt-5', 'pb-32' => ! $calls, 'pb-52' => $calls, 'm-quick-off' => ! $quickOn]) data-menu-main>
     @if ($quickAdd)
         {{-- "اطلب تاني": the last order placed from this phone (localStorage, resources/js/menu.js fills and shows it) --}}
         <section class="m-surface m-border mb-6 hidden rounded-2xl border p-3 shadow-sm" data-last-order aria-labelledby="last-order-title">
@@ -766,12 +769,21 @@
                         <span class="m-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg> {{ $online ? __('Mobile number') : __('Mobile (optional, for offers & loyalty)') }}</span>
                         <input class="field" maxlength="20" inputmode="tel" autocomplete="tel" dir="ltr" data-customer-phone placeholder="01xxxxxxxxx">
                     </label>
+                    {{-- the name and mobile remembered on this phone from the last order (resources/js/menu.js) --}}
+                    <button type="button" class="m-primary-text hidden min-h-9 justify-self-start text-xs font-bold underline underline-offset-2" data-guest-forget>{{ __('Not you? Clear my details') }}</button>
                     {{-- optional extras folded away so the cart stays short: a coupon code and notes --}}
                     <details class="m-surface-2 rounded-xl px-3" data-order-extras>
                         <summary class="m-primary-text min-h-11 cursor-pointer content-center text-sm font-bold">+ {{ __('A coupon code or notes') }}</summary>
                         <div class="grid gap-3 pb-3">
                             @if (\App\Models\Coupon::query()->where('is_active', true)->exists())
-                                <input class="field uppercase" maxlength="30" dir="ltr" autocomplete="off" data-coupon placeholder="{{ __('Coupon code (optional)') }}">
+                                {{-- applied before sending: the discount line and the new total show in the bill (resources/js/menu.js) --}}
+                                <div>
+                                    <div class="flex gap-2">
+                                        <input class="field min-w-0 flex-1 uppercase" maxlength="30" dir="ltr" autocomplete="off" data-coupon placeholder="{{ __('Coupon code (optional)') }}">
+                                        <button type="button" class="m-primary min-h-11 shrink-0 rounded-xl px-4 text-sm font-bold" data-coupon-apply>{{ __('Apply') }}</button>
+                                    </div>
+                                    <p class="mt-1 hidden text-xs font-bold" role="status" data-coupon-status></p>
+                                </div>
                             @endif
                             <textarea class="field min-h-16 py-2" maxlength="500" data-order-notes placeholder="{{ __('Notes for the order') }}"></textarea>
                         </div>
@@ -849,8 +861,8 @@
             if ($z['min'] > 0) {
                 $facts[] = __('Minimum :amount', ['amount' => money($z['min']) . ' ' . $currency]);
             }
-            if ($z['minutes']) {
-                $facts[] = __('About :n min', ['n' => $z['minutes']]);
+            if ($z['eta'] ?? null) {
+                $facts[] = __('About :n min', ['n' => $z['eta']]);
             }
 
             return implode(' · ', $facts);
@@ -954,7 +966,12 @@
         'goalItemDone' => __('Congrats! Your free :reward was added'), 'goalOffDone' => __('Congrats! :reward off your order'),
         'goalListDone' => __('You reached the goal! Tell the waiter about your :reward.'),
         'goalCoupon' => __('The gift does not combine with a coupon code.'), 'goalFree' => __('Free'),
+        'couponLine' => __('Coupon :code', ['code' => '__C__']), 'couponApplied' => __('Coupon applied: you save :amount', ['amount' => '__A__']),
+        'couponChecking' => __('Checking the code…'),
         'wayChips' => $wayChips,
+        'noDeliveryHere' => __('The branch :branch does not deliver.', ['branch' => '__B__']),
+        'noDeliveryTry' => __('The branch :branch does not deliver — try :other.', ['branch' => '__B__', 'other' => '__O__']),
+        'switchBranch' => __('Switch to :branch', ['branch' => '__B__']), 'wayNotHere' => __('This branch does not offer this.'),
         'current' => __('Current'), 'nearest' => __('Nearest'), 'lastVisit' => __('Last visit'), 'noBranchMatch' => __('No branch matches your search.'),
         // open / closed labels of the branch rows only when the switcher is there (the header shows the state otherwise)
         'openNow' => $branchPicker ? __('Open now') : '', 'closedNow' => $branchPicker ? __('Closed now') : '', 'onMap' => __('Map'), 'km' => __(':n km', ['n' => '__N__']),

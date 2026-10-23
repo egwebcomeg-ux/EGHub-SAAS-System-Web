@@ -145,7 +145,7 @@ final class OrderTracking
         if (in_array($order->status, self::FINAL, true)) {
             return null;
         }
-        $prep = max(5, (int) ($this->settings['online_prep_minutes'] ?? 20));
+        $prep = self::prepMinutes($this->settings);
         $zoneMinutes = $order->type === 'delivery' ? (int) ($order->deliveryZone?->effective('estimated_minutes') ?? 0) : 0;
         $waiting = in_array($order->status, ['new', 'preparing'], true);
 
@@ -164,6 +164,28 @@ final class OrderTracking
         }
 
         return null;
+    }
+
+    /**
+     * The kitchen's preparation minutes of an online order (at least 5): the cart's pickup time and the tracking
+     * page's ready time.
+     *
+     * @param  array<string, mixed>  $settings
+     */
+    public static function prepMinutes(array $settings): int
+    {
+        return max(5, (int) ($settings['online_prep_minutes'] ?? 20));
+    }
+
+    /**
+     * Minutes from sending a delivery order to the door, the same in the cart and on the tracking page: preparation
+     * plus the zone's minutes; null when the zone has no time.
+     *
+     * @param  array<string, mixed>  $settings
+     */
+    public static function deliveryMinutes(?int $zoneMinutes, array $settings): ?int
+    {
+        return $zoneMinutes > 0 ? self::prepMinutes($settings) + $zoneMinutes : null;
     }
 
     /** @return array{kind:string, at:string, time:string, text:string, late:bool, minutes:?int} */

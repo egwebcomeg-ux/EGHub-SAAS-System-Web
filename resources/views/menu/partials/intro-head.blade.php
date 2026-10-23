@@ -187,6 +187,7 @@
         transition: transform .15s ease, box-shadow .15s ease, background-color .15s ease; -webkit-tap-highlight-color: transparent; }
     .m-way-card:hover, .m-way-card:focus-visible { box-shadow: inset 0 0 0 2px var(--menu-accent); }
     .m-way-card:active { transform: scale(.97); }
+    .m-way-card:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
     .m-way-card[aria-pressed="true"] { background: color-mix(in srgb, var(--menu-accent) 10%, var(--menu-surface)); box-shadow: inset 0 0 0 2px var(--menu-accent); }
     .m-way-icon { display: grid; place-items: center; width: 48px; height: 48px; flex-shrink: 0; border-radius: 16px; background: var(--menu-accent); color: var(--menu-accent-text); box-shadow: 0 8px 18px -10px var(--menu-accent); }
     .m-way-icon svg { width: 28px; height: 28px; }

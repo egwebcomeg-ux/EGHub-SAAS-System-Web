@@ -4877,5 +4877,12 @@
     "Subscriptions are paid in advance and nothing renews by itself.": "الاشتراك بيتدفع مقدّماً ومفيش حاجة بتتجدد لوحدها.",
     "Read the refund policy": "اقرا سياسة الاسترداد",
     "Offer valid until :date": "العرض ساري حتى :date",
-    "How EgMenu subscriptions are paid, cancelled and refunded.": "إزاي اشتراك EgMenu بيتدفع وبيتلغي وإمتى الفلوس بترجع."
+    "How EgMenu subscriptions are paid, cancelled and refunded.": "إزاي اشتراك EgMenu بيتدفع وبيتلغي وإمتى الفلوس بترجع.",
+    "The branch :branch does not deliver.": ":branch مش بيوصّل.",
+    "The branch :branch does not deliver — try :other.": ":branch مش بيوصّل — جرّب :other.",
+    "Switch to :branch": "حوّل على :branch",
+    "This branch does not offer this.": "الفرع ده مش بيقدّم الطريقة دي.",
+    "Not you? Clear my details": "مش إنت؟ امسح بياناتي",
+    "Coupon applied: you save :amount": "الكوبون اتطبّق: هتوفّر :amount",
+    "Checking the code…": "بنراجع الكود…"
 }

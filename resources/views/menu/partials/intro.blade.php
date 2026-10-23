@@ -120,8 +120,9 @@
             @endif
             @if ($waysMenu)
                 <div class="grid w-full gap-2.5" role="group" aria-labelledby="order-choice-title" data-way-pick>
-                    @foreach ($ways as $way)
-                        <button type="button" class="m-way-card m-choice-in" style="--i: {{ $loop->index + 3 }}" data-way="{{ $way }}" aria-pressed="false">
+                    @foreach ($sheetWays as $way)
+                        @php($wayHere = in_array($way, $ways, true))
+                        <button type="button" class="m-way-card m-choice-in" style="--i: {{ $loop->index + 3 }}" data-way="{{ $way }}" aria-pressed="false" @disabled(! $wayHere) @if (! $wayHere) aria-describedby="way-missing" @endif>
                             <span class="m-way-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{!! $wayCards[$way][2] !!}</svg></span>
                             <span class="min-w-0 flex-1 text-start">
                                 <b class="block text-lg leading-tight">{{ $wayCards[$way][0] }}</b>
@@ -130,6 +131,11 @@
                             <span class="m-way-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>
                         </button>
                     @endforeach
+                </div>
+                {{-- the chosen branch lacks a way another branch has: say so, with a one-tap switch (resources/js/menu.js) --}}
+                <div id="way-missing" class="m-choice-in hidden w-full rounded-2xl bg-amber-50 px-3 py-2 text-start text-sm font-semibold text-amber-900 ring-1 ring-amber-200" role="status" data-way-missing>
+                    <span data-way-missing-text></span>
+                    <button type="button" class="m-primary-text mt-1 block min-h-9 font-extrabold underline underline-offset-2" data-way-missing-switch></button>
                 </div>
                 <p class="m-muted m-choice-in text-xs" style="--i: 7">{{ __('You can change it later from your cart.') }}</p>
             @endif

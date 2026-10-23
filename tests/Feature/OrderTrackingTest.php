@@ -61,6 +61,8 @@ class OrderTrackingTest extends TenantTestCase
             ->assertSeeInOrder(['data-step="new"', 'اتبعت', 'data-step="preparing"', 'بيتحضر', 'data-step="ready"', 'جاهز', 'data-step="served"', 'اتقدّم'], false)
             ->assertDontSee('data-step="on_way"', false)
             ->assertSee('?reorder='.$dineIn->tracking_token, false)
+            ->assertSee('120 ج.م</span>', false) // each line's price carries the currency
+
             ->assertDontSee('data-contact', false); // the guest sits in the restaurant
 
         $takeaway = $this->place($a, 'takeaway');
@@ -110,6 +112,12 @@ class OrderTrackingTest extends TenantTestCase
         $eta = $this->statusOf($delivery)['eta'];
         $this->assertSame('arrive', $eta['kind']);
         $this->assertTrue(Carbon::parse($eta['at'])->equalTo(now()->addMinutes(55)));
+        // the cart promises the same time before sending: preparation + the zone's minutes
+        $this->as($a, fn () => Settings::put(['online_delivery' => '1']));
+        preg_match('#<script type="application/json" id="menu-data">(.*?)</script>#s', $this->get($this->subUrl('cafe-a'))->assertOk()->getContent(), $m);
+        $cartZone = collect(json_decode($m[1], true)['online']['zones'])->firstWhere('id', $zone->id);
+        $this->assertSame(55, $cartZone['eta']);
+        $this->assertSame($eta['minutes'], $cartZone['eta']);
         $this->move($a, $delivery, 'preparing', 'ready');
         $this->assertTrue(Carbon::parse($this->statusOf($delivery)['eta']['at'])->equalTo(now()->addMinutes(25)));
 
