@@ -36,7 +36,7 @@ class MenuImportTest extends TenantTestCase
         foreach ($import->result['categories'] as $c) {
             foreach ($c['items'] as $i) {
                 $rows[] = ['keep' => '1', 'category' => $c['name'], 'category_en' => $c['name_en'], 'name' => $i['name'], 'name_en' => $i['name_en'],
-                    'price' => $i['price'], 'description' => $i['description'], 'sizes' => MenuDraft::choicesText($i['sizes']), 'extras' => MenuDraft::choicesText($i['extras'])];
+                    'price' => $i['price'], 'description' => $i['description'], 'description_en' => $i['description_en'] ?? '', 'sizes' => MenuDraft::choicesText($i['sizes']), 'extras' => MenuDraft::choicesText($i['extras'])];
             }
         }
 
@@ -73,6 +73,28 @@ class MenuImportTest extends TenantTestCase
         $this->assertSame(15.0, $latte->optionGroups[0]->options[1]->price);
         $this->assertSame(2, $this->as($a, fn () => MenuItem::query()->count()));
         $this->assertSame('applied', $import->fresh()->status);
+    }
+
+    public function test_the_english_description_of_the_sheet_reaches_the_menu(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $owner = $this->owner($a);
+        $sheet = 'القسم,القسم (إنجليزي),الصنف,الصنف (إنجليزي),السعر,الوصف,الوصف (إنجليزي)
+'
+            .'مشروبات,Drinks,موهيتو,Mojito,55,نعناع وليمون,Mint and lime
+';
+        $this->actingAs($owner)->post($this->dashUrl('/menu/import/excel'), ['file' => $this->csv($sheet)])->assertRedirect();
+        $import = $this->as($a, fn () => MenuImport::query()->firstOrFail());
+
+        // the review form carries it back with the row
+        $this->actingAs($owner)->get($this->dashUrl("/menu/import/{$import->id}"))->assertOk()
+            ->assertSee('name="rows[0][description_en]" value="Mint and lime"', false);
+        $this->actingAs($owner)->post($this->dashUrl("/menu/import/{$import->id}/apply"), ['mode' => 'add', 'rows' => $this->rowsOf($import)])
+            ->assertRedirect(route('dash.menu'));
+
+        $mojito = $this->as($a, fn () => MenuItem::query()->where('name', 'موهيتو')->firstOrFail());
+        $this->assertSame('نعناع وليمون', $mojito->description);
+        $this->assertSame('Mint and lime', $mojito->description_en);
     }
 
     public function test_update_mode_changes_prices_without_duplicates(): void

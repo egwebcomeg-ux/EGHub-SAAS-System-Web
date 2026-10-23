@@ -126,6 +126,7 @@ class MenuImportController extends Controller
             'rows.*.category' => 'nullable|string|max:80', 'rows.*.category_en' => 'nullable|string|max:80',
             'rows.*.name' => 'nullable|string|max:100', 'rows.*.name_en' => 'nullable|string|max:100',
             'rows.*.price' => 'nullable', 'rows.*.description' => 'nullable|string|max:500',
+            'rows.*.description_en' => 'nullable|string|max:500',
             'rows.*.sizes' => 'nullable|string|max:500', 'rows.*.extras' => 'nullable|string|max:500',
             'rows.*.allergens' => 'nullable|string|max:300',
             'rows.*.keep' => 'nullable',
@@ -141,7 +142,7 @@ class MenuImportController extends Controller
             $categories[$cat] ??= ['name' => $cat, 'name_en' => (string) ($row['category_en'] ?? ''), 'items' => []];
             $categories[$cat]['items'][] = [
                 'name' => $row['name'], 'name_en' => $row['name_en'] ?? '', 'price' => $row['price'] ?? 0,
-                'description' => $row['description'] ?? '', 'description_en' => '',
+                'description' => $row['description'] ?? '', 'description_en' => (string) ($row['description_en'] ?? ''),
                 'sizes' => MenuDraft::parseChoices((string) ($row['sizes'] ?? '')), 'extras' => MenuDraft::parseChoices((string) ($row['extras'] ?? '')),
                 'allergens' => (string) ($row['allergens'] ?? ''),
             ];
