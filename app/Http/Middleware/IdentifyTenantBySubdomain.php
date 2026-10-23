@@ -69,14 +69,29 @@ class IdentifyTenantBySubdomain
 
             return;
         }
+        $arabicIsDefault = Settings::get('default_locale', 'ar') !== 'en';
+        $branch = is_string($request->query('branch')) ? $request->query('branch') : null;
         $query = array_filter([
-            'branch' => is_string($request->query('branch')) ? $request->query('branch') : null,
+            'branch' => $branch,
             'lang' => $request->query('lang') === 'en' || (MenuLocales::current() && $request->query('lang') === MenuLocales::current())
+                || ($request->query('lang') === 'ar' && ! $arabicIsDefault)
                 ? $request->query('lang') : null,
         ]);
         // /links shows the place's page (/about): one page, one canonical
         $path = $name === 'links' ? 'about' : $this->relativePath($request);
         $request->attributes->set('canonical', $tenant->url($path.($query ? '?'.http_build_query($query) : '')));
+
+        // hreflang alternates (layouts.base) when the page exists in more than one language
+        $languages = MenuLocales::available();
+        if ($name !== 'links' && count($languages) > 1) {
+            $url = fn (?string $lang) => $tenant->url($path.(($q = array_filter(['branch' => $branch, 'lang' => $lang])) ? '?'.http_build_query($q) : ''));
+            $alternates = [];
+            foreach ($languages as $lang) {
+                $alternates[$lang] = $url($lang === 'ar' && $arabicIsDefault ? null : $lang);
+            }
+            $alternates['x-default'] = $url(null);
+            $request->attributes->set('alternates', $alternates);
+        }
     }
 
     /**

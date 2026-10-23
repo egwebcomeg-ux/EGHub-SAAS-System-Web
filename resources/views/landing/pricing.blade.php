@@ -30,6 +30,10 @@
     }
 @endphp
 
+@push('head')
+    <script type="application/ld+json">{!! \App\Services\Seo\RestaurantProfile::json(\App\Services\Seo\PlatformSchema::softwareApplication($plans)) !!}</script>
+@endpush
+
 @section('page')
 <section data-hero class="lp-hero lp-glow">
     <div class="mx-auto max-w-3xl px-4 pt-10 pb-12 text-center sm:px-6 lg:pt-14 lg:pb-16">

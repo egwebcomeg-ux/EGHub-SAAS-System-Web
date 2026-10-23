@@ -1,6 +1,11 @@
 @extends('layouts.landing')
 @section('title', 'EgMenu — ' . __('A free QR menu for cafes and restaurants in Egypt'))
 
+@push('head')
+    <script type="application/ld+json">{!! \App\Services\Seo\RestaurantProfile::json(\App\Services\Seo\PlatformSchema::organization()) !!}</script>
+    <script type="application/ld+json">{!! \App\Services\Seo\RestaurantProfile::json(\App\Services\Seo\PlatformSchema::website()) !!}</script>
+@endpush
+
 @php
     $trial = \App\Services\TenantProvisioner::TRIAL_DAYS;
     $modules = \App\Support\SiteModules::all();
@@ -298,13 +303,16 @@
                             <b class="text-3xl font-black text-navy-900">{{ __('By contact') }}</b>
                             <span class="block text-xs font-semibold text-navy-500">{{ __('Priced for your branches and screens') }}</span>
                         @else
-                            @if ($p->original_price > $p->monthly_price)
+                            @if ($p->showsLaunchDiscount())
                                 <span class="me-1 text-base font-bold text-navy-400 line-through" dir="ltr">{{ money($p->original_price) }}</span>
                             @endif
                             <b class="text-4xl font-black tracking-tight text-navy-900" dir="ltr">{{ money($p->monthly_price) }}</b>
                             <span class="text-sm font-semibold text-navy-500">{{ __('EGP / month') }}</span>
-                            @if ($p->original_price > $p->monthly_price)
+                            @if ($p->showsLaunchDiscount())
                                 <span class="mt-1 block w-fit rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-black text-emerald-800">{{ __(':pct% off for the launch period', ['pct' => (int) round((1 - $p->monthly_price / $p->original_price) * 100)]) }}</span>
+                                @if ($offerEnds = \App\Models\Plan::launchOfferEndsAt())
+                                    <span class="mt-1 block text-xs font-bold text-navy-600" data-offer-ends>{{ __('Offer valid until :date', ['date' => $offerEnds->format('d/m/Y')]) }}</span>
+                                @endif
                             @endif
                             @if ((float) $p->monthly_price > 0 && $p->priceFor(12) < $p->monthly_price * 12)
                                 <span class="block text-xs font-bold text-emerald-700">{{ __('or :total EGP a year', ['total' => money($p->priceFor(12))]) }}</span>

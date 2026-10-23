@@ -15,10 +15,12 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Audit;
 use App\Services\Entitlements;
+use App\Services\Seo\SocialProof;
 use App\Services\Settings;
 use App\Services\TenantProvisioner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -154,6 +156,28 @@ class TenantsController extends Controller
         }
 
         return back()->with('ok', $tenant->showcase_on_site ? __('The logo shows on egmenu.app.') : __('The logo is off egmenu.app.'));
+    }
+
+    /** EgWeb's demo / test places: kept out of the directory, the sitemap and the home page's list of places. */
+    public function directory(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $request->validate(['hidden_from_directory' => 'nullable|boolean']);
+        $tenant->update(['hidden_from_directory' => $request->boolean('hidden_from_directory')]);
+        Cache::forget('seo.sitemap.'.platform_url(null, ''));
+        SocialProof::flush();
+        tenancy()->initialize($tenant);
+        try {
+            Audit::record('restaurant.directory_by_platform', $tenant->name, [
+                'admin' => $request->user('admin')->email, 'hidden' => $tenant->hidden_from_directory,
+            ]);
+        } finally {
+            tenancy()->end();
+            Settings::flush();
+        }
+
+        return back()->with('ok', $tenant->hidden_from_directory
+            ? __('Hidden from the directory and the sitemap.')
+            : __('Back in the directory and the sitemap (if the owner keeps it listed).'));
     }
 
     /** Manual plan/status/period change (e.g. after an InstaPay or Vodafone Cash transfer). */

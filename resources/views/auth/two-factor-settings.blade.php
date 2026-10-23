@@ -18,7 +18,7 @@
 
         @if ($required)
             <div class="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800" data-two-factor-required>
-                {{ __('Your restaurant requires two-factor authentication. Set it up to continue.') }}
+                {{ $user instanceof \App\Models\User ? __('Your restaurant requires two-factor authentication. Set it up to continue.') : __('Every platform admin must use two-factor authentication. Turn it on here to open the rest of the admin panel.') }}
             </div>
         @endif
 

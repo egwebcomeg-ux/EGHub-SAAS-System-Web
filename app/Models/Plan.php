@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Services\Assistant;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * A subscription plan. Prices, features and limits are rows (plans / plan_features) edited from the super admin;
@@ -12,6 +14,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Plan extends Model
 {
+    /** Platform setting: last day of the launch price (Y-m-d), shown next to the crossed-out price. */
+    public const LAUNCH_OFFER_ENDS_KEY = 'launch_offer_ends_at';
+
     /** Cycle lengths we sell, in months. */
     public const CYCLES = [1, 6, 12];
 
@@ -147,6 +152,37 @@ class Plan extends Model
             : __('Hello, I would like to know about the :plan plan for my place.', ['plan' => $this->displayName()]);
 
         return 'https://wa.me/'.$number.'?text='.rawurlencode($message);
+    }
+
+    /**
+     * Last day of the launch price (platform setting launch_offer_ends_at, set by EgWeb in admin › settings); null
+     * when no date is set.
+     */
+    public static function launchOfferEndsAt(): ?CarbonInterface
+    {
+        $ends = trim((string) PlatformSetting::get(self::LAUNCH_OFFER_ENDS_KEY, ''));
+        if ($ends === '') {
+            return null;
+        }
+        try {
+            return Carbon::parse($ends)->startOfDay();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Whether the crossed-out regular price shows next to this plan's price: it must be higher, and the launch offer
+     * must not be over (once launch_offer_ends_at has passed, it is hidden on its own).
+     */
+    public function showsLaunchDiscount(): bool
+    {
+        if ((float) $this->original_price <= (float) $this->monthly_price) {
+            return false;
+        }
+        $ends = self::launchOfferEndsAt();
+
+        return $ends === null || ! today()->greaterThan($ends);
     }
 
     public function features(): HasMany

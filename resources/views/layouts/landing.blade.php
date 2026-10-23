@@ -21,20 +21,30 @@
     $siteGroups = \App\Support\SiteModules::groups();
     $siteModules = \App\Support\SiteModules::grouped();
     $description = __('A free QR menu for cafes and restaurants in Egypt, with table and online ordering without commission, a loyalty card and a print-ready menu when you need them.');
+    // every marketing page exists in Arabic (the plain address) and English (?lang=en): each is its own canonical,
+    // linked by hreflang. Pages with their own canonical (blog articles) are left as they are.
+    $pageUrl = url()->current();
+    $defaultCanonical = $pageUrl . (request()->query('lang') === 'en' ? '?lang=en' : '');
+    $hreflang = $__env->hasSection('canonical') ? [] : ['ar' => $pageUrl, 'en' => $pageUrl . '?lang=en', 'x-default' => $pageUrl];
 @endphp
 
 @push('head')
     <script>document.documentElement.classList.add('js')</script>
     <meta name="description" content="@yield('description', $description)">
     <meta name="theme-color" content="#ffffff">
-    <link rel="canonical" href="@yield('canonical', url()->current())">
+    <link rel="apple-touch-icon" href="{{ versioned_asset('icons/egmenu-192.png') }}">
+    <meta name="apple-mobile-web-app-title" content="EgMenu">
+    <link rel="canonical" href="@yield('canonical', $defaultCanonical)">
+    @foreach ($hreflang as $hreflangCode => $hreflangUrl)
+    <link rel="alternate" hreflang="{{ $hreflangCode }}" href="{{ $hreflangUrl }}">
+    @endforeach
     <link rel="alternate" type="application/rss+xml" title="EgMenu" href="{{ route('blog.rss') }}">
     <meta property="og:type" content="@yield('og_type', 'website')">
     <meta property="og:site_name" content="EgMenu">
     <meta property="og:locale" content="{{ app()->getLocale() === 'ar' ? 'ar_EG' : 'en_US' }}">
     <meta property="og:title" content="@yield('title', 'EgMenu')">
     <meta property="og:description" content="@yield('description', $description)">
-    <meta property="og:url" content="@yield('canonical', url()->current())">
+    <meta property="og:url" content="@yield('canonical', $defaultCanonical)">
     <meta property="og:image" content="@yield('og_image', versioned_asset('og-image.png'))">
     @hasSection('og_image')
     @else
@@ -196,6 +206,7 @@
                         <li><a href="{{ platform_url('app', '/login') }}" class="hover:text-white">{{ __('Log in') }}</a></li>
                         <li><a href="{{ route('terms') }}" class="hover:text-white">{{ __('Terms of service') }}</a></li>
                         <li><a href="{{ route('privacy') }}" class="hover:text-white">{{ __('Privacy policy') }}</a></li>
+                        <li><a href="{{ route('refund') }}" class="hover:text-white">{{ __('Refund policy') }}</a></li>
                     </ul>
                 </div>
             </div>
@@ -206,6 +217,11 @@
         <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-3 px-4 py-5 pb-28 text-xs sm:px-6 lg:pe-56 lg:pb-6" data-footer-bottom>
             <span>© {{ date('Y') }} EgMenu</span>
             <x-egweb-badge tone="dark" />
+            @if ($legalLines = \App\Support\LegalDetails::lines())
+                <span class="text-white/60" data-footer-legal>
+                    @foreach ($legalLines as $line){{ $loop->first ? '' : ' · ' }}{{ $line['label'] }}: {{ $line['value'] }}@endforeach
+                </span>
+            @endif
             <a href="?lang={{ $other }}" lang="{{ $other }}" data-footer-lang
                class="inline-flex h-9 items-center gap-1.5 rounded-full border border-white/15 px-3.5 text-white/70 transition hover:border-white/30 hover:text-white">
                 <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>

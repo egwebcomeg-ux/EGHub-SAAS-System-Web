@@ -1,0 +1,7 @@
+@extends('errors.layout')
+@section('title', 'Access denied')
+@section('code', '403')
+@section('title_ar', 'مش مسموح لك تفتح الصفحة دي')
+@section('message_ar', 'حسابك ماعندوش صلاحية للصفحة دي. لو محتاجها، اطلبها من صاحب الحساب.')
+@section('message_en', 'Your account does not have permission for this page. Ask the account owner if you need it.')
+@section('action', '1')

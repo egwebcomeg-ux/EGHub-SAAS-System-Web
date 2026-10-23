@@ -16,11 +16,24 @@ class OpsTest extends TenantTestCase
 
     public function test_error_pages_render_statically(): void
     {
-        foreach (['404', '500', '503'] as $code) {
+        foreach (['401', '403', '404', '419', '429', '500', '503'] as $code) {
             $html = view('errors.'.$code)->render();
             $this->assertStringContainsString($code, $html);
             $this->assertStringContainsString('dir="rtl"', $html);
         }
+    }
+
+    public function test_error_page_titles_follow_the_language(): void
+    {
+        app()->setLocale('ar');
+        $this->assertStringContainsString('<title>انتهت صلاحية الصفحة · EgMenu</title>', view('errors.419')->render());
+        $this->assertStringContainsString('<title>الصفحة غير موجودة · EgMenu</title>', view('errors.404')->render());
+
+        app()->setLocale('en');
+        $html = view('errors.419')->render();
+        $this->assertStringContainsString('<title>Page expired · EgMenu</title>', $html);
+        $this->assertStringContainsString('dir="ltr"', $html);
+        $this->assertStringContainsString('Refresh the page', $html);
     }
 
     public function test_admin_command_creates_then_updates(): void

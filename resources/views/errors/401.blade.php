@@ -1,0 +1,7 @@
+@extends('errors.layout')
+@section('title', 'Sign in required')
+@section('code', '401')
+@section('title_ar', 'لازم تسجّل الدخول')
+@section('message_ar', 'الصفحة دي محتاجة تسجيل دخول. سجّل دخولك وجرّب تاني.')
+@section('message_en', 'You need to sign in to open this page.')
+@section('action', '1')

@@ -43,6 +43,7 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         Route::post('/tenants', [TenantsController::class, 'store'])->name('tenants.store');
         Route::post('/tenants/{tenant}/info', [TenantsController::class, 'info'])->name('tenants.info');
         Route::post('/tenants/{tenant}/showcase', [TenantsController::class, 'showcase'])->name('tenants.showcase');
+        Route::post('/tenants/{tenant}/directory', [TenantsController::class, 'directory'])->name('tenants.directory');
         Route::post('/tenants/{tenant}/suspend', [TenantsController::class, 'suspend'])->name('tenants.suspend');
         Route::post('/tenants/{tenant}/activate', [TenantsController::class, 'activate'])->name('tenants.activate');
         Route::post('/tenants/{tenant}/users/{user}/verify-phone', [TenantsController::class, 'verifyPhone'])->whereNumber('user')->name('tenants.verify-phone');

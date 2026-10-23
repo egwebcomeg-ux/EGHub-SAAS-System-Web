@@ -42,7 +42,16 @@ class AppServiceProvider extends ServiceProvider
     {
         // Defined here, not in bootstrap/app.php's routing callback: that callback never runs when routes are
         // cached in production, which left every throttled route failing with "Rate limiter [...] is not defined".
-        RateLimiter::for('login', fn (Request $r) => Limit::perMinute(8)->by($r->ip().'|'.$r->getHost()));
+        // Login (dashboard "login" field, admin "email" field): per visitor, and per account so a botnet rotating IPs
+        // still gets only 5 tries a minute at one email or phone.
+        RateLimiter::for('login', function (Request $r) {
+            $account = $r->input('login', $r->input('email'));
+
+            return [
+                Limit::perMinute(8)->by('ip:'.$r->ip().'|'.$r->getHost()),
+                Limit::perMinute(5)->by('acct:'.(is_string($account) ? mb_strtolower(trim($account)) : '').'|'.$r->getHost()),
+            ];
+        });
         RateLimiter::for('signup', fn (Request $r) => Limit::perHour(5)->by($r->ip()));
         // Guests placing orders from a menu: generous for a table of friends, tight for scripts.
         RateLimiter::for('menu-orders', fn (Request $r) => Limit::perMinute(6)->by($r->ip().'|'.$r->path()));

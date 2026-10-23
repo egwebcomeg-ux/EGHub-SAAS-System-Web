@@ -25,6 +25,12 @@ final class KashierGateway implements PaymentGateway
     /** Session states that end the attempt without money. */
     private const FAILED_STATES = ['FAILED', 'EXPIRED', 'ABANDONED', 'REJECTED', 'VOIDED', 'REVERSED'];
 
+    /**
+     * Fields the webhook signature must cover: a payload signed over fewer keys (e.g. only transactionId) would let
+     * the order, status or amount be swapped without breaking the signature.
+     */
+    public const REQUIRED_SIGNED_KEYS = ['merchantOrderId', 'status', 'amount', 'currency'];
+
     public function key(): string
     {
         return 'kashier';
@@ -80,6 +86,12 @@ final class KashierGateway implements PaymentGateway
         $body = json_decode((string) $request->getContent(), true);
         $data = is_array($body) ? ($body['data'] ?? null) : null;
         if ($apiKey === '' || $given === '' || ! is_array($data) || ! is_array($data['signatureKeys'] ?? null)) {
+            return null;
+        }
+        $signedKeys = array_values(array_filter($data['signatureKeys'], 'is_string'));
+        if (array_diff(self::REQUIRED_SIGNED_KEYS, $signedKeys) !== []) {
+            Log::warning('Kashier webhook refused: signature does not cover the order, status, amount and currency', ['keys' => $signedKeys]);
+
             return null;
         }
         if (! hash_equals($this->signature($data, $apiKey), $given)) {

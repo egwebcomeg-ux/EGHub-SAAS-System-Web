@@ -1,0 +1,8 @@
+# Files restaurants upload, served through the public/storage symlink. An SVG can carry scripts: opened directly
+# (not as <img>) it gets a policy that runs nothing and loads nothing, and the browser may not guess another type.
+<IfModule mod_headers.c>
+    <FilesMatch "(?i)\.svg$">
+        Header set Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src data:"
+        Header set X-Content-Type-Options "nosniff"
+    </FilesMatch>
+</IfModule>

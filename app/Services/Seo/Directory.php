@@ -17,8 +17,9 @@ use Illuminate\Support\Facades\DB;
 /**
  * The public restaurant directory on the main domain (egmenu.app/restaurants) and the sitemap. Runs outside any
  * tenant context and only reads what a restaurant already shows on its public menu: settings rows, counts of
- * active items and the average rating. A place is listed when it did not opt out (listed_in_directory), is not
- * suspended or deleted, and has at least MIN_ITEMS active items, so empty sign-ups never show up.
+ * active items and the average rating. A place is listed when it did not opt out (listed_in_directory), EgWeb did not
+ * hide it (tenants.hidden_from_directory: demos and tests), it is not suspended or deleted, and it has at least
+ * MIN_ITEMS active items, so empty sign-ups never show up.
  */
 final class Directory
 {
@@ -38,6 +39,7 @@ final class Directory
     {
         $query = Tenant::query()
             ->where(fn ($q) => $q->whereNull('status')->orWhere('status', '!=', 'suspended'))
+            ->where('hidden_from_directory', false)
             ->whereNotIn('id', self::settingIds('listed_in_directory', fn ($q) => $q->where('value', '0')))
             ->whereIn('id', DB::table('menu_items')->select('tenant_id')->where('is_active', true)
                 ->groupBy('tenant_id')->havingRaw('count(*) >= ?', [self::MIN_ITEMS]));

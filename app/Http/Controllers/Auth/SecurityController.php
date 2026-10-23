@@ -39,7 +39,7 @@ abstract class SecurityController extends Controller
             'qr' => $pending ? Qr::svg(Totp::uri('EgMenu', $this->account($user), $user->two_factor_secret), 220, '#0A2540') : null,
             'recoveryCodes' => $request->session()->get('two_factor_recovery_codes'),
             'routes' => $this->routes,
-            'required' => $user instanceof User && TwoFactor::setupRequired($user),
+            'required' => $user instanceof User ? TwoFactor::setupRequired($user) : TwoFactor::adminSetupRequired($user),
         ]);
     }
 

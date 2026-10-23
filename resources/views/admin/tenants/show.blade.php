@@ -15,6 +15,7 @@
         'two_factor.reset_by_platform' => __('Two-factor reset'),
         'restaurant.info_by_platform' => __('Restaurant info changed'),
         'restaurant.showcase_by_platform' => __('Logo on egmenu.app changed'),
+        'restaurant.directory_by_platform' => __('Directory visibility changed'),
     ];
 @endphp
 <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
@@ -144,6 +145,19 @@
                     <input class="field" id="t-showcase-sort" name="showcase_sort" type="number" min="0" max="9999" dir="ltr" value="{{ old('showcase_sort', $tenant->showcase_sort) }}" placeholder="{{ __('Smaller first') }}">
                     @error('showcase_sort')<div class="field-error">{{ $message }}</div>@enderror
                 </div>
+                <button class="btn-primary">{{ __('Save') }}</button>
+            </form>
+
+            {{-- demos and tests: out of the directory, the sitemap and the home page list (App\Services\Seo\Directory) --}}
+            <form method="post" action="{{ route('admin.tenants.directory', $tenant) }}" class="card space-y-3" data-tenant-directory>
+                @csrf
+                <h2 class="section-title">{{ __('Directory and sitemap') }}</h2>
+                <label class="flex min-h-11 items-center gap-3 text-sm font-semibold">
+                    <input type="hidden" name="hidden_from_directory" value="0">
+                    <input type="checkbox" name="hidden_from_directory" value="1" class="size-5 accent-brand-600" @checked(old('hidden_from_directory', $tenant->hidden_from_directory))>
+                    {{ __('Hide from the directory and the sitemap (demo or test place)') }}
+                </label>
+                <p class="text-xs text-navy-500">{{ __('The menu still opens by its link; it is only left out of egmenu.app/restaurants, sitemap.xml and the list of places on the home page.') }}</p>
                 <button class="btn-primary">{{ __('Save') }}</button>
             </form>
         @endif

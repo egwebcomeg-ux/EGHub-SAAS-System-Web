@@ -15,9 +15,10 @@
 <div class="mx-auto grid max-w-6xl gap-8 px-4 py-12 lg:grid-cols-[16rem_minmax(0,1fr)]">
     <aside class="lg:sticky lg:top-24 lg:self-start">
         <div class="rounded-2xl border border-navy-100 bg-white p-4 shadow-sm">
-            <div class="grid grid-cols-2 gap-1 rounded-xl bg-navy-50 p-1 text-sm font-bold">
-                <a href="{{ route('terms') }}" @class(['grid min-h-10 place-items-center rounded-lg text-center', 'bg-white text-navy-900 shadow-sm' => $current === 'terms', 'text-navy-500 hover:text-navy-900' => $current !== 'terms'])>{{ __('Terms of service') }}</a>
-                <a href="{{ route('privacy') }}" @class(['grid min-h-10 place-items-center rounded-lg text-center', 'bg-white text-navy-900 shadow-sm' => $current === 'privacy', 'text-navy-500 hover:text-navy-900' => $current !== 'privacy'])>{{ __('Privacy policy') }}</a>
+            <div class="grid grid-cols-3 gap-1 rounded-xl bg-navy-50 p-1 text-sm font-bold">
+                @foreach (['terms' => __('Terms of service'), 'privacy' => __('Privacy policy'), 'refund' => __('Refund policy')] as $legalRoute => $legalLabel)
+                    <a href="{{ route($legalRoute) }}" @class(['grid min-h-10 place-items-center rounded-lg px-1 text-center leading-tight', 'bg-white text-navy-900 shadow-sm' => $current === $legalRoute, 'text-navy-500 hover:text-navy-900' => $current !== $legalRoute])>{{ $legalLabel }}</a>
+                @endforeach
             </div>
             <div class="mt-4 hidden text-xs font-bold text-navy-500 lg:block">{{ __('On this page') }}</div>
             <ol class="mt-2 hidden space-y-1 text-sm lg:block" data-toc></ol>
@@ -26,5 +27,12 @@
     </aside>
     <article data-legal class="rounded-3xl border border-navy-100 bg-white p-6 leading-relaxed shadow-sm sm:p-10 [&_h2]:mt-9 [&_h2]:mb-3 [&_h2]:scroll-mt-24 [&_h2]:border-b [&_h2]:border-navy-50 [&_h2]:pb-2 [&_h2]:text-xl [&_h2]:font-extrabold [&_h2]:text-navy-900 [&_h2:first-of-type]:mt-0 [&_li]:mb-1.5 [&_li]:ms-5 [&_li]:list-disc [&_li]:text-navy-700 [&_li]:marker:text-brand-500 [&_p]:mb-3 [&_p]:text-navy-700">
         {{ $slot }}
+        @if ($legalLines = \App\Support\LegalDetails::lines())
+            <div class="mt-9 rounded-2xl bg-navy-50 p-4 text-sm text-navy-700" data-legal-details>
+                @foreach ($legalLines as $line)
+                    <div><b>{{ $line['label'] }}:</b> <span @if ($line['key'] !== 'legal_entity' && $line['key'] !== 'legal_address') dir="ltr" @endif>{{ $line['value'] }}</span></div>
+                @endforeach
+            </div>
+        @endif
     </article>
 </div>

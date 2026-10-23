@@ -11,12 +11,16 @@
     @include('partials.pwa-head')
     @if (request()->attributes->get('canonical'))
         <link rel="canonical" href="{{ request()->attributes->get('canonical') }}">
+        {{-- a restaurant page shown in several languages (set by IdentifyTenantBySubdomain) --}}
+        @foreach ((array) request()->attributes->get('alternates', []) as $alternateLang => $alternateUrl)
+            <link rel="alternate" hreflang="{{ $alternateLang }}" href="{{ $alternateUrl }}">
+        @endforeach
     @endif
     @if (request()->attributes->get('noindex'))
         <meta name="robots" content="noindex">
     @endif
     @fonts
-    @vite(array_merge(['resources/css/app.css', 'resources/js/app.js'], $viteEntries ?? []))
+    @vite(array_merge(['resources/css/app.css'], $viteEntries ?? []))
     @include('partials.platform-brand')
     @stack('head')
 </head>

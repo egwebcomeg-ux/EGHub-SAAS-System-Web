@@ -97,6 +97,12 @@
             </form>
         @endif
     </section>
+    @if ($invoice->status === 'open')
+        <p class="text-xs text-navy-500" data-refund-policy-link>
+            {{ __('Subscriptions are paid in advance and nothing renews by itself.') }}
+            <a href="{{ route('refund') }}" target="_blank" rel="noopener" class="font-semibold text-brand-700 underline">{{ __('Read the refund policy') }}</a>
+        </p>
+    @endif
     </div>
 </div>
 @endsection

@@ -132,6 +132,23 @@ class OnlinePaymentsTest extends TenantTestCase
         $this->assertSame('pending', $payment->fresh()->status);
     }
 
+    public function test_a_webhook_whose_signature_skips_the_order_status_amount_or_currency_is_refused(): void
+    {
+        $this->kashier();
+        $a = $this->restaurant('cafe-a', 'pro', trial: true);
+        $invoice = $this->invoice($a, 1);
+        $payment = $this->startCheckout($a, $invoice);
+
+        // correctly signed, but only over fields that do not pin the payment down
+        foreach (['merchantOrderId', 'status', 'amount', 'currency'] as $missing) {
+            $keys = array_values(array_diff(['amount', 'currency', 'merchantOrderId', 'method', 'status', 'transactionId'], [$missing]));
+            $this->webhook($this->success($payment) + ['signatureKeys' => $keys])->assertForbidden();
+        }
+
+        $this->assertSame('open', $invoice->fresh()->status);
+        $this->assertSame('pending', $payment->fresh()->status);
+    }
+
     public function test_a_failed_transaction_marks_the_attempt_failed_and_leaves_the_invoice_open(): void
     {
         $this->kashier();

@@ -17,6 +17,9 @@
     --color-brand-500: #ff854d;
     --color-brand-600: #f26522;
     --color-brand-700: #e05310;
+    /* deeper orange for white text on primary buttons (WCAG AA 4.5:1; #f26522 is only 3.2:1): #c94a0d 4.7:1, #a93a0b 6.4:1 */
+    --color-brand-800: #c94a0d;
+    --color-brand-900: #a93a0b;
 
     --color-navy-50: #f0f6fc;
     --color-navy-100: #e1ebf5;
@@ -73,7 +76,7 @@
 }
 
 @utility btn-primary {
-    @apply btn bg-brand-600 bg-gradient-to-l from-brand-600 to-brand-700 text-white shadow-sm shadow-brand-600/25 hover:from-brand-700 hover:to-brand-700 focus-visible:outline-brand-600;
+    @apply btn bg-brand-800 bg-gradient-to-l from-brand-800 to-brand-900 text-white shadow-sm shadow-brand-800/25 hover:from-brand-900 hover:to-brand-900 focus-visible:outline-brand-600;
 }
 
 @utility btn-navy {

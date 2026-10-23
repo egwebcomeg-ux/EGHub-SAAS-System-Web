@@ -84,6 +84,21 @@
         <p class="text-xs text-navy-500 sm:col-span-2">{{ __('Each subscription keeps the end date it got, so switching the offer off later does not take it back from restaurants that already have it.') }}</p>
     </div>
 
+    <div class="card grid gap-4 sm:grid-cols-2" data-launch-price-settings>
+        <h2 class="text-lg font-bold sm:col-span-2">{{ __('Launch price') }}</h2>
+        <div><label class="field-label" for="s-launch-ends">{{ __('Launch price valid until (optional)') }}</label><input class="field" id="s-launch-ends" type="date" name="launch_offer_ends_at" value="{{ $s['launch_offer_ends_at'] }}" dir="ltr"></div>
+        <p class="text-xs text-navy-500 sm:col-span-2">{{ __('Shown next to the crossed-out price on the site. After this day the crossed-out price hides by itself; change the plan price in Plans when the offer ends.') }}</p>
+    </div>
+
+    <div class="card grid gap-4 sm:grid-cols-2" data-legal-settings>
+        <h2 class="text-lg font-bold sm:col-span-2">{{ __('Company legal details') }}</h2>
+        <div><label class="field-label" for="s-legal-entity">{{ __('Legal name of the company') }}</label><input class="field" id="s-legal-entity" name="legal_entity" value="{{ $s['legal_entity'] }}" maxlength="160"></div>
+        <div><label class="field-label" for="s-legal-cr">{{ __('Commercial register number') }}</label><input class="field" id="s-legal-cr" name="commercial_register" value="{{ $s['commercial_register'] }}" dir="ltr" maxlength="60"></div>
+        <div><label class="field-label" for="s-legal-tax">{{ __('Tax registration number') }}</label><input class="field" id="s-legal-tax" name="tax_id" value="{{ $s['tax_id'] }}" dir="ltr" maxlength="60"></div>
+        <div><label class="field-label" for="s-legal-address">{{ __('Registered address') }}</label><input class="field" id="s-legal-address" name="legal_address" value="{{ $s['legal_address'] }}" maxlength="250"></div>
+        <p class="text-xs text-navy-500 sm:col-span-2">{{ __('Shown in the site footer and on the terms, privacy and refund pages once filled; empty fields are hidden.') }}</p>
+    </div>
+
     <div class="card grid gap-4 sm:grid-cols-2">
         <h2 class="text-lg font-bold sm:col-span-2">{{ __('Support contact') }}</h2>
         <div><label class="field-label">{{ __('Support WhatsApp') }}</label><input class="field" name="support_whatsapp" value="{{ $s['support_whatsapp'] }}" dir="ltr" placeholder="010xxxxxxxx"></div>

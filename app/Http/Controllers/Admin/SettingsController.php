@@ -25,6 +25,10 @@ class SettingsController extends Controller
         'sales_whatsapp', 'contact_email', 'server_ip', 'domain_cart_url',
         // launch offer (App\Billing\LaunchOffer): the second branch free for the first year of a Complete subscription
         'launch_offer_branch_enabled', 'launch_offer_branch_ends',
+        // last day of the launch price next to the crossed-out price (App\Models\Plan::showsLaunchDiscount)
+        'launch_offer_ends_at',
+        // company legal details shown in the site footer and the legal pages when filled
+        'legal_entity', 'commercial_register', 'tax_id', 'legal_address',
         'social_facebook', 'social_instagram', 'social_tiktok', 'social_youtube', 'social_linkedin', 'social_x',
     ];
 
@@ -72,6 +76,11 @@ class SettingsController extends Controller
             'server_ip' => 'nullable|ip',
             'domain_cart_url' => 'nullable|url|max:300',
             'launch_offer_branch_ends' => 'nullable|date',
+            'launch_offer_ends_at' => 'nullable|date_format:Y-m-d',
+            'legal_entity' => 'nullable|string|max:160',
+            'commercial_register' => 'nullable|string|max:60',
+            'tax_id' => 'nullable|string|max:60',
+            'legal_address' => 'nullable|string|max:250',
             'kashier_methods' => 'nullable|array',
             'kashier_methods.*' => ['string', Rule::in(array_keys(OnlinePayments::METHODS))],
             'kashier_installments_min' => 'nullable|numeric|min:0|max:1000000',

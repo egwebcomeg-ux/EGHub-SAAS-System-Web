@@ -27,7 +27,7 @@ $slug = '[a-z0-9][a-z0-9-]{1,28}[a-z0-9]';
 Route::domain("admin.$domain")->get('/robots.txt', [SeoController::class, 'robotsPrivate']);
 Route::domain("app.$domain")->get('/robots.txt', [SeoController::class, 'robotsPrivate']);
 
-Route::domain("admin.$domain")->middleware('admin.locale')->name('admin.')->group(base_path('routes/admin.php'));
+Route::domain("admin.$domain")->middleware(['admin.locale', 'admin.idle'])->name('admin.')->group(base_path('routes/admin.php'));
 
 Route::domain("app.$domain")->name('dash.')->group(base_path('routes/dashboard.php'));
 
@@ -50,6 +50,7 @@ Route::domain($domain)->group(function () use ($slug) {
         Route::post('/assistant', [AssistantController::class, 'chat'])->middleware('throttle:assistant')->name('assistant');
         Route::get('/terms', [LandingController::class, 'terms'])->name('terms');
         Route::get('/privacy', [LandingController::class, 'privacy'])->name('privacy');
+        Route::get('/refund-policy', [LandingController::class, 'refund'])->name('refund');
         Route::get('/register', [SignupController::class, 'show'])->name('register');
         Route::post('/register', [SignupController::class, 'store'])->middleware('throttle:signup');
         Route::get('/register/check', [SignupController::class, 'check'])->middleware('throttle:60,1')->name('register.check');

@@ -1,0 +1,7 @@
+@extends('errors.layout')
+@section('title', 'Too many attempts')
+@section('code', '429')
+@section('title_ar', 'محاولات كتير ورا بعض')
+@section('message_ar', 'استنى دقيقة وبعدين جرّب تاني.')
+@section('message_en', 'Too many attempts in a short time. Wait a minute, then try again.')
+@section('action', '1')

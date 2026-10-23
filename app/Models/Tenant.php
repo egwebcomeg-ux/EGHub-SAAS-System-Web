@@ -31,7 +31,7 @@ class Tenant extends BaseTenant
         'root', 'administrator', 'system', 'internal', 'terms', 'privacy', 'about', 'contact', 'features', 'en', 'ar',
         'up', 'health', 'sitemap', 'robots', 'favicon', 'manifest', 'webhooks', 'lang', 'menu', 'card', 'qr', 'localhost',
         'restaurants', 'restaurant', 'cafes', 'directory', 'search', 'explore', 'cities', 'cuisines', 'feed', 'rss', 'llms',
-        'services',
+        'services', 'refund', 'refund-policy', 'refunds',
     ];
 
     protected $keyType = 'string';
@@ -49,12 +49,12 @@ class Tenant extends BaseTenant
 
     public static function getCustomColumns(): array
     {
-        return ['id', 'name', 'status', 'suspended_at', 'showcase_on_site', 'showcase_sort', 'created_at', 'updated_at', 'deleted_at'];
+        return ['id', 'name', 'status', 'suspended_at', 'showcase_on_site', 'showcase_sort', 'hidden_from_directory', 'created_at', 'updated_at', 'deleted_at'];
     }
 
     protected function casts(): array
     {
-        return ['suspended_at' => 'datetime', 'data' => 'array', 'showcase_on_site' => 'boolean', 'showcase_sort' => 'integer'];
+        return ['suspended_at' => 'datetime', 'data' => 'array', 'showcase_on_site' => 'boolean', 'showcase_sort' => 'integer', 'hidden_from_directory' => 'boolean'];
     }
 
     /** The home page's logo strip lists active, opted-in places: rebuilt when either changes. */

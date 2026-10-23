@@ -21,7 +21,7 @@ class SeoController extends Controller
     {
         $xml = Cache::remember('seo.sitemap.'.platform_url(null, ''), 3600, function () {
             $urls = [];
-            foreach (['landing', 'features', 'pricing', 'directory'] as $name) {
+            foreach (['landing', 'features', 'pricing', 'directory', 'terms', 'privacy', 'refund'] as $name) {
                 $urls[] = [route($name), null];
             }
             foreach (array_keys(SiteModules::all()) as $slug) {

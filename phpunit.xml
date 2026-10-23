@@ -38,5 +38,6 @@
         <env name="ASSISTANT_PROVIDER" value="anthropic"/>
         <env name="GEMINI_API_KEY" value=""/>
         <env name="WHATSAPP_NUMBER" value=""/>
+        <env name="ADMIN_REQUIRE_2FA" value="false"/>
     </php>
 </phpunit>

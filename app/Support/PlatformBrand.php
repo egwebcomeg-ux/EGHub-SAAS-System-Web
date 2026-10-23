@@ -116,6 +116,9 @@ final class PlatformBrand
             'brand-500' => self::mix($primary, '#ffffff', 0.22),
             'brand-600' => strtolower($primary),
             'brand-700' => self::mix($primary, '#000000', 0.1),
+            // primary buttons: white text needs the deeper shades
+            'brand-800' => self::mix($primary, '#000000', 0.2),
+            'brand-900' => self::mix($primary, '#000000', 0.36),
             'navy-600' => strtolower($secondary),
             'navy-700' => self::mix($secondary, '#000000', 0.25),
             'navy-800' => strtolower($navy),
