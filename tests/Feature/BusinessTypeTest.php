@@ -5,9 +5,15 @@ namespace Tests\Feature;
 use App\Billing\Billing;
 use App\Models\Category;
 use App\Models\KitchenStation;
+use App\Models\Plan;
+use App\Models\Tenant;
+use App\Services\ModuleChoice;
 use App\Services\Settings;
 use App\Services\TenantProvisioner;
 use App\Support\BusinessType;
+use App\Support\ItemBadges;
+use App\Support\ItemPlaceholder;
+use App\Support\KnowledgeBaseTemplates;
 use App\Support\MenuThemes;
 use Tests\TenantTestCase;
 
@@ -86,6 +92,67 @@ class BusinessTypeTest extends TenantTestCase
         }
         $this->get($this->menuUrl('restaurants'))->assertOk()->assertSee('محل');
         $this->get($this->pathUrl('sweet-shop', 'about'))->assertOk();
+    }
+
+    public function test_a_pastry_shop_signs_up_with_its_categories_prep_screen_grid_and_defaults(): void
+    {
+        $this->get($this->menuUrl('register'))->assertOk()->assertSee('value="pastry"', false)->assertSee('حلواني ومخبز');
+
+        $this->post($this->menuUrl('register'), [
+            'name' => 'حلواني الفجر', 'slug' => 'el-fagr', 'owner_name' => 'Sara', 'email' => 'sara@fagr.test',
+            'phone' => '01066666666', 'password' => 'Secret-pass-123', 'password_confirmation' => 'Secret-pass-123', 'terms' => '1',
+            'business_type' => 'pastry',
+        ])->assertRedirect();
+
+        $tenant = Tenant::query()->findOrFail('el-fagr');
+        $this->as($tenant, function () {
+            $this->assertSame('pastry', Settings::get('business_type'));
+            $this->assertSame('grid', Settings::get('menu_theme'));
+            $this->assertSame(['جاتوه', 'تورت', 'مخبوزات', 'حلويات شرقية', 'بوكسات', 'قهوة ومشروبات'], Category::query()->orderBy('sort_order')->pluck('name')->all());
+            $this->assertSame(['التجهيز'], KitchenStation::query()->pluck('name')->all());
+            $this->assertSame(['online-ordering', 'loyalty', 'offers', 'pos', 'reports'], array_values(array_diff(ModuleChoice::preselected(), ModuleChoice::LOCKED)));
+            $this->assertSame(['sugar_free', 'gluten_free', 'nuts'], array_slice(ItemBadges::forBusiness(BusinessType::current())[0], 0, 3));
+        });
+        $this->assertSame('scheduled_orders', BusinessType::recommendations('pastry')[0]['feature']);
+        $this->assertArrayNotHasKey('type', BusinessType::loyaltyDefaults('pastry')); // a stamp card
+        $this->assertSame('بوكس حلويات هدية', BusinessType::loyaltyDefaults('pastry')['reward_label']);
+        $this->assertSame('dessert', ItemPlaceholder::icon('بوكسات Boxes', 'pastry'));
+        $this->assertContains('بتعملوا تورتة بالطلب (اسم، صورة، شكل معين)؟', array_column(KnowledgeBaseTemplates::for('pastry'), 'question'));
+
+        app(Billing::class)->setAddon($tenant, 'kitchen_pack', 1);
+        $owner = $this->owner($tenant);
+        $this->actingAs($owner)->get($this->dashUrl('/kitchen'))->assertOk()->assertSee('شاشة التجهيز');
+        $this->actingAs($owner)->post($this->dashUrl('/onboarding/dismiss'));
+        $this->actingAs($owner)->get($this->dashUrl('/'))->assertOk()->assertSee('مقترح لـحلواني ومخبز')->assertSee('طلب بميعاد');
+    }
+
+    /** Every public method answers every type on its own terms: nothing falls into another type's default by accident. */
+    public function test_every_business_type_method_handles_every_type(): void
+    {
+        $prep = [];
+        foreach (array_keys(BusinessType::TYPES) as $type) {
+            $this->assertNotSame('', BusinessType::label($type));
+            $this->assertNotSame('', BusinessType::emoji($type));
+            $this->assertNotEmpty(BusinessType::categories($type));
+            $this->assertNotEmpty(BusinessType::stations($type));
+            $this->assertArrayHasKey(BusinessType::theme($type), MenuThemes::ALL);
+            $this->assertTrue(MenuThemes::suits(BusinessType::theme($type), $type) || BusinessType::theme($type) === 'classic', $type);
+            $this->assertArrayHasKey('reward_label', BusinessType::loyaltyDefaults($type));
+            $recommendations = BusinessType::recommendations($type);
+            $this->assertNotEmpty($recommendations);
+            foreach ($recommendations as $r) {
+                $this->assertArrayHasKey($r['feature'], Plan::FEATURES, "$type: {$r['feature']}");
+            }
+            $this->assertNotEmpty(ModuleChoice::defaults($type));
+            $this->assertNotEmpty(KnowledgeBaseTemplates::for($type));
+            $this->assertNotEmpty(ItemBadges::forBusiness($type)[0]);
+            $prep[$type] = BusinessType::prepScreen($type);
+        }
+        // the emoji, the starter categories and the prep screen name of the new type are its own
+        $this->assertSame('🍰', BusinessType::emoji('pastry'));
+        $this->assertSame('Pastry & bakery', BusinessType::TYPES['pastry'][1]);
+        $this->assertNotSame(BusinessType::categories('cafe'), BusinessType::categories('pastry'));
+        $this->assertSame('شاشة التجهيز', $prep['pastry']);
     }
 
     public function test_every_template_renders_the_menu(): void

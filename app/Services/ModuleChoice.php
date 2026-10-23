@@ -143,6 +143,8 @@ final class ModuleChoice
             // a restaurant that delivers has riders: the drivers module comes with its online ordering
             'restaurant' => ['table-ordering', 'online-ordering', 'kitchen-display', 'delivery-drivers', 'reservations', 'reports'],
             'both' => ['table-ordering', 'online-ordering', 'kitchen-display', 'delivery-drivers', 'loyalty', 'reports'],
+            // cakes ordered ahead for a day and an hour (online ordering), regulars with a stamp card, a counter
+            'pastry' => ['online-ordering', 'loyalty', 'offers', 'pos', 'reports'],
             'shop' => ['online-ordering', 'pos', 'loyalty', 'offers'],
             default => ['table-ordering', 'loyalty', 'offers', 'reports'],
         });

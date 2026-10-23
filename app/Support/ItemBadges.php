@@ -16,6 +16,9 @@ final class ItemBadges
 
     private const RESTAURANT = ['spicy', 'chef_pick', 'healthy', 'vegetarian', 'vegan', 'high_protein', 'low_fat', 'sharing', 'new', 'bestseller', 'gluten_free', 'nuts'];
 
+    /** A pastry shop: what a guest asks before buying a cake or a box (sugar, gluten, nuts, eggs) first. */
+    private const PASTRY = ['sugar_free', 'gluten_free', 'nuts', 'vegan', 'bestseller', 'new', 'seasonal', 'sharing', 'healthy', 'vegetarian'];
+
     private const CAFE = ['barista_pick', 'iced', 'hot', 'sugar_free', 'plant_milk', 'decaf', 'strong', 'seasonal', 'healthy', 'new', 'bestseller', 'vegetarian'];
 
     /**
@@ -27,6 +30,7 @@ final class ItemBadges
     {
         $main = match ($type) {
             'cafe' => self::CAFE,
+            'pastry' => self::PASTRY,
             'both' => array_values(array_unique([...self::CAFE, ...self::RESTAURANT])),
             default => self::RESTAURANT,
         };

@@ -14,11 +14,11 @@ final class MenuThemes
 {
     /** key => [item layout, best for (business types)] */
     public const ALL = [
-        'classic' => ['classic', ['cafe', 'restaurant', 'both', 'shop']],
-        'grid' => ['grid', ['cafe', 'restaurant', 'both', 'shop']],
-        'minimal' => ['minimal', ['restaurant', 'shop']],
+        'classic' => ['classic', ['cafe', 'restaurant', 'both', 'pastry', 'shop']],
+        'grid' => ['grid', ['cafe', 'restaurant', 'both', 'pastry', 'shop']],
+        'minimal' => ['minimal', ['restaurant', 'pastry', 'shop']],
         'dark' => ['classic', ['cafe']],
-        'cafe' => ['cafe', ['cafe', 'both']],
+        'cafe' => ['cafe', ['cafe', 'both', 'pastry']],
         'bistro' => ['bistro', ['restaurant']],
         'fastfood' => ['grid', ['restaurant', 'both', 'shop']],
         'oriental' => ['classic', ['restaurant', 'both']],

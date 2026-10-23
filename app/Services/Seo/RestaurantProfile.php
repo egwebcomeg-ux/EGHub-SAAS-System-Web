@@ -159,7 +159,11 @@ final class RestaurantProfile
         $main = $branches->first();
         $schema = [
             '@context' => 'https://schema.org',
-            '@type' => $this->settings['business_type'] === 'cafe' ? 'CafeOrCoffeeShop' : 'Restaurant',
+            '@type' => match ($this->settings['business_type']) {
+                'cafe' => 'CafeOrCoffeeShop',
+                'pastry' => 'Bakery',
+                default => 'Restaurant',
+            },
             '@id' => tenant()->url('about').'#place',
             'name' => $this->name(),
             'url' => tenant()->url('about'),

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Platform;
 
 use App\Http\Controllers\Controller;
 use App\Models\Testimonial;
+use App\Services\Seo\SiteShowcase;
 use App\Services\Seo\SocialProof;
 use App\Support\SiteModules;
 use Illuminate\View\View;
@@ -14,6 +15,7 @@ class LandingController extends Controller
     public function home(): View
     {
         return view('landing.home', SiteModules::pricing() + [
+            'showcaseLogos' => SiteShowcase::logos(),
             'proofPlaces' => SocialProof::places(),
             'proofCounters' => SocialProof::counters(),
             'testimonials' => Testimonial::query()->live()->with('tenant')->limit(Testimonial::HOME_LIMIT)->get(),

@@ -30,7 +30,7 @@
         [__('Can I change prices myself?'), __('Yes, at any time from your dashboard. The QR menu, the printed menu and the TV screens all update.')],
         [__('How do I pay the subscription?'), $howToPay],
         [__('I have a chain or a busy kitchen. Which plan is mine?'), __('Enterprise: the POS, kitchen screens, the kiosk, the call center, stock and more than 5 branches, set up with you. Message us and we agree a price for your place.')],
-        [__('I run a cafe or a shop, not a restaurant. Is EgMenu for me?'), __('Yes. When you sign up you choose cafe, restaurant, both or a shop (a bakery, a butcher, a juice bar), and EgMenu sets up the right categories, a bar or prep screen instead of a kitchen and a loyalty card ready to switch on.')],
+        [__('I run a cafe or a shop, not a restaurant. Is EgMenu for me?'), __('Yes. When you sign up you choose a cafe, a restaurant, both, a pastry shop or bakery, or a shop (a butcher, a juice bar), and EgMenu sets up the right categories, a bar or prep screen instead of a kitchen and a loyalty card ready to switch on.')],
         [__('Is my data safe?'), __('Every restaurant’s data is kept separate and is visible only to its own staff, each with the permissions you give them.')],
     ];
 @endphp
@@ -84,6 +84,34 @@
         @endforeach
     </ul>
 </section>
+
+{{-- ============ LOGOS: places EgWeb put in the strip with the owner's consent (App\Services\Seo\SiteShowcase, at least MIN_LOGOS) ============ --}}
+@if ($showcaseLogos)
+    @php
+        // one copy of the loop must be wider than the strip (8 boxes cover 1280px), so a short list is repeated in it;
+        // the repeats and the second copy are hidden from screen readers and the keyboard
+        $showcaseRounds = (int) ceil(8 / count($showcaseLogos));
+    @endphp
+    <section data-site-showcase class="pt-14" aria-labelledby="showcase-title">
+        <h2 id="showcase-title" class="px-4 text-center text-sm font-extrabold text-navy-500">{{ __('Restaurants and cafes running on EgMenu') }}</h2>
+        <div class="lp-marquee mx-auto mt-5 max-w-7xl" style="--lp-marquee-duration: {{ count($showcaseLogos) * $showcaseRounds * 4 }}s">
+            <div class="lp-marquee-track">
+                @foreach ([false, true] as $copy)
+                    <ul class="lp-marquee-list" @if ($copy) aria-hidden="true" data-showcase-copy @endif>
+                        @foreach (array_merge(...array_fill(0, $showcaseRounds, $showcaseLogos)) as $place)
+                            @php $repeat = $copy || $loop->index >= count($showcaseLogos); @endphp
+                            <li class="lp-marquee-item" @if ($repeat && ! $copy) aria-hidden="true" data-showcase-repeat @endif>
+                                <a href="{{ $place['url'] }}" target="_blank" rel="noopener" class="lp-logo-box" @if ($repeat) tabindex="-1" @endif>
+                                    <img src="{{ $place['logo'] }}" alt="{{ tr($place['name'], $place['name_en']) }}" width="160" height="64" loading="lazy" decoding="async">
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endforeach
+            </div>
+        </div>
+    </section>
+@endif
 
 {{-- ============ WHO USES IT (only when enough listed places exist, see App\Services\Seo\SocialProof) ============ --}}
 @if ($proofPlaces)

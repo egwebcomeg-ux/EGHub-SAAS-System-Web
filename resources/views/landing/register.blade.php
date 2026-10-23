@@ -64,7 +64,7 @@
             @endunless
             <fieldset class="sm:col-span-2">
                 <legend class="field-label">{{ __('Type of place') }}</legend>
-                <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     @foreach (\App\Support\BusinessType::TYPES as $key => $label)
                         <label class="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-navy-100 px-2 text-center text-sm font-semibold has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
                             <input type="radio" name="business_type" value="{{ $key }}" required class="sr-only" @checked(old('business_type', 'cafe') === $key)>

@@ -27,6 +27,7 @@ final class KnowledgeBaseTemplates
         $keys = match ($businessType) {
             'restaurant' => ['hours', 'parking', 'delivery_areas', 'delivery_time', 'booking', 'payment', 'allergens', 'kids', 'cancel', 'complaint'],
             'both' => ['hours', 'parking', 'wifi', 'delivery_areas', 'delivery_time', 'booking', 'payment', 'allergens', 'kids', 'cancel', 'complaint'],
+            'pastry' => ['hours', 'custom_cake', 'order_ahead', 'delivery_areas', 'delivery_time', 'payment', 'allergens', 'sugar_free', 'cancel', 'complaint'],
             'shop' => ['hours', 'parking', 'delivery_areas', 'delivery_time', 'bulk', 'payment', 'allergens', 'cancel', 'complaint'],
             default => ['hours', 'wifi', 'parking', 'milk', 'delivery_areas', 'delivery_time', 'payment', 'allergens', 'cancel', 'complaint'],
         };
@@ -64,6 +65,15 @@ final class KnowledgeBaseTemplates
             'bulk' => $q('ordering', 'public', 'بتعملوا طلبات كبيرة أو بالحجز؟', 'Do you take large or advance orders?',
                 '[أيوه / لأ]. [قبلها بكام يوم، وهل فيه عربون]',
                 '[Yes / No]. [How many days ahead, and whether a deposit is needed]', 'طلبات كبيرة, مناسبات, bulk, events'),
+            'custom_cake' => $q('ordering', 'public', 'بتعملوا تورتة بالطلب (اسم، صورة، شكل معين)؟', 'Do you make custom cakes (a name, a photo, a special design)?',
+                "[أيوه / لأ]. [الأحجام والأسعار تبدأ من كام]\n[الكتابة أو الصورة على التورتة بفرق سعر كام، لو فيه]",
+                "[Yes / No]. [Sizes, and the starting prices]\n[Any extra charge for writing or a photo on the cake]", 'تورتة, تورت, عيد ميلاد, cake, custom, birthday'),
+            'order_ahead' => $q('ordering', 'public', 'لازم أطلب التورتة قبلها بقد إيه؟', 'How far ahead do I order a cake?',
+                'قبلها بـ [عدد الأيام] على الأقل، وتختار يوم وساعة الاستلام من لينك الطلب. [العربون، لو فيه]',
+                'At least [days] days ahead; pick the day and hour of pickup from the order link. [Deposit, if any]', 'حجز, طلب مسبق, استلام, order ahead, pickup'),
+            'sugar_free' => $q('food', 'public', 'فيه حلويات من غير سكر أو دايت؟', 'Do you have sugar-free or diet sweets?',
+                '[فيه / مفيش]: [الأصناف]. [بتتعمل بالطلب ولا موجودة على طول]',
+                '[Yes / No]: [items]. [Made to order or always in stock]', 'سكر, دايت, sugar free, diet'),
             'payment' => $q('payment', 'public', 'بتقبلوا إيه في الدفع؟', 'Which payment methods do you take?',
                 'كاش، و[كارت / إنستاباي / محفظة موبايل].',
                 'Cash, and [card / InstaPay / mobile wallet].', 'دفع, كاش, فيزا, payment, card'),

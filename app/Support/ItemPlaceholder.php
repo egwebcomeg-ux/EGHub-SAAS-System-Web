@@ -16,7 +16,8 @@ final class ItemPlaceholder
         'cup' => ['قهو', 'مشروب', 'عصير', 'عصائر', 'شاي', 'كافي', 'لاتيه', 'اسبريسو', 'إسبريسو', 'موهيتو', 'سموذي', 'ميلك', 'فريش', 'ساقع', 'سخن', 'بارد', 'ساخن', 'كوكتيل',
             'coffee', 'drink', 'juice', 'tea', 'latte', 'espresso', 'smoothie', 'shake', 'mojito', 'soda', 'beverage', 'frappe', 'cocktail'],
         'dessert' => ['حلو', 'حلويات', 'كيك', 'تورت', 'آيس', 'ايس', 'وافل', 'كريب', 'بان كيك', 'دونات', 'شوكولا', 'ديزرت',
-            'dessert', 'sweet', 'cake', 'ice cream', 'waffle', 'crepe', 'pancake', 'donut', 'chocolate', 'pastry'],
+            'جاتوه', 'مخبوز', 'مخبز', 'بيتي فور', 'كنافة', 'كنافه', 'بسبوس', 'كرواسون', 'بوكس',
+            'dessert', 'sweet', 'cake', 'ice cream', 'waffle', 'crepe', 'pancake', 'donut', 'chocolate', 'pastry', 'gateau', 'gâteau', 'bakery', 'croissant'],
         'pizza' => ['بيتزا', 'pizza'],
         'burger' => ['برجر', 'برغر', 'ساندوتش', 'ساندويتش', 'سندوتش', 'شاورم', 'كريسبي', 'burger', 'sandwich', 'shawarma', 'wrap'],
         'fish' => ['سمك', 'أسماك', 'اسماك', 'سوشي', 'بحري', 'بحريات', 'جمبري', 'fish', 'sushi', 'seafood', 'shrimp', 'maki'],
@@ -73,7 +74,11 @@ final class ItemPlaceholder
             }
         }
 
-        return $businessType === 'cafe' ? 'cup' : 'plate';
+        return match ($businessType) {
+            'cafe' => 'cup',
+            'pastry' => 'dessert',
+            default => 'plate',
+        };
     }
 
     public static function svg(string $icon, string $class = ''): string

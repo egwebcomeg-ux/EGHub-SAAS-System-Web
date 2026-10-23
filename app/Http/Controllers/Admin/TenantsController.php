@@ -85,6 +85,7 @@ class TenantsController extends Controller
         tenancy()->initialize($tenant);
         try {
             $contact = ['phone' => Settings::get('phone'), 'whatsapp' => Settings::get('whatsapp')];
+            $logo = trim((string) Settings::get('logo'));
             $platformActions = AuditLog::query()->where('action', 'like', '%_by_platform')->latest('id')->limit(8)->get();
         } finally {
             tenancy()->end();
@@ -102,6 +103,7 @@ class TenantsController extends Controller
             'invoices' => $tenant->invoices()->latest('id')->limit(10)->get(),
             'usage' => $usage,
             'contact' => $contact,
+            'logo' => $logo !== '' ? '/storage/'.ltrim($logo, '/') : null,
             'platformActions' => $platformActions,
         ]);
     }
@@ -125,6 +127,33 @@ class TenantsController extends Controller
         }
 
         return back()->with('ok', __('Restaurant info saved.'));
+    }
+
+    /**
+     * The restaurant's logo in the moving strip on the egmenu.app home page (App\Services\Seo\SiteShowcase), turned
+     * on only after the owner agreed, with an optional place in the strip. Written to its audit trail.
+     */
+    public function showcase(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $data = $request->validate([
+            'showcase_on_site' => 'nullable|boolean',
+            'showcase_sort' => 'nullable|integer|min:0|max:9999',
+        ]);
+        $tenant->update([
+            'showcase_on_site' => $request->boolean('showcase_on_site'),
+            'showcase_sort' => $data['showcase_sort'] ?? null,
+        ]);
+        tenancy()->initialize($tenant);
+        try {
+            Audit::record('restaurant.showcase_by_platform', $tenant->name, [
+                'admin' => $request->user('admin')->email, 'on' => $tenant->showcase_on_site, 'sort' => $tenant->showcase_sort,
+            ]);
+        } finally {
+            tenancy()->end();
+            Settings::flush();
+        }
+
+        return back()->with('ok', $tenant->showcase_on_site ? __('The logo shows on egmenu.app.') : __('The logo is off egmenu.app.'));
     }
 
     /** Manual plan/status/period change (e.g. after an InstaPay or Vodafone Cash transfer). */

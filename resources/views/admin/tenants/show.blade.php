@@ -14,6 +14,7 @@
         'user.signed_out_by_platform' => __('Signed out everywhere'),
         'two_factor.reset_by_platform' => __('Two-factor reset'),
         'restaurant.info_by_platform' => __('Restaurant info changed'),
+        'restaurant.showcase_by_platform' => __('Logo on egmenu.app changed'),
     ];
 @endphp
 <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
@@ -118,6 +119,31 @@
                     <div><label class="field-label" for="t-wa">{{ __('WhatsApp') }}</label><input class="field" id="t-wa" name="whatsapp" value="{{ old('whatsapp', $contact['whatsapp']) }}" dir="ltr" maxlength="20"></div>
                 </div>
                 <div class="text-xs text-navy-500">{{ __('Link') }}: <span dir="ltr">/{{ $tenant->id }}</span> · {{ __('Created') }} {{ local_time($tenant->created_at, 'Y/m/d') }}</div>
+                <button class="btn-primary">{{ __('Save') }}</button>
+            </form>
+
+            {{-- the moving logo strip on the egmenu.app home page (App\Services\Seo\SiteShowcase) --}}
+            <form method="post" action="{{ route('admin.tenants.showcase', $tenant) }}" class="card space-y-3" data-tenant-showcase>
+                @csrf
+                <h2 class="section-title">{{ __('Logo on egmenu.app') }}</h2>
+                <div class="flex items-center gap-3">
+                    @if ($logo)
+                        <img src="{{ $logo }}" alt="{{ $tenant->name }}" width="96" height="48" loading="lazy" class="h-12 w-24 shrink-0 rounded-lg border border-navy-100 bg-white object-contain p-1">
+                    @else
+                        <span class="badge bg-amber-100 text-amber-800" data-showcase-no-logo>{{ __('No logo yet: it will not show until the restaurant uploads one.') }}</span>
+                    @endif
+                </div>
+                <label class="flex min-h-11 items-center gap-3 text-sm font-semibold">
+                    <input type="hidden" name="showcase_on_site" value="0">
+                    <input type="checkbox" name="showcase_on_site" value="1" class="size-5 accent-brand-600" @checked(old('showcase_on_site', $tenant->showcase_on_site))>
+                    {{ __('Show the logo on egmenu.app') }}
+                </label>
+                <p class="text-xs text-navy-500">{{ __('Only after the owner agreed. The logo moves in the strip on the home page and links to the menu; the strip shows once :n restaurants are in it.', ['n' => \App\Services\Seo\SiteShowcase::MIN_LOGOS]) }}</p>
+                <div>
+                    <label class="field-label" for="t-showcase-sort">{{ __('Order in the strip (optional)') }}</label>
+                    <input class="field" id="t-showcase-sort" name="showcase_sort" type="number" min="0" max="9999" dir="ltr" value="{{ old('showcase_sort', $tenant->showcase_sort) }}" placeholder="{{ __('Smaller first') }}">
+                    @error('showcase_sort')<div class="field-error">{{ $message }}</div>@enderror
+                </div>
                 <button class="btn-primary">{{ __('Save') }}</button>
             </form>
         @endif

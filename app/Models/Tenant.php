@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\Entitlements;
+use App\Services\Seo\SiteShowcase;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -48,12 +49,23 @@ class Tenant extends BaseTenant
 
     public static function getCustomColumns(): array
     {
-        return ['id', 'name', 'status', 'suspended_at', 'created_at', 'updated_at', 'deleted_at'];
+        return ['id', 'name', 'status', 'suspended_at', 'showcase_on_site', 'showcase_sort', 'created_at', 'updated_at', 'deleted_at'];
     }
 
     protected function casts(): array
     {
-        return ['suspended_at' => 'datetime', 'data' => 'array'];
+        return ['suspended_at' => 'datetime', 'data' => 'array', 'showcase_on_site' => 'boolean', 'showcase_sort' => 'integer'];
+    }
+
+    /** The home page's logo strip lists active, opted-in places: rebuilt when either changes. */
+    protected static function booted(): void
+    {
+        static::saved(function (Tenant $tenant) {
+            if ($tenant->wasChanged(['status', 'showcase_on_site', 'showcase_sort', 'name', 'deleted_at'])) {
+                SiteShowcase::flush();
+            }
+        });
+        static::deleted(fn () => SiteShowcase::flush());
     }
 
     /** Lowercase letters, digits and inner hyphens, 3-30 chars, not reserved, not taken. */
