@@ -22,6 +22,9 @@ final class BrandStyle
 {
     public const FEATURE = 'full_branding';
 
+    /** Templates whose header keeps its own colour whatever the brand (menu/themes/styles.blade.php). */
+    public const OWN_HEADER_THEMES = ['cafe', 'bistro', 'fastfood', 'oriental'];
+
     public const FONT_STYLES = ['serif', 'sans', 'rounded', 'script', 'display', 'arabic_naskh', 'arabic_kufi'];
 
     public const LANGUAGES = ['ar', 'en', 'both'];
@@ -151,6 +154,11 @@ final class BrandStyle
     public static function apply(array $brand, bool $replaceLogo, string $subject = ''): array
     {
         $values = self::allowed() ? self::settingsFor($brand, $replaceLogo) : [];
+        // templates that paint their own header colour (resources/views/menu/themes/styles.blade.php) would hide the
+        // brand's colours: the file's style moves the menu to the classic template, which follows them
+        if (isset($values['color_secondary']) && in_array((string) Settings::get('menu_theme'), self::OWN_HEADER_THEMES, true)) {
+            $values['menu_theme'] = 'classic';
+        }
         if (isset($values['logo'])) {
             $old = (string) Settings::get('logo');
             if ($old !== '' && $old !== $values['logo']) {

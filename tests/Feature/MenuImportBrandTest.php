@@ -85,6 +85,8 @@ class MenuImportBrandTest extends TenantTestCase
         $logo = $this->storedLogo($a);
         $import = $this->parsed($a, self::BRAND, $logo);
         $owner = $this->owner($a);
+        // a template with its own header colour would hide the brand: applying the style leaves it for classic
+        $this->as($a, fn () => Settings::put(['menu_theme' => 'cafe']));
 
         $this->actingAs($owner)->get($this->dashUrl("/menu/import/{$import->id}"))->assertOk()
             ->assertSee('data-import-brand', false)->assertSee('لقينا شكل البراند بتاعك في الملف')
@@ -99,6 +101,7 @@ class MenuImportBrandTest extends TenantTestCase
         $this->assertSame('#72253D', $settings['color_secondary']);
         $this->assertSame('#FDFBE6', $settings['color_bg']);
         $this->assertSame('Playfair Display', $settings['font']);
+        $this->assertSame('classic', $settings['menu_theme']);
         $this->assertSame('en', $settings['default_locale']); // an English-only file
         $this->assertSame($logo, $settings['logo']);          // the restaurant had no logo yet
         $this->assertSame(1, $this->as($a, fn () => AuditLog::query()->where('action', 'branding.from_import')->count()));
