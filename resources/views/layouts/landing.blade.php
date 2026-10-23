@@ -83,6 +83,7 @@
                 <x-landing.icon name="x" class="size-6" data-menu-icon="close" hidden />
             </button>
         </div>
+        <span class="lp-progress" aria-hidden="true"><i data-read-progress></i></span>
     </div>
 
     {{-- desktop mega menu --}}

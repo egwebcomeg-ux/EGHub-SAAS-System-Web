@@ -1,5 +1,6 @@
 @extends('layouts.landing')
-@section('title', 'EgMenu — ' . __('A free QR menu for cafes and restaurants in Egypt'))
+@section('title', 'EgMenu — ' . __('one system for your whole place: QR menu, orders, cashier and delivery for restaurants and cafes'))
+@section('description', 'EgMenu — ' . __('one system for your whole place') . '. ' . __('A free QR menu for cafes and restaurants in Egypt, with table and online ordering without commission, a loyalty card and a print-ready menu when you need them.'))
 
 @push('head')
     <script type="application/ld+json">{!! \App\Services\Seo\RestaurantProfile::json(\App\Services\Seo\PlatformSchema::organization()) !!}</script>
@@ -8,21 +9,15 @@
 
 @php
     $trial = \App\Services\TenantProvisioner::TRIAL_DAYS;
-    $modules = \App\Support\SiteModules::all();
-    $groups = \App\Support\SiteModules::groups();
-    $themesCount = count(\App\Support\MenuThemes::ALL);
+    // the hero quotes the Complete plan's price from the database (the super admin may change it)
+    $completePlan = $plans->first(fn ($p) => $p->code === \App\Services\TenantProvisioner::TRIAL_PLAN);
 
-    // one idea per card: the menu, ordering, loyalty, operations (each links to its group on /features)
-    $ideas = [
-        'menu' => __('Put the menu online in your guests’ languages, on paper and on the TVs, and keep every copy up to date from one place.'),
-        'orders' => __('Orders from the table and from your own link with no commission, and table bookings, on one live board.'),
-        'customers' => __('Bring guests back with a stamp card, offers, WhatsApp messages and a prepaid balance.'),
-        'operations' => __('For busier places and chains: a cashier, a self-order tablet, kitchen screens and stock, in the Enterprise plan set up with you.'),
-    ];
-
-    $paths = [
-        'cafe' => ['cup', __('For a cafe like Rosto'), __('Quick orders, regulars who come back, and a bar screen at rush hour.'), ['qr-menu', 'table-ordering', 'loyalty', 'kiosk', 'kitchen-display', 'pos']],
-        'restaurant' => ['plate', __('For a restaurant like Sofra'), __('Accurate orders to the kitchen, delivery without commission, and costs under control.'), ['table-ordering', 'online-ordering', 'reservations', 'kitchen-display', 'call-center', 'inventory']],
+    // four promises, each one a feature that exists today; the ones sold only in Enterprise say so
+    $promises = [
+        [__('Keeps selling when the internet drops'), __('The cashier saves every sale on the device and sends it once, as soon as the connection is back.'), 'Enterprise'],
+        [__('Every pound on record'), __('Sales, payment methods and busy hours in the reports; shifts, cash in and out with a reason, and a Z report on the cashier.'), null],
+        [__('A menu that sells by itself'), __('Suggestions with each item, combos, best sellers at the top and offers, without anyone at the table.'), null],
+        [__('The EgWeb team with you'), __('We reply the same day, and if you want, we set the menu up with you.'), null],
     ];
 
     // matches what is switched on: online (App\Billing\OnlinePayments) only once EgWeb turned it on
@@ -41,53 +36,41 @@
 @endphp
 
 @section('page')
-{{-- ============ HERO: tinted container, centered on phones, the real board beside it on wide screens ============ --}}
-<section data-hero class="lp-hero lp-glow">
-    <div class="mx-auto grid max-w-7xl items-center gap-10 px-4 pt-10 sm:px-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12 lg:pt-16 lg:pb-20">
-        <div class="text-center lg:text-start">
-            <p class="lp-eyebrow" data-reveal><x-landing.icon name="check" class="size-4" />{{ __('Free forever for your menu') }}</p>
-            <h1 class="mt-5 text-[2.2rem] leading-[1.25] font-black tracking-tight text-navy-900 sm:text-[3.4rem] sm:leading-[1.22]" data-reveal style="--d: 70ms">{{ __('Your menu online today,') }} <span class="text-brand-gradient">{{ __('for free.') }}</span></h1>
-            <p class="lp-lead mx-auto mt-4 max-w-md sm:text-lg lg:mx-0 lg:max-w-xl" data-reveal style="--d: 140ms">{{ __('A free QR menu for your cafe or restaurant. Add table ordering, online orders and a loyalty card when you are ready.') }}</p>
-            <div class="mt-7 flex flex-wrap justify-center gap-3 lg:justify-start" data-reveal style="--d: 210ms">
-                <a href="{{ route('register') }}" class="btn-primary min-h-12 rounded-full px-7 text-base">{{ __('Start free') }}</a>
-                <a href="{{ route('features') }}" class="btn-ghost min-h-12 rounded-full px-6 text-base">{{ __('See the features') }}</a>
+{{-- ============ HERO: navy, an editorial promise on the start side, the real board, the guest's phone and one live touch on the end side ============ --}}
+<section data-hero class="lp-hero hm-hero">
+    <div class="hm-orbits" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
+    <div class="relative mx-auto grid max-w-7xl items-center gap-12 px-4 pt-10 pb-12 sm:px-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-10 lg:pt-20 lg:pb-24">
+        <div>
+            <p class="hm-kicker" data-reveal><span dir="ltr">EgMenu</span> — {{ __('one system for your whole place') }}</p>
+            <h1 class="hm-display mt-5 text-white" data-reveal style="--d: 70ms"><span>{{ __('Know every order') }}</span> <span>{{ __('and every pound') }}</span> <span class="text-brand-500">{{ __('in your place.') }}</span></h1>
+            <p class="hm-trail mt-5" data-reveal style="--d: 110ms">{{ __('For restaurants, cafés, pastry shops and bakeries — from the menu to the till to delivery') }}</p>
+            <p class="hm-sub mt-6" data-reveal style="--d: 140ms">
+                @if ($completePlan && (float) $completePlan->monthly_price > 0)
+                    {{ __('EgMenu runs the QR menu, orders from the table and from your own link with no commission, the loyalty card and the reports on one dashboard, in Arabic and English. The menu is free with no time limit; the Complete plan is :price EGP a month.', ['price' => money($completePlan->monthly_price)]) }}
+                @else
+                    {{ __('EgMenu runs the QR menu, orders from the table and from your own link with no commission, the loyalty card and the reports on one dashboard, in Arabic and English. The menu is free with no time limit.') }}
+                @endif
+            </p>
+            <div class="mt-8 flex flex-wrap items-center gap-x-7 gap-y-4" data-reveal style="--d: 210ms">
+                <a href="{{ route('register') }}" class="btn-primary min-h-13 rounded-full px-8 text-base">{{ __('Start free') }} <span aria-hidden="true" class="rtl:rotate-180">→</span></a>
+                <a href="#start" class="hm-link text-white"><u>{{ __('See how you start') }}</u> <span aria-hidden="true">↓</span></a>
             </div>
-            <p class="mt-4 text-sm text-navy-500" data-reveal style="--d: 280ms">{{ __('No card, no contract. :days days of the Complete plan included.', ['days' => $trial]) }}</p>
+            <p class="hm-note mt-7" data-reveal style="--d: 280ms"><x-landing.icon name="sparkles" class="size-4 shrink-0 text-brand-500" />{{ __('No card, no contract. :days days of the Complete plan included.', ['days' => $trial]) }}</p>
         </div>
 
-        <div class="relative">
-            {{-- wide screens: the real order board, the guest's phone and one live touch --}}
-            <div class="relative hidden pb-10 sm:block">
-                <x-landing.shot name="orders" url="app.egmenu.app/orders" :eager="true" :alt="__('The live order board in the EgMenu dashboard (real screen)')" sizes="(min-width: 1024px) 700px, 90vw" />
-                <x-landing.shot name="menu-cafe" frame="phone" :eager="true" :alt="__('Rosto’s menu on a guest’s phone (real screen)')" sizes="190px" class="absolute -bottom-2 -start-6 w-[160px] lg:-start-10 lg:w-[190px]" />
-                <div class="lp-ping absolute top-14 end-4 flex items-center gap-2.5 rounded-xl bg-white px-3 py-2 text-sm font-bold shadow-[0_12px_30px_-12px_rgba(20,31,56,.45)] ring-1 ring-navy-100" aria-hidden="true">
-                    <span class="lp-bell grid size-8 place-items-center rounded-lg bg-brand-600 text-white"><x-landing.icon name="bell" class="size-4" /></span>
-                    <span>{{ __('New order') }}<span class="block text-xs font-semibold text-navy-500">{{ __('Table 4') }} · 170 {{ __('EGP') }}</span></span>
-                </div>
-            </div>
-            {{-- phones: one product image, its lower half tucked into the container's edge --}}
-            <div class="mx-auto h-[300px] w-[220px] overflow-hidden sm:hidden">
-                <x-landing.shot name="menu-cafe" frame="phone" :eager="true" :alt="__('Rosto’s menu on a guest’s phone (real screen)')" sizes="220px" />
+        {{-- the real order board in a browser, the guest's phone over its corner and one glass card (an example order) --}}
+        <div class="hm-compose" data-reveal style="--d: 160ms">
+            <x-landing.shot name="orders" url="app.egmenu.app/orders" :eager="true" :alt="__('The live order board in the EgMenu dashboard (real screen)')" sizes="(min-width: 1024px) 660px, 92vw" class="hm-compose-board" />
+            <x-landing.shot name="menu-cafe" frame="phone" :eager="true" :alt="__('Rosto’s menu on a guest’s phone (real screen)')" sizes="(min-width: 1024px) 190px, 34vw" class="hm-compose-phone" />
+            <div class="hm-glass hm-compose-card" aria-hidden="true">
+                <span class="flex items-center justify-between gap-3 text-xs font-bold text-navy-500"><span class="flex items-center gap-1.5"><i class="hm-live"></i>{{ __('New order') }} · {{ __('Table 4') }}</span><span class="hm-tag">{{ __('Example') }}</span></span>
+                <span class="mt-2 flex items-end justify-between gap-6">
+                    <span><span class="block text-[11px] font-bold text-navy-400">{{ __('Total') }}</span><b class="hm-num text-2xl text-navy-900" dir="ltr">170</b> <span class="text-xs font-bold text-navy-500">{{ __('EGP') }}</span></span>
+                    <span class="text-end"><span class="block text-[11px] font-bold text-navy-400">{{ __('Commission') }}</span><b class="hm-num text-2xl text-brand-700" dir="ltr">0%</b></span>
+                </span>
             </div>
         </div>
     </div>
-</section>
-
-{{-- ============ HONEST FACTS: four calm tiles ============ --}}
-<section class="mx-auto max-w-7xl px-4 pt-8 sm:px-6">
-    <ul class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        @foreach ([
-            [__('0 EGP'), __('for your menu, with no time limit')],
-            [__('0%'), __('commission on your orders')],
-            [$themesCount, __('menu designs')],
-            [__('Arabic + English'), __('on the menu and the dashboard')],
-        ] as [$big, $small])
-            <li class="rounded-2xl border border-navy-100 bg-white px-3 py-4 text-center sm:px-5" data-reveal style="--d: {{ $loop->index * 70 }}ms">
-                <b class="block text-lg font-black text-navy-900 sm:text-xl">{{ $big }}</b>
-                <span class="block text-sm leading-snug text-navy-500">{{ $small }}</span>
-            </li>
-        @endforeach
-    </ul>
 </section>
 
 {{-- ============ LOGOS: places EgWeb put in the strip with the owner's consent (App\Services\Seo\SiteShowcase, at least MIN_LOGOS) ============ --}}
@@ -98,8 +81,8 @@
         $showcaseRounds = (int) ceil(8 / count($showcaseLogos));
     @endphp
     <section data-site-showcase class="pt-14" aria-labelledby="showcase-title">
-        <h2 id="showcase-title" class="px-4 text-center text-sm font-extrabold text-navy-500">{{ __('Restaurants and cafes running on EgMenu') }}</h2>
-        <div class="lp-marquee mx-auto mt-5 max-w-7xl" style="--lp-marquee-duration: {{ count($showcaseLogos) * $showcaseRounds * 4 }}s">
+        <h2 id="showcase-title" class="hm-kicker hm-kicker--quiet justify-center px-4 text-center">{{ __('Restaurants and cafes running on EgMenu') }}</h2>
+        <div class="lp-marquee mx-auto mt-6 max-w-7xl" style="--lp-marquee-duration: {{ count($showcaseLogos) * $showcaseRounds * 4 }}s">
             <div class="lp-marquee-track">
                 @foreach ([false, true] as $copy)
                     <ul class="lp-marquee-list" @if ($copy) aria-hidden="true" data-showcase-copy @endif>
@@ -120,9 +103,9 @@
 
 {{-- ============ WHO USES IT (only when enough listed places exist, see App\Services\Seo\SocialProof) ============ --}}
 @if ($proofPlaces)
-    <section data-social-proof class="pt-14">
+    <section data-social-proof class="pt-12">
         <div class="mx-auto max-w-7xl px-4 sm:px-6">
-            <p class="text-center text-sm font-extrabold text-navy-500">{{ __('Restaurants and shops using EgMenu') }}</p>
+            <p class="hm-kicker hm-kicker--quiet justify-center text-center">{{ __('Restaurants and shops using EgMenu') }}</p>
             <ul class="mt-4 flex flex-wrap justify-center gap-2">
                 @foreach ($proofPlaces as $place)
                     <li class="max-w-full">
@@ -142,88 +125,59 @@
     </section>
 @endif
 
-{{-- ============ ONE IDEA PER CARD ============ --}}
-<section class="py-14 lg:py-20">
+{{-- ============ FROM PAPER TO QR: five steps that play by themselves ============ --}}
+@include('landing.partials.home-walkthrough')
+
+{{-- ============ FOUR PROMISES, numbered under thin rules ============ --}}
+<section class="pb-16 lg:pb-24" aria-labelledby="promises-title">
     <div class="mx-auto max-w-7xl px-4 sm:px-6">
-        <div class="mx-auto max-w-2xl text-center" data-reveal>
-            <p class="lp-eyebrow">{{ __('Features') }}</p>
-            <h2 class="lp-h2 mt-3">{{ __('Take what you need, one module at a time') }}</h2>
-        </div>
-        <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:mt-14 lg:grid-cols-4 lg:gap-5">
-            @foreach ($ideas as $g => $text)
-                <div class="lp-idea lp-lift" data-reveal style="--d: {{ $loop->index * 70 }}ms">
-                    <span class="lp-idea-icon"><x-landing.icon :name="$groups[$g][1]" class="size-6" /></span>
-                    <h3 class="mt-5 text-xl font-black text-navy-900">{{ $groups[$g][0] }}</h3>
-                    <p class="mt-2 flex-1 leading-relaxed text-navy-600">{{ $text }}</p>
-                    <a href="{{ route('features') }}#{{ $g }}" class="btn-ghost mt-6 min-h-11 rounded-full px-5">{{ __('Learn more') }}</a>
-                </div>
+        <h2 id="promises-title" class="sr-only">{{ __('Why EgMenu') }}</h2>
+        <ol class="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+            @foreach ($promises as [$promiseTitle, $promiseText, $promiseTag])
+                <li class="hm-promise" data-reveal style="--d: {{ $loop->index * 70 }}ms">
+                    <span class="hm-num text-sm text-brand-700">{{ sprintf('%02d', $loop->iteration) }}</span>
+                    <h3 class="mt-4 text-lg leading-snug font-black text-navy-900">{{ $promiseTitle }}</h3>
+                    <p class="mt-2 leading-relaxed text-navy-500">{{ $promiseText }}</p>
+                    @if ($promiseTag)<span class="hm-tag mt-3">{{ __('In the :plan plan', ['plan' => $promiseTag]) }}</span>@endif
+                </li>
             @endforeach
-        </div>
-        <p class="mt-8 text-center"><a href="{{ route('features') }}" class="inline-flex min-h-11 items-center font-extrabold text-navy-600 hover:text-brand-700">{{ __('All :n features', ['n' => count($modules)]) }} <span aria-hidden="true" class="ms-1 inline-block rtl:rotate-180">→</span></a></p>
+        </ol>
     </div>
 </section>
+
+{{-- ============ ONE SYSTEM: the list on the start side, a device in orbit on the end side (pinned while it plays) ============ --}}
+@include('landing.partials.home-systems')
 
 {{-- ============ TRY IT: a live demo in the browser ============ --}}
-<section id="demo" class="lp-band py-12 lg:py-16">
+<section id="demo" class="py-16 lg:py-24">
     <div class="mx-auto max-w-7xl px-4 sm:px-6">
-        <div class="mx-auto max-w-2xl text-center" data-reveal>
-            <p class="lp-eyebrow">{{ __('Try it here') }}</p>
-            <h2 class="lp-h2 mt-3">{{ __('Change a price, and the menu on the phone changes with it') }}</h2>
-            <p class="lp-lead mt-3">{{ __('This is your dashboard next to a guest’s phone at table 4. Edit a price or mark an item sold out, then order from the phone and watch the order reach you.') }}</p>
+        <div class="max-w-2xl" data-reveal>
+            <p class="hm-kicker">{{ __('Try it here') }}</p>
+            <h2 class="hm-h2 mt-4">{{ __('Change a price, and the menu on the phone changes with it') }}</h2>
+            <p class="lp-lead mt-4">{{ __('This is your dashboard next to a guest’s phone at table 4. Edit a price or mark an item sold out, then order from the phone and watch the order reach you.') }}</p>
         </div>
-        <div class="mt-10">@include('landing.partials.live-demo')</div>
-    </div>
-</section>
-
-{{-- ============ CAFE OR RESTAURANT ============ --}}
-<section class="py-14 lg:py-20">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6">
-        <div class="mx-auto max-w-2xl text-center" data-reveal>
-            <p class="lp-eyebrow">{{ __('Built for how you work') }}</p>
-            <h2 class="lp-h2 mt-3">{{ __('A cafe and a restaurant need different things') }}</h2>
-        </div>
-        <div class="mt-10 grid gap-4 lg:mt-14 lg:grid-cols-2 lg:gap-5">
-            @foreach ($paths as $type => [$icon, $title, $lead, $slugs])
-                <div class="lp-lift rounded-[28px] border border-navy-100 bg-[var(--lp-paper)] p-6 sm:p-8" data-reveal style="--d: {{ $loop->index * 80 }}ms">
-                    <div class="flex items-center gap-3">
-                        <span class="lp-idea-icon size-12! text-navy-600!"><x-landing.icon :name="$icon" class="size-6" /></span>
-                        <h3 class="text-xl font-black">{{ $title }}</h3>
-                    </div>
-                    <p class="mt-4 leading-relaxed text-navy-600">{{ $lead }}</p>
-                    <ul id="path-{{ $type }}" data-more class="mt-5 grid gap-x-4 rounded-2xl bg-white px-4 sm:grid-cols-2">
-                        @foreach ($slugs as $slug)
-                            <li @class(['border-t border-navy-100 first:border-t-0 sm:[&:nth-child(2)]:border-t-0']) @if ($loop->index >= 3) data-more-item @endif>
-                                <a href="{{ route('features.show', $slug) }}" class="group flex min-h-12 items-center gap-3 font-bold text-navy-800 hover:text-navy-600">
-                                    <x-landing.icon :name="$modules[$slug]['icon']" class="size-5 text-navy-400 group-hover:text-brand-600" />{{ $modules[$slug]['name'] }}
-                                </a>
-                            </li>
-                        @endforeach
-                    </ul>
-                    <x-landing.more :for="'path-' . $type" class="mt-4 justify-center" />
-                </div>
-            @endforeach
-        </div>
+        <div class="mt-10 lg:mt-14">@include('landing.partials.live-demo')</div>
     </div>
 </section>
 
 {{-- ============ REAL NUMBERS (only above the floors in App\Services\Seo\SocialProof; never placeholders) ============ --}}
 @if ($proofCounters)
-    <section data-real-numbers class="pb-14 lg:pb-20">
+    <section data-real-numbers class="pb-16 lg:pb-24">
         <div class="mx-auto max-w-7xl px-4 sm:px-6">
-            <div class="mx-auto max-w-2xl text-center" data-reveal>
-                <p class="lp-eyebrow">{{ __('Real numbers') }}</p>
-                <h2 class="lp-h2 mt-3">{{ __('What is running on EgMenu right now') }}</h2>
+            <div class="max-w-2xl" data-reveal>
+                <p class="hm-kicker">{{ __('Real numbers') }}</p>
+                <h2 class="hm-h2 mt-4">{{ __('What is running on EgMenu right now') }}</h2>
                 <p class="mt-2 text-sm text-navy-500">{{ __('Taken from the database, refreshed every 10 minutes.') }}</p>
             </div>
-            <dl class="mt-10 grid gap-3 sm:grid-cols-3">
+            <dl class="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-3">
                 @foreach ([
                     ['restaurants', __('restaurants and shops live')],
                     ['views', __('menu views')],
                     ['orders', __('orders placed')],
                 ] as [$counterKey, $counterLabel])
-                    <div class="flex flex-col-reverse rounded-[24px] border border-navy-100 bg-white px-6 py-7 text-center" data-reveal style="--d: {{ $loop->index * 70 }}ms">
+                    <div class="hm-promise flex flex-col-reverse" data-reveal style="--d: {{ $loop->index * 70 }}ms">
                         <dt class="mt-1 text-sm font-bold text-navy-500">{{ $counterLabel }}</dt>
-                        <dd class="text-4xl font-black text-navy-900" dir="ltr" data-counter="{{ $counterKey }}">{{ \App\Services\Seo\SocialProof::compact($proofCounters[$counterKey]) }}</dd>
+                        <dd class="hm-num text-5xl text-navy-900" dir="ltr" data-counter="{{ $counterKey }}">{{ \App\Services\Seo\SocialProof::compact($proofCounters[$counterKey]) }}</dd>
                     </div>
                 @endforeach
             </dl>
@@ -233,13 +187,13 @@
 
 {{-- ============ OWNERS IN THEIR OWN WORDS (App\Models\Testimonial: real quotes with consent; hidden while none) ============ --}}
 @if ($testimonials->isNotEmpty())
-    <section data-testimonials class="pb-14 lg:pb-20">
+    <section data-testimonials class="pb-16 lg:pb-24">
         <div class="mx-auto max-w-7xl px-4 sm:px-6">
-            <div class="mx-auto max-w-2xl text-center" data-reveal>
-                <p class="lp-eyebrow">{{ __('From our customers') }}</p>
-                <h2 class="lp-h2 mt-3">{{ __('Owners in their own words') }}</h2>
+            <div class="max-w-2xl" data-reveal>
+                <p class="hm-kicker">{{ __('From our customers') }}</p>
+                <h2 class="hm-h2 mt-4">{{ __('Owners in their own words') }}</h2>
             </div>
-            <ul class="mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] sm:flex-wrap sm:justify-center sm:overflow-visible">
+            <ul class="mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible">
                 @foreach ($testimonials as $t)
                     <li class="w-[85%] shrink-0 snap-center sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)]" data-reveal style="--d: {{ ($loop->index % 3) * 70 }}ms">
                         <figure class="lp-lift flex h-full flex-col rounded-[24px] border border-navy-100 bg-white p-6">
@@ -269,12 +223,14 @@
 @endif
 
 {{-- ============ PRICING TEASER: every plan on one line, the details on /pricing ============ --}}
-<section id="pricing" class="lp-band py-12 lg:py-16">
-    <div class="mx-auto max-w-5xl px-4 sm:px-6">
-        <div class="mx-auto max-w-2xl text-center" data-reveal>
-            <p class="lp-eyebrow">{{ __('Pricing') }}</p>
-            <h2 class="lp-h2 mt-3">{{ __('Start free. Pay only when you need more.') }}</h2>
-            <p class="lp-lead mt-3">{{ __('Clear prices in Egyptian pounds, with no commission on your orders.') }}</p>
+<section id="pricing" class="lp-band py-14 lg:py-20">
+    <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between" data-reveal>
+            <div class="max-w-2xl">
+                <p class="hm-kicker">{{ __('Pricing') }}</p>
+                <h2 class="hm-h2 mt-4">{{ __('Start free. Pay only when you need more.') }}</h2>
+            </div>
+            <p class="max-w-sm text-navy-500 lg:text-end">{{ __('Clear prices in Egyptian pounds, with no commission on your orders.') }}</p>
         </div>
         {{-- three equal cards: price, what is in it, one action each (prices and limits from the database) --}}
         <ul class="mt-10 grid items-stretch gap-4 lg:grid-cols-3" data-home-plans>
@@ -289,9 +245,9 @@
                             ? [__('QR menu in Arabic and English'), __('Up to :n items', ['n' => $limits['menu_items'] ?? 30]), __('Import the menu from Excel'), __('No card, no time limit')]
                             : [__('One branch and :n users', ['n' => $limits['staff'] ?? 8]), __('Table and online ordering, delivery'), __('Loyalty card, wallet, offers, campaigns'), __('Reports and your own domain')]);
                 @endphp
-                <li @class(['lp-lift relative flex flex-col rounded-[24px] border bg-white p-6',
-                            'border-brand-500 ring-2 ring-brand-500/30 shadow-[0_24px_48px_-28px_rgba(242,101,34,.55)]' => $p->is_featured,
-                            'border-navy-100' => ! $p->is_featured])
+                <li @class(['lp-lift relative flex flex-col rounded-[24px] border p-6',
+                            'border-navy-800 bg-navy-800 text-white shadow-[0_30px_60px_-30px_rgba(10,37,64,.7)] hm-plan-dark' => $p->is_featured,
+                            'border-navy-100 bg-white' => ! $p->is_featured])
                     data-home-plan="{{ $p->code }}" data-reveal style="--d: {{ $loop->index * 60 }}ms">
                     @if ($p->is_featured)
                         <span class="absolute -top-3 start-6 rounded-full bg-brand-600 px-3 py-1 text-xs font-black text-white">{{ __('Most popular') }}</span>
@@ -334,9 +290,9 @@
                 </li>
             @endforeach
         </ul>
-        <div class="mt-8 flex flex-wrap justify-center gap-3" data-reveal>
-            <a href="{{ route('pricing') }}" class="inline-flex min-h-11 items-center font-extrabold text-navy-600 hover:text-brand-700">{{ __('Compare the plans in detail') }} <span aria-hidden="true" class="ms-1 inline-block rtl:rotate-180">→</span></a>
-            <a href="{{ route('pricing') }}#calculator" class="inline-flex min-h-11 items-center font-extrabold text-navy-600 hover:text-brand-700">{{ __('Work out what you save') }} <span aria-hidden="true" class="ms-1 inline-block rtl:rotate-180">→</span></a>
+        <div class="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2" data-reveal>
+            <a href="{{ route('pricing') }}" class="hm-link text-navy-800"><u>{{ __('Compare the plans in detail') }}</u> <span aria-hidden="true" class="rtl:rotate-180">→</span></a>
+            <a href="{{ route('pricing') }}#calculator" class="hm-link text-navy-800"><u>{{ __('Work out what you save') }}</u> <span aria-hidden="true" class="rtl:rotate-180">→</span></a>
         </div>
         <p class="mt-4 text-center text-sm text-navy-500">{{ $howToPay }}</p>
     </div>
@@ -344,13 +300,12 @@
 
 {{-- ============ GUESTS PAY ONLINE THROUGH THE RESTAURANT'S OWN GATEWAY (a service, App\Support\SiteServices payment_gateway) ============ --}}
 <section data-payment-gateways class="pt-16 lg:pt-24">
-    <div class="mx-auto max-w-5xl px-4 sm:px-6">
-        <div class="flex flex-col items-center gap-6 rounded-[28px] border border-navy-100 bg-white p-6 text-center sm:p-10 lg:flex-row lg:text-start" data-reveal>
-            <span class="lp-idea-icon shrink-0"><x-landing.icon name="wallet" class="size-6" /></span>
+    <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <div class="hm-promise flex flex-col gap-6 lg:flex-row lg:items-center" data-reveal>
             <div class="min-w-0 flex-1">
                 <h2 class="text-xl font-black text-navy-900 sm:text-2xl">{{ __('Guests pay online, through your own gateway') }}</h2>
-                <p class="mt-2 text-navy-600">{{ __('Have a contract with a payment company? We connect it to your menu and online orders, and the money goes straight to your account with no commission from us.') }}</p>
-                <ul class="mt-4 flex flex-wrap justify-center gap-2 lg:justify-start" aria-label="{{ __('Payment gateways we connect') }}">
+                <p class="mt-2 max-w-2xl text-navy-500">{{ __('Have a contract with a payment company? We connect it to your menu and online orders, and the money goes straight to your account with no commission from us.') }}</p>
+                <ul class="mt-5 flex flex-wrap gap-2" aria-label="{{ __('Payment gateways we connect') }}">
                     @foreach (['fawry' => 'Fawry', 'kashier' => 'Kashier', 'paymob' => 'Paymob', 'geidea' => 'Geidea'] as $gatewayFile => $gateway)
                         <li class="grid h-14 w-28 place-items-center rounded-2xl border border-navy-100 bg-white px-3 sm:w-32" data-gateway="{{ $gatewayFile }}">
                             <img src="{{ versioned_asset('img/partners/' . $gatewayFile . '.webp') }}" alt="{{ $gateway }}" width="120" height="40" loading="lazy" decoding="async" class="max-h-8 w-auto max-w-full object-contain">
@@ -359,43 +314,47 @@
                     <li class="grid h-14 place-items-center rounded-2xl border border-dashed border-navy-300 px-4 text-sm font-bold text-navy-500">{{ __('or any gateway with an API') }}</li>
                 </ul>
             </div>
-            <a href="{{ route('services', ['service' => 'payment_gateway']) }}#request" class="btn-primary min-h-12 shrink-0 rounded-full px-6">{{ __('Ask for the connection') }}</a>
+            <a href="{{ route('services', ['service' => 'payment_gateway']) }}#request" class="btn-ghost min-h-12 shrink-0 self-start rounded-full px-6 lg:self-center">{{ __('Ask for the connection') }}</a>
         </div>
     </div>
 </section>
 
-{{-- ============ FAQ ============ --}}
-<section id="faq" class="py-14 lg:py-20">
-    <div class="mx-auto max-w-3xl px-4 sm:px-6">
-        <div class="text-center" data-reveal>
-            <p class="lp-eyebrow">{{ __('FAQ') }}</p>
-            <h2 class="lp-h2 mt-3">{{ __('Frequently asked questions') }}</h2>
-            <p class="mt-3 text-navy-600">{{ __('Still have a question? Ask us and we reply the same day.') }}</p>
+{{-- ============ FAQ: the title stays on the start side, the questions on the end side ============ --}}
+<section id="faq" class="py-16 lg:py-24">
+    <div class="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(0,4fr)_minmax(0,7fr)] lg:gap-16">
+        <div data-reveal class="lg:sticky lg:top-28 lg:self-start">
+            <p class="hm-kicker">{{ __('FAQ') }}</p>
+            <h2 class="hm-h2 mt-4">{{ __('Frequently asked questions') }}</h2>
+            <p class="mt-3 text-navy-500">{{ __('Still have a question? Ask us and we reply the same day.') }}</p>
         </div>
-        <div id="faq-list" data-more class="mt-10 space-y-3">
-            @foreach ($faq as [$q, $a])
-                <details name="faq" class="lp-faq group rounded-2xl border border-navy-100 bg-white px-5 open:bg-[var(--lp-paper)]" @if ($loop->first) open @endif @if ($loop->index >= 5) data-more-item @endif>
-                    <summary class="flex min-h-15 cursor-pointer list-none items-center justify-between gap-4 py-4 text-[1.02rem] font-extrabold">
-                        {{ $q }}
-                        <span class="lp-faq-icon grid size-8 shrink-0 place-items-center rounded-full border border-navy-200 bg-white text-lg leading-none text-navy-600">+</span>
-                    </summary>
-                    <p class="pb-5 leading-relaxed text-navy-600">{{ $a }}</p>
-                </details>
-            @endforeach
+        <div>
+            <div id="faq-list" data-more class="border-t border-navy-100">
+                @foreach ($faq as [$q, $a])
+                    <details name="faq" class="lp-faq group border-b border-navy-100" @if ($loop->first) open @endif @if ($loop->index >= 5) data-more-item @endif>
+                        <summary class="flex min-h-15 cursor-pointer list-none items-center justify-between gap-4 py-5 text-[1.05rem] font-extrabold text-navy-900">
+                            {{ $q }}
+                            <span class="lp-faq-icon grid size-8 shrink-0 place-items-center rounded-full border border-navy-200 bg-white text-lg leading-none text-navy-600">+</span>
+                        </summary>
+                        <p class="pb-6 leading-relaxed text-navy-500">{{ $a }}</p>
+                    </details>
+                @endforeach
+            </div>
+            <x-landing.more for="faq-list" />
         </div>
-        <x-landing.more for="faq-list" />
     </div>
 </section>
 
-{{-- ============ FINAL CTA ============ --}}
-<section class="lp-band lp-glow mb-8 py-16 lg:py-24">
-    <div class="mx-auto max-w-3xl px-4 text-center sm:px-6" data-reveal>
+{{-- ============ FINAL CTA: navy, in orbit ============ --}}
+<section class="hm-final mb-8">
+    <div class="hm-orbits hm-orbits--center" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
+    <div class="relative mx-auto max-w-3xl px-4 py-20 text-center sm:px-6 lg:py-28" data-reveal>
         <x-logo :size="44" :text="false" />
-        <h2 class="lp-h2 mt-4">{{ __('Your menu can be live today') }}</h2>
-        <p class="lp-lead mt-3">{{ __('Sign up with your email or your Google account, add your items and print the codes. If you need help, we set it up with you.') }}</p>
-        <div class="mt-8 flex flex-wrap justify-center gap-3">
-            <a href="{{ route('register') }}" class="btn-primary min-h-12 rounded-full px-8 text-base">{{ __('Start free') }}</a>
-            <a href="{{ route('pricing') }}" class="btn-ghost min-h-12 rounded-full px-6 text-base">{{ __('See prices') }}</a>
+        <p class="hm-kicker mt-6 justify-center"><span dir="ltr">EgMenu</span> — {{ __('one system for your whole place') }}</p>
+        <h2 class="hm-display hm-display--sm mt-4 text-white">{{ __('Your menu can be live today') }}</h2>
+        <p class="hm-sub mx-auto mt-5 max-w-xl">{{ __('Sign up with your email or your Google account, add your items and print the codes. If you need help, we set it up with you.') }}</p>
+        <div class="mt-9 flex flex-wrap items-center justify-center gap-x-7 gap-y-4">
+            <a href="{{ route('register') }}" class="btn-primary min-h-13 rounded-full px-8 text-base">{{ __('Start free') }} <span aria-hidden="true" class="rtl:rotate-180">→</span></a>
+            <a href="{{ route('pricing') }}" class="hm-link text-white"><u>{{ __('See prices') }}</u> <span aria-hidden="true" class="rtl:rotate-180">→</span></a>
         </div>
     </div>
 </section>

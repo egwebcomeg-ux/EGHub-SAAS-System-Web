@@ -13,8 +13,18 @@ const header = $('[data-header]');
 if (header) {
     const bottom = $('[data-bottom-bar]');
     const hero = $('[data-hero]');
+    // reading progress under the header pill; the page height is measured on resize, not on every scroll
+    const read = $('[data-read-progress]');
+    let room = 0;
+    const measure = () => { room = document.documentElement.scrollHeight - window.innerHeight; };
+    if (read) {
+        measure();
+        window.addEventListener('resize', measure, { passive: true });
+        if ('ResizeObserver' in window) { new ResizeObserver(measure).observe(document.body); }
+    }
     const onScroll = () => {
         header.classList.toggle('is-compact', window.scrollY > 8);
+        if (read) { read.style.setProperty('--lp-read', room > 0 ? Math.min(1, window.scrollY / room).toFixed(4) : '0'); }
         if (bottom) {
             const past = hero ? hero.getBoundingClientRect().bottom < 0 : window.scrollY > 500;
             const nearEnd = window.innerHeight + window.scrollY > document.body.scrollHeight - 420;
@@ -338,3 +348,144 @@ function setCycle(months) {
     });
 }
 cycleButtons.forEach((b) => b.addEventListener('click', () => setCycle(Number(b.dataset.cycle))));
+
+/*
+ * ---------- home: the five-step walkthrough (landing/partials/home-walkthrough) ----------
+ * [data-walk] holds step buttons ([data-walk-step="i"], in the list and under the device) and screens
+ * ([data-walk-screen="i"]). It moves on every data-ms while it is on screen, and holds still under the pointer, while
+ * a control has keyboard focus, and after the pause button. Reduced motion: it never moves by itself.
+ */
+$$('[data-walk]').forEach((root) => {
+    const screens = $$('[data-walk-screen]', root);
+    const buttons = $$('[data-walk-step]', root);
+    const titles = $$('.hm-walk-step b', root).map((b) => b.textContent);
+    const n = screens.length;
+    const ms = Number(root.dataset.ms) || 4000;
+    const bar = $('[data-walk-bar]', root);
+    const toggle = $('[data-walk-toggle]', root);
+    let at = 0;
+    let timer = null;
+    let left = ms;
+    let started = 0;
+    let paused = false;
+    let hold = false;
+    let visible = false;
+    root.style.setProperty('--walk-ms', `${ms}ms`);
+
+    const show = (i) => {
+        at = i;
+        buttons.forEach((b) => {
+            const on = Number(b.dataset.walkStep) === i;
+            b.classList.toggle('is-on', on);
+            b.setAttribute('aria-current', on ? 'step' : 'false');
+        });
+        screens.forEach((s) => {
+            const on = Number(s.dataset.walkScreen) === i;
+            s.classList.toggle('is-on', on);
+            if (on) { s.removeAttribute('aria-hidden'); } else { s.setAttribute('aria-hidden', 'true'); }
+        });
+        $('[data-walk-caption]', root).textContent = titles[i] || '';
+        $('[data-walk-count]', root).textContent = String(i + 1).padStart(2, '0');
+        if (bar) { bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = ''; }
+    };
+    const stop = () => {
+        if (timer) { clearTimeout(timer); timer = null; left = Math.max(250, left - (performance.now() - started)); }
+        root.classList.remove('is-playing');
+    };
+    const play = () => {
+        if (still || paused || hold || !visible || timer) { return; }
+        root.classList.add('is-playing');
+        started = performance.now();
+        timer = setTimeout(() => { timer = null; left = ms; show((at + 1) % n); play(); }, left);
+    };
+    const go = (i) => { stop(); left = ms; show(i); play(); };
+
+    buttons.forEach((b) => b.addEventListener('click', () => go(Number(b.dataset.walkStep))));
+    if (still) { if (toggle) { toggle.hidden = true; } return; }
+    toggle?.addEventListener('click', () => {
+        paused = !paused;
+        toggle.setAttribute('aria-pressed', String(paused));
+        toggle.setAttribute('aria-label', paused ? toggle.dataset.play : toggle.dataset.pause);
+        $('[data-icon="pause"]', toggle).hidden = paused;
+        $('[data-icon="play"]', toggle).hidden = !paused;
+        if (paused) { stop(); } else { play(); }
+    });
+    const setHold = (h) => { hold = h; if (h) { stop(); } else { play(); } };
+    root.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { setHold(true); } });
+    root.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') { setHold(false); } });
+    root.addEventListener('focusin', (e) => { if (e.target !== toggle && e.target.matches(':focus-visible')) { setHold(true); } });
+    root.addEventListener('focusout', (e) => { if (!root.contains(e.relatedTarget)) { setHold(false); } });
+    if ('IntersectionObserver' in window) {
+        new IntersectionObserver(([en]) => { visible = en.isIntersecting; if (visible) { play(); } else { stop(); } }, { threshold: 0.35 }).observe(root);
+    } else {
+        visible = true;
+        play();
+    }
+});
+
+/*
+ * ---------- home: "everything your place needs" (landing/partials/home-systems) ----------
+ * Pinned on wide, tall screens (CSS decides, with the same media query as here): the share of the section scrolled
+ * picks the system, the last share turns the device into the cup. Phones: the card nearest the middle of the swiped
+ * row. Elsewhere (short screens, reduced motion): the one tapped. In pinned mode a tap scrolls to that system's share.
+ */
+const systems = $('[data-systems]');
+if (systems) {
+    const items = $$('[data-sys-item]', systems);
+    const n = items.length;
+    const stage = $('.hm-sys-stage', systems);
+    const shots = $$('[data-sys-screen]', systems);
+    const chips = $$('[data-sys-chip] .hm-chip-in', systems);
+    const progress = $('[data-sys-progress]', systems);
+    const list = $('[data-sys-list]', systems);
+    const pinned = window.matchMedia('(min-width: 1024px) and (min-height: 720px) and (prefers-reduced-motion: no-preference)');
+    const narrow = window.matchMedia('(max-width: 1023px)');
+    let cur = -1;
+    let ticking = false;
+
+    const set = (i, p) => {
+        progress.style.setProperty('--p', String(p ?? (i + 1) / n));
+        if (i === cur) { return; }
+        cur = i;
+        items.forEach((b, j) => { b.classList.toggle('is-on', j === i); b.setAttribute('aria-current', String(j === i)); });
+        shots.forEach((s, j) => s.classList.toggle('is-on', j === Math.min(i, shots.length - 1)));
+        chips.forEach((c, j) => c.classList.toggle('is-on', j === i));
+        stage.classList.toggle('is-end', i === n - 1);
+        // the screens are lazy: the next one starts loading before it is needed
+        const next = shots[Math.min(i + 1, shots.length - 1)];
+        if (next) { next.loading = 'eager'; }
+    };
+    const span = () => systems.offsetHeight - window.innerHeight;
+    const fromScroll = () => {
+        ticking = false;
+        if (pinned.matches) {
+            const p = Math.min(1, Math.max(0, -systems.getBoundingClientRect().top / Math.max(1, span())));
+            set(Math.min(n - 1, Math.floor(p * n)), p);
+        } else if (narrow.matches) {
+            const mid = list.getBoundingClientRect().left + list.clientWidth / 2;
+            let best = 0;
+            let gap = Infinity;
+            items.forEach((b, j) => {
+                const r = b.getBoundingClientRect();
+                const d = Math.abs(r.left + r.width / 2 - mid);
+                if (d < gap) { gap = d; best = j; }
+            });
+            set(best);
+        }
+    };
+    const queue = () => { if (!ticking) { ticking = true; requestAnimationFrame(fromScroll); } };
+    window.addEventListener('scroll', queue, { passive: true });
+    list.addEventListener('scroll', queue, { passive: true });
+    window.addEventListener('resize', queue, { passive: true });
+    items.forEach((b, j) => b.addEventListener('click', () => {
+        if (pinned.matches) {
+            const top = window.scrollY + systems.getBoundingClientRect().top + span() * ((j + 0.5) / n);
+            window.scrollTo({ top, behavior: still ? 'auto' : 'smooth' });
+        } else {
+            set(j);
+            if (narrow.matches) { b.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'nearest', inline: 'center' }); }
+        }
+    }));
+    set(0);
+    fromScroll();
+}
