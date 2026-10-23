@@ -101,6 +101,7 @@ class LegacyMenuImportTest extends TenantTestCase
             $this->assertSame(['01000000001', '201552155265', '1'], [$s['phone'], $s['whatsapp'], $s['whatsapp_ordering']]);
             $this->assertSame(['12', '14', 'https://instagram.com/scratch'], [$s['service_percent'], $s['tax_percent'], $s['instagram']]);
             $this->assertSame('', $s['logo']); // SVG is reported, not stored
+            $this->assertSame('1', $s['item_placeholder']); // items came with photos: the tiles stay
 
             $specialty = Category::query()->where('name', 'قهوة مختصة')->firstOrFail();
             $this->assertSame(['Specialty', 'محمصة يومياً', 'Roasted daily'], [$specialty->name_en, $specialty->description, $specialty->description_en]);
@@ -232,5 +233,7 @@ class LegacyMenuImportTest extends TenantTestCase
 
         $this->assertSame(4, $this->as($a, fn () => MenuItem::query()->count()));
         $this->assertSame('01000000001', $this->as($a, fn () => Branch::query()->value('phone'))); // the restaurant phone fills the main branch
+        // no item photo came across: no empty placeholder tiles on the menu
+        $this->assertSame('0', $this->as($a, fn () => Settings::get('item_placeholder')));
     }
 }

@@ -131,13 +131,14 @@
     /* header brand pieces (setting menu_header_brand): the pattern at 7% fading down, the character peeking in */
     .m-brand-pattern { position: absolute; inset: 0; pointer-events: none; background-size: 200px; background-repeat: repeat; opacity: .07;
         -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent); mask-image: linear-gradient(to bottom, #000 40%, transparent); }
-    .m-brand-peek { position: absolute; top: 14px; inset-inline-end: -14px; width: 78px; transform: rotate(-12deg); pointer-events: none;
+    /* low on the end side, under the language button and beside the order chips, never on top of a control */
+    .m-brand-peek { position: absolute; bottom: -12px; inset-inline-end: -12px; width: 64px; transform: rotate(-12deg); pointer-events: none;
         animation: m-peek-bob 4s ease-in-out infinite; }
     /* drawn for Arabic pages (as on the Scratch menu); English pages get it mirrored on the other side */
     [dir="ltr"] .m-brand-peek { transform: rotate(12deg) scaleX(-1); animation-name: m-peek-bob-ltr; }
     @keyframes m-peek-bob { 50% { transform: rotate(-6deg) translateY(4px); } }
     @keyframes m-peek-bob-ltr { 50% { transform: rotate(6deg) translateY(4px) scaleX(-1); } }
-    @media (min-width: 640px) { .m-brand-peek { width: 110px; inset-inline-end: 4%; top: 18px; } }
+    @media (min-width: 640px) { .m-brand-peek { width: 96px; inset-inline-end: 3%; bottom: -14px; } }
     @media (prefers-reduced-motion: reduce) {
         .m-ticker-line, .m-toast, .m-dot span, .m-cat-ring { transition: none; }
         .m-bump, .m-brand-peek { animation: none; }

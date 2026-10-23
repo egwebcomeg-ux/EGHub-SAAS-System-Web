@@ -122,6 +122,11 @@ final class LegacyMenuImporter
             $branches = $this->importBranches($settings);
             $this->importBranchOverrides($branches, $items);
             $this->reportUnmappedTables();
+            // the same rule as a style taken from an uploaded menu (App\Services\Import\BrandStyle::apply): no item
+            // photos → no empty placeholder tiles (the price sits on the name's line); a logo → the header follows it
+            if (! MenuItem::query()->whereNotNull('image')->where('image', '!=', '')->exists()) {
+                Settings::put(['item_placeholder' => '0']);
+            }
 
             if ($this->options['dry_run']) {
                 DB::rollBack();
