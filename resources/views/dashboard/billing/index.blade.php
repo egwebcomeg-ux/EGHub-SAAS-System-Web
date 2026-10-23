@@ -109,6 +109,9 @@
                 @if ($addon->key === 'branches' && $launchOffer)
                     <p class="mt-2 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-800" data-launch-offer-branch>{{ __('Your first extra branch is free until :date (launch offer).', ['date' => local_time($launchOffer, 'Y/m/d')]) }}</p>
                 @endif
+                @if ($addon->key === 'branches' && $branchOfferEnds)
+                    <p class="mt-2 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-800" data-launch-offer-ends>{{ __('The second branch is free until :date, then :price EGP/month.', ['date' => local_time($branchOfferEnds, 'd/m/Y'), 'price' => money($addon->priceFor(tenant()))]) }}</p>
+                @endif
                 @php
                     $myPrice = $addon->priceFor(tenant());
                     $branchCap = $addon->key === 'branches' && $qty >= \App\Models\AddonPrice::MAX_SELF_SERVE_EXTRA_BRANCHES;

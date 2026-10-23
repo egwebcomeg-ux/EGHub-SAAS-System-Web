@@ -4,13 +4,17 @@ namespace Tests\Feature;
 
 use App\Billing\Billing;
 use App\Billing\LaunchOffer;
+use App\Billing\Lifecycle;
+use App\Models\AuditLog;
 use App\Models\Branch;
 use App\Models\Invoice;
 use App\Models\Plan;
 use App\Models\PlatformSetting;
 use App\Models\Subscription;
 use App\Models\Tenant;
+use App\Notifications\LaunchOfferEnding;
 use App\Services\Entitlements;
+use Illuminate\Support\Facades\Notification;
 use Tests\TenantTestCase;
 
 /** Extra branches and users on the Complete plan, the yearly discount on add-ons, and the "second branch free" launch offer. */
@@ -24,6 +28,94 @@ class LaunchOfferAndBranchAddonsTest extends TenantTestCase
         $billing->markPaid($invoice, 'instapay', 'ref', $invoice->total, 'pay-'.$invoice->number);
 
         return $tenant->subscription()->firstOrFail();
+    }
+
+    /** A Complete trial (inside the offer window) that already opened its free second branch. */
+    private function completeTrialWithTwoBranches(string $slug): Tenant
+    {
+        $tenant = $this->restaurant($slug, 'full', true);
+        $this->as($tenant, fn () => Branch::query()->create(['name' => 'Zamalek', 'slug' => 'zamalek', 'is_active' => true]));
+
+        return $tenant;
+    }
+
+    private function addonAudits(Tenant $tenant): int
+    {
+        return $this->as($tenant, fn () => AuditLog::query()->where('action', 'billing.launch_offer_branch_added')->count());
+    }
+
+    public function test_paying_complete_with_two_branches_inside_the_offer_adds_the_branch_free_then_bills_it_after(): void
+    {
+        $tenant = $this->completeTrialWithTwoBranches('cafe-two');
+        $sub = $this->subscribeToComplete($tenant, 1);
+
+        $addon = $sub->addons()->where('key', 'branches')->firstOrFail();
+        $this->assertSame(1, (int) $addon->quantity);
+        $this->assertSame(600.0, $addon->unit_price);
+        $this->assertSame(1, $this->addonAudits($tenant));
+
+        // inside the offer the renewal bills the branch at 0
+        $full = Plan::query()->where('code', 'full')->firstOrFail();
+        $inside = app(Billing::class)->invoiceForPlan($tenant, $full, 1);
+        $this->assertSame(1250.0, (float) $inside->total);
+        $this->assertNotNull(collect($inside->lines)->first(fn (array $line) => (float) $line['amount'] === 0.0
+            && str_contains($line['label'], local_time($sub->branch_offer_until, 'Y/m/d'))));
+
+        // the billing page tells the owner until when, and the price after
+        $this->actingAs($this->owner($tenant))->get($this->dashUrl('/billing'))->assertOk()->assertSee('data-launch-offer-ends', false)
+            ->assertSee(__('The second branch is free until :date, then :price EGP/month.', ['date' => local_time($sub->branch_offer_until, 'd/m/Y'), 'price' => money(600)]));
+
+        // the first renewal after the offer ends bills it at its price, saying why
+        $this->travelTo($sub->branch_offer_until->copy()->addDay());
+        $after = app(Billing::class)->invoiceForPlan($tenant, $full, 1);
+        $this->assertSame(1250.0 + 600.0, (float) $after->total);
+        $line = collect($after->lines)->first(fn (array $line) => str_contains($line['label'], __('Extra branch — launch offer ended')));
+        $this->assertNotNull($line);
+        $this->assertSame(600.0, (float) $line['amount']);
+    }
+
+    public function test_one_branch_gets_no_add_on_and_paying_again_adds_nothing_twice(): void
+    {
+        $single = $this->restaurant('cafe-one', 'full', true);
+        $this->subscribeToComplete($single, 1);
+        $this->assertSame(0, $single->subscription()->firstOrFail()->addons()->count());
+
+        $tenant = $this->completeTrialWithTwoBranches('cafe-two');
+        $sub = $this->subscribeToComplete($tenant, 1);
+        $paid = Invoice::query()->where('tenant_id', 'cafe-two')->where('status', 'paid')->firstOrFail();
+        // the same payment delivered again, then a renewal paid
+        $this->assertFalse(app(Billing::class)->markPaid($paid, 'instapay', 'ref', $paid->total, 'pay-'.$paid->number));
+        $this->subscribeToComplete($tenant, 1);
+
+        $this->assertSame(1, $sub->addons()->where('key', 'branches')->count());
+        $this->assertSame(1, (int) $sub->addons()->where('key', 'branches')->value('quantity'));
+        $this->assertSame(1, $this->addonAudits($tenant));
+    }
+
+    public function test_the_branch_add_on_counts_only_the_paying_restaurants_branches(): void
+    {
+        $other = $this->completeTrialWithTwoBranches('cafe-other');
+        $this->as($other, fn () => Branch::query()->create(['name' => 'Maadi', 'slug' => 'maadi', 'is_active' => true]));
+        $single = $this->restaurant('cafe-one', 'full', true);
+
+        $this->subscribeToComplete($single, 1);
+
+        $this->assertSame(0, $single->subscription()->firstOrFail()->addons()->count());
+        $this->assertSame(0, $other->subscription()->firstOrFail()->addons()->count());
+        $this->assertSame(0, $this->addonAudits($other));
+    }
+
+    public function test_the_owners_are_told_two_weeks_before_the_free_branch_ends(): void
+    {
+        Notification::fake();
+        $tenant = $this->completeTrialWithTwoBranches('cafe-two');
+        $sub = $this->subscribeToComplete($tenant, 12);
+
+        $this->assertSame(0, app(Lifecycle::class)->run()['offer_reminded']);
+        $this->travelTo($sub->branch_offer_until->copy()->subDays(10));
+        $this->assertSame(1, app(Lifecycle::class)->run()['offer_reminded']);
+        $this->assertSame(0, app(Lifecycle::class)->run()['offer_reminded']); // only once
+        Notification::assertSentTo($this->owner($tenant), LaunchOfferEnding::class);
     }
 
     public function test_an_extra_branch_brings_eight_users_and_branch_prices_and_users_come_five_at_a_time(): void

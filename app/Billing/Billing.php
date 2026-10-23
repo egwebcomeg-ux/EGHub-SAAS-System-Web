@@ -3,6 +3,7 @@
 namespace App\Billing;
 
 use App\Models\AddonPrice;
+use App\Models\Branch;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Plan;
@@ -11,6 +12,7 @@ use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Notifications\PaymentClaimed;
 use App\Notifications\PaymentConfirmed;
+use App\Services\Audit;
 use App\Services\Entitlements;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -63,8 +65,11 @@ final class Billing
             $free = $addon->key === LaunchOffer::ADDON ? LaunchOffer::freeMonths($offerUntil, $from, $months) : 0;
             $charged = $addon->quantity * $months - $free;
             $full += round($unit * $addon->quantity * $months, 2);
+            // the extra branch of a subscription whose launch offer is over says so on the first invoice that bills it
+            $offerEnded = $addon->key === LaunchOffer::ADDON && $sub?->branch_offer_until && ! $sub->branch_offer_until->greaterThan($from);
             if ($charged > 0) {
-                $lines[] = ['label' => ($price?->displayName() ?? $addon->key).($addon->quantity > 1 ? " × {$addon->quantity}" : '').' — '.cycle_label($months)
+                $lines[] = ['label' => ($offerEnded ? __('Extra branch — launch offer ended') : ($price?->displayName() ?? $addon->key))
+                    .($addon->quantity > 1 ? " × {$addon->quantity}" : '').' — '.cycle_label($months)
                     .($pct > 0 ? ' ('.__(':pct% off', ['pct' => money($pct)]).')' : ''),
                     'amount' => round($unit * $charged * (1 - $pct / 100), 2)];
             }
@@ -160,6 +165,32 @@ final class Billing
         }
 
         return (int) $sub->addons()->where('key', LaunchOffer::ADDON)->value('quantity') === 0;
+    }
+
+    /**
+     * A Complete subscription that becomes paid inside its launch offer while it already runs more active branches
+     * than its plan includes (the free second branch counted in its limit, LaunchOffer::coversBranchNow): that branch
+     * becomes its first `branches` add-on. quote() bills it at 0 until branch_offer_until and at its price from the
+     * first renewal after it. Nothing happens once the subscription has a branch add-on, so paying again adds nothing.
+     */
+    public function claimLaunchOfferBranch(Tenant $tenant): bool
+    {
+        $sub = $tenant->subscription()->with('plan', 'addons')->first();
+        if (! LaunchOffer::coversBranchNow($sub) || $sub->status !== 'active' || (int) $sub->addons->firstWhere('key', LaunchOffer::ADDON)?->quantity > 0) {
+            return false;
+        }
+        $included = $sub->plan->entitlements()['limits']['branches'] ?? null;
+        $active = Branch::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->where('is_active', true)->count();
+        $covered = $included === null ? 0 : min(1, $active - (int) $included);
+        if ($covered <= 0 || ! AddonPrice::query()->where('key', LaunchOffer::ADDON)->exists()) {
+            return false;
+        }
+        $this->setAddon($tenant, LaunchOffer::ADDON, $covered);
+        $tenant->run(fn () => Audit::record('billing.launch_offer_branch_added', LaunchOffer::ADDON, [
+            'quantity' => $covered, 'branches' => $active, 'free_until' => $sub->branch_offer_until->toDateString(),
+        ]));
+
+        return true;
     }
 
     /** Switches an add-on on or off for a restaurant (paid invoice, or EgWeb granting it by hand). */
@@ -266,6 +297,7 @@ final class Billing
             'period_value' => $invoice->total,
         ]);
         LaunchOffer::grant($tenant->subscription()->first(), $start);
+        $this->claimLaunchOfferBranch($tenant);
         if ($tenant->isSuspended()) {
             $tenant->update(['status' => 'active', 'suspended_at' => null]);
         }

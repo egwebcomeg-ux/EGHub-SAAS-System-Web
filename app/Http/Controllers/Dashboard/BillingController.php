@@ -43,6 +43,9 @@ class BillingController extends Controller
                 ->where(fn ($q) => $q->where('is_active', true)->orWhereIn('key', array_keys(array_filter($myAddons))))->orderBy('sort_order')->get(),
             'launchOffer' => app(Billing::class)->launchOfferCoversNextBranch($subscription, new AddonPrice(['key' => LaunchOffer::ADDON]))
                 ? $subscription->branch_offer_until : null,
+            // the extra branch it already has free with the launch offer: until when, then billed at its price
+            'branchOfferEnds' => LaunchOffer::coversBranchNow($subscription) && ($myAddons[LaunchOffer::ADDON] ?? 0) > 0
+                ? $subscription->branch_offer_until : null,
             'creditPacks' => AddonPrice::query()->where('is_active', true)->where('type', 'credits')->orderBy('sort_order')->get(),
             'creditBalance' => $credits->balance(tenant()),
             'myAddons' => $myAddons,

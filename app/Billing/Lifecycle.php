@@ -2,8 +2,10 @@
 
 namespace App\Billing;
 
+use App\Models\AddonPrice;
 use App\Models\Plan;
 use App\Models\Subscription;
+use App\Notifications\LaunchOfferEnding;
 use App\Notifications\MovedToFreePlan;
 use App\Notifications\SubscriptionEndingSoon;
 use App\Notifications\SubscriptionPastDue;
@@ -16,18 +18,22 @@ use Illuminate\Support\Facades\Notification;
  *   paid period ended           → past_due with GRACE_DAYS of grace (everything still works)
  *   grace ended                 → the free plan
  *   3 days before the end       → reminder (dashboard banner + email to the owners)
+ *   14 days before the launch offer's free branch ends → email to the owners, once (it is billed from the next renewal)
  * Paying an invoice (Billing::markPaid) brings the paid plan back. Suspension is an admin action only.
  */
 final class Lifecycle
 {
     public const REMIND_DAYS = 3;
 
+    /** Days before the launch offer's free branch ends that the owners are told it will be billed. */
+    public const OFFER_REMIND_DAYS = 14;
+
     public const FREE_PLAN = 'free';
 
-    /** @return array{past_due:int, downgraded:int, reminded:int} */
+    /** @return array{past_due:int, downgraded:int, reminded:int, offer_reminded:int} */
     public function run(): array
     {
-        $out = ['past_due' => 0, 'downgraded' => 0, 'reminded' => 0];
+        $out = ['past_due' => 0, 'downgraded' => 0, 'reminded' => 0, 'offer_reminded' => 0];
 
         Subscription::query()->with('tenant')->whereIn('status', ['trialing', 'active'])->get()
             ->each(function (Subscription $sub) use (&$out) {
@@ -53,6 +59,16 @@ final class Lifecycle
             ->each(function (Subscription $sub) use (&$out) {
                 $this->moveToFree($sub, 'subscription');
                 $out['downgraded']++;
+            });
+
+        Subscription::query()->with('tenant')->where('status', 'active')->whereNull('branch_offer_reminded_at')
+            ->whereBetween('branch_offer_until', [now(), now()->addDays(self::OFFER_REMIND_DAYS)])
+            ->whereHas('addons', fn ($q) => $q->where('key', LaunchOffer::ADDON)->where('quantity', '>', 0))->get()
+            ->each(function (Subscription $sub) use (&$out) {
+                $sub->update(['branch_offer_reminded_at' => now()]);
+                $price = $sub->tenant ? (float) AddonPrice::query()->where('key', LaunchOffer::ADDON)->first()?->priceFor($sub->tenant) : 0.0;
+                Notification::send($sub->tenant?->owners() ?? [], new LaunchOfferEnding($sub, $price));
+                $out['offer_reminded']++;
             });
 
         Entitlements::flush();

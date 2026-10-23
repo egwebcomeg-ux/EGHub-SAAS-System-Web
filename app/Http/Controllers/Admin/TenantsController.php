@@ -200,6 +200,7 @@ class TenantsController extends Controller
         if ($sub->status === 'active') {
             // a Complete subscription set by hand while the launch offer runs gets it too
             LaunchOffer::grant($sub->fresh(), $sub->current_period_start ?? now());
+            app(Billing::class)->claimLaunchOfferBranch($tenant);
         }
         Entitlements::flush();
 

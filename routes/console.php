@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('egmenu:billing', function (Lifecycle $lifecycle) {
     $r = $lifecycle->run();
-    $this->info("past_due: {$r['past_due']} · downgraded to free: {$r['downgraded']} · reminded: {$r['reminded']}");
+    $this->info("past_due: {$r['past_due']} · downgraded to free: {$r['downgraded']} · reminded: {$r['reminded']} · launch offer reminders: {$r['offer_reminded']}");
 })->purpose('Daily subscription lifecycle: trial/period end → grace → suspension, reminders');
 
 Artisan::command('egmenu:loyalty-expire', function (LoyaltyService $loyalty, Packages $packages, WalletService $wallet) {

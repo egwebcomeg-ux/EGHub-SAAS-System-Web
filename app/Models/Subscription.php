@@ -28,6 +28,7 @@ class Subscription extends Model
             'reminded_at' => 'datetime',
             'period_value' => 'float',
             'branch_offer_until' => 'datetime',
+            'branch_offer_reminded_at' => 'datetime',
         ];
     }
 
