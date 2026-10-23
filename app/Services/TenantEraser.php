@@ -79,9 +79,15 @@ final class TenantEraser
 
         $folders = [];
         foreach ([['public', "tenants/$id"], ['local', "tenants/$id"], ['local', "backups/$id"]] as [$disk, $dir]) {
-            if (Storage::disk($disk)->exists($dir)) {
-                Storage::disk($disk)->deleteDirectory($dir);
-                $folders[] = "$disk:$dir";
+            // the rows are gone already: a file the system will not let go of (locked on Windows) is logged, not fatal
+            try {
+                if (Storage::disk($disk)->exists($dir)) {
+                    Storage::disk($disk)->deleteDirectory($dir);
+                    $folders[] = "$disk:$dir";
+                }
+            } catch (\Throwable $e) {
+                report($e);
+                $folders[] = "$disk:$dir (not removed)";
             }
         }
         Entitlements::flush();

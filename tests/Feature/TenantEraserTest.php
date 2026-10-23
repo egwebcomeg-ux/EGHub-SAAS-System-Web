@@ -53,66 +53,66 @@ class TenantEraserTest extends TenantTestCase
     {
         Storage::fake('public');
         Storage::fake('local');
-        $gone = $this->seeded('cafe-a');
-        $kept = $this->seeded('cafe-b');
-        $goneUsers = User::query()->withoutGlobalScopes()->where('tenant_id', 'cafe-a')->pluck('id');
+        $gone = $this->seeded('erase-a');
+        $kept = $this->seeded('erase-b');
+        $goneUsers = User::query()->withoutGlobalScopes()->where('tenant_id', 'erase-a')->pluck('id');
         // a plain forceDelete() of the tenant is what failed before (orders → branches has no cascade)
-        $this->assertSame(3, DB::table('orders')->where('tenant_id', 'cafe-a')->count());
+        $this->assertSame(3, DB::table('orders')->where('tenant_id', 'erase-a')->count());
 
-        $this->actingAs($this->admin(), 'admin')->get($this->adminUrl('/tenants/cafe-a'))->assertOk()->assertSee('data-tenant-delete', false);
+        $this->actingAs($this->admin(), 'admin')->get($this->adminUrl('/tenants/erase-a'))->assertOk()->assertSee('data-tenant-delete', false);
         // the slug must be typed exactly
-        $this->actingAs($this->admin(), 'admin')->post($this->adminUrl('/tenants/cafe-a/delete'), ['confirm_slug' => 'cafe'])
+        $this->actingAs($this->admin(), 'admin')->post($this->adminUrl('/tenants/erase-a/delete'), ['confirm_slug' => 'cafe'])
             ->assertSessionHasErrors('confirm_slug');
-        $this->assertNotNull(Tenant::query()->find('cafe-a'));
+        $this->assertNotNull(Tenant::query()->find('erase-a'));
 
-        $this->actingAs($this->admin(), 'admin')->post($this->adminUrl('/tenants/cafe-a/delete'), ['confirm_slug' => 'cafe-a'])
+        $this->actingAs($this->admin(), 'admin')->post($this->adminUrl('/tenants/erase-a/delete'), ['confirm_slug' => 'erase-a'])
             ->assertRedirect(route('admin.tenants'))->assertSessionHas('ok');
 
-        $this->assertNull(Tenant::withTrashed()->find('cafe-a'));
+        $this->assertNull(Tenant::withTrashed()->find('erase-a'));
         foreach (app(TenantEraser::class)->tenantTables() as $table) {
-            $this->assertSame(0, DB::table($table)->where('tenant_id', 'cafe-a')->count(), $table);
+            $this->assertSame(0, DB::table($table)->where('tenant_id', 'erase-a')->count(), $table);
         }
         $this->assertSame(0, DB::table('model_has_roles')->whereIn('model_id', $goneUsers)->count());
-        $this->assertFalse(Storage::disk('public')->exists('tenants/cafe-a'));
-        $this->assertFalse(Storage::disk('local')->exists('backups/cafe-a'));
+        $this->assertFalse(Storage::disk('public')->exists('tenants/erase-a'));
+        $this->assertFalse(Storage::disk('local')->exists('backups/erase-a'));
 
         // the other restaurant is untouched
-        $this->assertNotNull(Tenant::query()->find('cafe-b'));
-        $this->assertSame(3, DB::table('orders')->where('tenant_id', 'cafe-b')->count());
-        $this->assertSame(2, DB::table('branches')->where('tenant_id', 'cafe-b')->count());
+        $this->assertNotNull(Tenant::query()->find('erase-b'));
+        $this->assertSame(3, DB::table('orders')->where('tenant_id', 'erase-b')->count());
+        $this->assertSame(2, DB::table('branches')->where('tenant_id', 'erase-b')->count());
         $this->assertSame(2, $this->as($kept, fn () => DeliveryZone::query()->count()));
         $this->assertSame(1, $this->as($kept, fn () => MenuItem::query()->count()));
-        $this->assertSame(2, User::query()->withoutGlobalScopes()->where('tenant_id', 'cafe-b')->count());
-        $this->assertTrue(Storage::disk('public')->exists('tenants/cafe-b/items/a.webp'));
-        $this->assertTrue(Storage::disk('local')->exists('backups/cafe-b/b.zip'));
+        $this->assertSame(2, User::query()->withoutGlobalScopes()->where('tenant_id', 'erase-b')->count());
+        $this->assertTrue(Storage::disk('public')->exists('tenants/erase-b/items/a.webp'));
+        $this->assertTrue(Storage::disk('local')->exists('backups/erase-b/b.zip'));
         $this->assertSame(3, $this->as($kept, fn () => Order::query()->count()));
 
         // recorded on the platform side
         $log = PlatformAuditLog::query()->where('action', 'tenant.deleted')->sole();
-        $this->assertSame('cafe-a', $log->subject);
+        $this->assertSame('erase-a', $log->subject);
         $this->assertSame($this->admin()->id, $log->admin_id);
         $this->assertFalse($log->meta['forced']);
     }
 
     public function test_a_recent_payment_needs_delete_anyway_and_only_the_owner_may_delete(): void
     {
-        $tenant = $this->seeded('cafe-a');
+        $tenant = $this->seeded('erase-a');
         $billing = app(Billing::class);
         $invoice = $billing->invoiceForPlan($tenant, Plan::query()->where('code', 'full')->firstOrFail(), 1);
         $billing->markPaid($invoice, 'instapay', 'ref', $invoice->total, 'pay-'.$invoice->number);
 
         // a manager admin (tenants.manage) cannot
-        $this->actingAs($this->admin('manager'), 'admin')->post($this->adminUrl('/tenants/cafe-a/delete'), ['confirm_slug' => 'cafe-a'])
+        $this->actingAs($this->admin('manager'), 'admin')->post($this->adminUrl('/tenants/erase-a/delete'), ['confirm_slug' => 'erase-a'])
             ->assertForbidden();
 
-        $this->actingAs($this->admin(), 'admin')->post($this->adminUrl('/tenants/cafe-a/delete'), ['confirm_slug' => 'cafe-a'])
+        $this->actingAs($this->admin(), 'admin')->post($this->adminUrl('/tenants/erase-a/delete'), ['confirm_slug' => 'erase-a'])
             ->assertSessionHasErrors('delete');
-        $this->assertNotNull(Tenant::query()->find('cafe-a'));
+        $this->assertNotNull(Tenant::query()->find('erase-a'));
 
-        $this->actingAs($this->admin(), 'admin')->post($this->adminUrl('/tenants/cafe-a/delete'), ['confirm_slug' => 'cafe-a', 'force' => '1'])
+        $this->actingAs($this->admin(), 'admin')->post($this->adminUrl('/tenants/erase-a/delete'), ['confirm_slug' => 'erase-a', 'force' => '1'])
             ->assertRedirect(route('admin.tenants'));
-        $this->assertNull(Tenant::withTrashed()->find('cafe-a'));
-        $this->assertSame(0, Invoice::query()->where('tenant_id', 'cafe-a')->count());
+        $this->assertNull(Tenant::withTrashed()->find('erase-a'));
+        $this->assertSame(0, Invoice::query()->where('tenant_id', 'erase-a')->count());
         $this->assertTrue(PlatformAuditLog::query()->where('action', 'tenant.deleted')->sole()->meta['forced']);
     }
 }
