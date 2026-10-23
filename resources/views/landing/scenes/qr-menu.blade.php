@@ -1,6 +1,6 @@
 {{-- Scan the table code → Rosto's menu opens → jump to desserts → the owner switches the design. --}}
 {{-- table tent with the code (steps 1-3), then the design picker in the dashboard (step 4) --}}
-<div data-show="1-3" class="sc-fade absolute top-16 start-16 w-[200px] rounded-2xl border border-navy-100 bg-white p-4 text-center shadow-[0_20px_40px_-26px_rgba(20,31,56,.6)]">
+<div data-show="1-3" class="sc-fade absolute top-16 start-16 w-[200px] rounded-2xl border border-navy-100 bg-white p-4 text-center shadow-[0_20px_40px_-26px_rgba(19, 29, 61, .6)]">
     <div class="text-sm font-black">{{ __('Rosto') }}</div>
     <div class="text-[10px] font-bold text-navy-500">{{ __('Scan for the menu') }}</div>
     <div class="relative mx-auto mt-3 size-32 overflow-hidden rounded-xl border-2 border-navy-900 p-2">
@@ -11,7 +11,7 @@
 </div>
 <x-landing.sc-window :title="__('Settings') . ' · ' . __('Menu design')" data-show="4" class="top-12 start-8 h-[290px] w-[300px]">
     <div class="grid grid-cols-2 gap-2 p-3">
-        @foreach ([['Cozy cafe', 'bg-[#4a3426]', 'bg-[#fbf7f1]', false], ['Dark', 'bg-[#0f1729]', 'bg-[#1d2740]', true], ['Bistro', 'bg-[#2b2b2b]', 'bg-[#f4efe6]', false], ['Classic', 'bg-navy-800', 'bg-white', false]] as [$theme, $top, $body, $picked])
+        @foreach ([['Cozy cafe', 'bg-[#4a3426]', 'bg-[#fbf7f1]', false], ['Dark', 'bg-[#131D3D]', 'bg-[#1d2740]', true], ['Bistro', 'bg-[#2b2b2b]', 'bg-[#f4efe6]', false], ['Classic', 'bg-navy-800', 'bg-white', false]] as [$theme, $top, $body, $picked])
             <div @class(['rounded-xl border p-1.5', 'border-brand-500 ring-2 ring-brand-500' => $picked, 'border-navy-100' => !$picked])>
                 <div class="h-16 overflow-hidden rounded-lg {{ $body }}"><div class="h-5 {{ $top }}"></div><div class="mx-1.5 mt-1.5 h-2 rounded bg-black/10"></div><div class="mx-1.5 mt-1 h-2 w-2/3 rounded bg-black/10"></div></div>
                 <div class="mt-1 text-center text-[10px] font-bold">{{ __($theme) }}</div>

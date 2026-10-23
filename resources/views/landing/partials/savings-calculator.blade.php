@@ -84,7 +84,7 @@
 
         {{-- phones: the yearly total rides along at the bottom while the numbers are typed (aria-hidden: the full result below is the live region) --}}
         <div class="sticky bottom-3 z-20 lg:hidden" aria-hidden="true" data-calc-mini>
-            <a href="#calc-result" tabindex="-1" class="flex min-h-14 items-center justify-between gap-3 rounded-2xl bg-navy-800 px-4 py-2.5 text-white shadow-[0_18px_40px_-16px_rgba(10,37,64,.7)]">
+            <a href="#calc-result" tabindex="-1" class="flex min-h-14 items-center justify-between gap-3 rounded-2xl bg-navy-800 px-4 py-2.5 text-white shadow-[0_18px_40px_-16px_rgba(19, 29, 61, .7)]">
                 <span class="min-w-0 text-sm font-bold"><span class="block text-xs font-semibold text-white/60">{{ __('Over one year') }}</span><span data-calc-mini-label>{{ __('What stays with you') }}</span></span>
                 <span class="shrink-0"><b class="text-2xl font-black tracking-tight"><bdi dir="ltr" data-calc-mini-net>0</bdi></b> <span class="text-sm font-bold text-white/70">{{ __('EGP') }}</span></span>
             </a>

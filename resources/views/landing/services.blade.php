@@ -80,8 +80,8 @@
 </section>
 
 @php
-    $studioOptions = ['accent' => '#F26522', 'waiter' => true, 'payment' => true, 'wifi_name' => '', 'wifi_password' => '', 'url' => false];
-    $studioDefaults = ['stand' => 'white', 'accent' => '#F26522', 'restaurant' => '', 'table' => '5'];
+    $studioOptions = ['accent' => '#F37623', 'waiter' => true, 'payment' => true, 'wifi_name' => '', 'wifi_password' => '', 'url' => false];
+    $studioDefaults = ['stand' => 'white', 'accent' => '#F37623', 'restaurant' => '', 'table' => '5'];
 @endphp
 @include('partials.stand-card-css')
 <section id="stand-studio" class="lp-band scroll-mt-20 py-16 lg:py-24" data-stand-studio>
@@ -116,14 +116,14 @@
                 <fieldset class="sm:col-span-2">
                     <legend class="field-label">{{ __('Accent color') }}</legend>
                     <div class="flex flex-wrap items-center gap-2">
-                        @foreach (['#F26522', '#0A2540', '#0F766E', '#B45309', '#BE123C'] as $swatch)
+                        @foreach (['#F37623', '#131D3D', '#0F766E', '#B45309', '#BE123C'] as $swatch)
                             <label class="cursor-pointer">
                                 <input type="radio" name="accent" value="{{ $swatch }}" @checked($loop->first) class="peer sr-only">
                                 <span class="block size-9 rounded-full border-2 border-white shadow ring-1 ring-navy-200 peer-checked:ring-2 peer-checked:ring-navy-900" style="background: {{ $swatch }}"><span class="sr-only">{{ $swatch }}</span></span>
                             </label>
                         @endforeach
                         <label class="ms-1 flex items-center gap-2 text-sm text-navy-600">
-                            <input type="color" value="#F26522" class="h-9 w-12 cursor-pointer rounded-lg border border-navy-200 bg-white p-1" data-custom-accent>
+                            <input type="color" value="#F37623" class="h-9 w-12 cursor-pointer rounded-lg border border-navy-200 bg-white p-1" data-custom-accent>
                             {{ __('Your color') }}
                         </label>
                     </div>
@@ -263,7 +263,7 @@
         const custom = form.querySelector('[data-custom-accent]');
         const tableLabel = @json(__('Table :name'));
         const defaultName = @json(__('Your cafe'));
-        let accent = '#F26522';
+        let accent = '#F37623';
         const apply = () => {
             const data = new FormData(form);
             const style = data.get('stand');

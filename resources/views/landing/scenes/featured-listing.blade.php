@@ -30,7 +30,7 @@
         </div>
     </div>
     {{-- 3: Rosto's page --}}
-    <div data-show="3" class="sc-slide absolute inset-y-0 end-0 w-[250px] border-s border-navy-100 bg-white p-3 text-[11px] shadow-[-12px_0_30px_-20px_rgba(20,31,56,.5)]">
+    <div data-show="3" class="sc-slide absolute inset-y-0 end-0 w-[250px] border-s border-navy-100 bg-white p-3 text-[11px] shadow-[-12px_0_30px_-20px_rgba(19, 29, 61, .5)]">
         <div class="h-16 rounded-xl bg-[#4a3426]"></div>
         <b class="mt-2 block text-sm">{{ __('Rosto') }}</b>
         <div class="text-navy-500">{{ __('Cafe · Zamalek') }} · {{ __('Open now') }}</div>

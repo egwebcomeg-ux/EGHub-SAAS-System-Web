@@ -246,7 +246,7 @@
                             : [__('One branch and :n users', ['n' => $limits['staff'] ?? 8]), __('Table and online ordering, delivery'), __('Loyalty card, wallet, offers, campaigns'), __('Reports and your own domain')]);
                 @endphp
                 <li @class(['lp-lift relative flex flex-col rounded-[24px] border p-6',
-                            'border-navy-800 bg-navy-800 text-white shadow-[0_30px_60px_-30px_rgba(10,37,64,.7)] hm-plan-dark' => $p->is_featured,
+                            'border-navy-800 bg-navy-800 text-white shadow-[0_30px_60px_-30px_rgba(19, 29, 61, .7)] hm-plan-dark' => $p->is_featured,
                             'border-navy-100 bg-white' => ! $p->is_featured])
                     data-home-plan="{{ $p->code }}" data-reveal style="--d: {{ $loop->index * 60 }}ms">
                     @if ($p->is_featured)

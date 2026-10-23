@@ -1,6 +1,6 @@
 {{-- Upload a photo or Excel → the lines are read → review → publish. --}}
 {{-- the paper menu photo --}}
-<div data-show="1-2" class="absolute top-10 start-10 h-[320px] w-[220px] rotate-[-3deg] bg-[#fdfaf3] p-4 shadow-[0_24px_40px_-24px_rgba(20,31,56,.6)] ring-1 ring-black/5">
+<div data-show="1-2" class="absolute top-10 start-10 h-[320px] w-[220px] rotate-[-3deg] bg-[#fdfaf3] p-4 shadow-[0_24px_40px_-24px_rgba(19, 29, 61, .6)] ring-1 ring-black/5">
     <div class="text-center text-sm font-black">{{ __('Rosto') }}</div>
     @foreach ([[__('Espresso'), 45], [__('Latte'), 65], [__('Cappuccino'), 65], [__('Mocha'), 75], [__('Cheesecake'), 90], [__('Brownies'), 70], [__('Cookies'), 35]] as $i => [$item, $price])
         <div data-on="2" style="transition-delay: {{ $i * 160 }}ms" class="mt-2 flex items-end rounded px-1 text-[11px] [&.is-on]:bg-brand-100"><span class="font-bold">{{ $item }}</span><span class="mx-1 mb-1 flex-1 border-b border-dotted border-navy-300"></span><b>{{ $price }}</b></div>

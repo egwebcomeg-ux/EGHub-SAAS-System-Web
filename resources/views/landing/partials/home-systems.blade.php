@@ -69,14 +69,14 @@
                 <div class="hm-cup" aria-hidden="true">
                     <svg viewBox="0 0 200 250" class="hm-cup-svg">
                         <defs>
-                            <linearGradient id="hm-cup-body" x1="0" x2="1"><stop offset="0" stop-color="#dfe8f2"/><stop offset=".45" stop-color="#ffffff"/><stop offset="1" stop-color="#c9d6e4"/></linearGradient>
-                            <linearGradient id="hm-cup-sleeve" x1="0" x2="1"><stop offset="0" stop-color="#00447c"/><stop offset=".5" stop-color="#005ba6"/><stop offset="1" stop-color="#0a2540"/></linearGradient>
+                            <linearGradient id="hm-cup-body" x1="0" x2="1"><stop offset="0" stop-color="#E4E7F0"/><stop offset=".45" stop-color="#ffffff"/><stop offset="1" stop-color="#CDD2E2"/></linearGradient>
+                            <linearGradient id="hm-cup-sleeve" x1="0" x2="1"><stop offset="0" stop-color="#1B2A57"/><stop offset=".5" stop-color="#213368"/><stop offset="1" stop-color="#131D3D"/></linearGradient>
                         </defs>
                         <path d="M40 58 L160 58 L146 236 Q145 244 136 244 L64 244 Q55 244 54 236 Z" fill="url(#hm-cup-body)"/>
                         <path d="M45.5 112 L154.5 112 L148.6 188 L51.4 188 Z" fill="url(#hm-cup-sleeve)"/>
-                        <rect x="30" y="38" width="140" height="22" rx="10" fill="#f2f6fb"/>
+                        <rect x="30" y="38" width="140" height="22" rx="10" fill="#F3F5FA"/>
                         <path d="M44 38 Q48 22 70 20 L130 20 Q152 22 156 38 Z" fill="#ffffff"/>
-                        <rect x="88" y="24" width="24" height="5" rx="2.5" fill="#c3d5e8"/>
+                        <rect x="88" y="24" width="24" height="5" rx="2.5" fill="#CDD2E2"/>
                     </svg>
                     <x-logo :size="40" :text="false" class="hm-cup-mark" />
                 </div>

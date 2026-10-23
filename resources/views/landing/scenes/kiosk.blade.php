@@ -1,5 +1,5 @@
 {{-- Start on the tablet → pick a latte and a cheesecake → name and order number 74 → it is on the board, pay at the cashier. --}}
-<div class="absolute top-8 start-5 h-[300px] w-[410px] rounded-[22px] bg-[#10182b] p-[9px] shadow-[0_24px_40px_-24px_rgba(20,31,56,.7)]">
+<div class="absolute top-8 start-5 h-[300px] w-[410px] rounded-[22px] bg-[#0E1630] p-[9px] shadow-[0_24px_40px_-24px_rgba(19, 29, 61, .7)]">
     <div class="relative h-full overflow-hidden rounded-[14px] bg-[#fbf7f1] text-navy-900">
         {{-- 1: welcome --}}
         <div data-show="1" class="sc-fade absolute inset-0 z-10 grid place-items-center bg-[#4a3426] text-white">

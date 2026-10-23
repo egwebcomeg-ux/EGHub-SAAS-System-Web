@@ -87,7 +87,7 @@
     </div>
 
     {{-- desktop mega menu --}}
-    <div id="mega" data-mega class="lp-mega absolute inset-x-5 top-full mx-auto mt-2 hidden max-w-7xl overflow-hidden rounded-[28px] border border-navy-100 bg-white shadow-[0_30px_60px_-34px_rgba(10,37,64,.5)] lg:block">
+    <div id="mega" data-mega class="lp-mega absolute inset-x-5 top-full mx-auto mt-2 hidden max-w-7xl overflow-hidden rounded-[28px] border border-navy-100 bg-white shadow-[0_30px_60px_-34px_rgba(19, 29, 61, .5)] lg:block">
         <div class="mx-auto grid max-w-7xl grid-cols-5 gap-6 px-6 py-7">
             @foreach ($siteGroups as $g => [$groupLabel, $groupIcon])
                 <div>
@@ -117,7 +117,7 @@
     </div>
 
     {{-- mobile drawer --}}
-    <nav id="mobile-nav" data-mobile-nav hidden class="absolute inset-x-3 top-full mt-2 max-h-[calc(100dvh-var(--lp-hdr)-20px)] overflow-y-auto overscroll-contain rounded-[28px] border border-navy-100 bg-white px-4 pt-2 pb-6 shadow-[0_30px_60px_-30px_rgba(10,37,64,.55)] sm:inset-x-5 lg:hidden" aria-label="{{ __('Main') }}">
+    <nav id="mobile-nav" data-mobile-nav hidden class="absolute inset-x-3 top-full mt-2 max-h-[calc(100dvh-var(--lp-hdr)-20px)] overflow-y-auto overscroll-contain rounded-[28px] border border-navy-100 bg-white px-4 pt-2 pb-6 shadow-[0_30px_60px_-30px_rgba(19, 29, 61, .55)] sm:inset-x-5 lg:hidden" aria-label="{{ __('Main') }}">
         <p class="px-1 pt-2 pb-1 text-xs font-extrabold text-navy-400">{{ __('Features') }}</p>
         @foreach ($siteGroups as $g => [$groupLabel, $groupIcon])
             <details class="lp-acc border-b border-navy-100" @if ($loop->first) open @endif>
@@ -153,7 +153,7 @@
     'periods' => collect(\App\Models\Plan::CYCLES)->mapWithKeys(fn ($m) => [$m => cycle_label($m)]),
 ], JSON_UNESCAPED_UNICODE) }}">@yield('page')</main>
 
-<footer class="bg-[#0f1729] text-white/70">
+<footer class="bg-[#131D3D] text-white/70">
     <div class="mx-auto max-w-7xl px-4 pt-14 pb-10 sm:px-6">
         <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,3.6fr)]">
             <div>
@@ -242,7 +242,7 @@
 @endphp
 
 {{-- mobile: one action always in reach --}}
-<div data-bottom-bar class="lp-bottom fixed inset-x-3 z-30 rounded-2xl border border-navy-100 bg-white/95 p-2 shadow-[0_18px_40px_-20px_rgba(10,37,64,.45)] backdrop-blur sm:inset-x-5 lg:hidden">
+<div data-bottom-bar class="lp-bottom fixed inset-x-3 z-30 rounded-2xl border border-navy-100 bg-white/95 p-2 shadow-[0_18px_40px_-20px_rgba(19, 29, 61, .45)] backdrop-blur sm:inset-x-5 lg:hidden">
     <div class="flex gap-2">
         <a href="{{ route('register') }}" class="btn-primary min-h-12 flex-1 text-base">{{ __('Start free') }}</a>
         <a href="{{ route('pricing') }}" class="btn-ghost min-h-12 px-5 text-base">{{ __('Pricing') }}</a>

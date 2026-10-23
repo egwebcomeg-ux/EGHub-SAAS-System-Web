@@ -22,7 +22,7 @@
 </x-landing.sc-window>
 
 {{-- the A4 page --}}
-<div class="absolute top-5 end-16 h-[372px] w-[264px] bg-white p-5 shadow-[0_24px_40px_-24px_rgba(20,31,56,.6)] ring-1 ring-navy-100">
+<div class="absolute top-5 end-16 h-[372px] w-[264px] bg-white p-5 shadow-[0_24px_40px_-24px_rgba(19, 29, 61, .6)] ring-1 ring-navy-100">
     <div class="text-lg font-black">{{ __('Rosto') }}</div>
     <div class="text-[9px] text-navy-500">{{ __('Specialty coffee & homemade desserts') }}</div>
     <div data-on="2-" class="mt-2 h-0.5 bg-navy-200 [&.is-on]:bg-navy-900"></div>

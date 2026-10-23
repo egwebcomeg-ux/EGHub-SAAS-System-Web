@@ -1,5 +1,5 @@
 {{-- A ticket arrives → start → the note stands out while the timer runs → ready. --}}
-<div class="absolute inset-5 overflow-hidden rounded-2xl bg-[#061a2e] p-3 text-white shadow-[0_30px_50px_-30px_rgba(20,31,56,.8)]">
+<div class="absolute inset-5 overflow-hidden rounded-2xl bg-[#131D3D] p-3 text-white shadow-[0_30px_50px_-30px_rgba(19, 29, 61, .8)]">
     <div class="flex items-center justify-between text-xs font-extrabold">
         <span class="flex items-center gap-2"><span data-on="1" class="sc-ring grid size-6 place-items-center rounded-md bg-white/10 [&.is-on]:bg-brand-600"><x-landing.icon name="bell" class="size-3.5" /></span>{{ __('Bar screen') }}</span>
         <span class="rounded-md bg-white/10 px-2 py-0.5 text-[10px]">{{ __('Full screen') }}</span>

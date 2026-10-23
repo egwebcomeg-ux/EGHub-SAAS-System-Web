@@ -36,7 +36,7 @@
 
     {{-- the owner's side: prices and sold-out --}}
     <div id="demo-dashboard" class="lp-collapse min-w-0 max-lg:order-3 lg:col-start-1 lg:row-start-1 lg:self-start">
-    <div class="min-w-0 overflow-hidden rounded-2xl border border-navy-100 bg-white shadow-[0_20px_40px_-26px_rgba(20,31,56,.6)]">
+    <div class="min-w-0 overflow-hidden rounded-2xl border border-navy-100 bg-white shadow-[0_20px_40px_-26px_rgba(19, 29, 61, .6)]">
         <div class="flex h-9 items-center gap-1.5 border-b border-navy-100 bg-navy-50/60 px-3 text-xs font-bold text-navy-500">
             <i class="size-2 rounded-full bg-navy-200"></i><i class="size-2 rounded-full bg-navy-200"></i>
             <span class="ms-2 truncate">{{ __('Your dashboard') }} · {{ __('Menu') }}</span>
@@ -64,7 +64,7 @@
     {{-- the guest's phone --}}
     <div class="mx-auto w-full max-w-[300px] max-lg:order-1 lg:col-start-2 lg:row-span-2 lg:row-start-1">
         <p class="mb-2 text-center text-xs font-bold text-navy-500">{{ __('The guest’s phone') }} · {{ __('Table 4') }}</p>
-        <div class="rounded-[34px] bg-[#10182b] p-2 shadow-[0_24px_40px_-24px_rgba(20,31,56,.7)]">
+        <div class="rounded-[34px] bg-[#0E1630] p-2 shadow-[0_24px_40px_-24px_rgba(19, 29, 61, .7)]">
             <div class="relative flex min-h-[500px] flex-col overflow-hidden rounded-[27px] bg-[#fbf7f1] text-navy-900">
                 <div class="bg-[#4a3426] px-4 pt-6 pb-3 text-white">
                     <div class="flex items-center justify-between gap-2">

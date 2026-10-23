@@ -31,8 +31,8 @@
 </x-landing.sc-window>
 
 {{-- customer display --}}
-<div class="absolute end-6 bottom-8 w-[170px] rounded-xl bg-[#0d1322] p-1.5 shadow-xl">
-    <div class="rounded bg-[#061a2e] p-2 text-white">
+<div class="absolute end-6 bottom-8 w-[170px] rounded-xl bg-[#0E1630] p-1.5 shadow-xl">
+    <div class="rounded bg-[#131D3D] p-2 text-white">
         <div class="text-[9px] font-bold text-white/50">{{ __('Customer display') }}</div>
         <div class="mt-1 text-[10px] text-white/70">{{ __('Ready') }}</div>
         <div class="mt-0.5 flex gap-1 text-sm font-black"><span class="rounded bg-white/10 px-1.5">58</span><span class="rounded bg-white/10 px-1.5">60</span><span data-show="3-" class="sc-pop rounded bg-emerald-500 px-1.5">61</span></div>
