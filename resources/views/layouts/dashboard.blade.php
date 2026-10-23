@@ -76,7 +76,7 @@
            data-dash-nav aria-label="{{ __('Dashboard') }}">
         <div class="flex items-center justify-between gap-2 px-5 py-4 lg:py-5">
             <a href="{{ route('dash.home') }}" class="rounded-lg"><x-logo :light="true" /></a>
-            <button type="button" class="grid size-11 place-items-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white lg:hidden" data-dash-nav-close aria-label="{{ __('Close') }}">
+            <button type="button" class="grid size-11 place-items-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white lg:hidden dash-nav-close-desk" data-dash-nav-close aria-label="{{ __('Close') }}">
                 <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
             @unless ($onHome)
@@ -151,7 +151,7 @@
     <div class="flex min-w-0 flex-1 flex-col">
         <header class="sticky top-0 z-30 flex min-h-14 items-center justify-between gap-2 border-b border-navy-100 bg-white/95 px-3 py-2 backdrop-blur sm:px-6 lg:static lg:min-h-16 lg:bg-white lg:py-3 lg:backdrop-blur-none">
             <div class="flex min-w-0 items-center gap-2">
-                <button type="button" class="grid size-11 shrink-0 place-items-center rounded-xl text-navy-800 hover:bg-navy-50 lg:hidden" data-dash-nav-toggle aria-controls="dash-nav" aria-expanded="false" aria-label="{{ __('Main menu') }}">
+                <button type="button" @class(['grid size-11 shrink-0 place-items-center rounded-xl text-navy-800 hover:bg-navy-50', 'lg:hidden' => ! $onHome]) data-dash-nav-toggle aria-controls="dash-nav" aria-expanded="false" aria-label="{{ __('Main menu') }}">
                     <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
                 </button>
                 <a href="{{ route('dash.home') }}" @class(['grid size-11 shrink-0 place-items-center rounded-xl lg:hidden', 'bg-brand-50 text-brand-700' => request()->routeIs('dash.home'), 'text-navy-800 hover:bg-navy-50' => ! request()->routeIs('dash.home')])

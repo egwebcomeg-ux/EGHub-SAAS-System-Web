@@ -260,6 +260,17 @@
  */
 @media (min-width: 1024px) {
     .dash-app:not([data-dash-home]):not([data-nav-expanded]) .dash-nav { display: none; }
+    /* home: the full menu is a drawer opened from the top bar's menu button, as on phones */
+    .dash-app[data-dash-home] .dash-nav {
+        position: fixed; inset-block: 0; inset-inline-start: 0; z-index: 50; display: flex; height: auto; width: 18rem;
+        transform: translateX(100%); visibility: hidden; transition: transform 0.22s ease, visibility 0s linear 0.22s;
+        box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+    }
+    [dir="ltr"] .dash-app[data-dash-home] .dash-nav { transform: translateX(-100%); }
+    .dash-app[data-dash-home] .dash-nav[data-open] { transform: none; visibility: visible; transition: transform 0.22s ease, visibility 0s; }
+    .dash-app[data-dash-home] .dash-nav-backdrop { display: block; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+    .dash-app[data-dash-home] .dash-nav-backdrop[data-open] { opacity: 1; pointer-events: auto; }
+    .dash-app[data-dash-home] .dash-nav-close-desk { display: grid; }
     .dash-app[data-nav-expanded] .dash-rail,
     .dash-app[data-nav-expanded] .dash-head-logo { display: none; }
 }
