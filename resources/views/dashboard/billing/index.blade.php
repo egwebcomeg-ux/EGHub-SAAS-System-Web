@@ -86,7 +86,7 @@
 
             <div class="mb-5 flex-1">@include('partials.plan-features', ['plan' => $p])</div>
             @if ((float) $p->monthly_price > 0)
-                <button class="{{ $p->is_featured ? 'btn-primary' : 'btn-navy' }} w-full">{{ $current ? __('Renew') : __('Choose :plan', ['plan' => $p->displayName()]) }}</button>
+                <button class="{{ $p->is_featured ? 'btn-primary' : 'btn-navy' }} w-full">{{ $current ? ($subscription?->status === 'trialing' ? __('Subscribe') : __('Renew')) : __('Choose :plan', ['plan' => $p->displayName()]) }}</button>
             @endif
         </form>
     @endforeach
@@ -105,7 +105,7 @@
                     <h3 class="font-bold">{{ $addon->displayName() }}</h3>
                     @if ($qty > 0)<span class="badge bg-emerald-100 text-emerald-800">{{ $addon->isFeaturePack() ? __('Active') : '× ' . $qty }}</span>@endif
                 </div>
-                <p class="mt-1 flex-1 text-sm text-navy-500">{{ tr($addon->description, $addon->description_en) }}</p>
+                <p class="mt-1 flex-1 text-sm text-navy-500">{{ $addon->displayDescription() }}</p>
                 @if ($addon->key === 'branches' && $launchOffer)
                     <p class="mt-2 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-800" data-launch-offer-branch>{{ __('Your first extra branch is free until :date (launch offer).', ['date' => local_time($launchOffer, 'Y/m/d')]) }}</p>
                 @endif

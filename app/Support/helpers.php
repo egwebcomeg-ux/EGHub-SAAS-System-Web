@@ -56,6 +56,12 @@ function money(float|int|string|null $n): string
     return str_contains($s, '.') ? rtrim(rtrim($s, '0'), '.') : $s;
 }
 
+/** Arabic-Indic digits (٠-٩, ٫ ٬) as Latin ones, the way every number in the app is written ("٥٠٠ رسالة" -> "500 رسالة"). */
+function latin_digits(string $text): string
+{
+    return strtr($text, ['٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4', '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9', '٫' => '.', '٬' => ',']);
+}
+
 /** Egyptian mobile -> "01xxxxxxxxx" (accepts Arabic digits, +20 / 0020 / 20 prefixes) or null. */
 function normalize_phone(string $raw): ?string
 {

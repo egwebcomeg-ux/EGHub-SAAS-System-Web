@@ -28,7 +28,7 @@ class BranchesController extends Controller
             return back()->withErrors(['limit' => $rights->upgradeMessage('branches')]);
         }
         $data = $this->validated($request);
-        $base = Str::slug($data['name_en'] ?: '') ?: 'branch';
+        $base = Str::slug($data['name_en'] ?? '') ?: 'branch';
         $slug = $base;
         for ($i = 2; Branch::query()->where('slug', $slug)->exists(); $i++) {
             $slug = "$base-$i";

@@ -4884,5 +4884,8 @@
     "This branch does not offer this.": "الفرع ده مش بيقدّم الطريقة دي.",
     "Not you? Clear my details": "مش إنت؟ امسح بياناتي",
     "Coupon applied: you save :amount": "الكوبون اتطبّق: هتوفّر :amount",
-    "Checking the code…": "بنراجع الكود…"
+    "Checking the code…": "بنراجع الكود…",
+    "Subscribe": "اشترك",
+    "Write the InstaPay address restaurants pay to before switching InstaPay on.": "اكتب عنوان InstaPay اللي المطاعم هتحوّل عليه قبل ما تشغّل InstaPay.",
+    "Write the Vodafone Cash number restaurants pay to before switching it on.": "اكتب رقم فودافون كاش اللي المطاعم هتحوّل عليه قبل ما تشغّله."
 }

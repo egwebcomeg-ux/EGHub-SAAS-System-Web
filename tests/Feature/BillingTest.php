@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Billing\Billing;
 use App\Billing\Lifecycle;
+use App\Billing\PaymentMethods;
+use App\Models\AddonPrice;
 use App\Models\Invoice;
 use App\Models\Plan;
 use App\Models\PlatformAdmin;
@@ -67,6 +69,41 @@ class BillingTest extends TenantTestCase
         $this->assertTrue($sub->current_period_end->between(now()->addMonths(6)->subDay(), now()->addMonths(6)->addDay()));
         $this->assertSame('paid', $invoice->fresh()->status);
         $this->assertSame(1, $invoice->payments()->where('status', 'succeeded')->count());
+    }
+
+    public function test_a_manual_method_without_its_account_is_never_offered_nor_switched_on(): void
+    {
+        PlatformSetting::put('pay_instapay_enabled', '1');
+        PlatformSetting::put('pay_instapay_handle', '  ');
+        PlatformSetting::put('pay_vodafone_enabled', '1');
+        PlatformSetting::put('pay_vodafone_number', '01000000000');
+        $this->assertSame(['vodafone_cash'], array_column(PaymentMethods::manual(), 'key'));
+
+        $a = $this->restaurant('cafe-a', 'pro', trial: true);
+        $invoice = app(Billing::class)->invoiceForPlan($a, $this->plan('pro'), 1);
+        $this->actingAs($this->owner($a))->post($this->dashUrl("/billing/invoices/{$invoice->number}/claim"), ['method' => 'instapay', 'reference' => 'TX-1'])
+            ->assertSessionHasErrors('method');
+
+        // the admin cannot switch InstaPay on without the address restaurants pay to
+        $this->actingAs($this->admin(), 'admin')->post($this->adminUrl('/settings'), ['pay_instapay_enabled' => '1', 'pay_instapay_handle' => ''])
+            ->assertSessionHasErrors(['pay_instapay_handle' => __('Write the InstaPay address restaurants pay to before switching InstaPay on.')]);
+        $this->actingAs($this->admin(), 'admin')->post($this->adminUrl('/settings'), ['pay_vodafone_enabled' => '1'])
+            ->assertSessionHasErrors('pay_vodafone_number');
+    }
+
+    public function test_a_trial_subscribes_to_its_plan_and_add_on_names_use_latin_digits(): void
+    {
+        $a = $this->restaurant('cafe-a', 'pro', trial: true);
+        AddonPrice::query()->where('type', 'credits')->first()?->update(['name' => '٥٠٠ رسالة واتساب']);
+
+        $this->actingAs($this->owner($a))->get($this->dashUrl('/billing'))->assertOk()
+            ->assertSee('>اشترك</button>', false)->assertDontSee('>تجديد</button>', false)
+            ->assertDontSee('٥٠٠');
+
+        // a paid plan renews
+        Subscription::query()->where('tenant_id', 'cafe-a')->update(['status' => 'active', 'current_period_end' => now()->addMonth()]);
+        Entitlements::flush();
+        $this->actingAs($this->owner($a))->get($this->dashUrl('/billing'))->assertOk()->assertSee('>تجديد</button>', false);
     }
 
     public function test_paying_twice_applies_once(): void

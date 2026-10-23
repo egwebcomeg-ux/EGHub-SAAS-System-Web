@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Billing\LaunchOffer;
 use App\Models\AddonPrice;
 use App\Models\Branch;
 use App\Models\DiningTable;
@@ -71,6 +72,16 @@ final class Entitlements
                 if (array_key_exists($feature, $e['features'])) {
                     $e['features'][$feature] = true;
                 }
+            }
+        }
+
+        // the launch offer's free second branch counts at once inside its window (trial included); once it is claimed
+        // as the first branch add-on, that add-on carries it (and is billed after the 12 months)
+        $boughtBranches = (int) ($sub?->addons->firstWhere('key', LaunchOffer::ADDON)?->quantity ?? 0);
+        if ($boughtBranches === 0 && LaunchOffer::coversBranchNow($sub) && $e['limits']['branches'] !== null) {
+            $e['limits']['branches'] += 1;
+            if ($e['limits']['staff'] !== null) {
+                $e['limits']['staff'] += AddonPrice::STAFF_PER_EXTRA_BRANCH;
             }
         }
 

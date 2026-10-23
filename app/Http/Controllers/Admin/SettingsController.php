@@ -66,8 +66,9 @@ class SettingsController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $request->validate([
-            'pay_instapay_handle' => 'nullable|string|max:120',
-            'pay_vodafone_number' => 'nullable|string|max:20',
+            // a manual method is switched on only with the account restaurants send the money to
+            'pay_instapay_handle' => 'nullable|string|max:120|required_if_accepted:pay_instapay_enabled',
+            'pay_vodafone_number' => 'nullable|string|max:20|required_if_accepted:pay_vodafone_enabled',
             'pay_instructions' => 'nullable|string|max:2000',
             'support_whatsapp' => 'nullable|string|max:20',
             'support_email' => 'nullable|email|max:120',
@@ -84,7 +85,10 @@ class SettingsController extends Controller
             'kashier_methods' => 'nullable|array',
             'kashier_methods.*' => ['string', Rule::in(array_keys(OnlinePayments::METHODS))],
             'kashier_installments_min' => 'nullable|numeric|min:0|max:1000000',
-        ] + collect(SocialLinks::NETWORKS)->mapWithKeys(fn ($network, string $key) => [SocialLinks::key($key) => 'nullable|url:https|max:300'])->all());
+        ] + collect(SocialLinks::NETWORKS)->mapWithKeys(fn ($network, string $key) => [SocialLinks::key($key) => 'nullable|url:https|max:300'])->all(), [
+            'pay_instapay_handle.required_if_accepted' => __('Write the InstaPay address restaurants pay to before switching InstaPay on.'),
+            'pay_vodafone_number.required_if_accepted' => __('Write the Vodafone Cash number restaurants pay to before switching it on.'),
+        ]);
         foreach (self::KEYS as $key) {
             $value = match (true) {
                 str_ends_with($key, '_enabled') => $request->boolean($key) ? '1' : '0',

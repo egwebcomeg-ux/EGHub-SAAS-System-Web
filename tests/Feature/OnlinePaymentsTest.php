@@ -294,6 +294,7 @@ class OnlinePaymentsTest extends TenantTestCase
     {
         $this->kashier();
         PlatformSetting::put('pay_instapay_enabled', '1');
+        PlatformSetting::put('pay_instapay_handle', 'egweb@instapay');
         $a = $this->restaurant('cafe-a', 'pro', trial: true);
         $invoice = $this->invoice($a, 1);
         $online = $this->startCheckout($a, $invoice);

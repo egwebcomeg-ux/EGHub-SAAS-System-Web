@@ -125,7 +125,7 @@
                                 <h3 class="font-extrabold">{{ $addon->displayName() }}</h3>
                                 <p class="shrink-0 text-navy-500"><b class="text-2xl font-black text-navy-900"><bdi dir="ltr">+{{ money($addon->monthly_price) }}</bdi></b> {{ __('EGP / month') }}</p>
                             </div>
-                            <p class="mt-1 text-sm text-navy-500">{{ tr($addon->description, $addon->description_en) }}</p>
+                            <p class="mt-1 text-sm text-navy-500">{{ $addon->displayDescription() }}</p>
                             <div class="mt-3 flex flex-wrap gap-1.5 text-xs font-bold">
                                 @if ($addon->per_branch)<span class="rounded-full bg-navy-50 px-2.5 py-1 text-navy-700">{{ __('Per branch, :pct% off each extra branch', ['pct' => $extraBranchOff]) }}</span>@endif
                                 @if ($minPlan)<span class="rounded-full bg-brand-50 px-2.5 py-1 text-brand-700">{{ __('With :plan or higher', ['plan' => $minPlan->displayName()]) }}</span>@endif

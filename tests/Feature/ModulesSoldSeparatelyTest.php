@@ -59,7 +59,7 @@ class ModulesSoldSeparatelyTest extends TenantTestCase
         $this->assertNull(AddonPrice::query()->where('key', 'loyalty_pack')->value('min_plan'));
 
         $this->get($this->menuUrl('pricing'))->assertOk()
-            ->assertSee('كارت الولاء')->assertSee('الطلب من الترابيزة')->assertSee('٥٠ صنف إضافي')
+            ->assertSee('كارت الولاء')->assertSee('الطلب من الترابيزة')->assertSee('50 صنف إضافي')
             ->assertSee(route('features.show', 'loyalty'), false);
     }
 }

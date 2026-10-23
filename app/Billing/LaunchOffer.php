@@ -55,6 +55,23 @@ final class LaunchOffer
         return self::isRunning() ? now()->addMonthsNoOverflow(self::MONTHS) : null;
     }
 
+    /**
+     * Whether the subscription is inside its offer window now: a Complete subscription whose stored offer date is
+     * still ahead, or a Complete trial while the offer runs (it gets the date when it subscribes). Inside the window
+     * the plan's branch limit counts the free branch even before it is claimed as an add-on (Entitlements).
+     */
+    public static function coversBranchNow(?Subscription $sub): bool
+    {
+        if (! $sub || $sub->plan?->code !== self::PLAN || $sub->status === 'canceled') {
+            return false;
+        }
+        if ($sub->branch_offer_until) {
+            return $sub->branch_offer_until->isFuture();
+        }
+
+        return $sub->status === 'trialing' && self::isRunning();
+    }
+
     /** Called when a Complete subscription starts (paid invoice or set by EgWeb): the offer is kept from then on. */
     public static function grant(Subscription $sub, CarbonInterface $start): void
     {

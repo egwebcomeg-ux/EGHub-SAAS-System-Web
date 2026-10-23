@@ -131,7 +131,7 @@ class PlanSeeder extends Seeder
                 'description_en' => 'Ingredients, recipe costing and automatic stock deduction',
                 'features' => ['inventory']],
             ['key' => 'ops_bundle', 'type' => 'feature', 'monthly_price' => 549, 'sort_order' => 0, 'per_branch' => true, 'min_plan' => 'basic',
-                'name' => 'التشغيل الكامل (وفّر ٢٥٪)', 'name_en' => 'Full operations (save 25%)',
+                'name' => 'التشغيل الكامل (وفّر 25٪)', 'name_en' => 'Full operations (save 25%)',
                 'description' => 'الكاشير وشاشة المطبخ والكول سنتر والمخزون مع بعض بسعر أقل',
                 'description_en' => 'POS, kitchen display, call center and inventory together for less',
                 'features' => ['pos', 'shifts', 'customer_display', 'kitchen_display', 'kitchen_stations', 'call_center', 'delivery_zones', 'customers', 'inventory']],
@@ -148,8 +148,8 @@ class PlanSeeder extends Seeder
             ['key' => 'branches', 'type' => 'limit', 'monthly_price' => 99, 'sort_order' => 5, 'name' => 'فرع إضافي', 'name_en' => 'Extra branch'],
             ['key' => 'staff', 'type' => 'limit', 'monthly_price' => 25, 'sort_order' => 6, 'name' => 'مستخدم إضافي', 'name_en' => 'Extra staff account'],
             // limit packs: `credits` = how many units one pack adds (50 items, 10 tables)
-            ['key' => 'menu_items', 'type' => 'limit', 'credits' => 50, 'monthly_price' => 29, 'sort_order' => 7, 'name' => '٥٠ صنف إضافي', 'name_en' => '50 extra menu items'],
-            ['key' => 'tables', 'type' => 'limit', 'credits' => 10, 'monthly_price' => 29, 'sort_order' => 8, 'name' => '١٠ ترابيزات إضافية', 'name_en' => '10 extra tables'],
+            ['key' => 'menu_items', 'type' => 'limit', 'credits' => 50, 'monthly_price' => 29, 'sort_order' => 7, 'name' => '50 صنف إضافي', 'name_en' => '50 extra menu items'],
+            ['key' => 'tables', 'type' => 'limit', 'credits' => 10, 'monthly_price' => 29, 'sort_order' => 8, 'name' => '10 ترابيزات إضافية', 'name_en' => '10 extra tables'],
             // every module on its own, on top of any plan — the free one included
             ['key' => 'ordering_pack', 'type' => 'feature', 'monthly_price' => 99, 'sort_order' => 3,
                 'name' => 'الطلب من الترابيزة', 'name_en' => 'Table ordering',
@@ -197,12 +197,12 @@ class PlanSeeder extends Seeder
                 'description_en' => 'WhatsApp campaigns to your guests by last visit, visits and birthdays, with discount coupons (messages use WhatsApp credits)',
                 'features' => ['campaigns', 'customers']],
             ['key' => 'wa_500', 'type' => 'credits', 'credits' => 500, 'monthly_price' => 149, 'sort_order' => 9,
-                'name' => '٥٠٠ رسالة واتساب', 'name_en' => '500 WhatsApp messages',
-                'description' => 'رصيد ٥٠٠ رسالة لرسائل الطلبات والحملات، بيتدفع مرة واحدة ومالوش تاريخ انتهاء',
+                'name' => '500 رسالة واتساب', 'name_en' => '500 WhatsApp messages',
+                'description' => 'رصيد 500 رسالة لرسائل الطلبات والحملات، بيتدفع مرة واحدة ومالوش تاريخ انتهاء',
                 'description_en' => 'Credit for 500 order or campaign messages, paid once, never expires'],
             ['key' => 'wa_2000', 'type' => 'credits', 'credits' => 2000, 'monthly_price' => 449, 'sort_order' => 10,
-                'name' => '٢٠٠٠ رسالة واتساب', 'name_en' => '2,000 WhatsApp messages',
-                'description' => 'رصيد ٢٠٠٠ رسالة (أوفر ٢٥٪)، بيتدفع مرة واحدة ومالوش تاريخ انتهاء',
+                'name' => '2000 رسالة واتساب', 'name_en' => '2,000 WhatsApp messages',
+                'description' => 'رصيد 2000 رسالة (أوفر 25٪)، بيتدفع مرة واحدة ومالوش تاريخ انتهاء',
                 'description_en' => 'Credit for 2,000 messages (save 25%), paid once, never expires'],
             ['key' => 'languages_pack', 'type' => 'feature', 'monthly_price' => 99, 'sort_order' => 5,
                 'name' => 'لغات منيو إضافية', 'name_en' => 'Extra menu languages',
@@ -221,7 +221,7 @@ class PlanSeeder extends Seeder
                 'features' => ['wallet', 'customers']],
             ['key' => 'cards_pack', 'type' => 'feature', 'monthly_price' => 199, 'sort_order' => 7, 'min_plan' => 'basic',
                 'name' => 'بطاقات الولاء المتقدمة', 'name_en' => 'Advanced loyalty cards',
-                'description' => 'المحفظة وكروت الهدايا + كاش باك نسبة من كل طلب تتجمع في رصيد العميل، وباقات مسبقة الدفع (١٠ قهوة بـ١٥٠ ج صالحة شهر)، ومستويات عضوية (سيلفر/جولد/VIP) بخصم تلقائي. موجودة في باقة بيزنس',
+                'description' => 'المحفظة وكروت الهدايا + كاش باك نسبة من كل طلب تتجمع في رصيد العميل، وباقات مسبقة الدفع (10 قهوة بـ150 ج صالحة شهر)، ومستويات عضوية (سيلفر/جولد/VIP) بخصم تلقائي. موجودة في باقة بيزنس',
                 'description_en' => 'Wallet & gift cards + cashback on every order into the guest\'s balance, prepaid packages (10 coffees for 150 EGP, valid a month) and membership tiers (Silver/Gold/VIP) with an automatic discount. Included in Business',
                 'features' => ['wallet', 'cashback', 'prepaid_packages', 'membership', 'customers']],
             ['key' => 'featured_listing', 'type' => 'feature', 'monthly_price' => 199, 'sort_order' => 8,
@@ -249,14 +249,14 @@ class PlanSeeder extends Seeder
         AddonPrice::query()->where('key', 'branches')->update([
             'monthly_price' => 600, 'credits' => 1, 'is_active' => true, 'min_plan' => 'full', 'features' => ['branch_pricing'],
             'name' => 'فرع إضافي', 'name_en' => 'Extra branch',
-            'description' => 'فرع زيادة بنفس المنيو وأسعاره الخاصة، ومعاه ٨ مستخدمين. لحد ٥ فروع، وأكتر من كده باقة Enterprise',
+            'description' => 'فرع زيادة بنفس المنيو وأسعاره الخاصة، ومعاه 8 مستخدمين. لحد 5 فروع، وأكتر من كده باقة Enterprise',
             'description_en' => 'One more branch with the same menu and its own prices, with 8 more users. Up to 5 branches; more is the Enterprise plan',
         ]);
         // extra users come five at a time
         AddonPrice::query()->where('key', 'staff')->update([
             'monthly_price' => 100, 'credits' => 5, 'is_active' => true,
-            'name' => '٥ مستخدمين', 'name_en' => '5 users',
-            'description' => '٥ حسابات موظفين زيادة على باقتك', 'description_en' => '5 more staff accounts on top of your plan',
+            'name' => '5 مستخدمين', 'name_en' => '5 users',
+            'description' => '5 حسابات موظفين زيادة على باقتك', 'description_en' => '5 more staff accounts on top of your plan',
         ]);
     }
 }

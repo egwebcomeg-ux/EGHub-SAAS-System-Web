@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Billing\Billing;
 use App\Billing\LaunchOffer;
+use App\Models\Branch;
 use App\Models\Invoice;
 use App\Models\Plan;
 use App\Models\PlatformSetting;
@@ -105,6 +106,36 @@ class LaunchOfferAndBranchAddonsTest extends TenantTestCase
 
         $this->actingAs($this->owner($early))->post($this->dashUrl('/billing/addons/branches'))->assertRedirect(route('dash.billing'));
         $this->assertSame(1, (int) $earlySub->addons()->where('key', 'branches')->value('quantity'));
+    }
+
+    public function test_the_free_second_branch_counts_in_the_branch_limit_inside_the_offer_window(): void
+    {
+        // a Complete trial while the offer runs: the second branch can be added at once, nothing to buy
+        $trial = $this->restaurant('cafe-trial', 'full', true);
+        $base = Plan::query()->where('code', 'full')->firstOrFail()->entitlements()['limits']['branches'];
+        $this->assertSame($base + 1, $this->as($trial, fn () => Entitlements::current()->limit('branches')));
+        $this->actingAs($this->owner($trial))->post($this->dashUrl('/branches'), ['name' => 'Zamalek', 'is_active' => 1])
+            ->assertSessionHasNoErrors();
+        $this->assertSame(2, $this->as($trial, fn () => Branch::query()->count()));
+
+        // subscribed: kept for the 12 months; claiming it as the first branch add-on does not count it twice
+        $paid = $this->restaurant('cafe-paid', 'free');
+        $sub = $this->subscribeToComplete($paid);
+        $this->assertSame($base + 1, $this->as($paid, fn () => Entitlements::current()->limit('branches')));
+        app(Billing::class)->setAddon($paid, 'branches', 1);
+        Entitlements::flush();
+        $this->assertSame($base + 1, $this->as($paid, fn () => Entitlements::current()->limit('branches')));
+        app(Billing::class)->setAddon($paid, 'branches', 0);
+
+        // after the window, or for a trial once the offer is switched off: the plan's own limit
+        $this->travel(13)->months();
+        Entitlements::flush();
+        $this->assertFalse(LaunchOffer::coversBranchNow($sub->fresh()));
+        $this->travelBack();
+        PlatformSetting::put(LaunchOffer::ENABLED_KEY, '0');
+        $late = $this->restaurant('late-trial', 'full', true);
+        Entitlements::flush();
+        $this->assertSame($base, $this->as($late, fn () => Entitlements::current()->limit('branches')));
     }
 
     public function test_an_offer_end_date_in_the_past_stops_it(): void

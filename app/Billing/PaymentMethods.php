@@ -11,15 +11,22 @@ use App\Models\PlatformSetting;
  */
 final class PaymentMethods
 {
-    /** @return list<array{key:string, label:string, account:string}> */
+    /**
+     * The manual methods a restaurant is offered: switched on, and with the account to send the money to (a method
+     * without its handle / number is never shown, there would be nowhere to pay).
+     *
+     * @return list<array{key:string, label:string, account:string}>
+     */
     public static function manual(): array
     {
         $out = [];
-        if (PlatformSetting::get('pay_instapay_enabled') === '1') {
-            $out[] = ['key' => 'instapay', 'label' => 'InstaPay', 'account' => (string) PlatformSetting::get('pay_instapay_handle', '')];
+        $instapay = trim((string) PlatformSetting::get('pay_instapay_handle', ''));
+        if (PlatformSetting::get('pay_instapay_enabled') === '1' && $instapay !== '') {
+            $out[] = ['key' => 'instapay', 'label' => 'InstaPay', 'account' => $instapay];
         }
-        if (PlatformSetting::get('pay_vodafone_enabled') === '1') {
-            $out[] = ['key' => 'vodafone_cash', 'label' => __('Vodafone Cash'), 'account' => (string) PlatformSetting::get('pay_vodafone_number', '')];
+        $vodafone = trim((string) PlatformSetting::get('pay_vodafone_number', ''));
+        if (PlatformSetting::get('pay_vodafone_enabled') === '1' && $vodafone !== '') {
+            $out[] = ['key' => 'vodafone_cash', 'label' => __('Vodafone Cash'), 'account' => $vodafone];
         }
 
         return $out;

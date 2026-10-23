@@ -159,7 +159,7 @@
                                     <h4 class="text-lg font-extrabold">{{ $addon->displayName() }}</h4>
                                     @if ($bundle)<span class="badge shrink-0 bg-brand-600 text-white">{{ __('Best value') }}</span>@endif
                                 </div>
-                                <p @class(['mt-1 flex-1 text-sm', 'text-white/70' => $bundle, 'text-navy-500' => !$bundle])>{{ tr($addon->description, $addon->description_en) }}</p>
+                                <p @class(['mt-1 flex-1 text-sm', 'text-white/70' => $bundle, 'text-navy-500' => !$bundle])>{{ $addon->displayDescription() }}</p>
                                 @if ($addon->key === 'branches' && \App\Billing\LaunchOffer::isRunning())
                                     <p class="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">{{ __('Launch offer: the first extra branch is free for 12 months with a new Complete subscription.') }}</p>
                                 @endif

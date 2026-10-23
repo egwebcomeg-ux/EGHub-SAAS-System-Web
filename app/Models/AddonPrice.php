@@ -50,9 +50,15 @@ class AddonPrice extends Model
         return $min === null || $plan->sort_order >= $min;
     }
 
+    /** The name in the visitor's language, its digits Latin like every number in the app. */
     public function displayName(): string
     {
-        return tr($this->name, $this->name_en);
+        return latin_digits(tr($this->name, $this->name_en));
+    }
+
+    public function displayDescription(): string
+    {
+        return latin_digits((string) tr($this->description, $this->description_en));
     }
 
     public function isFeaturePack(): bool
