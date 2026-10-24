@@ -26,6 +26,7 @@
 </head>
 <body class="@yield('body_class', 'bg-navy-50 text-navy-900') min-h-screen font-sans antialiased">
     @yield('body')
+    @include('partials.support-access-banner')
     @include('partials.pwa-scripts')
     @stack('scripts')
 </body>

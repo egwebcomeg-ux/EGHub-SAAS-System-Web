@@ -4,7 +4,10 @@ namespace App\Services;
 
 use App\Models\AuditLog;
 
-/** Records who did what in the dashboard (the `audit_log` plan feature shows it). Always writes; the page is what is gated. */
+/**
+ * Records who did what in the dashboard (the `audit_log` plan feature shows it). Always writes; the page is what is gated.
+ * While EgWeb support is signed in from the admin (App\Services\SupportAccess) every entry also names that admin.
+ */
 final class Audit
 {
     /**
@@ -15,6 +18,10 @@ final class Audit
     {
         if (tenant() === null) {
             return;
+        }
+        $request = request();
+        if (SupportAccess::active($request)) {
+            $meta['support_admin'] = (string) $request->session()->get(SupportAccess::ADMIN_EMAIL);
         }
         AuditLog::query()->create([
             'user_id' => $userId ?? auth()->id(),

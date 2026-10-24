@@ -54,6 +54,7 @@ use App\Http\Controllers\Dashboard\SettingsController;
 use App\Http\Controllers\Dashboard\ShiftsController;
 use App\Http\Controllers\Dashboard\SocialLoginController;
 use App\Http\Controllers\Dashboard\StationsController;
+use App\Http\Controllers\Dashboard\SupportAccessController;
 use App\Http\Controllers\Dashboard\TablesController;
 use App\Http\Controllers\Dashboard\TableSessionsController;
 use App\Http\Controllers\Dashboard\TerminalsController;
@@ -95,6 +96,11 @@ Route::middleware('admin.locale')->group(function () {
 Route::get('/welcome-kit/{place}/{nonce}', [WelcomeKitController::class, 'show'])
     ->where(['place' => '[a-z0-9-]{3,30}', 'nonce' => '[A-Za-z0-9]{40}'])->middleware(['signed', 'throttle:30,1'])->name('welcome-kit');
 
+// EgWeb support signing in from the admin (App\Services\SupportAccess): a one-time ticket made on admin.<domain>
+// a moment ago (60 seconds, used once, bound to the admin, the restaurant and the account) opens this dashboard.
+Route::get('/support-access/{ticket}', [SupportAccessController::class, 'enter'])
+    ->where('ticket', '[a-f0-9]{48}')->middleware(['admin.locale', 'throttle:20,1'])->name('support-access');
+
 // The online payment gateway's server-to-server webhook (Kashier: https://app.<domain>/billing/kashier/webhook).
 // No login and no CSRF (bootstrap/app.php): the gateway's signature is the only proof, checked in the controller.
 Route::post('/billing/{gateway}/webhook', [BillingWebhookController::class, 'receive'])
@@ -103,27 +109,29 @@ Route::post('/billing/{gateway}/webhook', [BillingWebhookController::class, 'rec
 Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::post('/locale', [AuthController::class, 'locale'])->name('locale');
+    Route::post('/support-access/exit', [SupportAccessController::class, 'exit'])->name('support-access.exit');
 
     Route::get('/', [HomeController::class, 'index'])->name('home');
 
     // Confirm the account's mobile on WhatsApp (one prepared message, no codes to type). Never blocks anything.
     Route::get('/phone', [PhoneVerificationController::class, 'show'])->name('phone');
-    Route::post('/phone', [PhoneVerificationController::class, 'update'])->middleware('throttle:10,1')->name('phone.update');
+    Route::post('/phone', [PhoneVerificationController::class, 'update'])->middleware(['support.blocked', 'throttle:10,1'])->name('phone.update');
     Route::get('/phone/status', [PhoneVerificationController::class, 'status'])->middleware('throttle:60,1')->name('phone.status');
 
     Route::middleware('permission:users.manage')->group(function () {
         Route::get('/users', [UsersController::class, 'index'])->name('users');
         Route::post('/users', [UsersController::class, 'store'])->name('users.store');
-        Route::post('/users/{user}', [UsersController::class, 'update'])->name('users.update');
+        Route::post('/users/{user}', [UsersController::class, 'update'])->middleware('support.blocked:self')->name('users.update');
     });
 
+    // paying, subscribing and claiming a transfer are not for EgWeb support signed in from the admin (support.blocked)
     Route::middleware('permission:billing.manage')->group(function () {
         Route::get('/billing', [BillingController::class, 'index'])->name('billing');
-        Route::post('/billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
-        Route::post('/billing/addons/{key}', [BillingController::class, 'addon'])->where('key', '[a-z0-9_]+')->name('billing.addon');
+        Route::post('/billing/checkout', [BillingController::class, 'checkout'])->middleware('support.blocked')->name('billing.checkout');
+        Route::post('/billing/addons/{key}', [BillingController::class, 'addon'])->where('key', '[a-z0-9_]+')->middleware('support.blocked')->name('billing.addon');
         Route::get('/billing/invoices/{number}', [BillingController::class, 'invoice'])->name('billing.invoice');
-        Route::post('/billing/invoices/{number}/claim', [BillingController::class, 'claim'])->middleware('throttle:10,1')->name('billing.claim');
-        Route::post('/billing/invoices/{number}/pay', [BillingController::class, 'pay'])->middleware('throttle:10,1')->name('billing.pay');
+        Route::post('/billing/invoices/{number}/claim', [BillingController::class, 'claim'])->middleware(['support.blocked', 'throttle:10,1'])->name('billing.claim');
+        Route::post('/billing/invoices/{number}/pay', [BillingController::class, 'pay'])->middleware(['support.blocked', 'throttle:10,1'])->name('billing.pay');
         // the gateway sends the restaurant back here (checks the database, never the query string)
         Route::get('/billing/invoices/{number}/return', [BillingController::class, 'returned'])->middleware('throttle:30,1')->name('billing.return');
     });
@@ -138,7 +146,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/modules', [ModulesController::class, 'update'])->name('modules.update');
         Route::post('/modules/skip', [ModulesController::class, 'skip'])->name('modules.skip');
         Route::get('/domain', [DomainController::class, 'show'])->name('domain');
-        Route::post('/domain/book', [DomainController::class, 'book'])->middleware('throttle:10,1')->name('domain.book');
+        Route::post('/domain/book', [DomainController::class, 'book'])->middleware(['support.blocked', 'throttle:10,1'])->name('domain.book');
         Route::post('/domain/connect', [DomainController::class, 'connect'])->middleware('throttle:10,1')->name('domain.connect');
         Route::post('/domain/check', [DomainController::class, 'check'])->middleware('throttle:10,1')->name('domain.check');
         Route::post('/domain/delete', [DomainController::class, 'destroy'])->name('domain.delete');
@@ -602,14 +610,15 @@ Route::middleware('admin.locale')->group(function () {
     Route::get('/two-factor', [TwoFactorController::class, 'show'])->name('two-factor');
     Route::post('/two-factor', [TwoFactorController::class, 'verify'])->middleware('throttle:5,1')->name('two-factor.verify');
 });
+// (the account's password, two-factor and PIN are the owner's own: not for EgWeb support signed in from the admin)
 Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::get('/security', [SecurityController::class, 'show'])->name('security');
-    Route::post('/security/two-factor', [SecurityController::class, 'enable'])->name('security.enable');
-    Route::post('/security/two-factor/confirm', [SecurityController::class, 'confirm'])->middleware('throttle:10,1')->name('security.confirm');
-    Route::post('/security/two-factor/disable', [SecurityController::class, 'disable'])->middleware('throttle:10,1')->name('security.disable');
-    Route::post('/security/pin', [SecurityController::class, 'pin'])->middleware('throttle:10,1')->name('security.pin');
+    Route::post('/security/two-factor', [SecurityController::class, 'enable'])->middleware('support.blocked')->name('security.enable');
+    Route::post('/security/two-factor/confirm', [SecurityController::class, 'confirm'])->middleware(['support.blocked', 'throttle:10,1'])->name('security.confirm');
+    Route::post('/security/two-factor/disable', [SecurityController::class, 'disable'])->middleware(['support.blocked', 'throttle:10,1'])->name('security.disable');
+    Route::post('/security/pin', [SecurityController::class, 'pin'])->middleware(['support.blocked', 'throttle:10,1'])->name('security.pin');
     // the account's own password (a welcome-kit owner must pick one before anything else: InitializeTenancyFromUser)
-    Route::post('/security/password', [SecurityController::class, 'password'])->middleware('throttle:10,1')->name('security.password');
+    Route::post('/security/password', [SecurityController::class, 'password'])->middleware(['support.blocked', 'throttle:10,1'])->name('security.password');
 });
 
 // ---- The sample data EgWeb filled in for a prospect (App\Services\DemoContent): the owner clears it in one go ----

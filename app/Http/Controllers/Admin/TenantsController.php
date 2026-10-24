@@ -14,6 +14,7 @@ use App\Models\PlatformAuditLog;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\AdminTenantSearch;
 use App\Services\Audit;
 use App\Services\DemoContent;
 use App\Services\Entitlements;
@@ -33,18 +34,20 @@ use Illuminate\View\View;
 /** Restaurants and their subscriptions, managed by EgWeb. */
 class TenantsController extends Controller
 {
-    public function index(Request $request): View
+    /** Search (link, name, any account's email or mobile, custom domain) and filters (App\Services\AdminTenantSearch). */
+    public function index(Request $request, AdminTenantSearch $search): View
     {
-        $q = trim((string) $request->query('q', ''));
-        $status = (string) $request->query('status', '');
+        $filters = AdminTenantSearch::filters($request);
+        $tenants = $search->listing($filters)->paginate(25)->withQueryString();
 
-        $tenants = Tenant::query()->with('subscription.plan')
-            ->when($q !== '', fn ($w) => $w->where(fn ($w) => $w->where('id', 'like', "%$q%")->orWhere('name', 'like', "%$q%")))
-            ->when($status === 'suspended', fn ($w) => $w->where('status', 'suspended'))
-            ->when(in_array($status, array_keys(Subscription::STATUSES), true), fn ($w) => $w->whereHas('subscription', fn ($s) => $s->where('status', $status)))
-            ->latest()->paginate(25)->withQueryString();
-
-        return view('admin.tenants.index', compact('tenants', 'q', 'status'));
+        return view('admin.tenants.index', [
+            'tenants' => $tenants,
+            'filters' => $filters,
+            'filtered' => AdminTenantSearch::isFiltered($filters),
+            'typeCounts' => $search->typeCounts($filters),
+            'types' => AdminTenantSearch::typesOf($tenants->pluck('id')),
+            'plans' => Plan::query()->orderBy('sort_order')->get(['id', 'code', 'name', 'name_en']),
+        ]);
     }
 
     public function create(): View

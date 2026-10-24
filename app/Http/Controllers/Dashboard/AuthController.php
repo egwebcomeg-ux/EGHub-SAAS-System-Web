@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Auth\TwoFactor;
+use App\Services\SupportAccess;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -72,8 +73,14 @@ class AuthController extends Controller
         return redirect()->route('dash.modules', ['welcome' => 1])->with('ok', __('Welcome to EgMenu! Your 14-day free trial has started.'));
     }
 
-    public function logout(Request $request): RedirectResponse
+    /** Leaving a support session opened from the admin ends it (recorded) and goes back to the admin page. */
+    public function logout(Request $request, SupportAccess $support): RedirectResponse
     {
+        if (SupportAccess::active($request)) {
+            $tenantId = $support->end($request);
+
+            return redirect()->away($tenantId ? route('admin.tenants.show', $tenantId) : route('admin.tenants'));
+        }
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

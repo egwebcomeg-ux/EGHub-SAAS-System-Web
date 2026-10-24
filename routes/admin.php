@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\PlansController;
 use App\Http\Controllers\Admin\SecurityController;
 use App\Http\Controllers\Admin\ServicesController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\SupportAccessController;
 use App\Http\Controllers\Admin\TenantsController;
 use App\Http\Controllers\Admin\TenantUsersController;
 use App\Http\Controllers\Admin\TestimonialsController;
@@ -56,6 +57,9 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         Route::post('/tenants/{tenant}/users/{user}/sign-out', [TenantUsersController::class, 'signOut'])->whereNumber('user')->name('tenants.users.sign-out');
         Route::post('/domains/{domain}', [DomainsController::class, 'update'])->name('domains.update');
     });
+    // "open the restaurant's dashboard" as its owner (or a picked staff account): a one-time ticket, then app.<domain>
+    Route::post('/tenants/{tenant}/support-access', [SupportAccessController::class, 'store'])
+        ->middleware(['admin.access:tenants.impersonate', 'throttle:10,1'])->name('tenants.support-access');
     Route::middleware('admin.access:billing.manage')->group(function () {
         Route::post('/tenants/{tenant}/subscription', [TenantsController::class, 'subscription'])->name('tenants.subscription');
         Route::post('/tenants/{tenant}/addons', [TenantsController::class, 'addons'])->name('tenants.addons');

@@ -34,6 +34,8 @@ class AuditController extends Controller
         'customers.imported' => ['استيراد عملاء', 'Customers imported'],
         'customer.account_link_rotated' => ['رابط جديد لحساب عميل (القديم اتقفل)', 'New guest account link (old one closed)'],
         'account.sign_in' => ['دخول ضيوف على «حسابي» (عدد في الساعة)', 'Guest «My account» sign-ins (hourly counts)'],
+        'support.access_by_platform' => ['دخول من فريق EgMenu', 'EgMenu team signed in'],
+        'support.exit_by_platform' => ['خروج فريق EgMenu من اللوحة', 'EgMenu team signed out'],
         'login.google' => ['دخول بحساب جوجل', 'Signed in with Google'],
         'login.facebook' => ['دخول بحساب فيسبوك', 'Signed in with Facebook'],
         'corporate.created' => ['إنشاء تعاقد شركة', 'Corporate contract created'],

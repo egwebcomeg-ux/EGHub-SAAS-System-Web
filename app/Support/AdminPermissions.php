@@ -13,6 +13,7 @@ final class AdminPermissions
     public const ALL = [
         'tenants.view' => ['عرض المطاعم وبياناتها', 'View restaurants'],
         'tenants.manage' => ['إدارة المطاعم ومستخدميها (إيقاف، كلمات السر، التحقق)', 'Manage restaurants and their users'],
+        'tenants.impersonate' => ['الدخول على لوحة أي مطعم بحساب صاحبه للدعم الفني (من غير كلمة السر، ساعة بالكتير)', 'Open a restaurant dashboard as its owner for support (no password, one hour at most)'],
         'billing.manage' => ['الاشتراكات والفواتير والرصيد', 'Subscriptions, invoices & credits'],
         'plans.manage' => ['الباقات والإضافات والأسعار', 'Plans, add-ons & prices'],
         'services.manage' => ['طلبات الخدمات', 'Service requests'],

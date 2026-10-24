@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Tenant;
 use App\Services\Auth\TwoFactor;
+use App\Services\SupportAccess;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,7 +13,8 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Dashboard host (app.<domain>): the restaurant is always the logged-in user's own, never taken from the URL,
  * so a staff member can't reach another restaurant by editing a link. Runs after `auth`.
- * Deactivated users and deleted restaurants are logged out.
+ * Deactivated users and deleted restaurants are logged out. A support session opened from the admin
+ * (App\Services\SupportAccess) ends after 60 minutes, or as soon as its admin loses the right to it.
  */
 class InitializeTenancyFromUser
 {
@@ -28,8 +30,23 @@ class InitializeTenancyFromUser
             return redirect()->route('dash.login')->withErrors(['login' => __('Your account is not active.')]);
         }
 
+        $support = SupportAccess::active($request);
+        if ($support && ($problem = app(SupportAccess::class)->problem($request, $user))) {
+            app(SupportAccess::class)->end($request, $problem);
+            if ($request->expectsJson()) {
+                abort(401, __('The support session from the admin ended. Open it again from the admin.'));
+            }
+
+            return redirect()->route('dash.login')->withErrors(['login' => __('The support session from the admin ended. Open it again from the admin.')]);
+        }
+
         tenancy()->initialize($tenant);
         app()->setLocale(in_array($user->locale, ['ar', 'en'], true) ? $user->locale : 'ar');
+
+        // EgWeb support signed in from the admin never sets up 2FA or picks the owner's password for them
+        if ($support) {
+            return $next($request);
+        }
 
         // The owner requires two-factor authentication of all staff: until it is set up, only the security page
         // (and leaving) is reachable.

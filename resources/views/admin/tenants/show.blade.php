@@ -16,7 +16,11 @@
         'restaurant.info_by_platform' => __('Restaurant info changed'),
         'restaurant.showcase_by_platform' => __('Logo on egmenu.app changed'),
         'restaurant.directory_by_platform' => __('Directory visibility changed'),
+        'support.access_by_platform' => __('Signed in to the dashboard (support)'),
+        'support.exit_by_platform' => __('Left the dashboard (support)'),
     ];
+    $canImpersonate = $me->allows('tenants.impersonate');
+    $activeUsers = $users->where('is_active', true);
 @endphp
 <div class="mb-5 flex flex-wrap items-start justify-between gap-3">
     <div class="min-w-0">
@@ -31,13 +35,29 @@
         </h1>
         <a href="{{ $tenant->url() }}" target="_blank" rel="noopener" dir="ltr" class="break-all text-sm text-navy-600 hover:underline">{{ $tenant->url() }}</a>
     </div>
-    @if ($canManage)
-        @if ($tenant->isSuspended())
-            <form method="post" action="{{ route('admin.tenants.activate', $tenant) }}">@csrf<button class="btn-primary">{{ __('Activate') }}</button></form>
-        @else
-            <form method="post" action="{{ route('admin.tenants.suspend', $tenant) }}" onsubmit="return confirm(@js(__('Take this menu offline?')))">@csrf<button class="btn-danger">{{ __('Suspend') }}</button></form>
+    <div class="flex flex-wrap items-start gap-2">
+        @if ($canImpersonate && $activeUsers->isNotEmpty())
+            {{-- support access (App\Services\SupportAccess): a one-time ticket, then the restaurant's dashboard in a new tab --}}
+            <form method="post" action="{{ route('admin.tenants.support-access', $tenant) }}" target="_blank" class="flex flex-wrap items-center gap-2" data-support-access-form>
+                @csrf
+                @if ($activeUsers->count() > 1)
+                    <select name="user_id" class="field min-h-11 w-auto py-0" aria-label="{{ __('Open as') }}">
+                        @foreach ($activeUsers->sortByDesc(fn ($u) => $u->isOwner()) as $u)
+                            <option value="{{ $u->id }}">{{ $u->name }} · {{ $u->roleName() }}</option>
+                        @endforeach
+                    </select>
+                @endif
+                <button class="btn-primary" data-support-access>{{ __('Open the restaurant dashboard') }}</button>
+            </form>
         @endif
-    @endif
+        @if ($canManage)
+            @if ($tenant->isSuspended())
+                <form method="post" action="{{ route('admin.tenants.activate', $tenant) }}">@csrf<button class="btn-primary">{{ __('Activate') }}</button></form>
+            @else
+                <form method="post" action="{{ route('admin.tenants.suspend', $tenant) }}" onsubmit="return confirm(@js(__('Take this menu offline?')))">@csrf<button class="btn-danger">{{ __('Suspend') }}</button></form>
+            @endif
+        @endif
+    </div>
 </div>
 
 @if ($temporary)

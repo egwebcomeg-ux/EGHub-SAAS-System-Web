@@ -3,6 +3,7 @@
 use App\Http\Middleware\AdminAccess;
 use App\Http\Middleware\AdminIdleTimeout;
 use App\Http\Middleware\AdminLocale;
+use App\Http\Middleware\BlockDuringSupportAccess;
 use App\Http\Middleware\IdentifyTenantByDomain;
 use App\Http\Middleware\IdentifyTenantByPath;
 use App\Http\Middleware\IdentifyTenantBySubdomain;
@@ -44,6 +45,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.locale' => AdminLocale::class,
             'admin.access' => AdminAccess::class,
             'admin.idle' => AdminIdleTimeout::class,
+            'support.blocked' => BlockDuringSupportAccess::class,
         ]);
         // Tenancy must be initialised before route-model binding, or {model} ids would resolve outside the
         // tenant scope (another restaurant's rows). Authenticate already runs before SubstituteBindings.
