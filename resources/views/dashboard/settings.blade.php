@@ -374,6 +374,7 @@
                         'wa_loyalty_reward' => [__('Loyalty reward earned'), __('When a guest\'s card reaches a reward')],
                         'wa_order_to_staff' => [__('New orders to your own WhatsApp'), __('Table, online and kiosk orders go to each branch\'s WhatsApp number (or the restaurant\'s) as well as the order board')],
                         'wa_driver_assigned' => [__('Delivery orders to the driver'), __('When a delivery order is given to a driver, the order and the address go to the driver\'s own number')],
+                        'wa_order_confirm' => [__('Guest confirms cash-on-delivery orders'), __('Delivery orders paid at the door ask the guest on WhatsApp to confirm, change or cancel. The kitchen starts right away; the answer shows as a badge on the order.')],
                     ];
                 @endphp
                 <div class="space-y-2">
@@ -383,6 +384,9 @@
                             <span><span class="block text-sm font-semibold">{{ $label }}</span><span class="block text-xs text-navy-500">{{ $hint }}</span></span>
                         </label>
                     @endforeach
+                    <label class="flex flex-wrap items-center gap-2 px-1 text-sm" for="wa_order_confirm_minutes">{{ __('Show “no reply” after') }}
+                        <input class="field min-h-9 w-20" id="wa_order_confirm_minutes" name="wa_order_confirm_minutes" type="number" min="1" max="{{ \App\Services\Orders\OrderConfirmation::MAX_MINUTES }}" value="{{ $s['wa_order_confirm_minutes'] }}"> {{ __('minutes') }}
+                    </label>
                 </div>
                 <div class="space-y-3">
                     <div>

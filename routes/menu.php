@@ -12,6 +12,7 @@ use App\Http\Controllers\Menu\KioskController;
 use App\Http\Controllers\Menu\LinksController;
 use App\Http\Controllers\Menu\LoyaltyCardController;
 use App\Http\Controllers\Menu\MenuController;
+use App\Http\Controllers\Menu\OrderConfirmController;
 use App\Http\Controllers\Menu\OrderController;
 use App\Http\Controllers\Menu\PagerController;
 use App\Http\Controllers\Menu\ProfileController;
@@ -40,6 +41,12 @@ Route::get('/o/{token}/status', [OrderController::class, 'status'])->where('toke
 // the read-only receipt (QR on the printed receipt, WhatsApp link from the POS): signed, nothing personal
 Route::get('/r/{order}/{signature}', [ReceiptController::class, 'show'])->whereNumber('order')->where('signature', '[a-f0-9]{32}')
     ->middleware('throttle:60,1')->name('receipt');
+// the guest confirms, changes or cancels a cash-on-delivery order (the WhatsApp message's link when the provider has no
+// buttons): signed, this restaurant's orders only
+Route::get('/oc/{token}/{signature}', [OrderConfirmController::class, 'show'])->where(['token' => '[a-f0-9]{32}', 'signature' => '[a-f0-9]{32}'])
+    ->middleware('throttle:60,1')->name('order.confirm');
+Route::post('/oc/{token}/{signature}', [OrderConfirmController::class, 'answer'])->where(['token' => '[a-f0-9]{32}', 'signature' => '[a-f0-9]{32}'])
+    ->middleware('throttle:20,1')->name('order.confirm.answer');
 
 // The guest pager (plan feature pager): the QR on the receipt or the pager-station ticket. The phone rings while the
 // page is open; the state is polled every few seconds (limiter "pager": per page and device, not per shop Wi-Fi)

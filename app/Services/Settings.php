@@ -136,6 +136,10 @@ final class Settings
         'wa_loyalty_reward' => '0',
         'wa_order_to_staff' => '0',         // new table/online/kiosk orders also go to the branch's own WhatsApp number
         'wa_driver_assigned' => '0',        // a delivery order given to a driver: a WhatsApp to the driver's own number
+        // cash-on-delivery delivery orders from the menu link ask the guest to confirm (App\Services\Orders\OrderConfirmation);
+        // a badge only, the kitchen never waits. After the minutes without an answer the order shows "no reply".
+        'wa_order_confirm' => '0',
+        'wa_order_confirm_minutes' => '10',
         'wa_sender_name' => '',
         // cashback (feature cashback): this share of every counted order goes back to the guest's wallet balance
         'cashback_percent' => '0',

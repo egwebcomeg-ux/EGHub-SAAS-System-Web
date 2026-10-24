@@ -20,6 +20,7 @@
         'wasRef' => __('was :ref', ['ref' => '__R__']),
         'driver' => __('Driver'), 'chooseDriver' => __('Choose a driver…'), 'noDriver' => __('No driver'),
         'pager' => \App\Services\Orders\Pager::staffTexts(),
+        'confirmPhone' => __('Confirmed by phone'), 'confirmPhoneSure' => __('You called the guest and the order is fine?'),
     ];
     $canManage = auth()->user()->can('orders.manage');
     // quick filters: [key, label]; the counts come live from the feed
@@ -28,6 +29,10 @@
         ['dine_in', __('Dine-in')], ['takeaway', __('Takeaway')], ['delivery', __('Delivery')],
         ['food', '🍽 '.__('Food')], ['drinks', '☕ '.__('Drinks')],
     ];
+    // cash-on-delivery orders waiting for the guest's WhatsApp answer, or answered "change" / "cancel"
+    if ($confirmations ?? false) {
+        $chips[] = ['confirm', '💬 '.__('Guest confirmation')];
+    }
 @endphp
 <div class="dash-head">
     <div class="min-w-0">
@@ -99,6 +104,7 @@
      data-status-url="{{ url('/orders/__ID__/status') }}"
      data-part-url="{{ url('/orders/__ID__/part-ready') }}"
      data-driver-url="{{ url('/orders/__ID__/driver') }}"
+     data-confirm-url="{{ url('/orders/__ID__/confirm-phone') }}"
      data-call-url="{{ url('/orders/calls/__ID__') }}"
      data-reservation-url="{{ url('/reservations/__ID__/status') }}"
      data-poll="{{ $poll }}"

@@ -110,7 +110,23 @@ class Order extends TenantModel
             'pager_called_at' => 'datetime',
             'pager_seen_at' => 'datetime',
             'pager_picked_up_at' => 'datetime',
+            'confirm_sent_at' => 'datetime',
+            'confirm_replied_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The guest's confirmation page of a cash-on-delivery order (App\Services\Orders\OrderConfirmation) on the
+     * restaurant's own address: /oc/{confirm_token}/{signature}, an HMAC of the restaurant, the order and its token.
+     */
+    public function confirmSignature(): string
+    {
+        return substr(hash_hmac('sha256', 'confirm|'.$this->tenant_id.'|'.$this->id.'|'.$this->confirm_token, (string) config('app.key')), 0, 32);
+    }
+
+    public function confirmUrl(): ?string
+    {
+        return $this->confirm_token ? tenant()->url('oc/'.$this->confirm_token.'/'.$this->confirmSignature()) : null;
     }
 
     public function canMoveTo(string $status): bool

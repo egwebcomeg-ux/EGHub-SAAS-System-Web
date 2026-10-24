@@ -5,13 +5,15 @@ namespace App\Services\WhatsApp;
 use App\Billing\Credits;
 use App\Jobs\SendWhatsAppMessage;
 use App\Models\WhatsAppMessage;
+use App\Services\Orders\OrderConfirmation;
 use App\Services\Settings;
 use Illuminate\Support\Facades\Log;
 
 /**
  * Sends WhatsApp messages for the current restaurant. Every message is a whatsapp_messages row first (queued),
  * then goes out from the queue: one credit is taken from the restaurant's wallet; with no credit left the message
- * is not sent (failed, error = no_credits); a provider failure gives the credit back.
+ * is not sent (failed, error = no_credits); a provider failure gives the credit back. A free-form reply inside the
+ * 24-hour window the guest opened (Templates::SESSION) is recorded the same way but costs no credit.
  */
 final class WhatsApp
 {
@@ -22,10 +24,12 @@ final class WhatsApp
      * Returns null when the phone is not a valid Egyptian mobile. Must run inside a tenant context.
      *
      * @param  array<string,mixed>  $values  template values by name (Templates::PARAMS)
+     * @param  array<string,string>  $payloads  quick-reply button payloads by action (Templates::BUTTONS)
+     * @param  ?string  $link  what a provider without buttons sends instead of them (Templates::linkLine)
      */
-    public function queue(string $phone, string $templateKey, array $values, ?int $customerId = null): ?WhatsAppMessage
+    public function queue(string $phone, string $templateKey, array $values, ?int $customerId = null, array $payloads = [], ?string $link = null): ?WhatsAppMessage
     {
-        $message = $this->record($phone, $templateKey, $values, $customerId);
+        $message = $this->record($phone, $templateKey, $values, $customerId, null, null, $payloads, $link);
         if ($message) {
             SendWhatsAppMessage::dispatch($message->id)->afterCommit();
         }
@@ -34,11 +38,21 @@ final class WhatsApp
     }
 
     /**
+     * Free-form text answering a guest who just wrote or tapped a button (their 24-hour window is open): no template
+     * and no credit. Must run inside a tenant context.
+     */
+    public function reply(string $phone, string $text, ?int $customerId = null): ?WhatsAppMessage
+    {
+        return $this->queue($phone, 'session_reply', ['text' => $text], $customerId);
+    }
+
+    /**
      * Creates the queued row without sending it (campaigns and automations send their batch themselves).
      *
      * @param  array<string,mixed>  $values
+     * @param  array<string,string>  $payloads
      */
-    public function record(string $phone, string $templateKey, array $values, ?int $customerId = null, ?int $campaignId = null, ?int $automationId = null): ?WhatsAppMessage
+    public function record(string $phone, string $templateKey, array $values, ?int $customerId = null, ?int $campaignId = null, ?int $automationId = null, array $payloads = [], ?string $link = null): ?WhatsAppMessage
     {
         $local = normalize_phone($phone);
         if (! $local) {
@@ -51,6 +65,7 @@ final class WhatsApp
             'customer_id' => $customerId, 'campaign_id' => $campaignId, 'automation_id' => $automationId, 'to' => whatsapp_number($local),
             'template' => $templateKey, 'locale' => $locale, 'params' => $params,
             'body' => Templates::render($templateKey, $params, $locale), 'status' => 'queued',
+            'buttons' => Templates::buttons($templateKey, $payloads, $locale) ?: null, 'link' => $link,
         ]);
     }
 
@@ -66,25 +81,52 @@ final class WhatsApp
             return $message->refresh();
         }
         $message->status = 'sending';
+        $session = in_array($message->template, Templates::SESSION, true);
         $reference = 'wa:'.$message->id;
-        if (! $this->credits->spend($message->tenant_id, $reference)) {
+        if (! $session && ! $this->credits->spend($message->tenant_id, $reference)) {
             $message->update(['status' => 'failed', 'error' => WhatsAppMessage::NO_CREDITS]);
+            OrderConfirmation::messageFailed($message);
 
             return $message;
         }
         try {
-            $id = $this->gateway->send($message->to, $message->template, $message->params ?? [], $message->locale, (string) $message->body);
-            $message->update(['status' => 'sent', 'provider_id' => mb_substr($id, 0, 120), 'cost_credits' => 1, 'sent_at' => now(), 'error' => null]);
+            $id = $this->send($message);
+            $message->update(['status' => 'sent', 'provider_id' => mb_substr($id, 0, 120), 'cost_credits' => $session ? 0 : 1, 'sent_at' => now(), 'error' => null]);
         } catch (\Throwable $e) {
-            $this->credits->add($message->tenant_id, 1, 'refund', $reference);
+            if (! $session) {
+                $this->credits->add($message->tenant_id, 1, 'refund', $reference);
+            }
             $error = $e instanceof WhatsAppException ? $e->getMessage() : 'provider error';
             if (! $e instanceof WhatsAppException) {
                 Log::error('whatsapp send failed', ['message' => $message->id, 'error' => $e->getMessage()]);
             }
             $message->update(['status' => 'failed', 'error' => mb_substr($error, 0, 255)]);
+            OrderConfirmation::messageFailed($message);
         }
 
         return $message;
+    }
+
+    /**
+     * Hands the message to the provider: buttons when the provider shows them, else the text with the link that
+     * replaces them (and the row's body is what the guest really got); free text for a session reply.
+     */
+    private function send(WhatsAppMessage $message): string
+    {
+        $interactive = $this->gateway instanceof InteractiveGateway;
+        if (in_array($message->template, Templates::SESSION, true) && $interactive) {
+            return $this->gateway->reply($message->to, (string) $message->body);
+        }
+        $buttons = (array) ($message->buttons ?? []);
+        if ($buttons !== [] && $interactive) {
+            return $this->gateway->sendWithButtons($message->to, $message->template, $message->params ?? [], $buttons, $message->locale, (string) $message->body);
+        }
+        if ($message->link) {
+            $message->body = trim((string) $message->body)."\n".Templates::linkLine($message->link, $message->locale);
+            $message->save();
+        }
+
+        return $this->gateway->send($message->to, $message->template, $message->params ?? [], $message->locale, (string) $message->body);
     }
 
     /** Guests have no language of their own yet: messages follow the restaurant's default menu language. */

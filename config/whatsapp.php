@@ -48,6 +48,9 @@ return [
         'campaign' => env('WHATSAPP_TPL_CAMPAIGN', 'egmenu_campaign'),
         'automation' => env('WHATSAPP_TPL_AUTOMATION', 'egmenu_campaign'),       // free text {{1}}, same template as campaigns
         'order_staff' => env('WHATSAPP_TPL_ORDER_STAFF', 'egmenu_campaign'),     // new-order alert to the restaurant, free text {{1}}
+        // "confirm your cash-on-delivery order" (category Utility): 6 body parameters and 3 quick-reply buttons, the
+        // exact text to submit is above Templates::PARAMS['order_confirm']
+        'order_confirm' => env('WHATSAPP_TPL_ORDER_CONFIRM', 'egmenu_order_confirm'),
     ],
 
     // Meta template language per restaurant language

@@ -95,6 +95,12 @@ if (board) {
     setInterval(alarm, ALARM_EVERY_MS);
 
     const PART_ICON = { food: '🍽', drinks: '☕' };
+    // the guest's WhatsApp answer on a cash-on-delivery order (a badge only: the kitchen never waits for it)
+    const CONFIRM_TONE = {
+        amber: 'bg-amber-100 text-amber-900', emerald: 'bg-emerald-100 text-emerald-800', sky: 'bg-sky-100 text-sky-900',
+        red: 'bg-red-600 text-white', slate: 'bg-slate-200 text-slate-800',
+    };
+    const confirmBadge = (c) => c ? `<span class="badge mt-1 inline-flex items-center gap-1 ${CONFIRM_TONE[c.tone] || CONFIRM_TONE.slate}" data-confirm-badge="${esc(c.state)}">💬 ${esc(c.label)}</span>` : '';
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
     function minutesAgo(iso) {
@@ -141,6 +147,8 @@ if (board) {
                 ${o.customer ? `<p class="mt-1 text-xs text-navy-500">${esc(o.customer)}</p>` : ''}
                 ${o.address ? `<p class="mt-1 text-xs font-semibold text-navy-700">📍 ${esc(o.address)}</p>` : ''}
                 ${o.scheduled ? `<p class="mt-1 rounded-lg bg-amber-50 p-1.5 text-xs font-bold text-amber-800">🕒 ${esc(o.scheduled)}</p>` : ''}
+                ${o.confirm ? `<div class="mt-1 flex flex-wrap items-center gap-2">${confirmBadge(o.confirm)}${canManage && o.confirm.can_phone ? `
+                    <button type="button" class="mt-1 text-xs font-bold text-brand-700 underline" data-confirm-phone="${o.id}">📞 ${esc(t.confirmPhone)}</button>` : ''}</div>` : ''}
                 ${driverInfo}${driverPick}
                 ${o.pager && open && (o.pager.seen || o.status === 'ready') ? pagerStatus(o.pager, t.pager) + (o.status === 'ready' ? pagerButtons(o.pager, t.pager, o.id) : '') : ''}
                 <div class="mt-2 text-sm font-bold">${esc(o.total)} ${esc(t.currency)}</div>
@@ -159,6 +167,7 @@ if (board) {
         delivery: (o) => o.type === 'delivery',
         food: (o) => (o.kinds || []).includes('food'),
         drinks: (o) => (o.kinds || []).includes('drinks'),
+        confirm: (o) => Boolean(o.confirm?.open),
     };
     const chipsBox = document.querySelector('[data-chips]');
     let filter = 'all';
@@ -379,6 +388,19 @@ if (board) {
             alert(body.message || res.status);
         }
         lastMaxId = lastMaxId ?? 0;
+        await refresh();
+    });
+
+    // «اتأكد بالتليفون»: staff called the guest of a cash-on-delivery order and it is fine
+    board.parentElement.addEventListener('click', async (e) => {
+        const btn = e.target.closest('[data-confirm-phone]');
+        if (!btn || !confirm(t.confirmPhoneSure)) return;
+        btn.disabled = true;
+        const res = await fetch(board.dataset.confirmUrl.replace('__ID__', btn.dataset.confirmPhone), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
+        });
+        if (!res.ok) alert((await res.json().catch(() => ({}))).message || res.status);
         await refresh();
     });
 

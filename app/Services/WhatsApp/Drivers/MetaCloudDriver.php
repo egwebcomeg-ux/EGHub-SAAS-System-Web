@@ -2,41 +2,67 @@
 
 namespace App\Services\WhatsApp\Drivers;
 
+use App\Services\WhatsApp\InteractiveGateway;
 use App\Services\WhatsApp\WhatsAppException;
-use App\Services\WhatsApp\WhatsAppGateway;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
 /**
  * Official WhatsApp Business Cloud API (Meta). Business-initiated messages must use a pre-approved template:
- * names per message key in config/whatsapp.php, body parameters in Templates::PARAMS order.
- * The access token is only ever sent as the Authorization header, never logged nor put in an error.
+ * names per message key in config/whatsapp.php, body parameters in Templates::PARAMS order, quick-reply buttons
+ * (Templates::BUTTONS) as button components carrying their payloads. Free text only answers a guest inside the
+ * 24-hour window they opened. The access token is only ever sent as the Authorization header, never logged nor put
+ * in an error.
  */
-final class MetaCloudDriver implements WhatsAppGateway
+final class MetaCloudDriver implements InteractiveGateway
 {
     public function send(string $to, string $templateKey, array $params, string $locale = 'ar', string $text = ''): string
+    {
+        return $this->sendWithButtons($to, $templateKey, $params, [], $locale, $text);
+    }
+
+    public function sendWithButtons(string $to, string $templateKey, array $params, array $buttons, string $locale = 'ar', string $text = ''): string
+    {
+        $components = $params === [] ? [] : [[
+            'type' => 'body',
+            'parameters' => array_map(fn ($v) => ['type' => 'text', 'text' => (string) $v], array_values($params)),
+        ]];
+        foreach (array_values($buttons) as $index => $button) {
+            $components[] = [
+                'type' => 'button', 'sub_type' => 'quick_reply', 'index' => (string) $index,
+                'parameters' => [['type' => 'payload', 'payload' => (string) $button['payload']]],
+            ];
+        }
+
+        return $this->post([
+            'messaging_product' => 'whatsapp',
+            'to' => $to,
+            'type' => 'template',
+            'template' => [
+                'name' => (string) (config("whatsapp.templates.$templateKey") ?? $templateKey),
+                'language' => ['code' => config("whatsapp.languages.$locale", $locale)],
+                'components' => $components,
+            ],
+        ]);
+    }
+
+    public function reply(string $to, string $text): string
+    {
+        return $this->post([
+            'messaging_product' => 'whatsapp', 'recipient_type' => 'individual', 'to' => $to,
+            'type' => 'text', 'text' => ['preview_url' => false, 'body' => mb_substr($text, 0, 4096)],
+        ]);
+    }
+
+    /** @param  array<string,mixed>  $payload */
+    private function post(array $payload): string
     {
         $phoneId = (string) config('whatsapp.meta.phone_id');
         $token = (string) config('whatsapp.meta.token');
         if ($phoneId === '' || $token === '') {
             throw new WhatsAppException('WhatsApp Cloud API is not configured (WHATSAPP_PHONE_ID / WHATSAPP_TOKEN).');
         }
-        $template = (string) (config("whatsapp.templates.$templateKey") ?? $templateKey);
         $url = rtrim((string) config('whatsapp.meta.base_url'), '/').'/'.config('whatsapp.meta.version').'/'.$phoneId.'/messages';
-
-        $payload = [
-            'messaging_product' => 'whatsapp',
-            'to' => $to,
-            'type' => 'template',
-            'template' => [
-                'name' => $template,
-                'language' => ['code' => config("whatsapp.languages.$locale", $locale)],
-                'components' => $params === [] ? [] : [[
-                    'type' => 'body',
-                    'parameters' => array_map(fn ($v) => ['type' => 'text', 'text' => (string) $v], array_values($params)),
-                ]],
-            ],
-        ];
 
         try {
             $response = Http::withToken($token)->acceptJson()->timeout((int) config('whatsapp.timeout', 15))->post($url, $payload);

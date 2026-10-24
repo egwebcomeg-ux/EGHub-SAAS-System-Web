@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DriverLocation;
 use App\Models\Order;
 use App\Services\Orders\DeliveryService;
+use App\Services\Orders\OrderConfirmation;
 use App\Services\Orders\OrderException;
 use App\Services\Settings;
 use Illuminate\Http\JsonResponse;
@@ -120,6 +121,7 @@ class DriverController extends Controller
             'picked_up_at' => $o->picked_up_at ? local_time($o->picked_up_at, 'h:i A') : null,
             'picked_up_at_iso' => $o->picked_up_at?->toIso8601String(),
             'pinned' => isset($address['lat'], $address['lng']),
+            'confirm' => OrderConfirmation::view($o),
         ];
     }
 }

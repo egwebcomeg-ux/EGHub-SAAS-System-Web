@@ -10,6 +10,7 @@ use App\Services\Audit;
 use App\Services\Entitlements;
 use App\Services\Orders\BusyMode;
 use App\Services\Orders\DeliveryService;
+use App\Services\Orders\OrderConfirmation;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use App\Services\Orders\Pager;
@@ -31,7 +32,7 @@ class OrdersController extends Controller
 
     public function board(): View
     {
-        return view('dashboard.orders.board', ['poll' => self::POLL_SECONDS, 'busy' => BusyMode::state()]);
+        return view('dashboard.orders.board', ['poll' => self::POLL_SECONDS, 'busy' => BusyMode::state(), 'confirmations' => OrderConfirmation::enabled()]);
     }
 
     public function feed(Request $request): JsonResponse
@@ -96,8 +97,21 @@ class OrdersController extends Controller
         foreach (array_keys(PrepKind::KINDS) as $kind) {
             $counts[$kind] = $open->filter(fn (Order $o) => in_array($kind, $o->kinds(), true))->count();
         }
+        // cash-on-delivery orders whose guest has not confirmed (yet), wants a change or asks to cancel
+        $counts['confirm'] = $open->filter(fn (Order $o) => in_array(OrderConfirmation::state($o), OrderConfirmation::OPEN_STATES, true))->count();
 
         return $counts;
+    }
+
+    /** «اتأكد بالتليفون»: staff called the guest and the cash-on-delivery order is fine. */
+    public function confirmByPhone(Request $request, Order $order, OrderConfirmation $confirmation): JsonResponse
+    {
+        abort_unless($this->visible($request, $order), 404);
+        if (! $confirmation->confirmByPhone($order, $request->user())) {
+            return response()->json(['message' => __('This order has no confirmation to mark.')], 422);
+        }
+
+        return response()->json(['ok' => true, 'order' => $this->present($order->fresh()->load(['items', 'table', 'branch', 'driver']))]);
     }
 
     /** "Food ready" / "drinks ready" on the board: marks that part; the order turns ready when every part is. */
@@ -245,6 +259,7 @@ class OrdersController extends Controller
             'delivery_status' => $o->delivery_status, 'delivery_label' => $o->deliveryStatusLabel(),
             'delivery_reason' => $o->delivery_status === 'failed' ? $o->delivery_fail_reason : null,
             'pager' => PagerController::orderView($o, request()),
+            'confirm' => OrderConfirmation::view($o),
             'kinds' => $o->kinds(),
             'parts' => collect($o->parts())->map(fn (bool $ready, string $kind) => ['kind' => $kind, 'label' => PrepKind::label($kind), 'ready' => $ready])->values(),
             'items' => $o->items->map(fn ($i) => [

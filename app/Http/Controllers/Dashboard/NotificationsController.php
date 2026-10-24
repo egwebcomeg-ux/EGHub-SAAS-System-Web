@@ -9,6 +9,7 @@ use App\Models\Reservation;
 use App\Models\TableCall;
 use App\Models\User;
 use App\Services\Entitlements;
+use App\Services\Orders\OrderConfirmation;
 use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -69,6 +70,17 @@ class NotificationsController extends Controller
                     $items[] = ['key' => "ready-{$o->id}", 'kind' => 'ready', 'icon' => '✅', 'title' => __('Order #:n is ready', ['n' => $o->number]),
                         'detail' => $where, 'at' => $o->ready_at, 'url' => $board];
                 }
+            }
+
+            // the guest answered the WhatsApp confirmation of a cash-on-delivery order (OrderConfirmation)
+            $answers = Order::query()->when($branch, fn ($q) => $q->where('branch_id', $branch))
+                ->where('confirm_replied_at', '>=', $since)->where('confirm_via', '!=', 'phone')
+                ->latest('confirm_replied_at')->limit(self::LIMIT)->get();
+            foreach ($answers as $o) {
+                $state = OrderConfirmation::state($o);
+                $items[] = ['key' => "confirm-{$o->id}", 'kind' => 'confirm', 'icon' => $state === 'confirmed' ? '👍' : ($state === 'cancel_requested' ? '✋' : '✏️'),
+                    'title' => __('Order #:n', ['n' => $o->number]).' · '.OrderConfirmation::label((string) $state),
+                    'detail' => trim($o->customer_name.' '.$o->customer_phone), 'at' => $o->confirm_replied_at, 'url' => $board];
             }
 
             $tables = $user->can('orders.manage') ? route('dash.orders.tables') : $board;

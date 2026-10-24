@@ -19,7 +19,38 @@ final class Templates
         'automation' => ['text'],
         'order_staff' => ['text'],     // new-order alert to the branch's / restaurant's own WhatsApp number
         'driver_assigned' => ['text'], // "an order is with you" to the delivery driver's own number
+        // a cash-on-delivery delivery order asks the guest to confirm it (App\Services\Orders\OrderConfirmation), with the
+        // three quick-reply buttons of BUTTONS. Meta template (category Utility), body with {{1}}..{{6}} in this order:
+        // ar: أهلاً {{1}} 🙏 طلبك رقم {{2}} من {{3}} وصلنا وبنجهّزه، ومحتاجين تأكيدك قبل ما نبعته:
+        //     🛍 {{4}}
+        //     💰 المبلغ عند الاستلام: {{5}}
+        //     📍 {{6}}
+        //     لو كله تمام دوس «تأكيد الطلب»، ولو حابب تعدّل دوس «تعديل الطلب»، ولو عايز تلغي دوس «إلغاء الطلب».
+        // en: Hi {{1}} 🙏 {{3}} got your order #{{2}} and is preparing it. Please confirm it before it leaves:
+        //     🛍 {{4}}
+        //     💰 Cash on delivery: {{5}}
+        //     📍 {{6}}
+        //     All good? Tap “Confirm order”. Want a change? Tap “Edit order”, or “Cancel order”.
+        // buttons (Quick reply, in this order): تأكيد الطلب · تعديل الطلب · إلغاء الطلب / Confirm order · Edit order · Cancel order
+        'order_confirm' => ['name', 'number', 'restaurant', 'items', 'total', 'address'],
+        // a free-form reply inside the 24-hour window the guest opened by writing or tapping (no template, no credit)
+        'session_reply' => ['text'],
     ];
+
+    /**
+     * Quick-reply buttons per template, in the approved template's order: action => [ar, en]. Their payloads are
+     * set per message (App\Services\Orders\OrderConfirmation::payload).
+     */
+    public const BUTTONS = [
+        'order_confirm' => [
+            'confirm' => ['تأكيد الطلب', 'Confirm order'],
+            'edit' => ['تعديل الطلب', 'Edit order'],
+            'cancel' => ['إلغاء الطلب', 'Cancel order'],
+        ],
+    ];
+
+    /** Free-form texts answering the guest inside their 24-hour window: never a template, never a credit. */
+    public const SESSION = ['session_reply'];
 
     private const TEXT = [
         'order_received' => [
@@ -46,7 +77,41 @@ final class Templates
         'automation' => ['ar' => '{text}', 'en' => '{text}'],
         'order_staff' => ['ar' => '{text}', 'en' => '{text}'],
         'driver_assigned' => ['ar' => '{text}', 'en' => '{text}'],
+        'order_confirm' => [
+            'ar' => "أهلاً {name} 🙏 طلبك رقم {number} من {restaurant} وصلنا وبنجهّزه، ومحتاجين تأكيدك قبل ما نبعته:\n🛍 {items}\n💰 المبلغ عند الاستلام: {total}\n📍 {address}\nلو كله تمام دوس «تأكيد الطلب»، ولو حابب تعدّل دوس «تعديل الطلب»، ولو عايز تلغي دوس «إلغاء الطلب».",
+            'en' => "Hi {name} 🙏 {restaurant} got your order #{number} and is preparing it. Please confirm it before it leaves:\n🛍 {items}\n💰 Cash on delivery: {total}\n📍 {address}\nAll good? Tap “Confirm order”. Want a change? Tap “Edit order”, or “Cancel order”.",
+        ],
+        'session_reply' => ['ar' => '{text}', 'en' => '{text}'],
     ];
+
+    /** The line that replaces the buttons for a provider that cannot show them: the confirmation page link. */
+    private const LINK_LINE = [
+        'ar' => 'أكّد أو عدّل أو الغِ من هنا: {link}',
+        'en' => 'Confirm, change or cancel here: {link}',
+    ];
+
+    /**
+     * The template's buttons in the guest's language with their payloads, in the approved template's order.
+     *
+     * @param  array<string,string>  $payloads  action => payload
+     * @return list<array{id:string, title:string, payload:string}>
+     */
+    public static function buttons(string $key, array $payloads, string $locale = 'ar'): array
+    {
+        $out = [];
+        foreach (self::BUTTONS[$key] ?? [] as $action => $titles) {
+            if (isset($payloads[$action])) {
+                $out[] = ['id' => $action, 'title' => $titles[$locale === 'en' ? 1 : 0], 'payload' => $payloads[$action]];
+            }
+        }
+
+        return $out;
+    }
+
+    public static function linkLine(string $link, string $locale = 'ar'): string
+    {
+        return strtr(self::LINK_LINE[$locale === 'en' ? 'en' : 'ar'], ['{link}' => $link]);
+    }
 
     /**
      * Keeps only the template's parameters, in its order (missing ones become "").

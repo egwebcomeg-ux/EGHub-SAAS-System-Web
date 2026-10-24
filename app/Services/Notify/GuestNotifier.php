@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\User;
 use App\Services\Entitlements;
 use App\Services\Orders\DeliveryService;
+use App\Services\Orders\OrderConfirmation;
 use App\Services\Settings;
 use App\Services\WhatsApp\WhatsApp;
 use Illuminate\Support\Carbon;
@@ -27,6 +28,7 @@ final class GuestNotifier
         'loyalty_reward' => 'wa_loyalty_reward',
         'order_staff' => 'wa_order_to_staff',
         'driver_assigned' => 'wa_driver_assigned',
+        'order_confirm' => 'wa_order_confirm',   // cash-on-delivery delivery orders ask the guest to confirm (OrderConfirmation)
     ];
 
     /** Orders the guest placed without staff in front of them get a "we received it" message. */
@@ -53,7 +55,9 @@ final class GuestNotifier
 
     public function orderPlaced(Order $order): void
     {
-        if (in_array($order->source, self::RECEIVED_SOURCES, true)) {
+        // the confirmation already tells the guest the order arrived and is being prepared: no second message
+        $asked = app(OrderConfirmation::class)->request($order);
+        if (! $asked && in_array($order->source, self::RECEIVED_SOURCES, true)) {
             $this->order($order, 'order_received');
         }
         if (in_array($order->source, self::STAFF_ALERT_SOURCES, true)) {

@@ -13,6 +13,7 @@ use App\Services\Import\Ai\AiProviders;
 use App\Services\Marketing\TrackingPixels;
 use App\Services\Notify\GuestNotifier;
 use App\Services\Orders\AutoCancel;
+use App\Services\Orders\OrderConfirmation;
 use App\Services\Settings;
 use App\Support\BusinessType;
 use App\Support\Cities;
@@ -98,6 +99,7 @@ class SettingsController extends Controller
             'ai_model' => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._:\/-]+$/'],
             'ai_key' => 'nullable|string|max:300',
             'wa_sender_name' => 'nullable|string|max:40',
+            'wa_order_confirm_minutes' => 'nullable|integer|min:1|max:'.OrderConfirmation::MAX_MINUTES,
             'logo' => 'nullable|file|max:5120',
             'cover' => 'nullable|file|max:5120',
             'menu_locales' => 'nullable|array',
@@ -211,8 +213,11 @@ class SettingsController extends Controller
             foreach (GuestNotifier::TOGGLES as $setting) {
                 $values[$setting] = $request->boolean($setting) ? '1' : '0';
             }
+            if (($values['wa_order_confirm_minutes'] ?? '') === '') {
+                unset($values['wa_order_confirm_minutes']);
+            }
         } else {
-            unset($values['wa_sender_name']);
+            unset($values['wa_sender_name'], $values['wa_order_confirm_minutes']);
         }
         if (($values['online_prep_minutes'] ?? '') === '') {
             unset($values['online_prep_minutes']);

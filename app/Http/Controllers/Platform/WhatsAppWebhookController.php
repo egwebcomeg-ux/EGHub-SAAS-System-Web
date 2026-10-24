@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Platform;
 
 use App\Http\Controllers\Controller;
 use App\Models\WhatsAppMessage;
+use App\Services\Orders\OrderConfirmation;
 use App\Services\WhatsApp\PhoneVerification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,9 +15,11 @@ use Illuminate\Support\Facades\Log;
 /**
  * Inbound WhatsApp on the main domain (/webhooks/whatsapp). Two callers:
  *  - Meta Cloud API: GET for the one-time subscription handshake, POST with every payload signed by the app
- *    secret (X-Hub-Signature-256). Texts feed the phone confirmation; message statuses update whatsapp_messages.
- *  - another provider (the webhook driver's counterpart): POST {from, text} with the shared X-EgMenu-Secret.
- * Meta always gets 200 for a valid payload, whatever it contains; nothing is ever answered on WhatsApp.
+ *    secret (X-Hub-Signature-256). Texts feed the phone confirmation; button taps answer an order confirmation
+ *    (App\Services\Orders\OrderConfirmation); message statuses update whatsapp_messages.
+ *  - another provider (the webhook driver's counterpart): POST {from, text} or {from, payload} with the shared
+ *    X-EgMenu-Secret.
+ * Meta always gets 200 for a valid payload, whatever it contains; only an order confirmation tap gets a reply.
  */
 class WhatsAppWebhookController extends Controller
 {
@@ -34,14 +37,16 @@ class WhatsAppWebhookController extends Controller
             ->header('Content-Type', 'text/plain');
     }
 
-    public function receive(Request $request, PhoneVerification $verification): Response|JsonResponse
+    public function receive(Request $request, PhoneVerification $verification, OrderConfirmation $confirmation): Response|JsonResponse
     {
         if ($this->fromProvider($request)) {
             $from = (string) $request->input('from', '');
             $text = (string) $request->input('text', '');
+            $payload = (string) $request->input('payload', '');
             $user = $from !== '' && $text !== '' ? $verification->confirm($from, $text) : null;
+            $order = $from !== '' && $payload !== '' ? $confirmation->handleTap($from, $payload) : null;
 
-            return response()->json(['ok' => true, 'verified' => $user !== null]);
+            return response()->json(['ok' => true, 'verified' => $user !== null, 'answered' => $order !== null]);
         }
 
         $this->assertMetaSignature($request);
@@ -51,6 +56,13 @@ class WhatsAppWebhookController extends Controller
                 foreach ((array) ($value['messages'] ?? []) as $message) {
                     if (($message['type'] ?? '') === 'text' && isset($message['from'], $message['text']['body'])) {
                         $verification->confirm((string) $message['from'], (string) $message['text']['body']);
+                    }
+                    // a tap on a template's quick-reply button (type button) or on an interactive reply button
+                    $payload = $message['button']['payload'] ?? $message['interactive']['button_reply']['id'] ?? null;
+                    // (Meta resends a payload it thinks was not received: the same wamid is answered once)
+                    if (isset($message['from']) && is_string($payload) && $payload !== ''
+                        && Cache::add('whatsapp:tap:'.($message['id'] ?? sha1($payload.$message['from'])), 1, now()->addDay())) {
+                        $confirmation->handleTap((string) $message['from'], $payload);
                     }
                 }
                 foreach ((array) ($value['statuses'] ?? []) as $status) {
@@ -101,6 +113,7 @@ class WhatsAppWebhookController extends Controller
         if ($state === 'failed') {
             $error = (string) ($status['errors'][0]['title'] ?? $status['errors'][0]['message'] ?? 'provider failed');
             $message->update(['status' => 'failed', 'error' => mb_substr($error, 0, 255)]);
+            OrderConfirmation::messageFailed($message);
 
             return;
         }

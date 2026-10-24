@@ -8,6 +8,7 @@ use App\Models\DeliveryZone;
 use App\Models\LoyaltyCard;
 use App\Models\Order;
 use App\Services\Loyalty\Membership;
+use App\Services\Orders\OrderConfirmation;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use App\Services\Orders\ShiftService;
@@ -79,7 +80,8 @@ class CallCenterController extends Controller
                 ])->values(),
             'orders' => $orders->map(fn (Order $o) => [
                 'number' => $o->number, 'date' => local_time($o->created_at, 'd/m h:i A'), 'total' => money($o->total),
-                'status' => $o->statusLabel(), 'type' => Order::TYPES[$o->type][app()->getLocale() === 'en' ? 1 : 0] ?? $o->type,
+                'status' => $o->statusLabel().(($state = OrderConfirmation::state($o)) ? ' · '.OrderConfirmation::label($state) : ''),
+                'type' => Order::TYPES[$o->type][app()->getLocale() === 'en' ? 1 : 0] ?? $o->type,
             ]),
         ]);
     }

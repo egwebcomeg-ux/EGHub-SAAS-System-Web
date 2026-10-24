@@ -23,6 +23,11 @@ if (dataEl) {
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     const minutesSince = (iso) => (iso ? Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000)) : null);
     const timeNow = () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    // the guest's WhatsApp answer on a cash-on-delivery order (confirmed, wants a change, asks to cancel, no reply)
+    const CONFIRM_TONE = {
+        amber: 'bg-amber-100 text-amber-900', emerald: 'bg-emerald-100 text-emerald-800', sky: 'bg-sky-100 text-sky-900',
+        red: 'bg-red-600 text-white', slate: 'bg-slate-200 text-slate-800',
+    };
     let orders = D.orders || [];
     let sharing = false;
     let watchId = null;
@@ -76,6 +81,7 @@ if (dataEl) {
                 </header>
                 <div>
                     <div class="text-lg font-bold">${esc(o.customer || '—')}</div>
+                    ${o.confirm ? `<span class="badge mt-1 ${CONFIRM_TONE[o.confirm.tone] || CONFIRM_TONE.slate}" data-confirm-badge="${esc(o.confirm.state)}">💬 ${esc(o.confirm.label)}</span>` : ''}
                     <div class="mt-1 text-base">📍 ${esc([o.zone, o.address].filter(Boolean).join(' — '))}</div>
                     ${o.address_label ? `<div class="text-sm text-navy-500">${esc(o.address_label)}</div>` : ''}
                     ${o.notes ? `<p class="mt-2 rounded-xl bg-brand-50 p-2 text-sm font-semibold text-brand-700">${esc(t.notes)}: ${esc(o.notes)}</p>` : ''}

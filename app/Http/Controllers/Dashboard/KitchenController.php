@@ -7,6 +7,7 @@ use App\Models\KitchenStation;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Services\Entitlements;
+use App\Services\Orders\OrderConfirmation;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use App\Support\PrepKind;
@@ -58,6 +59,7 @@ class KitchenController extends Controller
                 'created' => $o->created_at->toIso8601String(), 'scheduled' => $o->scheduled_for?->toIso8601String(),
                 // the guest pager: whether the guest has the page open, "Call" and the guest's pager ticket to print
                 'pager' => PagerController::orderView($o, $request),
+                'confirm' => OrderConfirmation::view($o),
                 'items' => $lines->map(fn (OrderItem $i) => [
                     'id' => $i->id, 'name' => $i->name, 'qty' => $i->quantity, 'notes' => $i->notes, 'done' => $i->ready_at !== null,
                     'kind' => $i->prep_kind ?: PrepKind::FOOD,

@@ -8,6 +8,11 @@ if (kds) {
     const T = JSON.parse(kds.dataset.i18n);
     const csrf = document.querySelector('meta[name="csrf-token"]').content;
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    // the guest's WhatsApp answer on a cash-on-delivery order: a thin strip, the kitchen never waits for it
+    const CONFIRM_TONE = {
+        amber: 'bg-amber-100 text-amber-900', emerald: 'bg-emerald-100 text-emerald-800', sky: 'bg-sky-100 text-sky-900',
+        red: 'bg-red-600 text-white', slate: 'bg-slate-200 text-slate-800',
+    };
     let lastMax = null;
     let tickets = [];
     let soundOn = false;
@@ -93,6 +98,7 @@ if (kds) {
                     <span class="text-xl font-extrabold tabular-nums">${m}′</span>
                 </header>
                 ${t.scheduled ? `<div class="bg-violet-100 px-4 py-1 text-sm font-bold text-violet-800">${esc(T.scheduled.replace('__T__', new Date(t.scheduled).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })))}</div>` : ''}
+                ${t.confirm ? `<div class="px-4 py-0.5 text-xs font-bold ${CONFIRM_TONE[t.confirm.tone] || CONFIRM_TONE.slate}" data-confirm-badge="${esc(t.confirm.state)}">💬 ${esc(t.confirm.label)}</div>` : ''}
                 <ul class="flex-1 space-y-2 p-4 text-lg">${t.items.map((i) => `
                     <li class="${i.done ? 'line-through opacity-40' : ''}">${split ? `<span class="me-1">${ICON[i.kind] || ''}</span>` : ''}<b>${i.qty}×</b> ${esc(i.name)}
                         ${i.options ? `<div class="text-sm text-navy-500">${esc(i.options)}</div>` : ''}

@@ -14,7 +14,7 @@ class WhatsAppMessage extends TenantModel
 
     protected function casts(): array
     {
-        return ['params' => 'array', 'sent_at' => 'datetime', 'cost_credits' => 'integer'];
+        return ['params' => 'array', 'buttons' => 'array', 'sent_at' => 'datetime', 'cost_credits' => 'integer'];
     }
 
     public function customer(): BelongsTo

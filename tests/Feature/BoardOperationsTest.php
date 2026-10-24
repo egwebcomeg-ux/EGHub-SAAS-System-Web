@@ -84,7 +84,7 @@ class BoardOperationsTest extends TenantTestCase
         $feed = $this->getJson($this->dashUrl('/orders/feed'))->assertOk();
 
         $this->assertSame([
-            'all' => 3, 'kitchen' => 2, 'ready' => 1, 'dine_in' => 1, 'takeaway' => 2, 'delivery' => 0, 'food' => 2, 'drinks' => 2,
+            'all' => 3, 'kitchen' => 2, 'ready' => 1, 'dine_in' => 1, 'takeaway' => 2, 'delivery' => 0, 'food' => 2, 'drinks' => 2, 'confirm' => 0,
         ], $feed->json('counts'));
         $mixed = collect($feed->json('orders'))->firstWhere('type', 'dine_in');
         $this->assertSame(['food', 'drinks'], $mixed['kinds']);
