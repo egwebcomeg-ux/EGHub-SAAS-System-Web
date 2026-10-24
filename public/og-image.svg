@@ -16,7 +16,7 @@
 
   <!-- headline (Arabic, right aligned) -->
   <g font-family="Cairo, sans-serif" direction="rtl" text-anchor="start">
-    <text x="1120" y="290" font-weight="800" font-size="62" fill="#ffffff">نظام مكانك كله</text>
+    <text x="1120" y="290" font-weight="800" font-size="62" fill="#ffffff">نظام واحد لمحلّك كله</text>
     <text x="1120" y="374" font-weight="800" font-size="62" fill="#FF854D">منيو QR وطلبات وكاشير</text>
     <text x="1120" y="440" font-weight="600" font-size="30" fill="#C5CFE0">للمطاعم والكافيهات والحلواني والمخابز · من غير عمولة</text>
   </g>
