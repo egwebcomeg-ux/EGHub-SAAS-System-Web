@@ -78,7 +78,8 @@
                     @endforeach
                 </div>
                 @if ($installmentsPromise)
-                    <p class="-mt-3 mb-4 text-xs font-semibold text-emerald-800" data-installments-promise>{{ $installmentsPromise }}</p>
+                    <p class="-mt-3 mb-3 text-xs font-semibold text-emerald-800" data-installments-promise>{{ $installmentsPromise }}</p>
+                    <div class="mb-4">@include('partials.installments-banner', ['banner' => app(\App\Billing\OnlinePayments::class)->installmentsBanner($p)])</div>
                 @endif
             @else
                 <input type="hidden" name="months" value="1">

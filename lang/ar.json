@@ -5203,5 +5203,9 @@
     "Step :n": "خطوة :n",
     "one system for your whole place": "نظام مكانك كله",
     "one system for your whole place: QR menu, orders, cashier and delivery for restaurants and cafes": "نظام مكانك كله: منيو QR، طلبات، كاشير ودليفري للمطاعم والكافيهات",
-    "For restaurants, cafés, pastry shops and bakeries — from the menu to the till to delivery": "للمطاعم والكافيهات والحلواني والمخابز — من المنيو للكاشير للدليفري"
+    "For restaurants, cafés, pastry shops and bakeries — from the menu to the till to delivery": "للمطاعم والكافيهات والحلواني والمخابز — من المنيو للكاشير للدليفري",
+    "Subscribe yearly and pay in installments": "اشترك سنوي وقسّطه",
+    "The Complete plan is :total EGP a year: split it into monthly installments with :providers.": "الباقة الكاملة بـ :total ج.م في السنة، وتقدر تقسّطها على أقساط شهرية مع :providers.",
+    "Split the yearly plan into monthly installments with :providers.": "قسّط الاشتراك السنوي على أقساط شهرية مع :providers.",
+    "Installment periods and fees follow each provider’s own terms.": "مدة التقسيط ومصاريفه حسب شروط كل شركة تقسيط."
 }

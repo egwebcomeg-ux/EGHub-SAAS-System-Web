@@ -205,7 +205,8 @@ class OnlinePaymentsTest extends TenantTestCase
     {
         $a = $this->restaurant('cafe-a', 'pro', trial: true);
 
-        $this->get($this->menuUrl('/pricing'))->assertOk()->assertDontSee('data-installments-promise', false);
+        $this->get($this->menuUrl('/pricing'))->assertOk()->assertDontSee('data-installments-promise', false)->assertDontSee('data-installments-banner', false);
+        $this->get($this->menuUrl('/'))->assertOk()->assertDontSee('data-installments-banner', false);
 
         $this->kashier('card,wallet,valu,tru', enabled: false);
         $this->get($this->menuUrl('/pricing'))->assertOk()->assertDontSee('data-installments-promise', false);
@@ -219,8 +220,12 @@ class OnlinePaymentsTest extends TenantTestCase
 
         $this->kashier('card,wallet,valu,tru');
         $this->get($this->menuUrl('/pricing'))->assertOk()->assertSee('data-installments-promise', false)
-            ->assertSee('ValU وTRU', false)->assertDontSee('سهولة');
-        $this->actingAs($this->owner($a))->get($this->dashUrl('/billing'))->assertOk()->assertSee('data-installments-promise', false);
+            ->assertSee('ValU وTRU', false)->assertDontSee('سهولة')
+            // the clear "subscribe yearly in installments" strip, with the Complete plan's real yearly price
+            ->assertSee('data-installments-banner', false)->assertSee('اشترك سنوي وقسّطه')
+            ->assertSee(money(Plan::query()->where('code', 'full')->first()->priceFor(12)));
+        $this->get($this->menuUrl('/'))->assertOk()->assertSee('data-installments-banner', false);
+        $this->actingAs($this->owner($a))->get($this->dashUrl('/billing'))->assertOk()->assertSee('data-installments-promise', false)->assertSee('data-installments-banner', false);
     }
 
     public function test_a_webhook_cannot_settle_another_restaurants_invoice(): void

@@ -46,6 +46,7 @@
 <section class="py-12 lg:py-16">
     <div class="mx-auto max-w-7xl px-4 sm:px-6">
         @include('landing.partials.plans')
+        <div class="mt-6">@include('partials.installments-banner', ['banner' => app(\App\Billing\OnlinePayments::class)->installmentsBanner(\App\Models\Plan::query()->where('code', 'full')->first()), 'cta' => [route('register'), __('Start free')]])</div>
     </div>
 </section>
 

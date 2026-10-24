@@ -290,6 +290,7 @@
                 </li>
             @endforeach
         </ul>
+        <div class="mt-6" data-reveal>@include('partials.installments-banner', ['banner' => app(\App\Billing\OnlinePayments::class)->installmentsBanner(\App\Models\Plan::query()->where('code', 'full')->first()), 'cta' => [route('register'), __('Start free')]])</div>
         <div class="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2" data-reveal>
             <a href="{{ route('pricing') }}" class="hm-link text-navy-800"><u>{{ __('Compare the plans in detail') }}</u> <span aria-hidden="true" class="rtl:rotate-180">→</span></a>
             <a href="{{ route('pricing') }}#calculator" class="hm-link text-navy-800"><u>{{ __('Work out what you save') }}</u> <span aria-hidden="true" class="rtl:rotate-180">→</span></a>

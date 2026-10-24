@@ -6,6 +6,7 @@ use App\Billing\Gateways\GatewayResult;
 use App\Billing\Gateways\PaymentGateway;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\Plan;
 use App\Models\PlatformSetting;
 use App\Services\Audit;
 use Illuminate\Support\Facades\DB;
@@ -121,6 +122,23 @@ final class OnlinePayments
         return $now === null
             ? __('The yearly plan can be paid in installments with :providers', ['providers' => $providers])
             : __('Pay online by :methods, and the yearly plan can be paid in installments with :providers', ['methods' => $now, 'providers' => $providers]);
+    }
+
+    /**
+     * The "subscribe yearly in installments" strip (site pricing, dashboard billing): the yearly price of the plan
+     * and the providers that are switched on right now; null while no installment provider is on.
+     *
+     * @return array{yearly:?string, providers:string}|null
+     */
+    public function installmentsBanner(?Plan $plan): ?array
+    {
+        $providers = $this->providerNames();
+        if ($providers === null) {
+            return null;
+        }
+        $yearly = $plan && ! $plan->isContactSales() && (float) $plan->monthly_price > 0 ? money($plan->priceFor(12)) : null;
+
+        return ['yearly' => $yearly, 'providers' => $providers];
     }
 
     /** "How do I pay the subscription?" on the marketing site, matching what is switched on right now. */
