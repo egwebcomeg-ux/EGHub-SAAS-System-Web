@@ -28,6 +28,10 @@
         .wk-sheet h1 { font-size: 24px !important; }
         .wk-qr { width: 8.5rem !important; }
         .wk-modules a { min-height: 2.25rem !important; }
+        /* the full feature list is the PDF's second page: page 1 stays the "start here" sheet */
+        .wk-features { break-before: page; }
+        .wk-features > div { display: grid !important; grid-template-columns: 1fr 1fr; gap: 10px 20px; }
+        .wk-features li { font-size: 11px; }
     }
 </style>
 @endpush
@@ -130,6 +134,31 @@
             </div>
         </section>
     @endif
+
+    {{-- everything the system can do, in one short line each (App\Support\SiteModules), ticked when the plan has it --}}
+    <section class="mt-5 wk-features" data-kit-features>
+        <h2 class="text-lg font-black">{{ __('Everything you can do with EgMenu') }}</h2>
+        <p class="text-sm text-navy-500">{{ __('✓ is in your plan now; the rest can be added any time from Subscription.') }}</p>
+        <div class="mt-3 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+            @foreach (\App\Support\SiteModules::groups() as $groupKey => [$groupName])
+                @php($groupModules = array_filter(\App\Support\SiteModules::all(), fn (array $m) => $m['group'] === $groupKey))
+                @if ($groupModules)
+                    <div class="wk-card">
+                        <h3 class="text-sm font-black text-brand-700">{{ $groupName }}</h3>
+                        <ul class="mt-1 space-y-1 text-[13px] leading-snug">
+                            @foreach ($groupModules as $module)
+                                @php($included = $module['feature'] === null || $rights->allows($module['feature']))
+                                <li class="flex gap-1.5" data-kit-feature="{{ $module['slug'] }}" data-included="{{ $included ? '1' : '0' }}">
+                                    <span class="shrink-0 {{ $included ? 'text-emerald-600' : 'text-navy-300' }}" aria-hidden="true">{{ $included ? '✓' : '＋' }}</span>
+                                    <span><b>{{ $module['name'] }}</b> <span class="text-navy-500">— {{ $module['summary'] }}</span></span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+            @endforeach
+        </div>
+    </section>
 
     <footer class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-navy-100 pt-4 text-sm">
         @if ($support['whatsapp'] || $support['email'])

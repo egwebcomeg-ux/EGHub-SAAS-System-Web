@@ -122,7 +122,11 @@ class ProspectRestaurantTest extends TenantTestCase
 
         $this->get($url)->assertOk()->assertSee('Cafe Nile')->assertSee($password)->assertSee('hany@nile.test')
             ->assertSee('cafe-nile', false)->assertDontSee('Restaurant cafe-other')
-            ->assertHeader('X-Robots-Tag', 'noindex, nofollow')->assertHeader('Referrer-Policy', 'no-referrer');
+            ->assertHeader('X-Robots-Tag', 'noindex, nofollow')->assertHeader('Referrer-Policy', 'no-referrer')
+            // every module of the system in one short line, ticked when the plan has it
+            ->assertSee('data-kit-features', false)->assertSee(__('Everything you can do with EgMenu'))
+            ->assertSee('data-kit-feature="qr-menu" data-included="1"', false)
+            ->assertSee('data-kit-feature="pos" data-included="0"', false);   // operations are Enterprise-only
         $this->assertStringContainsString('no-store', (string) $this->get($url)->headers->get('Cache-Control'));
 
         // tampered: another restaurant's slug with this signature, or no signature at all
