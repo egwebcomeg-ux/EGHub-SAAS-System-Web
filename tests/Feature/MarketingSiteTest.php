@@ -105,7 +105,7 @@ class MarketingSiteTest extends TenantTestCase
     {
         $this->get($this->menuUrl())->assertOk()
             ->assertSee('data-live-demo', false)
-            ->assertSee('خلصان النهاردة')
+            ->assertSee('خلصان النهارده')
             ->assertSee(route('pricing').'#calculator', false);
         $this->get($this->menuUrl('?lang=en'))->assertOk()
             ->assertSee('data-live-demo', false)

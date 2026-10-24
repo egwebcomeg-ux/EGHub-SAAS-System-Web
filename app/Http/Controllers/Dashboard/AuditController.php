@@ -16,7 +16,7 @@ class AuditController extends Controller
         'item.created' => ['إضافة صنف', 'Item added'],
         'item.updated' => ['تعديل صنف', 'Item edited'],
         'item.price_changed' => ['تغيير سعر', 'Price changed'],
-        'item.deleted' => ['حذف صنف', 'Item deleted'],
+        'item.deleted' => ['مسح صنف', 'Item deleted'],
         'settings.updated' => ['تعديل الإعدادات', 'Settings updated'],
         'branding.from_import' => ['شكل المنيو اتاخد من الملف المرفوع', 'Menu style taken from the uploaded file'],
         'modules.updated' => ['تغيير الموديولات المستخدمة', 'Modules in use changed'],
@@ -54,14 +54,14 @@ class AuditController extends Controller
         'corporate.manual_cancelled' => ['إلغاء صرف فاوتشر على فاتورة ورقية', 'Paper-bill voucher use cancelled'],
         'kb.created' => ['إضافة سؤال وإجابة', 'Knowledge base answer added'],
         'kb.updated' => ['تعديل سؤال وإجابة', 'Knowledge base answer edited'],
-        'kb.deleted' => ['حذف سؤال وإجابة', 'Knowledge base answer deleted'],
+        'kb.deleted' => ['مسح سؤال وإجابة', 'Knowledge base answer deleted'],
         'kb.suggested' => ['إضافة الأسئلة المقترحة (مسودات)', 'Suggested questions added (drafts)'],
         'kb.category_created' => ['إضافة قسم في الأسئلة والأجوبة', 'Knowledge base category added'],
         'kb.category_updated' => ['تعديل قسم في الأسئلة والأجوبة', 'Knowledge base category edited'],
-        'kb.category_deleted' => ['حذف قسم من الأسئلة والأجوبة', 'Knowledge base category deleted'],
+        'kb.category_deleted' => ['مسح قسم من الأسئلة والأجوبة', 'Knowledge base category deleted'],
         'backup.created' => ['إنشاء نسخة احتياطية', 'Backup created'],
         'backup.downloaded' => ['تحميل نسخة احتياطية', 'Backup downloaded'],
-        'backup.deleted' => ['حذف نسخة احتياطية', 'Backup deleted'],
+        'backup.deleted' => ['مسح نسخة احتياطية', 'Backup deleted'],
     ];
 
     public function index(Request $request): View

@@ -333,7 +333,7 @@ final class DemoContent
         if (! $program) {
             $program = LoyaltyProgram::query()->create([
                 'type' => 'visits', 'title' => 'كارت الولاء '.self::MARK, 'title_en' => 'Loyalty card (demo)', 'stamps_required' => 8,
-                'reward_label' => 'مشروب مجاناً', 'reward_label_en' => 'A free drink',
+                'reward_label' => 'مشروب مجاني', 'reward_label_en' => 'A free drink',
                 'card_design' => ['bg' => '#B5451B', 'stamp_bg' => '#7A1F2B', 'icon' => 'cup'],
             ]);
             $ids['loyalty_programs'][] = $program->id;

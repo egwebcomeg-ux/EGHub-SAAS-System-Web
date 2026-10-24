@@ -27,7 +27,7 @@ class OpsTest extends TenantTestCase
     {
         app()->setLocale('ar');
         $this->assertStringContainsString('<title>انتهت صلاحية الصفحة · EgHub</title>', view('errors.419')->render());
-        $this->assertStringContainsString('<title>الصفحة غير موجودة · EgHub</title>', view('errors.404')->render());
+        $this->assertStringContainsString('<title>الصفحة دي مش موجودة · EgHub</title>', view('errors.404')->render());
 
         app()->setLocale('en');
         $html = view('errors.419')->render();

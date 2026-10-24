@@ -30,7 +30,7 @@ class CampaignAutomation extends TenantModel
             'en' => 'We miss you {name} 💛 it has been a while since your last visit to {restaurant}. Come back with coupon {coupon}: {link}',
         ],
         'birthday' => [
-            'ar' => 'كل سنة وانت طيب يا {name} 🎂 {restaurant} بيهنيك بعيد ميلادك وعندك هدية: كوبون {coupon} 🎁 {link}',
+            'ar' => 'كل سنة وإنت طيب يا {name} 🎂 {restaurant} بيهنيك بعيد ميلادك وعندك هدية: كوبون {coupon} 🎁 {link}',
             'en' => 'Happy birthday {name} 🎂 a gift from {restaurant}: coupon {coupon} 🎁 {link}',
         ],
     ];

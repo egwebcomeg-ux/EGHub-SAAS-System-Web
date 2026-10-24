@@ -78,7 +78,7 @@ class DineInModesTest extends TenantTestCase
 
         $page = $this->get($this->subUrl('cafe-a'))->assertOk()
             ->assertSee('data-show-waiter', false)->assertDontSee('data-send-order', false)->assertDontSee('data-order-choice', false)
-            ->assertSee('القائمة دي عشان تعرضها على الويتر، سلّمها لفريق الخدمة');
+            ->assertSee('القايمة دي عشان تعرضها على الويتر، سلّمها لفريق الخدمة.');
         $data = $this->menuData($page);
         $this->assertSame('list', $data['mode']);
         $this->assertFalse($data['hall']['prices']);

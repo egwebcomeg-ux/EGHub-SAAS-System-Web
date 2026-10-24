@@ -34,7 +34,7 @@ final class Permissions
         'customers.import' => ['استيراد عملاء من ملف', 'Import customers from a file'],
         'loyalty.stamp' => ['إضافة أختام وصرف مكافآت', 'Give stamps & redeem rewards'],
         'loyalty.manage' => ['إعداد برنامج الولاء', 'Loyalty program setup'],
-        'vouchers.give' => ['إدّي فاوتشرات خصم للعملاء', 'Give discount vouchers to guests'],
+        'vouchers.give' => ['ادّي فاوتشرات خصم للعملاء', 'Give discount vouchers to guests'],
         'marketing.manage' => ['العروض والتسويق', 'Offers & marketing'],
         'reports.view' => ['التقارير', 'Reports'],
         'settings.manage' => ['الإعدادات والهوية', 'Settings & branding'],
@@ -118,7 +118,7 @@ final class Permissions
         'kitchen' => [
             'label' => ['مطبخ', 'Kitchen'],
             'permissions' => ['kitchen.view', 'menu.availability', 'pager.use'],
-            'hint' => ['شاشة المطبخ وتحديد الأصناف اللي خلصت والنداء على الزبون فقط', 'The kitchen display, marking items sold out and calling the guest, nothing else'],
+            'hint' => ['شاشة المطبخ وتحديد الأصناف اللي خلصت والنداء على الزبون بس', 'The kitchen display, marking items sold out and calling the guest, nothing else'],
         ],
         'waiter' => [
             'label' => ['ويتر', 'Waiter'],
@@ -129,7 +129,7 @@ final class Permissions
         'driver' => [
             'label' => ['طيار توصيل', 'Delivery driver'],
             'permissions' => ['delivery.drive'],
-            'hint' => ['شاشة الطيار على الموبايل: طلباته للتوصيل فقط', 'The driver screen on the phone: their own deliveries only'],
+            'hint' => ['شاشة الطيار على الموبايل: طلباته للتوصيل بس', 'The driver screen on the phone: their own deliveries only'],
         ],
     ];
 

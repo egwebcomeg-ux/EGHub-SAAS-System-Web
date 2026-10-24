@@ -258,12 +258,12 @@ class TenantBackupBuilder
                         Order::TYPES[$o->type][0] ?? (string) $o->type, Order::SOURCES[$o->source][0] ?? (string) $o->source, Order::STATUSES[$o->status][0] ?? (string) $o->status,
                         (string) $o->customer_name, (string) $o->customer_phone,
                         $o->items->map(fn ($i) => $i->quantity.'× '.$i->name)->implode(' | '),
-                        (float) $o->subtotal, (float) $o->discount, (float) $o->service, (float) $o->tax, (float) $o->total, $o->payment_status === 'paid' ? 'مدفوع' : 'غير مدفوع'];
+                        (float) $o->subtotal, (float) $o->discount, (float) $o->service, (float) $o->tax, (float) $o->total, $o->payment_status === 'paid' ? 'مدفوع' : 'مش مدفوع'];
                 }
             });
         $this->addSheet($zip, 'excel/orders.xlsx', 'Orders', $orders);
 
-        $vouchers = [['الشركة', 'السيريال', 'الكود', 'القيمة', 'الرصيد', 'الحالة', 'ينتهي في', 'مرتبط بعميل', 'تاريخ الإصدار']];
+        $vouchers = [['الشركة', 'المسلسل', 'الكود', 'القيمة', 'الرصيد', 'الحالة', 'ينتهي في', 'مرتبط بعميل', 'تاريخ الإصدار']];
         CorporateVoucher::query()->with(['contract:id,name', 'customer:id,phone'])->chunkById(self::CHUNK, function ($rows) use (&$vouchers) {
             foreach ($rows as $v) {
                 if (count($vouchers) > self::SHEET_MAX_ROWS) {
@@ -355,14 +355,14 @@ class TenantBackupBuilder
             '',
             'إزاي أرجّع كل حاجة (الطلبات والعملاء والولاء والمحفظة...)؟',
             '----------------------------------------------------',
-            'الاسترجاع الكامل بيتم عن طريق دعم EgWeb: ابعت لنا ملف النسخة ده (أو تاريخه) على واتساب الدعم'.($support !== '' ? ' ('.$support.')' : '').' أو من صفحة المساعدة في لوحة التحكم، وإحنا بنرجّع البيانات على حسابك.',
+            'الاسترجاع الكامل بيتعمل عن طريق دعم EgWeb: ابعت لنا ملف النسخة ده (أو تاريخه) على واتساب الدعم'.($support !== '' ? ' ('.$support.')' : '').' أو من صفحة المساعدة في لوحة التحكم، وإحنا بنرجّع البيانات على حسابك.',
             'ملفات data/*.json مكتوبة بنفس أسماء الجداول والأعمدة الموجودة على المنصة.',
             '',
             'ملاحظات',
             '-------',
-            '- النسخة دي بتاعة مطعمك إنت بس: مفيش فيها أي بيانات لمطاعم أخرى.',
+            '- النسخة دي بتاعة مطعمك إنت بس: مفيش فيها أي بيانات لمطاعم تانية.',
             '- احتفظ بالملف في مكان آمن: فيه أرقام موبايلات عملائك.',
-            '- EgHub بتعمل كمان نسخة احتياطية يومية لكل المنصة على السيرفر، النسخة دي زيادة في إيدك إنت.',
+            '- EgHub بيعمل كمان نسخة احتياطية يومية لكل المنصة على السيرفر، النسخة دي زيادة في إيدك إنت.',
             '',
             'EgHub · by EgWeb · eghub.app',
         ];

@@ -65,7 +65,7 @@ class BusinessTypeTest extends TenantTestCase
         $this->as($shop, function () {
             $this->assertSame('shop', Settings::get('business_type'));
             $this->assertSame('grid', Settings::get('menu_theme'));
-            $this->assertSame(['المنتجات', 'العروض', 'الأكثر طلباً'], Category::query()->orderBy('sort_order')->pluck('name')->all());
+            $this->assertSame(['المنتجات', 'العروض', 'الأكتر طلباً'], Category::query()->orderBy('sort_order')->pluck('name')->all());
             $this->assertSame(['التجهيز'], KitchenStation::query()->pluck('name')->all());
         });
         $this->assertSame('محل', BusinessType::label('shop'));

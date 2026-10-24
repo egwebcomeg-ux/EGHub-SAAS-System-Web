@@ -287,7 +287,7 @@ class CorporateVouchersTest extends TenantTestCase
         }
         // even the right PIN waits now
         $this->actingAs($this->cashier)->postJson($url, ['reason' => 'Late staff', 'approver_id' => $this->manager->id, 'pin' => '2468'])->assertStatus(422)
-            ->assertJsonFragment(['message' => 'محاولات PIN غلط كتير. جرب تاني بعد 15 دقيقة.']);
+            ->assertJsonFragment(['message' => 'محاولات PIN غلط كتير. جرّب تاني بعد 15 دقيقة.']);
         $this->assertSame(CorporateVouchers::PIN_ATTEMPTS, $this->as($this->tenant, fn () => AuditLog::query()->where('action', 'corporate.pin_failed')->count()));
     }
 

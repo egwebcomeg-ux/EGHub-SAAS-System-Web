@@ -164,7 +164,7 @@ class AutomationsTest extends TenantTestCase
         Artisan::call('egmenu:automations');
         Artisan::call('egmenu:automations');
         $this->assertSame([$today->id], $this->messages($a)->pluck('customer_id')->all());
-        $this->assertStringContainsString('كل سنة وانت طيب يا Guest 001', $this->messages($a)[0]->body);
+        $this->assertStringContainsString('كل سنة وإنت طيب يا Guest 001', $this->messages($a)[0]->body);
 
         $this->travelTo(now()->addYear());
         Artisan::call('egmenu:automations');

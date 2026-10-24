@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Reservation extends TenantModel
 {
     public const STATUSES = [
-        'pending' => ['في انتظار التأكيد', 'Pending'],
+        'pending' => ['مستني التأكيد', 'Pending'],
         'confirmed' => ['متأكد', 'Confirmed'],
         'seated' => ['وصل وقعد', 'Seated'],
         'cancelled' => ['ملغي', 'Cancelled'],

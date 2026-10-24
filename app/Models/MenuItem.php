@@ -62,7 +62,7 @@ class MenuItem extends TenantModel
         'vegan' => ['🥬', 'نباتي صرف', 'Vegan'],
         'spicy' => ['🌶', 'حار', 'Spicy'],
         'new' => ['✨', 'جديد', 'New'],
-        'bestseller' => ['🔥', 'الأكثر طلباً', 'Best seller'],
+        'bestseller' => ['🔥', 'الأكتر طلباً', 'Best seller'],
         'gluten_free' => ['🌾', 'خالي من الجلوتين', 'Gluten-free'],
         'nuts' => ['🥜', 'فيه مكسرات', 'Contains nuts'],
         'sugar_free' => ['🍃', 'من غير سكر', 'Sugar-free'],

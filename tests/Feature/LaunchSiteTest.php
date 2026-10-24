@@ -62,7 +62,7 @@ class LaunchSiteTest extends TenantTestCase
 
         PlatformSetting::put('launch_offer_ends_at', today()->addDays(10)->toDateString());
         $this->get($this->menuUrl('pricing'))->assertOk()->assertSee('data-orig', false)
-            ->assertSee('العرض ساري حتى '.today()->addDays(10)->format('d/m/Y'));
+            ->assertSee('العرض ساري لحد '.today()->addDays(10)->format('d/m/Y'));
         $this->get($this->menuUrl('/'))->assertOk()->assertSee('data-offer-ends', false);
 
         PlatformSetting::put('launch_offer_ends_at', today()->subDay()->toDateString());

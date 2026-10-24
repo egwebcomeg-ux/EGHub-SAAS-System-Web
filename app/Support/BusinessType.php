@@ -57,9 +57,9 @@ final class BusinessType
 
         return match ($type) {
             'restaurant' => $restaurant,
-            'both' => [['مقبلات', 'Starters'], ['أطباق رئيسية', 'Main dishes'], ['ساندوتشات', 'Sandwiches'], ['قهوة سخنة', 'Hot coffee'], ['مشروبات ساقعة', 'Cold drinks'], ['حلويات', 'Desserts']],
+            'both' => [['مقبلات', 'Starters'], ['أطباق رئيسية', 'Main dishes'], ['سندوتشات', 'Sandwiches'], ['قهوة سخنة', 'Hot coffee'], ['مشروبات ساقعة', 'Cold drinks'], ['حلويات', 'Desserts']],
             'pastry' => [['جاتوه', 'Gâteaux'], ['تورت', 'Cakes'], ['مخبوزات', 'Bakery'], ['حلويات شرقية', 'Oriental sweets'], ['بوكسات', 'Boxes'], ['قهوة ومشروبات', 'Coffee & drinks']],
-            'shop' => [['المنتجات', 'Products'], ['العروض', 'Offers'], ['الأكثر طلباً', 'Best sellers']],
+            'shop' => [['المنتجات', 'Products'], ['العروض', 'Offers'], ['الأكتر طلباً', 'Best sellers']],
             default => $cafe,
         };
     }

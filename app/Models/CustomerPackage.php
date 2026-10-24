@@ -11,7 +11,7 @@ class CustomerPackage extends TenantModel
 {
     public const STATUSES = [
         'active' => ['سارية', 'Active'],
-        'used' => ['استُهلكت', 'Used up'],
+        'used' => ['اتستهلكت', 'Used up'],
         'expired' => ['انتهت', 'Expired'],
         'void' => ['ملغية', 'Void'],
     ];

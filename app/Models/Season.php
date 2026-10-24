@@ -22,7 +22,7 @@ class Season extends TenantModel
      */
     public const PRESETS = [
         'ramadan' => ['greeting' => 'رمضان كريم', 'greeting_en' => 'Ramadan Kareem', 'accent' => '#0F6B4F', 'pattern' => 'crescent', 'icon' => '🌙'],
-        'eid' => ['greeting' => 'كل سنة وانت طيب', 'greeting_en' => 'Eid Mubarak', 'accent' => '#B8860B', 'pattern' => 'lantern', 'icon' => '🏮'],
+        'eid' => ['greeting' => 'كل سنة وإنت طيب', 'greeting_en' => 'Eid Mubarak', 'accent' => '#B8860B', 'pattern' => 'lantern', 'icon' => '🏮'],
         'christmas' => ['greeting' => 'كريسماس سعيد', 'greeting_en' => 'Merry Christmas', 'accent' => '#C62828', 'pattern' => 'snow', 'icon' => '🎄'],
         'summer' => ['greeting' => 'صيف حلو ومنعش', 'greeting_en' => 'Hello summer', 'accent' => '#0284C7', 'pattern' => 'sun', 'icon' => '☀️'],
         'valentine' => ['greeting' => 'هابي فالنتاين', 'greeting_en' => "Happy Valentine's", 'accent' => '#E11D48', 'pattern' => 'hearts', 'icon' => '❤️'],

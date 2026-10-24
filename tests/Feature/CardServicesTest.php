@@ -180,7 +180,7 @@ class CardServicesTest extends TenantTestCase
                 app(Packages::class)->use($c, $cashier);
             }
             $this->assertSame(['used', 0], [$c->fresh()->status, $c->fresh()->uses_left]);
-            $this->expectExceptionMessage('استُهلكت');
+            $this->expectExceptionMessage('اتستهلكت');
             app(Packages::class)->use($c, $cashier);
         });
     }
