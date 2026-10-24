@@ -1,31 +1,30 @@
 @props(['size' => 32, 'text' => true, 'light' => false])
 {{--
-    EgHub logo: the "eghub" wordmark — "eg" orange, "hub" blue (white on dark backgrounds), the letters of the earlier
-    "egmenu" mark. Vector paths, so it is sharp at any size and needs no web font. :size is the visual height in px of
-    the old mark, kept for callers; the wordmark box is taller for the ascenders of "h" and "b" and keeps the letters at
-    the same size. :text="false" draws "eg" only.
+    EgHub logo: the "eghub" wordmark in the EgWeb logo's typeface (Diamonds, Font Bundles: commercial licence held by
+    EgWeb) and colours: "eg" orange, "hub" EgWeb navy (white on dark backgrounds). Vector paths, so it is sharp at any
+    size and ships no font file. :size is the visual height in px of the earlier mark, kept for callers.
+    :text="false" draws "eg" only.
     A logo uploaded in admin › الهوية والشكل (App\Support\PlatformBrand) replaces the wordmark: the light-background
-    one, or on dark backgrounds (:light) the dark-background one when there is one. The drawn wordmark follows the
-    platform brand colors (the defaults are the colors above).
+    one, or on dark backgrounds (:light) the dark-background one when there is one. "eg" follows the platform's
+    primary colour.
 --}}
 @php
     $egColor = \App\Support\PlatformBrand::get('brand_color_primary') ?: '#F26522';
-    $hubColor = $light ? '#ffffff' : (\App\Support\PlatformBrand::get('brand_color_secondary') ?: '#005BA6');
+    $hubColor = $light ? '#ffffff' : '#213368';
     $height = round($size * 0.95);
-    $wordmarkHeight = round($height * 176 / 140);
+    $wordmarkHeight = round($height * 1.25); // the typeface's x-height is short: same letter size as the earlier mark
     $uploadedLogo = $text ? (($light ? \App\Support\PlatformBrand::url('brand_logo_on_dark') : null) ?? \App\Support\PlatformBrand::url('brand_logo')) : null;
 @endphp
 <span {{ $attributes->merge(['class' => 'inline-flex items-center leading-none']) }} dir="ltr">
     @if ($uploadedLogo)
         <img src="{{ $uploadedLogo }}" alt="{{ \App\Support\PlatformBrand::siteName() }}" style="height: {{ $height }}px" class="block w-auto max-w-[12rem] shrink-0 object-contain">
     @elseif ($text)
-        <svg height="{{ $wordmarkHeight }}" viewBox="0 -16 478 176" class="block w-auto shrink-0" role="img" aria-label="EgHub">
-            <g fill="{{ $egColor }}"><path transform="translate(0 0)" d="M85 64.5 C85 41.5 68 24 45 24 C20.5 24 4 42.5 4 67 C4 91.5 20.5 110 46 110 C65.5 110 79.5 98.5 83.5 83 L69 83 C66 91 57.5 97 46 97 C28.5 97 19 83.5 18 69.5 L84.5 69.5 C84.8 67.8 85 66.2 85 64.5 Z M18 57 C19.5 44 28.5 37 44.5 37 C60.5 37 69.5 44 71 57 L18 57 Z"/><path transform="translate(17 0)" d="M165 26 L151.5 26 L151.5 37.5 C145.5 28.5 134.5 24 121.5 24 C97 24 78 43 78 67 C78 91 97 110 121.5 110 C134.5 110 145.5 105.5 151.5 96.5 L151.5 115 C151.5 131.5 140 142 121.5 142 C107 142 96 135 91.5 124 L77.5 124 C82.5 142.5 99 155 121.5 155 C148 155 165.5 138.5 165.5 115 L165.5 26 Z M122 97 C104.5 97 92.5 83.5 92.5 67 C92.5 50.5 104.5 37 122 37 C139.5 37 151.5 50.5 151.5 67 C151.5 83.5 139.5 97 122 97 Z"/></g>
-            <g fill="{{ $hubColor }}"><path transform="translate(-190 0)" d="M399 -12 L413 -12 L413 38.5 C418.5 29 428.5 24 442 24 C461.5 24 473 36 473 57.5 L473 108 L459 108 L459 58.5 C459 44 450.5 36.5 438 36.5 C425 36.5 413 45 413 60 L413 108 L399 108 Z"/><path transform="translate(-190 0)" d="M486 26 L500 26 L500 76.5 C500 90.5 508.5 97.5 521 97.5 C534 97.5 546 89 546 74 L546 26 L560 26 L560 108 L546.5 108 L546.5 95.5 C540.5 105 530.5 110 517 110 C497.5 110 486 98 486 76.5 L486 26 Z"/><path d="M383 -12 L397 -12 L397 108 L383 108 Z"/><path fill-rule="evenodd" d="M382.75 67 a43.75 43 0 1 0 87.5 0 a43.75 43 0 1 0 -87.5 0 Z M397.0 67 a29.5 30 0 1 1 59 0 a29.5 30 0 1 1 -59 0 Z"/></g>
+        <svg height="{{ $wordmarkHeight }}" viewBox="0 -720 2660 940" class="block w-auto shrink-0" role="img" aria-label="EgHub">
+            <g transform="scale(1 -1)"><g fill="{{ $egColor }}"><path transform="translate(0 0)" d="M522 249Q522 226 520 214H94Q107 152 156.5 110.5Q206 69 271 69Q309 69 343.0 83.5Q377 98 402 125L461 85Q425 44 375.5 21.0Q326 -2 271 -2Q203 -2 145.5 32.0Q88 66 54.0 123.5Q20 181 20 249Q20 317 54.0 375.0Q88 433 145.5 466.5Q203 500 271 500Q340 500 397.5 466.0Q455 432 488.5 374.0Q522 316 522 249ZM95 285H448Q435 347 386.0 388.0Q337 429 271 429Q206 429 156.5 388.5Q107 348 95 285Z"/><path transform="translate(552 0)" d="M521 250V51Q521 -17 487.5 -74.5Q454 -132 396.5 -165.5Q339 -199 271 -199H227H138V-129H271Q331 -128 379.0 -92.0Q427 -56 444 0H271Q203 0 145.5 33.5Q88 67 54.0 124.5Q20 182 20 250Q20 318 54.0 375.5Q88 433 145.5 466.5Q203 500 271 500Q339 500 396.5 466.5Q454 433 487.5 375.5Q521 318 521 250ZM271 429Q222 429 181.0 405.0Q140 381 115.5 340.0Q91 299 91 250Q91 201 115.5 160.0Q140 119 181.0 94.5Q222 70 271 70H450V250Q450 299 426.0 340.0Q402 381 361.0 405.0Q320 429 271 429Z"/></g><g fill="{{ $hubColor }}"><path transform="translate(1103 0)" d="M516 224 518 0H447V258Q446 305 421.5 344.5Q397 384 356.5 407.0Q316 430 269 430Q221 430 181.0 406.5Q141 383 116.5 343.0Q92 303 91 256V0H20V700H91V426Q125 461 171.0 480.5Q217 500 269 500Q336 500 393.5 466.5Q451 433 484.5 376.0Q518 319 518 252Q518 242 516 224Z"/><path transform="translate(1651 0)" d="M20 191V500H91Q91 296 92 194Q95 142 133.0 106.5Q171 71 223 71Q275 71 312.5 106.5Q350 142 354 194V500H425V191Q422 139 394.5 95.0Q367 51 321.5 25.5Q276 0 223 0Q170 0 125.0 25.5Q80 51 51.5 94.5Q23 138 20 191Z"/><path transform="translate(2106 0)" d="M520 250Q520 182 486.5 124.5Q453 67 395.5 33.5Q338 0 270 0Q202 0 144.5 33.5Q87 67 53.5 124.5Q20 182 20 250V700H90V500H270Q338 500 395.5 466.5Q453 433 486.5 375.5Q520 318 520 250ZM449 250Q449 299 425.0 340.0Q401 381 360.0 405.0Q319 429 270 429L90 430V250Q90 201 114.5 160.0Q139 119 180.0 95.0Q221 71 270 71Q319 71 360.0 95.0Q401 119 425.0 160.0Q449 201 449 250Z"/></g></g>
         </svg>
     @else
-        <svg height="{{ $height }}" viewBox="0 20 186 140" class="block w-auto shrink-0" role="img" aria-label="EgHub">
-            <g fill="{{ $egColor }}"><path transform="translate(0 0)" d="M85 64.5 C85 41.5 68 24 45 24 C20.5 24 4 42.5 4 67 C4 91.5 20.5 110 46 110 C65.5 110 79.5 98.5 83.5 83 L69 83 C66 91 57.5 97 46 97 C28.5 97 19 83.5 18 69.5 L84.5 69.5 C84.8 67.8 85 66.2 85 64.5 Z M18 57 C19.5 44 28.5 37 44.5 37 C60.5 37 69.5 44 71 57 L18 57 Z"/><path transform="translate(17 0)" d="M165 26 L151.5 26 L151.5 37.5 C145.5 28.5 134.5 24 121.5 24 C97 24 78 43 78 67 C78 91 97 110 121.5 110 C134.5 110 145.5 105.5 151.5 96.5 L151.5 115 C151.5 131.5 140 142 121.5 142 C107 142 96 135 91.5 124 L77.5 124 C82.5 142.5 99 155 121.5 155 C148 155 165.5 138.5 165.5 115 L165.5 26 Z M122 97 C104.5 97 92.5 83.5 92.5 67 C92.5 50.5 104.5 37 122 37 C139.5 37 151.5 50.5 151.5 67 C151.5 83.5 139.5 97 122 97 Z"/></g>
+        <svg height="{{ $height }}" viewBox="0 -720 1060 940" class="block w-auto shrink-0" role="img" aria-label="EgHub">
+            <g transform="scale(1 -1)" fill="{{ $egColor }}"><path transform="translate(0 0)" d="M522 249Q522 226 520 214H94Q107 152 156.5 110.5Q206 69 271 69Q309 69 343.0 83.5Q377 98 402 125L461 85Q425 44 375.5 21.0Q326 -2 271 -2Q203 -2 145.5 32.0Q88 66 54.0 123.5Q20 181 20 249Q20 317 54.0 375.0Q88 433 145.5 466.5Q203 500 271 500Q340 500 397.5 466.0Q455 432 488.5 374.0Q522 316 522 249ZM95 285H448Q435 347 386.0 388.0Q337 429 271 429Q206 429 156.5 388.5Q107 348 95 285Z"/><path transform="translate(552 0)" d="M521 250V51Q521 -17 487.5 -74.5Q454 -132 396.5 -165.5Q339 -199 271 -199H227H138V-129H271Q331 -128 379.0 -92.0Q427 -56 444 0H271Q203 0 145.5 33.5Q88 67 54.0 124.5Q20 182 20 250Q20 318 54.0 375.5Q88 433 145.5 466.5Q203 500 271 500Q339 500 396.5 466.5Q454 433 487.5 375.5Q521 318 521 250ZM271 429Q222 429 181.0 405.0Q140 381 115.5 340.0Q91 299 91 250Q91 201 115.5 160.0Q140 119 181.0 94.5Q222 70 271 70H450V250Q450 299 426.0 340.0Q402 381 361.0 405.0Q320 429 271 429Z"/></g>
         </svg>
     @endif
 </span>
