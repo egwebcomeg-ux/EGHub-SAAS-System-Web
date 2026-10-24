@@ -28,6 +28,9 @@ if (dataEl) {
     // inside the place the owner may show item prices but no bill total; takeaway and delivery always show it
     const hideTotal = () => hidePrices() || (H.hideTotal && inHall());
     const wayKey = `egmenu.way.${M.tenant}`;
+    // 2+ ways on the general link: nothing is picked for the guest. Until they choose (the sheet, the header chip or
+    // the cart switch) the cart shows the switch alone and nothing can be sent
+    let wayPicked = !!H.table || (M.ways || []).length < 2;
     // the cart's coupon preview (see quoteCoupon) and its re-check timer
     let couponQuote = null;
     let couponTimer = null;
@@ -275,6 +278,25 @@ if (dataEl) {
         track('AddToCart', { content_ids: [String(item.id)], content_name: item.name, content_type: 'product', value: unitPrice(item, optionIds) * count, num_items: count });
         save();
         renderBar();
+        askWayAfterAdd();
+    }
+
+    // the first item in the cart and no way chosen yet (2+ ways, setting order_type_prompt): the "how will you order?"
+    // sheet opens once, after any open sheet (the item, "goes well with") is closed; delivery then asks for the area
+    const wayAskedKey = `egmenu.wayAsked.${M.tenant}`;
+    function askWayAfterAdd() {
+        if (!M.askWayOnAdd || wayPicked || session.get(wayAskedKey)) return;
+        session.set(wayAskedKey, '1');
+        const open = () => {
+            if (wayPicked) return;
+            if (document.querySelector('dialog[open]')) {
+                // the guest went to the cart instead: the switch there asks, no sheet after it
+                document.addEventListener('close', (e) => { if (!e.target.matches?.('[data-cart-sheet]')) setTimeout(open, 150); }, { capture: true, once: true });
+                return;
+            }
+            openFirstSheet(true);
+        };
+        setTimeout(open, 250);
     }
 
     // ---- quick "+" on the items: one tap adds one; a size or a required choice opens the sheet instead ----
@@ -575,7 +597,7 @@ if (dataEl) {
         // kitchen's preparation time (online orders)
         const eta = $('[data-cart-eta]', cartSheet);
         if (eta) {
-            const minutes = mode === 'online' ? (otype === 'delivery' ? (t.zone?.eta || null) : O?.prep) : null;
+            const minutes = wayPicked && mode === 'online' ?(otype === 'delivery' ? (t.zone?.eta || null) : O?.prep) : null;
             eta.textContent = minutes ? `⏱ ${(otype === 'delivery' ? T.etaDelivery : T.etaPickup).replace('__N__', minutes)}` : '';
             eta.classList.toggle('hidden', !minutes);
             eta.classList.toggle('flex', !!minutes);
@@ -643,22 +665,25 @@ if (dataEl) {
     }
     const show = (sel, on) => document.querySelectorAll(sel).forEach((el) => el.classList.toggle('hidden', !on));
     function renderMode() {
-        const way = inHall() ? 'dine' : mode === 'online' ? otype : null;
+        const way = !wayPicked ? null : inHall() ? 'dine' : mode === 'online' ? otype : null;
         document.querySelectorAll('[data-way-switch] [data-way], [data-online] [data-otype]').forEach((b) => {
             const on = (b.dataset.way || b.dataset.otype) === way;
             b.classList.toggle('m-way-on', on);
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
         });
-        show('[data-delivery-fields]', mode === 'online' && otype === 'delivery');
-        show('[data-online]', mode === 'online');
-        show('[data-order-fields]', mode === 'table' || mode === 'online');
-        show('[data-hall-notice], [data-scan-hint], [data-show-waiter], [data-hall-tools] [data-hall-call]', mode === 'list');
-        show('[data-hall-tools]', inHall());
+        show('[data-way-ask]', !wayPicked);
+        show('[data-delivery-fields]', wayPicked && mode === 'online' && otype === 'delivery');
+        show('[data-online]', wayPicked && mode === 'online');
+        show('[data-order-fields]', wayPicked && (mode === 'table' || mode === 'online'));
+        show('[data-hall-notice], [data-scan-hint], [data-show-waiter], [data-hall-tools] [data-hall-call]', wayPicked && mode === 'list');
+        show('[data-hall-tools]', wayPicked && inHall());
         show('[data-open-split]', inHall() && H.prices);
         const title = $('[data-cart-title]');
         if (title) title.textContent = mode === 'list' ? T.myOrder : T.yourOrder;
-        // the order-type chip in the header: "🛵 Delivery · Maadi ▾"
+        // the order-type chip in the header: "🛵 Delivery · Maadi ▾" (nothing chosen yet: "How will you order? ▾")
         const chip = $('[data-way-chip-label]');
-        if (chip && way && T.wayChips[way]) {
+        if (chip && !wayPicked) chip.textContent = T.wayAsk;
+        else if (chip && way && T.wayChips[way]) {
             const zone = way === 'delivery' ? currentZone() : null;
             chip.textContent = T.wayChips[way] + (zone ? ` · ${zone.name.split('› ').pop()}` : '');
         }
@@ -667,6 +692,7 @@ if (dataEl) {
         if (cartSheet.open) renderCart();
     }
     function applyWay(way) {
+        wayPicked = true;
         if (way === 'dine') mode = hallCart;
         else if (O && O[way]) { mode = 'online'; otype = way; }
         renderMode();
@@ -1039,6 +1065,7 @@ if (dataEl) {
         const errorBox = $('[data-order-error]');
         errorBox.classList.add('hidden');
         const fail = (msg) => { errorBox.textContent = msg; errorBox.classList.remove('hidden'); };
+        if (!wayPicked) return fail(T.chooseWay);
         if (mode === 'online') {
             if (!$('[data-customer-phone]').value.trim()) return fail(T.phoneRequired);
             if (otype === 'delivery' && !currentZone()) return fail(T.chooseZone);
@@ -1563,7 +1590,7 @@ if (dataEl) {
                     <span class="m-branch-dot" aria-hidden="true"></span>
                     <span class="min-w-0 flex-1">
                         <span class="flex items-center gap-1.5"><b class="truncate">${esc(b.name)}</b>${tags}</span>
-                        <span class="flex items-center gap-2">${b.address ? `<span class="m-muted min-w-0 truncate text-xs">${esc(b.address)}</span>` : ''}${open}</span>
+                        <span class="flex items-center gap-2">${b.address ? `<span class="m-muted min-w-0 truncate text-xs" dir="auto">${esc(b.address)}</span>` : ''}${open}</span>
                     </span>
                     ${dist}
                 </a>`;

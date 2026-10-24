@@ -163,17 +163,25 @@ class DineInModesTest extends TenantTestCase
         $this->assertNull($this->menuData($table)['online']);
     }
 
-    public function test_the_choice_screen_can_be_switched_off_and_needs_two_ways(): void
+    public function test_one_branch_goes_straight_to_the_menu_and_the_setting_asks_on_the_first_item(): void
     {
         $a = $this->restaurant('cafe-a');
+        // on (the default): the sheet never opens by itself, the first item added asks how the guest orders
+        $on = $this->get($this->subUrl('cafe-a'))->assertOk()->assertDontSee("classList.add('choice-open')", false)
+            ->assertSee('data-order-choice', false)->assertSee('data-way-chip', false)->assertSee('data-way-switch', false)
+            ->assertSee('data-way-ask', false);
+        $this->assertTrue($this->menuData($on)['askWayOnAdd']);
+
+        // off: the guest picks the way in the cart (or from the header chip)
         $this->as($a, fn () => Settings::put(['order_type_prompt' => '0']));
-        // off: the sheet never opens by itself; the order-type chip in the header still opens it
-        $this->get($this->subUrl('cafe-a'))->assertOk()->assertDontSee("classList.add('choice-open')", false)
+        $off = $this->get($this->subUrl('cafe-a'))->assertOk()->assertDontSee("classList.add('choice-open')", false)
             ->assertSee('data-way-chip', false)->assertSee('data-way-switch', false);
+        $this->assertFalse($this->menuData($off)['askWayOnAdd']);
 
         // menu only in the hall: takeaway is the only way, so nothing to choose
         $this->as($a, fn () => Settings::put(['order_type_prompt' => '1', 'dine_in_mode' => 'off']));
-        $this->get($this->subUrl('cafe-a'))->assertOk()->assertDontSee('data-order-choice', false)->assertDontSee('data-way-switch', false);
+        $one = $this->get($this->subUrl('cafe-a'))->assertOk()->assertDontSee('data-order-choice', false)->assertDontSee('data-way-switch', false);
+        $this->assertFalse($this->menuData($one)['askWayOnAdd']);
     }
 
     public function test_the_intro_follows_the_setting_and_never_plays_on_screens_or_for_bots(): void

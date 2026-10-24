@@ -100,9 +100,12 @@ class MenuController extends Controller
             ? array_values(array_filter(['dine', 'takeaway', 'delivery'], fn (string $w) => in_array($w, $ways, true)
                 || collect($branchWays)->contains(fn (array $bw) => in_array($w, $bw, true))))
             : $ways;
-        $choice = $table === null && $settings['order_type_prompt'] === '1' && ($ways[0] ?? null) === 'dine' && $online !== null;
-        // one first-open sheet: how the guest orders (2+ ways) and, with 2+ branches and no table, from which branch
+        // one sheet: how the guest orders (2+ ways) and, with 2+ branches and no table, from which branch. It opens by
+        // itself only on a first visit to a place with 2+ branches (prices and what is available follow the branch);
+        // with one branch the guest browses at once and picks the way on their first item (setting order_type_prompt)
+        // or in the cart, never sending before choosing (resources/js/menu.js)
         $firstSheet = ($table === null && count($sheetWays) > 1) || $branchPicker;
+        $askWayOnAdd = $table === null && count($ways) > 1 && $settings['order_type_prompt'] === '1';
         $calls = $table !== null && Entitlements::current()->allows('qr_ordering');
         $upsell = Entitlements::current()->allows('upsell');
         $available = $categories->flatMap(fn (Category $c) => $c->items)->keyBy('id');
@@ -183,7 +186,6 @@ class MenuController extends Controller
             'hall' => $hall,
             'ways' => $ways,
             'sheetWays' => $sheetWays,
-            'choice' => $choice,
             'calls' => $calls,
             'intro' => MenuIntro::style($settings, $request),
             'introBackground' => MenuIntro::background($settings, MenuThemes::logoTile($theme, $settings),
@@ -239,7 +241,8 @@ class MenuController extends Controller
                 'mode' => $cartMode,
                 'hall' => $hall,
                 'ways' => $ways,
-                'choice' => $choice,
+                // 2+ ways and no way chosen yet: the first item added asks how the guest orders
+                'askWayOnAdd' => $askWayOnAdd,
                 'callUrl' => $calls ? route('menu.call') : null,
                 // the remembered guest fills the cart's name and mobile when this phone has none saved
                 'account' => $accountGuest ? ['name' => (string) $accountGuest->name, 'phone' => (string) $accountGuest->phone] : null,

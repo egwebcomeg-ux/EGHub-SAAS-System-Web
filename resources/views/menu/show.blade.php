@@ -208,7 +208,7 @@
                 <span class="m-primary inline-flex min-h-9 items-center rounded-full px-3 text-sm font-bold" data-table-chip>🍽 {{ __('Table :name', ['name' => $table->name]) }}@if ($branches->count() > 1) · {{ tr($branch->name, $branch->name_en) }}@endif</span>
             @else
                 @if ($waysMenu)
-                    <button type="button" class="m-chip" data-way-chip aria-label="{{ __('How will you order?') }}"><span data-way-chip-label>{{ $wayChips[$ways[0] ?? $sheetWays[0]] }}</span> <span aria-hidden="true">▾</span></button>
+                    <button type="button" class="m-chip" data-way-chip aria-label="{{ __('How will you order?') }}"><span data-way-chip-label>{{ count($ways) > 1 ? __('How will you order?') : $wayChips[$ways[0] ?? $sheetWays[0]] }}</span> <span aria-hidden="true">▾</span></button>
                 @endif
                 @if ($branchPicker)
                     <button type="button" class="m-chip" data-branch-open>📍 <span class="max-w-40 truncate">{{ tr($branch->name, $branch->name_en) }}</span> <span aria-hidden="true">▾</span></button>
@@ -694,7 +694,9 @@
             <button value="cancel" class="m-muted text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
         </div>
         @if (! $table && count($ways) > 1)
-            {{-- how the guest orders (also chosen on the "how will you order?" screen) --}}
+            {{-- how the guest orders (also chosen on the "how will you order?" sheet). Nothing is picked for them: until they
+                 choose, the order fields and the send button wait (resources/js/menu.js) --}}
+            <p class="mb-2 text-sm font-extrabold" data-way-ask>{{ __('How will you order?') }}</p>
             <div class="m-surface-2 mb-3 grid gap-1 rounded-2xl p-1" style="grid-template-columns: repeat({{ count($ways) }}, minmax(0, 1fr))" data-way-switch>
                 @foreach ($ways as $way)
                     <button type="button" class="min-h-11 rounded-xl border border-transparent text-sm font-bold" data-way="{{ $way }}" @if ($way !== 'dine') data-otype="{{ $way }}" @endif>{{ $wayLabels[$way] }}</button>
@@ -995,7 +997,7 @@
         'goalCoupon' => __('The gift does not combine with a coupon code.'), 'goalFree' => __('Free'),
         'couponLine' => __('Coupon :code', ['code' => '__C__']), 'couponApplied' => __('Coupon applied: you save :amount', ['amount' => '__A__']),
         'couponChecking' => __('Checking the code…'),
-        'wayChips' => $wayChips,
+        'wayChips' => $wayChips, 'wayAsk' => __('How will you order?'), 'chooseWay' => __('Choose how you will order first.'),
         'noDeliveryHere' => __('The branch :branch does not deliver.', ['branch' => '__B__']),
         'noDeliveryTry' => __('The branch :branch does not deliver — try :other.', ['branch' => '__B__', 'other' => '__O__']),
         'switchBranch' => __('Switch to :branch', ['branch' => '__B__']), 'wayNotHere' => __('This branch does not offer this.'),

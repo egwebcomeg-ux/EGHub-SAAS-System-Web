@@ -1,10 +1,9 @@
 {{--
-    Before the first paint: decide whether the intro plays (every time the menu is opened, or once per browser session — setting menu_intro_repeat; never under reduced motion) and whether the "how will you order?" screen opens (no choice remembered yet), so the
+    Before the first paint: decide whether the intro plays (every time the menu is opened, or once per browser session — setting menu_intro_repeat; never under reduced motion) and whether the branch + "how will you order?" sheet opens (2+ branches, none chosen yet), so the
     menu never flashes before them. The overlays fade out on their own in CSS even if the menu script fails.
 --}}
 @php
     $introKey = 'egmenu.intro.' . tenant()->getTenantKey();
-    $wayKey = 'egmenu.way.' . tenant()->getTenantKey();
     $branchKey = 'egmenu.branch.' . tenant()->getTenantKey();
     // "always": every time the menu is opened (a scan, a link, a new tab) — but not when coming back from another page
     // of the same menu (order tracking, card); "session": once per browser session
@@ -26,16 +25,10 @@
             try { if (store) { store.setItem(@json($introKey), '1'); } } catch (e) {}
         }
         @endif
-        @if ($choice || $branchFirst)
-        // the first-open sheet: no way of ordering remembered yet, or a first visit with no branch chosen
-        var firstOpen = false;
-        @if ($choice)
-        if (!read(@json($wayKey))) { firstOpen = true; }
-        @endif
-        @if ($branchFirst)
-        try { var mem = JSON.parse(window.localStorage.getItem(@json($branchKey)) || '{}'); if (!mem || !mem.current) { firstOpen = true; } } catch (e) {}
-        @endif
-        if (firstOpen) { root.classList.add('choice-open'); }
+        @if ($branchFirst ?? false)
+        // the first-open sheet: a first visit to a place with 2+ branches and no branch chosen yet (a single branch
+        // never opens it by itself: the guest browses at once and picks the way where it is needed)
+        try { var mem = JSON.parse(window.localStorage.getItem(@json($branchKey)) || '{}'); if (!mem || !mem.current) { root.classList.add('choice-open'); } } catch (e) {}
         @endif
     })();
 </script>
@@ -45,7 +38,7 @@
     html.choice-open .m-choice { display: flex; }
     html.choice-open { overflow: hidden; }
     .m-choice-close { display: none; }
-    html.choice-reopen .m-choice-close, .m-choice-card--closable .m-choice-close { display: block; }
+    html.choice-reopen .m-choice-close, .m-choice-card--closable .m-choice-close { display: grid; }
 
     /* intro: brand glow, logo rises with a soft scale, tagline fades in, then the overlay fades out (≈1.8 s; full ≈2.3 s) */
     .m-intro {
@@ -143,65 +136,76 @@
     @keyframes m-slogan-pop { from { opacity: 0; transform: scale(.3) rotate(-14deg); } to { opacity: 1; transform: rotate(-4deg); } }
     @keyframes m-float { 50% { transform: translateY(-5%) rotate(2deg); } }
 
-    /* the first-open sheet, one step: the branch (2+), then a tap on an order type continues */
+    /*
+     * The sheet, short and light: a small header (logo + the question), the branch list (2+ branches) that takes the
+     * room left and scrolls on its own, then the ways of ordering as a row of tiles that always stays on screen.
+     * Phones: a bottom sheet; wider screens: a centred card capped at 28rem.
+     */
     .m-choice {
         position: fixed; inset: 0; z-index: 90; align-items: flex-end; justify-content: center; padding: 0;
         /* the menu (cover, header) shows through, blurred and tinted with the brand colour */
         background: color-mix(in srgb, var(--menu-secondary) 38%, rgba(0, 0, 0, .28));
-        -webkit-backdrop-filter: blur(14px) saturate(1.15); backdrop-filter: blur(14px) saturate(1.15);
+        -webkit-backdrop-filter: blur(12px) saturate(1.15); backdrop-filter: blur(12px) saturate(1.15);
         animation: m-choice-fade .3s ease both;
     }
     .m-choice-card {
-        width: 100%; max-width: 30rem; max-height: 94dvh; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
-        border-radius: 28px 28px 0 0; padding: 0 18px calc(18px + env(safe-area-inset-bottom));
-        display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
-        box-shadow: 0 -20px 60px -24px rgba(0, 0, 0, .6); animation: m-choice-rise .45s cubic-bezier(.2, .8, .2, 1) both;
+        width: 100%; max-width: 28rem; max-height: min(92dvh, 48rem); overflow: hidden;
+        border-radius: 24px 24px 0 0; padding: 16px 16px calc(14px + env(safe-area-inset-bottom));
+        display: flex; flex-direction: column; gap: 12px; text-align: start;
+        box-shadow: 0 -20px 60px -24px rgba(0, 0, 0, .6); animation: m-choice-rise .4s cubic-bezier(.2, .8, .2, 1) both;
     }
-    .m-choice-hero {
-        align-self: stretch; margin: 0 -18px; height: 68px; flex-shrink: 0; border-radius: 28px 28px 0 0;
-        background: radial-gradient(120% 140% at 85% 0%, color-mix(in srgb, var(--menu-accent) 85%, #fff) 0%, transparent 55%),
-            linear-gradient(135deg, var(--menu-secondary), color-mix(in srgb, var(--menu-secondary) 55%, var(--menu-accent)));
-        background-size: cover; background-position: center;
-    }
-    .m-choice-close { background: rgba(0, 0, 0, .35); color: #fff; }
-    .m-choice-brand { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: -40px; }
-    /* a bare (transparent) logo sits on the sheet colour, so it never melts into the brand-coloured band above */
-    .m-choice-logo { height: 66px; width: auto; max-width: 10rem; object-fit: contain; border-radius: 20px; padding: 6px 12px;
-        background: var(--menu-surface); box-shadow: 0 10px 24px -12px rgba(0, 0, 0, .35); }
-    .m-choice-logo--tile { background: #fff; border-radius: 22px; padding: 6px; box-shadow: 0 0 0 4px var(--menu-surface), 0 10px 24px -8px rgba(0, 0, 0, .35); filter: none; }
-    .m-choice-logo--name { background: var(--menu-accent); color: var(--menu-accent-text); padding: 0; display: grid; place-items: center; width: 66px; border-radius: 22px; font-size: 2rem; font-weight: 900; box-shadow: 0 0 0 4px var(--menu-surface); filter: none; }
-    .m-choice-name { font-size: .95rem; font-weight: 800; color: var(--menu-muted); }
-    /* "nearest branch to me": prominent, asks for the location only on the tap */
-    .m-choice-near { background: color-mix(in srgb, var(--menu-accent) 12%, var(--menu-surface)); color: var(--menu-accent); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--menu-accent) 45%, transparent); }
+    /* a soft wash of the brand colour at the top, on the theme's own surface (light and dark templates) */
+    .m-choice-card.m-surface { background: linear-gradient(180deg, color-mix(in srgb, var(--menu-accent) 10%, var(--menu-surface)) 0, var(--menu-surface) 5.5rem); }
+    .m-choice-head { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .m-choice-close { flex-shrink: 0; background: var(--menu-surface-2); color: var(--menu-text); box-shadow: inset 0 0 0 1px var(--menu-border); }
+    /* a bare (transparent) logo sits on a surface tile, so it never melts into the sheet */
+    .m-choice-logo { height: 48px; width: auto; max-width: 7.5rem; flex-shrink: 0; object-fit: contain; border-radius: 14px; padding: 4px 8px;
+        background: var(--menu-surface); box-shadow: 0 0 0 1px var(--menu-border), 0 6px 16px -10px rgba(0, 0, 0, .35); }
+    .m-choice-logo--tile { background: #fff; padding: 4px; }
+    .m-choice-logo--name { display: grid; place-items: center; width: 48px; padding: 0; font-size: 1.4rem; font-weight: 900; box-shadow: none; background: var(--menu-accent); color: var(--menu-accent-text); }
+    .m-choice-brand { display: block; font-size: .8rem; font-weight: 800; color: var(--menu-muted); }
+    /* the branch part takes the room that is left; its list scrolls inside, the ways below never leave the screen */
+    .m-choice-branch { display: flex; flex-direction: column; gap: 8px; min-height: 0; flex: 0 1 auto; }
+    .m-choice-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0; }
+    /* "nearest to me": a small secondary action, asks for the location only on the tap */
+    .m-choice-near { display: inline-flex; align-items: center; gap: 6px; min-height: 2.25rem; padding: 0 12px; border-radius: 999px; flex-shrink: 0;
+        font-size: .8rem; font-weight: 800; color: var(--menu-accent); background: color-mix(in srgb, var(--menu-accent) 10%, var(--menu-surface)); }
     .m-choice-near:disabled { opacity: .6; }
-    /* branches: compact radio rows, the list scrolls inside the sheet */
-    .m-choice-branches { max-height: min(12.5rem, 30dvh); overflow-y: auto; overscroll-behavior: contain; padding: 2px; }
-    .m-branch-row { display: flex; align-items: center; gap: 10px; min-height: 3rem; border-radius: 16px; padding: 6px 12px;
+    .m-choice-near svg { width: 15px; height: 15px; }
+    .m-choice-branches { display: grid; gap: 6px; align-content: start; min-height: 6.6rem; overflow-y: auto; overscroll-behavior: contain; padding: 2px; flex: 0 1 auto; }
+    .m-branch-row { display: flex; align-items: center; gap: 10px; min-height: 3rem; border-radius: 14px; padding: 6px 12px;
         background: var(--menu-surface-2); color: var(--menu-text); box-shadow: inset 0 0 0 1px var(--menu-border); transition: box-shadow .15s ease, background-color .15s ease; }
     .m-branch-row.is-on { background: color-mix(in srgb, var(--menu-accent) 10%, var(--menu-surface)); box-shadow: inset 0 0 0 2px var(--menu-accent); }
-    .m-branch-dot { width: 20px; height: 20px; flex-shrink: 0; border-radius: 999px; box-shadow: inset 0 0 0 2px var(--menu-border); }
-    .m-branch-row.is-on .m-branch-dot { background: var(--menu-accent); box-shadow: inset 0 0 0 5px color-mix(in srgb, var(--menu-accent) 60%, var(--menu-surface)); }
-    /* the order types: big cards, a tap continues */
-    .m-way-card { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 4.25rem; border-radius: 20px; padding: 10px 14px;
+    .m-branch-row:focus-visible { outline: 2px solid var(--menu-accent); outline-offset: 2px; }
+    .m-branch-dot { width: 18px; height: 18px; flex-shrink: 0; border-radius: 999px; box-shadow: inset 0 0 0 2px var(--menu-border); }
+    .m-branch-row.is-on .m-branch-dot { background: var(--menu-accent); box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--menu-accent) 55%, var(--menu-surface)); }
+    /* the ways of ordering: a row of tiles (two or three side by side), a tap continues */
+    .m-way-grid { display: grid; grid-template-columns: repeat(var(--ways, 3), minmax(0, 1fr)); gap: 8px; flex-shrink: 0; }
+    .m-way-card { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px; width: 100%; min-height: 5.75rem;
+        border-radius: 18px; padding: 10px 6px; text-align: center; line-height: 1.2;
         background: var(--menu-surface-2); color: var(--menu-text); box-shadow: inset 0 0 0 1.5px var(--menu-border);
         transition: transform .15s ease, box-shadow .15s ease, background-color .15s ease; -webkit-tap-highlight-color: transparent; }
-    .m-way-card:hover, .m-way-card:focus-visible { box-shadow: inset 0 0 0 2px var(--menu-accent); }
+    .m-way-card:hover, .m-way-card:focus-visible { box-shadow: inset 0 0 0 2px var(--menu-accent); outline: none; }
     .m-way-card:active { transform: scale(.97); }
     .m-way-card:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
     .m-way-card[aria-pressed="true"] { background: color-mix(in srgb, var(--menu-accent) 10%, var(--menu-surface)); box-shadow: inset 0 0 0 2px var(--menu-accent); }
-    .m-way-icon { display: grid; place-items: center; width: 48px; height: 48px; flex-shrink: 0; border-radius: 16px; background: var(--menu-accent); color: var(--menu-accent-text); box-shadow: 0 8px 18px -10px var(--menu-accent); }
-    .m-way-icon svg { width: 28px; height: 28px; }
-    .m-way-go { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 999px; color: var(--menu-accent); background: color-mix(in srgb, var(--menu-accent) 12%, transparent); }
-    .m-way-go svg { width: 18px; height: 18px; }
-    [dir="rtl"] .m-way-go svg { transform: scaleX(-1); }
+    .m-way-icon { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 13px; background: var(--menu-accent); color: var(--menu-accent-text); }
+    .m-way-icon svg { width: 22px; height: 22px; }
+    .m-way-name { font-size: .95rem; font-weight: 900; }
+    .m-way-sub { font-size: .72rem; font-weight: 600; color: var(--menu-muted); }
+    /* three tiles on a narrow phone: the name alone keeps them short */
+    @media (max-width: 400px) { .m-way-grid--3 .m-way-sub { display: none; } .m-way-grid--3 .m-way-card { min-height: 5rem; } }
     .m-way-card.is-going { background: var(--menu-accent); color: var(--menu-accent-text); }
-    .m-way-card.is-going .m-muted { color: inherit; opacity: .85; }
+    .m-way-card.is-going .m-way-sub { color: inherit; opacity: .85; }
     .m-way-card.is-going .m-way-icon { background: var(--menu-accent-text); color: var(--menu-accent); }
+    .m-choice-foot { flex-shrink: 0; text-align: center; font-size: .75rem; }
     /* entrance: the parts rise one after the other */
-    .m-choice-in { animation: m-choice-item .5s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(.12s + var(--i, 0) * .06s); }
-    @media (min-width: 640px) { .m-choice { align-items: center; } .m-choice-card { border-radius: 28px; } .m-choice-hero { border-radius: 28px 28px 0 0; } }
+    .m-choice-in { animation: m-choice-item .45s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(.08s + var(--i, 0) * .05s); }
+    @media (min-width: 640px) { .m-choice { align-items: center; padding: 24px; } .m-choice-card { border-radius: 24px; padding-bottom: 16px; } }
+    /* very short screens (a phone held sideways): the whole card scrolls instead of squeezing the list */
+    @media (max-height: 520px) { .m-choice-card { overflow-y: auto; } .m-choice-card > * { flex-shrink: 0; } .m-choice-branches { flex: none; max-height: 9rem; } }
     @keyframes m-choice-rise { from { transform: translateY(40%); opacity: 0; } to { transform: none; opacity: 1; } }
-    @keyframes m-choice-item { from { transform: translateY(14px); opacity: 0; } to { transform: none; opacity: 1; } }
+    @keyframes m-choice-item { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
     @keyframes m-choice-fade { from { opacity: 0; } to { opacity: 1; } }
     @media (prefers-reduced-motion: reduce) { .m-choice-card { animation: none; } }
     @media (prefers-reduced-motion: reduce) { .m-choice, .m-choice-in { animation: none; } .m-way-card, .m-branch-row { transition: none; } }

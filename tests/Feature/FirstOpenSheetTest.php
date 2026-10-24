@@ -32,7 +32,7 @@ class FirstOpenSheetTest extends TenantTestCase
     {
         $this->twoBranches();
         $html = $this->get($this->subUrl('cafe-a'))->assertOk()
-            ->assertSee(['هتطلب إزاي؟', 'من أنهي فرع؟', 'أقرب فرع ليا', 'اطلب على ترابيزتك'])
+            ->assertSee(['هتطلب إزاي؟', 'من أنهي فرع؟', 'الأقرب ليا', 'اختار وورّي الويتر'])
             ->assertSee('data-way="dine"', false)->assertSee('data-branch-pick="zamalek"', false)
             // one step: no separate "Let's order" button
             ->assertDontSee('data-first-confirm', false)->assertDontSee('يلا نطلب')
@@ -102,6 +102,39 @@ class FirstOpenSheetTest extends TenantTestCase
             ->assertSee('data-first-sheet', false)->assertSee('data-way="takeaway"', false)
             ->assertDontSee('data-branch-sheet', false)->assertDontSee('من أنهي فرع؟')->assertDontSee('data-branch-open', false)
             ->assertDontSee('egmenu.branch.solo', false);
+    }
+
+    public function test_a_single_branch_never_opens_the_sheet_by_itself_and_nothing_is_picked_for_the_guest(): void
+    {
+        $a = $this->restaurant('solo', 'business');
+        $this->item($a, 'Kofta', 150);
+        $this->as($a, fn () => Settings::put(['order_type_prompt' => '1', 'online_delivery' => '1']));
+
+        // the hall, takeaway and the setting on: the guest still lands on the menu
+        $this->get($this->subUrl('solo'))->assertOk()
+            ->assertSee('data-first-sheet', false)->assertDontSee("root.classList.add('choice-open')", false)
+            // the header chip asks instead of claiming a way the guest never chose; the cart asks above its switch
+            ->assertSee('<span data-way-chip-label>هتطلب إزاي؟</span>', false)->assertSee('data-way-ask', false);
+    }
+
+    public function test_many_branches_keep_the_way_tiles_on_screen_and_show_the_name_only_without_a_logo(): void
+    {
+        $a = $this->restaurant('chain', 'full');
+        $this->as($a, function () {
+            foreach (['Zamalek', 'Heliopolis', 'Dokki', 'Nasr City', 'Maadi 2', 'Shoubra'] as $name) {
+                Branch::query()->create(['name' => $name, 'slug' => Str::slug($name)]);
+            }
+        });
+
+        $sheet = $this->get($this->subUrl('chain'))->assertOk()->getContent();
+        $sheet = substr($sheet, strpos($sheet, 'data-order-choice'));
+        // the ways sit after the branch list as a row of tiles (the list scrolls on its own, CSS in intro-head)
+        $this->assertStringContainsString('class="m-way-grid" style="--ways: 2"', $sheet);
+        $this->assertStringContainsString('class="m-choice-brand truncate"', $sheet);
+
+        $this->as($a, fn () => Settings::put(['logo' => 'tenants/chain/brand/logo.webp']));
+        $sheet = $this->get($this->subUrl('chain'))->assertOk()->getContent();
+        $this->assertStringContainsString('class="m-choice-brand truncate sr-only"', $sheet);
     }
 
     public function test_with_one_way_of_ordering_the_sheet_is_only_the_branch_list(): void

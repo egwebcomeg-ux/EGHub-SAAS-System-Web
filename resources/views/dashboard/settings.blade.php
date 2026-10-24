@@ -336,7 +336,7 @@
                     <span class="field-label">{{ __('Note on the list for the waiter') }}</span>
                     <input class="field" name="dine_in_notice" maxlength="200" value="{{ old('dine_in_notice', $s['dine_in_notice']) }}" placeholder="{{ __('This list is for showing the waiter. Hand it to the service team.') }}">
                 </label>
-                <label class="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" name="order_type_prompt" value="1" @checked($s['order_type_prompt'] === '1') class="size-4 accent-brand-600"> {{ __('Ask "how will you order?" on the menu link when you offer the hall and takeaway or delivery') }}</label>
+                <label class="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" name="order_type_prompt" value="1" @checked($s['order_type_prompt'] === '1') class="size-4 accent-brand-600"> {{ __('Ask "how will you order?" when the guest adds their first item (when you offer the hall and takeaway or delivery). Otherwise they choose it in the cart.') }}</label>
                 <p class="mt-1 text-xs text-navy-500">{{ __('A table QR always means the hall. On the menu link, sending from the hall needs the table QR, so there it works as a list for the waiter.') }}</p>
             </div>
             @if (\App\Services\Entitlements::current()->allows('online_ordering'))
