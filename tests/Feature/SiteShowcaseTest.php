@@ -27,14 +27,17 @@ class SiteShowcaseTest extends TenantTestCase
         return $tenant;
     }
 
-    public function test_the_strip_stays_hidden_under_the_minimum(): void
+    public function test_a_few_places_join_the_egweb_clients_in_one_strip(): void
     {
         for ($i = 1; $i < SiteShowcase::MIN_LOGOS; $i++) {
             $this->place("cafe-$i");
         }
+        $this->assertSame([], SiteShowcase::logos()); // alone they are too few for a strip of their own
 
-        $this->get($this->menuUrl())->assertOk()->assertDontSee('data-site-showcase', false)->assertDontSee('/storage/logos/cafe-1.png');
-        $this->assertSame([], SiteShowcase::logos());
+        // ...but in front of EgWeb's clients they show, under a title that names both
+        $this->get($this->menuUrl())->assertOk()->assertSee('data-site-showcase', false)->assertSee('data-egweb-clients', false)
+            ->assertSee('مطاعم وكافيهات بتثق فينا')->assertSee('مشتركين EgHub، وعملاء EgWeb الشركة اللي ورا EgHub.')
+            ->assertSeeInOrder(['/storage/logos/cafe-1.png', '/img/egweb-clients/gold-sushi-club.webp'], false);
     }
 
     public function test_only_opted_in_active_places_with_a_logo_show_in_order(): void
@@ -51,7 +54,7 @@ class SiteShowcaseTest extends TenantTestCase
         $this->assertSame(['cafe-a', 'cafe-d', 'cafe-b', 'cafe-c'], array_column(SiteShowcase::logos(), 'slug'));
 
         $page = $this->get($this->menuUrl())->assertOk()->assertSee('data-site-showcase', false)
-            ->assertSee('مطاعم وكافيهات بتشتغل على EgHub')
+            ->assertSee('مطاعم وكافيهات بتثق فينا')
             ->assertSee('href="http://egmenu.test/cafe-a" target="_blank" rel="noopener"', false)
             ->assertSee('src="/storage/logos/cafe-a.png" alt="Brand cafe-a" width="160" height="64" loading="lazy"', false)
             ->assertSee('data-showcase-copy', false);

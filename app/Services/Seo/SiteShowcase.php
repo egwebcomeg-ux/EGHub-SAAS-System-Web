@@ -30,14 +30,23 @@ final class SiteShowcase
      */
     public static function logos(): array
     {
+        $places = self::places();
+
+        return count($places) >= self::MIN_LOGOS ? $places : [];
+    }
+
+    /**
+     * Every place EgWeb turned on, however few: the home page strip adds them in front of EgWeb's own clients.
+     *
+     * @return list<array{slug:string, name:string, name_en:string, logo:string, url:string}>
+     */
+    public static function places(): array
+    {
         return Cache::remember(self::CACHE_KEY, self::TTL_SECONDS, function () {
             $logos = DB::table('tenant_settings')->where('key', 'logo')->where('value', '!=', '')->whereNotNull('value')->select('tenant_id');
             $tenants = Tenant::query()->where('showcase_on_site', true)->where('status', 'active')->whereIn('id', $logos)
                 ->orderByRaw('showcase_sort is null')->orderBy('showcase_sort')->orderBy('name')
                 ->limit(self::MAX_LOGOS)->get(['id', 'name']);
-            if ($tenants->count() < self::MIN_LOGOS) {
-                return [];
-            }
             $settings = DB::table('tenant_settings')->whereIn('tenant_id', $tenants->pluck('id'))
                 ->whereIn('key', ['brand_name', 'brand_name_en', 'logo'])->get()
                 ->groupBy('tenant_id')->map(fn ($rows) => $rows->pluck('value', 'key')->map(fn ($v) => trim((string) $v))->all());
@@ -54,7 +63,7 @@ final class SiteShowcase
                 ];
             })->filter()->values()->all();
 
-            return count($places) >= self::MIN_LOGOS ? $places : [];
+            return $places;
         });
     }
 

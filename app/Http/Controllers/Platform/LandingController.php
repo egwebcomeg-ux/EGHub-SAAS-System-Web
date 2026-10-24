@@ -17,12 +17,30 @@ class LandingController extends Controller
     public function home(): View
     {
         return view('landing.home', SiteModules::pricing() + [
-            'showcaseLogos' => SiteShowcase::logos(),
-            'egwebClients' => EgwebClients::strip(),
+            'logoStrip' => self::logoStrip(),
             'proofPlaces' => SocialProof::places(),
             'proofCounters' => SocialProof::counters(),
             'testimonials' => Testimonial::query()->live()->with('tenant')->limit(Testimonial::HOME_LIMIT)->get(),
         ]);
+    }
+
+    /**
+     * The one moving strip of logos: the EgHub places EgWeb turned on first, then EgWeb's own clients (a place in both
+     * shows once), from SiteShowcase::MIN_LOGOS logos up. The title names both, so no EgWeb client is presented as an
+     * EgHub user.
+     *
+     * @return array{logos: list<array<string, mixed>>, places: int, clients: int}
+     */
+    private static function logoStrip(): array
+    {
+        $places = array_map(fn (array $p) => ['name' => tr($p['name'], $p['name_en']), 'logo' => $p['logo'], 'url' => $p['url']], SiteShowcase::places());
+        $seen = array_map(fn (array $p) => mb_strtolower(trim($p['name'])), $places);
+        $clients = array_values(array_map(fn (array $c) => $c + ['rel' => 'noopener nofollow'], array_filter(EgwebClients::active(), fn (array $c) => ! in_array(mb_strtolower(trim($c['name'])), $seen, true))));
+        $logos = array_slice([...$places, ...$clients], 0, SiteShowcase::MAX_LOGOS);
+
+        return count($logos) >= SiteShowcase::MIN_LOGOS
+            ? ['logos' => $logos, 'places' => count($places), 'clients' => count($clients)]
+            : ['logos' => [], 'places' => 0, 'clients' => 0];
     }
 
     /** All plans side by side, with the add-ons. */

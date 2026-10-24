@@ -78,11 +78,21 @@ final class EgwebClients
      */
     public static function strip(): array
     {
-        $logos = array_map(fn (array $c) => [
-            'name' => $c['name'], 'logo' => self::src($c['path']), 'url' => $c['url'], 'width' => $c['width'], 'height' => $c['height'],
-        ], array_values(array_filter(self::all(), fn (array $c) => $c['active'])));
+        $logos = self::active();
 
         return count($logos) >= self::MIN_LOGOS ? array_slice($logos, 0, self::MAX_LOGOS) : [];
+    }
+
+    /**
+     * Every logo the admin switched on, however few (the home page strip joins them to the EgHub places).
+     *
+     * @return list<array{name: string, logo: string, url: string, width: int, height: int}>
+     */
+    public static function active(): array
+    {
+        return array_map(fn (array $c) => [
+            'name' => $c['name'], 'logo' => self::src($c['path']), 'url' => $c['url'], 'width' => $c['width'], 'height' => $c['height'],
+        ], array_values(array_filter(self::all(), fn (array $c) => $c['active'])));
     }
 
     /** @param  list<array<string, mixed>>  $list */

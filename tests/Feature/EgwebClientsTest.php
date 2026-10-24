@@ -33,7 +33,7 @@ class EgwebClientsTest extends TenantTestCase
     public function test_the_bundled_set_shows_the_food_brands_under_an_honest_title(): void
     {
         $page = $this->get($this->menuUrl())->assertOk()->assertSee('data-egweb-clients', false)
-            ->assertSee('مطاعم وكافيهات وثقت في EgWeb')
+            ->assertSee('مطاعم وكافيهات بتثق فينا')->assertSee('EgHub منتج من EgWeb', false)
             ->assertSee('src="/img/egweb-clients/gold-sushi-club.webp" alt="Gold Sushi Club" width="480" height="56" loading="lazy"', false)
             ->assertSee('href="https://www.goldsushiclub.com" target="_blank" rel="noopener nofollow"', false)
             ->assertSee('/img/egweb-clients/vasko.webp', false)

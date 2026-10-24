@@ -73,22 +73,13 @@
     </div>
 </section>
 
-{{-- ============ LOGOS: places EgWeb put in the strip with the owner's consent (App\Services\Seo\SiteShowcase, at least MIN_LOGOS) ============ --}}
-@if ($showcaseLogos)
-    <section data-site-showcase class="pt-14" aria-labelledby="showcase-title">
-        <h2 id="showcase-title" class="hm-kicker hm-kicker--quiet justify-center px-4 text-center">{{ __('Restaurants and cafes running on EgHub') }}</h2>
-        @include('landing.partials.logo-marquee', ['marker' => 'showcase', 'logos' => array_map(fn ($place) => [
-            'name' => tr($place['name'], $place['name_en']), 'logo' => $place['logo'], 'url' => $place['url'],
-        ], $showcaseLogos)])
-    </section>
-@endif
-
-{{-- ============ LOGOS: EgWeb's own clients (EgHub is an EgWeb product), never claimed as EgHub users (App\Services\Seo\EgwebClients) ============ --}}
-@if ($egwebClients)
-    <section data-egweb-clients @class(['pt-10' => $showcaseLogos, 'pt-14' => ! $showcaseLogos]) aria-labelledby="egweb-clients-title">
-        <h2 id="egweb-clients-title" class="hm-kicker hm-kicker--quiet justify-center px-4 text-center">{{ __('Restaurants and cafés that trust EgWeb') }}</h2>
-        <p class="mt-1 px-4 text-center text-sm text-navy-500">{{ __('EgHub is a product of EgWeb, the company they work with.') }}</p>
-        @include('landing.partials.logo-marquee', ['marker' => 'clients', 'logos' => $egwebClients, 'rel' => 'noopener nofollow'])
+{{-- ============ LOGOS: EgHub places EgWeb turned on (SiteShowcase) and EgWeb's own clients (EgwebClients), one strip
+     named for both so no EgWeb client is claimed as an EgHub user (LandingController::logoStrip) ============ --}}
+@if ($logoStrip['logos'])
+    <section data-logo-strip @if ($logoStrip['places']) data-site-showcase @endif @if ($logoStrip['clients']) data-egweb-clients @endif class="pt-14" aria-labelledby="logo-strip-title">
+        <h2 id="logo-strip-title" class="hm-kicker hm-kicker--quiet justify-center px-4 text-center">{{ __('Restaurants and cafes that trust us') }}</h2>
+        <p class="mt-1 px-4 text-center text-sm text-navy-500">{{ $logoStrip['places'] && $logoStrip['clients'] ? __('EgHub subscribers and clients of EgWeb, the company behind EgHub.') : ($logoStrip['places'] ? __('Places running on EgHub.') : __('EgHub is a product of EgWeb, the company they work with.')) }}</p>
+        @include('landing.partials.logo-marquee', ['marker' => 'showcase', 'logos' => $logoStrip['logos']])
     </section>
 @endif
 
