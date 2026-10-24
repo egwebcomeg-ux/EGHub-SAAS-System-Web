@@ -6,6 +6,7 @@ use App\Billing\Billing;
 use App\Models\Branch;
 use App\Models\DiningTable;
 use App\Models\Kiosk;
+use App\Models\Order;
 use App\Models\Tenant;
 use App\Models\TvScreen;
 use App\Services\Settings;
@@ -82,6 +83,35 @@ class DineInModesTest extends TenantTestCase
         $this->assertSame('list', $data['mode']);
         $this->assertFalse($data['hall']['prices']);
         $this->assertSame(['dine'], $data['ways']);
+    }
+
+    public function test_the_owner_can_hide_the_bill_total_inside_the_place_only(): void
+    {
+        $a = $this->restaurant('cafe-a', 'pro', true);
+        $this->item($a, 'Latte', 65);
+
+        // off by default; saved from the hall section of the settings
+        $this->assertFalse($this->menuData($this->get($this->subUrl('cafe-a'))->assertOk())['hall']['hideTotal']);
+        $this->actingAs($this->owner($a))->post($this->dashUrl('/settings'), self::FORM + ['dine_in_mode' => 'order', 'dine_in_show_prices' => 1, 'dine_in_hide_total' => 1])
+            ->assertRedirect();
+        $this->assertSame('1', $this->as($a, fn () => Settings::get('dine_in_hide_total')));
+
+        $this->scanTable($a);
+        $data = $this->menuData($this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('65'));
+        $this->assertTrue($data['hall']['prices']);      // item prices stay
+        $this->assertTrue($data['hall']['hideTotal']);   // the cart hides only the bill (resources/js/menu.js hideTotal)
+
+        // the tracking page of a dine-in order hides the totals; a takeaway order keeps them
+        [$dine, $away] = $this->as($a, function () {
+            $order = fn (string $type) => Order::query()->create([
+                'branch_id' => Branch::query()->value('id'), 'number' => random_int(100, 999), 'type' => $type, 'status' => 'new',
+                'source' => 'qr', 'subtotal' => 65, 'total' => 65, 'tracking_token' => bin2hex(random_bytes(12)),
+            ]);
+
+            return [$order('dine_in'), $order('takeaway')];
+        });
+        $this->get($this->subUrl('cafe-a', "o/{$dine->tracking_token}"))->assertOk()->assertDontSee('data-totals', false);
+        $this->get($this->subUrl('cafe-a', "o/{$away->tracking_token}"))->assertOk()->assertSee('data-totals', false);
     }
 
     public function test_a_list_hides_prices_in_the_cart_and_nothing_is_sent_from_the_table(): void

@@ -72,7 +72,8 @@ final class Settings
         // table ordering in the plan and ordering on, else list
         'dine_in_mode' => '',
         'dine_in_show_prices' => '',          // '' = shown in an order, hidden on a list; '1' | '0' when the owner chose
-        'dine_in_notice' => '',               // text on the hall list; empty = the default sentence
+        'dine_in_notice' => '',
+        'dine_in_hide_total' => '0',          // '1' = inside the place the guest sees item prices but no bill total (takeaway/delivery keep it)               // text on the hall list; empty = the default sentence
         // general menu link: "how will you order?" screen when the hall and takeaway/delivery are both offered
         'order_type_prompt' => '1',
         // branded splash on the first open per session (App\Support\MenuIntro): off | logo | full

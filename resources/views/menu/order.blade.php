@@ -196,6 +196,7 @@
         @if ($order->notes)
             <p class="mt-2 rounded-xl m-surface-2 px-3 py-2 text-sm"><b>{{ __('Notes') }}:</b> {{ $order->notes }}</p>
         @endif
+        @unless ($order->type === 'dine_in' && \App\Services\Settings::get('dine_in_hide_total') === '1')
         <div class="mt-3 space-y-1 border-t m-border pt-3 text-sm" data-totals>
             @if ($order->subtotal != $order->total)
                 <div class="flex justify-between"><span>{{ __('Subtotal') }}</span><span>{{ money($order->subtotal) }} {{ $currency }}</span></div>
@@ -222,6 +223,7 @@
                 </div>
             @endif
         </div>
+        @endunless
     </div>
 
     @if ($showContact)

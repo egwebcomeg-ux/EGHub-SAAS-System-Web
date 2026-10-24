@@ -25,6 +25,8 @@ if (dataEl) {
     let otype = O ? (O.takeaway ? 'takeaway' : 'delivery') : null;
     const inHall = () => mode === 'table' || mode === 'list';
     const hidePrices = () => inHall() && !H.prices;
+    // inside the place the owner may show item prices but no bill total; takeaway and delivery always show it
+    const hideTotal = () => hidePrices() || (H.hideTotal && inHall());
     const wayKey = `egmenu.way.${M.tenant}`;
     // the cart's coupon preview (see quoteCoupon) and its re-check timer
     let couponQuote = null;
@@ -50,7 +52,7 @@ if (dataEl) {
         const total = cart.reduce((s, l) => s + unitPrice(M.items[l.item_id], l.option_ids) * l.qty, 0);
         $('[data-cart-bar]').classList.toggle('hidden', count === 0 || mode === 'none');
         $('[data-cart-count]').textContent = count;
-        $('[data-cart-total]').textContent = hidePrices() ? '' : fmt(total);
+        $('[data-cart-total]').textContent = hideTotal() ? '' : fmt(total);
         $('[data-cart-label]').textContent = mode === 'list' ? T.myOrder : T.viewOrder;
     }
 
@@ -558,8 +560,8 @@ if (dataEl) {
         renderGoal(t);
         const row = (label, v, bold) => `<div class="flex justify-between ${bold ? 'text-base font-extrabold' : ''}"><span>${esc(label)}</span><span>${fmt(v)}</span></div>`;
         const summary = $('[data-cart-summary]', cartSheet);
-        summary.classList.toggle('hidden', hidePrices() || !cart.length);
-        $('[data-bill]', cartSheet)?.classList.toggle('hidden', hidePrices() || !cart.length);
+        summary.classList.toggle('hidden', hideTotal() || !cart.length);
+        $('[data-bill]', cartSheet)?.classList.toggle('hidden', hideTotal() || !cart.length);
         // savings of the running offers: the price before the offer is real data of the menu (MenuCatalog)
         const saved = cart.reduce((s, l) => { const it = M.items[l.item_id]; return s + (it.offerFrom ? (it.offerFrom - it.price) * l.qty : 0); }, 0);
         const couponOff = t.coupon ? Math.min(t.coupon.discount, t.subtotal - t.goal.off) : 0;

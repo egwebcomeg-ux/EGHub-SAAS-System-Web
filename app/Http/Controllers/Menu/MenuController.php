@@ -457,6 +457,8 @@ class MenuController extends Controller
             'mode' => $dineMode === 'order' && $table === null ? 'list' : $dineMode,
             'prices' => DineIn::showPrices($settings, $dineMode),
             'notice' => DineIn::notice($settings),
+            // inside the place: item prices, no bill total (setting dine_in_hide_total)
+            'hideTotal' => ($settings['dine_in_hide_total'] ?? '0') === '1',
             'table' => $table?->name,
             'scanHint' => $dineMode === 'order' && $table === null,
         ];

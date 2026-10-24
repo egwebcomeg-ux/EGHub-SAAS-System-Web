@@ -331,6 +331,7 @@
                     <p class="mt-2 text-xs text-amber-700">{{ __('Ordering is switched off above, so the hall works as a list for the waiter until you switch it on.') }}</p>
                 @endif
                 <label class="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" name="dine_in_show_prices" value="1" @checked(\App\Support\DineIn::showPrices($s, $dineMode)) class="size-4 accent-brand-600"> {{ __('Show prices and the total in the hall cart and list (the menu always shows prices)') }}</label>
+                <label class="mt-2 flex items-center gap-2 text-sm" data-dine-in-hide-total><input type="checkbox" name="dine_in_hide_total" value="1" @checked(($s['dine_in_hide_total'] ?? '0') === '1') class="size-4 accent-brand-600"> {{ __('Hide the bill total for guests inside the place (item prices stay; takeaway and delivery still show the total)') }}</label>
                 <label class="mt-3 block text-sm">
                     <span class="field-label">{{ __('Note on the list for the waiter') }}</span>
                     <input class="field" name="dine_in_notice" maxlength="200" value="{{ old('dine_in_notice', $s['dine_in_notice']) }}" placeholder="{{ __('This list is for showing the waiter. Hand it to the service team.') }}">

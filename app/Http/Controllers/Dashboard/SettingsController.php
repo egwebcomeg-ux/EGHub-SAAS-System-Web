@@ -177,6 +177,7 @@ class SettingsController extends Controller
             $prices = $request->boolean('dine_in_show_prices');
             $values['dine_in_show_prices'] = $prices === DineIn::defaultShowPrices($effective) ? '' : ($prices ? '1' : '0');
             $values['order_type_prompt'] = $request->boolean('order_type_prompt') ? '1' : '0';
+            $values['dine_in_hide_total'] = $request->boolean('dine_in_hide_total') ? '1' : '0';
         } else {
             unset($values['dine_in_notice']);
         }
