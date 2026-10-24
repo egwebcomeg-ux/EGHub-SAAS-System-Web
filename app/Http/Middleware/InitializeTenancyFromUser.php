@@ -36,6 +36,14 @@ class InitializeTenancyFromUser
         if (TwoFactor::setupRequired($user) && ! $request->routeIs('dash.security*', 'dash.logout', 'dash.locale', 'dash.manifest', 'dash.sw')) {
             return redirect()->route('dash.security');
         }
+        // An owner who got a temporary password in a welcome kit picks their own first (App\Services\WelcomeKit).
+        if ($user->must_change_password && ! $request->routeIs('dash.security*', 'dash.logout', 'dash.locale', 'dash.manifest', 'dash.sw')) {
+            if ($request->expectsJson()) {
+                abort(403, __('Choose your own password first.'));
+            }
+
+            return redirect()->route('dash.security')->with('ok', __('Choose your own password first.'));
+        }
 
         return $next($request);
     }

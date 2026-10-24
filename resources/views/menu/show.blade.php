@@ -176,9 +176,13 @@
         @if ($settings['logo'])
             <img src="/storage/{{ $settings['logo'] }}" alt="{{ $brand }}" class="h-14 max-h-16 w-auto min-w-14 max-w-36 shrink-0 object-contain sm:h-16 {{ $logoClass }} {{ $settings['cover'] ? '-mt-10' : '' }}" data-logo data-logo-tile="{{ $logoTile ? 'white' : 'none' }}">
         @endif
+        @php
+            $showName = \App\Support\MenuHeader::showsName($settings);
+        @endphp
         <div class="min-w-0 flex-1">
-            <h1 class="truncate text-xl font-black">{{ $brand }}</h1>
-            @if ($t = tr($settings['tagline'], $settings['tagline_en']))<p class="truncate text-sm text-white/75">{{ $t }}</p>@endif
+            {{-- the name and tagline next to the logo (setting header_show_name); hidden, the name stays for screen readers --}}
+            <h1 @class(['truncate text-xl font-black', 'sr-only' => ! $showName]) data-header-name="{{ $showName ? 'shown' : 'hidden' }}">{{ $brand }}</h1>
+            @if ($showName && ($t = tr($settings['tagline'], $settings['tagline_en'])))<p class="truncate text-sm text-white/75" data-header-tagline>{{ $t }}</p>@endif
             <a href="{{ route('menu.about') }}" class="text-xs font-semibold text-white/80 underline underline-offset-2" data-about-link>{{ __('About the place') }}</a>
         </div>
         @include('menu.partials.lang-switch')
@@ -502,9 +506,7 @@
             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM12 18h.01M12 6v7M9 10l3 3 3-3"/></svg>
             {{ __('Add the menu to your phone') }}
         </button></div>
-        @unless (\App\Services\Entitlements::current()->allows('hide_badge'))
-            <a href="{{ platform_url(null) }}" class="inline-flex items-center gap-1 text-xs">{{ __('Powered by') }} <x-logo :size="14" class="!gap-1 [&_span]:text-xs" /></a>
-        @endunless
+        @include('menu.partials.powered-by')
     </footer>
 </main>
 

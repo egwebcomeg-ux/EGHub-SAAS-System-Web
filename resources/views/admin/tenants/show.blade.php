@@ -51,6 +51,8 @@
     </div>
 @endif
 
+@include('admin.tenants.welcome-kit')
+
 <div class="grid gap-4 lg:grid-cols-3">
     {{-- the restaurant's users: support actions per user --}}
     <section class="card lg:col-span-2" id="users">

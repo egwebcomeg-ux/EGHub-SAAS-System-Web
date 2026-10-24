@@ -15,14 +15,18 @@ use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Audit;
+use App\Services\DemoContent;
 use App\Services\Entitlements;
 use App\Services\Seo\SocialProof;
 use App\Services\Settings;
 use App\Services\TenantEraser;
 use App\Services\TenantProvisioner;
+use App\Services\WelcomeKit;
+use App\Support\BusinessType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -48,18 +52,25 @@ class TenantsController extends Controller
         return view('admin.tenants.create', ['plans' => Plan::query()->orderBy('sort_order')->get()]);
     }
 
-    public function store(Request $request, TenantProvisioner $provisioner): RedirectResponse
+    /**
+     * A restaurant for a prospect: the owner gets a strong temporary password (changed at the first sign-in) and a
+     * welcome kit (App\Services\WelcomeKit); with "fill demo data" the other modules get sample rows
+     * (App\Services\DemoContent). No owner email: a placeholder {slug}@egmenu.app that is never mailed.
+     * trial_days 0 = no trial, the plan starts active (set by hand after a transfer).
+     */
+    public function store(Request $request, TenantProvisioner $provisioner, WelcomeKit $kit, DemoContent $demo): RedirectResponse
     {
         $request->merge(['slug' => strtolower(trim((string) $request->input('slug'))), 'email' => strtolower(trim((string) $request->input('email')))]);
         $data = $request->validate([
             'name' => 'required|string|max:100',
             'slug' => 'required|string|max:30',
+            'business_type' => ['nullable', Rule::in(array_keys(BusinessType::TYPES))],
             'owner_name' => 'required|string|max:100',
-            'email' => 'required|email|max:120|unique:users,email',
+            'email' => 'nullable|email|max:120|unique:users,email',
             'phone' => 'nullable|string|max:20',
-            'password' => 'required|string|min:8|max:200',
             'plan' => ['required', Rule::exists('plans', 'code')],
-            'trial' => 'nullable|boolean',
+            'trial_days' => 'nullable|integer|min:0|max:90',
+            'demo' => 'nullable|boolean',
         ]);
         if ($error = Tenant::slugError($data['slug'])) {
             return back()->withInput()->withErrors(['slug' => $error]);
@@ -68,13 +79,62 @@ class TenantsController extends Controller
         if ($data['phone'] && (! $phone || User::query()->where('phone', $phone)->exists())) {
             return back()->withInput()->withErrors(['phone' => __('Enter a valid, unused Egyptian mobile number.')]);
         }
+        $email = $data['email'] ?: WelcomeKit::placeholderEmail($data['slug']);
+        if (! $data['email'] && User::query()->where('email', $email)->exists()) {
+            return back()->withInput()->withErrors(['email' => __('Enter the owner\'s email: the placeholder address of this link is taken.')]);
+        }
+        $trialDays = (int) ($data['trial_days'] ?? 0);
 
         $tenant = $provisioner->create([
-            'slug' => $data['slug'], 'name' => $data['name'], 'owner_name' => $data['owner_name'], 'email' => $data['email'],
-            'phone' => $phone, 'password' => $data['password'], 'plan' => $data['plan'], 'trial' => $request->boolean('trial'),
+            'slug' => $data['slug'], 'name' => $data['name'], 'owner_name' => $data['owner_name'], 'email' => $email,
+            'phone' => $phone, 'password' => Str::password(40), 'plan' => $data['plan'], 'trial' => $trialDays > 0,
+            'trial_days' => max(1, $trialDays), 'business_type' => $data['business_type'] ?? BusinessType::DEFAULT,
+        ]);
+        $owner = $kit->owner($tenant) ?? User::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->firstOrFail();
+        $kit->issue($tenant, $owner);
+        // the sample rows are a nicety: the restaurant and its kit stand even when they fail (all or nothing inside)
+        $seeded = null;
+        if ($request->boolean('demo')) {
+            try {
+                $seeded = $demo->seed($tenant);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+        $mailed = $kit->email($tenant, $owner);
+        PlatformAuditLog::record($request->user('admin'), 'tenant.created_for_prospect', $tenant->id, [
+            'name' => $tenant->name, 'plan' => $data['plan'], 'trial_days' => $trialDays, 'demo' => $seeded !== null,
+            'placeholder_email' => ! $data['email'], 'emailed' => $mailed,
         ]);
 
-        return redirect()->route('admin.tenants.show', $tenant)->with('ok', __('Restaurant created.'));
+        return redirect()->route('admin.tenants.show', $tenant)->with('ok', $mailed
+            ? __('Restaurant created. The welcome kit is ready and was emailed to the owner.')
+            : __('Restaurant created. The welcome kit is ready: send it on WhatsApp or copy the link.'))
+            ->with('kit_created', true);
+    }
+
+    /** A new temporary password and a new welcome page (older links stop working); emailed again to a real address. */
+    public function welcomeKit(Request $request, Tenant $tenant, WelcomeKit $kit): RedirectResponse
+    {
+        $owner = $kit->owner($tenant) ?? User::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)
+            ->role('owner')->orderBy('id')->first();
+        if (! $owner) {
+            return back()->withErrors(['welcome_kit' => __('This restaurant has no owner account.')]);
+        }
+        $kit->issue($tenant, $owner);
+        $mailed = $request->boolean('email') && $kit->email($tenant, $owner);
+        PlatformAuditLog::record($request->user('admin'), 'tenant.welcome_kit_regenerated', $tenant->id, ['user' => $owner->id, 'emailed' => $mailed]);
+        tenancy()->initialize($tenant);
+        try {
+            Audit::record('user.password_set_by_platform', $owner->name, ['id' => $owner->id, 'admin' => $request->user('admin')->email, 'welcome_kit' => true]);
+        } finally {
+            tenancy()->end();
+            Settings::flush();
+        }
+
+        return back()->with('ok', $mailed
+            ? __('A new welcome kit is ready and was emailed to the owner. Older links no longer work.')
+            : __('A new welcome kit is ready. Older links no longer work.'))->with('kit_created', true);
     }
 
     public function show(Tenant $tenant): View
@@ -91,10 +151,23 @@ class TenantsController extends Controller
             $contact = ['phone' => Settings::get('phone'), 'whatsapp' => Settings::get('whatsapp')];
             $logo = trim((string) Settings::get('logo'));
             $platformActions = AuditLog::query()->where('action', 'like', '%_by_platform')->latest('id')->limit(8)->get();
+            $demoRows = array_sum(array_map('count', DemoContent::ids()));
         } finally {
             tenancy()->end();
             Settings::flush();
         }
+        $kit = app(WelcomeKit::class);
+        $kitOwner = $kit->owner($tenant);
+        $welcomeKit = $kitOwner ? [
+            'url' => $kit->url($tenant),
+            'expires_at' => $kit->expiresAt($tenant),
+            'owner' => $kitOwner,
+            'login' => $kitOwner->email ?: $kitOwner->phone,
+            'placeholder' => WelcomeKit::isPlaceholder($kitOwner->email, $tenant),
+            // the temporary password stays readable here only until the owner picks their own
+            'password' => $kitOwner->must_change_password ? $kitOwner->temporary_password : null,
+            'whatsapp' => $kit->whatsappUrl($tenant, $kitOwner),
+        ] : null;
 
         return view('admin.tenants.show', [
             'tenant' => $tenant,
@@ -109,6 +182,8 @@ class TenantsController extends Controller
             'contact' => $contact,
             'logo' => $logo !== '' ? '/storage/'.ltrim($logo, '/') : null,
             'platformActions' => $platformActions,
+            'welcomeKit' => $welcomeKit,
+            'demoRows' => $demoRows,
         ]);
     }
 

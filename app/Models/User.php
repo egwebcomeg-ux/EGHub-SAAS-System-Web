@@ -23,7 +23,7 @@ class User extends Authenticatable implements HasLocalePreference
 
     protected $guarded = ['id', 'tenant_id'];
 
-    protected $hidden = ['password', 'remember_token', 'manager_pin'];
+    protected $hidden = ['password', 'remember_token', 'manager_pin', 'temporary_password'];
 
     /** Emails go out in the language the user picked in the dashboard (Arabic by default). */
     public function preferredLocale(): string
@@ -37,7 +37,21 @@ class User extends Authenticatable implements HasLocalePreference
     }
 
     /** Same as the column defaults, so a freshly created model already knows them. */
-    protected $attributes = ['is_active' => true, 'locale' => 'ar'];
+    protected $attributes = ['is_active' => true, 'locale' => 'ar', 'must_change_password' => false];
+
+    /**
+     * A new password, whoever sets it (the security page, "forgot password", an EgWeb admin), retires the temporary
+     * one of the welcome kit; only a save that sets a new temporary password itself (App\Services\WelcomeKit) keeps it.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (self $user) {
+            if ($user->isDirty('password') && ! $user->isDirty('temporary_password')) {
+                $user->must_change_password = false;
+                $user->temporary_password = null;
+            }
+        });
+    }
 
     protected string $guard_name = 'web';
 
@@ -50,6 +64,8 @@ class User extends Authenticatable implements HasLocalePreference
             'notifications_seen_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'must_change_password' => 'boolean',
+            'temporary_password' => 'encrypted',
         ];
     }
 

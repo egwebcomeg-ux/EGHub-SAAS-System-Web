@@ -27,7 +27,7 @@ final class TenantProvisioner
     public const STARTER_TABLES = 5;
 
     /**
-     * @param  array{slug:string,name:string,owner_name:string,email:string,password:string,phone?:string,plan?:string,trial?:bool,business_type?:string}  $d
+     * @param  array{slug:string,name:string,owner_name:string,email:string,password:string,phone?:string,plan?:string,trial?:bool,trial_days?:int,business_type?:string}  $d
      */
     public function create(array $d): Tenant
     {
@@ -35,12 +35,13 @@ final class TenantProvisioner
             $tenant = Tenant::query()->create(['id' => $d['slug'], 'name' => $d['name'], 'status' => 'active']);
 
             $trial = $d['trial'] ?? true;
+            $days = max(1, (int) ($d['trial_days'] ?? self::TRIAL_DAYS));
             $plan = Plan::query()->where('code', $d['plan'] ?? ($trial ? self::TRIAL_PLAN : Entitlements::FALLBACK_PLAN))->firstOrFail();
             Subscription::query()->create([
                 'tenant_id' => $tenant->id, 'plan_id' => $plan->id, 'status' => $trial ? 'trialing' : 'active', 'cycle_months' => 1,
-                'trial_ends_at' => $trial ? now()->addDays(self::TRIAL_DAYS) : null,
+                'trial_ends_at' => $trial ? now()->addDays($days) : null,
                 'current_period_start' => now(),
-                'current_period_end' => $trial ? now()->addDays(self::TRIAL_DAYS) : now()->addMonth(),
+                'current_period_end' => $trial ? now()->addDays($days) : now()->addMonth(),
             ]);
 
             tenancy()->initialize($tenant);

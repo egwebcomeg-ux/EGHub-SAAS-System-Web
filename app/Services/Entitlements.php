@@ -31,6 +31,7 @@ final class Entitlements
         public readonly Plan $plan,
         private array $features,
         private array $limits,
+        private bool $paid = false,
     ) {}
 
     public static function for(Tenant $tenant): self
@@ -85,7 +86,10 @@ final class Entitlements
             }
         }
 
-        return new self($tenant, $plan, $e['features'], $e['limits']);
+        // a paying restaurant: an active subscription on a plan other than Free (trial, past due and canceled are not)
+        $paid = $sub !== null && $sub->status === 'active' && $plan->code !== self::FALLBACK_PLAN;
+
+        return new self($tenant, $plan, $e['features'], $e['limits'], $paid);
     }
 
     /** "a|b" is allowed when either feature is. */
@@ -98,6 +102,21 @@ final class Entitlements
         }
 
         return false;
+    }
+
+    /**
+     * Whether the restaurant pays for its plan. Until it does (trial or Free) its guest pages carry the "by EgWeb"
+     * capsule whatever the plan includes; the "Powered by EgMenu" link keeps following the hide_badge feature.
+     */
+    public function isPaid(): bool
+    {
+        return $this->paid;
+    }
+
+    /** The "by EgWeb" capsule on the guest pages: every restaurant that does not pay yet. */
+    public function showsEgWebBadge(): bool
+    {
+        return ! $this->paid;
     }
 
     /** null = unlimited */

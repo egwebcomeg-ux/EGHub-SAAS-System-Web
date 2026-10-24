@@ -124,6 +124,7 @@
     @endif
 
     <p class="mt-auto pt-6 text-center text-xs m-muted">{{ __('No app needed · nothing personal is kept') }}</p>
+    @include('menu.partials.powered-by', ['class' => 'mt-3 m-muted'])
 </main>
 
 {{-- the call: full screen, the restaurant's colour, a loud chime that repeats and the phone vibrating --}}

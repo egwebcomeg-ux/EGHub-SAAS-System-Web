@@ -261,6 +261,12 @@
                         <option value="{{ $key }}" @selected(($s['header_background'] ?? 'auto') === $key)>{{ $label }}</option>
                     @endforeach
                 </select>
+                <label class="field-label mt-3" for="header_show_name">{{ __('Your name next to the logo in the menu header') }}</label>
+                <select class="field" name="header_show_name" id="header_show_name" data-header-show-name>
+                    @foreach (['auto' => __('Automatic (hidden when you have a logo, since it carries your name)'), 'always' => __('Always show the name and tagline'), 'never' => __('Never: the logo only')] as $key => $label)
+                        <option value="{{ $key }}" @selected(($s['header_show_name'] ?? 'auto') === $key)>{{ $label }}</option>
+                    @endforeach
+                </select>
                 <label class="field-label mt-3" for="intro_background">{{ __('Colours of the opening screen') }}</label>
                 <select class="field" name="intro_background" id="intro_background" data-intro-background>
                     @foreach (['auto' => __('Automatic (light when your logo has no white tile)'), 'brand' => __('Your header colour'), 'light' => __('Light: your page background')] as $key => $label)

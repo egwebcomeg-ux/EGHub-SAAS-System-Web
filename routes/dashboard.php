@@ -18,6 +18,7 @@ use App\Http\Controllers\Dashboard\CouponsController;
 use App\Http\Controllers\Dashboard\CustomerImportController;
 use App\Http\Controllers\Dashboard\CustomersController;
 use App\Http\Controllers\Dashboard\DeliveryZonesController;
+use App\Http\Controllers\Dashboard\DemoContentController;
 use App\Http\Controllers\Dashboard\DevicesController;
 use App\Http\Controllers\Dashboard\DomainController;
 use App\Http\Controllers\Dashboard\DriverController;
@@ -62,6 +63,7 @@ use App\Http\Controllers\Dashboard\UsersController;
 use App\Http\Controllers\Dashboard\VoucherRedeemController;
 use App\Http\Controllers\Dashboard\VouchersController;
 use App\Http\Controllers\Dashboard\WalletController;
+use App\Http\Controllers\Dashboard\WelcomeKitController;
 use App\Http\Controllers\Dashboard\ZReportController;
 use App\Http\Controllers\Platform\BillingWebhookController;
 use App\Models\CampaignAutomation;
@@ -87,6 +89,11 @@ Route::middleware('admin.locale')->group(function () {
     Route::get('/auth/{provider}/callback', [SocialLoginController::class, 'callback'])
         ->whereIn('provider', array_keys(SocialProviders::PROVIDERS))->middleware('throttle:20,1')->name('social.callback');
 });
+
+// The welcome page of a restaurant EgWeb made for a prospect (App\Services\WelcomeKit): no sign-in, the signature
+// (14 days) and the nonce of the current kit are the keys; a new kit makes older links fail.
+Route::get('/welcome-kit/{place}/{nonce}', [WelcomeKitController::class, 'show'])
+    ->where(['place' => '[a-z0-9-]{3,30}', 'nonce' => '[A-Za-z0-9]{40}'])->middleware(['signed', 'throttle:30,1'])->name('welcome-kit');
 
 // The online payment gateway's server-to-server webhook (Kashier: https://app.<domain>/billing/kashier/webhook).
 // No login and no CSRF (bootstrap/app.php): the gateway's signature is the only proof, checked in the controller.
@@ -598,6 +605,13 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::post('/security/two-factor/confirm', [SecurityController::class, 'confirm'])->middleware('throttle:10,1')->name('security.confirm');
     Route::post('/security/two-factor/disable', [SecurityController::class, 'disable'])->middleware('throttle:10,1')->name('security.disable');
     Route::post('/security/pin', [SecurityController::class, 'pin'])->middleware('throttle:10,1')->name('security.pin');
+    // the account's own password (a welcome-kit owner must pick one before anything else: InitializeTenancyFromUser)
+    Route::post('/security/password', [SecurityController::class, 'password'])->middleware('throttle:10,1')->name('security.password');
+});
+
+// ---- The sample data EgWeb filled in for a prospect (App\Services\DemoContent): the owner clears it in one go ----
+Route::middleware(['auth:web', 'tenant.user'])->group(function () {
+    Route::post('/demo/clear', [DemoContentController::class, 'destroy'])->middleware('throttle:5,1')->name('demo.clear');
 });
 
 // ---- Onboarding checklist on the home page (App\Services\Onboarding) and the illustrated tutorial ----

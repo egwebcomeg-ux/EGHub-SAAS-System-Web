@@ -82,6 +82,9 @@ final class Settings
         'intro_background' => 'auto',
         // the guest menu header: auto (light when the logo has no white tile on a light page) | brand | light
         'header_background' => 'auto',
+        // the place's name and tagline next to the logo in the menu header: auto (only when there is no logo, which
+        // usually carries the name already) | always | never
+        'header_show_name' => 'auto',
         // the "mascot" intro pieces (App\Services\BrandAssets): character, optional speed lines, slogan, pattern tile
         'intro_mascot' => '',
         'intro_mascot_speed' => '',
@@ -162,6 +165,10 @@ final class Settings
         'onboarding' => '',                      // json {skipped: [step keys], dismissed: bool}
         // "what will you use?" (App\Services\ModuleChoice): json list of App\Support\SiteModules slugs; '' = not picked
         'modules' => '',
+        // sample rows EgWeb filled in for a prospect (App\Services\DemoContent): json {kind: [ids]}; '' = none
+        'demo_content' => '',
+        // the owner's welcome page (App\Services\WelcomeKit): json {user, nonce, expires_at}; a new kit changes the nonce
+        'welcome_kit' => '',
     ];
 
     /** @var array<string,array<string,string>> */

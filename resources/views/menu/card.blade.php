@@ -87,6 +87,7 @@
     </section>
 
     <a href="{{ route('menu.show') }}" class="btn-ghost mt-6 w-full">{{ __('Open the menu') }}</a>
+    @include('menu.partials.powered-by', ['class' => 'mt-6 m-muted'])
 </main>
 <script>
     document.querySelectorAll('[data-side]').forEach((b) => b.addEventListener('click', () => {
