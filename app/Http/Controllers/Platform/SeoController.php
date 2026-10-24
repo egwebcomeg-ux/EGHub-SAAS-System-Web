@@ -21,7 +21,7 @@ class SeoController extends Controller
     {
         $xml = Cache::remember('seo.sitemap.'.platform_url(null, ''), 3600, function () {
             $urls = [];
-            foreach (['landing', 'features', 'pricing', 'directory', 'tools.qr', 'terms', 'privacy', 'refund'] as $name) {
+            foreach (['landing', 'features', 'pricing', 'tools.qr', 'terms', 'privacy', 'refund'] as $name) {
                 $urls[] = [route($name), null];
             }
             foreach (array_keys(SiteModules::all()) as $slug) {
@@ -35,11 +35,8 @@ class SeoController extends Controller
                     $urls[] = [route('blog.show', $post->slug), max($post->updated_at, $post->published_at)->toDateString()];
                 }
             }
-            foreach (array_keys(Directory::cityCounts()) as $city) {
-                $urls[] = [route('directory.city', $city), null];
-                foreach (array_keys(Directory::cuisineCounts($city)) as $cuisine) {
-                    $urls[] = [route('directory.cuisine', [$city, $cuisine]), null];
-                }
+            if (directory_domain() === central_domain()) {
+                $urls = [...$urls, ...$this->directoryUrls()];
             }
             $tenants = Directory::query()->orderBy('id')->with('domains')->get();
             $lastmod = Directory::lastModified($tenants->pluck('id')->all());
@@ -53,15 +50,48 @@ class SeoController extends Controller
                 $urls[] = [$tenant->url(), $date];
             }
 
-            $out = '<?xml version="1.0" encoding="UTF-8"?>'."\n".'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
-            foreach ($urls as [$loc, $date]) {
-                $out .= '  <url><loc>'.htmlspecialchars($loc, ENT_XML1).'</loc>'.($date ? "<lastmod>$date</lastmod>" : '')."</url>\n";
-            }
-
-            return $out.'</urlset>'."\n";
+            return $this->urlset($urls);
         });
 
         return response($xml, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
+    }
+
+    /** The directory's own host after a domain move (legacy_domains()): its home, cities and cuisines (cached 1 hour). */
+    public function directorySitemap(): Response
+    {
+        $xml = Cache::remember('seo.sitemap.directory.'.directory_domain(), 3600, fn () => $this->urlset($this->directoryUrls()));
+
+        return response($xml, 200, ['Content-Type' => 'application/xml; charset=UTF-8']);
+    }
+
+    public function directoryRobots(): Response
+    {
+        return $this->text("User-agent: *\nAllow: /\n\nSitemap: ".route('directory.sitemap')."\n");
+    }
+
+    /** @return list<array{0: string, 1: ?string}> */
+    private function directoryUrls(): array
+    {
+        $urls = [[route('directory'), null]];
+        foreach (array_keys(Directory::cityCounts()) as $city) {
+            $urls[] = [route('directory.city', $city), null];
+            foreach (array_keys(Directory::cuisineCounts($city)) as $cuisine) {
+                $urls[] = [route('directory.cuisine', [$city, $cuisine]), null];
+            }
+        }
+
+        return $urls;
+    }
+
+    /** @param list<array{0: string, 1: ?string}> $urls */
+    private function urlset(array $urls): string
+    {
+        $out = '<?xml version="1.0" encoding="UTF-8"?>'."\n".'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
+        foreach ($urls as [$loc, $date]) {
+            $out .= '  <url><loc>'.htmlspecialchars($loc, ENT_XML1).'</loc>'.($date ? "<lastmod>$date</lastmod>" : '')."</url>\n";
+        }
+
+        return $out.'</urlset>'."\n";
     }
 
     /** Main domain: everything may be crawled; the sitemap lists the pages that matter. */

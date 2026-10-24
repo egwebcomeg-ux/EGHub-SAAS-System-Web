@@ -44,9 +44,10 @@ class Domain extends BaseDomain
         if (! preg_match('/^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$/', $host)) {
             return null;
         }
-        $central = central_domain();
-        if ($host === $central || str_ends_with($host, '.'.$central)) {
-            return null;
+        foreach (config('tenancy.central_domains') as $central) {
+            if ($host === $central || str_ends_with($host, '.'.$central)) {
+                return null;
+            }
         }
 
         return $host;

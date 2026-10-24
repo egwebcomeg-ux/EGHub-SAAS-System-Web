@@ -16,6 +16,24 @@ function central_domain(): string
     return (string) (config('tenancy.central_domains')[0] ?? 'localhost');
 }
 
+/**
+ * Earlier main domains, every CENTRAL_DOMAINS entry after the first (egmenu.app after the move to eghub.app). Their
+ * pages answer with a permanent redirect to the same address on the main domain (printed QR codes keep working),
+ * except the restaurant directory, which lives on the first of them (routes/web.php).
+ *
+ * @return list<string>
+ */
+function legacy_domains(): array
+{
+    return array_values(array_slice(config('tenancy.central_domains'), 1));
+}
+
+/** Host of the public restaurant directory: the first earlier domain when there is one, else the main domain. */
+function directory_domain(): string
+{
+    return legacy_domains()[0] ?? central_domain();
+}
+
 function scheme(): string
 {
     return app()->isProduction() || request()?->isSecure() ? 'https' : 'http';

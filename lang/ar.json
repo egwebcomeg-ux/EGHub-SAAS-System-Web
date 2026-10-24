@@ -5371,5 +5371,6 @@
     "You are signed in as :user at :restaurant from the admin": "إنت داخل كـ:user في :restaurant من الإدارة",
     "Ends by itself in :minutes minutes. Password, two-factor and payments are not available.": "الجلسة بتقفل لوحدها بعد :minutes دقيقة. كلمة السر والتحقق بخطوتين والدفع مش متاحين.",
     "This restaurant is suspended: its menu is offline for guests.": "المطعم ده موقوف: المنيو مقفول للضيوف.",
-    "Leave and go back to the admin": "خروج والرجوع للإدارة"
+    "Leave and go back to the admin": "خروج والرجوع للإدارة",
+    "Own a cafe or restaurant? Menu, orders and cashier on :brand.": "عندك كافيه أو مطعم؟ المنيو والطلبات والكاشير على :brand."
 }

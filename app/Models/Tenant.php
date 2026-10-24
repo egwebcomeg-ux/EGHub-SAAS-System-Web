@@ -28,7 +28,7 @@ class Tenant extends BaseTenant
         'www', 'admin', 'app', 'api', 'mail', 'email', 'ftp', 'smtp', 'cpanel', 'webmail', 'ns1', 'ns2', 'mx',
         'demo', 'static', 'cdn', 'assets', 'build', 'media', 'storage', 'files', 'img', 'images', 'css', 'js', 'fonts',
         'help', 'support', 'docs', 'status', 'billing', 'pay', 'payments', 'pricing', 'plans', 'blog', 'dev', 'staging',
-        'test', 'beta', 'dashboard', 'login', 'logout', 'register', 'signup', 'account', 'tenants', 'egmenu', 'egweb',
+        'test', 'beta', 'dashboard', 'login', 'logout', 'register', 'signup', 'account', 'tenants', 'egmenu', 'eghub', 'egweb',
         'root', 'administrator', 'system', 'internal', 'terms', 'privacy', 'about', 'contact', 'features', 'en', 'ar',
         'up', 'health', 'sitemap', 'robots', 'favicon', 'manifest', 'webhooks', 'lang', 'menu', 'card', 'qr', 'localhost',
         'restaurants', 'restaurant', 'cafes', 'directory', 'search', 'explore', 'cities', 'cuisines', 'feed', 'rss', 'llms',

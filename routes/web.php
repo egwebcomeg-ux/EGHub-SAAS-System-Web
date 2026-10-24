@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Platform\AssistantController;
+use App\Http\Controllers\Platform\BillingWebhookController;
 use App\Http\Controllers\Platform\BlogController;
 use App\Http\Controllers\Platform\DirectoryController;
 use App\Http\Controllers\Platform\FeaturesController;
@@ -10,6 +11,8 @@ use App\Http\Controllers\Platform\SeoController;
 use App\Http\Controllers\Platform\ServicesController;
 use App\Http\Controllers\Platform\SignupController;
 use App\Http\Controllers\Platform\WhatsAppWebhookController;
+use App\Models\Payment;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -19,6 +22,8 @@ use Illuminate\Support\Facades\Route;
 |   admin.<domain>      EgWeb super admin
 |   {tenant}.<domain>   the same menu on a short alias (routes named menu.*, canonical to <domain>/{tenant})
 |   any other host      a restaurant's verified custom domain
+| Earlier main domains (CENTRAL_DOMAINS after the first, legacy_domains()): the restaurant directory on the first of
+| them; every other address redirects permanently to the same one on the main domain.
 | Every group is bound to its host, so a path on one host never matches a route of another.
 */
 $domain = config('tenancy.central_domains')[0] ?? 'localhost';
@@ -58,11 +63,18 @@ Route::domain($domain)->group(function () use ($slug) {
         Route::get('/register', [SignupController::class, 'show'])->name('register');
         Route::post('/register', [SignupController::class, 'store'])->middleware('throttle:signup');
         Route::get('/register/check', [SignupController::class, 'check'])->middleware('throttle:60,1')->name('register.check');
-        // restaurant directory (only places that opted in, see App\Services\Seo\Directory)
-        Route::get('/restaurants', [DirectoryController::class, 'index'])->name('directory');
-        Route::get('/restaurants/{city}', [DirectoryController::class, 'city'])->where('city', '[a-z0-9-]{2,40}')->name('directory.city');
-        Route::get('/restaurants/{city}/{cuisine}', [DirectoryController::class, 'cuisine'])
-            ->where(['city' => '[a-z0-9-]{2,40}', 'cuisine' => '[a-z]{2,30}'])->name('directory.cuisine');
+        // restaurant directory (only places that opted in, see App\Services\Seo\Directory); it moves to the earlier
+        // domain when there is one (below), and its old addresses here follow it
+        if (legacy_domains() === []) {
+            Route::get('/restaurants', [DirectoryController::class, 'index'])->name('directory');
+            Route::get('/restaurants/{city}', [DirectoryController::class, 'city'])->where('city', '[a-z0-9-]{2,40}')->name('directory.city');
+            Route::get('/restaurants/{city}/{cuisine}', [DirectoryController::class, 'cuisine'])
+                ->where(['city' => '[a-z0-9-]{2,40}', 'cuisine' => '[a-z]{2,30}'])->name('directory.cuisine');
+        } else {
+            Route::get('/restaurants/{any?}', fn (Request $request) => redirect()->away(
+                scheme().'://'.directory_domain().port_suffix().'/'.$request->path().(($q = $request->getQueryString()) ? '?'.$q : ''), 301
+            ))->where('any', '.*');
+        }
     });
     Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('sitemap');
     Route::get('/robots.txt', [SeoController::class, 'robots'])->name('robots');
@@ -80,6 +92,43 @@ Route::domain($domain)->group(function () use ($slug) {
 // own groups above, so a path those groups do not define is a 404 there, never a menu.
 Route::domain('{tenant}.'.$domain)->where(['tenant' => '(?!(?:www|app|admin)\.)'.$slug])
     ->middleware('tenant.subdomain')->name('menu.')->group(base_path('routes/menu.php'));
+
+/*
+| Earlier main domains (egmenu.app after the move to eghub.app). The first one keeps the public restaurant directory
+| (its home page) and its old /restaurants/{city} addresses; everything else, including every printed QR code
+| ({tenant}.egmenu.app/..., egmenu.app/{tenant}/...), the dashboard and the admin, answers with a permanent redirect
+| to the same address on the main domain (308 for forms, so the method survives). The payment webhook is still
+| served here: a payment started before the move reports to the address it was given.
+*/
+$toMainDomain = fn (Request $request, ?string $sub = null) => redirect()->away(
+    platform_url($sub, $request->path() === '/' ? '/' : $request->path()).(($q = $request->getQueryString()) ? '?'.$q : ''),
+    in_array($request->method(), ['GET', 'HEAD'], true) ? 301 : 308
+);
+foreach (legacy_domains() as $index => $legacy) {
+    if ($index === 0) {
+        Route::domain($legacy)->group(function () {
+            Route::middleware('admin.locale')->group(function () {
+                Route::get('/', [DirectoryController::class, 'index'])->name('directory');
+                Route::get('/restaurants', fn (Request $request) => redirect()->away(
+                    route('directory').(($q = $request->getQueryString()) ? '?'.$q : ''), 301
+                ));
+                Route::get('/restaurants/{city}', [DirectoryController::class, 'city'])->where('city', '[a-z0-9-]{2,40}')->name('directory.city');
+                Route::get('/restaurants/{city}/{cuisine}', [DirectoryController::class, 'cuisine'])
+                    ->where(['city' => '[a-z0-9-]{2,40}', 'cuisine' => '[a-z]{2,30}'])->name('directory.cuisine');
+            });
+            Route::get('/sitemap.xml', [SeoController::class, 'directorySitemap'])->name('directory.sitemap');
+            Route::get('/robots.txt', [SeoController::class, 'directoryRobots']);
+        });
+    }
+    Route::domain("app.$legacy")->post('/billing/{gateway}/webhook', [BillingWebhookController::class, 'receive'])
+        ->whereIn('gateway', Payment::ONLINE_GATEWAYS)->middleware('throttle:120,1');
+    Route::domain("www.$legacy")->any('/{any?}', fn (Request $request) => redirect()->away(
+        scheme().'://'.$legacy.port_suffix().'/'.ltrim($request->path(), '/'), 301
+    ))->where('any', '.*');
+    Route::domain('{sub}.'.$legacy)->where(['sub' => '[a-z0-9][a-z0-9-]{0,61}'])
+        ->any('/{any?}', fn (Request $request, string $sub) => $toMainDomain($request, $sub))->where('any', '.*');
+    Route::domain($legacy)->any('/{any?}', fn (Request $request) => $toMainDomain($request))->where('any', '.*');
+}
 
 // robots.txt of restaurant subdomains and custom domains (the hosts above have their own).
 Route::get('/robots.txt', [SeoController::class, 'robotsMenu']);

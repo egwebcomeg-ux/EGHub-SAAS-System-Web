@@ -16,6 +16,14 @@
         </nav>
         <h1 class="mt-3 text-[2rem] leading-[1.3] font-black tracking-tight sm:text-4xl">{{ $heading }}</h1>
         <p class="lp-lead mt-3 max-w-2xl">{{ __('Real menus with up-to-date prices, from the places themselves.') }}</p>
+        {{-- the directory is run by the platform: owners land on its home page and sign-up (on the main domain after a move) --}}
+        <div class="mt-5 flex max-w-2xl flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-brand-200 bg-white/80 px-4 py-3 text-sm" data-directory-owner-cta>
+            <span class="font-bold text-navy-800">{{ __('Own a cafe or restaurant? Menu, orders and cashier on :brand.', ['brand' => \App\Support\PlatformBrand::siteName()]) }}</span>
+            <span class="flex gap-2">
+                <a href="{{ route('register') }}" class="btn-primary min-h-10 px-4">{{ __('Start free') }}</a>
+                <a href="{{ route('landing') }}" class="btn-ghost min-h-10 px-4">{{ __('See how it works') }}</a>
+            </span>
+        </div>
 
         @unless ($city)
             <form method="get" action="{{ route('directory') }}" class="mt-6 flex max-w-xl gap-2" role="search">
