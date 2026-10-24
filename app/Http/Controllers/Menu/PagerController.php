@@ -34,6 +34,8 @@ class PagerController extends Controller
             'settings' => Settings::all(),
             'branch' => $pager->branch,
             'rating' => Entitlements::current()->allows('feedback'),
+            // an order placed from the guest's phone lands here: its full details stay one tap away
+            'trackingUrl' => $pager instanceof Order ? route('menu.order.show', $pager->tracking_token) : null,
         ]);
     }
 

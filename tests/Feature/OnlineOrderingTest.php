@@ -24,6 +24,32 @@ class OnlineOrderingTest extends TenantTestCase
         ]);
     }
 
+    public function test_a_pickup_ordered_from_the_phone_lands_on_its_pager_without_any_qr(): void
+    {
+        $a = $this->restaurant('cafe-a', 'full'); // the Complete plan includes the pager
+        $this->item($a, 'Latte', 60);
+        $zone = $this->as($a, function () {
+            Settings::put(['online_delivery' => '1']);
+
+            return DeliveryZone::query()->create(['branch_id' => Branch::query()->first()->id, 'name' => 'Maadi', 'fee' => 25, 'min_order' => 0]);
+        });
+
+        $url = $this->order($a, ['type' => 'takeaway'])->assertOk()->json('url');
+        $order = $this->as($a, fn () => Order::query()->latest('id')->first());
+        $this->assertSame($this->as($a, fn () => $order->pagerUrl()), $url);
+        // the pager page keeps the order's full details one tap away
+        $this->get($url)->assertOk()->assertSee('data-tracking-link', false)->assertSee($order->tracking_token, false);
+
+        // delivery keeps the tracking page (the driver brings it)
+        $url = $this->order($a, ['type' => 'delivery', 'zone_id' => $zone->id, 'address' => '9 Road 233'])->assertOk()->json('url');
+        $this->assertStringContainsString('/o/', $url);
+
+        // without the pager, a pickup lands on the tracking page as before
+        $b = $this->restaurant('cafe-b', 'pro');
+        $this->item($b, 'Latte', 60);
+        $this->assertStringContainsString('/o/', $this->order($b, ['type' => 'takeaway'])->assertOk()->json('url'));
+    }
+
     public function test_pickup_and_delivery_from_the_menu_link(): void
     {
         $a = $this->restaurant('cafe-a', 'pro'); // Pro includes online ordering

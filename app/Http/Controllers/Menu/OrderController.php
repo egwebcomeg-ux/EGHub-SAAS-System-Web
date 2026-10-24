@@ -11,6 +11,7 @@ use App\Services\Menu\MenuCatalog;
 use App\Services\Orders\BusyMode;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
+use App\Services\Orders\Pager;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
 use App\Support\OrderTracking;
@@ -71,7 +72,10 @@ class OrderController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        return response()->json(['ok' => true, 'number' => $order->number, 'url' => route('menu.order.show', $order->tracking_token)]);
+        // a pickup ordered from the guest's own phone needs no QR: the page they land on is already their pager
+        $url = Pager::enabled() && Pager::forOrder($order) ? $order->pagerUrl() : route('menu.order.show', $order->tracking_token);
+
+        return response()->json(['ok' => true, 'number' => $order->number, 'url' => $url]);
     }
 
     /**
