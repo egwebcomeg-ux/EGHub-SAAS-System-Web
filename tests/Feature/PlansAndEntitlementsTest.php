@@ -95,7 +95,7 @@ class PlansAndEntitlementsTest extends TenantTestCase
         $this->assertSame('enterprise', Entitlements::salesOnlyPlanFor('pos')?->code);
 
         $this->actingAs($this->owner($complete))->get($this->dashUrl('/pos'))->assertForbidden()
-            ->assertSee('data-sales-only', false)->assertSee('data-contact-sales-link', false)->assertSee('Enterprise')
+            ->assertSee('data-sales-only', false)->assertSee('data-contact-sales-link', false)->assertSee('الاحترافية')
             ->assertDontSee('رقّي باقتك');
 
         // a feature a plan the restaurant can pick has: the upgrade message stays

@@ -148,7 +148,9 @@
                                     <b @class(['text-navy-900' => $has, 'text-navy-400' => !$has])>{{ $p->displayName() }}</b>
                                 </span>
                                 <span class="text-sm text-navy-500">
-                                    @if ((float) $p->monthly_price === 0.0)
+                                    @if ($p->isContactSales())
+                                        <a href="{{ $p->contactUrl() }}" target="_blank" rel="noopener" class="font-bold text-navy-900 underline-offset-2 hover:underline">{{ __('Price on request') }}</a>
+                                    @elseif ((float) $p->monthly_price === 0.0)
                                         <b class="text-emerald-700">{{ __('Free') }}</b>
                                     @else
                                         <b class="text-navy-900">{{ money($p->monthly_price) }}</b> {{ __('EGP / month') }}

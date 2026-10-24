@@ -63,7 +63,7 @@ class PlanSeeder extends Seeder
                 'tagline_en' => 'Everything for one place: ordering, delivery, bookings, loyalty, wallet, marketing and reports',
                 'features' => $complete,
                 'limits' => ['branches' => 1, 'menu_items' => null, 'staff' => 8, 'tables' => null, 'ai_imports_per_month' => 20]],
-            ['code' => 'enterprise', 'name' => 'Enterprise', 'name_en' => 'Enterprise', 'monthly_price' => 0, 'sort_order' => 20, 'contact_sales' => true,
+            ['code' => 'enterprise', 'name' => 'الاحترافية', 'name_en' => 'Enterprise', 'monthly_price' => 0, 'sort_order' => 20, 'contact_sales' => true,
                 'cycles' => [],
                 'tagline' => 'للسلاسل والمحلات الكبيرة: الكاشير والمطبخ والكشك والكول سنتر والمخزون وفروع أكتر، بسعر حسب احتياجك',
                 'tagline_en' => 'For chains and busy places: POS, kitchen, kiosk, call center, inventory and more branches, priced for you',

@@ -79,6 +79,14 @@ class MarketingSiteTest extends TenantTestCase
         $this->get($this->menuUrl('features/pos?lang=en'))->assertOk()->assertSee('In Enterprise, contact us');
     }
 
+    public function test_the_contact_sales_plan_is_never_shown_as_free(): void
+    {
+        $page = $this->get($this->menuUrl('features/pos'))->assertOk();
+
+        $page->assertSeeInOrder(['id="price"', Plan::query()->where('code', 'enterprise')->first()->name, 'السعر حسب الطلب'], false);
+        $this->assertSame(1, substr_count($page->getContent(), '>مجاني</b>'), 'only the free plan reads "free"');
+    }
+
     public function test_pricing_calculator_uses_the_plan_and_online_pack_prices_from_the_database(): void
     {
         Plan::query()->where('code', 'full')->update(['monthly_price' => 1312]);
@@ -117,8 +125,8 @@ class MarketingSiteTest extends TenantTestCase
     {
         $this->get($this->menuUrl('pricing'))->assertOk()
             ->assertSeeInOrder(['data-plan="free"', 'data-plan="full"', 'data-plan="enterprise"'], false)
-            ->assertSeeInOrder(['مجانية', 'الكاملة', 'Enterprise'])
+            ->assertSeeInOrder(['مجانية', 'الكاملة', 'الاحترافية'])
             ->assertSee(['1,250', '12,000'])
-            ->assertDontSee(['احترافية', 'بيزنس']);
+            ->assertDontSee(['مبتدئ', 'أساسية', 'بيزنس']);
     }
 }
