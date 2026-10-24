@@ -61,7 +61,7 @@
 
         {{-- the real order board in a browser, the guest's phone over its corner and one glass card (an example order) --}}
         <div class="hm-compose" data-reveal style="--d: 160ms">
-            <x-landing.shot name="orders" url="app.egmenu.app/orders" :eager="true" :alt="__('The live order board in the EgHub dashboard (real screen)')" sizes="(min-width: 1024px) 660px, 92vw" class="hm-compose-board" />
+            <x-landing.shot name="orders" url="app.eghub.app/orders" :eager="true" :alt="__('The live order board in the EgHub dashboard (real screen)')" sizes="(min-width: 1024px) 660px, 92vw" class="hm-compose-board" />
             <x-landing.shot name="menu-cafe" frame="phone" :eager="true" :alt="__('Rosto’s menu on a guest’s phone (real screen)')" sizes="(min-width: 1024px) 190px, 34vw" class="hm-compose-phone" />
             <div class="hm-glass hm-compose-card" aria-hidden="true">
                 <span class="flex items-center justify-between gap-3 text-xs font-bold text-navy-500"><span class="flex items-center gap-1.5"><i class="hm-live"></i>{{ __('New order') }} · {{ __('Table 4') }}</span><span class="hm-tag">{{ __('Example') }}</span></span>

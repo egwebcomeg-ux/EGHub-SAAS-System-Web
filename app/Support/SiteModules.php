@@ -178,7 +178,7 @@ final class SiteModules
                 'tagline' => __('Your menu on every phone in the room, from one QR code'),
                 'summary' => __('A fast menu in Arabic and English that opens from one QR code.'),
                 'feature' => null, 'addons' => [],
-                'shot' => 'menu-editor', 'frame' => 'browser', 'url' => 'app.egmenu.app/menu', 'phone' => 'menu-cafe',
+                'shot' => 'menu-editor', 'frame' => 'browser', 'url' => 'app.eghub.app/menu', 'phone' => 'menu-cafe',
                 'benefits' => [
                     ['zap', __('Opens in a second'), __('No app to download. The guest scans, and the menu opens in the browser of any phone.')],
                     ['globe', __('Arabic and English'), __('Each item has an Arabic and an English name. The guest switches language with one tap.')],
@@ -209,7 +209,7 @@ final class SiteModules
                 'tagline' => __('Your menu in French, Russian, Italian and more, translated in one click'),
                 'summary' => __('Seven more languages, filled in by AI with your own key.'),
                 'feature' => 'extra_languages', 'addons' => ['languages_pack'],
-                'shot' => 'languages', 'frame' => 'browser', 'url' => 'app.egmenu.app/settings', 'phone' => 'm-languages',
+                'shot' => 'languages', 'frame' => 'browser', 'url' => 'app.eghub.app/settings', 'phone' => 'm-languages',
                 'benefits' => [
                     ['globe', __('Seven more languages'), __('French, Italian, German, Russian, Spanish, Turkish and Chinese, next to Arabic and English.')],
                     ['sparkles', __('One-click translation'), __('AI fills in every missing name and description with your own AI key; you pay the provider only for what you use.')],
@@ -239,7 +239,7 @@ final class SiteModules
                 'tagline' => __('A print-ready paper menu, without a designer'),
                 'summary' => __('Your online menu as an A4 PDF, in your colours.'),
                 'feature' => 'printed_menu', 'addons' => ['branding_pack'],
-                'shot' => 'print', 'frame' => 'browser', 'url' => 'app.egmenu.app/menu/print', 'phone' => null,
+                'shot' => 'print', 'frame' => 'browser', 'url' => 'app.eghub.app/menu/print', 'phone' => null,
                 'benefits' => [
                     ['file', __('From the same menu'), __('The paper menu is built from the items you already have. Nothing to type twice.')],
                     ['printer', __('Ready for the print shop'), __('Pick a template, the number of pages and the language, then print or save it as a PDF.')],
@@ -297,7 +297,7 @@ final class SiteModules
                 'tagline' => __('Your whole menu in, from an Excel sheet or a photo'),
                 'summary' => __('Upload Excel, or a photo that AI turns into items.'),
                 'feature' => 'excel_import', 'addons' => [],
-                'shot' => 'import', 'frame' => 'browser', 'url' => 'app.egmenu.app/menu/import', 'phone' => null,
+                'shot' => 'import', 'frame' => 'browser', 'url' => 'app.eghub.app/menu/import', 'phone' => null,
                 'benefits' => [
                     ['file', __('Excel template'), __('Download the template, fill in sections, items, sizes and prices, and upload it.')],
                     ['sparkles', __('From a photo with AI'), __('Upload a photo or PDF of your printed menu and AI reads the items for you.')],
@@ -328,7 +328,7 @@ final class SiteModules
                 'tagline' => __('Guests order from the table. You hear it ring.'),
                 'summary' => __('Orders from the table QR straight to a live board.'),
                 'feature' => 'qr_ordering', 'addons' => ['ordering_pack'],
-                'shot' => 'orders', 'frame' => 'browser', 'url' => 'app.egmenu.app/orders', 'phone' => 'm-cartbar',
+                'shot' => 'orders', 'frame' => 'browser', 'url' => 'app.eghub.app/orders', 'phone' => 'm-cartbar',
                 'benefits' => [
                     ['bell', __('A ring for every order'), __('New orders appear on the board with a sound, with the table number on top.')],
                     ['pencil', __('Exactly as the guest wrote it'), __('Sizes, extras and notes like “no sugar” reach the bar or kitchen as typed.')],
@@ -359,7 +359,7 @@ final class SiteModules
                 'tagline' => __('Takeaway and delivery from your own link, with no commission'),
                 'summary' => __('Pickup, delivery and scheduled orders. Every pound is yours.'),
                 'feature' => 'online_ordering', 'addons' => ['online_pack'],
-                'shot' => 'zones', 'frame' => 'browser', 'url' => 'app.egmenu.app/delivery-zones', 'phone' => 'm-cart',
+                'shot' => 'zones', 'frame' => 'browser', 'url' => 'app.eghub.app/delivery-zones', 'phone' => 'm-cart',
                 'benefits' => [
                     ['wallet', __('0% commission'), __('You pay the monthly plan, nothing per order. The customer pays you directly.')],
                     ['scooter', __('Delivery zones'), __('Draw your areas on the map with a fee and a minimum order for each one.')],
@@ -389,7 +389,7 @@ final class SiteModules
                 'tagline' => __('Guests book a table from your menu link'),
                 'summary' => __('Bookings by time and party size, within the seats you have.'),
                 'feature' => 'reservations', 'addons' => ['reservations_pack'],
-                'shot' => 'reservations', 'frame' => 'browser', 'url' => 'app.egmenu.app/reservations', 'phone' => 'm-reserve',
+                'shot' => 'reservations', 'frame' => 'browser', 'url' => 'app.eghub.app/reservations', 'phone' => 'm-reserve',
                 'benefits' => [
                     ['calendar', __('Book from the menu link'), __('A “Book a table” page next to your menu: the day, the time, the number of guests and a mobile number.')],
                     ['users', __('Never overbooked'), __('Set the seats per time slot, the table time and the largest group; guests only see the times that are free.')],
@@ -456,7 +456,7 @@ final class SiteModules
                 'tagline' => __('A stamp card on the guest’s phone that brings them back'),
                 'summary' => __('“Every 8 coffees, one free”, with no paper and no app.'),
                 'feature' => 'loyalty_stamps', 'addons' => ['loyalty_pack'],
-                'shot' => 'loyalty-desk', 'frame' => 'browser', 'url' => 'app.egmenu.app/loyalty', 'phone' => 'm-card',
+                'shot' => 'loyalty-desk', 'frame' => 'browser', 'url' => 'app.eghub.app/loyalty', 'phone' => 'm-card',
                 'benefits' => [
                     ['stamp', __('Stamps or points'), __('A stamp per visit or per item, or points on every pound spent.')],
                     ['gift', __('Rewards on the way'), __('A discount at the 4th stamp and a free drink at the 8th keep guests coming.')],
@@ -488,7 +488,7 @@ final class SiteModules
                 'tagline' => __('Happy hour, popups and combos that run on their own'),
                 'summary' => __('Timed discounts that switch on and off by themselves.'),
                 'feature' => 'offers', 'addons' => ['offers_pack'],
-                'shot' => 'marketing', 'frame' => 'browser', 'url' => 'app.egmenu.app/marketing', 'phone' => 'menu-cafe',
+                'shot' => 'marketing', 'frame' => 'browser', 'url' => 'app.eghub.app/marketing', 'phone' => 'menu-cafe',
                 'benefits' => [
                     ['clock', __('Happy hour'), __('20% off cold drinks from 3 to 6, on the days you choose. It starts and stops by itself.')],
                     ['sparkles', __('A popup on open'), __('Announce a new dessert the moment the menu opens, and see how many saw it.')],
@@ -517,7 +517,7 @@ final class SiteModules
                 'tagline' => __('Your guests get their order updates on WhatsApp'),
                 'summary' => __('Order received, ready, on the way, booking confirmed, reward earned.'),
                 'feature' => 'whatsapp_notifications', 'addons' => ['whatsapp_pack', 'wa_500', 'wa_2000'],
-                'shot' => 'whatsapp', 'frame' => 'browser', 'url' => 'app.egmenu.app/settings', 'phone' => null,
+                'shot' => 'whatsapp', 'frame' => 'browser', 'url' => 'app.eghub.app/settings', 'phone' => null,
                 'benefits' => [
                     ['bell', __('Sent as the order moves'), __('Order received, ready for pickup, out with the rider: each message goes by itself when the order changes.')],
                     ['calendar', __('Bookings and rewards'), __('A message when a booking is confirmed, and when a guest earns a reward on the loyalty card.')],
@@ -547,7 +547,7 @@ final class SiteModules
                 'tagline' => __('Bring guests back with a WhatsApp message and a coupon'),
                 'summary' => __('Pick the guests, write the message, add a coupon, send or schedule.'),
                 'feature' => 'campaigns', 'addons' => ['marketing_pack', 'wa_500', 'wa_2000'],
-                'shot' => 'campaigns', 'frame' => 'browser', 'url' => 'app.egmenu.app/campaigns', 'phone' => null,
+                'shot' => 'campaigns', 'frame' => 'browser', 'url' => 'app.eghub.app/campaigns', 'phone' => null,
                 'benefits' => [
                     ['users', __('Guests by segment'), __('Guests who have not come back for 30 days, regulars with many visits, or birthdays this month.')],
                     ['tag', __('A coupon in the message'), __('Attach a discount code like BACK20 with an end date; the guest uses it at the counter or online.')],
@@ -577,10 +577,10 @@ final class SiteModules
                 'tagline' => __('A prepaid balance on the guest’s card: top-ups, gift cards, packages and cashback'),
                 'summary' => __('Top up and pay from the balance, gift cards, a 10-coffee pass and cashback.'),
                 'feature' => 'wallet', 'addons' => ['wallet_pack', 'cards_pack'],
-                'shot' => 'wallet', 'frame' => 'browser', 'url' => 'app.egmenu.app/wallet', 'phone' => 'm-gift',
+                'shot' => 'wallet', 'frame' => 'browser', 'url' => 'app.eghub.app/wallet', 'phone' => 'm-gift',
                 'gallery' => [
-                    ['cards', 'browser', 'app.egmenu.app/loyalty/cards', __('Packages and cashback: the 10-coffee pass you sell, and the share of each order that goes back to the balance.')],
-                    ['cards-desk', 'browser', 'app.egmenu.app/loyalty', __('The counter: the guest’s tier, balance, packages and stamps on one screen; sell a package or take a use.')],
+                    ['cards', 'browser', 'app.eghub.app/loyalty/cards', __('Packages and cashback: the 10-coffee pass you sell, and the share of each order that goes back to the balance.')],
+                    ['cards-desk', 'browser', 'app.eghub.app/loyalty', __('The counter: the guest’s tier, balance, packages and stamps on one screen; sell a package or take a use.')],
                 ],
                 'benefits' => [
                     ['wallet', __('Top up at the counter'), __('The cashier adds a balance to the guest’s mobile number and prints a receipt.')],
@@ -615,8 +615,8 @@ final class SiteModules
                 'tagline' => __('A company pays up front for vouchers its staff spend at your place'),
                 'summary' => __('Contracts, prepaid vouchers, a redeem screen, manager exceptions and a report.'),
                 'feature' => 'corporate_vouchers', 'addons' => [],
-                'shot' => 'corporate', 'frame' => 'browser', 'url' => 'app.egmenu.app/corporate', 'phone' => null,
-                'gallery' => [['redeem', 'browser', 'app.egmenu.app/vouchers/redeem', __('The redeem screen: no POS needed; the cashier types the code, picks the open order or a paper bill, and the voucher is taken.')]],
+                'shot' => 'corporate', 'frame' => 'browser', 'url' => 'app.eghub.app/corporate', 'phone' => null,
+                'gallery' => [['redeem', 'browser', 'app.eghub.app/vouchers/redeem', __('The redeem screen: no POS needed; the cashier types the code, picks the open order or a paper bill, and the voucher is taken.')]],
                 'benefits' => [
                     ['file', __('A contract per company'), __('“300 vouchers of 200 EGP, valid until June”: the company pays once, you print the vouchers with a serial, a code and a QR.')],
                     ['cash', __('Spent like money'), __('At the POS or on the redeem screen the cashier takes the voucher against the bill; what is left stays on it, or not, as the contract says.')],
@@ -648,7 +648,7 @@ final class SiteModules
                 'tagline' => __('The answers your team gives every day, written once and found in a second'),
                 'summary' => __('Questions and answers for the call center and the cashier, and an FAQ for guests on the menu.'),
                 'feature' => 'knowledge_base', 'addons' => [],
-                'shot' => 'knowledge-base', 'frame' => 'browser', 'url' => 'app.egmenu.app/kb', 'phone' => 'm-faq',
+                'shot' => 'knowledge-base', 'frame' => 'browser', 'url' => 'app.eghub.app/kb', 'phone' => 'm-faq',
                 'benefits' => [
                     ['chat', __('One answer for everyone'), __('Opening hours, delivery areas, parking, allergens, payment: written once by the owner, so every caller hears the same thing.')],
                     ['shield', __('Staff only, or public'), __('Each answer says where it shows: only to the team (policies, what to do when a guest complains), or to guests too.')],
@@ -682,7 +682,7 @@ final class SiteModules
                 'tagline' => __('A cashier screen for counter orders, shifts and the cash drawer, that keeps selling offline'),
                 'summary' => __('Named terminals, offline sales, held tickets, split payments, refunds, cash in and out and a Z report.'),
                 'feature' => 'pos', 'addons' => ['pos_pack', 'ops_bundle'],
-                'shot' => 'pos', 'frame' => 'browser', 'url' => 'app.egmenu.app/pos', 'phone' => null,
+                'shot' => 'pos', 'frame' => 'browser', 'url' => 'app.eghub.app/pos', 'phone' => null,
                 'benefits' => [
                     ['zap', __('Fast at the counter'), __('Tap items, adjust quantities, add a discount, take the money.')],
                     ['layers', __('Named terminals'), __('“Cashier 1”, “K2”: each till has a name and a code, so every shift, sale and offline number says which till it came from.')],
@@ -718,7 +718,7 @@ final class SiteModules
                 'summary' => __('Guests tap, order and get a number, then pay at the cashier.'),
                 'feature' => 'kiosk', 'addons' => ['kiosk_pack'],
                 'shot' => 'kiosk-screen', 'frame' => 'tablet', 'url' => '', 'phone' => null,
-                'gallery' => [['kiosks', 'browser', 'app.egmenu.app/kiosks', __('The kiosks page: one secret link per tablet, eat-in or takeaway, stop it any time.')]],
+                'gallery' => [['kiosks', 'browser', 'app.eghub.app/kiosks', __('The kiosks page: one secret link per tablet, eat-in or takeaway, stop it any time.')]],
                 'benefits' => [
                     ['zap', __('A shorter line'), __('At rush hour guests order on the tablet while the cashier takes the money.')],
                     ['layers', __('Your menu, made big'), __('The kiosk shows your menu with sizes, extras and sold-out items, laid out for a tablet.')],
@@ -749,7 +749,7 @@ final class SiteModules
                 'tagline' => __('Orders on a screen in the kitchen or at the bar, not on paper'),
                 'summary' => __('A screen per station, with timers and colours.'),
                 'feature' => 'kitchen_display', 'addons' => ['kitchen_pack', 'ops_bundle'],
-                'shot' => 'kitchen', 'frame' => 'browser', 'url' => 'app.egmenu.app/kitchen', 'phone' => null,
+                'shot' => 'kitchen', 'frame' => 'browser', 'url' => 'app.eghub.app/kitchen', 'phone' => null,
                 'benefits' => [
                     ['clock', __('Timers and colours'), __('Every ticket counts the minutes and turns red when it waits too long.')],
                     ['layers', __('A screen per station'), __('The grill, the salads and the bar each see only their own items.')],
@@ -778,7 +778,7 @@ final class SiteModules
                 'tagline' => __('Phone orders in seconds, with the customer’s address on file'),
                 'summary' => __('Find the caller by number, pick a zone, send it.'),
                 'feature' => 'call_center', 'addons' => ['callcenter_pack', 'ops_bundle'],
-                'shot' => 'call-center', 'frame' => 'browser', 'url' => 'app.egmenu.app/call-center', 'phone' => null,
+                'shot' => 'call-center', 'frame' => 'browser', 'url' => 'app.eghub.app/call-center', 'phone' => null,
                 'benefits' => [
                     ['users', __('Caller on file'), __('Type the number and the name, saved addresses and last orders appear.')],
                     ['scooter', __('Zones and fees'), __('Pick the area and the delivery fee and minimum order apply by themselves.')],
@@ -808,7 +808,7 @@ final class SiteModules
                 'summary' => __('Give each order to a driver, follow them on a map, settle their cash.'),
                 // the same plan feature as delivery itself: either delivery zones or online ordering switches it on
                 'feature' => 'delivery_zones|online_ordering', 'addons' => ['online_pack', 'callcenter_pack', 'ops_bundle'],
-                'shot' => 'drivers', 'frame' => 'browser', 'url' => 'app.egmenu.app/drivers', 'phone' => 'm-driver',
+                'shot' => 'drivers', 'frame' => 'browser', 'url' => 'app.eghub.app/drivers', 'phone' => 'm-driver',
                 'benefits' => [
                     ['users', __('A driver role'), __('Each rider has their own login that opens one thing: their deliveries. Nothing else of the dashboard.')],
                     ['bell', __('Assign from the board or the call center'), __('Pick the driver on the order as it goes out, from the order board or the call-center screen; the cashier can too.')],
@@ -840,7 +840,7 @@ final class SiteModules
                 'tagline' => __('Know what every item costs, and what is running out'),
                 'summary' => __('Stock that goes down with every order.'),
                 'feature' => 'inventory', 'addons' => ['inventory_pack', 'ops_bundle'],
-                'shot' => 'inventory', 'frame' => 'browser', 'url' => 'app.egmenu.app/inventory', 'phone' => null,
+                'shot' => 'inventory', 'frame' => 'browser', 'url' => 'app.eghub.app/inventory', 'phone' => null,
                 'benefits' => [
                     ['file', __('Recipes'), __('A latte is 18 g of coffee, 200 ml of milk and a cup. Its real cost is calculated.')],
                     ['box', __('Automatic deduction'), __('Each order takes its ingredients out of stock; a cancelled order puts them back.')],
@@ -871,10 +871,10 @@ final class SiteModules
                 'tagline' => __('Sales, rush hours and best sellers, down to each item and each branch'),
                 'summary' => __('Daily numbers, item performance, a heat map, comparisons, CSV and a weekly email.'),
                 'feature' => 'daily_reports', 'addons' => ['team_pack', 'reports_pack'],
-                'shot' => 'reports', 'frame' => 'browser', 'url' => 'app.egmenu.app/reports', 'phone' => null,
+                'shot' => 'reports', 'frame' => 'browser', 'url' => 'app.eghub.app/reports', 'phone' => null,
                 'gallery' => [
-                    ['reports-advanced', 'browser', 'app.egmenu.app/reports', __('The advanced part: this period against the last one, and how often each item is opened against ordered.')],
-                    ['reports-heatmap', 'browser', 'app.egmenu.app/reports', __('Orders by day and hour, branch against branch, and where orders come from; every table downloads as CSV.')],
+                    ['reports-advanced', 'browser', 'app.eghub.app/reports', __('The advanced part: this period against the last one, and how often each item is opened against ordered.')],
+                    ['reports-heatmap', 'browser', 'app.eghub.app/reports', __('Orders by day and hour, branch against branch, and where orders come from; every table downloads as CSV.')],
                 ],
                 'benefits' => [
                     ['chart', __('The day at a glance'), __('Sales, number of orders and the average order, for today, yesterday or the week.')],
@@ -908,7 +908,7 @@ final class SiteModules
                 'tagline' => __('One menu for all branches, with each branch’s own prices'),
                 'summary' => __('Per-branch prices, availability, staff and stock.'),
                 'feature' => 'branch_pricing', 'addons' => ['multibranch_pack', 'branches'],
-                'shot' => 'branches', 'frame' => 'browser', 'url' => 'app.egmenu.app/branches', 'phone' => null,
+                'shot' => 'branches', 'frame' => 'browser', 'url' => 'app.eghub.app/branches', 'phone' => null,
                 'benefits' => [
                     ['layers', __('One menu'), __('Edit an item once and every branch gets it.')],
                     ['tag', __('Prices per branch'), __('The mall branch can charge more than the street branch.')],
@@ -937,9 +937,9 @@ final class SiteModules
                 'tagline' => __('Your menu on your own name, like rosto.com'),
                 'summary' => __('A free eghub link from day one, or your own domain.'),
                 'feature' => 'custom_domain', 'addons' => ['domain_pack'],
-                'shot' => 'domain', 'frame' => 'browser', 'url' => 'app.egmenu.app/domain', 'phone' => null,
+                'shot' => 'domain', 'frame' => 'browser', 'url' => 'app.eghub.app/domain', 'phone' => null,
                 'benefits' => [
-                    ['qr', __('A link from day one'), __('Every restaurant gets eghub.app/name the moment it signs up, with name.egmenu.app as a short alias.')],
+                    ['qr', __('A link from day one'), __('Every restaurant gets eghub.app/name the moment it signs up, with name.eghub.app as a short alias.')],
                     ['globe', __('Your domain'), __('Book a new domain through EgWeb, or connect one you already own.')],
                     ['shield', __('Secure by default'), __('The menu opens over https on your domain, and your QR codes keep working.')],
                 ],

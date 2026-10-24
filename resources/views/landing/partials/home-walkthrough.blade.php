@@ -6,11 +6,11 @@
 --}}
 @php
     $walkSteps = [
-        [__('Sign up free'), __('With your email or your Google account, in a minute. No card.'), 'shot', 'dash-home', 'app.egmenu.app'],
-        [__('Upload your menu'), __('A photo or a PDF of the paper menu, or an Excel sheet.'), 'shot', 'import', 'app.egmenu.app/menu/import'],
-        [__('AI reads it for you'), __('Items, prices and sections, and your brand colours and font too. You check everything before it is saved.'), 'ai', null, 'app.egmenu.app/menu/import'],
-        [__('Print the QR codes'), __('A code for every table, ready to print and stick.'), 'shot', 'tables', 'app.egmenu.app/tables'],
-        [__('Guests order'), __('They scan, order from their phone, and the order lands on your board.'), 'order', 'orders', 'app.egmenu.app/orders'],
+        [__('Sign up free'), __('With your email or your Google account, in a minute. No card.'), 'shot', 'dash-home', 'app.eghub.app'],
+        [__('Upload your menu'), __('A photo or a PDF of the paper menu, or an Excel sheet.'), 'shot', 'import', 'app.eghub.app/menu/import'],
+        [__('AI reads it for you'), __('Items, prices and sections, and your brand colours and font too. You check everything before it is saved.'), 'ai', null, 'app.eghub.app/menu/import'],
+        [__('Print the QR codes'), __('A code for every table, ready to print and stick.'), 'shot', 'tables', 'app.eghub.app/tables'],
+        [__('Guests order'), __('They scan, order from their phone, and the order lands on your board.'), 'order', 'orders', 'app.eghub.app/orders'],
     ];
     $walkCount = count($walkSteps);
     // the drawing in step 3: what the AI pulled out of the photo (an example)

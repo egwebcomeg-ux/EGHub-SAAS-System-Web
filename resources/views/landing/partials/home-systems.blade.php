@@ -8,12 +8,12 @@
 --}}
 @php
     $systems = [
-        ['qr', __('Menu and orders'), __('A QR menu in your guests’ languages, and orders from the table and your own link on one live board, with no commission.'), 'orders', 'app.egmenu.app/orders', null],
-        ['cash', __('Cashier'), __('Quick sales on any tablet or laptop, shifts and a Z report, and it keeps working offline.'), 'pos', 'app.egmenu.app/pos', 'Enterprise'],
-        ['chef', __('Kitchen'), __('A screen for every station, the bar and the kitchen, and a tap marks the order ready.'), 'kitchen', 'app.egmenu.app/kitchen', 'Enterprise'],
-        ['phone', __('Call center and drivers'), __('Phone orders with the customer’s address, handed to your drivers and followed on the map.'), 'call-center', 'app.egmenu.app/call-center', 'Enterprise'],
-        ['stamp', __('Loyalty and wallet'), __('A stamp card, a prepaid balance and offers that bring the guest back.'), 'loyalty-desk', 'app.egmenu.app/loyalty', null],
-        ['chart', __('Reports'), __('Sales, payment methods, busy hours and the best sellers, day by day.'), 'reports', 'app.egmenu.app/reports', null],
+        ['qr', __('Menu and orders'), __('A QR menu in your guests’ languages, and orders from the table and your own link on one live board, with no commission.'), 'orders', 'app.eghub.app/orders', null],
+        ['cash', __('Cashier'), __('Quick sales on any tablet or laptop, shifts and a Z report, and it keeps working offline.'), 'pos', 'app.eghub.app/pos', 'Enterprise'],
+        ['chef', __('Kitchen'), __('A screen for every station, the bar and the kitchen, and a tap marks the order ready.'), 'kitchen', 'app.eghub.app/kitchen', 'Enterprise'],
+        ['phone', __('Call center and drivers'), __('Phone orders with the customer’s address, handed to your drivers and followed on the map.'), 'call-center', 'app.eghub.app/call-center', 'Enterprise'],
+        ['stamp', __('Loyalty and wallet'), __('A stamp card, a prepaid balance and offers that bring the guest back.'), 'loyalty-desk', 'app.eghub.app/loyalty', null],
+        ['chart', __('Reports'), __('Sales, payment methods, busy hours and the best sellers, day by day.'), 'reports', 'app.eghub.app/reports', null],
     ];
     // where each chip sits on the outer ring: angle in degrees (0 = the top, clockwise)
     $chipAngles = [-60, 0, 60, 120, 180, 240];

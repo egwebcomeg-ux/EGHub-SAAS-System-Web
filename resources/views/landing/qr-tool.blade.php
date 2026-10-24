@@ -111,7 +111,7 @@
                 <div class="p-4 sm:p-6">
                     <div role="tabpanel" id="qr-panel-url" aria-labelledby="qr-tab-url" data-qr-panel="url">
                         <label class="block"><span class="field-label">{{ __('Your link') }}</span>
-                            <input name="url_url" type="url" inputmode="url" dir="ltr" class="field text-start" value="https://egmenu.app" placeholder="https://" maxlength="{{ $maxLength }}" autocomplete="url"></label>
+                            <input name="url_url" type="url" inputmode="url" dir="ltr" class="field text-start" value="https://eghub.app" placeholder="https://" maxlength="{{ $maxLength }}" autocomplete="url"></label>
                     </div>
                     <div role="tabpanel" id="qr-panel-text" aria-labelledby="qr-tab-text" data-qr-panel="text" hidden>
                         <label class="block"><span class="field-label">{{ __('Your text') }}</span>

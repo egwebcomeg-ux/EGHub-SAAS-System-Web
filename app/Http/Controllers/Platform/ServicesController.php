@@ -20,7 +20,7 @@ use Illuminate\View\View;
 class ServicesController extends Controller
 {
     /** The stand studio's sample QR opens the EgHub site: a real restaurant gets its own menu QR on the printed stand. */
-    private const SAMPLE_URL = 'https://egmenu.app';
+    private const SAMPLE_URL = 'https://eghub.app';
 
     public function index(Request $request): View
     {
