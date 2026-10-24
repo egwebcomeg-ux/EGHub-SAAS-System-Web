@@ -31,6 +31,6 @@ class LaunchOfferEnding extends Notification implements ShouldQueue
             ]))
             ->line(__('From your next renewal after that date it is on your invoice at its normal price.'))
             ->action(__('Renew now'), platform_url('app', '/billing'))
-            ->salutation(__('EgMenu team'));
+            ->salutation(__('EgHub team'));
     }
 }

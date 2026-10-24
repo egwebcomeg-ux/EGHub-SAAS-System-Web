@@ -7,7 +7,7 @@ use App\Models\Post;
 use Illuminate\Http\Response;
 use Illuminate\View\View;
 
-/** egmenu.app/blog — articles for cafe and restaurant owners, and the RSS feed of the latest twenty. */
+/** eghub.app/blog — articles for cafe and restaurant owners, and the RSS feed of the latest twenty. */
 class BlogController extends Controller
 {
     public function index(): View
@@ -30,7 +30,7 @@ class BlogController extends Controller
         $posts = Post::query()->published()->limit(20)->get();
         $esc = fn (string $s) => htmlspecialchars($s, ENT_XML1 | ENT_QUOTES, 'UTF-8');
         $out = '<?xml version="1.0" encoding="UTF-8"?>'."\n".'<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">'."\n<channel>\n"
-            .'<title>'.$esc(__('EgMenu blog')).'</title>'."\n"
+            .'<title>'.$esc(__('EgHub blog')).'</title>'."\n"
             .'<link>'.$esc(route('blog')).'</link>'."\n"
             .'<description>'.$esc(__('Practical articles for cafe and restaurant owners in Egypt: menus, ordering, loyalty and running the place.')).'</description>'."\n"
             .'<language>'.(app()->getLocale() === 'en' ? 'en' : 'ar').'</language>'."\n"

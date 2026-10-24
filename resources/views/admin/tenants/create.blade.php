@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title', __('New restaurant') . ' · EgMenu Admin')
+@section('title', __('New restaurant') . ' · EgHub Admin')
 
 @section('content')
 <h1 class="mb-1 text-2xl font-extrabold">{{ __('New restaurant') }}</h1>

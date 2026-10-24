@@ -2,14 +2,14 @@
 @php
     $asstWa = \App\Services\Assistant::salesWhatsApp();
     $asstL10n = [
-        'welcome' => __('Hi 👋 I’m the EgMenu assistant. Ask me about plans and prices, the free plan, add-ons, payment, or how your cafe gets started.'),
+        'welcome' => __('Hi 👋 I’m the EgHub assistant. Ask me about plans and prices, the free plan, add-ons, payment, or how your cafe gets started.'),
         'typing' => __('Typing…'),
         'failed' => __('Sorry, something went wrong and I couldn’t answer. You can message our team on WhatsApp.'),
         'tooMany' => __('You’ve asked a lot in a short time. Continue with our team on WhatsApp, or try again a bit later.'),
         'handoffPrompt' => __('Would you like to continue with someone from our team? They’ll reply on WhatsApp.'),
         'handoffButton' => __('Chat with our team on WhatsApp'),
-        'handoffText' => __("Hi, I was asking the EgMenu assistant on the website:\n:q"),
-        'helloText' => __('Hi, I would like to know more about EgMenu for my place'),
+        'handoffText' => __("Hi, I was asking the EgHub assistant on the website:\n:q"),
+        'helloText' => __('Hi, I would like to know more about EgHub for my place'),
     ];
     $asstChips = [__('How much are the plans?'), __('What does the free plan include?'), __('Can I buy one module only?'), __('How do I pay?')];
 @endphp
@@ -19,7 +19,7 @@
     <header class="flex items-center gap-3 bg-navy-900 px-4 py-3 text-white">
         <img src="{{ versioned_asset('icons/egmenu-192.png') }}" alt="" width="40" height="40" class="size-10 shrink-0 rounded-xl bg-white p-0.5">
         <div class="min-w-0 flex-1">
-            <p id="asst-title" class="truncate text-base font-extrabold">{{ __('EgMenu assistant') }}</p>
+            <p id="asst-title" class="truncate text-base font-extrabold">{{ __('EgHub assistant') }}</p>
             <p class="text-xs text-white/70">{{ __('Replies instantly · automated assistant') }}</p>
         </div>
         <button type="button" data-asst-reset class="grid size-9 place-items-center rounded-lg bg-white/10 text-lg hover:bg-white/20" title="{{ __('New chat') }}" aria-label="{{ __('New chat') }}">↺</button>
@@ -37,7 +37,7 @@
     @if ($asstWa !== '')
         <a data-asst-human href="https://wa.me/{{ $asstWa }}" target="_blank" rel="noopener" class="block bg-white px-3 pb-1 text-center text-[13px] font-bold text-emerald-700 hover:text-emerald-800">{{ __('Or message our team on WhatsApp') }}</a>
     @endif
-    <p class="bg-white px-3 pb-2.5 text-center text-[11px] text-navy-500">{{ __('The assistant answers from EgMenu’s own information; prices come from the live pricing page.') }}</p>
+    <p class="bg-white px-3 pb-2.5 text-center text-[11px] text-navy-500">{{ __('The assistant answers from EgHub’s own information; prices come from the live pricing page.') }}</p>
 </div>
 
 <script>

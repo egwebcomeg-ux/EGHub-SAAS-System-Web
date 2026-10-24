@@ -22,7 +22,7 @@ class CreditTransaction extends Model
             'purchase' => __('Credit pack bought'),
             'message' => __('Message sent'),
             'refund' => __('Returned (message not delivered)'),
-            default => __('Adjusted by EgMenu'),
+            default => __('Adjusted by EgHub'),
         };
     }
 }

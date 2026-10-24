@@ -71,7 +71,7 @@ class Plan extends Model
         'backups' => ['نسخة احتياطية من بيانات المطعم (أسبوعية وعند الطلب)', 'Restaurant data backups (weekly and on demand)', 'management'],
         // platform
         'custom_domain' => ['دومين خاص', 'Custom domain', 'platform'],
-        'hide_badge' => ['إخفاء شارة egmenu', 'Remove egmenu badge', 'platform'],
+        'hide_badge' => ['إخفاء شارة eghub', 'Remove eghub badge', 'platform'],
         'priority_support' => ['أولوية في الدعم', 'Priority support', 'platform'],
         'featured_listing' => ['ظهور مميز في دليل المطاعم', 'Featured in the restaurant directory', 'platform'],
     ];

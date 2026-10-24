@@ -1,5 +1,5 @@
 @extends('layouts.landing')
-@section('title', $post->displayTitle() . ' · EgMenu')
+@section('title', $post->displayTitle() . ' · EgHub')
 @section('description', $post->displayDescription())
 
 @php
@@ -10,8 +10,8 @@
         'headline' => $post->displayTitle(), 'description' => $post->displayDescription(),
         'datePublished' => $post->published_at->toAtomString(), 'dateModified' => $post->updated_at->toAtomString(),
         'mainEntityOfPage' => $url, 'inLanguage' => $post->isArabicBody() ? 'ar' : 'en',
-        'author' => ['@type' => 'Organization', 'name' => 'EgMenu'],
-        'publisher' => ['@type' => 'Organization', 'name' => 'EgMenu', 'logo' => ['@type' => 'ImageObject', 'url' => url('/icons/egmenu-512.png')]],
+        'author' => ['@type' => 'Organization', 'name' => 'EgHub'],
+        'publisher' => ['@type' => 'Organization', 'name' => 'EgHub', 'logo' => ['@type' => 'ImageObject', 'url' => url('/icons/egmenu-512.png')]],
     ] + ($cover ? ['image' => [$cover]] : []);
 @endphp
 
@@ -37,7 +37,7 @@
                 <span aria-hidden="true">·</span>
                 <span>{{ __(':n min read', ['n' => $post->readingMinutes()]) }}</span>
                 <span aria-hidden="true">·</span>
-                <span>{{ __('EgMenu team') }}</span>
+                <span>{{ __('EgHub team') }}</span>
             </div>
         </div>
     </header>
@@ -55,7 +55,7 @@
 
         <div class="mt-12 rounded-2xl bg-navy-900 p-6 text-white sm:p-8">
             <h2 class="text-xl font-extrabold">{{ __('Put it to work on your own menu') }}</h2>
-            <p class="mt-2 text-white/75">{{ __('EgMenu gives you a free QR menu in minutes; ordering, loyalty and the rest are there when you need them.') }}</p>
+            <p class="mt-2 text-white/75">{{ __('EgHub gives you a free QR menu in minutes; ordering, loyalty and the rest are there when you need them.') }}</p>
             <a href="{{ route('register') }}" class="btn-primary mt-5 min-h-12 px-6">{{ __('Start free') }}</a>
         </div>
     </div>

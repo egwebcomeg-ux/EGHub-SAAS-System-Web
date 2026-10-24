@@ -1,12 +1,12 @@
 @extends('layouts.landing')
-@section('title', __('Refund policy') . ' · EgMenu')
-@section('description', __('How EgMenu subscriptions are paid, cancelled and refunded.'))
+@section('title', __('Refund policy') . ' · EgHub')
+@section('description', __('How EgHub subscriptions are paid, cancelled and refunded.'))
 
 @section('page')
 <x-landing.legal :title="__('Refund policy')" :updated="__('Last updated: :date', ['date' => '2026/10/23'])" current="refund">
 
     @if (app()->getLocale() === 'en')
-        <p>This policy explains how paying for EgMenu, cancelling and refunds work. It is part of the <a href="{{ route('terms') }}" class="font-semibold text-brand-700 underline">terms of service</a>.</p>
+        <p>This policy explains how paying for EgHub, cancelling and refunds work. It is part of the <a href="{{ route('terms') }}" class="font-semibold text-brand-700 underline">terms of service</a>.</p>
         <h2>1. Subscriptions are prepaid</h2>
         <p>Every paid plan and add-on is paid in advance for the period you choose (1, 6 or 12 months). The free plan and the free trial cost nothing and need no card.</p>
         <h2>2. Cancel at any time</h2>
@@ -26,7 +26,7 @@
             <p>For a refund request or a billing question, contact support from your dashboard and include the invoice number.</p>
         @endif
     @else
-        <p>السياسة دي بتوضّح إزاي بتدفع اشتراك EgMenu وإزاي تلغيه وإمتى الفلوس بترجع. وهي جزء من <a href="{{ route('terms') }}" class="font-semibold text-brand-700 underline">شروط الاستخدام</a>.</p>
+        <p>السياسة دي بتوضّح إزاي بتدفع اشتراك EgHub وإزاي تلغيه وإمتى الفلوس بترجع. وهي جزء من <a href="{{ route('terms') }}" class="font-semibold text-brand-700 underline">شروط الاستخدام</a>.</p>
         <h2>١. الاشتراك مدفوع مقدّماً</h2>
         <p>كل باقة مدفوعة وكل إضافة بتتدفع مقدّماً عن المدة اللي بتختارها (شهر أو ٦ أو ١٢ شهر). الباقة المجانية وفترة التجربة مجانية ومش محتاجة كارت.</p>
         <h2>٢. تقدر تلغي في أي وقت</h2>

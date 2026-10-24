@@ -31,6 +31,6 @@ class DomainRequested extends Notification implements ShouldQueue
                 ? __(':restaurant wants to book :domain through egweb.com.eg. After it is registered, point it to the server and activate it.', ['restaurant' => $tenant->name, 'domain' => $this->domain->domain])
                 : __(':restaurant wants to connect its own domain :domain. Add it as an alias on the server with SSL, then activate it.', ['restaurant' => $tenant->name, 'domain' => $this->domain->domain]))
             ->action(__('Open the restaurant'), platform_url('admin', '/tenants/'.$tenant->id))
-            ->salutation('EgMenu');
+            ->salutation('EgHub');
     }
 }

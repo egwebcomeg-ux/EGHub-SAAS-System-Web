@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title', __('Overview') . ' · EgMenu Admin')
+@section('title', __('Overview') . ' · EgHub Admin')
 
 @section('content')
 @php

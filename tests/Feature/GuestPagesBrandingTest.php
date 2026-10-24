@@ -8,7 +8,7 @@ use Tests\TenantTestCase;
 
 /**
  * The guest menu's platform marks and header: the "by EgWeb" capsule on every restaurant that does not pay yet
- * (trial or Free), the "Powered by EgMenu" link following hide_badge, and the name next to the logo
+ * (trial or Free), the "Powered by EgHub" link following hide_badge, and the name next to the logo
  * (header_show_name: auto hides it when a logo exists).
  */
 class GuestPagesBrandingTest extends TenantTestCase

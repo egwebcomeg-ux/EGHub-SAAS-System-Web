@@ -84,7 +84,7 @@ Route::middleware('admin.locale')->group(function () {
     Route::post('/forgot-password', [PasswordResetController::class, 'send'])->middleware('throttle:5,1')->name('password.email');
     Route::get('/reset-password/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
     Route::post('/reset-password', [PasswordResetController::class, 'update'])->middleware('throttle:10,1')->name('password.update');
-    // "Continue with Google / Facebook" (shown only when the provider's keys are set); also started from egmenu.app/register
+    // "Continue with Google / Facebook" (shown only when the provider's keys are set); also started from eghub.app/register
     Route::get('/auth/{provider}/redirect', [SocialLoginController::class, 'redirect'])
         ->whereIn('provider', array_keys(SocialProviders::PROVIDERS))->middleware('throttle:20,1')->name('social.redirect');
     Route::get('/auth/{provider}/callback', [SocialLoginController::class, 'callback'])

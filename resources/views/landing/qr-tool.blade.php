@@ -1,5 +1,5 @@
 @extends('layouts.landing')
-@section('title', __('Free QR code generator with style and logo | EgMenu'))
+@section('title', __('Free QR code generator with style and logo | EgHub'))
 @section('description', __('Make a free QR code for a link, WhatsApp, Wi-Fi, a contact card or a location. Pick the shapes and colours, add your logo and a "Scan me" frame, and download PNG, SVG or a print-ready PDF. No sign-up.'))
 
 @php
@@ -28,7 +28,7 @@
         'frame' => 'none', 'frame_text' => __('Scan me'), 'frame_color' => '#0a2540', 'frame_text_color' => '#ffffff',
     ];
     $presets = [
-        'egmenu' => [__('EgMenu orange'), ['body' => 'liquid', 'eye_frame' => 'rounded', 'eye_ball' => 'rounded', 'fill_type' => 'linear', 'color1' => '#e05310', 'color2' => '#a93a0b', 'eye_custom' => true, 'eye_frame_color' => '#0a2540', 'eye_ball_color' => '#e05310'] + $base],
+        'egmenu' => [__('EgHub orange'), ['body' => 'liquid', 'eye_frame' => 'rounded', 'eye_ball' => 'rounded', 'fill_type' => 'linear', 'color1' => '#e05310', 'color2' => '#a93a0b', 'eye_custom' => true, 'eye_frame_color' => '#0a2540', 'eye_ball_color' => '#e05310'] + $base],
         'navy' => [__('Navy classic'), $base],
         'sunset' => [__('Gradient sunset'), ['body' => 'dots', 'eye_frame' => 'leaf', 'eye_ball' => 'leaf', 'fill_type' => 'linear', 'color1' => '#b3125a', 'color2' => '#e04e00', 'angle' => 35] + $base],
         'minimal' => [__('Dots minimal'), ['body' => 'dots', 'eye_frame' => 'circle', 'eye_ball' => 'circle', 'color1' => '#111827', 'color2' => '#111827'] + $base],
@@ -53,12 +53,12 @@
         [__('Is my logo uploaded anywhere?'), __('No. The logo stays in your browser: the page draws the code on your device and never sends the logo to our server.')],
         [__('Will a styled code still scan?'), __('Yes, as long as the code stays darker than the background and the logo stays small. The page warns you when a choice makes it hard to read; scan it with your phone camera before you print.')],
         [__('Which file should I download?'), __('PNG for social media and WhatsApp, SVG for designers and large prints, and Print / PDF for an A4 page ready to print.')],
-        [__('Can I change the link after printing?'), __('Not with a free static code: the link is inside the code. With an EgMenu menu, your QR opens your menu and you update the menu any time without reprinting.')],
+        [__('Can I change the link after printing?'), __('Not with a free static code: the link is inside the code. With an EgHub menu, your QR opens your menu and you update the menu any time without reprinting.')],
     ];
     $schema = [
         '@context' => 'https://schema.org',
         '@type' => 'WebApplication',
-        'name' => __('EgMenu QR code generator'),
+        'name' => __('EgHub QR code generator'),
         'url' => route('tools.qr'),
         'applicationCategory' => 'DesignApplication',
         'operatingSystem' => 'Web',
@@ -95,7 +95,7 @@
          data-endpoint="{{ route('tools.qr.matrix') }}" data-max="{{ $maxLength }}"
          data-qr-i18n="{{ json_encode($i18n, JSON_UNESCAPED_UNICODE) }}"
          data-presets="{{ json_encode(collect($presets)->map(fn ($p) => $p[1]), JSON_UNESCAPED_UNICODE) }}"
-         data-credit="{{ __('Made free on egmenu.app') }}">
+         data-credit="{{ __('Made free on eghub.app') }}">
         <form data-qr-form class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8" novalidate>
             <input type="hidden" name="type" value="url">
 
@@ -379,7 +379,7 @@
     <div class="mx-auto grid max-w-5xl items-center gap-8 px-4 sm:px-6 lg:grid-cols-[1.4fr_1fr]">
         <div class="text-center lg:text-start">
             <p class="lp-eyebrow">{{ __('For restaurants and cafes') }}</p>
-            <h2 class="lp-h2 mt-3">{{ __('Want a full QR menu for your restaurant? EgMenu makes it free') }}</h2>
+            <h2 class="lp-h2 mt-3">{{ __('Want a full QR menu for your restaurant? EgHub makes it free') }}</h2>
             <p class="lp-lead mt-3">{{ __('One QR on every table opens your menu with photos and prices in Arabic and English. Change a price any time without reprinting, and take orders from the table without commission.') }}</p>
             <div class="mt-6 flex flex-wrap justify-center gap-3 lg:justify-start">
                 <a href="{{ route('register') }}" class="btn-primary min-h-12 rounded-full px-7 text-base">{{ __('Make my free menu') }}</a>

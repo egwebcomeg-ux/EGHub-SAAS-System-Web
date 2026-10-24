@@ -76,7 +76,7 @@
                     <li class="flex items-start gap-2">{!! $check !!}<span>{{ $line }}</span></li>
                 @endforeach
                 @if (empty($fe['features']['hide_badge']))
-                    <li class="flex items-start gap-2 text-navy-500"><x-landing.icon name="flag" class="mt-1 size-4 shrink-0" /><span>{{ __('A small egmenu badge on the menu') }}</span></li>
+                    <li class="flex items-start gap-2 text-navy-500"><x-landing.icon name="flag" class="mt-1 size-4 shrink-0" /><span>{{ __('A small eghub badge on the menu') }}</span></li>
                 @endif
             </ul>
             <a href="{{ route('register') }}" class="btn mt-6 min-h-12 w-full rounded-full bg-emerald-600 text-white hover:bg-emerald-700">{{ __('Start free') }}</a>

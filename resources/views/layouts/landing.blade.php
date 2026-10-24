@@ -33,16 +33,16 @@
     <meta name="description" content="@yield('description', $description)">
     <meta name="theme-color" content="#ffffff">
     <link rel="apple-touch-icon" href="{{ versioned_asset('icons/egmenu-192.png') }}">
-    <meta name="apple-mobile-web-app-title" content="EgMenu">
+    <meta name="apple-mobile-web-app-title" content="EgHub">
     <link rel="canonical" href="@yield('canonical', $defaultCanonical)">
     @foreach ($hreflang as $hreflangCode => $hreflangUrl)
     <link rel="alternate" hreflang="{{ $hreflangCode }}" href="{{ $hreflangUrl }}">
     @endforeach
-    <link rel="alternate" type="application/rss+xml" title="EgMenu" href="{{ route('blog.rss') }}">
+    <link rel="alternate" type="application/rss+xml" title="EgHub" href="{{ route('blog.rss') }}">
     <meta property="og:type" content="@yield('og_type', 'website')">
-    <meta property="og:site_name" content="EgMenu">
+    <meta property="og:site_name" content="EgHub">
     <meta property="og:locale" content="{{ app()->getLocale() === 'ar' ? 'ar_EG' : 'en_US' }}">
-    <meta property="og:title" content="@yield('title', 'EgMenu')">
+    <meta property="og:title" content="@yield('title', 'EgHub')">
     <meta property="og:description" content="@yield('description', $description)">
     <meta property="og:url" content="@yield('canonical', $defaultCanonical)">
     <meta property="og:image" content="@yield('og_image', versioned_asset('og-image.png'))">
@@ -61,7 +61,7 @@
 
 <header data-header class="lp-header sticky top-0 z-40">
     <div class="lp-header-row mx-auto flex max-w-7xl items-center gap-2 ps-4 pe-2 sm:ps-6">
-        <a href="{{ $home }}" aria-label="EgMenu" class="shrink-0"><x-logo :size="32" /></a>
+        <a href="{{ $home }}" aria-label="EgHub" class="shrink-0"><x-logo :size="32" /></a>
 
         <nav class="ms-6 hidden items-center gap-1 text-[0.95rem] font-bold text-navy-700 lg:flex" aria-label="{{ __('Main') }}">
             <button type="button" data-mega-toggle aria-expanded="false" aria-controls="mega" class="flex min-h-11 items-center gap-1 rounded-lg px-3 hover:bg-navy-50 hover:text-navy-900">
@@ -175,7 +175,7 @@
                     </ul>
                 @endif
                 @if ($socialLinks)
-                    <ul data-social-links class="mt-5 flex flex-wrap gap-2" aria-label="{{ __('Follow EgMenu') }}">
+                    <ul data-social-links class="mt-5 flex flex-wrap gap-2" aria-label="{{ __('Follow EgHub') }}">
                         @foreach ($socialLinks as $social)
                             <li><a href="{{ $social['url'] }}" target="_blank" rel="noopener me" aria-label="{{ $social['label'] }}" title="{{ $social['label'] }}" class="grid size-11 place-items-center rounded-full bg-white/10 text-white/80 transition hover:bg-brand-600 hover:text-white">
                                 <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5 fill-current"><path d="{{ $social['path'] }}"/></svg>
@@ -184,7 +184,7 @@
                     </ul>
                 @endif
             </div>
-            {{-- phones: the module lists live in the menu drawer, so the footer keeps only the EgMenu links --}}
+            {{-- phones: the module lists live in the menu drawer, so the footer keeps only the EgHub links --}}
             <div class="grid grid-cols-2 gap-x-6 gap-y-8 text-sm sm:grid-cols-3 lg:grid-cols-6">
                 @foreach ($siteGroups as $g => [$groupLabel, $groupIcon])
                     <div class="max-sm:hidden">
@@ -197,7 +197,7 @@
                     </div>
                 @endforeach
                 <div class="max-sm:col-span-2">
-                    <div class="mb-3 font-extrabold text-white">EgMenu</div>
+                    <div class="mb-3 font-extrabold text-white">EgHub</div>
                     <ul class="grid grid-cols-2 gap-x-6 gap-y-2 sm:block sm:space-y-2">
                         <li class="sm:hidden"><a href="{{ route('features') }}" class="hover:text-white">{{ __('All features') }}</a></li>
                         <li><a href="{{ route('pricing') }}" class="hover:text-white">{{ __('Pricing') }}</a></li>
@@ -218,7 +218,7 @@
     <div class="border-t border-white/10">
         {{-- the end side stays clear on desktop: the floating "Ask us" button sits in that corner --}}
         <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-3 px-4 py-5 pb-28 text-xs sm:px-6 lg:pe-56 lg:pb-6" data-footer-bottom>
-            <span>© {{ date('Y') }} EgMenu</span>
+            <span>© {{ date('Y') }} EgHub</span>
             <x-egweb-badge tone="dark" />
             @if ($legalLines = \App\Support\LegalDetails::lines())
                 <span class="text-white/60" data-footer-legal>

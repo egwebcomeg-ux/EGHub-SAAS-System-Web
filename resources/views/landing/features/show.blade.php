@@ -1,5 +1,5 @@
 @extends('layouts.landing')
-@section('title', $module['name'] . ' · EgMenu')
+@section('title', $module['name'] . ' · EgHub')
 @section('description', $module['tagline'] . ' ' . $module['summary'])
 
 @php
@@ -37,7 +37,7 @@
                 </div>
             </div>
             <div class="relative">
-                <x-landing.shot :name="$module['shot']" :frame="$module['frame']" :url="$module['url']" :eager="true" :alt="__(':module in EgMenu (real screen)', ['module' => $module['name']])" />
+                <x-landing.shot :name="$module['shot']" :frame="$module['frame']" :url="$module['url']" :eager="true" :alt="__(':module in EgHub (real screen)', ['module' => $module['name']])" />
                 @if ($module['phone'])
                     <x-landing.shot :name="$module['phone']" frame="phone" :alt="__(':module on the guest’s phone (real screen)', ['module' => $module['name']])" sizes="160px"
                                     class="absolute -bottom-8 -end-2 hidden w-[150px] sm:block lg:-end-6 lg:w-[170px]" />

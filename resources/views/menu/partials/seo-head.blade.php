@@ -9,7 +9,7 @@
 @endphp
 <meta name="description" content="{{ $shareDescription }}">
 <meta property="og:type" content="{{ isset($share) ? 'product' : 'restaurant.restaurant' }}">
-<meta property="og:site_name" content="EgMenu">
+<meta property="og:site_name" content="EgHub">
 <meta property="og:locale" content="{{ app()->getLocale() === 'ar' ? 'ar_EG' : 'en_US' }}">
 <meta property="og:title" content="{{ $shareTitle }}">
 <meta property="og:description" content="{{ $shareDescription }}">

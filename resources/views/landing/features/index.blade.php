@@ -1,6 +1,6 @@
 @extends('layouts.landing')
-@section('title', __('Features') . ' · EgMenu')
-@section('description', __('Every EgMenu module with a real screen and a short animation of how it works: QR menu, ordering, reservations, loyalty, WhatsApp, POS, kiosk, kitchen display and more.'))
+@section('title', __('Features') . ' · EgHub')
+@section('description', __('Every EgHub module with a real screen and a short animation of how it works: QR menu, ordering, reservations, loyalty, WhatsApp, POS, kiosk, kitchen display and more.'))
 
 @php
     $pricing = ['plans' => $plans, 'addons' => $addons, 'matrix' => $matrix];

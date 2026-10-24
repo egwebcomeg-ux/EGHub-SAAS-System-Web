@@ -56,7 +56,7 @@ return [
     ],
 
     /*
-    | Kashier (developers.kashier.io): restaurants pay their EgMenu invoices online (App\Billing\Gateways\KashierGateway).
+    | Kashier (developers.kashier.io): restaurants pay their EgHub invoices online (App\Billing\Gateways\KashierGateway).
     | merchant_id (MID-xxx-xxx), api_key = the Payment API key (signs webhooks), secret_key = the merchant secret key
     | (opens payment sessions). mode: test | live. Which methods are offered is chosen in the super admin settings.
     */

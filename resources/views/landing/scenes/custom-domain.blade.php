@@ -1,10 +1,10 @@
-{{-- egmenu.app/rosto from day one → book rosto.com → connected over https → the menu on rosto.com. --}}
+{{-- eghub.app/rosto from day one → book rosto.com → connected over https → the menu on rosto.com. --}}
 <div class="absolute inset-5 overflow-hidden rounded-2xl border border-navy-200 bg-white shadow-[0_24px_40px_-26px_rgba(19, 29, 61, .6)]">
     <div class="flex h-10 items-center gap-2 border-b border-navy-100 bg-navy-50 px-3" dir="ltr">
         <i class="size-2.5 rounded-full bg-navy-200"></i><i class="size-2.5 rounded-full bg-navy-200"></i><i class="size-2.5 rounded-full bg-navy-200"></i>
         <div data-on="4" class="mx-auto flex h-7 w-[300px] items-center gap-1.5 rounded-lg border border-navy-200 bg-white px-3 text-[12px] font-bold [&.is-on]:border-emerald-400 [&.is-on]:ring-2 [&.is-on]:ring-emerald-100">
             <x-landing.icon name="shield" class="size-3.5 text-emerald-600" />
-            <x-landing.swap :values="['1-3' => 'egmenu.app/rosto', '4-' => 'rosto.com']" />
+            <x-landing.swap :values="['1-3' => 'eghub.app/rosto', '4-' => 'rosto.com']" />
         </div>
     </div>
     <div class="relative h-[calc(100%-2.5rem)] bg-[#fbf7f1]">
@@ -22,7 +22,7 @@
                 <div class="mt-2 grid *:[grid-area:1/1]">
                     <div data-show="2" class="sc-fade font-bold text-emerald-700">✓ {{ __('Available') }}</div>
                     <div data-show="3" class="sc-fade space-y-1.5">
-                        <div class="flex items-center justify-between rounded-lg bg-navy-50 px-2 py-1.5"><span>{{ __('Pointing to EgMenu') }}</span><b class="text-emerald-700">✓</b></div>
+                        <div class="flex items-center justify-between rounded-lg bg-navy-50 px-2 py-1.5"><span>{{ __('Pointing to EgHub') }}</span><b class="text-emerald-700">✓</b></div>
                         <div class="flex items-center justify-between rounded-lg bg-navy-50 px-2 py-1.5"><span>{{ __('Security certificate (https)') }}</span><span class="size-3.5 rounded-full border-2 border-navy-200 border-t-brand-600 sc-spin"></span></div>
                     </div>
                 </div>

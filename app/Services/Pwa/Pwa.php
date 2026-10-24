@@ -7,7 +7,7 @@ use App\Services\Settings;
 /**
  * Progressive web app declarations: every restaurant menu installs as its own app (name, colors and icon from the
  * restaurant's settings, scoped to its path or host), each guest's loyalty card as its own small app scoped to the
- * card's path ("كارتي"), the dashboard as "EgMenu". layouts.base reads forRequest()
+ * card's path ("كارتي"), the dashboard as "EgHub". layouts.base reads forRequest()
  * to add the manifest link, the Apple metas and the service worker registration on the right pages only.
  */
 final class Pwa
@@ -27,7 +27,7 @@ final class Pwa
         if (str_starts_with($name, 'dash.')) {
             return [
                 'manifest' => route('dash.manifest'), 'sw' => route('dash.sw'), 'scope' => '/', 'theme' => self::THEME,
-                'icon' => versioned_asset('icons/egmenu-192.png'), 'title' => 'EgMenu', 'key' => 'dashboard', 'install' => false,
+                'icon' => versioned_asset('icons/egmenu-192.png'), 'title' => 'EgHub', 'key' => 'dashboard', 'install' => false,
             ];
         }
         if (tenant() && preg_match('/^(menu|path|custom)\.card$/', $name) && is_string($token = request()->route('token'))) {
@@ -129,8 +129,8 @@ final class Pwa
 
         return [
             'id' => '/',
-            'name' => 'EgMenu',
-            'short_name' => 'EgMenu',
+            'name' => 'EgHub',
+            'short_name' => 'EgHub',
             'description' => __('Your restaurant dashboard: menu, orders, tables and customers.'),
             'lang' => $locale,
             'dir' => $locale === 'ar' ? 'rtl' : 'ltr',

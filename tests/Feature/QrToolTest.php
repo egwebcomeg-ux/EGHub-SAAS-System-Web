@@ -15,12 +15,12 @@ class QrToolTest extends TenantTestCase
     public function test_the_page_renders_in_arabic_and_english_with_its_schema(): void
     {
         $this->get($this->menuUrl('qr-code-generator'))->assertOk()
-            ->assertSee('مولّد QR كود مجاني — بشكل مميز ولوجو | EgMenu', false)
+            ->assertSee('مولّد QR كود مجاني — بشكل مميز ولوجو | EgHub', false)
             ->assertSee('data-qr-tool', false)
             ->assertSee(route('tools.qr.matrix'), false)
             ->assertSee('"@type":"WebApplication"', false)
             ->assertSee('"isAccessibleForFree":true', false)
-            ->assertSee('عايز منيو QR كامل لمطعمك؟ EgMenu بيعمله ببلاش')
+            ->assertSee('عايز منيو QR كامل لمطعمك؟ EgHub بيعمله ببلاش')
             ->assertSee(route('register'), false);
 
         $this->get($this->menuUrl('qr-code-generator?lang=en'))->assertOk()

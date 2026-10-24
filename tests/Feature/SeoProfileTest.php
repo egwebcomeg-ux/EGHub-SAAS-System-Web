@@ -10,7 +10,7 @@ use App\Services\Settings;
 use App\Support\OpeningHours;
 use Tests\TenantTestCase;
 
-/** Restaurant profile fields ("Showing up in search") and the SEO profile page egmenu.app/{slug}/about. */
+/** Restaurant profile fields ("Showing up in search") and the SEO profile page eghub.app/{slug}/about. */
 class SeoProfileTest extends TenantTestCase
 {
     private const BASE = [
@@ -67,7 +67,7 @@ class SeoProfileTest extends TenantTestCase
         ]));
 
         $html = $this->get($this->pathUrl('cafe-a', 'about'))->assertOk()
-            ->assertSee('<title>منيو روستو في المعادي، القاهرة | EgMenu</title>', false)
+            ->assertSee('<title>منيو روستو في المعادي، القاهرة | EgHub</title>', false)
             ->assertSee('<meta name="description" content="قهوة مختصة في قلب المعادي">', false)
             ->assertSee('<link rel="canonical" href="http://egmenu.test/cafe-a/about">', false)
             ->assertSee('og:image', false)
@@ -100,7 +100,7 @@ class SeoProfileTest extends TenantTestCase
         });
 
         $html = $this->get($this->subUrl('rest-a', 'about'))->assertOk()
-            ->assertSee('<title>منيو Sofra | EgMenu</title>', false)
+            ->assertSee('<title>منيو Sofra | EgHub</title>', false)
             ->assertSee('<link rel="canonical" href="http://egmenu.test/rest-a/about">', false)
             ->assertDontSee('طلب من الترابيزة')->getContent();
         [$place] = $this->jsonLd($html);
@@ -117,7 +117,7 @@ class SeoProfileTest extends TenantTestCase
         $this->profile($a, ['brand_name' => 'روستو', 'city' => 'giza', 'area' => 'الدقي']);
 
         $html = $this->get($this->pathUrl('cafe-a'))->assertOk()
-            ->assertSee('<title>منيو روستو في الدقي، الجيزة | EgMenu</title>', false)
+            ->assertSee('<title>منيو روستو في الدقي، الجيزة | EgHub</title>', false)
             ->assertSee('href="http://egmenu.test/cafe-a/about"', false)->assertSee('عن المكان')->getContent();
         $this->assertSame('Menu', $this->jsonLd($html)[0]['@type']);
         $this->get($this->subUrl('cafe-a'))->assertSee('href="http://cafe-a.egmenu.test/about"', false);

@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title', $addon->displayName() . ' · EgMenu Admin')
+@section('title', $addon->displayName() . ' · EgHub Admin')
 
 @section('content')
 @php($field = fn (string $name) => "addons[{$addon->id}][$name]")

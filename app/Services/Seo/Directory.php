@@ -15,7 +15,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The public restaurant directory on the main domain (egmenu.app/restaurants) and the sitemap. Runs outside any
+ * The public restaurant directory on the main domain (eghub.app/restaurants) and the sitemap. Runs outside any
  * tenant context and only reads what a restaurant already shows on its public menu: settings rows, counts of
  * active items and the average rating. A place is listed when it did not opt out (listed_in_directory), EgWeb did not
  * hide it (tenants.hidden_from_directory: demos and tests), it is not suspended or deleted, and it has at least

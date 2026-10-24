@@ -35,14 +35,14 @@ final class Settings
         'facebook' => '',
         'tiktok' => '',
         'google_review_url' => '',
-        // showing up in search: profile page egmenu.app/{slug}/about and the directory egmenu.app/restaurants
+        // showing up in search: profile page eghub.app/{slug}/about and the directory eghub.app/restaurants
         'city' => '',                       // App\Support\Cities slug
         'area' => '',                       // free text, e.g. المعادي
         'cuisine' => '',                    // App\Support\Cuisines keys, comma-separated
         'short_description' => '',
         'short_description_en' => '',
         'listed_in_directory' => '1',
-        // what the table and storefront QR open: the menu, or the links page egmenu.app/{slug}/links
+        // what the table and storefront QR open: the menu, or the links page eghub.app/{slug}/links
         'qr_target' => 'menu',
         // printed table QR cards / stands (App\Support\StandStyles): material look, print layout, optional lines (JSON)
         'stand_style' => 'white',           // white | navy | wood | frosted

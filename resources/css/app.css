@@ -4,13 +4,13 @@
 @source '../../storage/framework/views/*.php';
 
 /*
- * EgMenu design tokens (orange #F26522 + blue #005BA6 + navy #0A2540, from the logo). Rules carried over from Davaya's UI guidelines:
+ * EgHub design tokens (orange #F26522 + blue #005BA6 + navy #0A2540, from the logo). Rules carried over from Davaya's UI guidelines:
  * text never below 12px, 4px spacing grid, touch targets ≥ 44px, logical properties (ms/me/ps/pe) for RTL.
  */
 @theme {
     --font-sans: 'Cairo', ui-sans-serif, system-ui, 'Segoe UI', Tahoma, sans-serif;
 
-    /* EgMenu Pro palette: orange #F26522 and blue #005BA6 from the logo, deep navy #0A2540 for text and dark surfaces */
+    /* EgHub Pro palette: orange #F26522 and blue #005BA6 from the logo, deep navy #0A2540 for text and dark surfaces */
     --color-brand-50: #fff4ee;
     --color-brand-100: #ffe6d6;
     --color-brand-200: #ffc9a8;
@@ -131,7 +131,7 @@
 
 .table-base td { @apply border-b border-navy-50 px-3 py-3 align-middle; }
 
-/* EgMenu Pro accent: a word in orange-to-blue gradient (hero headlines) */
+/* EgHub Pro accent: a word in orange-to-blue gradient (hero headlines) */
 .text-brand-gradient {
     /* theme variables, so the colors picked in admin › branding (App\Support\PlatformBrand) reach it too */
     background: linear-gradient(90deg, var(--color-brand-600), var(--color-brand-500) 45%, var(--color-navy-600));

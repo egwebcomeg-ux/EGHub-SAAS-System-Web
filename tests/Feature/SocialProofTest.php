@@ -46,7 +46,7 @@ class SocialProofTest extends TenantTestCase
 
         // enough places for the strip, but no views or orders yet: the counters stay hidden
         $page = $this->get($this->menuUrl())->assertOk()->assertSee('data-social-proof', false)->assertDontSee('data-real-numbers', false);
-        $page->assertSee('مطاعم ومحلات بتستخدم EgMenu')->assertSee('Brand place-1')->assertSee('Brand place-10')
+        $page->assertSee('مطاعم ومحلات بتستخدم EgHub')->assertSee('Brand place-1')->assertSee('Brand place-10')
             ->assertSee('href="http://egmenu.test/place-1"', false)->assertSee('/storage/logos/one.png')
             ->assertDontSee('Brand opted-out')->assertDontSee('Brand paused')->assertDontSee('Restaurant empty-signup');
         $this->assertCount(10, SocialProof::places());

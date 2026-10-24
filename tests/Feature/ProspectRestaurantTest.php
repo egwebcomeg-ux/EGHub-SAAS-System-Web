@@ -90,7 +90,7 @@ class ProspectRestaurantTest extends TenantTestCase
         $tenant = $this->createProspect(['slug' => 'koshary-x', 'email' => '', 'phone' => '', 'demo' => '0']);
 
         $owner = $this->owner($tenant);
-        $this->assertSame('koshary-x@egmenu.app', $owner->email);
+        $this->assertSame('koshary-x@eghub.app', $owner->email);
         $this->assertTrue(WelcomeKit::isPlaceholder($owner->email, $tenant));
         $this->as($tenant, fn () => $this->assertFalse(DemoContent::present()));
         Notification::assertNothingSent();
@@ -124,7 +124,7 @@ class ProspectRestaurantTest extends TenantTestCase
             ->assertSee('cafe-nile', false)->assertDontSee('Restaurant cafe-other')
             ->assertHeader('X-Robots-Tag', 'noindex, nofollow')->assertHeader('Referrer-Policy', 'no-referrer')
             // every module of the system in one short line, ticked when the plan has it
-            ->assertSee('data-kit-features', false)->assertSee(__('Everything you can do with EgMenu'))
+            ->assertSee('data-kit-features', false)->assertSee(__('Everything you can do with EgHub'))
             ->assertSee('data-kit-feature="qr-menu" data-included="1"', false)
             ->assertSee('data-kit-feature="pos" data-included="0"', false);   // operations are Enterprise-only
         $this->assertStringContainsString('no-store', (string) $this->get($url)->headers->get('Cache-Control'));

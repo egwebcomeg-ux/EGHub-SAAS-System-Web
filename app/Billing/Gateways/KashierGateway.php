@@ -61,7 +61,7 @@ final class KashierGateway implements PaymentGateway
                 'allowedMethods' => $this->allowedMethods($methods),
                 'display' => app()->getLocale() === 'en' ? 'en' : 'ar',
                 'type' => 'one-time',
-                'description' => mb_substr('EgMenu '.$invoice->number.' · '.$invoice->description(), 0, 119),
+                'description' => mb_substr('EgHub '.$invoice->number.' · '.$invoice->description(), 0, 119),
                 'customer' => array_filter(['email' => $owner?->email, 'reference' => (string) $invoice->tenant_id]),
                 'metaData' => ['invoice' => $invoice->number, 'tenant' => (string) $invoice->tenant_id],
             ]);

@@ -1,6 +1,6 @@
 {{-- Second login step (dashboard and platform admin): $action (POST), $login (back link), $dark (admin look). --}}
 @extends('layouts.base')
-@section('title', __('Verification code') . ' · EgMenu')
+@section('title', __('Verification code') . ' · EgHub')
 @section('body_class', ($dark ? 'bg-navy-900' : 'bg-navy-50') . ' text-navy-900')
 
 @section('body')

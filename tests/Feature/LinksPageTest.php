@@ -8,7 +8,7 @@ use App\Models\Tenant;
 use App\Services\Settings;
 use Tests\TenantTestCase;
 
-/** The place page egmenu.app/{slug}/about with its links on top (/links shows the same page) and the QR target setting that can point the QR codes at it. */
+/** The place page eghub.app/{slug}/about with its links on top (/links shows the same page) and the QR target setting that can point the QR codes at it. */
 class LinksPageTest extends TenantTestCase
 {
     private const BASE = [
@@ -32,7 +32,7 @@ class LinksPageTest extends TenantTestCase
 
         // one page for the place: /about carries the links on top, then the place itself
         $html = $this->get($this->pathUrl('cafe-a', 'about'))->assertOk()
-            ->assertSee('<title>منيو روستو في المعادي، القاهرة | EgMenu</title>', false)
+            ->assertSee('<title>منيو روستو في المعادي، القاهرة | EgHub</title>', false)
             ->assertSee('<link rel="canonical" href="http://egmenu.test/cafe-a/about">', false)
             ->assertDontSee('name="robots"', false)
             ->assertSee(['data-link="menu"', 'data-link="order"', 'data-link="reserve"', 'data-link="whatsapp"', 'data-link="instagram"', 'data-link="tiktok"', 'data-link="map"', 'data-hours'], false)

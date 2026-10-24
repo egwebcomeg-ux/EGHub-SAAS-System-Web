@@ -7,7 +7,7 @@ use App\Models\Payment;
 use Illuminate\Http\Request;
 
 /**
- * An online gateway the restaurant pays its EgMenu invoice through (Kashier today; Paymob or another one later
+ * An online gateway the restaurant pays its EgHub invoice through (Kashier today; Paymob or another one later
  * implements the same contract and is bound in AppServiceProvider). The gateway never decides what is paid:
  * App\Billing\OnlinePayments turns a verified GatewayResult into Billing::markPaid, exactly once.
  */

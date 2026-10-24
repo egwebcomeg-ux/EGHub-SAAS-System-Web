@@ -106,7 +106,7 @@ final class Entitlements
 
     /**
      * Whether the restaurant pays for its plan. Until it does (trial or Free) its guest pages carry the "by EgWeb"
-     * capsule whatever the plan includes; the "Powered by EgMenu" link keeps following the hide_badge feature.
+     * capsule whatever the plan includes; the "Powered by EgHub" link keeps following the hide_badge feature.
      */
     public function isPaid(): bool
     {

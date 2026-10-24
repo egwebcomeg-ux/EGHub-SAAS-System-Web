@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title', ($member->exists ? __('Edit team member') : __('Add a team member')) . ' · EgMenu Admin')
+@section('title', ($member->exists ? __('Edit team member') : __('Add a team member')) . ' · EgHub Admin')
 
 @use('App\Support\AdminPermissions')
 

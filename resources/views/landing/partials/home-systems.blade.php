@@ -2,7 +2,7 @@
     Home page: "everything your place needs", on navy. The systems are listed on the start side; the end side is a
     stage: a device in the middle of slow orbit rings, one chip per system on the rings, and the device's screen is the
     real screen of the system in focus. On wide screens the section is pinned while the visitor scrolls through it
-    (landing.js, data-systems): the scroll picks the system, and the last step turns the device into an EgMenu cup.
+    (landing.js, data-systems): the scroll picks the system, and the last step turns the device into an EgHub cup.
     On phones, with reduced motion or without JS, the systems are cards (swiped sideways on phones) and the stage
     follows the card in view or the one tapped.
 --}}
@@ -65,7 +65,7 @@
                         @endforeach
                     </div>
                 </div>
-                {{-- the last step: the device becomes a take-away cup with the EgMenu mark --}}
+                {{-- the last step: the device becomes a take-away cup with the EgHub mark --}}
                 <div class="hm-cup" aria-hidden="true">
                     <svg viewBox="0 0 200 250" class="hm-cup-svg">
                         <defs>

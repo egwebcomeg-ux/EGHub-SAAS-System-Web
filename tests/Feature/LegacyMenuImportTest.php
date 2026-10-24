@@ -15,7 +15,7 @@ use Illuminate\Testing\PendingCommand;
 use PDO;
 use Tests\TenantTestCase;
 
-/** egmenu:import-legacy-menu: a legacy (Desoky-family) menu.db into an EgMenu restaurant. */
+/** egmenu:import-legacy-menu: a legacy (Desoky-family) menu.db into an EgHub restaurant. */
 class LegacyMenuImportTest extends TenantTestCase
 {
     private string $folder;

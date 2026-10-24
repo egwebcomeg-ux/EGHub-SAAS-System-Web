@@ -2,5 +2,5 @@
 @section('title', 'Maintenance')
 @section('code', '503')
 @section('title_ar', 'صيانة مؤقتة')
-@section('message_ar', 'نقوم بتحديث إيجمنيو الآن لنقدم لك تجربة أفضل. سنعود خلال دقائق.')
-@section('message_en', 'EgMenu is down for a short maintenance. We will be right back.')
+@section('message_ar', 'نقوم بتحديث EgHub الآن لنقدم لك تجربة أفضل. سنعود خلال دقائق.')
+@section('message_en', 'EgHub is down for a short maintenance. We will be right back.')

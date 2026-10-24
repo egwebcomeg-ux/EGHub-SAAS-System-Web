@@ -95,7 +95,7 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
     });
 
     Route::middleware('admin.access:content.manage')->group(function () {
-        // Blog of the marketing site (egmenu.app/blog): Markdown articles, covers, publish/unpublish
+        // Blog of the marketing site (eghub.app/blog): Markdown articles, covers, publish/unpublish
         Route::get('/blog', [BlogController::class, 'index'])->name('blog');
         Route::get('/blog/create', [BlogController::class, 'create'])->name('blog.create');
         Route::post('/blog', [BlogController::class, 'store'])->name('blog.store');

@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Notification;
 
 /**
  * "Let our team enter your menu" ticked at sign-up: the paid menu_setup service (App\Support\SiteServices) is
- * requested with the new account, stored like a request from egmenu.app/services and emailed to the admins.
+ * requested with the new account, stored like a request from eghub.app/services and emailed to the admins.
  * The dashboard home suggests the service while the menu is still thin and nobody with this phone asked for it.
  */
 class MenuSetupRequest

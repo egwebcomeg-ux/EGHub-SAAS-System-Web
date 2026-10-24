@@ -4,10 +4,10 @@
  * Everything that moves stops under prefers-reduced-motion.
  */
 /*
- * EgWeb palette (EgMenu is an EgWeb product; measured from egweb.com.eg). Change the marketing site's colours here.
+ * EgWeb palette (EgHub is an EgWeb product; measured from egweb.com.eg). Change the marketing site's colours here.
  * The Tailwind navy-* and brand-* steps are redefined for the landing pages only (this file is loaded by
  * layouts/landing alone), so text-navy-900, bg-brand-600 and friends follow; the dashboard and guest menus keep
- * app.css. The EgMenu logo keeps its own colours.
+ * app.css. The EgHub logo keeps its own colours.
  *   --eg-navy #131D3D  deep navy: dark sections, headings     --eg-navy-2 #213368  its gradient partner
  *   --eg-orange #F37623  buttons, accents, prices              --eg-orange-deep #D9620E  filled cards
  *   --eg-orange-text #C2560A  orange text on white (4.5:1)      navy text on orange buttons is 5.8:1

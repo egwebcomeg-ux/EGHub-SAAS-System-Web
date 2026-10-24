@@ -1,6 +1,6 @@
 @extends('layouts.landing')
-@section('title', 'EgMenu — ' . __('one system for your whole place: QR menu, orders, cashier and delivery for restaurants and cafes'))
-@section('description', 'EgMenu — ' . __('one system for your whole place') . '. ' . __('A free QR menu for cafes and restaurants in Egypt, with table and online ordering without commission, a loyalty card and a print-ready menu when you need them.'))
+@section('title', 'EgHub — ' . __('one system for your whole place: QR menu, orders, cashier and delivery for restaurants and cafes'))
+@section('description', 'EgHub — ' . __('one system for your whole place') . '. ' . __('A free QR menu for cafes and restaurants in Egypt, with table and online ordering without commission, a loyalty card and a print-ready menu when you need them.'))
 
 @push('head')
     <script type="application/ld+json">{!! \App\Services\Seo\RestaurantProfile::json(\App\Services\Seo\PlatformSchema::organization()) !!}</script>
@@ -23,14 +23,14 @@
     // matches what is switched on: online (App\Billing\OnlinePayments) only once EgWeb turned it on
     $howToPay = app(\App\Billing\OnlinePayments::class)->howToPay();
     $faq = [
-        [__('Is the free plan really free?'), __('Yes. Your menu stays online with its QR codes at no cost and with no time limit, with a small egmenu badge. You pay only if you choose the Complete plan.')],
+        [__('Is the free plan really free?'), __('Yes. Your menu stays online with its QR codes at no cost and with no time limit, with a small eghub badge. You pay only if you choose the Complete plan.')],
         [__('Do my guests need to download an app?'), __('No. They scan the QR code and the menu opens in the browser.')],
         [__('Do I need special devices?'), __('No. The dashboard works on any phone, tablet or computer, and guests use their own phones.')],
         [__('What happens after the :days days of the Complete plan?', ['days' => $trial]), __('Nothing breaks. If you do not choose a plan, the account goes back to the free plan: the menu and QR codes keep working and everything you set up is kept.')],
         [__('Can I change prices myself?'), __('Yes, at any time from your dashboard. The QR menu, the printed menu and the TV screens all update.')],
         [__('How do I pay the subscription?'), $howToPay],
         [__('I have a chain or a busy kitchen. Which plan is mine?'), __('Enterprise: the POS, kitchen screens, the kiosk, the call center, stock and more than 5 branches, set up with you. Message us and we agree a price for your place.')],
-        [__('I run a cafe or a shop, not a restaurant. Is EgMenu for me?'), __('Yes. When you sign up you choose a cafe, a restaurant, both, a pastry shop or bakery, or a shop (a butcher, a juice bar), and EgMenu sets up the right categories, a bar or prep screen instead of a kitchen and a loyalty card ready to switch on.')],
+        [__('I run a cafe or a shop, not a restaurant. Is EgHub for me?'), __('Yes. When you sign up you choose a cafe, a restaurant, both, a pastry shop or bakery, or a shop (a butcher, a juice bar), and EgHub sets up the right categories, a bar or prep screen instead of a kitchen and a loyalty card ready to switch on.')],
         [__('Is my data safe?'), __('Every restaurant’s data is kept separate and is visible only to its own staff, each with the permissions you give them.')],
     ];
 @endphp
@@ -41,14 +41,14 @@
     <div class="hm-orbits" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
     <div class="relative mx-auto grid max-w-7xl items-center gap-12 px-4 pt-10 pb-12 sm:px-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-10 lg:pt-20 lg:pb-24">
         <div>
-            <p class="hm-kicker" data-reveal><span dir="ltr">EgMenu</span> — {{ __('one system for your whole place') }}</p>
+            <p class="hm-kicker" data-reveal><span dir="ltr">EgHub</span> — {{ __('one system for your whole place') }}</p>
             <h1 class="hm-display mt-5 text-white" data-reveal style="--d: 70ms"><span>{{ __('Know every order') }}</span> <span>{{ __('and every pound') }}</span> <span class="text-brand-500">{{ __('in your place.') }}</span></h1>
             <p class="hm-trail mt-5" data-reveal style="--d: 110ms">{{ __('For restaurants, cafés, pastry shops and bakeries — from the menu to the till to delivery') }}</p>
             <p class="hm-sub mt-6" data-reveal style="--d: 140ms">
                 @if ($completePlan && (float) $completePlan->monthly_price > 0)
-                    {{ __('EgMenu runs the QR menu, orders from the table and from your own link with no commission, the loyalty card and the reports on one dashboard, in Arabic and English. The menu is free with no time limit; the Complete plan is :price EGP a month.', ['price' => money($completePlan->monthly_price)]) }}
+                    {{ __('EgHub runs the QR menu, orders from the table and from your own link with no commission, the loyalty card and the reports on one dashboard, in Arabic and English. The menu is free with no time limit; the Complete plan is :price EGP a month.', ['price' => money($completePlan->monthly_price)]) }}
                 @else
-                    {{ __('EgMenu runs the QR menu, orders from the table and from your own link with no commission, the loyalty card and the reports on one dashboard, in Arabic and English. The menu is free with no time limit.') }}
+                    {{ __('EgHub runs the QR menu, orders from the table and from your own link with no commission, the loyalty card and the reports on one dashboard, in Arabic and English. The menu is free with no time limit.') }}
                 @endif
             </p>
             <div class="mt-8 flex flex-wrap items-center gap-x-7 gap-y-4" data-reveal style="--d: 210ms">
@@ -60,7 +60,7 @@
 
         {{-- the real order board in a browser, the guest's phone over its corner and one glass card (an example order) --}}
         <div class="hm-compose" data-reveal style="--d: 160ms">
-            <x-landing.shot name="orders" url="app.egmenu.app/orders" :eager="true" :alt="__('The live order board in the EgMenu dashboard (real screen)')" sizes="(min-width: 1024px) 660px, 92vw" class="hm-compose-board" />
+            <x-landing.shot name="orders" url="app.egmenu.app/orders" :eager="true" :alt="__('The live order board in the EgHub dashboard (real screen)')" sizes="(min-width: 1024px) 660px, 92vw" class="hm-compose-board" />
             <x-landing.shot name="menu-cafe" frame="phone" :eager="true" :alt="__('Rosto’s menu on a guest’s phone (real screen)')" sizes="(min-width: 1024px) 190px, 34vw" class="hm-compose-phone" />
             <div class="hm-glass hm-compose-card" aria-hidden="true">
                 <span class="flex items-center justify-between gap-3 text-xs font-bold text-navy-500"><span class="flex items-center gap-1.5"><i class="hm-live"></i>{{ __('New order') }} · {{ __('Table 4') }}</span><span class="hm-tag">{{ __('Example') }}</span></span>
@@ -81,7 +81,7 @@
         $showcaseRounds = (int) ceil(8 / count($showcaseLogos));
     @endphp
     <section data-site-showcase class="pt-14" aria-labelledby="showcase-title">
-        <h2 id="showcase-title" class="hm-kicker hm-kicker--quiet justify-center px-4 text-center">{{ __('Restaurants and cafes running on EgMenu') }}</h2>
+        <h2 id="showcase-title" class="hm-kicker hm-kicker--quiet justify-center px-4 text-center">{{ __('Restaurants and cafes running on EgHub') }}</h2>
         <div class="lp-marquee mx-auto mt-6 max-w-7xl" style="--lp-marquee-duration: {{ count($showcaseLogos) * $showcaseRounds * 4 }}s">
             <div class="lp-marquee-track">
                 @foreach ([false, true] as $copy)
@@ -105,7 +105,7 @@
 @if ($proofPlaces)
     <section data-social-proof class="pt-12">
         <div class="mx-auto max-w-7xl px-4 sm:px-6">
-            <p class="hm-kicker hm-kicker--quiet justify-center text-center">{{ __('Restaurants and shops using EgMenu') }}</p>
+            <p class="hm-kicker hm-kicker--quiet justify-center text-center">{{ __('Restaurants and shops using EgHub') }}</p>
             <ul class="mt-4 flex flex-wrap justify-center gap-2">
                 @foreach ($proofPlaces as $place)
                     <li class="max-w-full">
@@ -131,7 +131,7 @@
 {{-- ============ FOUR PROMISES, numbered under thin rules ============ --}}
 <section class="pb-16 lg:pb-24" aria-labelledby="promises-title">
     <div class="mx-auto max-w-7xl px-4 sm:px-6">
-        <h2 id="promises-title" class="sr-only">{{ __('Why EgMenu') }}</h2>
+        <h2 id="promises-title" class="sr-only">{{ __('Why EgHub') }}</h2>
         <ol class="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
             @foreach ($promises as [$promiseTitle, $promiseText, $promiseTag])
                 <li class="hm-promise" data-reveal style="--d: {{ $loop->index * 70 }}ms">
@@ -166,7 +166,7 @@
         <div class="mx-auto max-w-7xl px-4 sm:px-6">
             <div class="max-w-2xl" data-reveal>
                 <p class="hm-kicker">{{ __('Real numbers') }}</p>
-                <h2 class="hm-h2 mt-4">{{ __('What is running on EgMenu right now') }}</h2>
+                <h2 class="hm-h2 mt-4">{{ __('What is running on EgHub right now') }}</h2>
                 <p class="mt-2 text-sm text-navy-500">{{ __('Taken from the database, refreshed every 10 minutes.') }}</p>
             </div>
             <dl class="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-3">
@@ -350,7 +350,7 @@
     <div class="hm-orbits hm-orbits--center" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
     <div class="relative mx-auto max-w-3xl px-4 py-20 text-center sm:px-6 lg:py-28" data-reveal>
         <x-logo :size="44" :text="false" />
-        <p class="hm-kicker mt-6 justify-center"><span dir="ltr">EgMenu</span> — {{ __('one system for your whole place') }}</p>
+        <p class="hm-kicker mt-6 justify-center"><span dir="ltr">EgHub</span> — {{ __('one system for your whole place') }}</p>
         <h2 class="hm-display hm-display--sm mt-4 text-white">{{ __('Your menu can be live today') }}</h2>
         <p class="hm-sub mx-auto mt-5 max-w-xl">{{ __('Sign up with your email or your Google account, add your items and print the codes. If you need help, we set it up with you.') }}</p>
         <div class="mt-9 flex flex-wrap items-center justify-center gap-x-7 gap-y-4">

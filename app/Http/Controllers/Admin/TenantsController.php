@@ -58,7 +58,7 @@ class TenantsController extends Controller
     /**
      * A restaurant for a prospect: the owner gets a strong temporary password (changed at the first sign-in) and a
      * welcome kit (App\Services\WelcomeKit); with "fill demo data" the other modules get sample rows
-     * (App\Services\DemoContent). No owner email: a placeholder {slug}@egmenu.app that is never mailed.
+     * (App\Services\DemoContent). No owner email: a placeholder {slug}@eghub.app that is never mailed.
      * trial_days 0 = no trial, the plan starts active (set by hand after a transfer).
      */
     public function store(Request $request, TenantProvisioner $provisioner, WelcomeKit $kit, DemoContent $demo): RedirectResponse
@@ -212,7 +212,7 @@ class TenantsController extends Controller
     }
 
     /**
-     * The restaurant's logo in the moving strip on the egmenu.app home page (App\Services\Seo\SiteShowcase), turned
+     * The restaurant's logo in the moving strip on the eghub.app home page (App\Services\Seo\SiteShowcase), turned
      * on only after the owner agreed, with an optional place in the strip. Written to its audit trail.
      */
     public function showcase(Request $request, Tenant $tenant): RedirectResponse
@@ -235,7 +235,7 @@ class TenantsController extends Controller
             Settings::flush();
         }
 
-        return back()->with('ok', $tenant->showcase_on_site ? __('The logo shows on egmenu.app.') : __('The logo is off egmenu.app.'));
+        return back()->with('ok', $tenant->showcase_on_site ? __('The logo shows on eghub.app.') : __('The logo is off eghub.app.'));
     }
 
     /** EgWeb's demo / test places: kept out of the directory, the sitemap and the home page's list of places. */

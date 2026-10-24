@@ -1,4 +1,4 @@
-// EgMenu — service worker of the dashboard. Static files (build, fonts, icons) from a cache, and one page only kept for
+// EgHub — service worker of the dashboard. Static files (build, fonts, icons) from a cache, and one page only kept for
 // when the internet drops: the POS cashier screen (/pos), saved by the POS page itself while online so the cashier
 // can keep selling offline (pos-offline.js). Every other page, the order board and the reports always come live from
 // the server; nothing of them is ever cached here.

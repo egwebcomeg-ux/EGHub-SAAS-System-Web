@@ -256,7 +256,7 @@ class AdminSupportAccessTest extends TenantTestCase
         $this->assertSame($owner->id, $this->as($tenant, fn () => AuditLog::query()->latest('id')->first()->user_id));
 
         // the owner reads it in their audit log, and the admin on the restaurant page
-        $this->actingAs($owner, 'web')->get($this->dashUrl('/audit'))->assertOk()->assertSee('دخول من فريق EgMenu');
+        $this->actingAs($owner, 'web')->get($this->dashUrl('/audit'))->assertOk()->assertSee('دخول من فريق EgHub');
         $this->actingAs($this->admin('manager'), 'admin')->get($this->adminUrl('/tenants/cafe-a'))->assertOk()
             ->assertSee(__('Signed in to the dashboard (support)'));
 

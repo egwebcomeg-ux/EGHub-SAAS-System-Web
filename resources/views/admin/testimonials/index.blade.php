@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title', __('Testimonials') . ' · EgMenu Admin')
+@section('title', __('Testimonials') . ' · EgHub Admin')
 
 @section('content')
 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">

@@ -1,7 +1,7 @@
 <?php
 
 /*
- * The website assistant ("اسألنا" on egmenu.app): answers visitors' questions about EgMenu from what the site itself
+ * The website assistant ("اسألنا" on eghub.app): answers visitors' questions about EgHub from what the site itself
  * says (plans, add-ons, modules, FAQ) and hands over to the sales WhatsApp when a person is needed. Either Claude
  * (Anthropic) or Google Gemini answers, picked by ASSISTANT_PROVIDER. No key for the chosen provider = the button
  * opens WhatsApp directly. Keys are EgWeb's own and never leave the server.

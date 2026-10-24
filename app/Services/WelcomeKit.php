@@ -23,8 +23,8 @@ final class WelcomeKit
 {
     public const VALID_DAYS = 14;
 
-    /** The sign-in email of an owner who gave none: {slug}@egmenu.app, never sent anything. */
-    public const PLACEHOLDER_DOMAIN = 'egmenu.app';
+    /** The sign-in email of an owner who gave none: {slug}@eghub.app, never sent anything. */
+    public const PLACEHOLDER_DOMAIN = 'eghub.app';
 
     public static function placeholderEmail(string $slug): string
     {
@@ -114,7 +114,7 @@ final class WelcomeKit
         if (! $url || ! $phone) {
             return null;
         }
-        $text = __('Hello :name! Your EgMenu dashboard for :place is ready. Open your welcome page for the sign-in details and your first 5 steps: :url', [
+        $text = __('Hello :name! Your EgHub dashboard for :place is ready. Open your welcome page for the sign-in details and your first 5 steps: :url', [
             'name' => $owner->name, 'place' => $tenant->name, 'url' => $url,
         ]);
 

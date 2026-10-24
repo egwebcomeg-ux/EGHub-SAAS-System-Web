@@ -10,7 +10,7 @@ use App\Notifications\ServiceRequested;
 use Illuminate\Support\Facades\Notification;
 use Tests\TenantTestCase;
 
-/** egmenu.app/services: EgWeb's one-time services, the request form and the admin list. */
+/** eghub.app/services: EgWeb's one-time services, the request form and the admin list. */
 class ServicesPageTest extends TenantTestCase
 {
     private function valid(array $overrides = []): array

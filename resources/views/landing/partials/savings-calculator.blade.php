@@ -104,7 +104,7 @@
                     <dd class="shrink-0 text-lg font-black text-emerald-300"><bdi dir="ltr" data-calc-out="commission">0</bdi></dd>
                 </div>
                 <div class="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
-                    <dt class="min-w-0">{{ __('EgMenu for the year') }}<span class="block text-xs text-white/60"><bdi dir="ltr" data-calc-explain="plan"></bdi></span></dt>
+                    <dt class="min-w-0">{{ __('EgHub for the year') }}<span class="block text-xs text-white/60"><bdi dir="ltr" data-calc-explain="plan"></bdi></span></dt>
                     <dd class="shrink-0 text-lg font-black text-brand-200"><bdi dir="ltr" data-calc-out="plan">0</bdi></dd>
                 </div>
             </dl>

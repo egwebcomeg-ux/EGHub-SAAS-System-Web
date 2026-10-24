@@ -184,7 +184,7 @@ final class SiteModules
                     ['globe', __('Arabic and English'), __('Each item has an Arabic and an English name. The guest switches language with one tap.')],
                     ['layers', __('Eight ready designs'), __('Cozy cafe, bistro, dark, oriental grill and more, with your logo and colours, on the paid plans.')],
                     ['pencil', __('Change it any time'), __('Prices, photos, sold-out items: edit from your phone and the menu updates at once.')],
-                    ['globe', __('On Google and in the directory'), __('Your menu and a page about your place live at egmenu.app/your-name, ready for Google, and you can be listed in the EgMenu restaurant directory.')],
+                    ['globe', __('On Google and in the directory'), __('Your menu and a page about your place live at eghub.app/your-name, ready for Google, and you can be listed in the EgHub restaurant directory.')],
                 ],
                 'steps' => [
                     [__('Scan'), __('The guest scans the code on the table.')],
@@ -197,7 +197,7 @@ final class SiteModules
                     'restaurant' => __('Big photos, sections for grills and sandwiches, and descriptions that sell.'),
                 ],
                 'faq' => [
-                    [__('Is the menu really free?'), __('Yes. The free plan keeps your menu online with a QR code for as long as you want, with a small egmenu badge.')],
+                    [__('Is the menu really free?'), __('Yes. The free plan keeps your menu online with a QR code for as long as you want, with a small eghub badge.')],
                     [__('Do guests need an app?'), __('No. They scan the QR code and the menu opens in the browser.')],
                     [__('Can I use my own photos and colours?'), __('Item photos, yes, on every plan. Your logo, your colours and the extra designs come with the paid plans.')],
                 ],
@@ -367,7 +367,7 @@ final class SiteModules
                     ['chat', __('WhatsApp follow-up'), __('Each order has a tracking page, and you can confirm it with the customer on WhatsApp.')],
                 ],
                 'steps' => [
-                    [__('Open your link'), __('A customer taps egmenu.app/rosto in your Instagram bio.')],
+                    [__('Open your link'), __('A customer taps eghub.app/rosto in your Instagram bio.')],
                     [__('Choose delivery'), __('Delivery to Nasr City, or pickup at a set time.')],
                     [__('See the fee'), __('The zone adds its delivery fee to the total.')],
                     [__('Order arrives'), __('It lands on your board, with no commission taken.')],
@@ -378,7 +378,7 @@ final class SiteModules
                 ],
                 'faq' => [
                     [__('How does the customer pay?'), __('Cash on delivery or at pickup; the order total, fee and notes are clear on your board.')],
-                    [__('Is there really no commission?'), __('None. EgMenu charges the monthly subscription only.')],
+                    [__('Is there really no commission?'), __('None. EgHub charges the monthly subscription only.')],
                     [__('Do I need my own riders?'), __('Yes, you deliver with your own team: give each order to one of your drivers, who gets it on the driver screen on their phone, and the guest follows the ride live on the tracking map.')],
                 ],
                 'related' => ['delivery-drivers', 'call-center', 'table-ordering'],
@@ -535,7 +535,7 @@ final class SiteModules
                     'restaurant' => __('Delivery customers who know their food is on the way, without calling you.'),
                 ],
                 'faq' => [
-                    [__('Do I need my own WhatsApp Business account?'), __('No. Messages go out from the EgMenu WhatsApp channel, with your place’s name in every message.')],
+                    [__('Do I need my own WhatsApp Business account?'), __('No. Messages go out from the EgHub WhatsApp channel, with your place’s name in every message.')],
                     [__('What does a message cost?'), __('One message is one credit. Credit packs are paid once, and their prices are on the pricing page.')],
                     [__('Can a guest stop the messages?'), __('Yes. Guests who opt out are skipped, and no credit is used for them.')],
                 ],
@@ -935,16 +935,16 @@ final class SiteModules
                 'slug' => 'custom-domain', 'group' => 'management', 'icon' => 'globe', 'for' => ['cafe', 'restaurant'],
                 'name' => __('Your own domain'),
                 'tagline' => __('Your menu on your own name, like rosto.com'),
-                'summary' => __('A free egmenu link from day one, or your own domain.'),
+                'summary' => __('A free eghub link from day one, or your own domain.'),
                 'feature' => 'custom_domain', 'addons' => ['domain_pack'],
                 'shot' => 'domain', 'frame' => 'browser', 'url' => 'app.egmenu.app/domain', 'phone' => null,
                 'benefits' => [
-                    ['qr', __('A link from day one'), __('Every restaurant gets egmenu.app/name the moment it signs up, with name.egmenu.app as a short alias.')],
+                    ['qr', __('A link from day one'), __('Every restaurant gets eghub.app/name the moment it signs up, with name.egmenu.app as a short alias.')],
                     ['globe', __('Your domain'), __('Book a new domain through EgWeb, or connect one you already own.')],
                     ['shield', __('Secure by default'), __('The menu opens over https on your domain, and your QR codes keep working.')],
                 ],
                 'steps' => [
-                    [__('Your egmenu link'), __('egmenu.app/rosto works from the first day.')],
+                    [__('Your eghub link'), __('eghub.app/rosto works from the first day.')],
                     [__('Choose a domain'), __('Search for rosto.com and book it.')],
                     [__('Connect'), __('It is checked and secured with https.')],
                     [__('Live'), __('The menu opens on rosto.com.')],
@@ -954,8 +954,8 @@ final class SiteModules
                     'restaurant' => __('Your brand in the address bar for online orders.'),
                 ],
                 'faq' => [
-                    [__('Do my printed QR codes change?'), __('No. Codes printed with the egmenu link keep working and open your domain.')],
-                    [__('Can I use a domain I already have?'), __('Yes, point it to EgMenu from your DNS settings; the page tells you exactly what to add.')],
+                    [__('Do my printed QR codes change?'), __('No. Codes printed with the eghub link keep working and open your domain.')],
+                    [__('Can I use a domain I already have?'), __('Yes, point it to EgHub from your DNS settings; the page tells you exactly what to add.')],
                     [__('Is the domain itself included?'), __('Connecting it is in the Complete plan; the yearly domain fee is separate if you book a new one.')],
                 ],
                 'related' => ['online-ordering', 'qr-menu', 'multi-branch'],
@@ -963,12 +963,12 @@ final class SiteModules
             [
                 'slug' => 'featured-listing', 'group' => 'management', 'icon' => 'star', 'for' => ['cafe', 'restaurant'],
                 'name' => __('Featured in the directory'),
-                'tagline' => __('Show first in the EgMenu restaurant directory'),
+                'tagline' => __('Show first in the EgHub restaurant directory'),
                 'summary' => __('Paid placement with a “Featured” badge on your city and cuisine pages.'),
                 'feature' => 'featured_listing', 'addons' => ['featured_listing'],
-                'shot' => 'directory', 'frame' => 'browser', 'url' => 'egmenu.app/restaurants', 'phone' => null,
+                'shot' => 'directory', 'frame' => 'browser', 'url' => 'eghub.app/restaurants', 'phone' => null,
                 'benefits' => [
-                    ['star', __('At the top of the list'), __('Your place shows first on egmenu.app/restaurants and on your city and cuisine pages.')],
+                    ['star', __('At the top of the list'), __('Your place shows first on eghub.app/restaurants and on your city and cuisine pages.')],
                     ['users', __('Shared fairly'), __('Up to 5 featured places take turns on each page, so no single place buys the whole list.')],
                     ['shield', __('Clearly marked'), __('Featured places carry a visible “Featured” badge. Visitors always know it is paid placement.')],
                 ],
@@ -982,7 +982,7 @@ final class SiteModules
                     'restaurant' => __('A new branch in a city where people do not know the name yet.'),
                 ],
                 'faq' => [
-                    [__('Is this advertising?'), __('Yes. It is paid placement inside the EgMenu directory, marked with a “Featured” badge. It does not change your ranking on Google.')],
+                    [__('Is this advertising?'), __('Yes. It is paid placement inside the EgHub directory, marked with a “Featured” badge. It does not change your ranking on Google.')],
                     [__('Do I have to be in the directory?'), __('Yes. Your place must be listed in the directory; listing is on by default and free, and you can switch it off in Settings.')],
                     [__('How many visitors will I get?'), __('We cannot promise a number. The directory is new and grows with the places in it, and you can stop the add-on in any month.')],
                 ],

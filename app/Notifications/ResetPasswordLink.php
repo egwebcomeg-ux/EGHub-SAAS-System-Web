@@ -19,11 +19,11 @@ class ResetPasswordLink extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject(__('Reset your EgMenu password'))
+            ->subject(__('Reset your EgHub password'))
             ->greeting(__('Hello :name,', ['name' => $notifiable->name]))
             ->line(__('We received a request to reset the password of your account.'))
             ->action(__('Choose a new password'), $this->url)
             ->line(__('The link works for 60 minutes. If you did not ask for this, ignore this email and your password stays the same.'))
-            ->salutation(__('EgMenu team'));
+            ->salutation(__('EgHub team'));
     }
 }

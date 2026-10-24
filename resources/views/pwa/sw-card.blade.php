@@ -1,4 +1,4 @@
-// EgMenu — service worker of one guest's loyalty card (served per card, scoped to that card's path only).
+// EgHub — service worker of one guest's loyalty card (served per card, scoped to that card's path only).
 // The card page is network-first and its last copy is kept under the card's own URL — the only page this worker
 // ever stores, so no other guest's card can end up here. The live state (/state) always goes to the network.
 const CACHE = 'egmenu-card-{{ $token }}-v1';

@@ -54,7 +54,7 @@ class TwoFactorTest extends TenantTestCase
         $this->assertFalse(Totp::verify($secret, '28708', 1, 59));
         $this->assertFalse(Totp::verify($secret, 'abcdef', 1, 59));
         $this->assertSame(32, strlen(Totp::secret()));
-        $this->assertStringStartsWith('otpauth://totp/EgMenu:owner%40cafe.test?secret='.$secret.'&issuer=EgMenu', Totp::uri('EgMenu', 'owner@cafe.test', $secret));
+        $this->assertStringStartsWith('otpauth://totp/EgHub:owner%40cafe.test?secret='.$secret.'&issuer=EgHub', Totp::uri('EgHub', 'owner@cafe.test', $secret));
     }
 
     public function test_owner_enables_two_factor_by_scanning_and_confirming_a_code(): void

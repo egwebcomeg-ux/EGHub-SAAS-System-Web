@@ -29,6 +29,6 @@ class RestaurantSuspended extends Notification implements ShouldQueue
             ->line(__('The menu of :restaurant is paused because the subscription was not renewed.', ['restaurant' => $this->tenant->name]))
             ->line(__('Your menu, orders and customers are all kept. The menu comes back as soon as the payment is confirmed.'))
             ->action(__('Pay now'), platform_url('app', '/billing'))
-            ->salutation(__('EgMenu team'));
+            ->salutation(__('EgHub team'));
     }
 }

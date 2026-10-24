@@ -66,7 +66,7 @@ class DomainController extends Controller
     {
         tenant()->domains()->delete();
 
-        return back()->with('ok', __('Domain removed. Your menu uses the EgMenu link again.'));
+        return back()->with('ok', __('Domain removed. Your menu uses the EgHub link again.'));
     }
 
     private function validated(Request $request): string

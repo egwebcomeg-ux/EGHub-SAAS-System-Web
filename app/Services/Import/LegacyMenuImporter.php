@@ -23,7 +23,7 @@ use PDO;
 use RuntimeException;
 
 /**
- * Moves a menu from the legacy "Desoky" app family (plain PHP + one SQLite file, menu.db) into an EgMenu restaurant:
+ * Moves a menu from the legacy "Desoky" app family (plain PHP + one SQLite file, menu.db) into an EgHub restaurant:
  * settings, logo/cover, categories, items with sizes/add-ons, "goes well with", combos, branches and their per-branch
  * prices/availability, and item photos (from {folder}/uploads or downloaded from a base URL). Missing legacy tables or
  * columns are read as empty. Everything is written inside the tenant scope and one transaction; a dry run rolls the
@@ -36,10 +36,10 @@ final class LegacyMenuImporter
 
     public const DOWNLOAD_TIMEOUT = 15;
 
-    /** Legacy badge keys that carry another name in EgMenu (the same keys map one to one). */
+    /** Legacy badge keys that carry another name in EgHub (the same keys map one to one). */
     private const BADGE_ALIASES = ['signature' => ['cafe' => 'barista_pick', 'default' => 'chef_pick']];
 
-    /** Legacy settings with no EgMenu counterpart that are not worth reporting (internal flags). */
+    /** Legacy settings with no EgHub counterpart that are not worth reporting (internal flags). */
     private const SILENT_SETTINGS = ['admin_pass_hash', 'admin_user', 'admin_password', 'schema_version'];
 
     private const ENTITIES = ['categories', 'items', 'sizes', 'extras', 'pairings', 'combos', 'branches', 'branch_overrides', 'images', 'settings'];
@@ -57,7 +57,7 @@ final class LegacyMenuImporter
     /** @var list<string> */
     private array $notes = [];
 
-    /** @var array<string, string> legacy setting key => value that has no EgMenu equivalent */
+    /** @var array<string, string> legacy setting key => value that has no EgHub equivalent */
     private array $unmappedSettings = [];
 
     /** @var list<string> files written to the public disk during this run (removed again when it fails) */
@@ -318,7 +318,7 @@ final class LegacyMenuImporter
 
     // ---------------------------------------------------------------- menu
 
-    /** @return array<int, Category> legacy category id => EgMenu category */
+    /** @return array<int, Category> legacy category id => EgHub category */
     private function importCategories(): array
     {
         $existing = Category::query()->get()->keyBy(fn (Category $c) => $this->key($c->name));
@@ -354,7 +354,7 @@ final class LegacyMenuImporter
 
     /**
      * @param  array<int, Category>  $categories
-     * @return array<int, array{item: MenuItem, created: bool}> legacy item id => EgMenu item
+     * @return array<int, array{item: MenuItem, created: bool}> legacy item id => EgHub item
      */
     private function importItems(array $categories): array
     {
@@ -430,7 +430,7 @@ final class LegacyMenuImporter
             $this->counts['items']['created']++;
         }
         foreach ($unknownBadges as $badge => $n) {
-            $this->notes[] = "Badge \"{$badge}\" ({$n} items) has no EgMenu badge and was dropped.";
+            $this->notes[] = "Badge \"{$badge}\" ({$n} items) has no EgHub badge and was dropped.";
         }
         foreach (self::BADGE_ALIASES as $legacyKey => $to) {
             $n = count(array_filter($rows, fn ($r) => in_array($legacyKey, array_map('trim', explode(',', (string) ($r['badges'] ?? ''))), true)));
@@ -439,7 +439,7 @@ final class LegacyMenuImporter
             }
         }
         if ($suggested) {
-            $this->notes[] = "{$suggested} items were marked \"suggested\" (is_suggested): EgMenu has no such flag; featured is kept.";
+            $this->notes[] = "{$suggested} items were marked \"suggested\" (is_suggested): EgHub has no such flag; featured is kept.";
         }
 
         return $map;
@@ -520,12 +520,12 @@ final class LegacyMenuImporter
     // ---------------------------------------------------------------- branches
 
     /**
-     * Legacy branches become EgMenu branches up to the plan's branch limit. A restaurant that still has only the
+     * Legacy branches become EgHub branches up to the plan's branch limit. A restaurant that still has only the
      * starter branch made at sign-up (slug "main") hands that branch to the first legacy branch instead of keeping an
      * empty one next to it. Without a legacy branches table the restaurant-wide address/phones fill the main branch.
      *
      * @param  array{address:string, phones:string, hours:string}  $fallback
-     * @return array<int, Branch> legacy branch id => EgMenu branch
+     * @return array<int, Branch> legacy branch id => EgHub branch
      */
     private function importBranches(array $fallback): array
     {
@@ -582,7 +582,7 @@ final class LegacyMenuImporter
                 $this->notes[] = "Branch \"{$name}\": only the first of the phones \"{$phones}\" was kept.";
             }
             if ($row['whatsapp_enabled'] ?? null) {
-                $this->notes[] = "Branch \"{$name}\": its own WhatsApp on/off switch (whatsapp_enabled) has no EgMenu equivalent.";
+                $this->notes[] = "Branch \"{$name}\": its own WhatsApp on/off switch (whatsapp_enabled) has no EgHub equivalent.";
             }
             if ($starter) {
                 $starter->update($values);
@@ -611,7 +611,7 @@ final class LegacyMenuImporter
 
     /**
      * Legacy rule: in a branch an item exists only with a branch_items row with is_available=1, and a null price means
-     * the main price. EgMenu's rule: no row = same as the main menu. So only the differences become rows.
+     * the main price. EgHub's rule: no row = same as the main menu. So only the differences become rows.
      *
      * @param  array<int, Branch>  $branches
      * @param  array<int, array{item: MenuItem, created: bool}>  $items

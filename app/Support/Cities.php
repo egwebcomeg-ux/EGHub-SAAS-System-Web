@@ -4,7 +4,7 @@ namespace App\Support;
 
 /**
  * Egyptian cities a restaurant can pick in Settings → "Showing up in search". The slug is the directory address
- * (egmenu.app/restaurants/{slug}) and the stored setting value, so it must never change once published.
+ * (eghub.app/restaurants/{slug}) and the stored setting value, so it must never change once published.
  */
 final class Cities
 {

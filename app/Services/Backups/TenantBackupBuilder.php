@@ -323,7 +323,7 @@ class TenantBackupBuilder
         $months = max(1, (int) config('backup.tenant.orders_months'));
         $support = trim((string) PlatformSetting::get('support_whatsapp', ''));
         $lines = [
-            'نسخة احتياطية من بيانات «'.$name.'» على EgMenu',
+            'نسخة احتياطية من بيانات «'.$name.'» على EgHub',
             'المطعم (الرابط): '.$backup->tenant_id,
             'تاريخ النسخة: '.local_time(now(), 'Y/m/d h:i A').' (توقيت القاهرة)',
             'نوع النسخة: '.($backup->kind === TenantBackup::KIND_SCHEDULED ? 'أسبوعية (تلقائية)' : 'يدوية (من لوحة التحكم)'),
@@ -334,7 +334,7 @@ class TenantBackupBuilder
             '             الطلبات الأقدم من '.$months.' شهر (قبل '.local_time($cutoff, 'Y/m/d').') موجودة كملخص شهري في data/orders-archive.json بدل صف لكل طلب، عشان الملف يفضل صغير.',
             '             data/users.json: فريق العمل بالاسم والإيميل والدور والفرع فقط. مفيش أي كلمات سر أو أكواد دخول في النسخة.',
             'excel/       ملفات Excel سهلة القراءة: المنيو (menu.xlsx)، العملاء (customers.xlsx)، طلبات آخر '.$months.' شهر (orders.xlsx)، فاوتشرات الشركات (corporate-vouchers.xlsx).',
-            'images/      صور الأصناف والأقسام واللوجو والكفر والبانرات اللي رفعتها على EgMenu'.($summary['images'] ? ' ('.$summary['images'].' ملف).' : ' (مفيش صور مرفوعة).'),
+            'images/      صور الأصناف والأقسام واللوجو والكفر والبانرات اللي رفعتها على EgHub'.($summary['images'] ? ' ('.$summary['images'].' ملف).' : ' (مفيش صور مرفوعة).'),
         ];
         if ($summary['images_skipped'] > 0) {
             $lines[] = '             تنبيه: '.$summary['images_skipped'].' ملف ما اتضافش لأن حجم الصور عدّى الحد الأقصى ('.(int) config('backup.tenant.images_max_mb').' ميجا). الصور دي موجودة على السيرفر، واطلبها من دعم EgWeb لو احتجتها.';
@@ -362,9 +362,9 @@ class TenantBackupBuilder
             '-------',
             '- النسخة دي بتاعة مطعمك إنت بس: مفيش فيها أي بيانات لمطاعم أخرى.',
             '- احتفظ بالملف في مكان آمن: فيه أرقام موبايلات عملائك.',
-            '- EgMenu بتعمل كمان نسخة احتياطية يومية لكل المنصة على السيرفر، النسخة دي زيادة في إيدك إنت.',
+            '- EgHub بتعمل كمان نسخة احتياطية يومية لكل المنصة على السيرفر، النسخة دي زيادة في إيدك إنت.',
             '',
-            'EgMenu · by EgWeb · egmenu.app',
+            'EgHub · by EgWeb · eghub.app',
         ];
 
         return "\xEF\xBB\xBF".implode("\r\n", $lines)."\r\n";

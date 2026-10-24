@@ -23,7 +23,7 @@ class SignupMenuSetupTest extends TenantTestCase
     public function test_the_form_offers_the_service_and_the_shop_type(): void
     {
         $this->get($this->menuUrl('register'))->assertOk()
-            ->assertSee('name="menu_setup"', false)->assertSee('عايز فريق EgMenu يدخّل المنيو بدالي')->assertSee('من 300 جنيه')
+            ->assertSee('name="menu_setup"', false)->assertSee('عايز فريق EgHub يدخّل المنيو بدالي')->assertSee('من 300 جنيه')
             ->assertSee('value="shop"', false)->assertSee('محل')
             // the hyphen escaped: Chrome compiles pattern="" with the v flag, where a bare "-" in a class is invalid
             ->assertSee('pattern="[a-z0-9\-]{3,30}"', false);

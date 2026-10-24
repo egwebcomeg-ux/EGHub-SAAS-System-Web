@@ -8,7 +8,7 @@ use Tests\TenantTestCase;
 
 /**
  * Every restaurant menu installs as its own app (manifest, icons from the logo, scoped service worker, offline
- * page) and the dashboard as "EgMenu".
+ * page) and the dashboard as "EgHub".
  */
 class PwaTest extends TenantTestCase
 {
@@ -30,7 +30,7 @@ class PwaTest extends TenantTestCase
         $this->restaurant('cafe-b');
         $this->as($a, fn () => Settings::put(['brand_name' => 'كافيه أ', 'brand_name_en' => 'Cafe A', 'color_bg' => '#FAFAFA', 'color_secondary' => '#123456', 'tagline' => 'قهوة مظبوطة']));
 
-        // canonical address egmenu.app/cafe-a: the app owns /cafe-a/
+        // canonical address eghub.app/cafe-a: the app owns /cafe-a/
         $response = $this->get($this->pathUrl('cafe-a', 'manifest.webmanifest'))->assertOk();
         $this->assertStringStartsWith('application/manifest+json', (string) $response->headers->get('Content-Type'));
         $response->assertJsonPath('name', 'كافيه أ')->assertJsonPath('short_name', 'كافيه أ')->assertJsonPath('description', 'قهوة مظبوطة')
@@ -125,7 +125,7 @@ class PwaTest extends TenantTestCase
         $a = $this->restaurant('cafe-a');
 
         $this->get($this->dashUrl('/manifest.webmanifest'))->assertOk()
-            ->assertJsonPath('name', 'EgMenu')->assertJsonPath('short_name', 'EgMenu')->assertJsonPath('display', 'standalone')
+            ->assertJsonPath('name', 'EgHub')->assertJsonPath('short_name', 'EgHub')->assertJsonPath('display', 'standalone')
             ->assertJsonPath('start_url', '/?source=pwa')->assertJsonPath('theme_color', '#0A2540')->assertJsonPath('background_color', '#FFFFFF')
             ->assertJsonPath('icons.0.src', versioned_asset('icons/egmenu-192.png'))->assertJsonPath('icons.1.src', versioned_asset('icons/egmenu-512.png'))
             ->assertJsonPath('icons.2.purpose', 'maskable');
@@ -142,7 +142,7 @@ class PwaTest extends TenantTestCase
 
         $this->actingAs($this->owner($a))->get($this->dashUrl('/'))->assertOk()
             ->assertSee('<link rel="manifest" href="'.$this->dashUrl('/manifest.webmanifest').'">', false)
-            ->assertSee('<meta name="apple-mobile-web-app-title" content="EgMenu">', false)
+            ->assertSee('<meta name="apple-mobile-web-app-title" content="EgHub">', false)
             ->assertSee('serviceWorker.register("'.$this->dashUrl('/sw.js').'"', false)
             ->assertDontSee('id="pwa-install-prompt"', false);
         // the admin host is not an app

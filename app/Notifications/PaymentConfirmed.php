@@ -36,6 +36,6 @@ class PaymentConfirmed extends Notification implements ShouldQueue
         }
 
         return $mail->action(__('View invoice'), platform_url('app', '/billing/invoices/'.$invoice->number))
-            ->salutation(__('EgMenu team'));
+            ->salutation(__('EgHub team'));
     }
 }

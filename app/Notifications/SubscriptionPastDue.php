@@ -26,13 +26,13 @@ class SubscriptionPastDue extends Notification implements ShouldQueue
         $sub = $this->subscription;
 
         return (new MailMessage)
-            ->subject(__('Your EgMenu subscription has ended'))
+            ->subject(__('Your EgHub subscription has ended'))
             ->greeting(__('Hello :name,', ['name' => $notifiable->name]))
             ->line(__('The subscription of :restaurant has ended. Your menu stays online until :date.', [
                 'restaurant' => $sub->tenant->name, 'date' => local_time($sub->grace_ends_at, 'Y/m/d'),
             ]))
             ->line(__('Pay before that date to keep it running. Nothing is deleted.'))
             ->action(__('Pay now'), platform_url('app', '/billing'))
-            ->salutation(__('EgMenu team'));
+            ->salutation(__('EgHub team'));
     }
 }

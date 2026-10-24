@@ -41,7 +41,7 @@ class PwaController extends Controller
         return view('pwa.offline', ['settings' => Settings::all()]);
     }
 
-    /** 192 or 512 px PNG. Falls back to the EgMenu icon on a server without GD. */
+    /** 192 or 512 px PNG. Falls back to the EgHub icon on a server without GD. */
     public function icon(Request $request, PwaIcons $icons, string $size): Response
     {
         $size = (int) $size;

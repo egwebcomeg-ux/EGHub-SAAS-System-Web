@@ -6,7 +6,7 @@ use App\Models\DiningTable;
 use App\Models\Tenant;
 use Tests\TenantTestCase;
 
-/** egmenu.app/{slug} menus, reserved paths, suspension, table QR and language. */
+/** eghub.app/{slug} menus, reserved paths, suspension, table QR and language. */
 class RoutingTest extends TenantTestCase
 {
     public function test_landing_lists_plans_from_the_database(): void

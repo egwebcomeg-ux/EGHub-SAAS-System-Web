@@ -8,7 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 
 /**
- * The dashboard as an installable app ("EgMenu" on the home screen). Its service worker caches static files only:
+ * The dashboard as an installable app ("EgHub" on the home screen). Its service worker caches static files only:
  * orders, tables and reports must always come live from the server.
  */
 class PwaController extends Controller

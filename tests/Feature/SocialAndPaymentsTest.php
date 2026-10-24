@@ -6,7 +6,7 @@ use App\Models\PlatformAdmin;
 use App\Models\PlatformSetting;
 use Tests\TenantTestCase;
 
-/** EgMenu's social media icons in the site footer, and the "connect your own payment gateway" service. */
+/** EgHub's social media icons in the site footer, and the "connect your own payment gateway" service. */
 class SocialAndPaymentsTest extends TenantTestCase
 {
     public function test_social_icons_show_only_for_saved_https_links(): void

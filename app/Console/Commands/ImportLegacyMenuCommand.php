@@ -6,7 +6,7 @@ use App\Models\Tenant;
 use App\Services\Import\LegacyMenuImporter;
 use Illuminate\Console\Command;
 
-/** Moves a legacy plain-PHP + SQLite client menu (menu.db) into an existing EgMenu restaurant. */
+/** Moves a legacy plain-PHP + SQLite client menu (menu.db) into an existing EgHub restaurant. */
 class ImportLegacyMenuCommand extends Command
 {
     protected $signature = 'egmenu:import-legacy-menu
@@ -18,7 +18,7 @@ class ImportLegacyMenuCommand extends Command
         {--logo= : A raster logo file to use instead of the legacy one (the image pipeline does not take SVG)}
         {--no-images : Do not import any picture}';
 
-    protected $description = 'Import a legacy (Desoky-family) menu.db into an EgMenu restaurant';
+    protected $description = 'Import a legacy (Desoky-family) menu.db into an EgHub restaurant';
 
     public function handle(LegacyMenuImporter $importer): int
     {
@@ -54,7 +54,7 @@ class ImportLegacyMenuCommand extends Command
         $this->table(['Entity', $dry ? 'Would create' : 'Created', 'Skipped (exists)', 'Not imported'],
             collect($report['counts'])->map(fn ($c, $entity) => [$entity, $c['created'], $c['skipped'], $c['unmapped']])->values()->all());
         if ($report['unmapped_settings']) {
-            $this->line('Legacy settings with no EgMenu equivalent:');
+            $this->line('Legacy settings with no EgHub equivalent:');
             $this->table(['Key', 'Value'], collect($report['unmapped_settings'])->map(fn ($v, $k) => [$k, $v])->values()->all());
         }
         foreach ($report['notes'] as $note) {

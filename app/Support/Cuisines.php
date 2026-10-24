@@ -4,7 +4,7 @@ namespace App\Support;
 
 /**
  * What a place serves, picked in Settings (several allowed, stored comma-separated in the `cuisine` setting).
- * The key is the directory address (egmenu.app/restaurants/{city}/{cuisine}); `schema` is the servesCuisine value.
+ * The key is the directory address (eghub.app/restaurants/{city}/{cuisine}); `schema` is the servesCuisine value.
  */
 final class Cuisines
 {

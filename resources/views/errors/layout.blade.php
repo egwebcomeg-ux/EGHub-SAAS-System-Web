@@ -16,7 +16,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
-    <title>{!! $primaryTitle !!} · EgMenu</title>
+    <title>{!! $primaryTitle !!} · EgHub</title>
     <link rel="icon" href="{{ versioned_asset('favicon.svg') }}" type="image/svg+xml">
     {{-- Static on purpose: no Vite, no database, no tenant lookups, so it still renders when the app is down. --}}
     <style>

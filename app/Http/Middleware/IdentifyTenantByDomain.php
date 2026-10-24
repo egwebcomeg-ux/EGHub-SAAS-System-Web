@@ -11,9 +11,9 @@ use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Public menu on a restaurant's own domain: menu.cafe.com/... (same routes as egmenu.app/{slug}/...), canonical
+ * Public menu on a restaurant's own domain: menu.cafe.com/... (same routes as eghub.app/{slug}/...), canonical
  * to itself. Links generated during the request (route('menu.*')) point back to the custom domain instead of the
- * subdomain. A domain that is not active, or whose plan lost custom domains, goes to egmenu.app/{slug} so printed
+ * subdomain. A domain that is not active, or whose plan lost custom domains, goes to eghub.app/{slug} so printed
  * QR codes keep working.
  */
 class IdentifyTenantByDomain extends IdentifyTenantBySubdomain

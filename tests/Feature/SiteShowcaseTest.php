@@ -9,7 +9,7 @@ use App\Services\Seo\SiteShowcase;
 use App\Services\Settings;
 use Tests\TenantTestCase;
 
-/** The moving logo strip on the egmenu.app home page: opted in by EgWeb per restaurant, shown from MIN_LOGOS logos. */
+/** The moving logo strip on the eghub.app home page: opted in by EgWeb per restaurant, shown from MIN_LOGOS logos. */
 class SiteShowcaseTest extends TenantTestCase
 {
     private function admin(string $role = 'support'): PlatformAdmin
@@ -51,7 +51,7 @@ class SiteShowcaseTest extends TenantTestCase
         $this->assertSame(['cafe-a', 'cafe-d', 'cafe-b', 'cafe-c'], array_column(SiteShowcase::logos(), 'slug'));
 
         $page = $this->get($this->menuUrl())->assertOk()->assertSee('data-site-showcase', false)
-            ->assertSee('مطاعم وكافيهات بتشتغل على EgMenu')
+            ->assertSee('مطاعم وكافيهات بتشتغل على EgHub')
             ->assertSee('href="http://egmenu.test/cafe-a" target="_blank" rel="noopener"', false)
             ->assertSee('src="/storage/logos/cafe-a.png" alt="Brand cafe-a" width="160" height="64" loading="lazy"', false)
             ->assertSee('data-showcase-copy', false);
@@ -80,7 +80,7 @@ class SiteShowcaseTest extends TenantTestCase
         $tenant = $this->place('cafe-a', showcase: false);
 
         $this->actingAs($this->admin(), 'admin')->get($this->adminUrl('/tenants/cafe-a'))->assertOk()
-            ->assertSee('data-tenant-showcase', false)->assertSee('اعرض اللوجو على egmenu.app')->assertSee('بس بعد ما صاحب المطعم يوافق');
+            ->assertSee('data-tenant-showcase', false)->assertSee('اعرض اللوجو على eghub.app')->assertSee('بس بعد ما صاحب المطعم يوافق');
 
         $this->actingAs($this->admin('finance'), 'admin')->post($this->adminUrl('/tenants/cafe-a/showcase'), ['showcase_on_site' => '1'])->assertForbidden();
         $this->assertFalse($tenant->fresh()->showcase_on_site);

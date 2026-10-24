@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title', $tenant->name . ' · EgMenu Admin')
+@section('title', $tenant->name . ' · EgHub Admin')
 
 @section('content')
 @php
@@ -14,7 +14,7 @@
         'user.signed_out_by_platform' => __('Signed out everywhere'),
         'two_factor.reset_by_platform' => __('Two-factor reset'),
         'restaurant.info_by_platform' => __('Restaurant info changed'),
-        'restaurant.showcase_by_platform' => __('Logo on egmenu.app changed'),
+        'restaurant.showcase_by_platform' => __('Logo on eghub.app changed'),
         'restaurant.directory_by_platform' => __('Directory visibility changed'),
         'support.access_by_platform' => __('Signed in to the dashboard (support)'),
         'support.exit_by_platform' => __('Left the dashboard (support)'),
@@ -145,10 +145,10 @@
                 <button class="btn-primary">{{ __('Save') }}</button>
             </form>
 
-            {{-- the moving logo strip on the egmenu.app home page (App\Services\Seo\SiteShowcase) --}}
+            {{-- the moving logo strip on the eghub.app home page (App\Services\Seo\SiteShowcase) --}}
             <form method="post" action="{{ route('admin.tenants.showcase', $tenant) }}" class="card space-y-3" data-tenant-showcase>
                 @csrf
-                <h2 class="section-title">{{ __('Logo on egmenu.app') }}</h2>
+                <h2 class="section-title">{{ __('Logo on eghub.app') }}</h2>
                 <div class="flex items-center gap-3">
                     @if ($logo)
                         <img src="{{ $logo }}" alt="{{ $tenant->name }}" width="96" height="48" loading="lazy" class="h-12 w-24 shrink-0 rounded-lg border border-navy-100 bg-white object-contain p-1">
@@ -159,7 +159,7 @@
                 <label class="flex min-h-11 items-center gap-3 text-sm font-semibold">
                     <input type="hidden" name="showcase_on_site" value="0">
                     <input type="checkbox" name="showcase_on_site" value="1" class="size-5 accent-brand-600" @checked(old('showcase_on_site', $tenant->showcase_on_site))>
-                    {{ __('Show the logo on egmenu.app') }}
+                    {{ __('Show the logo on eghub.app') }}
                 </label>
                 <p class="text-xs text-navy-500">{{ __('Only after the owner agreed. The logo moves in the strip on the home page and links to the menu; the strip shows once :n restaurants are in it.', ['n' => \App\Services\Seo\SiteShowcase::MIN_LOGOS]) }}</p>
                 <div>
@@ -179,7 +179,7 @@
                     <input type="checkbox" name="hidden_from_directory" value="1" class="size-5 accent-brand-600" @checked(old('hidden_from_directory', $tenant->hidden_from_directory))>
                     {{ __('Hide from the directory and the sitemap (demo or test place)') }}
                 </label>
-                <p class="text-xs text-navy-500">{{ __('The menu still opens by its link; it is only left out of egmenu.app/restaurants, sitemap.xml and the list of places on the home page.') }}</p>
+                <p class="text-xs text-navy-500">{{ __('The menu still opens by its link; it is only left out of eghub.app/restaurants, sitemap.xml and the list of places on the home page.') }}</p>
                 <button class="btn-primary">{{ __('Save') }}</button>
             </form>
         @endif

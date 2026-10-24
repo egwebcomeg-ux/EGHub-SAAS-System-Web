@@ -12,7 +12,7 @@ use Stancl\Tenancy\Database\Concerns\HasDomains;
 use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
 
 /**
- * A restaurant or cafe. Its id is the slug of its public menu: egmenu.app/{slug} (canonical), {slug}.egmenu.app (alias).
+ * A restaurant or cafe. Its id is the slug of its public menu: eghub.app/{slug} (canonical), {slug}.egmenu.app (alias).
  * Soft delete keeps everything restorable and suspension only takes the menu offline; only the platform owner's
  * "delete permanently" (App\Services\TenantEraser) removes a restaurant and its rows for good.
  */
@@ -126,7 +126,7 @@ class Tenant extends BaseTenant
 
     /**
      * Canonical public URL (QR codes, links, <link rel="canonical">): the active custom domain when there is one,
-     * else the path on the main domain, egmenu.app/{slug}. url('card') → egmenu.app/{slug}/card.
+     * else the path on the main domain, eghub.app/{slug}. url('card') → eghub.app/{slug}/card.
      */
     public function url(string $path = ''): string
     {

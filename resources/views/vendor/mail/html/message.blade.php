@@ -21,7 +21,7 @@
 {{-- Footer --}}
 <x-slot:footer>
 <x-mail::footer>
-© {{ date('Y') }} EgMenu · {{ __('by') }} EgWeb
+© {{ date('Y') }} EgHub · {{ __('by') }} EgWeb
 </x-mail::footer>
 </x-slot:footer>
 </x-mail::layout>

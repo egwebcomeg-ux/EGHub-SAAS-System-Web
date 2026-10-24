@@ -26,12 +26,12 @@ class OpsTest extends TenantTestCase
     public function test_error_page_titles_follow_the_language(): void
     {
         app()->setLocale('ar');
-        $this->assertStringContainsString('<title>انتهت صلاحية الصفحة · EgMenu</title>', view('errors.419')->render());
-        $this->assertStringContainsString('<title>الصفحة غير موجودة · EgMenu</title>', view('errors.404')->render());
+        $this->assertStringContainsString('<title>انتهت صلاحية الصفحة · EgHub</title>', view('errors.419')->render());
+        $this->assertStringContainsString('<title>الصفحة غير موجودة · EgHub</title>', view('errors.404')->render());
 
         app()->setLocale('en');
         $html = view('errors.419')->render();
-        $this->assertStringContainsString('<title>Page expired · EgMenu</title>', $html);
+        $this->assertStringContainsString('<title>Page expired · EgHub</title>', $html);
         $this->assertStringContainsString('dir="ltr"', $html);
         $this->assertStringContainsString('Refresh the page', $html);
     }

@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The moving strip of restaurant logos on the egmenu.app home page. A place is in it only when EgWeb turned
+ * The moving strip of restaurant logos on the eghub.app home page. A place is in it only when EgWeb turned
  * showcase_on_site on for it from the admin (after the owner agreed), it is active and not deleted, and it has a
  * logo of its own: nothing is ever drawn in place of a missing logo. The strip shows only from MIN_LOGOS places up,
  * so the home page never carries a thin row. Cached; flushed when the admin changes a place, a tenant's status

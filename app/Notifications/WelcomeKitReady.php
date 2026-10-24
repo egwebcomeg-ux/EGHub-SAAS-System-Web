@@ -34,9 +34,9 @@ class WelcomeKitReady extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $mail = (new MailMessage)
-            ->subject(__('Your EgMenu dashboard for :place is ready', ['place' => $this->place]))
+            ->subject(__('Your EgHub dashboard for :place is ready', ['place' => $this->place]))
             ->greeting(__('Hello :name,', ['name' => $notifiable->name]))
-            ->line(__('We set up :place on EgMenu for you: the menu online, the dashboard and the other modules with sample data to try.', ['place' => $this->place]))
+            ->line(__('We set up :place on EgHub for you: the menu online, the dashboard and the other modules with sample data to try.', ['place' => $this->place]))
             ->line(__('Your menu link: :url', ['url' => $this->menuUrl]))
             ->line(__('Sign in to your dashboard: :url', ['url' => $this->dashboardUrl]));
         if ($this->trialEndsAt) {
@@ -46,6 +46,6 @@ class WelcomeKitReady extends Notification implements ShouldQueue
         return $mail
             ->line(__('Your welcome page has your sign-in details and your first 5 steps. You will choose your own password at the first sign-in.'))
             ->action(__('Open your welcome page'), $this->welcomeUrl)
-            ->salutation(__('EgMenu team'));
+            ->salutation(__('EgHub team'));
     }
 }

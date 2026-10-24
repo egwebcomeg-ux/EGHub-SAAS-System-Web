@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * The canonical menu address on the main domain: egmenu.app/{tenant}/... (what search engines index, what QR codes
+ * The canonical menu address on the main domain: eghub.app/{tenant}/... (what search engines index, what QR codes
  * and the dashboard use). Serves exactly like the subdomain; links generated during the request (route('menu.*'))
  * stay on the main domain and keep the {tenant} segment instead of pointing at the subdomain.
  * Unknown or reserved slug → 404.

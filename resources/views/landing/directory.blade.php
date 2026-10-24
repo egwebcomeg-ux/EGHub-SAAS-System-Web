@@ -1,5 +1,5 @@
 @extends('layouts.landing')
-@section('title', $heading . ' | EgMenu')
+@section('title', $heading . ' | ' . $directoryName)
 @section('description', $description)
 
 @section('page')

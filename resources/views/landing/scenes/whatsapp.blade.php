@@ -8,7 +8,7 @@
         <div class="mx-auto w-fit rounded-md bg-white/70 px-2 py-0.5 text-[9px] text-navy-500">{{ __('Today') }}</div>
         <div data-show="2-" class="sc-pop max-w-[88%] rounded-xl rounded-ss-sm bg-white p-2 shadow-sm">
             {{ __('Hi Karim 👋 Rosto received your order #63 and is on it. Follow it here:') }}
-            <span class="block truncate text-[#1a73e8]" dir="ltr">egmenu.app/rosto/o/…</span>
+            <span class="block truncate text-[#1a73e8]" dir="ltr">eghub.app/rosto/o/…</span>
             <span class="block text-end text-[9px] text-navy-400" dir="ltr">8:02</span>
         </div>
         <div data-show="3-" class="sc-pop max-w-[88%] rounded-xl rounded-ss-sm bg-white p-2 shadow-sm">

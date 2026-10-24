@@ -1,11 +1,11 @@
 @extends('layouts.landing')
-@section('title', __('Privacy policy') . ' · EgMenu')
+@section('title', __('Privacy policy') . ' · EgHub')
 
 @section('page')
 <x-landing.legal :title="__('Privacy policy')" :updated="__('Last updated: :date', ['date' => '2026/10/13'])" current="privacy">
 
     @if (app()->getLocale() === 'en')
-        <p>This policy explains what data EgMenu (by EgWeb) keeps and why.</p>
+        <p>This policy explains what data EgHub (by EgWeb) keeps and why.</p>
         <h2>Restaurants and their staff</h2>
         <p>We keep the restaurant name, the names, emails and mobile numbers of its staff, the menu and its settings, orders and subscription invoices. We use them to run the service, send account emails (such as password resets and invoices) and support you.</p>
         <h2>Guests of a restaurant</h2>
@@ -19,7 +19,7 @@
         <h2>Your rights</h2>
         <p>In line with Egypt’s Personal Data Protection Law (No. 151 of 2020), you can ask to see, correct or delete your personal data. Guests should contact the restaurant first, since it controls their data; you can also contact us.</p>
     @else
-        <p>السياسة دي بتوضح EgMenu (من EgWeb) بيحتفظ بأنهي بيانات وليه.</p>
+        <p>السياسة دي بتوضح EgHub (من EgWeb) بيحتفظ بأنهي بيانات وليه.</p>
         <h2>المطاعم والموظفين</h2>
         <p>بنحتفظ باسم المطعم، وأسماء وإيميلات وأرقام موبايلات الموظفين، والمنيو وإعداداته، والطلبات وفواتير الاشتراك. وبنستخدمها عشان نشغّل الخدمة ونبعت إيميلات الحساب (زي تغيير كلمة السر والفواتير) ونساعدك.</p>
         <h2>عملاء المطعم</h2>

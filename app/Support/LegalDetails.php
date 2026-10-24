@@ -5,7 +5,7 @@ namespace App\Support;
 use App\Models\PlatformSetting;
 
 /**
- * The company behind EgMenu as EgWeb enters it in admin › settings (legal name, commercial register, tax number,
+ * The company behind EgHub as EgWeb enters it in admin › settings (legal name, commercial register, tax number,
  * address). Shown in the site footer and on the legal pages; nothing is shown for an empty field, and nothing is
  * ever filled in by default.
  */

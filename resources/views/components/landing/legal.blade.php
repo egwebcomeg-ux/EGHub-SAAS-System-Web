@@ -3,7 +3,7 @@
 <section class="lp-hero lp-glow">
     <div class="relative mx-auto max-w-6xl px-4 pt-8 pb-12 sm:pt-12 sm:pb-14">
         <nav class="flex items-center gap-2 text-sm text-navy-500" aria-label="{{ __('Breadcrumb') }}">
-            <a href="{{ route('landing') }}" class="hover:text-navy-900">EgMenu</a>
+            <a href="{{ route('landing') }}" class="hover:text-navy-900">EgHub</a>
             <span aria-hidden="true">/</span>
             <span class="font-semibold text-navy-800">{{ $title }}</span>
         </nav>

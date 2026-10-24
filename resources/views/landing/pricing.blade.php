@@ -1,6 +1,6 @@
 @extends('layouts.landing')
-@section('title', __('Pricing') . ' · EgMenu')
-@section('description', __('EgMenu prices in Egyptian pounds: a free plan for your QR menu, the Complete plan with every module for one place, Enterprise for chains with POS and kitchen screens, and WhatsApp credits paid once.'))
+@section('title', __('Pricing') . ' · EgHub')
+@section('description', __('EgHub prices in Egyptian pounds: a free plan for your QR menu, the Complete plan with every module for one place, Enterprise for chains with POS and kitchen screens, and WhatsApp credits paid once.'))
 
 @php
     $groups = collect(\App\Models\Plan::GROUPS);
@@ -122,7 +122,7 @@
     <div class="mx-auto max-w-7xl px-4 sm:px-6">
         <div class="mx-auto max-w-2xl text-center" data-reveal>
             <p class="lp-eyebrow">{{ __('Savings calculator') }}</p>
-            <h2 class="lp-h2 mt-3">{{ __('Work out what EgMenu saves you') }}</h2>
+            <h2 class="lp-h2 mt-3">{{ __('Work out what EgHub saves you') }}</h2>
             <p class="lp-lead mt-3">{{ __('Put in your own numbers: what printing menus costs you and what the delivery apps take. The total updates as you type.') }}</p>
         </div>
         <div class="mt-10">@include('landing.partials.savings-calculator')</div>

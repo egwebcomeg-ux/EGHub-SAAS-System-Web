@@ -246,7 +246,7 @@ class SettingsController extends Controller
         if (! Entitlements::current()->allows('menu_themes')) {
             unset($values['menu_theme']);
         }
-        // Colors, fonts and logo are part of the branding feature; without it the EgMenu defaults stay.
+        // Colors, fonts and logo are part of the branding feature; without it the EgHub defaults stay.
         if (! Entitlements::current()->allows('full_branding')) {
             foreach (['color_primary', 'color_secondary', 'color_bg', 'font'] as $key) {
                 unset($values[$key]);

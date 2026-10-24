@@ -45,7 +45,7 @@ class PlanSeeder extends Seeder
         $enterprise = array_keys(Plan::FEATURES);
 
         $plans = [
-            // Free = the menu online with the egmenu badge, no ordering; what a restaurant lands on when a trial or
+            // Free = the menu online with the eghub badge, no ordering; what a restaurant lands on when a trial or
             // a subscription ends unpaid (App\Billing\Lifecycle), so nothing ever goes offline.
             ['code' => 'free', 'name' => 'مجانية', 'name_en' => 'Free', 'monthly_price' => 0, 'sort_order' => -1,
                 'tagline' => 'منيو QR أونلاين لمحلك من غير أي تكلفة، لحد ما تحتاج أكتر',
@@ -163,8 +163,8 @@ class PlanSeeder extends Seeder
                 'features' => ['loyalty_stamps', 'loyalty_points', 'customers', 'feedback']],
             ['key' => 'branding_pack', 'type' => 'feature', 'monthly_price' => 49, 'sort_order' => 3,
                 'name' => 'هوية المنيو والتصميمات', 'name_en' => 'Menu branding & themes',
-                'description' => 'ألوانك وخطوطك ولوجوك، تصميمات المنيو الجاهزة، المنيو المطبوع PDF، وإخفاء شارة egmenu',
-                'description_en' => 'Your colours, fonts and logo, the ready menu themes, the printable PDF menu and no egmenu badge',
+                'description' => 'ألوانك وخطوطك ولوجوك، تصميمات المنيو الجاهزة، المنيو المطبوع PDF، وإخفاء شارة eghub',
+                'description_en' => 'Your colours, fonts and logo, the ready menu themes, the printable PDF menu and no eghub badge',
                 'features' => ['full_branding', 'menu_themes', 'printed_menu', 'hide_badge']],
             ['key' => 'offers_pack', 'type' => 'feature', 'monthly_price' => 49, 'sort_order' => 4,
                 'name' => 'العروض والكومبو', 'name_en' => 'Offers & combos',
@@ -226,8 +226,8 @@ class PlanSeeder extends Seeder
                 'features' => ['wallet', 'cashback', 'prepaid_packages', 'membership', 'customers']],
             ['key' => 'featured_listing', 'type' => 'feature', 'monthly_price' => 199, 'sort_order' => 8,
                 'name' => 'ظهور مميز في دليل المطاعم', 'name_en' => 'Featured directory listing',
-                'description' => 'مطعمك يظهر في أول دليل egmenu.app/restaurants وصفحة مدينتك ونوع أكلك بعلامة «مميز» (5 أماكن بالدور في كل صفحة). لازم يكون ظاهر في الدليل',
-                'description_en' => 'Your place shows first in egmenu.app/restaurants, your city and cuisine pages with a "Featured" badge (5 places take turns per page). Your place must be listed in the directory',
+                'description' => 'مطعمك يظهر في أول دليل eghub.app/restaurants وصفحة مدينتك ونوع أكلك بعلامة «مميز» (5 أماكن بالدور في كل صفحة). لازم يكون ظاهر في الدليل',
+                'description_en' => 'Your place shows first in eghub.app/restaurants, your city and cuisine pages with a "Featured" badge (5 places take turns per page). Your place must be listed in the directory',
                 'features' => ['featured_listing']],
             ['key' => 'kiosk_pack', 'type' => 'feature', 'monthly_price' => 149, 'sort_order' => 7, 'per_branch' => true, 'min_plan' => 'basic',
                 'name' => 'كشك الطلب الذاتي', 'name_en' => 'Self-order kiosk',

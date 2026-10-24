@@ -22,7 +22,7 @@ use App\Http\Controllers\Menu\TableCallController;
 use App\Http\Controllers\Menu\TvController;
 use Illuminate\Support\Facades\Route;
 
-// egmenu.app/{tenant}/... (IdentifyTenantByPath, canonical), {tenant}.egmenu.app/... (IdentifyTenantBySubdomain,
+// eghub.app/{tenant}/... (IdentifyTenantByPath, canonical), {tenant}.egmenu.app/... (IdentifyTenantBySubdomain,
 // alias) and a custom domain (IdentifyTenantByDomain).
 Route::get('/', [MenuController::class, 'show'])->name('show');
 Route::get('/about', [ProfileController::class, 'show'])->name('about');

@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use Tests\TenantTestCase;
 
-/** The "Powered by EgMenu" badge on the public menu is removed by the `hide_badge` plan feature. */
+/** The "Powered by EgHub" badge on the public menu is removed by the `hide_badge` plan feature. */
 class HideBadgeTest extends TenantTestCase
 {
     public function test_badge_shows_without_the_feature_and_is_hidden_with_it(): void

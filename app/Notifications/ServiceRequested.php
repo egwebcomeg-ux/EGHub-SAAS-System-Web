@@ -8,7 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-/** To EgWeb admins: someone asked for a one-time service on egmenu.app/services; call them back. */
+/** To EgWeb admins: someone asked for a one-time service on eghub.app/services; call them back. */
 class ServiceRequested extends Notification implements ShouldQueue
 {
     use Queueable;
@@ -38,6 +38,6 @@ class ServiceRequested extends Notification implements ShouldQueue
             $mail->line(__('Notes: :notes', ['notes' => $r->notes]));
         }
 
-        return $mail->action(__('Review service requests'), platform_url('admin', '/services'))->salutation('EgMenu');
+        return $mail->action(__('Review service requests'), platform_url('admin', '/services'))->salutation('EgHub');
     }
 }

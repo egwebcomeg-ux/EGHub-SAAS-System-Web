@@ -48,6 +48,6 @@ class WeeklyReport extends Notification implements ShouldQueue
         return $mail
             ->action(__('Open the reports'), platform_url('app', '/reports?range=7d'))
             ->line(__('You can stop this email from Settings → Weekly report.'))
-            ->salutation(__('EgMenu team'));
+            ->salutation(__('EgHub team'));
     }
 }

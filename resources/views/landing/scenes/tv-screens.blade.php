@@ -18,7 +18,7 @@
 <div class="absolute top-10 end-6 w-[390px]">
     <div class="rounded-xl bg-[#0E1630] p-2 pb-3 shadow-[0_30px_50px_-30px_rgba(19, 29, 61, .8)]">
         <div class="relative h-[208px] overflow-hidden rounded bg-[#131D3D] text-white">
-            <div data-show="1" class="sc-fade absolute inset-0 grid place-items-center text-[11px] text-white/50" dir="ltr">egmenu.app/rosto/tv/…</div>
+            <div data-show="1" class="sc-fade absolute inset-0 grid place-items-center text-[11px] text-white/50" dir="ltr">eghub.app/rosto/tv/…</div>
             <div data-show="2-" class="sc-fade grid h-full grid-cols-2 gap-4 p-4">
                 @foreach ([[__('Hot coffee'), [[__('Espresso'), '45'], [__('Latte'), null], [__('Cappuccino'), '65'], [__('Mocha'), '75']]], [__('Cold drinks'), [[__('Iced latte'), '75'], [__('Caramel frappe'), '85'], [__('Lemon mint'), '50']]]] as [$cat, $rows])
                     <div>

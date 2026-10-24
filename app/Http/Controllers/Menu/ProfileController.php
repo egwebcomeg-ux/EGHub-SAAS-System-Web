@@ -10,7 +10,7 @@ use App\Services\Seo\RestaurantProfile;
 use Illuminate\View\View;
 
 /**
- * The place's one page, egmenu.app/{slug}/about (every host): the links a guest needs as big buttons on top (the menu,
+ * The place's one page, eghub.app/{slug}/about (every host): the links a guest needs as big buttons on top (the menu,
  * ordering online, booking a table, WhatsApp, social accounts), then the place itself for guests, search engines and
  * link previews (logo, description, what they serve, rating, from the menu, branches with address, hours, phones and
  * the map). /links (what a QR opens with setting qr_target "links") shows this same page; its canonical is /about.

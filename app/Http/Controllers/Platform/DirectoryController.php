@@ -6,10 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Services\Seo\Directory;
 use App\Support\Cities;
 use App\Support\Cuisines;
+use App\Support\PlatformBrand;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-/** Restaurant directory on the main domain: /restaurants, /restaurants/{city}, /restaurants/{city}/{cuisine}. */
+/** Restaurant directory: /restaurants, /restaurants/{city}, /restaurants/{city}/{cuisine} on the main domain, or on the earlier one after a move (its home page, routes/web.php). */
 class DirectoryController extends Controller
 {
     public function index(Request $request): View
@@ -46,12 +47,15 @@ class DirectoryController extends Controller
             ))
             ->orderBy('name')->paginate(Directory::PER_PAGE)->withQueryString();
 
+        // after the move to eghub.app the directory keeps the earlier domain and its name (routes/web.php)
+        $ownDomain = directory_domain() !== central_domain();
         $cityName = Cities::name($city);
         $cuisineName = $cuisine ? Cuisines::name($cuisine) : '';
         $heading = match (true) {
             $cuisine !== null => __(':cuisine in :city', ['cuisine' => $cuisineName, 'city' => $cityName]),
             $city !== null => __('Restaurants and cafes in :city', ['city' => $cityName]),
-            default => __('Restaurants and cafes on EgMenu'),
+            $ownDomain => __('Restaurants and cafes in Egypt'),
+            default => __('Restaurants and cafes on EgHub'),
         };
 
         return view('landing.directory', [
@@ -61,9 +65,10 @@ class DirectoryController extends Controller
             'cuisine' => $cuisine,
             'search' => $search,
             'heading' => $heading,
+            'directoryName' => $ownDomain ? __('EgMenu directory') : PlatformBrand::siteName(),
             'description' => $city !== null
                 ? __('Menus with prices of :what: addresses, opening hours, ratings and ordering from the table or delivery.', ['what' => $heading])
-                : __('Find cafes and restaurants in Egypt that use EgMenu: menus with prices, addresses, opening hours and ratings.'),
+                : __('Find cafes and restaurants in Egypt that use EgHub: menus with prices, addresses, opening hours and ratings.'),
             'cities' => Directory::cityCounts(),
             'cuisines' => $city !== null ? Directory::cuisineCounts($city) : [],
         ]);

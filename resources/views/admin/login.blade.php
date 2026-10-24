@@ -1,5 +1,5 @@
 @extends('layouts.base')
-@section('title', 'EgMenu Admin')
+@section('title', 'EgHub Admin')
 @section('body_class', 'bg-navy-900 text-navy-900')
 
 @section('body')

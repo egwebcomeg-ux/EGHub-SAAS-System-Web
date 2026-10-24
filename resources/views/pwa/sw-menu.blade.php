@@ -1,4 +1,4 @@
-// EgMenu — service worker of one restaurant's menu (served per restaurant, scoped to its menu).
+// EgHub — service worker of one restaurant's menu (served per restaurant, scoped to its menu).
 // HTML is network-first so the menu is never stale; the shell (CSS/JS/fonts/images) is cached; offline shows a page.
 const CACHE = 'egmenu-{{ $key }}-v1';
 const PREFIX = 'egmenu-{{ $key }}-';

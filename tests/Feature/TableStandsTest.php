@@ -124,7 +124,7 @@ class TableStandsTest extends TenantTestCase
         $this->get($this->menuUrl('services'))->assertOk()
             ->assertSee('data-stand-studio', false)->assertSee('صمّم ستاند الترابيزة بتاعك')->assertSee('اطلب الستاندات مطبوعة')
             ->assertSee('أكريليك كحلي')->assertSee('خشب طبيعي')->assertSee('شفاف فروستد')
-            ->assertSee('ده QR للتجربة بيفتح egmenu.app')->assertSee('data-stand-prices', false)
+            ->assertSee('ده QR للتجربة بيفتح eghub.app')->assertSee('data-stand-prices', false)
             ->assertSee('services?stand=white', false);
     }
 

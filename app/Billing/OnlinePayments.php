@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Paying an EgMenu invoice online (Kashier today, behind App\Billing\Gateways\PaymentGateway).
+ * Paying an EgHub invoice online (Kashier today, behind App\Billing\Gateways\PaymentGateway).
  *  - The super admin switches it on (gateway_kashier_enabled), picks the methods shown (kashier_methods) and the
  *    amount from which installments are offered besides yearly invoices (kashier_installments_min).
  *  - start(): one pending Payment per attempt (merchant_ref = the gateway order reference), then the hosted checkout.

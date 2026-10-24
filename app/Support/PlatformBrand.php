@@ -7,14 +7,14 @@ use Illuminate\Support\Facades\Cache;
 
 /**
  * The platform's own look (admin › الهوية والشكل): site name, logos, favicon and the three brand colors. Stored in
- * PlatformSetting; the defaults are the EgMenu identity, so nothing changes until an admin saves. The colors reach the
+ * PlatformSetting; the defaults are the EgHub identity, so nothing changes until an admin saves. The colors reach the
  * pages as CSS custom properties in the base layout (they override the Tailwind theme variables), never by
  * rebuilding the CSS. Guest menus keep the restaurant's own colors.
  */
 final class PlatformBrand
 {
     public const DEFAULTS = [
-        'brand_site_name' => 'EgMenu',
+        'brand_site_name' => 'EgHub',
         'brand_color_primary' => '#F26522',   // orange: buttons, links, accents
         'brand_color_secondary' => '#005BA6', // blue: the "menu" of the wordmark, secondary accents
         'brand_color_navy' => '#0A2540',      // navy: dark surfaces (sidebar, footer)
@@ -80,7 +80,7 @@ final class PlatformBrand
         Cache::forget(self::CACHE_KEY);
     }
 
-    /** Has an admin picked colors other than the EgMenu identity? */
+    /** Has an admin picked colors other than the EgHub identity? */
     public static function hasCustomColors(): bool
     {
         foreach (self::COLORS as $key) {

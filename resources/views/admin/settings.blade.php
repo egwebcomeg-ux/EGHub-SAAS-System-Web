@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title', __('Payment settings') . ' · EgMenu Admin')
+@section('title', __('Payment settings') . ' · EgHub Admin')
 
 @section('content')
 <h1 class="mb-1 text-2xl font-extrabold">{{ __('Payment settings') }}</h1>
@@ -104,7 +104,7 @@
         <div><label class="field-label">{{ __('Support WhatsApp') }}</label><input class="field" name="support_whatsapp" value="{{ $s['support_whatsapp'] }}" dir="ltr" placeholder="010xxxxxxxx"></div>
         <div><label class="field-label">{{ __('Sales WhatsApp') }}</label><input class="field" name="sales_whatsapp" value="{{ $s['sales_whatsapp'] }}" dir="ltr" placeholder="010xxxxxxxx"></div>
         <div><label class="field-label">{{ __('Support email') }}</label><input class="field" name="support_email" type="email" value="{{ $s['support_email'] }}" dir="ltr"></div>
-        <div><label class="field-label">{{ __('Public contact email (site footer)') }}</label><input class="field" name="contact_email" type="email" value="{{ $s['contact_email'] }}" dir="ltr" placeholder="hi@egmenu.app"></div>
+        <div><label class="field-label">{{ __('Public contact email (site footer)') }}</label><input class="field" name="contact_email" type="email" value="{{ $s['contact_email'] }}" dir="ltr" placeholder="hi@eghub.app"></div>
         <p class="text-xs text-navy-500 sm:col-span-2">{{ __('The site footer shows the sales and support numbers as WhatsApp links and the public email; empty fields are hidden.') }}</p>
     </div>
 
@@ -113,7 +113,7 @@
         @foreach (\App\Support\SocialLinks::NETWORKS as $network => [$networkLabel])
             <div><label class="field-label">{{ $networkLabel }}</label><input class="field" name="social_{{ $network }}" type="url" value="{{ $s['social_' . $network] }}" dir="ltr" placeholder="https://"></div>
         @endforeach
-        <p class="text-xs text-navy-500 sm:col-span-2">{{ __('EgMenu’s own accounts. Each filled link shows as an icon in the site footer; empty fields are hidden.') }}</p>
+        <p class="text-xs text-navy-500 sm:col-span-2">{{ __('EgHub’s own accounts. Each filled link shows as an icon in the site footer; empty fields are hidden.') }}</p>
     </div>
 
     <div class="card space-y-3" id="whatsapp-verification">

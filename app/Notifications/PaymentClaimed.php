@@ -33,6 +33,6 @@ class PaymentClaimed extends Notification implements ShouldQueue
                 'method' => PaymentMethods::label($this->payment->gateway), 'reference' => $this->payment->reference,
             ]))
             ->action(__('Review payments'), platform_url('admin', '/invoices'))
-            ->salutation('EgMenu');
+            ->salutation('EgHub');
     }
 }

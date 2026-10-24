@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Public menu on the restaurant's subdomain: {tenant}.egmenu.app/... (a short alias for QR codes and branding; its
- * pages declare egmenu.app/{tenant}/... or the custom domain as canonical). Resolves the restaurant from the
+ * pages declare eghub.app/{tenant}/... or the custom domain as canonical). Resolves the restaurant from the
  * {tenant} host parameter, initialises tenancy and removes the parameter so controllers never receive it
  * (route('menu.*') fills it in by itself). Unknown or reserved name → 404.
  */
@@ -58,7 +58,7 @@ class IdentifyTenantBySubdomain
 
     /**
      * The address search engines should index for this page, read by layouts.base: the same page on the custom
-     * domain when active, else on egmenu.app/{tenant}. Only ?branch and ?lang (en or an extra language) change the content, so only they
+     * domain when active, else on eghub.app/{tenant}. Only ?branch and ?lang (en or an extra language) change the content, so only they
      * are kept. Private pages (order tracking, loyalty cards, screens) are marked noindex instead.
      */
     protected function markCanonical(Request $request, Tenant $tenant): void

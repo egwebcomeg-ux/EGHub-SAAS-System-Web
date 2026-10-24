@@ -26,7 +26,7 @@
                     @if (! empty($log->meta['reason']))<span class="text-xs text-navy-500">· {{ $log->meta['reason'] }}</span>@endif
                     @if (! empty($log->meta['cashier']))<span class="text-xs text-navy-500">· {{ __('Cashier: :name', ['name' => $log->meta['cashier']]) }}</span>@endif
                     @if (! empty($log->meta['support_admin']) || str_starts_with($log->action, 'support.'))
-                        <span class="badge bg-red-50 text-red-700" data-support-entry>{{ __('EgMenu team: :email', ['email' => $log->meta['support_admin'] ?? $log->meta['admin'] ?? '']) }}</span>
+                        <span class="badge bg-red-50 text-red-700" data-support-entry>{{ __('EgHub team: :email', ['email' => $log->meta['support_admin'] ?? $log->meta['admin'] ?? '']) }}</span>
                     @endif
                     @if ($log->action === \App\Services\Customers\SignIn\SignInGuard::AUDIT_ACTION)
                         @foreach ((array) $log->meta as $method => $counts)

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Social proof on the home page, computed from the database and cached for ten minutes: the places that use
- * EgMenu (active tenants listed in the directory, see Directory::query()) and the platform's real counters.
+ * EgHub (active tenants listed in the directory, see Directory::query()) and the platform's real counters.
  * Both are shown only above a floor so the home page never carries a thin strip or made-up numbers.
  */
 final class SocialProof

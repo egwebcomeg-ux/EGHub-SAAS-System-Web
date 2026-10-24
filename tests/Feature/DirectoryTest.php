@@ -9,7 +9,7 @@ use App\Models\Tenant;
 use App\Services\Settings;
 use Tests\TenantTestCase;
 
-/** egmenu.app/restaurants (who is listed, filters, isolation), sitemap.xml and robots.txt of every host. */
+/** eghub.app/restaurants (who is listed, filters, isolation), sitemap.xml and robots.txt of every host. */
 class DirectoryTest extends TenantTestCase
 {
     /** A place with $items active menu items and the given settings. */

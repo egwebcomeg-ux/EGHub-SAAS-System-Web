@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
-/** The marketing blog (egmenu.app/blog): write Markdown articles, upload a cover, publish or hide them. */
+/** The marketing blog (eghub.app/blog): write Markdown articles, upload a cover, publish or hide them. */
 class BlogController extends Controller
 {
     public function index(): View

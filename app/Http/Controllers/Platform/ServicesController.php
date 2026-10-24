@@ -19,7 +19,7 @@ use Illuminate\View\View;
 /** Marketing site: EgWeb's one-time services (/services) and the request form, emailed to the platform admins. */
 class ServicesController extends Controller
 {
-    /** The stand studio's sample QR opens the EgMenu site: a real restaurant gets its own menu QR on the printed stand. */
+    /** The stand studio's sample QR opens the EgHub site: a real restaurant gets its own menu QR on the printed stand. */
     private const SAMPLE_URL = 'https://egmenu.app';
 
     public function index(Request $request): View

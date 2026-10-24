@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title', __('Account security') . ' · EgMenu Admin')
+@section('title', __('Account security') . ' · EgHub Admin')
 
 @section('content')
 <h1 class="page-title mb-1">{{ __('Account security') }}</h1>

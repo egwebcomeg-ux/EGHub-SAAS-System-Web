@@ -1,5 +1,5 @@
 {{--
-    The platform marks at the foot of every guest page (menu, about, loyalty card, pager): "Powered by EgMenu" unless
+    The platform marks at the foot of every guest page (menu, about, loyalty card, pager): "Powered by EgHub" unless
     the plan removes it (hide_badge), and the "by EgWeb" capsule while the restaurant does not pay yet (trial or Free),
     light or dark to suit the template. Always in the flow at the bottom, never over the content.
 --}}

@@ -10,7 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-/** Real owner quotes on egmenu.app: written by the platform team, published only with the owner's consent. */
+/** Real owner quotes on eghub.app: written by the platform team, published only with the owner's consent. */
 class TestimonialsController extends Controller
 {
     public function index(): View

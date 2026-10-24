@@ -1,5 +1,5 @@
 @extends('layouts.base')
-@section('title', __('Welcome to EgMenu') . ' · ' . $brand)
+@section('title', __('Welcome to EgHub') . ' · ' . $brand)
 @section('body_class', 'bg-navy-50 text-navy-900 print:bg-white')
 
 {{--
@@ -72,7 +72,7 @@
             <img src="{{ $logo }}" alt="{{ $brand }}" class="h-16 w-auto max-w-32 shrink-0 rounded-2xl border border-navy-100 bg-white object-contain p-1">
         @endif
         <div class="min-w-0">
-            <p class="text-sm font-semibold text-brand-700">{{ __('Welcome to EgMenu') }}</p>
+            <p class="text-sm font-semibold text-brand-700">{{ __('Welcome to EgHub') }}</p>
             <h1 class="text-2xl font-black leading-tight sm:text-3xl">{{ $brand }}</h1>
             <p class="mt-1 text-sm text-navy-500">
                 @if ($sub?->plan){{ __('Plan: :plan', ['plan' => $sub->plan->displayName()]) }}@endif
@@ -137,7 +137,7 @@
 
     {{-- everything the system can do, in one short line each (App\Support\SiteModules), ticked when the plan has it --}}
     <section class="mt-5 wk-features" data-kit-features>
-        <h2 class="text-lg font-black">{{ __('Everything you can do with EgMenu') }}</h2>
+        <h2 class="text-lg font-black">{{ __('Everything you can do with EgHub') }}</h2>
         <p class="text-sm text-navy-500">{{ __('✓ is in your plan now; the rest can be added any time from Subscription.') }}</p>
         <div class="mt-3 grid gap-x-6 gap-y-4 sm:grid-cols-2">
             @foreach (\App\Support\SiteModules::groups() as $groupKey => [$groupName])

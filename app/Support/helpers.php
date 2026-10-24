@@ -10,7 +10,7 @@ use Illuminate\Support\Carbon;
  * Small global helpers (host/URL building, money, phones). Loaded through composer "autoload.files".
  */
 
-/** Main domain, e.g. "egmenu.app" ("localhost" while developing). */
+/** Main domain, e.g. "eghub.app" ("localhost" while developing). */
 function central_domain(): string
 {
     return (string) (config('tenancy.central_domains')[0] ?? 'localhost');

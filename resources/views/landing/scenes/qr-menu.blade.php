@@ -24,7 +24,7 @@
 <x-landing.sc-phone class="top-6 end-24">
     <div data-show="1" class="sc-fade absolute inset-0 z-10 grid place-items-center bg-[#1b1b1b] text-white">
         <div class="relative size-28 rounded-2xl border-2 border-white/80"><span class="sc-scan"></span></div>
-        <span class="absolute bottom-10 text-[11px] font-bold text-white/80" dir="ltr">egmenu.app/rosto</span>
+        <span class="absolute bottom-10 text-[11px] font-bold text-white/80" dir="ltr">eghub.app/rosto</span>
     </div>
     <div data-on="4" class="group h-full bg-[#fbf7f1] transition-colors duration-700 [&.is-on]:bg-[#151d31]">
         <div class="bg-[#4a3426] px-3 pt-6 pb-3 text-white transition-colors duration-700 group-[.is-on]:bg-[#0b1120]">

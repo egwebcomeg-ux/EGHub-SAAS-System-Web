@@ -60,14 +60,14 @@ final class RestaurantProfile
         return BusinessType::label($this->settings['business_type']);
     }
 
-    /** "منيو روستو في المعادي، القاهرة | EgMenu" */
+    /** "منيو روستو في المعادي، القاهرة | EgHub" */
     public function title(): string
     {
         $place = $this->place();
 
         return $place !== ''
-            ? __('Menu of :name in :place | EgMenu', ['name' => $this->name(), 'place' => $place])
-            : __('Menu of :name | EgMenu', ['name' => $this->name()]);
+            ? __('Menu of :name in :place | EgHub', ['name' => $this->name(), 'place' => $place])
+            : __('Menu of :name | EgHub', ['name' => $this->name()]);
     }
 
     public function description(): string
@@ -95,7 +95,7 @@ final class RestaurantProfile
         return $origin.'/storage/'.ltrim($path, '/');
     }
 
-    /** Preview image: the cover, else the logo, else the EgMenu card. */
+    /** Preview image: the cover, else the logo, else the EgHub card. */
     public function shareImage(): string
     {
         return $this->imageUrl($this->settings['cover'] ?: $this->settings['logo']) ?? versioned_asset('og-image.png');

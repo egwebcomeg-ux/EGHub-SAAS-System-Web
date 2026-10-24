@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 use Tests\TenantTestCase;
 
 /**
- * egmenu.app/{slug} is the canonical menu address; {slug}.egmenu.app is a short alias that serves the same pages
+ * eghub.app/{slug} is the canonical menu address; {slug}.egmenu.app is a short alias that serves the same pages
  * with links on its own host and a canonical tag pointing at the path form.
  */
 class SubdomainMenuTest extends TenantTestCase

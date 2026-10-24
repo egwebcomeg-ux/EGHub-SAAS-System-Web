@@ -1,5 +1,5 @@
 @extends('layouts.base')
-@section('title', __('Choose a new password') . ' · EgMenu')
+@section('title', __('Choose a new password') . ' · EgHub')
 
 @section('body')
 <div class="flex min-h-screen items-center justify-center px-4 py-10">

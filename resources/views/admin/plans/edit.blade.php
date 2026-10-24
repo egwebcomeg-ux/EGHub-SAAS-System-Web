@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title', $plan->displayName() . ' · EgMenu Admin')
+@section('title', $plan->displayName() . ' · EgHub Admin')
 
 @section('content')
 <a href="{{ route('admin.plans') }}" class="text-sm font-semibold text-navy-500 hover:text-navy-800">← {{ __('Plans') }}</a>

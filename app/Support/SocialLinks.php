@@ -5,7 +5,7 @@ namespace App\Support;
 use App\Models\PlatformSetting;
 
 /**
- * EgMenu's own social media accounts, set in the super admin (Payment settings → Social media) and shown as icons in
+ * EgHub's own social media accounts, set in the super admin (Payment settings → Social media) and shown as icons in
  * the marketing site footer. Empty or non-https links are never shown.
  */
 final class SocialLinks

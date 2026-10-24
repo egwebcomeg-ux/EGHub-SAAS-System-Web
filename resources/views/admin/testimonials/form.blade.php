@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title', ($testimonial->exists ? __('Edit testimonial') : __('New testimonial')) . ' · EgMenu Admin')
+@section('title', ($testimonial->exists ? __('Edit testimonial') : __('New testimonial')) . ' · EgHub Admin')
 
 @section('content')
 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -24,7 +24,7 @@
 
     <div class="space-y-4">
         <div class="card space-y-3">
-            <label class="flex items-start gap-2 text-sm font-semibold"><input type="checkbox" name="consent" value="1" class="mt-0.5 size-4 accent-brand-600" @checked(old('consent', $testimonial->consent_at !== null))> {{ __('The owner agreed to show these words, their name and photo on egmenu.app') }}</label>
+            <label class="flex items-start gap-2 text-sm font-semibold"><input type="checkbox" name="consent" value="1" class="mt-0.5 size-4 accent-brand-600" @checked(old('consent', $testimonial->consent_at !== null))> {{ __('The owner agreed to show these words, their name and photo on eghub.app') }}</label>
             @if ($testimonial->consent_at)<p class="text-xs text-navy-500">{{ __('Consent recorded on :date', ['date' => local_time($testimonial->consent_at, 'Y/m/d')]) }}</p>@endif
             <label class="flex items-center gap-2 font-semibold"><input type="checkbox" name="is_published" value="1" class="size-4 accent-brand-600" @checked(old('is_published', $testimonial->is_published))> {{ __('Show on the home page') }}</label>
             <label class="block"><span class="field-label">{{ __('Rating (optional)') }}</span>

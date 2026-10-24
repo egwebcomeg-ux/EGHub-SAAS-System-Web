@@ -92,7 +92,7 @@
             <div class="sm:col-span-2">
                 <h2 class="text-lg font-bold">{{ __('Showing up in search') }}</h2>
                 {{-- the address isolated left-to-right inside the Arabic sentence, so it never breaks at its hyphens --}}
-                <p class="text-sm text-navy-500">{!! str_replace(':url', '<bdi dir="ltr" class="break-all font-mono text-xs">'.e(tenant()->url('about')).'</bdi>', e(__('Used on your page :url, in the EgMenu restaurant directory and by Google.'))) !!}</p>
+                <p class="text-sm text-navy-500">{!! str_replace(':url', '<bdi dir="ltr" class="break-all font-mono text-xs">'.e(tenant()->url('about')).'</bdi>', e(__('Used on your page :url, in the EgHub restaurant directory and by Google.'))) !!}</p>
             </div>
             <div>
                 <label class="field-label" for="city">{{ __('City') }}</label>
@@ -130,7 +130,7 @@
                 <textarea class="field min-h-20 py-2" id="short_description_en" name="short_description_en" maxlength="160" dir="ltr">{{ old('short_description_en', $s['short_description_en']) }}</textarea>
             </div>
             <p class="text-xs text-navy-500 sm:col-span-2">{{ __('Up to 160 characters: what makes your place worth a visit. It appears under your name in Google.') }}</p>
-            <label class="flex items-center gap-2 text-sm font-semibold sm:col-span-2"><input type="checkbox" name="listed_in_directory" value="1" @checked($s['listed_in_directory'] === '1') class="size-4 accent-brand-600"> {{ __('Show my place in the EgMenu restaurant directory') }}</label>
+            <label class="flex items-center gap-2 text-sm font-semibold sm:col-span-2"><input type="checkbox" name="listed_in_directory" value="1" @checked($s['listed_in_directory'] === '1') class="size-4 accent-brand-600"> {{ __('Show my place in the EgHub restaurant directory') }}</label>
         </section>
 
         {{-- the place's page (/about; /links shows the same page): its links on top, then the description, contact and branches above --}}

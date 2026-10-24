@@ -1,11 +1,11 @@
 @extends('layouts.admin')
-@section('title', __('Blog') . ' · EgMenu Admin')
+@section('title', __('Blog') . ' · EgHub Admin')
 
 @section('content')
 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
     <div>
         <h1 class="text-2xl font-extrabold">{{ __('Blog') }}</h1>
-        <p class="text-sm text-navy-500">{{ __('Articles for cafe and restaurant owners on egmenu.app/blog. Published ones also go out on the RSS feed and the sitemap.') }}</p>
+        <p class="text-sm text-navy-500">{{ __('Articles for cafe and restaurant owners on eghub.app/blog. Published ones also go out on the RSS feed and the sitemap.') }}</p>
     </div>
     <div class="flex gap-2">
         <a href="{{ route('blog') }}" target="_blank" rel="noopener" class="btn-ghost">{{ __('Open the blog') }}</a>

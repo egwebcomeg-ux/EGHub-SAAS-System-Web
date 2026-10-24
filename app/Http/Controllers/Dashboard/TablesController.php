@@ -185,7 +185,7 @@ class TablesController extends Controller
         });
     }
 
-    /** egmenu.app/rosto: the menu address without the scheme, short enough to type. */
+    /** eghub.app/rosto: the menu address without the scheme, short enough to type. */
     private function shortUrl(string $url): string
     {
         return (string) preg_replace('#^https?://#', '', rtrim($url, '/'));

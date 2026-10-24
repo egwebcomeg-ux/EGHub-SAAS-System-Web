@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title', __('Branding & look') . ' · EgMenu Admin')
+@section('title', __('Branding & look') . ' · EgHub Admin')
 
 @section('content')
 @php
@@ -19,8 +19,8 @@
         <h1 class="page-title">{{ __('Branding & look') }}</h1>
         <p class="muted">{{ __('The name, logo and colors of the platform: the website, sign-in pages and dashboards. Restaurant menus keep their own colors.') }}</p>
     </div>
-    <form method="post" action="{{ route('admin.branding.reset') }}" onsubmit="return confirm(@js(__('Go back to the EgMenu name, logo and colors? Uploaded logos are removed.')))">
-        @csrf<button class="btn-ghost">{{ __('Reset to EgMenu defaults') }}</button>
+    <form method="post" action="{{ route('admin.branding.reset') }}" onsubmit="return confirm(@js(__('Go back to the EgHub name, logo and colors? Uploaded logos are removed.')))">
+        @csrf<button class="btn-ghost">{{ __('Reset to EgHub defaults') }}</button>
     </form>
 </div>
 

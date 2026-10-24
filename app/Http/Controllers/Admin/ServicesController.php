@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
-/** Requests for EgWeb's one-time services (egmenu.app/services): follow each one from new to done. */
+/** Requests for EgWeb's one-time services (eghub.app/services): follow each one from new to done. */
 class ServicesController extends Controller
 {
     public function index(Request $request): View

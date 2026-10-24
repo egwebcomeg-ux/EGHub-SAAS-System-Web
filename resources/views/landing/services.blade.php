@@ -1,5 +1,5 @@
 @extends('layouts.landing')
-@section('title', __('Services') . ' · EgMenu')
+@section('title', __('Services') . ' · EgHub')
 @section('description', __('One-time services from EgWeb for cafes and restaurants: menu setup and data entry, food photography, QR table stands, stickers, printed menus, staff training and a custom domain.'))
 
 @php
@@ -164,7 +164,7 @@
                     <div class="stand__base"></div>
                 </div>
             </div>
-            <p class="mt-3 text-center text-xs text-navy-500">{{ __('Sample QR: it opens egmenu.app. Your stand gets the QR of your own menu.') }}</p>
+            <p class="mt-3 text-center text-xs text-navy-500">{{ __('Sample QR: it opens eghub.app. Your stand gets the QR of your own menu.') }}</p>
         </div>
     </div>
 </section>
@@ -175,7 +175,7 @@
             <h2 class="lp-h2">{{ __('Request a service') }}</h2>
             <p class="mt-3 text-navy-600">{{ __('Tell us what you need. We call you back within one working day with the price and the time, and nothing is due before you agree.') }}</p>
             <ul class="mt-6 space-y-3 text-sm text-navy-700">
-                <li class="flex gap-2"><x-landing.icon name="check" class="mt-0.5 size-4 shrink-0 text-emerald-600" />{{ __('You don\'t need an EgMenu subscription to order a service.') }}</li>
+                <li class="flex gap-2"><x-landing.icon name="check" class="mt-0.5 size-4 shrink-0 text-emerald-600" />{{ __('You don\'t need an EgHub subscription to order a service.') }}</li>
                 <li class="flex gap-2"><x-landing.icon name="check" class="mt-0.5 size-4 shrink-0 text-emerald-600" />{{ __('Pay by InstaPay, Vodafone Cash or cash on delivery.') }}</li>
             </ul>
             @if ($whatsappUrl)

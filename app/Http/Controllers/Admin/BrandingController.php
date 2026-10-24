@@ -11,7 +11,7 @@ use Illuminate\View\View;
 
 /**
  * الهوية والشكل: the platform's site name, logos, favicon and brand colors (App\Support\PlatformBrand). Saved colors
- * reach the marketing site, auth pages and dashboards as CSS variables; "reset" goes back to the EgMenu identity.
+ * reach the marketing site, auth pages and dashboards as CSS variables; "reset" goes back to the EgHub identity.
  */
 class BrandingController extends Controller
 {
@@ -73,7 +73,7 @@ class BrandingController extends Controller
         return $redirect;
     }
 
-    /** Back to the EgMenu identity: default name and colors, uploaded logos and favicon removed. */
+    /** Back to the EgHub identity: default name and colors, uploaded logos and favicon removed. */
     public function reset(ImageService $images): RedirectResponse
     {
         foreach (self::UPLOADS as [$key]) {
@@ -81,6 +81,6 @@ class BrandingController extends Controller
         }
         PlatformBrand::put(array_map(fn () => null, PlatformBrand::DEFAULTS));
 
-        return back()->with('ok', __('Back to the EgMenu defaults.'));
+        return back()->with('ok', __('Back to the EgHub defaults.'));
     }
 }

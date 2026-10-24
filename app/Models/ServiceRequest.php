@@ -5,7 +5,7 @@ namespace App\Models;
 use App\Support\SiteServices;
 use Illuminate\Database\Eloquent\Model;
 
-/** A request for one of EgWeb's one-time services, sent from egmenu.app/services. Platform level (no restaurant). */
+/** A request for one of EgWeb's one-time services, sent from eghub.app/services. Platform level (no restaurant). */
 class ServiceRequest extends Model
 {
     /** status => [arabic, english] */

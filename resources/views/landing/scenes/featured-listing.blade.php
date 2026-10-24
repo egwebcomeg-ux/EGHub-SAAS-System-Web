@@ -3,7 +3,7 @@
     // Rosto and Sofra are the demo brands; the other places stay as blank rows
     $others = [[null, null, '#9aa6bd'], [__('Sofra'), __('Restaurant · Sheikh Zayed'), '#7a1f2b'], [null, null, '#b9c2d3']];
 @endphp
-<x-landing.sc-window title="egmenu.app/restaurants/cairo" class="inset-5">
+<x-landing.sc-window title="eghub.app/restaurants/cairo" class="inset-5">
     <div class="p-3 text-[11px]">
         <div class="flex items-center justify-between"><b class="text-sm">{{ __('Cafes and restaurants in Cairo') }}</b><span class="text-navy-500">{{ __('Cafes') }} · {{ __('Restaurants') }}</span></div>
         {{-- rows are 52px apart by 6px: Rosto slides from the 4th row to the top while the others move down one row --}}
@@ -34,7 +34,7 @@
         <div class="h-16 rounded-xl bg-[#4a3426]"></div>
         <b class="mt-2 block text-sm">{{ __('Rosto') }}</b>
         <div class="text-navy-500">{{ __('Cafe · Zamalek') }} · {{ __('Open now') }}</div>
-        <div class="mt-2 rounded-lg bg-navy-50 px-2 py-1 text-navy-600" dir="ltr">egmenu.app/rosto</div>
+        <div class="mt-2 rounded-lg bg-navy-50 px-2 py-1 text-navy-600" dir="ltr">eghub.app/rosto</div>
         <div class="mt-3 rounded-lg bg-brand-600 py-1.5 text-center font-bold text-white">{{ __('View the menu') }}</div>
     </div>
 </x-landing.sc-window>

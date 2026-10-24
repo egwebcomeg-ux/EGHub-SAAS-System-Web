@@ -28,13 +28,13 @@ class MovedToFreePlan extends Notification implements ShouldQueue
         $name = $this->tenant->name;
 
         return (new MailMessage)
-            ->subject($this->reason === 'trial' ? __('Your EgMenu trial has ended') : __('Your EgMenu subscription has ended'))
+            ->subject($this->reason === 'trial' ? __('Your EgHub trial has ended') : __('Your EgHub subscription has ended'))
             ->greeting(__('Hello :name,', ['name' => $notifiable->name]))
             ->line($this->reason === 'trial'
                 ? __('The free trial of :restaurant is over, so it is now on the free plan.', ['restaurant' => $name])
                 : __('The :plan subscription of :restaurant was not renewed, so it is now on the free plan.', ['plan' => $this->previous?->displayName() ?? '', 'restaurant' => $name]))
             ->line(__('Your menu and QR codes keep working. Table and online ordering, the loyalty card and the other paid features are paused until you choose a plan; everything you set up is kept.'))
             ->action(__('Choose a plan'), platform_url('app', '/billing'))
-            ->salutation(__('EgMenu team'));
+            ->salutation(__('EgHub team'));
     }
 }

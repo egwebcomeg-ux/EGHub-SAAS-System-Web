@@ -21,7 +21,7 @@ class PlatformBrandingTest extends TenantTestCase
     private function valid(array $overrides = []): array
     {
         return $overrides + [
-            'brand_site_name' => 'EgMenu', 'brand_color_primary' => '#1F7A4D',
+            'brand_site_name' => 'EgHub', 'brand_color_primary' => '#1F7A4D',
             'brand_color_secondary' => '#3355AA', 'brand_color_navy' => '#112233',
         ];
     }
@@ -30,7 +30,7 @@ class PlatformBrandingTest extends TenantTestCase
     {
         $this->get($this->menuUrl())->assertOk()->assertDontSee('data-platform-brand', false)->assertSee('favicon.svg', false);
         $this->actingAs($this->platformOwner(), 'admin')->get($this->adminUrl('/branding'))->assertOk()
-            ->assertSee('value="#F26522"', false)->assertSee(__('Reset to EgMenu defaults'));
+            ->assertSee('value="#F26522"', false)->assertSee(__('Reset to EgHub defaults'));
     }
 
     public function test_saved_colors_reach_the_site_auth_pages_and_dashboard_but_not_guest_menus(): void

@@ -29,5 +29,5 @@
 <div data-show="4" class="sc-pop absolute top-[200px] start-16 w-[200px] rounded-2xl bg-emerald-600 p-4 text-white shadow-xl">
     <x-landing.icon name="check" class="size-7" />
     <b class="mt-2 block text-sm">{{ __('7 items are live') }}</b>
-    <span class="text-[11px] text-white/80" dir="ltr">egmenu.app/rosto</span>
+    <span class="text-[11px] text-white/80" dir="ltr">eghub.app/rosto</span>
 </div>

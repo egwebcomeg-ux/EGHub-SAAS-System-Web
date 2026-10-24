@@ -3,7 +3,7 @@
 namespace App\Support;
 
 /**
- * EgWeb's one-time services shown on egmenu.app/services, next to the subscriptions. Edit prices and copy here.
+ * EgWeb's one-time services shown on eghub.app/services, next to the subscriptions. Edit prices and copy here.
  * `price` is in EGP and means "from" (null = priced on request); `items` lists sizes priced per piece.
  * Requests from the page are stored as service_requests and emailed to the platform admins.
  */
@@ -65,7 +65,7 @@ final class SiteServices
             [
                 'key' => 'print', 'icon' => 'printer',
                 'name' => __('Branded print products'),
-                'summary' => __('Everything the guest touches on the table, printed with your logo and the QR of your EgMenu menu.'),
+                'summary' => __('Everything the guest touches on the table, printed with your logo and the QR of your EgHub menu.'),
                 'includes' => [
                     __('Design with your logo and colors, sent to you before printing'),
                     __('Your real menu QR code on every piece'),
@@ -103,7 +103,7 @@ final class SiteServices
                     __('Fawry, Kashier, Paymob, Geidea or any gateway with an API'),
                     __('Card and mobile-wallet payment on your online orders'),
                     __('Paid orders marked automatically on the order board'),
-                    __('Your contract and keys stay yours; EgMenu takes no commission'),
+                    __('Your contract and keys stay yours; EgHub takes no commission'),
                 ],
                 'delivery' => __('Timeline agreed after we review your gateway account'), 'price' => null, 'unit' => '',
                 'note' => __('You need an active merchant account with the gateway; we help you through it.'), 'items' => [], 'link' => null,
@@ -114,7 +114,7 @@ final class SiteServices
                 'summary' => __('Your menu on your own name (mycafe.com) and email addresses like hello@mycafe.com, from EgWeb.'),
                 'includes' => [
                     __('Domain booking and renewal'),
-                    __('Connected to your EgMenu menu and QR codes'),
+                    __('Connected to your EgHub menu and QR codes'),
                     __('Branded email accounts on your domain'),
                 ],
                 'delivery' => __('Usually the same day'), 'price' => null, 'unit' => '',

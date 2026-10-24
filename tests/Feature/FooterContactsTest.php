@@ -21,11 +21,11 @@ class FooterContactsTest extends TenantTestCase
             ->assertSee('href="https://wa.me/201022222222"', false)->assertSee('الدعم:')->assertDontSee('المبيعات:')->assertDontSee('mailto:', false);
 
         PlatformSetting::put('sales_whatsapp', '+20 101 111 1111');
-        PlatformSetting::put('contact_email', 'hi@egmenu.app');
+        PlatformSetting::put('contact_email', 'hi@eghub.app');
         $this->get($this->menuUrl('pricing'))->assertOk()
             ->assertSee('href="https://wa.me/201011111111"', false)->assertSee('المبيعات:')
             ->assertSee('href="https://wa.me/201022222222"', false)->assertSee('الدعم:')
-            ->assertSee('href="mailto:hi@egmenu.app"', false)->assertSee('hi@egmenu.app');
+            ->assertSee('href="mailto:hi@eghub.app"', false)->assertSee('hi@eghub.app');
         $this->get($this->menuUrl('?lang=en'))->assertOk()->assertSee('Sales:')->assertSee('Support:')->assertSee('(WhatsApp)');
     }
 
@@ -36,10 +36,10 @@ class FooterContactsTest extends TenantTestCase
         $this->actingAs($admin, 'admin')->get($this->adminUrl('/settings'))->assertOk()
             ->assertSee('name="sales_whatsapp"', false)->assertSee('name="contact_email"', false);
         $this->actingAs($admin, 'admin')->post($this->adminUrl('/settings'), [
-            'support_whatsapp' => '01022222222', 'sales_whatsapp' => '01011111111', 'contact_email' => 'hi@egmenu.app',
+            'support_whatsapp' => '01022222222', 'sales_whatsapp' => '01011111111', 'contact_email' => 'hi@eghub.app',
         ])->assertSessionHasNoErrors();
         $this->assertSame('01011111111', PlatformSetting::get('sales_whatsapp'));
-        $this->assertSame('hi@egmenu.app', PlatformSetting::get('contact_email'));
+        $this->assertSame('hi@eghub.app', PlatformSetting::get('contact_email'));
 
         $this->actingAs($admin, 'admin')->post($this->adminUrl('/settings'), ['contact_email' => 'not-an-email'])->assertSessionHasErrors('contact_email');
     }

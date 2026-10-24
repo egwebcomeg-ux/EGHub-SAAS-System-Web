@@ -2,7 +2,7 @@
 @section('title', __('Your own domain'))
 
 @section('content')
-<x-dash.page-header :title="__('Your own domain')" :help="__('Show your menu on your own address, like mycafe.com, instead of the EgMenu link. Every QR code switches to it, and QR codes you already printed keep working.')" />
+<x-dash.page-header :title="__('Your own domain')" :help="__('Show your menu on your own address, like mycafe.com, instead of the EgHub link. Every QR code switches to it, and QR codes you already printed keep working.')" />
 
 @if (! $allowed)
     <div class="card max-w-2xl">
@@ -23,7 +23,7 @@
                     @elseif ($domain->source === 'own')
                         <form method="post" action="{{ route('dash.domain.check') }}">@csrf<button class="btn-ghost">{{ __('Check the DNS') }}</button></form>
                     @endif
-                    <form method="post" action="{{ route('dash.domain.delete') }}" onsubmit="return confirm(@js(__('Remove this domain? Your menu goes back to the EgMenu link.')))">@csrf<button class="btn-ghost text-red-600">{{ __('Remove') }}</button></form>
+                    <form method="post" action="{{ route('dash.domain.delete') }}" onsubmit="return confirm(@js(__('Remove this domain? Your menu goes back to the EgHub link.')))">@csrf<button class="btn-ghost text-red-600">{{ __('Remove') }}</button></form>
                 </div>
             </div>
             @if ($domain->note)<p class="rounded-lg bg-navy-50 p-3 text-sm">{{ $domain->note }}</p>@endif

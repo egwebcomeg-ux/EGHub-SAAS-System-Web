@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title', __('Plans & add-ons') . ' · EgMenu Admin')
+@section('title', __('Plans & add-ons') . ' · EgHub Admin')
 
 @section('content')
 @include('admin.plans.tabs')

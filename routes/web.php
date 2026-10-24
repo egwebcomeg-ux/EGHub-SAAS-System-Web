@@ -82,13 +82,13 @@ Route::domain($domain)->group(function () use ($slug) {
     Route::get('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify'])->name('webhooks.whatsapp');
     Route::post('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive'])->middleware('throttle:600,1');
 
-    // The canonical menu address egmenu.app/{tenant}/... (IdentifyTenantByPath). Platform paths above win;
+    // The canonical menu address eghub.app/{tenant}/... (IdentifyTenantByPath). Platform paths above win;
     // reserved slugs (Tenant::RESERVED) can never be registered as restaurants.
     Route::prefix('{tenant}')->where(['tenant' => $slug])
         ->middleware('tenant.path')->name('path.')->group(base_path('routes/menu.php'));
 });
 
-// Public menus on {tenant}.egmenu.app (alias of egmenu.app/{tenant}). The platform hosts (www, app, admin) are excluded here as well as by their
+// Public menus on {tenant}.egmenu.app (alias of eghub.app/{tenant}). The platform hosts (www, app, admin) are excluded here as well as by their
 // own groups above, so a path those groups do not define is a 404 there, never a menu.
 Route::domain('{tenant}.'.$domain)->where(['tenant' => '(?!(?:www|app|admin)\.)'.$slug])
     ->middleware('tenant.subdomain')->name('menu.')->group(base_path('routes/menu.php'));
@@ -96,7 +96,7 @@ Route::domain('{tenant}.'.$domain)->where(['tenant' => '(?!(?:www|app|admin)\.)'
 /*
 | Earlier main domains (egmenu.app after the move to eghub.app). The first one keeps the public restaurant directory
 | (its home page) and its old /restaurants/{city} addresses; everything else, including every printed QR code
-| ({tenant}.egmenu.app/..., egmenu.app/{tenant}/...), the dashboard and the admin, answers with a permanent redirect
+| ({tenant}.egmenu.app/..., eghub.app/{tenant}/...), the dashboard and the admin, answers with a permanent redirect
 | to the same address on the main domain (308 for forms, so the method survives). The payment webhook is still
 | served here: a payment started before the move reports to the address it was given.
 */
