@@ -1,7 +1,7 @@
 @props(['size' => 32, 'text' => true, 'light' => false])
 {{--
-    EgHub logo: the "eghub" wordmark in the EgWeb logo's typeface (Diamonds, Font Bundles: commercial licence held by
-    EgWeb) and colours: "eg" orange, "hub" EgWeb navy (white on dark backgrounds). Vector paths, so it is sharp at any
+    EgHub logo: the "eghub" wordmark in the EgWeb logo's typeface (Diamonds by Font Bundles; its commercial licence is
+    free from fontbundles.net and still to be taken, Comfortaa (OFL) is the closest open alternative) and colours: "eg" orange, "hub" EgWeb navy (white on dark backgrounds). Vector paths, so it is sharp at any
     size and ships no font file. :size is the visual height in px of the earlier mark, kept for callers.
     :text="false" draws "eg" only.
     A logo uploaded in admin › الهوية والشكل (App\Support\PlatformBrand) replaces the wordmark: the light-background
