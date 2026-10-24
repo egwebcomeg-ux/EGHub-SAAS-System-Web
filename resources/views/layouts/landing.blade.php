@@ -45,14 +45,7 @@
     <meta property="og:title" content="@yield('title', 'EgHub')">
     <meta property="og:description" content="@yield('description', $description)">
     <meta property="og:url" content="@yield('canonical', $defaultCanonical)">
-    <meta property="og:image" content="@yield('og_image', versioned_asset('og-image.png'))">
-    @hasSection('og_image')
-    @else
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    @endif
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="@yield('og_image', versioned_asset('og-image.png'))">
+    @include('landing.partials.share-image')
     <link rel="preload" as="image" href="{{ versioned_asset('img/site/orders-sm.webp') }}" media="(min-width: 1024px)">
 @endpush
 

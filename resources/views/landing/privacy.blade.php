@@ -1,5 +1,6 @@
 @extends('layouts.landing')
 @section('title', __('Privacy policy') . ' · EgHub')
+@section('share_card', 'privacy')
 
 @section('page')
 <x-landing.legal :title="__('Privacy policy')" :updated="__('Last updated: :date', ['date' => '2026/10/13'])" current="privacy">

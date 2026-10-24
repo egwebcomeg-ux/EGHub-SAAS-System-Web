@@ -1,5 +1,6 @@
 @extends('layouts.landing')
 @section('title', __('Free QR code generator with style and logo | EgHub'))
+@section('share_card', 'qr-code-generator')
 @section('description', __('Make a free QR code for a link, WhatsApp, Wi-Fi, a contact card or a location. Pick the shapes and colours, add your logo and a "Scan me" frame, and download PNG, SVG or a print-ready PDF. No sign-up.'))
 
 @php

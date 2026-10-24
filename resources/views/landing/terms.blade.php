@@ -1,5 +1,6 @@
 @extends('layouts.landing')
 @section('title', __('Terms of service') . ' · EgHub')
+@section('share_card', 'terms')
 
 @section('page')
 <x-landing.legal :title="__('Terms of service')" :updated="__('Last updated: :date', ['date' => '2026/10/13'])" current="terms">

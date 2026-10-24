@@ -1,5 +1,6 @@
 @extends('layouts.landing')
 @section('title', $heading . ' | ' . $directoryName)
+@section('share_card', $city ? 'directory/' . $city : 'directory')
 @section('description', $description)
 
 @section('page')

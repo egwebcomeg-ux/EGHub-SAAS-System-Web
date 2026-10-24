@@ -1,5 +1,6 @@
 @extends('layouts.landing')
 @section('title', __('Pricing') . ' · EgHub')
+@section('share_card', 'pricing')
 @section('description', __('EgHub prices in Egyptian pounds: a free plan for your QR menu, the Complete plan with every module for one place, Enterprise for chains with POS and kitchen screens, and WhatsApp credits paid once.'))
 
 @php

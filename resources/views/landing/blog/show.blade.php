@@ -17,8 +17,11 @@
 
 @section('canonical', $url)
 @section('og_type', 'article')
+{{-- the post's own cover when it has one; otherwise the blog's card (cards are drawn ahead on a developer machine, never per post on the server) --}}
 @if ($cover)
     @section('og_image', $cover)
+@else
+    @section('share_card', 'blog')
 @endif
 
 @push('head')

@@ -1,5 +1,6 @@
 @extends('layouts.landing')
 @section('title', __('Blog') . ' · EgHub')
+@section('share_card', 'blog')
 @section('description', __('Practical articles for cafe and restaurant owners in Egypt: menus, ordering, loyalty and running the place.'))
 
 @section('page')

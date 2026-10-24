@@ -1,5 +1,6 @@
 @extends('layouts.landing')
 @section('title', __('Refund policy') . ' · EgHub')
+@section('share_card', 'refund-policy')
 @section('description', __('How EgHub subscriptions are paid, cancelled and refunded.'))
 
 @section('page')

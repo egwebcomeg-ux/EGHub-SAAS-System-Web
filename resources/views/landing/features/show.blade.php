@@ -1,5 +1,6 @@
 @extends('layouts.landing')
 @section('title', $module['name'] . ' · EgHub')
+@section('share_card', 'features/' . $module['slug'])
 @section('description', $module['tagline'] . ' ' . $module['summary'])
 
 @php

@@ -1,6 +1,18 @@
 @extends('layouts.base')
 @section('title', __('Create your free account') . ' · EgHub')
+@section('share_card', 'register')
 @section('body_class', 'bg-gradient-to-b from-navy-50 via-white to-navy-50 text-navy-900')
+
+@push('head')
+    <meta name="description" content="{{ __('Your QR menu is free, forever. Add ordering, loyalty and the rest when you need them.') }}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="EgHub">
+    <meta property="og:locale" content="{{ app()->getLocale() === 'ar' ? 'ar_EG' : 'en_US' }}">
+    <meta property="og:title" content="@yield('title')">
+    <meta property="og:description" content="{{ __('Your QR menu is free, forever. Add ordering, loyalty and the rest when you need them.') }}">
+    <meta property="og:url" content="{{ route('register') }}">
+    @include('landing.partials.share-image')
+@endpush
 
 @section('body')
 <div class="mx-auto max-w-xl px-4 py-10">

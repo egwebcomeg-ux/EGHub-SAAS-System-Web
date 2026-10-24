@@ -1,5 +1,6 @@
 @extends('layouts.landing')
 @section('title', __('Features') . ' · EgHub')
+@section('share_card', 'features')
 @section('description', __('Every EgHub module with a real screen and a short animation of how it works: QR menu, ordering, reservations, loyalty, WhatsApp, POS, kiosk, kitchen display and more.'))
 
 @php

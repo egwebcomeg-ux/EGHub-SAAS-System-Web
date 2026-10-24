@@ -1,5 +1,6 @@
 @extends('layouts.landing')
 @section('title', 'EgHub — ' . __('one system for your whole place: QR menu, orders, cashier and delivery for restaurants and cafes'))
+@section('share_card', 'home')
 @section('description', 'EgHub — ' . __('one system for your whole place') . '. ' . __('A free QR menu for cafes and restaurants in Egypt, with table and online ordering without commission, a loyalty card and a print-ready menu when you need them.'))
 
 @push('head')

@@ -1,5 +1,6 @@
 @extends('layouts.landing')
 @section('title', __('Services') . ' · EgHub')
+@section('share_card', 'services')
 @section('description', __('One-time services from EgWeb for cafes and restaurants: menu setup and data entry, food photography, QR table stands, stickers, printed menus, staff training and a custom domain.'))
 
 @php
