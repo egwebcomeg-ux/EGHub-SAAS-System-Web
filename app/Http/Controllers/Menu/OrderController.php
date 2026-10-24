@@ -73,7 +73,8 @@ class OrderController extends Controller
         }
 
         // a pickup ordered from the guest's own phone needs no QR: the page they land on is already their pager
-        $url = Pager::enabled() && Pager::forOrder($order) ? $order->pagerUrl() : route('menu.order.show', $order->tracking_token);
+        // (on the address the guest is using, like the tracking page)
+        $url = Pager::enabled() && Pager::forOrder($order) ? route('menu.pager.show', $order->pagerKey()) : route('menu.order.show', $order->tracking_token);
 
         return response()->json(['ok' => true, 'number' => $order->number, 'url' => $url]);
     }

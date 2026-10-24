@@ -44,7 +44,13 @@ class FeedbackController extends Controller
     public static function record(int $rating, ?string $comment, array $where): JsonResponse
     {
         $ipHash = hash('sha256', client_ip().'|'.tenant()->getTenantKey().'|'.config('app.key'));
-        if (Feedback::query()->where('ip_hash', $ipHash)->where('created_at', '>=', now()->subHour())->count() >= 3) {
+        // a rating tied to an order (pager, tracking) is capped per order, not per address: guests on the shop's
+        // Wi-Fi share one address, so a per-address cap would drop the 4th guest's rating (complaints included)
+        $recent = Feedback::query()->where('created_at', '>=', now()->subHour());
+        $limited = ($where['order_id'] ?? null) !== null
+            ? $recent->where('order_id', $where['order_id'])->count() >= 3
+            : $recent->where('ip_hash', $ipHash)->whereNull('order_id')->count() >= 3;
+        if ($limited) {
             return response()->json(['message' => __('Thank you! You already sent your rating.')], 429);
         }
         Feedback::query()->create($where + [

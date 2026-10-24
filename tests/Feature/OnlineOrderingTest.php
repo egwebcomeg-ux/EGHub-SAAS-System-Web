@@ -36,7 +36,8 @@ class OnlineOrderingTest extends TenantTestCase
 
         $url = $this->order($a, ['type' => 'takeaway'])->assertOk()->json('url');
         $order = $this->as($a, fn () => Order::query()->latest('id')->first());
-        $this->assertSame($this->as($a, fn () => $order->pagerUrl()), $url);
+        // the pager on the same address the guest ordered from (here the restaurant's subdomain)
+        $this->assertSame($this->subUrl('cafe-a', 'p/'.$this->as($a, fn () => $order->pagerKey())), $url);
         // the pager page keeps the order's full details one tap away
         $this->get($url)->assertOk()->assertSee('data-tracking-link', false)->assertSee($order->tracking_token, false);
 

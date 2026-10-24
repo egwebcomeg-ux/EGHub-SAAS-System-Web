@@ -252,4 +252,22 @@ class GuestPagerTest extends TenantTestCase
 
         $this->assertSame([5, 2], Feedback::query()->where('tenant_id', 'cafe-a')->where('order_id', $order->id)->orderBy('id')->pluck('rating')->all());
     }
+
+    public function test_guests_on_the_same_shop_wifi_all_get_their_rating_saved(): void
+    {
+        $a = $this->restaurant('cafe-a', 'full');
+
+        // five guests, five orders, one shared address: every rating (and every complaint) is kept
+        foreach (range(1, 5) as $i) {
+            $key = $this->key($a, $this->move($a, $this->order($a), 'preparing', 'ready'));
+            $this->postJson($this->subUrl('cafe-a', "p/$key/picked-up"))->assertOk();
+            $this->postJson($this->subUrl('cafe-a', "p/$key/rate"), ['rating' => 2, 'comment' => "Guest $i"])->assertOk();
+        }
+        $this->assertSame(5, Feedback::query()->where('tenant_id', 'cafe-a')->whereNotNull('comment')->count());
+
+        // one order still can't be flooded
+        $this->postJson($this->subUrl('cafe-a', "p/$key/rate"), ['rating' => 1])->assertOk();
+        $this->postJson($this->subUrl('cafe-a', "p/$key/rate"), ['rating' => 1])->assertOk();
+        $this->postJson($this->subUrl('cafe-a', "p/$key/rate"), ['rating' => 1])->assertStatus(429);
+    }
 }

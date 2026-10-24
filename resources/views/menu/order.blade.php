@@ -140,7 +140,7 @@
 
     @if (! $final && \App\Services\Orders\Pager::enabled() && \App\Services\Orders\Pager::forOrder($order))
         {{-- the guest pager: the same order, but the phone rings when it is ready --}}
-        <a href="{{ $order->pagerUrl() }}" class="trk-action btn-ghost mt-4 border" data-pager-link>🔔 {{ __('Ring my phone when it is ready') }}</a>
+        <a href="{{ route('menu.pager.show', $order->pagerKey()) }}" class="trk-action btn-ghost mt-4 border" data-pager-link>🔔 {{ __('Ring my phone when it is ready') }}</a>
     @endif
 
     @if ($order->type === 'delivery' && ! $final)

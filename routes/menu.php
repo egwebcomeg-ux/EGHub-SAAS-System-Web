@@ -43,10 +43,10 @@ Route::get('/r/{order}/{signature}', [ReceiptController::class, 'show'])->whereN
 // The guest pager (plan feature pager): the QR on the receipt or the pager-station ticket. The phone rings while the
 // page is open; the state is polled every few seconds (limiter "pager": per page and device, not per shop Wi-Fi)
 Route::prefix('/p/{key}')->where(['key' => PagerController::KEY])->name('pager')->group(function () {
-    Route::get('/', [PagerController::class, 'show']);
+    Route::get('/', [PagerController::class, 'show'])->name('.show');
     Route::get('/state', [PagerController::class, 'state'])->middleware('throttle:pager')->name('.state');
-    Route::post('/picked-up', [PagerController::class, 'pickedUp'])->middleware('throttle:10,1')->name('.picked');
-    Route::post('/rate', [PagerController::class, 'rate'])->middleware('throttle:10,1')->name('.rate');
+    Route::post('/picked-up', [PagerController::class, 'pickedUp'])->middleware('throttle:pager-actions')->name('.picked');
+    Route::post('/rate', [PagerController::class, 'rate'])->middleware('throttle:pager-actions')->name('.rate');
 });
 
 // Order-number board for a screen in the hall (POS pack)
