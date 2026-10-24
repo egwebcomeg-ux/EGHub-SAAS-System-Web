@@ -86,7 +86,10 @@ class OnlinePaymentsTest extends TenantTestCase
             && $request['currency'] === 'EGP'
             && $request['allowedMethods'] === 'card,wallet'
             && $request['serverWebhook'] === 'http://app.egmenu.test/billing/kashier/webhook'
-            && $request['merchantRedirect'] === "http://app.egmenu.test/billing/invoices/{$invoice->number}/return");
+            && $request['merchantRedirect'] === "http://app.egmenu.test/billing/invoices/{$invoice->number}/return"
+            // checked against the live API: it needs a customer and rejects a "mode" field
+            && is_array($request['customer']) && $request['customer'] !== []
+            && ! array_key_exists('mode', $request->data()));
     }
 
     public function test_a_signed_success_webhook_activates_the_plan_exactly_once(): void

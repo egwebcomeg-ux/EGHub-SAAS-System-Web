@@ -53,8 +53,8 @@ final class KashierGateway implements PaymentGateway
                 'amount' => number_format((float) $payment->amount, 2, '.', ''),
                 'currency' => 'EGP',
                 'order' => $payment->merchant_ref,
+                // test or live is the API host (apiUrl()); the sessions API rejects a "mode" field
                 'merchantId' => $this->config('merchant_id'),
-                'mode' => $this->mode(),
                 'merchantRedirect' => $returnUrl,
                 'serverWebhook' => $webhookUrl,
                 'failureRedirect' => true,
