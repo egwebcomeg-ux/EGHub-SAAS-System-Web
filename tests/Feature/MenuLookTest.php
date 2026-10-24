@@ -9,6 +9,7 @@ use App\Models\MenuItem;
 use App\Services\Settings;
 use App\Support\ItemPlaceholder;
 use App\Support\MenuThemes;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TenantTestCase;
 
 /** Photo placeholders, the logo tile, the order-type chip and the delivery area step of the public menu. */
@@ -27,7 +28,7 @@ class MenuLookTest extends TenantTestCase
         foreach (MenuThemes::keys() as $theme) {
             $this->as($a, fn () => Settings::put(['menu_theme' => $theme]));
             $this->get($this->subUrl('cafe-a'))->assertOk()
-                ->assertSee('data-placeholder="cup"', false)->assertSee('data-placeholder="dessert"', false);
+                ->assertSee('data-placeholder="tea"', false)->assertSee('data-placeholder="cake"', false);
         }
 
         $this->as($a, fn () => Settings::put(['item_placeholder' => '0', 'menu_theme' => 'bistro']));
@@ -36,6 +37,67 @@ class MenuLookTest extends TenantTestCase
         $this->assertSame('pizza', ItemPlaceholder::icon('بيتزا إيطالي', 'restaurant'));
         $this->assertSame('plate', ItemPlaceholder::icon('Main dishes', 'restaurant'));
         $this->assertSame('cup', ItemPlaceholder::icon('Specials', 'cafe'));
+    }
+
+    /** @return array<string, array{0: string, 1: string, 2: string}> */
+    public static function placeholderNames(): array
+    {
+        return [
+            'gateaux is no tea' => ['جاتوه Gâteaux', 'restaurant', 'cake'],
+            'petits fours' => ['بيتي فور Petits Fours', 'pastry', 'cookie'],
+            'viennoiseries' => ['Viennoiseries', 'pastry', 'croissant'],
+            'cookies' => ['كوكيز', 'pastry', 'cookie'],
+            'ice cream' => ['آيس كريم Ice cream', 'pastry', 'icecream'],
+            'cupcake before cake' => ['Cupcakes', 'pastry', 'cupcake'],
+            'donuts' => ['دونات', 'pastry', 'donut'],
+            'chocolate' => ['شوكولاتة', 'pastry', 'chocolate'],
+            'hot chocolate is a drink' => ['Hot chocolate', 'pastry', 'cup'],
+            'konafa' => ['كنافة بالقشطة', 'pastry', 'oriental'],
+            'rice pudding before rice' => ['رز بلبن', 'restaurant', 'oriental'],
+            'boxes' => ['بوكسات Boxes', 'pastry', 'box'],
+            'bread' => ['عيش وخبز', 'pastry', 'bread'],
+            'shawarma' => ['شاورما', 'restaurant', 'wrap'],
+            'rice' => ['أرز بالخلطة', 'restaurant', 'rice'],
+            'juice' => ['عصاير فريش', 'cafe', 'juice'],
+            'tea' => ['شاي بالنعناع', 'cafe', 'tea'],
+            'steak is no tea' => ['Steak', 'restaurant', 'plate'],
+            'a cheeseburger is no cake' => ['تشيز برجر', 'restaurant', 'burger'],
+            'pastry default' => ['Signature', 'pastry', 'cake'],
+            'bakery default' => ['Signature', 'bakery', 'bread'],
+            'cafe default' => ['Signature', 'cafe', 'cup'],
+            'restaurant default' => ['Signature', 'restaurant', 'plate'],
+        ];
+    }
+
+    #[DataProvider('placeholderNames')]
+    public function test_the_placeholder_icon_follows_the_name_then_the_kind_of_place(string $name, string $kind, string $icon): void
+    {
+        $this->assertSame($icon, ItemPlaceholder::icon($name, $kind));
+    }
+
+    public function test_item_names_refine_a_generic_category_only(): void
+    {
+        $drinks = new Category(['name' => 'مشروبات', 'name_en' => 'Drinks']);
+        $cookies = new Category(['name' => 'Cookies']);
+        $picked = new Category(['name' => 'Specials', 'icon' => 'cup']);
+        $sweets = new Category(['name' => 'حلويات']);
+
+        $this->assertSame('tea', ItemPlaceholder::forItem(new MenuItem(['name' => 'Mint tea']), $drinks));
+        $this->assertSame('cup', ItemPlaceholder::forItem(new MenuItem(['name' => 'Espresso']), $drinks));
+        $this->assertSame('cookie', ItemPlaceholder::forItem(new MenuItem(['name' => 'Double chocolate']), $cookies));
+        $this->assertSame('cup', ItemPlaceholder::forItem(new MenuItem(['name' => 'Chocolate cake']), $picked));
+        $this->assertSame('oriental', ItemPlaceholder::forItem(new MenuItem(['name' => 'Konafa']), $sweets));
+        $this->assertSame('croissant', ItemPlaceholder::forItem(new MenuItem(['name' => 'كرواسون زبدة']), new Category(['name' => 'مخبوزات', 'name_en' => 'Bakery'])));
+        $this->assertSame('bread', ItemPlaceholder::forItem(new MenuItem(['name' => 'Fino']), new Category(['name' => 'Bakery'])));
+        // a weak word in an item name is not read: "sweet potato" keeps the category icon
+        $this->assertSame('plate', ItemPlaceholder::forItem(new MenuItem(['name' => 'Sweet potato']), new Category(['name' => 'Sides']), 'restaurant'));
+    }
+
+    public function test_a_pastry_shop_serving_only_bakery_falls_back_to_bread(): void
+    {
+        $this->assertSame('bakery', ItemPlaceholder::kind('pastry', 'bakery,coffee'));
+        $this->assertSame('pastry', ItemPlaceholder::kind('pastry', 'bakery,desserts'));
+        $this->assertSame('cafe', ItemPlaceholder::kind('cafe', 'bakery'));
     }
 
     public function test_the_logo_tile_follows_the_theme_and_the_setting(): void

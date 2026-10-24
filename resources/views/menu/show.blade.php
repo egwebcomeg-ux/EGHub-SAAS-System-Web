@@ -436,7 +436,7 @@
             <div class="m-noscroll flex gap-3 overflow-x-auto pb-2">
                 @foreach ($topItems as $item)
                     <button type="button" data-item="{{ $item->id }}" class="w-36 shrink-0 overflow-hidden rounded-2xl border m-border m-surface text-start shadow-sm">
-                        @include('menu.items.photo', ['class' => 'aspect-square w-full', 'iconClass' => 'size-[38%]', 'phIcon' => $categoryIcons[$item->category_id] ?? 'plate'])
+                        @include('menu.items.photo', ['class' => 'aspect-square w-full', 'iconClass' => 'size-[38%]', 'phIcon' => $itemIcons[$item->id] ?? $categoryIcons[$item->category_id] ?? 'plate'])
                         <div class="p-2">
                             <div class="line-clamp-2 text-sm font-bold">{{ $item->displayName() }}</div>
                             <div class="flex flex-wrap items-baseline gap-x-1.5 text-sm">
@@ -458,7 +458,6 @@
                 // the layout of this category: its own, the menu setting or the theme's (App\Support\MenuLayouts)
                 $catLayout = $layouts[$c->id];
                 $layoutView = \App\Support\MenuLayouts::view($catLayout);
-                $phIcon = $categoryIcons[$c->id];
             @endphp
             <div class="mt-3 {{ $layoutView['wrapper'] }}" data-layout="{{ $catLayout }}">
                 @foreach ($c->items as $item)
@@ -468,7 +467,7 @@
                         $favSpot = \App\Support\MenuLayouts::favSpot($catLayout, $item, $placeholders);
                     @endphp
                     <div class="relative" data-search-text="{{ mb_strtolower($item->name . ' ' . $item->name_en . ' ' . $item->description . ' ' . $item->displayName()) }}" data-badges="{{ implode(' ', $item->badgeKeys()) }}">
-                        @include('menu.items.' . $layoutView['blade'], $layoutView['vars'] + ['item' => $item, 'phIcon' => $phIcon, 'qaPad' => match ($qaSpot) { 'row' => 'pe-12', 'bold' => 'bold', default => '' }])
+                        @include('menu.items.' . $layoutView['blade'], $layoutView['vars'] + ['item' => $item, 'phIcon' => $itemIcons[$item->id] ?? $categoryIcons[$c->id], 'qaPad' => match ($qaSpot) { 'row' => 'pe-12', 'bold' => 'bold', default => '' }])
                         @if ($qa)
                             @include('menu.items.quick-add', ['item' => $item, 'qa' => $qa, 'spot' => $qaSpot])
                         @endif

@@ -101,10 +101,18 @@
                 <button type="button" class="m-choice-close size-10 place-items-center rounded-full text-2xl leading-none" data-choice-close aria-label="{{ __('Close') }}">×</button>
             </div>
             @if ($branchPicker)
-                {{-- the branch part: rows rebuilt by resources/js/menu.js (open now, distance, map); links work without it --}}
-                <section class="m-choice-branch m-choice-in" style="--i: 1" data-branch-sheet aria-labelledby="branch-sheet-title">
+                {{-- the branch part: rows rebuilt by resources/js/menu.js (open now, distance, map); links work without it.
+                     A known branch (chosen before: a link or the cookie; in the browser also the last visit, or the nearest
+                     one when the location is already allowed) shows alone as the chosen row, with "change the branch" that
+                     opens the whole list and its search, so a chain's list never fills the sheet. --}}
+                @php($branchCompact = $branchChosen ?? false)
+                <section @class(['m-choice-branch m-choice-in', 'is-compact' => $branchCompact]) style="--i: 1" data-branch-sheet aria-labelledby="branch-sheet-title">
                     <div class="m-choice-label">
                         <h3 id="branch-sheet-title" class="m-muted text-sm font-extrabold">📍 {{ $waysMenu ? __('From which branch?') : __('Prices and what is available follow the branch you choose.') }}</h3>
+                        <button type="button" class="m-choice-change" data-branch-change aria-controls="branch-list" aria-expanded="{{ $branchCompact ? 'false' : 'true' }}">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4 3 8l4 4"/><path d="M3 8h18"/><path d="M17 12l4 4-4 4"/><path d="M21 16H3"/></svg>
+                            {{ __('Change the branch') }}
+                        </button>
                         @if ($branches->contains(fn ($b) => $b->lat !== null))
                             <button type="button" class="m-choice-near" data-branch-near>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 22 2l-9 19-2-8-8-2Z"/></svg>
@@ -116,7 +124,7 @@
                         <input type="search" class="field min-h-11 w-full shrink-0 rounded-2xl text-base" placeholder="{{ __('Search the branches') }}" aria-label="{{ __('Search the branches') }}" data-branch-search>
                     @endif
                     <p class="m-muted hidden shrink-0 text-center text-xs" data-branch-note role="status"></p>
-                    <div class="m-choice-branches" role="radiogroup" aria-labelledby="branch-sheet-title" data-branch-list>
+                    <div id="branch-list" class="m-choice-branches" role="radiogroup" aria-labelledby="branch-sheet-title" data-branch-list>
                         @foreach ($branches as $b)
                             <a href="?branch={{ $b->slug }}" @class(['m-branch-row', 'is-on' => $b->id === $branch->id]) data-branch-row="{{ $b->id }}" data-branch-pick="{{ $b->slug }}" role="radio" aria-checked="{{ $b->id === $branch->id ? 'true' : 'false' }}">
                                 <span class="m-branch-dot" aria-hidden="true"></span>

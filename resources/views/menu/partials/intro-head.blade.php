@@ -179,6 +179,18 @@
     .m-branch-row:focus-visible { outline: 2px solid var(--menu-accent); outline-offset: 2px; }
     .m-branch-dot { width: 18px; height: 18px; flex-shrink: 0; border-radius: 999px; box-shadow: inset 0 0 0 2px var(--menu-border); }
     .m-branch-row.is-on .m-branch-dot { background: var(--menu-accent); box-shadow: inset 0 0 0 4px color-mix(in srgb, var(--menu-accent) 55%, var(--menu-surface)); }
+    /* a known branch: its row alone, "change the branch" opens the list and its search (resources/js/menu.js) */
+    .m-choice-change { display: none; align-items: center; gap: 6px; min-height: 2.25rem; padding: 0 12px; border-radius: 999px; flex-shrink: 0;
+        font-size: .8rem; font-weight: 800; color: var(--menu-text); background: color-mix(in srgb, var(--menu-accent) 10%, var(--menu-surface));
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--menu-accent) 45%, transparent); }
+    /* the text in the theme's text colour (a dark brand colour on a dark template stays readable), the icon in the accent */
+    .m-choice-change svg { width: 15px; height: 15px; color: var(--menu-accent); }
+    .m-choice-change:focus-visible { outline: 2px solid var(--menu-accent); outline-offset: 2px; }
+    .m-choice-branch.is-compact .m-choice-change { display: inline-flex; }
+    .m-choice-branch.is-compact .m-choice-near, .m-choice-branch.is-compact [data-branch-search], .m-choice-branch.is-compact [data-branch-note],
+    .m-choice-branch.is-compact .m-branch-row:not(.is-on) { display: none; }
+    .m-choice-branch.is-compact .m-choice-branches { min-height: 0; overflow: visible; }
+    .m-choice-branch.is-opening .m-choice-branches { animation: m-choice-fade .25s ease both; }
     /* the ways of ordering: a row of tiles (two or three side by side), a tap continues */
     .m-way-grid { display: grid; grid-template-columns: repeat(var(--ways, 3), minmax(0, 1fr)); gap: 8px; flex-shrink: 0; }
     .m-way-card { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px; width: 100%; min-height: 5.75rem;
@@ -208,5 +220,5 @@
     @keyframes m-choice-item { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
     @keyframes m-choice-fade { from { opacity: 0; } to { opacity: 1; } }
     @media (prefers-reduced-motion: reduce) { .m-choice-card { animation: none; } }
-    @media (prefers-reduced-motion: reduce) { .m-choice, .m-choice-in { animation: none; } .m-way-card, .m-branch-row { transition: none; } }
+    @media (prefers-reduced-motion: reduce) { .m-choice, .m-choice-in { animation: none; } .m-way-card, .m-branch-row { transition: none; } .m-choice-branch.is-opening .m-choice-branches { animation: none; } }
 </style>

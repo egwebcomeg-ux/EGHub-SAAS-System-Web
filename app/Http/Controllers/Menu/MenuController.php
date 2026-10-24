@@ -136,7 +136,15 @@ class MenuController extends Controller
         $bannerAutoplay = MenuTicker::bannerAutoplay($banners->count(), $settings);
         // "الأكثر طلباً" from the branch's real sales (empty: the featured row stays), the round or chip category row
         $bestSellers = $settings['menu_best_sellers'] !== '0' ? BestSellers::forMenu($branch, $available) : collect();
-        $categoryIcons = $categories->mapWithKeys(fn (Category $c) => [$c->id => ItemPlaceholder::forCategory($c, $settings['business_type'])]);
+        // the line icons of the categories and of the items without a photo (App\Support\ItemPlaceholder)
+        $placeKind = ItemPlaceholder::kind($settings['business_type'], (string) $settings['cuisine']);
+        $categoryIcons = $categories->mapWithKeys(fn (Category $c) => [$c->id => ItemPlaceholder::forCategory($c, $placeKind)]);
+        $itemIcons = collect();
+        foreach ($categories as $c) {
+            foreach ($c->items as $i) {
+                $itemIcons[$i->id] = ItemPlaceholder::forItem($i, $c, $placeKind);
+            }
+        }
         $ticker = MenuTicker::lines($catalog->runningOffers(), $goal && ($canOrder || $hall['mode'] === 'list') ? $goal : null,
             $season, $settings, $available, $shownCategories, $currency);
         $response = response()->view('menu.show', [
@@ -147,6 +155,7 @@ class MenuController extends Controller
             'bestSellers' => $bestSellers,
             'categoryStyle' => $settings['menu_category_style'] === 'circles' ? 'circles' : 'chips',
             'categoryIcons' => $categoryIcons,
+            'itemIcons' => $itemIcons,
             'greeting' => self::greeting(),
             'layouts' => $categories->mapWithKeys(fn (Category $c) => [$c->id => MenuLayouts::forCategory($c, $theme, $settings)]),
             'bannerAutoplay' => $bannerAutoplay,
@@ -211,7 +220,7 @@ class MenuController extends Controller
                 // the item page's "الأكثر طلباً" badge, the placeholder icons (cart lines, favourites, item page)
                 'best' => $bestSellers->pluck('id')->values(),
                 'placeholders' => $settings['item_placeholder'] !== '0',
-                'phIcons' => collect(ItemPlaceholder::ICONS)->mapWithKeys(fn (string $icon) => [$icon => ItemPlaceholder::svg($icon, 'size-[50%]')]),
+                'phIcons' => $itemIcons->unique()->values()->mapWithKeys(fn (string $icon) => [$icon => ItemPlaceholder::svg($icon, 'size-[50%]')]),
                 // ?reorder={tracking token} from the order page: that order's lines that can still be ordered
                 'reorder' => $canOrder || $hall['mode'] === 'list' ? self::reorder($request, $available) : null,
                 'phone' => (string) ($branch->phone ?: $settings['phone']),
@@ -257,7 +266,7 @@ class MenuController extends Controller
                 'tax' => (float) $settings['tax_percent'],
                 'items' => $categories->flatMap(fn (Category $c) => $c->items)->mapWithKeys(fn (MenuItem $i) => [$i->id => [
                     'id' => $i->id, 'name' => $i->displayName(), 'price' => (float) $i->price, 'soldOut' => $i->is_sold_out,
-                    'icon' => $categoryIcons[$i->category_id] ?? 'plate',
+                    'icon' => $itemIcons[$i->id] ?? 'plate',
                     'offerFrom' => $i->getAttribute('offer_from'), 'offerPercent' => $i->getAttribute('offer_percent'),
                     'pairings' => $upsell ? $i->pairings->pluck('id')->filter(fn ($id) => $available->has($id))->values() : [],
                     'combo' => $upsell && $i->comboParts->isNotEmpty() ? [

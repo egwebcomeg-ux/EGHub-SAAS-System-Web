@@ -116,7 +116,7 @@ class BusinessTypeTest extends TenantTestCase
         $this->assertSame('scheduled_orders', BusinessType::recommendations('pastry')[0]['feature']);
         $this->assertArrayNotHasKey('type', BusinessType::loyaltyDefaults('pastry')); // a stamp card
         $this->assertSame('بوكس حلويات هدية', BusinessType::loyaltyDefaults('pastry')['reward_label']);
-        $this->assertSame('dessert', ItemPlaceholder::icon('بوكسات Boxes', 'pastry'));
+        $this->assertSame('box', ItemPlaceholder::icon('بوكسات Boxes', 'pastry'));
         $this->assertContains('بتعملوا تورتة بالطلب (اسم، صورة، شكل معين)؟', array_column(KnowledgeBaseTemplates::for('pastry'), 'question'));
 
         app(Billing::class)->setAddon($tenant, 'kitchen_pack', 1);

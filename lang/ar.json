@@ -5430,5 +5430,22 @@
     "Cash orders confirmed by the guest": "العميل بيأكد طلبات الكاش",
     "A delivery order paid at the door asks the guest on WhatsApp to confirm, change or cancel with one tap. Your kitchen starts right away; the answer shows as a badge on the order.": "طلب التوصيل اللي بيتدفع كاش عند الباب بيسأل العميل على الواتساب يأكد أو يعدّل أو يلغي بدوسة واحدة. مطبخك بيبدأ على طول، والرد بيظهر علامة على الطلب.",
     "Does the kitchen wait for the guest to confirm a cash order?": "المطبخ بيستنى العميل يأكد طلب الكاش؟",
-    "No. The order goes to the kitchen at once. The guest’s answer only shows on the order: confirmed, wants a change, asks to cancel, or no reply, so you know whom to call.": "لأ. الطلب بيروح المطبخ على طول. رد العميل بيظهر على الطلب بس: أكّد، عايز يعدّل، طالب إلغاء، أو مأكّدش، عشان تعرف تكلّم مين."
+    "No. The order goes to the kitchen at once. The guest’s answer only shows on the order: confirmed, wants a change, asks to cancel, or no reply, so you know whom to call.": "لأ. الطلب بيروح المطبخ على طول. رد العميل بيظهر على الطلب بس: أكّد، عايز يعدّل، طالب إلغاء، أو مأكّدش، عشان تعرف تكلّم مين.",
+    "Every restaurant gets eghub.app/name the moment it signs up, with name.egmenu.app as a short alias.": "كل مطعم بياخد eghub.app/اسمك أول ما يسجّل، ومعاه اسمك.egmenu.app كرابط بديل قصير.",
+    "Order received, ready, on the way, booking confirmed, reward earned.": "الطلب وصل، جاهز، في الطريق، الحجز اتأكد، كسبت مكافأة.",
+    "Change the branch": "غيّر الفرع",
+    "Tea & herbs": "شاي وأعشاب",
+    "Juices": "عصاير",
+    "Cakes": "تورت وكيك",
+    "Cupcakes": "كب كيك",
+    "Croissants & pastries": "كرواسون ومعجنات",
+    "Cookies & petits fours": "كوكيز وبيتي فور",
+    "Donuts": "دونات",
+    "Ice cream": "آيس كريم",
+    "Chocolate": "شوكولاتة",
+    "Bread & bakery": "عيش ومخبوزات",
+    "Oriental sweets": "حلويات شرقية",
+    "Boxes & assortments": "بوكسات وتشكيلات",
+    "Shawarma & wraps": "شاورما ورابس",
+    "Rice dishes": "أطباق رز"
 }

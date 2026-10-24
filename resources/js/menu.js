@@ -737,6 +737,8 @@ if (dataEl) {
     const closeFirstSheet = () => root.classList.remove('choice-open', 'choice-reopen');
     const reducedMotionNow = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     let renderBranchPart = null;
+    // a known branch shows alone in the sheet; this opens the whole list (the branch chip, "change the branch")
+    let openBranchList = null;
     let branchDistances = null;
     // the branch picked in the sheet (or the one on screen) and the ways it offers
     const sheetBranch = () => {
@@ -821,7 +823,11 @@ if (dataEl) {
         });
         // the chips in the header reopen it; the branch chip brings the branch list into view
         $('[data-way-chip]')?.addEventListener('click', () => openFirstSheet(true));
-        $('[data-branch-open]')?.addEventListener('click', () => openFirstSheet(true, '[data-branch-sheet]'));
+        $('[data-branch-open]')?.addEventListener('click', () => {
+            // the branch chip is a wish to change the branch: the whole list, not the known one alone
+            openBranchList?.(false);
+            openFirstSheet(true, '[data-branch-sheet]');
+        });
     }
 
     // ---- delivery area: main area, then its street / sub-area; "detect my area" against drawn zones (map mode) ----
@@ -1562,8 +1568,27 @@ if (dataEl) {
         let mem = {};
         try { mem = JSON.parse(localStorage.getItem(branchMemKey) || '{}') || {}; } catch {}
         const lastVisit = mem.current && mem.current !== M.branch ? mem.current : (mem.previous ?? null);
+        // the branch is known when the guest chose it (a link, the cookie) or this browser was on it last time
+        const knownBranch = !!M.branchChosen || (mem.current != null && mem.current === M.branch);
         try { localStorage.setItem(branchMemKey, JSON.stringify({ current: M.branch, previous: lastVisit })); } catch {}
         let distances = null;
+        // the known branch alone with "change the branch"; once the guest opens the list it stays open
+        const changeBtn = $('[data-branch-change]', branchPart);
+        let listOpened = false;
+        const setCompact = (on) => {
+            branchPart.classList.toggle('is-compact', on);
+            changeBtn?.setAttribute('aria-expanded', on ? 'false' : 'true');
+        };
+        openBranchList = (focus) => {
+            listOpened = true;
+            if (!branchPart.classList.contains('is-compact')) return;
+            setCompact(false);
+            branchPart.classList.add('is-opening');
+            setTimeout(() => branchPart.classList.remove('is-opening'), 300);
+            if (focus) ($('[data-branch-search]', branchPart) || $('[data-branch-list] [aria-checked="true"]', branchPart))?.focus();
+        };
+        changeBtn?.addEventListener('click', () => openBranchList(true));
+        setCompact(knownBranch);
         const nearBtn = $('[data-branch-near]', branchPart);
         const note = $('[data-branch-note]', branchPart);
         const tag = (text, strong) => `<span class="rounded-full px-2 py-0.5 text-[11px] font-extrabold ${strong ? 'm-primary' : 'm-surface-2 m-muted'}">${esc(text)}</span>`;
@@ -1619,6 +1644,9 @@ if (dataEl) {
                 if (!silent || (!M.branchChosen && !pickedBranch)) {
                     const near = [...B].filter((b) => distances[b.id] != null).sort((a, b) => distances[a.id] - distances[b.id])[0];
                     if (near) pickedBranch = near.slug;
+                    // the location was already allowed: the nearest branch is known, it shows alone (until the
+                    // guest asks for the list)
+                    if (near && silent && !listOpened) setCompact(true);
                 }
                 renderBranchPart();
                 syncWayCards();

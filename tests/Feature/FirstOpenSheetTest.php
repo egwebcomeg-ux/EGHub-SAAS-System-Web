@@ -70,6 +70,36 @@ class FirstOpenSheetTest extends TenantTestCase
             ->assertSee('data-branch-near', false)->assertSee('data-branch-pick="nasr-city"', false);
     }
 
+    public function test_a_known_branch_shows_alone_with_a_change_control_and_a_first_visit_sees_the_list(): void
+    {
+        $a = $this->restaurant('chain', 'full');
+        $this->as($a, function () {
+            Branch::query()->first()->update(['name' => 'Maadi', 'lat' => 29.9602, 'lng' => 31.2569]);
+            foreach (['Zamalek', 'Heliopolis', 'Dokki', 'Nasr City', 'Shoubra'] as $name) {
+                Branch::query()->create(['name' => $name, 'slug' => Str::slug($name)]);
+            }
+        });
+
+        // a first visit: the whole list, its search and "nearest to me"; the change control says the list is open
+        $first = $this->get($this->subUrl('chain'))->assertOk()
+            ->assertSee('class="m-choice-branch m-choice-in"', false)->assertDontSee('m-choice-in is-compact', false)
+            ->assertSee('aria-controls="branch-list" aria-expanded="true"', false)->assertSee('id="branch-list"', false)
+            ->assertSee('data-branch-search', false)->assertSee('الأقرب ليا')
+            ->getContent();
+        $this->assertSame(6, substr_count($first, 'data-branch-row='));
+
+        // the branch remembered by the cookie: its row alone (CSS), checked, and "غيّر الفرع" opens the list
+        $known = $this->withCookie('branch_chain', 'dokki')->get($this->subUrl('chain'))->assertOk()
+            ->assertSee('class="m-choice-branch m-choice-in is-compact"', false)
+            ->assertSee('aria-controls="branch-list" aria-expanded="false"', false)->assertSee('غيّر الفرع')
+            ->getContent();
+        $this->assertMatchesRegularExpression('/class="m-branch-row is-on"[^>]*data-branch-pick="dokki"[^>]*role="radio" aria-checked="true"/', $known);
+        // the other rows stay in the radiogroup for the list (the menu script rebuilds them)
+        $this->assertSame(6, substr_count($known, 'data-branch-row='));
+        // a branch link counts as chosen too
+        $this->get($this->subUrl('chain', '?branch=zamalek'))->assertOk()->assertSee('m-choice-in is-compact', false);
+    }
+
     public function test_a_bare_logo_on_a_light_page_gets_the_light_intro(): void
     {
         $a = $this->restaurant('dukes');
