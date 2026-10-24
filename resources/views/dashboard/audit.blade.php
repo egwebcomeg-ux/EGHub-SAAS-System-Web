@@ -25,6 +25,11 @@
                     @if (isset($log->meta['from'], $log->meta['to']))<span dir="ltr" class="text-xs text-navy-500">({{ $log->meta['from'] }} → {{ $log->meta['to'] }})</span>@endif
                     @if (! empty($log->meta['reason']))<span class="text-xs text-navy-500">· {{ $log->meta['reason'] }}</span>@endif
                     @if (! empty($log->meta['cashier']))<span class="text-xs text-navy-500">· {{ __('Cashier: :name', ['name' => $log->meta['cashier']]) }}</span>@endif
+                    @if ($log->action === \App\Services\Customers\SignIn\SignInGuard::AUDIT_ACTION)
+                        @foreach ((array) $log->meta as $method => $counts)
+                            <span class="text-xs text-navy-500" data-sign-in-counts="{{ $method }}">{{ __('Signed in: :ok · wrong: :failed · blocked: :blocked', ['ok' => (int) ($counts['ok'] ?? 0), 'failed' => (int) ($counts['failed'] ?? 0), 'blocked' => (int) ($counts['blocked'] ?? 0)]) }}</span>
+                        @endforeach
+                    @endif
                 </td>
             </tr>
         @empty

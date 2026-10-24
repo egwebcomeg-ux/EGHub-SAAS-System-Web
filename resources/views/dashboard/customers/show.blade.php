@@ -28,6 +28,34 @@
                 @can('loyalty.stamp')<a href="{{ route('dash.loyalty.desk', ['q' => $customer->phone]) }}" class="btn-ghost mt-3 w-full">{{ __('Open at the counter') }}</a>@endcan
             </div>
         @endforeach
+        {{-- the guest's own page (orders, order again, addresses, points): the same key as the loyalty card link --}}
+        <div class="card space-y-3" data-account-link-card>
+            <div>
+                <h2 class="section-title">{{ __('Guest account link') }}</h2>
+                <p class="dash-help">{{ __('The guest opens it on any phone: orders, order again, addresses and points. Send it only to this guest’s own mobile.') }}</p>
+            </div>
+            <div class="flex gap-2">
+                <input class="field min-w-0 flex-1 text-sm" value="{{ $accountUrl }}" readonly dir="ltr" aria-label="{{ __('Guest account link') }}" data-account-link-field>
+                <button type="button" class="btn-ghost shrink-0" data-copy="{{ $accountUrl }}" data-copied="{{ __('Copied ✓') }}">{{ __('Copy') }}</button>
+            </div>
+            <a href="{{ $accountWhatsapp }}" target="_blank" rel="noopener noreferrer" class="btn-primary w-full" data-account-link-whatsapp>{{ __('Send on WhatsApp') }}</a>
+            <form method="post" action="{{ route('dash.customers.account-link', $customer) }}"
+                  onsubmit="return confirm(@js(__('Make a new link? The old account link stops working, and the loyalty card link and its QR change too.')))">
+                @csrf
+                <button class="btn-ghost w-full text-red-600" data-account-link-rotate>{{ __('New link') }}</button>
+            </form>
+            <p class="text-xs text-navy-500">{{ __('“New link” closes the old one on every phone. The loyalty card link changes too.') }}</p>
+        </div>
+        <script>
+            document.querySelectorAll('[data-account-link-card] [data-copy]').forEach((button) => button.addEventListener('click', async () => {
+                const label = button.textContent;
+                try { await navigator.clipboard.writeText(button.dataset.copy); } catch {
+                    document.querySelector('[data-account-link-field]')?.select(); try { document.execCommand('copy'); } catch {}
+                }
+                button.textContent = button.dataset.copied;
+                setTimeout(() => { button.textContent = label; }, 1800);
+            }));
+        </script>
         <form method="post" action="{{ route('dash.customers.update', $customer) }}" class="card space-y-3">
             @csrf
             <input class="field" name="name" value="{{ $customer->name }}" placeholder="{{ __('Name') }}" maxlength="100">

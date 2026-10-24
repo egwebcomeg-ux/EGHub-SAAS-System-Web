@@ -6,13 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Banner;
 use App\Models\Branch;
 use App\Models\Category;
-use App\Models\Customer;
 use App\Models\DeliveryZone;
 use App\Models\DiningTable;
 use App\Models\MenuItem;
 use App\Models\MenuVisit;
 use App\Models\Order;
 use App\Models\Season;
+use App\Services\Customers\GuestAccount;
 use App\Services\Entitlements;
 use App\Services\ItemVideo;
 use App\Services\Loyalty\LoyaltyService;
@@ -122,9 +122,9 @@ class MenuController extends Controller
         $loyalty = app(LoyaltyService::class)->program();
         $profile = new RestaurantProfile;
         // prepaid balance of the guest whose card this phone remembers (cookie set by their card link)
-        $cardCookie = $request->cookie('card_'.tenant()->getTenantKey());
-        $walletGuest = $canOrder && WalletService::enabled() && is_string($cardCookie)
-            ? Customer::query()->where('card_token', $cardCookie)->first() : null;
+        // the same guest is "حسابي" in the header, and their name and mobile fill the cart
+        $accountGuest = GuestAccount::fromRequest($request);
+        $walletGuest = $canOrder && WalletService::enabled() ? $accountGuest : null;
 
         $zonesDrawn = $online && collect($online['zones'])->contains(fn ($z) => $z['polygon'] !== null);
         $display = MenuLayouts::display($settings);
@@ -161,7 +161,10 @@ class MenuController extends Controller
             'profile' => $profile,
             'schemas' => [$profile->menuSchema($categories)],
             'loyalty' => $loyalty,
-            'cardToken' => $loyalty ? $request->cookie('card_'.tenant()->getTenantKey()) : null,
+            'cardToken' => $loyalty ? $accountGuest?->card_token : null,
+            // "حسابي" in the header: the remembered guest's page, else the sheet with the ways in (no table scanned)
+            'accountUrl' => $accountGuest ? GuestAccount::url($accountGuest) : null,
+            'accountEntry' => $accountGuest !== null || ($table === null && $online !== null),
             'feedback' => Entitlements::current()->allows('feedback'),
             'settings' => $settings,
             'categories' => $categories,
@@ -238,6 +241,8 @@ class MenuController extends Controller
                 'ways' => $ways,
                 'choice' => $choice,
                 'callUrl' => $calls ? route('menu.call') : null,
+                // the remembered guest fills the cart's name and mobile when this phone has none saved
+                'account' => $accountGuest ? ['name' => (string) $accountGuest->name, 'phone' => (string) $accountGuest->phone] : null,
                 'wallet' => $walletGuest && $walletGuest->credit_balance > 0
                     ? ['balance' => round((float) $walletGuest->credit_balance, 2), 'phone' => $walletGuest->phone] : null,
                 'online' => $online,

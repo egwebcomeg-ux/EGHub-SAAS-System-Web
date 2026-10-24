@@ -185,6 +185,17 @@
             @if ($showName && ($t = tr($settings['tagline'], $settings['tagline_en'])))<p class="truncate text-sm text-white/75" data-header-tagline>{{ $t }}</p>@endif
             <a href="{{ route('menu.about') }}" class="text-xs font-semibold text-white/80 underline underline-offset-2" data-about-link>{{ __('About the place') }}</a>
         </div>
+        @if ($accountEntry ?? false)
+            {{-- "حسابي": the remembered guest's page, or the sheet with the ways in --}}
+            @php
+                $accountIcon = '<svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
+            @endphp
+            @if ($accountUrl)
+                <a href="{{ $accountUrl }}" class="m-chip shrink-0" data-account-entry="remembered">{!! $accountIcon !!} {{ __('My account') }}</a>
+            @else
+                <button type="button" class="m-chip shrink-0" data-account-entry="sheet" data-account-open>{!! $accountIcon !!} {{ __('My account') }}</button>
+            @endif
+        @endif
         @include('menu.partials.lang-switch')
         @if (! $table && \App\Services\Reservations\ReservationService::enabled())
             <a href="{{ route('menu.reserve', $branches->count() > 1 ? ['branch' => $branch->id] : []) }}" class="m-primary inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-sm font-bold shadow" data-reserve-link>{{ __('Book a table') }}</a>
@@ -658,6 +669,20 @@
             <p class="hidden text-sm font-semibold text-emerald-700" data-call-done></p>
             <button value="cancel" class="m-muted text-sm">{{ __('Close') }}</button>
         </form>
+    </dialog>
+@endif
+
+@if (($accountEntry ?? false) && ! $accountUrl)
+    {{-- "حسابي" on a phone that does not know the guest: the account link, or mobile + a previous order number --}}
+    <dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/50 sm:m-auto sm:max-w-lg" data-account-sheet aria-labelledby="account-sheet-title">
+        <div class="m-surface max-h-[90dvh] overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl">
+            <div class="mb-1 flex items-center justify-between">
+                <h3 id="account-sheet-title" class="text-xl font-extrabold">{{ __('My account') }}</h3>
+                <button type="button" class="m-muted grid size-11 place-items-center text-2xl leading-none" data-account-close aria-label="{{ __('Close') }}">×</button>
+            </div>
+            <p class="mb-4 text-sm m-muted">{{ __('Your orders, order again in one tap, your addresses and your points, on any phone.') }}</p>
+            @include('menu.partials.account-sign-in', ['idSuffix' => 'sheet'])
+        </div>
     </dialog>
 @endif
 

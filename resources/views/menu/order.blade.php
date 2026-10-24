@@ -226,6 +226,8 @@
         @endunless
     </div>
 
+    @include('menu.partials.account-card', ['order' => $order])
+
     @if ($showContact)
         <div class="mt-4" data-contact>
             <p class="mb-2 text-center text-sm font-bold m-muted">{{ __('Need to reach the restaurant?') }}</p>

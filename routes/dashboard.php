@@ -298,6 +298,9 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         });
         Route::get('/customers/{customer}', [CustomersController::class, 'show'])->name('customers.show');
         Route::post('/customers/{customer}', [CustomersController::class, 'update'])->name('customers.update');
+        // "رابط جديد" of the guest's account (and card) link: every old link and remembered phone stops working
+        Route::post('/customers/{customer}/account-link', [CustomersController::class, 'rotateAccountLink'])
+            ->middleware('throttle:10,1')->name('customers.account-link');
     });
     Route::middleware(['feature:loyalty_stamps', 'permission:loyalty.manage'])->group(function () {
         Route::get('/loyalty/setup', [LoyaltyController::class, 'edit'])->name('loyalty.setup');

@@ -36,6 +36,8 @@ class PagerController extends Controller
             'rating' => Entitlements::current()->allows('feedback'),
             // an order placed from the guest's phone lands here: its full details stay one tap away
             'trackingUrl' => $pager instanceof Order ? route('menu.order.show', $pager->tracking_token) : null,
+            // "حسابك في المطعم" for an order placed from the guest's phone
+            'accountOrder' => $pager instanceof Order ? $pager : null,
         ]);
     }
 

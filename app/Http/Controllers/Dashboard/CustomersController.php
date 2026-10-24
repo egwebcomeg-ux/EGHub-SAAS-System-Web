@@ -5,8 +5,11 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Order;
+use App\Services\Audit;
+use App\Services\Customers\GuestAccount;
 use App\Services\Customers\Segments;
 use App\Services\Loyalty\Membership;
+use App\Services\Settings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -35,10 +38,26 @@ class CustomersController extends Controller
 
     public function show(Customer $customer): View
     {
+        $accountUrl = GuestAccount::publicUrl($customer);
+        $brand = trim(tr(Settings::get('brand_name'), Settings::get('brand_name_en'))) ?: (string) tenant()->name;
+
         return view('dashboard.customers.show', [
             'customer' => $customer->load(['loyaltyCards.program', 'loyaltyCards.availableRewards']),
             'orders' => Order::query()->where('customer_id', $customer->id)->latest('id')->limit(20)->get(),
+            // "رابط حساب العميل": what the guest opens on any phone (orders, order again, addresses, points)
+            'accountUrl' => $accountUrl,
+            'accountWhatsapp' => 'https://wa.me/'.whatsapp_number($customer->phone).'?text='.rawurlencode(
+                __('Your account at :place (orders, order again, addresses, points): :url', ['place' => $brand, 'url' => $accountUrl])),
         ]);
+    }
+
+    /** A new account link: the old account and card links, and every phone that remembered them, stop working. */
+    public function rotateAccountLink(Customer $customer): RedirectResponse
+    {
+        GuestAccount::rotate($customer);
+        Audit::record('customer.account_link_rotated', (string) $customer->id);
+
+        return back()->with('ok', __('New link made. The old account and card links no longer open.'));
     }
 
     public function update(Request $request, Customer $customer): RedirectResponse

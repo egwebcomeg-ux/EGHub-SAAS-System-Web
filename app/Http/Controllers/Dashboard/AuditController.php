@@ -32,6 +32,8 @@ class AuditController extends Controller
         'stock.waste' => ['هالك مخزون', 'Stock waste'],
         'stock.count' => ['جرد مخزون', 'Stock count'],
         'customers.imported' => ['استيراد عملاء', 'Customers imported'],
+        'customer.account_link_rotated' => ['رابط جديد لحساب عميل (القديم اتقفل)', 'New guest account link (old one closed)'],
+        'account.sign_in' => ['دخول ضيوف على «حسابي» (عدد في الساعة)', 'Guest «My account» sign-ins (hourly counts)'],
         'login.google' => ['دخول بحساب جوجل', 'Signed in with Google'],
         'login.facebook' => ['دخول بحساب فيسبوك', 'Signed in with Facebook'],
         'corporate.created' => ['إنشاء تعاقد شركة', 'Corporate contract created'],

@@ -86,6 +86,10 @@
         <a href="{{ $trackingUrl }}" class="mt-3 block text-center text-sm font-semibold underline underline-offset-2 m-muted" data-tracking-link>{{ __('Order details and receipt') }}</a>
     @endif
 
+    @if (($accountOrder ?? null) !== null)
+        @include('menu.partials.account-card', ['order' => $accountOrder])
+    @endif
+
     {{-- while waiting: unlock the sound (phones only play it after a tap), optional notifications, the honest note --}}
     <section class="mt-4 space-y-3" data-waiting @if ($state['done']) hidden @endif>
         <button type="button" class="btn-primary min-h-14 w-full text-lg" data-test-sound>🔔 {{ __('Test the sound') }}</button>

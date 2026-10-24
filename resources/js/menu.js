@@ -1100,6 +1100,16 @@ if (dataEl) {
         if (!name && !phone) return;
         try { localStorage.setItem(guestKey, JSON.stringify({ name, phone })); } catch {}
     }
+    // signed out of "حسابي" on this phone (Menu\AccountController::signOut): the saved name, mobile and last order go too
+    try {
+        const here = new URL(location.href);
+        if (here.searchParams.has('signed_out')) {
+            localStorage.removeItem(guestKey);
+            localStorage.removeItem(`egmenu.last.${M.tenant}`);
+            here.searchParams.delete('signed_out');
+            history.replaceState(history.state, '', here.toString());
+        }
+    } catch {}
     try {
         const saved = JSON.parse(localStorage.getItem(guestKey) || 'null');
         const nameField = $('[data-customer-name]');
@@ -1107,6 +1117,12 @@ if (dataEl) {
         if (saved && nameField && phoneField && (saved.name || saved.phone)) {
             if (!nameField.value) nameField.value = String(saved.name || '').slice(0, 100);
             if (!phoneField.value) phoneField.value = String(saved.phone || '').slice(0, 20);
+            guestForget?.classList.remove('hidden');
+        }
+        // the guest this phone remembers ("حسابي"): their name and mobile when nothing else is saved
+        if (M.account && nameField && phoneField && !nameField.value && !phoneField.value) {
+            nameField.value = String(M.account.name || '').slice(0, 100);
+            phoneField.value = String(M.account.phone || '').slice(0, 20);
             guestForget?.classList.remove('hidden');
         }
     } catch {}
@@ -1355,6 +1371,14 @@ if (dataEl) {
         split.names[Number(field.dataset.splitName)] = field.value;
         splitSheet.addEventListener('change', renderSplit, { once: true });
     });
+
+    // ---- "حسابي" on a phone that does not know the guest: the sheet with the account link / mobile + order number ----
+    const accountSheet = $('[data-account-sheet]');
+    if (accountSheet) {
+        $('[data-account-open]')?.addEventListener('click', () => accountSheet.showModal());
+        $('[data-account-close]', accountSheet)?.addEventListener('click', () => accountSheet.close());
+        accountSheet.addEventListener('click', (e) => { if (e.target === accountSheet) accountSheet.close(); });
+    }
 
     // ---- intro splash: tap to skip; the CSS fades it out by itself ----
     const intro = $('[data-intro]');

@@ -7,6 +7,7 @@ use App\Models\Branch;
 use App\Models\Customer;
 use App\Models\DeliveryZone;
 use App\Models\Order;
+use App\Services\Customers\GuestAccount;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Orders\BusyMode;
 use App\Services\Orders\OrderException;
@@ -64,6 +65,9 @@ class OrderController extends Controller
         }
 
         $table = MenuController::currentTable($request);
+        // a mobile no guest of this restaurant had before: the order creates the guest, so this phone may keep them
+        $phone = normalize_phone((string) ($data['customer_phone'] ?? ''));
+        $newGuest = $phone !== null && ! Customer::query()->where('phone', $phone)->exists();
         try {
             $order = $table
                 ? $orders->place($data + ['source' => 'qr', 'type' => 'dine_in'], $table->branch, $table)
@@ -75,8 +79,19 @@ class OrderController extends Controller
         // a pickup ordered from the guest's own phone needs no QR: the page they land on is already their pager
         // (on the address the guest is using, like the tracking page)
         $url = Pager::enabled() && Pager::forOrder($order) ? route('menu.pager.show', $order->pagerKey()) : route('menu.order.show', $order->tracking_token);
+        $response = response()->json(['ok' => true, 'number' => $order->number, 'url' => $url]);
 
-        return response()->json(['ok' => true, 'number' => $order->number, 'url' => $url]);
+        if ($order->wasRecentlyCreated && $order->source === 'online') {
+            GuestAccount::rememberAddress($order);
+        }
+        // "حسابي" on this phone right away for a brand-new guest; an existing guest's account never opens just
+        // because someone typed their mobile (they use their link or mobile + a delivered order's number)
+        if ($newGuest && $order->wasRecentlyCreated && $order->source === 'online' && $order->customer_id
+            && GuestAccount::fromRequest($request) === null && ($guest = Customer::query()->find($order->customer_id))) {
+            $response->withCookie(GuestAccount::rememberCookie(GuestAccount::token($guest)));
+        }
+
+        return $response;
     }
 
     /**

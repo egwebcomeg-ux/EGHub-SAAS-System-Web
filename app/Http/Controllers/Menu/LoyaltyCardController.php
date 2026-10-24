@@ -56,6 +56,11 @@ class LoyaltyCardController extends Controller
             && $request->cookie($this->cookie()) !== $existing->card_token) {
             return back()->withInput()->withErrors(['phone' => __('This number already has a card. Open it from the QR on your receipt, or ask the cashier.')]);
         }
+        // The card link is also the guest's account key (/me/{token}: orders, addresses): a mobile that already
+        // ordered here opens it from its own link or with the mobile + a delivered order's number, never by typing it.
+        if ($existing && $existing->orders()->exists() && $request->cookie($this->cookie()) !== $existing->card_token) {
+            return back()->withInput()->withErrors(['phone' => __('This number already has an account here. Open «My account» on the menu with your mobile and a previous order number.')]);
+        }
         $card = $loyalty->enroll($phone, $data['name'] ?? '');
         if ($request->boolean('consent')) {
             $card->customer->update(['marketing_opt_in' => true]);

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Menu\AccountController;
 use App\Http\Controllers\Menu\BoardController;
 use App\Http\Controllers\Menu\BrandAssetController;
 use App\Http\Controllers\Menu\CardAppController;
@@ -69,6 +70,19 @@ Route::prefix('/card/{token}')->where(['token' => '[a-f0-9]{24}'])->name('card.'
     Route::get('/image.svg', [CardAppController::class, 'image'])->middleware('throttle:10,1')->name('image');
     Route::get('/wallet/google', [CardAppController::class, 'googleWallet'])->middleware('throttle:10,1')->name('wallet.google');
     Route::get('/wallet/apple', [CardAppController::class, 'appleWallet'])->middleware('throttle:10,1')->name('wallet.apple');
+});
+
+// "حسابي": the guest's account (orders, order again, addresses, points, balance) at /me/{card token}. A new phone gets
+// in with the link or with the mobile + a previous order number (App\Services\Customers\SignIn: throttled per IP and
+// per mobile, one answer for every failure); a WhatsApp code would be one more action here.
+Route::get('/me', [AccountController::class, 'signIn'])->middleware('throttle:30,1')->name('account.sign-in');
+Route::get('/me/open', [AccountController::class, 'open'])->middleware('throttle:10,1')->name('account.open');
+Route::post('/me/verify/order', [AccountController::class, 'verifyByOrder'])->middleware('throttle:10,1')->name('account.verify.order');
+Route::prefix('/me/{token}')->where(['token' => '[a-f0-9]{24}'])->group(function () {
+    Route::get('/', [AccountController::class, 'show'])->middleware('throttle:30,1')->name('account');
+    Route::post('/sign-out', [AccountController::class, 'signOut'])->middleware('throttle:10,1')->name('account.sign-out');
+    Route::post('/addresses/{key}/delete', [AccountController::class, 'deleteAddress'])->where('key', '[a-f0-9]{16}')
+        ->middleware('throttle:10,1')->name('account.address.delete');
 });
 
 // Gift cards (wallet): the printed card's QR; adds the amount to the wallet of the mobile entered, once
