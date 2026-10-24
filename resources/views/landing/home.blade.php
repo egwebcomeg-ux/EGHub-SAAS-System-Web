@@ -75,29 +75,20 @@
 
 {{-- ============ LOGOS: places EgWeb put in the strip with the owner's consent (App\Services\Seo\SiteShowcase, at least MIN_LOGOS) ============ --}}
 @if ($showcaseLogos)
-    @php
-        // one copy of the loop must be wider than the strip (8 boxes cover 1280px), so a short list is repeated in it;
-        // the repeats and the second copy are hidden from screen readers and the keyboard
-        $showcaseRounds = (int) ceil(8 / count($showcaseLogos));
-    @endphp
     <section data-site-showcase class="pt-14" aria-labelledby="showcase-title">
         <h2 id="showcase-title" class="hm-kicker hm-kicker--quiet justify-center px-4 text-center">{{ __('Restaurants and cafes running on EgHub') }}</h2>
-        <div class="lp-marquee mx-auto mt-6 max-w-7xl" style="--lp-marquee-duration: {{ count($showcaseLogos) * $showcaseRounds * 4 }}s">
-            <div class="lp-marquee-track">
-                @foreach ([false, true] as $copy)
-                    <ul class="lp-marquee-list" @if ($copy) aria-hidden="true" data-showcase-copy @endif>
-                        @foreach (array_merge(...array_fill(0, $showcaseRounds, $showcaseLogos)) as $place)
-                            @php $repeat = $copy || $loop->index >= count($showcaseLogos); @endphp
-                            <li class="lp-marquee-item" @if ($repeat && ! $copy) aria-hidden="true" data-showcase-repeat @endif>
-                                <a href="{{ $place['url'] }}" target="_blank" rel="noopener" class="lp-logo-box" @if ($repeat) tabindex="-1" @endif>
-                                    <img src="{{ $place['logo'] }}" alt="{{ tr($place['name'], $place['name_en']) }}" width="160" height="64" loading="lazy" decoding="async">
-                                </a>
-                            </li>
-                        @endforeach
-                    </ul>
-                @endforeach
-            </div>
-        </div>
+        @include('landing.partials.logo-marquee', ['marker' => 'showcase', 'logos' => array_map(fn ($place) => [
+            'name' => tr($place['name'], $place['name_en']), 'logo' => $place['logo'], 'url' => $place['url'],
+        ], $showcaseLogos)])
+    </section>
+@endif
+
+{{-- ============ LOGOS: EgWeb's own clients (EgHub is an EgWeb product), never claimed as EgHub users (App\Services\Seo\EgwebClients) ============ --}}
+@if ($egwebClients)
+    <section data-egweb-clients @class(['pt-10' => $showcaseLogos, 'pt-14' => ! $showcaseLogos]) aria-labelledby="egweb-clients-title">
+        <h2 id="egweb-clients-title" class="hm-kicker hm-kicker--quiet justify-center px-4 text-center">{{ __('Restaurants and cafés that trust EgWeb') }}</h2>
+        <p class="mt-1 px-4 text-center text-sm text-navy-500">{{ __('EgHub is a product of EgWeb, the company they work with.') }}</p>
+        @include('landing.partials.logo-marquee', ['marker' => 'clients', 'logos' => $egwebClients, 'rel' => 'noopener nofollow'])
     </section>
 @endif
 

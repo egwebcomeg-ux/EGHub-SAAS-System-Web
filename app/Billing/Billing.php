@@ -89,6 +89,9 @@ final class Billing
     /** Open invoice for a plan/cycle; an identical open one is reused, other open plan invoices are voided. */
     public function invoiceForPlan(Tenant $tenant, Plan $plan, int $months): Invoice
     {
+        if ($plan->isArchived()) {
+            throw new \DomainException('The '.$plan->code.' plan is archived and no longer sold.');
+        }
         if ($plan->isContactSales()) {
             // Enterprise is agreed with sales and set by EgWeb from the super admin, never invoiced from the dashboard
             throw new \DomainException('The '.$plan->code.' plan is sold through sales only.');

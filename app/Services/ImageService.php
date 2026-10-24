@@ -32,6 +32,7 @@ final class ImageService
         'testimonial' => ['testimonials', 400, 400, false], // owner photos on the marketing site (no tenant)
         'platform_logo' => ['brand', 900, 300, false, true], // the platform logo, admin › branding (no tenant)
         'favicon' => ['brand', 256, 256, false, true],       // the platform favicon (no tenant)
+        'client_logo' => ['clients', 480, 160, false, true], // EgWeb client logos on the home page (App\Services\Seo\EgwebClients)
     ];
 
     /** @return string path on the public disk, e.g. tenants/my-cafe/items/uuid.webp */

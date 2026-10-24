@@ -159,7 +159,7 @@ final class SiteModules
     /** Public plans, active add-ons and the entitlement matrix, as the landing pages need them. */
     public static function pricing(): array
     {
-        $plans = Plan::query()->where('is_public', true)->with('features')->orderBy('sort_order')->get();
+        $plans = Plan::query()->offered()->where('is_public', true)->with('features')->orderBy('sort_order')->get();
 
         return [
             'plans' => $plans,

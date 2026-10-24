@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\BlogController;
 use App\Http\Controllers\Admin\BrandingController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DomainsController;
+use App\Http\Controllers\Admin\EgwebClientsController;
 use App\Http\Controllers\Admin\InvoicesController;
 use App\Http\Controllers\Admin\PasswordResetController;
 use App\Http\Controllers\Admin\PlansController;
@@ -78,6 +79,8 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         Route::post('/addons/{addon}/toggle', [PlansController::class, 'toggleAddon'])->whereNumber('addon')->name('addons.toggle');
         Route::get('/plans/{plan}', [PlansController::class, 'edit'])->name('plans.edit');
         Route::post('/plans/{plan}', [PlansController::class, 'update'])->name('plans.update');
+        Route::post('/plans/{plan}/archive', [PlansController::class, 'archive'])->name('plans.archive');
+        Route::post('/plans/{plan}/unarchive', [PlansController::class, 'unarchive'])->name('plans.unarchive');
     });
 
     Route::middleware('admin.access:settings.manage')->group(function () {
@@ -87,6 +90,11 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         Route::get('/branding', [BrandingController::class, 'edit'])->name('branding');
         Route::post('/branding', [BrandingController::class, 'update'])->name('branding.update');
         Route::post('/branding/reset', [BrandingController::class, 'reset'])->name('branding.reset');
+        // logos of EgWeb's clients on the home page (App\Services\Seo\EgwebClients)
+        Route::post('/branding/clients', [EgwebClientsController::class, 'store'])->name('clients.store');
+        Route::post('/branding/clients/{key}', [EgwebClientsController::class, 'update'])->where('key', '[A-Za-z0-9-]+')->name('clients.update');
+        Route::post('/branding/clients/{key}/move', [EgwebClientsController::class, 'move'])->where('key', '[A-Za-z0-9-]+')->name('clients.move');
+        Route::post('/branding/clients/{key}/delete', [EgwebClientsController::class, 'destroy'])->where('key', '[A-Za-z0-9-]+')->name('clients.delete');
     });
 
     Route::middleware('admin.access:services.manage')->group(function () {

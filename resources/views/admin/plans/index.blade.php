@@ -7,19 +7,27 @@
 @php
     $featureTotal = count(\App\Models\Plan::FEATURES);
 @endphp
+@if ($archivedCount > 0)
+    <div class="mb-3 flex justify-end">
+        <a href="{{ route('admin.plans', $showArchived ? [] : ['archived' => 1]) }}" class="btn-ghost text-sm" data-archived-toggle>
+            {{ $showArchived ? __('Hide archived plans') : __('Show archived (:count)', ['count' => $archivedCount]) }}
+        </a>
+    </div>
+@endif
 <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5" data-plan-cards>
     @foreach ($plans as $p)
         @php
             $rights = $matrix[$p->id];
             $on = count(array_filter($rights['features']));
         @endphp
-        <article @class(['card flex flex-col gap-3 p-4', 'ring-2 ring-brand-600' => $p->is_featured]) data-plan="{{ $p->code }}">
+        <article @class(['card flex flex-col gap-3 p-4', 'ring-2 ring-brand-600' => $p->is_featured, 'opacity-75' => $p->isArchived()]) data-plan="{{ $p->code }}">
             <div class="flex items-start justify-between gap-2">
                 <div class="min-w-0">
                     <h2 class="truncate text-lg font-black">{{ $p->displayName() }}</h2>
                     <div class="flex flex-wrap gap-1">
                         @if ($p->is_featured)<span class="badge bg-brand-100 text-brand-700">{{ __('Most popular') }}</span>@endif
-                        @unless ($p->is_public)<span class="badge bg-navy-100 text-navy-600">{{ __('Hidden from pricing') }}</span>@endunless
+                        @if ($p->isArchived())<span class="badge bg-red-100 text-red-700" data-plan-archived>{{ __('Archived') }}</span>
+                        @elseif (! $p->is_public)<span class="badge bg-navy-100 text-navy-600">{{ __('Hidden from pricing') }}</span>@endif
                         @if ($p->contact_sales)<span class="badge bg-amber-100 text-amber-800" data-plan-contact>{{ __('Contact sales') }}</span>@endif
                     </div>
                 </div>
@@ -46,7 +54,18 @@
                 <div class="mb-1 flex justify-between text-xs text-navy-500"><span>{{ __('Features') }}</span><span dir="ltr">{{ $on }} / {{ $featureTotal }}</span></div>
                 <div class="flex h-1.5 overflow-hidden rounded-full bg-navy-100"><div class="h-full rounded-full bg-brand-600" style="width: {{ round($on / max(1, $featureTotal) * 100) }}%"></div></div>
             </div>
-            <a href="{{ route('admin.plans.edit', $p) }}" class="btn-ghost mt-auto w-full">{{ __('Edit plan') }}</a>
+            <div class="mt-auto flex gap-2">
+                <a href="{{ route('admin.plans.edit', $p) }}" class="btn-ghost flex-1">{{ __('Edit plan') }}</a>
+                @if ($p->isArchived())
+                    <form method="post" action="{{ route('admin.plans.unarchive', $p) }}" onsubmit="return confirm(@js(__('Bring the :plan plan back to the admin plan lists?', ['plan' => $p->displayName()])))">
+                        @csrf<button class="btn-ghost" data-plan-unarchive>{{ __('Unarchive') }}</button>
+                    </form>
+                @elseif (! $p->isEssential())
+                    <form method="post" action="{{ route('admin.plans.archive', $p) }}" onsubmit="return confirm(@js(__('Archive the :plan plan? It will never be offered or assigned again. Restaurants still on it must be moved first.', ['plan' => $p->displayName()])))">
+                        @csrf<button class="btn-ghost text-red-700" data-plan-archive>{{ __('Archive') }}</button>
+                    </form>
+                @endif
+            </div>
         </article>
     @endforeach
 </div>

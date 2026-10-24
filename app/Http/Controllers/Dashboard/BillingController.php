@@ -28,8 +28,8 @@ class BillingController extends Controller
     public function index(Credits $credits, OnlinePayments $online): View
     {
         $subscription = tenant()->subscription()->with('plan')->first();
-        // the public line-up, plus an older plan the restaurant is still on so it can renew it
-        $plans = Plan::query()->where(fn ($q) => $q->where('is_public', true)->orWhere('id', $subscription?->plan_id))
+        // the public line-up, plus an older plan the restaurant is still on so it can renew it (never an archived one)
+        $plans = Plan::query()->offered()->where(fn ($q) => $q->where('is_public', true)->orWhere('id', $subscription?->plan_id))
             ->with('features')->orderBy('sort_order')->get();
         $myAddons = $subscription?->addons()->pluck('quantity', 'key')->all() ?? [];
 
@@ -89,8 +89,8 @@ class BillingController extends Controller
     {
         $current = tenant()->subscription()->value('plan_id');
         $data = $request->validate([
-            // a public plan, or the older plan the restaurant is on (renewal); never a contact-sales plan
-            'plan_id' => ['required', Rule::exists('plans', 'id')->where('contact_sales', false)
+            // a public plan, or the older plan the restaurant is on (renewal); never a contact-sales or archived plan
+            'plan_id' => ['required', Rule::exists('plans', 'id')->where('contact_sales', false)->whereNull('archived_at')
                 ->where(fn ($q) => $q->where('is_public', true)->orWhere('id', $current))],
             'months' => ['required', Rule::in(Plan::CYCLES)],
         ]);

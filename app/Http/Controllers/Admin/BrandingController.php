@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\ImageService;
+use App\Services\Seo\EgwebClients;
 use App\Support\PlatformBrand;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,6 +29,7 @@ class BrandingController extends Controller
             'brand' => PlatformBrand::all(),
             'defaults' => PlatformBrand::DEFAULTS,
             'contrast' => PlatformBrand::contrast(PlatformBrand::get('brand_color_primary'), '#ffffff'),
+            'clients' => EgwebClients::all(),
         ]);
     }
 

@@ -2,11 +2,16 @@
 
 namespace App\Models;
 
+use App\Billing\Lifecycle;
 use App\Services\Assistant;
+use App\Services\Entitlements;
+use App\Services\TenantProvisioner;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 /**
  * A subscription plan. Prices, features and limits are rows (plans / plan_features) edited from the super admin;
@@ -111,6 +116,7 @@ class Plan extends Model
             'is_public' => 'boolean',
             'is_featured' => 'boolean',
             'contact_sales' => 'boolean',
+            'archived_at' => 'datetime',
         ];
     }
 
@@ -135,7 +141,62 @@ class Plan extends Model
     /** Whether a restaurant may pick this plan and get an invoice for it from its own dashboard. */
     public function isSelfServe(): bool
     {
-        return ! $this->isContactSales() && $this->is_public;
+        return ! $this->isContactSales() && $this->is_public && ! $this->isArchived();
+    }
+
+    /**
+     * Plans that can still be offered or assigned: not archived. Every place that offers a plan (pricing, signup,
+     * billing, the module picker, the admin plan pickers) goes through this; App\Models\Subscription refuses to be
+     * moved onto an archived plan.
+     */
+    public function scopeOffered(Builder $query): void
+    {
+        $query->whereNull('archived_at');
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
+    }
+
+    /** The plans the platform falls back to (free after an unpaid period, the trial plan): never archived. */
+    public function isEssential(): bool
+    {
+        return in_array($this->code, [Lifecycle::FREE_PLAN, Entitlements::FALLBACK_PLAN, TenantProvisioner::TRIAL_PLAN], true);
+    }
+
+    /**
+     * What stops this plan from being archived: restaurants whose subscription (trial, active, past due) is on it,
+     * and open invoices for it (paying one would put a restaurant on the plan). Archiving is refused while any is
+     * left, so nobody's plan or price changes under them; they renew, switch or are moved by hand first.
+     *
+     * @return array{tenants: Collection<int, string>, open_invoices: int}
+     */
+    public function archiveBlockers(): array
+    {
+        return [
+            'tenants' => Subscription::query()->where('plan_id', $this->id)->where('status', '!=', 'canceled')->orderBy('tenant_id')->pluck('tenant_id'),
+            'open_invoices' => Invoice::query()->where('plan_id', $this->id)->where('status', 'open')->count(),
+        ];
+    }
+
+    public function canBeArchived(): bool
+    {
+        $blockers = $this->archiveBlockers();
+
+        return ! $this->isEssential() && $blockers['tenants']->isEmpty() && $blockers['open_invoices'] === 0;
+    }
+
+    /** Retires the plan: off the pricing page and out of every plan picker. Call canBeArchived() first. */
+    public function archive(): void
+    {
+        $this->update(['archived_at' => now(), 'is_public' => false, 'is_featured' => false]);
+    }
+
+    /** Back in the admin plan pickers; it stays off the pricing page until the admin shows it there again. */
+    public function unarchive(): void
+    {
+        $this->update(['archived_at' => null]);
     }
 
     /**

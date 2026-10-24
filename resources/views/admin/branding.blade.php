@@ -118,6 +118,66 @@
         <button class="btn-primary">{{ __('Save branding') }}</button>
     </div>
 </form>
+
+{{-- EgWeb's clients on the home page (App\Services\Seo\EgwebClients): never shown as EgHub users --}}
+@php($shownClients = count(array_filter($clients, fn ($c) => $c['active'])))
+<section id="egweb-clients" class="card mt-6 scroll-mt-20" data-egweb-clients-admin>
+    <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="min-w-0">
+            <h2 class="section-title">{{ __('EgWeb client logos') }}</h2>
+            <p class="text-sm text-navy-500">{{ __('The “Restaurants and cafés that trust EgWeb” strip on the home page. It shows when at least :count logos are switched on, and never says they use EgHub.', ['count' => \App\Services\Seo\EgwebClients::MIN_LOGOS]) }}</p>
+        </div>
+        <span @class(['badge shrink-0', 'bg-brand-100 text-brand-700' => $shownClients >= \App\Services\Seo\EgwebClients::MIN_LOGOS, 'bg-navy-100 text-navy-600' => $shownClients < \App\Services\Seo\EgwebClients::MIN_LOGOS])>{{ __(':count shown', ['count' => $shownClients]) }}</span>
+    </div>
+
+    <ul class="mt-4 divide-y divide-navy-100 rounded-xl border border-navy-100">
+        @forelse ($clients as $client)
+            <li class="flex flex-wrap items-center gap-3 p-3" data-client-row="{{ $client['key'] }}">
+                <div class="grid h-14 w-28 shrink-0 place-items-center rounded-lg border border-navy-100 bg-white p-2">
+                    <img src="{{ \App\Services\Seo\EgwebClients::src($client['path']) }}" alt="" width="{{ $client['width'] }}" height="{{ $client['height'] }}" loading="lazy" class="h-auto max-h-10 w-auto max-w-full object-contain">
+                </div>
+                <form method="post" action="{{ route('admin.clients.update', $client['key']) }}" enctype="multipart/form-data" class="flex min-w-0 flex-1 flex-wrap items-center gap-2 max-sm:basis-full">
+                    @csrf
+                    <input class="field min-w-0 flex-1 max-sm:basis-full sm:min-w-36" name="name" value="{{ $client['name'] }}" required maxlength="80" aria-label="{{ __('Name') }}">
+                    <input class="field min-w-0 flex-1 max-sm:basis-full sm:min-w-44" name="url" type="url" value="{{ $client['url'] }}" maxlength="255" dir="ltr" placeholder="https://" aria-label="{{ __('Link (optional)') }}">
+                    <input type="file" name="image" accept="image/png,image/webp,image/jpeg,image/svg+xml,.svg" class="block w-full text-xs sm:w-44 file:me-2 file:rounded-lg file:border-0 file:bg-navy-100 file:px-2 file:py-1.5 file:text-xs file:font-semibold" aria-label="{{ __('Replace the image') }}">
+                    <label class="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" name="active" value="1" @checked($client['active']) class="size-5 accent-brand-600"> {{ __('Shown') }}</label>
+                    <button class="btn-ghost">{{ __('Save') }}</button>
+                </form>
+                <div class="flex shrink-0 gap-1">
+                    @foreach (['up' => ['M12 19V5m-6 6 6-6 6 6', __('Move up')], 'down' => ['M12 5v14m6-6-6 6-6-6', __('Move down')]] as $direction => [$icon, $label])
+                        <form method="post" action="{{ route('admin.clients.move', $client['key']) }}">
+                            @csrf<input type="hidden" name="direction" value="{{ $direction }}">
+                            <button class="btn-ghost px-3" title="{{ $label }}" aria-label="{{ $label }}" @disabled(($direction === 'up' && $loop->parent->first) || ($direction === 'down' && $loop->parent->last))>
+                                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ $icon }}"/></svg>
+                            </button>
+                        </form>
+                    @endforeach
+                    <form method="post" action="{{ route('admin.clients.delete', $client['key']) }}" onsubmit="return confirm(@js(__('Remove this logo from the list?')))">
+                        @csrf<button class="btn-ghost px-3 text-red-700" title="{{ __('Remove') }}" aria-label="{{ __('Remove') }}">
+                            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+                        </button>
+                    </form>
+                </div>
+            </li>
+        @empty
+            <li class="p-4 text-sm text-navy-500">{{ __('No logos yet.') }}</li>
+        @endforelse
+    </ul>
+
+    <form method="post" action="{{ route('admin.clients.store') }}" enctype="multipart/form-data" class="mt-4 rounded-xl border border-dashed border-navy-200 p-3" data-client-add>
+        @csrf
+        <h3 class="mb-2 text-sm font-bold">{{ __('Add a logo') }}</h3>
+        <div class="flex flex-wrap items-center gap-2">
+            <input class="field min-w-0 flex-1 max-sm:basis-full sm:min-w-36" name="name" required maxlength="80" placeholder="{{ __('Name') }}" aria-label="{{ __('Name') }}">
+            <input class="field min-w-0 flex-1 max-sm:basis-full sm:min-w-44" name="url" type="url" maxlength="255" dir="ltr" placeholder="https:// ({{ __('optional') }})" aria-label="{{ __('Link (optional)') }}">
+            <input type="file" name="image" required accept="image/png,image/webp,image/jpeg,image/svg+xml,.svg" class="block w-full text-xs sm:w-52 file:me-2 file:rounded-lg file:border-0 file:bg-navy-100 file:px-2 file:py-1.5 file:text-xs file:font-semibold" aria-label="{{ __('Logo image') }}">
+            <label class="flex min-h-10 items-center gap-2 text-sm"><input type="checkbox" name="active" value="1" checked class="size-5 accent-brand-600"> {{ __('Shown') }}</label>
+            <button class="btn-primary">{{ __('Add') }}</button>
+        </div>
+        <p class="mt-2 text-xs text-navy-500">{{ __('PNG, WebP or SVG with a transparent background, about 480 × 160. SVG files are cleaned of scripts and outside links.') }}</p>
+    </form>
+</section>
 @endsection
 
 @push('scripts')

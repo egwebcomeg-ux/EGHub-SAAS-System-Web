@@ -6,6 +6,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Validation\ValidationException;
 
 class Subscription extends Model
 {
@@ -17,6 +18,19 @@ class Subscription extends Model
     ];
 
     protected $guarded = ['id'];
+
+    /**
+     * No subscription is ever moved onto an archived plan (admin plan change, a new restaurant, a paid invoice):
+     * the change is refused with a validation error. One already on it before archiving is left alone.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Subscription $subscription) {
+            if ($subscription->isDirty('plan_id') && Plan::query()->whereKey($subscription->plan_id)->whereNotNull('archived_at')->exists()) {
+                throw ValidationException::withMessages(['plan_id' => __('This plan is archived and can no longer be assigned.')]);
+            }
+        });
+    }
 
     protected function casts(): array
     {

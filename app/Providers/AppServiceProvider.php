@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Billing\Gateways\KashierGateway;
 use App\Billing\Gateways\PaymentGateway;
+use App\Models\Plan;
 use App\Services\Notify\ReservationNotifier;
 use App\Services\Notify\WhatsAppReservationNotifier;
 use App\Services\WhatsApp\Drivers\LogDriver;
@@ -12,7 +13,9 @@ use App\Services\WhatsApp\Drivers\WebhookDriver;
 use App\Services\WhatsApp\WhatsAppGateway;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -65,5 +68,16 @@ class AppServiceProvider extends ServiceProvider
             Limit::perDay(80)->by('asd:'.$r->ip()),
             Limit::perDay(3000)->by('as:all'),
         ]);
+
+        // The admin plan pickers (new restaurant, a restaurant's plan change) never offer an archived plan; the
+        // restaurant's own current plan stays listed so saving its page does not switch it by accident.
+        // App\Models\Subscription refuses the move onto an archived plan anyway.
+        View::composer(['admin.tenants.create', 'admin.tenants.show'], function ($view) {
+            $plans = $view->getData()['plans'] ?? null;
+            if ($plans instanceof Collection) {
+                $current = $view->getData()['tenant']->subscription?->plan_id ?? null;
+                $view->with('plans', $plans->reject(fn (Plan $p) => $p->isArchived() && $p->id !== $current)->values());
+            }
+        });
     }
 }

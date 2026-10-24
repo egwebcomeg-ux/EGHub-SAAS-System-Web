@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Platform;
 use App\Http\Controllers\Controller;
 use App\Models\PlatformSetting;
 use App\Models\Testimonial;
+use App\Services\Seo\EgwebClients;
 use App\Services\Seo\SiteShowcase;
 use App\Services\Seo\SocialProof;
 use App\Support\SiteModules;
@@ -17,6 +18,7 @@ class LandingController extends Controller
     {
         return view('landing.home', SiteModules::pricing() + [
             'showcaseLogos' => SiteShowcase::logos(),
+            'egwebClients' => EgwebClients::strip(),
             'proofPlaces' => SocialProof::places(),
             'proofCounters' => SocialProof::counters(),
             'testimonials' => Testimonial::query()->live()->with('tenant')->limit(Testimonial::HOME_LIMIT)->get(),

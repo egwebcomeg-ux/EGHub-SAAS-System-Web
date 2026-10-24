@@ -232,7 +232,7 @@ body.lp-locked { overflow: hidden; }
 @keyframes lp-marquee-rtl { to { transform: translate3d(50%, 0, 0); } }
 @media (prefers-reduced-motion: reduce) {
     .lp-marquee { -webkit-mask-image: none; mask-image: none; padding-inline: 8px; }
-    .lp-marquee-track, [dir] .lp-marquee-track { animation: none; width: auto; transform: none; }
+    .lp-marquee-track, [dir] .lp-marquee-track { animation: none; width: auto; transform: none; justify-content: center; }
     .lp-marquee-list { flex-wrap: wrap; flex-shrink: 1; justify-content: center; row-gap: 16px; }
     .lp-marquee-list[aria-hidden="true"], .lp-marquee-item[aria-hidden="true"] { display: none; }
 }

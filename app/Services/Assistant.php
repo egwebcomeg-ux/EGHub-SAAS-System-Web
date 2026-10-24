@@ -220,7 +220,7 @@ TXT;
     private static function plansText(): string
     {
         $out = ['PLANS AND PRICES (Egyptian pounds per month; 6 months and 12 months are discounted):'];
-        foreach (Plan::query()->with('features')->where('is_public', true)->orderBy('sort_order')->get() as $p) {
+        foreach (Plan::query()->offered()->with('features')->where('is_public', true)->orderBy('sort_order')->get() as $p) {
             $e = $p->entitlements();
             $price = match (true) {
                 $p->isContactSales() => 'no public price: agreed with the sales team on WhatsApp for the branches and screens the place needs; it cannot be bought from the dashboard',

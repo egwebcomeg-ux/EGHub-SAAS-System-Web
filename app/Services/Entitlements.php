@@ -154,7 +154,7 @@ final class Entitlements
     {
         $keys = explode('|', $feature);
         $has = fn (Plan $plan) => collect($keys)->contains(fn (string $k) => (bool) ($plan->entitlements()['features'][$k] ?? false));
-        $plans = Plan::query()->with('features')->orderBy('sort_order')->get();
+        $plans = Plan::query()->offered()->with('features')->orderBy('sort_order')->get();
         if ($plans->contains(fn (Plan $plan) => $plan->isSelfServe() && $has($plan))) {
             return null;
         }
