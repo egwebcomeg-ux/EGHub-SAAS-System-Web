@@ -5406,5 +5406,7 @@
     "Bring the :plan plan back to the admin plan lists?": "ترجّع باقة :plan لقوائم الباقات في الإدارة؟",
     "Unarchive": "إلغاء الأرشفة",
     "Archive the :plan plan? It will never be offered or assigned again. Restaurants still on it must be moved first.": "تأرشف باقة :plan؟ مش هتتعرض ولا حد هيتنقل عليها تاني. المطاعم اللي عليها لازم تتنقل الأول.",
-    "Archive": "أرشفة"
+    "Archive": "أرشفة",
+    "Meta pixel ID (the EgHub website)": "رقم بيكسل Meta (موقع EgHub)",
+    "Counts visits and WhatsApp taps on the website and each new sign-up, for the EgHub ads. Restaurant menus keep their own pixels.": "بيعدّ زيارات الموقع والضغط على واتساب وكل تسجيل جديد، عشان إعلانات EgHub. منيوهات المطاعم ليها البيكسل بتاعها."
 }

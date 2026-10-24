@@ -56,6 +56,10 @@
     <link rel="preload" as="image" href="{{ versioned_asset('img/site/orders-sm.webp') }}" media="(min-width: 1024px)">
 @endpush
 
+@push('scripts')
+    @include('partials.platform-pixel')
+@endpush
+
 @section('body')
 <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:start-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-white focus:px-3 focus:py-2">{{ __('Skip to content') }}</a>
 

@@ -11,7 +11,7 @@
         <h2>Guests of a restaurant</h2>
         <ul><li>A guest who only browses the menu is not asked for any personal data.</li><li>When a guest orders, joins a loyalty card or leaves a rating, the name and mobile number they enter are kept for that restaurant only.</li><li>This data belongs to the restaurant, is visible only to its staff, and is never shared between restaurants or sold.</li></ul>
         <h2>Cookies</h2>
-        <p>We use the cookies needed to keep you signed in, remember your language and keep a guest’s cart. We do not use advertising cookies.</p>
+        <p>We use the cookies needed to keep you signed in, remember your language and keep a guest’s cart. On the EgHub website itself (not on restaurant menus) we use the Meta pixel to measure our own ads: it counts visits, taps on WhatsApp links and new sign-ups. A restaurant may add its own ad pixels (Meta, Google, TikTok) to its menu; they are set up and controlled by that restaurant.</p>
         <h2>Services we rely on</h2>
         <p>Hosting, email delivery and, when a restaurant connects them, payment or AI providers. They receive only what is needed for their part of the service.</p>
         <h2>Keeping and deleting data</h2>
@@ -25,7 +25,7 @@
         <h2>عملاء المطعم</h2>
         <ul><li>العميل اللي بيتفرّج على المنيو بس مش بيتطلب منه أي بيانات شخصية.</li><li>لما العميل يطلب أو يشترك في كارت الولاء أو يقيّم، الاسم والموبايل اللي بيكتبهم بيتحفظوا للمطعم ده بس.</li><li>البيانات دي ملك المطعم، ومحدش بيشوفها غير موظفينه، وعمرها ما بتتشارك بين المطاعم أو بتتباع.</li></ul>
         <h2>الكوكيز</h2>
-        <p>بنستخدم الكوكيز اللازمة بس: إنك تفضل مسجل دخول، وتفتكر لغتك، وتحفظ سلة العميل. ومش بنستخدم كوكيز إعلانات.</p>
+        <p>بنستخدم الكوكيز اللازمة: إنك تفضل مسجل دخول، وتفتكر لغتك، وتحفظ سلة العميل. وعلى موقع EgHub نفسه (مش على منيوهات المطاعم) بنستخدم بيكسل Meta عشان نقيس إعلاناتنا: بيعدّ الزيارات، والضغط على لينكات واتساب، والتسجيلات الجديدة. وأي مطعم ممكن يضيف بيكسلات الإعلانات بتاعته (Meta أو Google أو TikTok) على المنيو بتاعه، وده بيظبطه المطعم نفسه وتحت مسؤوليته.</p>
         <h2>خدمات بنعتمد عليها</h2>
         <p>الاستضافة وإرسال الإيميلات، ولما المطعم يربطها بنفسه: بوابات الدفع أو مزودي الذكاء الاصطناعي. كل خدمة بتاخد اللي محتاجاه لدورها بس.</p>
         <h2>الاحتفاظ بالبيانات ومسحها</h2>

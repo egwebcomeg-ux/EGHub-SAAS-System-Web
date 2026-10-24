@@ -70,7 +70,7 @@ class AuthController extends Controller
 
         // first stop: "what will you use?" (the signup owner may always pick; skippable), then confirming the mobile
         // on WhatsApp when the platform has a number (skippable, never a gate), then the home page
-        return redirect()->route('dash.modules', ['welcome' => 1])->with('ok', __('Welcome to EgHub! Your 14-day free trial has started.'));
+        return redirect()->route('dash.modules', ['welcome' => 1])->with('platform_signup', true)->with('ok', __('Welcome to EgHub! Your 14-day free trial has started.'));
     }
 
     /** Leaving a support session opened from the admin ends it (recorded) and goes back to the admin page. */

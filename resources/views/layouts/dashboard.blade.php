@@ -14,6 +14,13 @@
     $nav = array_merge(...array_map(fn ($g) => $g['apps'], $groups));
 @endphp
 
+{{-- the first page after a self sign-up tells EgHub's ad pixel about the new restaurant (once: a flash) --}}
+@if (session('platform_signup'))
+    @push('scripts')
+        @include('partials.platform-pixel', ['event' => 'CompleteRegistration'])
+    @endpush
+@endif
+
 @section('body')
 @php
     $navLink = 'relative flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold transition lg:min-h-10';

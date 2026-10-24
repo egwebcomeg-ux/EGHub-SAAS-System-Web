@@ -30,6 +30,8 @@ class SettingsController extends Controller
         // company legal details shown in the site footer and the legal pages when filled
         'legal_entity', 'commercial_register', 'tax_id', 'legal_address',
         'social_facebook', 'social_instagram', 'social_tiktok', 'social_youtube', 'social_linkedin', 'social_x',
+        // EgHub's own Meta pixel on the marketing site (resources/views/partials/platform-pixel.blade.php)
+        'platform_meta_pixel',
     ];
 
     public function edit(OnlinePayments $online): View
@@ -74,6 +76,7 @@ class SettingsController extends Controller
             'support_email' => 'nullable|email|max:120',
             'sales_whatsapp' => 'nullable|string|max:20',
             'contact_email' => 'nullable|email|max:120',
+            'platform_meta_pixel' => 'nullable|digits_between:10,20',
             'server_ip' => 'nullable|ip',
             'domain_cart_url' => 'nullable|url|max:300',
             'launch_offer_branch_ends' => 'nullable|date',

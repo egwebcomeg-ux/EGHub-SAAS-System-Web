@@ -114,6 +114,8 @@
             <div><label class="field-label">{{ $networkLabel }}</label><input class="field" name="social_{{ $network }}" type="url" value="{{ $s['social_' . $network] }}" dir="ltr" placeholder="https://"></div>
         @endforeach
         <p class="text-xs text-navy-500 sm:col-span-2">{{ __('EgHub’s own accounts. Each filled link shows as an icon in the site footer; empty fields are hidden.') }}</p>
+        <div><label class="field-label">{{ __('Meta pixel ID (the EgHub website)') }}</label><input class="field" name="platform_meta_pixel" inputmode="numeric" value="{{ $s['platform_meta_pixel'] }}" dir="ltr" placeholder="3037066589988797"></div>
+        <p class="self-end text-xs text-navy-500">{{ __('Counts visits and WhatsApp taps on the website and each new sign-up, for the EgHub ads. Restaurant menus keep their own pixels.') }}</p>
     </div>
 
     <div class="card space-y-3" id="whatsapp-verification">
