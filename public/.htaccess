@@ -8,6 +8,12 @@ RewriteCond %{HTTP_USER_AGENT} (bot|crawl|spider|slurp) [NC]
 RewriteRule ^ - [F,L]
 </IfModule>
 
+# LiteSpeed page cache (App\Services\PageCache, PAGE_CACHE=true in .env): look stored pages up before PHP runs.
+# PHP alone decides what is stored (X-LiteSpeed-Cache-Control: public on guest marketing and menu pages only).
+<IfModule LiteSpeed>
+    CacheLookup on
+</IfModule>
+
 # PHP limits for uploads (menu photos up to 10 MB, PDF menus, TV screen videos up to 80 MB): LiteSpeed reads php_value here, not .user.ini
 <IfModule LiteSpeed>
     php_value upload_max_filesize 90M

@@ -131,12 +131,47 @@ composer install --no-dev --optimize-autoloader
 # upload public/build from your machine if the frontend changed
 php artisan migrate --force
 php artisan optimize:clear
-php artisan optimize
+php artisan optimize              # also purges the LiteSpeed page cache (section 6a)
 php artisan up
 php artisan egmenu:doctor
 ```
 
 Never run `key:generate` or `migrate:fresh` here. Take a backup first for risky releases: `php artisan egmenu:backup`.
+
+## 6a. LiteSpeed page cache
+
+The marketing pages (home, features, pricing, blog, apps, QR generator, supported screens, legal pages, the directory)
+and the restaurants' public menu pages (menu, item, about, links) are stored by LiteSpeed for guests
+(`App\Services\PageCache`). PHP decides with response headers only; `public/.htaccess` turns the lookup on
+(`CacheLookup on`).
+
+Turn it on in `.env`, then `php artisan config:clear && php artisan optimize`:
+
+```
+PAGE_CACHE=true
+PAGE_CACHE_ORIGIN_IP=54.36.13.152   # purge calls go straight to the server, not through Cloudflare
+```
+
+- Ages: marketing pages 1 hour (never past the next scheduled blog article), menus 5 minutes (never past the next
+  greeting change, the end of busy mode or an item back from a timed sold-out).
+- Never stored: anything for a signed-in user, the dashboard and admin hosts, sign-up, services form, booking,
+  account, cards, orders, screens, any POST, any status but 200, addresses with other query parameters, and a menu
+  for a guest with a scanned table, a remembered account, branch or language.
+- Purges: every change of what a page shows purges that restaurant (or the marketing pages) from the request that
+  made it, and as signed calls to `/_lscache/purge` on each host after the response, after each queue job and at
+  the end of each command.
+- Every deploy: `php artisan optimize` purges everything by itself (the stored pages point at the old build files).
+  After uploading a new `public/build` without running `optimize`, purge by hand:
+
+```bash
+/opt/cpanel/ea-php84/root/usr/bin/php artisan egmenu:page-cache-purge                 # everything
+/opt/cpanel/ea-php84/root/usr/bin/php artisan egmenu:page-cache-purge --tenant=rosto   # one restaurant
+/opt/cpanel/ea-php84/root/usr/bin/php artisan egmenu:page-cache-purge --platform       # marketing pages
+```
+
+Check: `curl -sI https://eghub.app/pricing | grep -i x-litespeed` twice; the second answer says
+`x-litespeed-cache: hit`. Turn it off: `PAGE_CACHE=false`, `config:clear`, `optimize` (the purge runs while still on,
+so run `egmenu:page-cache-purge` before switching it off).
 
 ## 7. Rolling back
 

@@ -7,6 +7,7 @@ use App\Http\Controllers\Platform\BlogController;
 use App\Http\Controllers\Platform\DirectoryController;
 use App\Http\Controllers\Platform\FeaturesController;
 use App\Http\Controllers\Platform\LandingController;
+use App\Http\Controllers\Platform\PageCacheController;
 use App\Http\Controllers\Platform\QrToolController;
 use App\Http\Controllers\Platform\ScreenPlayerController;
 use App\Http\Controllers\Platform\SeoController;
@@ -35,6 +36,13 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 $domain = config('tenancy.central_domains')[0] ?? 'localhost';
 $slug = '[a-z0-9][a-z0-9-]{1,28}[a-z0-9]';
 
+// The page cache's endpoints on every host (App\Http\Controllers\Platform\PageCacheController): registered first,
+// so no host group, restaurant slug or custom domain takes them ("_" never starts a slug). /_csrf hands a cached page
+// a fresh token before it posts; /_lscache/purge is this server's own signed purge call (no session, no CSRF).
+Route::get('/_csrf', [PageCacheController::class, 'token'])->middleware('throttle:60,1')->name('page-cache.token');
+Route::post('/_lscache/purge', [PageCacheController::class, 'purge'])->middleware('throttle:120,1')
+    ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])->name('page-cache.purge');
+
 // Dashboard and admin are never indexed.
 Route::domain("admin.$domain")->get('/robots.txt', [SeoController::class, 'robotsPrivate']);
 Route::domain("app.$domain")->get('/robots.txt', [SeoController::class, 'robotsPrivate']);
@@ -48,37 +56,37 @@ Route::domain("www.$domain")->get('/{any?}', fn (string $any = '') => redirect()
 
 Route::domain($domain)->group(function () use ($slug) {
     Route::middleware('admin.locale')->group(function () {
-        Route::get('/', [LandingController::class, 'home'])->name('landing');
-        Route::get('/pricing', [LandingController::class, 'pricing'])->name('pricing');
+        Route::get('/', [LandingController::class, 'home'])->middleware('page.cache:landing')->name('landing');
+        Route::get('/pricing', [LandingController::class, 'pricing'])->middleware('page.cache:landing')->name('pricing');
         Route::get('/services', [ServicesController::class, 'index'])->name('services');
         Route::post('/services', [ServicesController::class, 'store'])->middleware('throttle:5,1')->name('services.request');
-        Route::get('/features', [FeaturesController::class, 'index'])->name('features');
-        Route::get('/features/{slug}', [FeaturesController::class, 'show'])->where('slug', '[a-z-]{2,40}')->name('features.show');
+        Route::get('/features', [FeaturesController::class, 'index'])->middleware('page.cache:landing')->name('features');
+        Route::get('/features/{slug}', [FeaturesController::class, 'show'])->where('slug', '[a-z-]{2,40}')->middleware('page.cache:landing')->name('features.show');
         // the EgHub Android apps: what each does and whether it can be downloaded yet (App\Support\EgHubApps)
-        Route::get('/apps', [AppsController::class, 'index'])->name('apps');
+        Route::get('/apps', [AppsController::class, 'index'])->middleware('page.cache:landing')->name('apps');
         // blog for cafe and restaurant owners (App\Models\Post), plus its RSS feed
-        Route::get('/blog', [BlogController::class, 'index'])->name('blog');
-        Route::get('/blog/{slug}', [BlogController::class, 'show'])->where('slug', '[a-z0-9-]{2,120}')->name('blog.show');
+        Route::get('/blog', [BlogController::class, 'index'])->middleware('page.cache:landing')->name('blog');
+        Route::get('/blog/{slug}', [BlogController::class, 'show'])->where('slug', '[a-z0-9-]{2,120}')->middleware('page.cache:landing')->name('blog.show');
         Route::get('/rss.xml', [BlogController::class, 'rss'])->name('blog.rss');
         // the website assistant ("اسألنا"): one chat turn per request, costs money → its own limiter
         Route::post('/assistant', [AssistantController::class, 'chat'])->middleware('throttle:assistant')->name('assistant');
         // free tools: the styled QR code generator (the browser draws the code, the server only returns its module matrix)
-        Route::get('/qr-code-generator', [QrToolController::class, 'show'])->name('tools.qr');
-        Route::get('/supported-screens', SupportedScreensController::class)->name('screens.supported');
+        Route::get('/qr-code-generator', [QrToolController::class, 'show'])->middleware('page.cache:landing')->name('tools.qr');
+        Route::get('/supported-screens', SupportedScreensController::class)->middleware('page.cache:landing')->name('screens.supported');
         Route::post('/qr-code-generator/matrix', [QrToolController::class, 'matrix'])->middleware('throttle:60,1')->name('tools.qr.matrix');
-        Route::get('/terms', [LandingController::class, 'terms'])->name('terms');
-        Route::get('/privacy', [LandingController::class, 'privacy'])->name('privacy');
-        Route::get('/refund-policy', [LandingController::class, 'refund'])->name('refund');
+        Route::get('/terms', [LandingController::class, 'terms'])->middleware('page.cache:landing')->name('terms');
+        Route::get('/privacy', [LandingController::class, 'privacy'])->middleware('page.cache:landing')->name('privacy');
+        Route::get('/refund-policy', [LandingController::class, 'refund'])->middleware('page.cache:landing')->name('refund');
         Route::get('/register', [SignupController::class, 'show'])->name('register');
         Route::post('/register', [SignupController::class, 'store'])->middleware('throttle:signup');
         Route::get('/register/check', [SignupController::class, 'check'])->middleware('throttle:60,1')->name('register.check');
         // restaurant directory (only places that opted in, see App\Services\Seo\Directory); it moves to the earlier
         // domain when there is one (below), and its old addresses here follow it
         if (legacy_domains() === []) {
-            Route::get('/restaurants', [DirectoryController::class, 'index'])->name('directory');
-            Route::get('/restaurants/{city}', [DirectoryController::class, 'city'])->where('city', '[a-z0-9-]{2,40}')->name('directory.city');
+            Route::get('/restaurants', [DirectoryController::class, 'index'])->middleware('page.cache:directory')->name('directory');
+            Route::get('/restaurants/{city}', [DirectoryController::class, 'city'])->where('city', '[a-z0-9-]{2,40}')->middleware('page.cache:directory')->name('directory.city');
             Route::get('/restaurants/{city}/{cuisine}', [DirectoryController::class, 'cuisine'])
-                ->where(['city' => '[a-z0-9-]{2,40}', 'cuisine' => '[a-z]{2,30}'])->name('directory.cuisine');
+                ->where(['city' => '[a-z0-9-]{2,40}', 'cuisine' => '[a-z]{2,30}'])->middleware('page.cache:directory')->name('directory.cuisine');
         } else {
             Route::get('/restaurants/{any?}', fn (Request $request) => redirect()->away(
                 scheme().'://'.directory_domain().port_suffix().'/'.$request->path().(($q = $request->getQueryString()) ? '?'.$q : ''), 301
@@ -140,13 +148,13 @@ foreach (legacy_domains() as $index => $legacy) {
     if ($index === 0) {
         Route::domain($legacy)->group(function () {
             Route::middleware('admin.locale')->group(function () {
-                Route::get('/', [DirectoryController::class, 'index'])->name('directory');
+                Route::get('/', [DirectoryController::class, 'index'])->middleware('page.cache:directory')->name('directory');
                 Route::get('/restaurants', fn (Request $request) => redirect()->away(
                     route('directory').(($q = $request->getQueryString()) ? '?'.$q : ''), 301
                 ));
-                Route::get('/restaurants/{city}', [DirectoryController::class, 'city'])->where('city', '[a-z0-9-]{2,40}')->name('directory.city');
+                Route::get('/restaurants/{city}', [DirectoryController::class, 'city'])->where('city', '[a-z0-9-]{2,40}')->middleware('page.cache:directory')->name('directory.city');
                 Route::get('/restaurants/{city}/{cuisine}', [DirectoryController::class, 'cuisine'])
-                    ->where(['city' => '[a-z0-9-]{2,40}', 'cuisine' => '[a-z]{2,30}'])->name('directory.cuisine');
+                    ->where(['city' => '[a-z0-9-]{2,40}', 'cuisine' => '[a-z]{2,30}'])->middleware('page.cache:directory')->name('directory.cuisine');
             });
             Route::get('/sitemap.xml', [SeoController::class, 'directorySitemap'])->name('directory.sitemap');
             Route::get('/robots.txt', [SeoController::class, 'directoryRobots']);

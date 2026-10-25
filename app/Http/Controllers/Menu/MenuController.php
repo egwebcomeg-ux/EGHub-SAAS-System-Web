@@ -20,6 +20,7 @@ use App\Services\Menu\BestSellers;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Orders\BusyMode;
 use App\Services\Orders\CartGoal;
+use App\Services\PageCache;
 use App\Services\Seo\RestaurantProfile;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
@@ -55,12 +56,7 @@ class MenuController extends Controller
     public function show(Request $request, ?int $openItem = null): Response|RedirectResponse
     {
         $table = self::currentTable($request);
-        // one visit per browser session and day
-        $visitKey = 'visit.'.tenant()->getTenantKey();
-        if ($request->session()->get($visitKey) !== today()->toDateString()) {
-            $request->session()->put($visitKey, today()->toDateString());
-            MenuVisit::bump('views');
-        }
+        self::countVisit($request);
         // the branch: a scanned table fixes it; else ?branch=slug (remembered in a cookie), else the remembered one
         $chosenBranch = $table ? null : $this->branch($request);
         $catalog = MenuCatalog::forBranch($table?->branch ?? $chosenBranch);
@@ -316,6 +312,27 @@ class MenuController extends Controller
         return $embed ? ['type' => 'embed', 'src' => $embed['embed'], 'provider' => $embed['provider']] : null;
     }
 
+    /** One visit per browser session and day. */
+    private static function countVisit(Request $request): void
+    {
+        $visitKey = 'visit.'.tenant()->getTenantKey();
+        if ($request->session()->get($visitKey) !== today()->toDateString()) {
+            $request->session()->put($visitKey, today()->toDateString());
+            MenuVisit::bump('views');
+        }
+    }
+
+    /**
+     * The visit of a menu page the page cache served (App\Services\PageCache: PHP did not run for it): the page
+     * calls this once per browser session (partials.csrf-on-demand), counted like a visit to the menu itself.
+     */
+    public function visit(Request $request): Response
+    {
+        self::countVisit($request);
+
+        return response()->noContent()->header('Cache-Control', 'no-store, private');
+    }
+
     /** The line over the search bar, by the hour of the restaurant: morning, day or evening. */
     private static function greeting(): string
     {
@@ -402,6 +419,8 @@ class MenuController extends Controller
         $request->session()->put($this->tableKey(), ['id' => $table->id, 'at' => now()->timestamp]);
         $table->increment('scans_count', 1, ['last_scanned_at' => now()]);
         MenuVisit::bump('scans');
+        // the table lives in the session; this cookie tells the page cache this guest's menu is their own
+        cookie()->queue(cookie(PageCache::TABLE_COOKIE_PREFIX.tenant()->getTenantKey(), '1', 4 * 60));
 
         // the owner chooses whether a scanned QR opens the menu or the place's page with its links (setting
         // qr_target "links": the about page, which carries the links on top)

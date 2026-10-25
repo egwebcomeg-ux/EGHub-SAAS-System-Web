@@ -4,16 +4,25 @@ namespace App\Providers;
 
 use App\Billing\Gateways\KashierGateway;
 use App\Billing\Gateways\PaymentGateway;
+use App\Models\Domain;
 use App\Models\Plan;
+use App\Models\Subscription;
+use App\Models\SubscriptionAddon;
+use App\Models\Tenant;
 use App\Services\Notify\ReservationNotifier;
 use App\Services\Notify\WhatsAppReservationNotifier;
+use App\Services\PageCache;
 use App\Services\WhatsApp\Drivers\LogDriver;
 use App\Services\WhatsApp\Drivers\MetaCloudDriver;
 use App\Services\WhatsApp\Drivers\WebhookDriver;
 use App\Services\WhatsApp\WhatsAppGateway;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -36,6 +45,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ReservationNotifier::class, WhatsAppReservationNotifier::class);
         // Online subscription payments: Kashier is the gateway EgWeb has a contract with (App\Billing\OnlinePayments)
         $this->app->bind(PaymentGateway::class, KashierGateway::class);
+        // one list of purges per request or command (App\Services\PageCache); a queue worker flushes it after each job
+        $this->app->singleton(PageCache::class);
     }
 
     /**
@@ -71,6 +82,8 @@ class AppServiceProvider extends ServiceProvider
             Limit::perDay(3000)->by('as:all'),
         ]);
 
+        $this->bootPageCache();
+
         // The admin plan pickers (new restaurant, a restaurant's plan change) never offer an archived plan; the
         // restaurant's own current plan stays listed so saving its page does not switch it by accident.
         // App\Models\Subscription refuses the move onto an archived plan anyway.
@@ -81,5 +94,39 @@ class AppServiceProvider extends ServiceProvider
                 $view->with('plans', $plans->reject(fn (Plan $p) => $p->isArchived() && $p->id !== $current)->values());
             }
         });
+    }
+
+    /**
+     * The LiteSpeed page cache's purges (App\Services\PageCache): every write to a table the public pages read
+     * queues the purge of the current restaurant (or of the platform pages, or of everything for plans and site
+     * settings); the restaurant's central rows (the restaurant itself: suspension, plan, domains) purge it by their
+     * own id, also from the admin where no restaurant is current. Queue jobs send theirs when each job ends;
+     * `php artisan optimize` (every deploy) purges everything: the pages point at the new build files.
+     */
+    private function bootPageCache(): void
+    {
+        DB::listen(fn (QueryExecuted $query) => $this->app->make(PageCache::class)->recordWrite($query->sql));
+
+        $purgeTenant = function (Model $model): void {
+            $tenantId = $model instanceof Tenant ? $model->getKey() : $model->getAttribute('tenant_id');
+            if (is_string($tenantId) && $tenantId !== '') {
+                $cache = $this->app->make(PageCache::class);
+                $cache->purgeTenant($tenantId);
+                // the restaurant's card in the directory and on the home page showcase
+                if ($model instanceof Tenant) {
+                    $cache->purgeDirectory();
+                    $cache->purgePlatform();
+                }
+            }
+        };
+        foreach ([Tenant::class, Subscription::class, SubscriptionAddon::class, Domain::class] as $model) {
+            $model::saved($purgeTenant);
+            $model::deleted($purgeTenant);
+        }
+
+        Queue::after(fn () => $this->app->make(PageCache::class)->flushOverHttp());
+        Queue::failing(fn () => $this->app->make(PageCache::class)->flushOverHttp());
+
+        $this->optimizes(optimize: 'egmenu:page-cache-purge', key: 'page-cache');
     }
 }

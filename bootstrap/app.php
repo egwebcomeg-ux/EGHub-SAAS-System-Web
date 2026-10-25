@@ -4,12 +4,15 @@ use App\Http\Middleware\AdminAccess;
 use App\Http\Middleware\AdminIdleTimeout;
 use App\Http\Middleware\AdminLocale;
 use App\Http\Middleware\BlockDuringSupportAccess;
+use App\Http\Middleware\CachePublicPage;
 use App\Http\Middleware\IdentifyTenantByDomain;
 use App\Http\Middleware\IdentifyTenantByPath;
 use App\Http\Middleware\IdentifyTenantBySubdomain;
 use App\Http\Middleware\InitializeTenancyFromUser;
+use App\Http\Middleware\LiteSpeedCacheHeaders;
 use App\Http\Middleware\RequireFeature;
 use App\Http\Middleware\SecurityHeaders;
+use App\Services\PageCache;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -32,6 +35,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PROTO);
         // Clickjacking / sniffing / referrer / HSTS headers on every response (menus, dashboard, admin alike).
         $middleware->append(SecurityHeaders::class);
+        // LiteSpeed page cache (App\Services\PageCache): last, so it sees every cookie of the response. Public pages opt in
+        // with page.cache:{landing|directory|menu}; every other response is no-cache; purges ride on any response.
+        $middleware->append(LiteSpeedCacheHeaders::class);
+        // the marketing site's language stays readable by the cache (one copy per value), it is not a secret
+        $middleware->encryptCookies(except: [PageCache::LANDING_LANG_COOKIE]);
         // Inbound WhatsApp (Meta / provider) is server-to-server: authenticated by signature or shared secret, not CSRF.
         // The payment gateway's webhook (app.<domain>/billing/kashier/webhook) is signed by the gateway the same way.
         $middleware->validateCsrfTokens(except: ['webhooks/whatsapp', 'webhooks/whatsapp/*', 'billing/*/webhook']);
@@ -46,6 +54,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.access' => AdminAccess::class,
             'admin.idle' => AdminIdleTimeout::class,
             'support.blocked' => BlockDuringSupportAccess::class,
+            'page.cache' => CachePublicPage::class,
         ]);
         // Tenancy must be initialised before route-model binding, or {model} ids would resolve outside the
         // tenant scope (another restaurant's rows). Authenticate already runs before SubstituteBindings.

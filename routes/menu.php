@@ -25,12 +25,14 @@ use Illuminate\Support\Facades\Route;
 
 // eghub.app/{tenant}/... (IdentifyTenantByPath, canonical), {tenant}.egmenu.app/... (IdentifyTenantBySubdomain,
 // alias) and a custom domain (IdentifyTenantByDomain).
-Route::get('/', [MenuController::class, 'show'])->name('show');
-Route::get('/about', [ProfileController::class, 'show'])->name('about');
+Route::get('/', [MenuController::class, 'show'])->middleware('page.cache:menu')->name('show');
+Route::get('/about', [ProfileController::class, 'show'])->middleware('page.cache:menu')->name('about');
 // the restaurant's SVG brand pieces (mascot intro, header pattern), served with a no-script CSP
 Route::get('/brand/{file}', [BrandAssetController::class, 'show'])->where('file', '[0-9a-f-]{36}\.svg')->name('brand.asset');
 // shareable link of one item: the menu with the item opened (full page in the professional display)
-Route::get('/item/{item}', [MenuController::class, 'item'])->whereNumber('item')->name('item');
+Route::get('/item/{item}', [MenuController::class, 'item'])->whereNumber('item')->middleware('page.cache:menu')->name('item');
+// the menu counts a visit from a page the page cache served (MenuController::visit)
+Route::get('/visit', [MenuController::class, 'visit'])->middleware('throttle:30,1')->name('visit');
 Route::get('/t/{token}', [MenuController::class, 'table'])->where('token', '[a-f0-9]{20}')->name('table');
 
 Route::post('/order', [OrderController::class, 'store'])->middleware('throttle:menu-orders')->name('order');
@@ -126,7 +128,7 @@ Route::post('/reserve/{token}/cancel', [ReservationController::class, 'cancel'])
     ->middleware('throttle:10,1')->name('reserve.cancel');
 
 // The restaurant's links page (menu, order, book, WhatsApp, socials, map, hours): what a QR can open instead of the menu
-Route::get('/links', [LinksController::class, 'show'])->name('links');
+Route::get('/links', [LinksController::class, 'show'])->middleware('page.cache:menu')->name('links');
 // The menu as an installable app (App\Services\Pwa): manifest, icons from the logo, service worker scoped to the menu, offline page
 Route::get('/manifest.webmanifest', [PwaController::class, 'manifest'])->name('manifest');
 Route::get('/sw.js', [PwaController::class, 'serviceWorker'])->name('sw');
