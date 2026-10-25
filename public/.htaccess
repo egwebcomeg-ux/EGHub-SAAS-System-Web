@@ -79,3 +79,8 @@ RewriteRule ^ - [F,L]
    php_flag log_errors On
 </IfModule>
 # END cPanel-generated php ini directives, do not edit
+
+# EgHub Screens Android TV player (eghub.app/tv.apk): served as an Android package
+<IfModule mod_mime.c>
+    AddType application/vnd.android.package-archive .apk
+</IfModule>
