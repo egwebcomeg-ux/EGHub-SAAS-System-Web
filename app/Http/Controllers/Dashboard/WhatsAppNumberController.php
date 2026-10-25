@@ -8,6 +8,7 @@ use App\Services\Audit;
 use App\Services\Entitlements;
 use App\Services\SupportAccess;
 use App\Services\WhatsApp\OwnNumber;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -53,8 +54,10 @@ class WhatsAppNumberController extends Controller
             'access_token' => __('Access token'), 'app_secret' => __('App secret'),
         ]);
         $phoneId = $data['phone_number_id'];
+        // a number is another restaurant's only once that restaurant proved it owns it (connected): a failed attempt
+        // with somebody else's phone id must not reserve it
         $taken = $phoneId === (string) config('whatsapp.meta.phone_id') || WhatsAppConnection::query()->withoutGlobalScopes()
-            ->where('phone_number_id', $phoneId)->where('tenant_id', '!=', tenant()->getTenantKey())->exists();
+            ->where('phone_number_id', $phoneId)->where('tenant_id', '!=', tenant()->getTenantKey())->where('status', 'connected')->exists();
         if ($taken) {
             throw ValidationException::withMessages(['phone_number_id' => __('This WhatsApp number is already connected to another account.')]);
         }
@@ -71,7 +74,12 @@ class WhatsAppNumberController extends Controller
         if ($changed) {
             $connection->fill(['templates' => null, 'templates_checked_at' => null, 'subscribed_at' => null, 'display_phone' => null, 'verified_name' => null]);
         }
-        $connection->save();
+        try {
+            $connection->save();
+        } catch (UniqueConstraintViolationException) {
+            // another restaurant kept a row for this number (a race, or an old attempt): same answer as above
+            throw ValidationException::withMessages(['phone_number_id' => __('This WhatsApp number is already connected to another account.')]);
+        }
 
         $ok = $own->check($connection);
         if ($ok) {

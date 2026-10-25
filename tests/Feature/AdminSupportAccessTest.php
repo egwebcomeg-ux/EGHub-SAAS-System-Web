@@ -198,11 +198,16 @@ class AdminSupportAccessTest extends TenantTestCase
         $this->post($this->dashUrl('/billing/invoices/INV-1/pay'))->assertSessionHasErrors('support_access');
         $this->post($this->dashUrl('/phone'), ['phone' => '01011112222'])->assertSessionHasErrors('support_access');
         $this->postJson($this->dashUrl('/billing/checkout'), ['plan' => 'business'])->assertForbidden();
-        // the impersonated account itself on the users page: blocked; another staff member: allowed
+        // staff accounts: neither the impersonated account nor any other (a password support picked would outlive the session)
         $this->post($this->dashUrl("/users/{$owner->id}"), ['name' => 'Owner', 'email' => 'new@cafe-a.test', 'role' => 'owner'])
             ->assertSessionHasErrors('support_access');
         $this->post($this->dashUrl("/users/{$cashier->id}"), ['name' => 'Cashier two', 'email' => 'cashier@cafe-a.test', 'role' => 'cashier'])
-            ->assertSessionDoesntHaveErrors('support_access');
+            ->assertSessionHasErrors('support_access');
+        $this->post($this->dashUrl('/users'), ['name' => 'Backdoor', 'email' => 'back@cafe-a.test', 'role' => 'manager', 'password' => 'Secret-pass-123'])
+            ->assertSessionHasErrors('support_access');
+        // the restaurant's data never leaves with support: customer export, the domain (backups: same middleware, plan-gated)
+        $this->get($this->dashUrl('/customers/export'))->assertRedirect()->assertSessionHasErrors('support_access');
+        $this->post($this->dashUrl('/domain/delete'))->assertSessionHasErrors('support_access');
 
         $owner->refresh();
         $this->assertSame($hash, $owner->password);

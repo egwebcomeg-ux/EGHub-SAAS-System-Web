@@ -121,8 +121,9 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
 
     Route::middleware('permission:users.manage')->group(function () {
         Route::get('/users', [UsersController::class, 'index'])->name('users');
-        Route::post('/users', [UsersController::class, 'store'])->name('users.store');
-        Route::post('/users/{user}', [UsersController::class, 'update'])->middleware('support.blocked:self')->name('users.update');
+        // staff accounts (a password EgWeb support picked would outlive the support session: support.blocked)
+        Route::post('/users', [UsersController::class, 'store'])->middleware('support.blocked')->name('users.store');
+        Route::post('/users/{user}', [UsersController::class, 'update'])->middleware('support.blocked')->name('users.update');
     });
 
     // paying, subscribing and claiming a transfer are not for EgWeb support signed in from the admin (support.blocked)
@@ -150,7 +151,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/domain/book', [DomainController::class, 'book'])->middleware(['support.blocked', 'throttle:10,1'])->name('domain.book');
         Route::post('/domain/connect', [DomainController::class, 'connect'])->middleware('throttle:10,1')->name('domain.connect');
         Route::post('/domain/check', [DomainController::class, 'check'])->middleware('throttle:10,1')->name('domain.check');
-        Route::post('/domain/delete', [DomainController::class, 'destroy'])->name('domain.delete');
+        Route::post('/domain/delete', [DomainController::class, 'destroy'])->middleware('support.blocked')->name('domain.delete');
 
         // the restaurant's own WhatsApp Business number (App\Services\WhatsApp\OwnNumber): the page explains on a plan
         // without WhatsApp messages; the token is the owner's, so EgWeb support can only test it (support.blocked)
@@ -168,8 +169,9 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::middleware('permission:backups.manage')->group(function () {
             Route::get('/backups', [BackupsController::class, 'index'])->name('backups');
             Route::middleware('feature:backups')->group(function () {
-                Route::post('/backups', [BackupsController::class, 'store'])->middleware('throttle:10,1')->name('backups.store');
-                Route::get('/backups/{backup}/download', [BackupsController::class, 'download'])->whereNumber('backup')->middleware('signed')->name('backups.download');
+                // the restaurant's data leaves only with its owner, never with EgWeb support (support.blocked)
+                Route::post('/backups', [BackupsController::class, 'store'])->middleware(['support.blocked', 'throttle:10,1'])->name('backups.store');
+                Route::get('/backups/{backup}/download', [BackupsController::class, 'download'])->whereNumber('backup')->middleware(['signed', 'support.blocked'])->name('backups.download');
                 Route::post('/backups/{backup}/delete', [BackupsController::class, 'destroy'])->whereNumber('backup')->name('backups.delete');
             });
         });
@@ -309,7 +311,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     // ---- Guests: customers, loyalty card, feedback ----
     Route::middleware(['feature:customers', 'permission:customers.view'])->group(function () {
         Route::get('/customers', [CustomersController::class, 'index'])->name('customers');
-        Route::get('/customers/export', [CustomersController::class, 'export'])->name('customers.export');
+        Route::get('/customers/export', [CustomersController::class, 'export'])->middleware('support.blocked')->name('customers.export');
         // import a guest list (CSV / Excel): upload, review, save (owner and manager only: customers.import)
         Route::middleware('permission:customers.import')->group(function () {
             Route::get('/customers/import', [CustomerImportController::class, 'create'])->name('customers.import');

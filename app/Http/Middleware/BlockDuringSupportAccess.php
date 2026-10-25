@@ -9,9 +9,10 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Routes EgWeb support may not use while signed in from the admin (App\Services\SupportAccess): the account's own
- * password, two-factor and PIN, payments and bookings that cost money. "support.blocked:self" blocks only when the
- * {user} of the route is the signed-in account itself (editing its email or password on the users page).
+ * Routes EgWeb support may not use while signed in from the admin (App\Services\SupportAccess): passwords, two-factor
+ * and PIN, staff accounts (a password support picked would outlive the session), payments and bookings that cost
+ * money, the restaurant's data leaving (backups, customer export), the domain. "support.blocked:self" blocks only when
+ * the {user} of the route is the signed-in account itself.
  */
 class BlockDuringSupportAccess
 {
