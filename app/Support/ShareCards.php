@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
  * (`php artisan egmenu:share-images`) and committed under public/og/{ar|en}/{key}.png: the server never draws them.
  * A page names its card with @section('share_card', 'features/pager'); a missing file falls back to og-image.png.
  * Every text on a card is copy the page itself already shows (SiteModules, the page headings).
+ * Cards are solid navy or solid white (no gradients or glows), split by theme(): about half of each.
  */
 final class ShareCards
 {
@@ -26,7 +27,9 @@ final class ShareCards
      * Every card for the current language, keyed by its file name under public/og/{locale}/ (without .png).
      * site = main (eghub.app) or directory (the earlier domain that keeps the restaurant directory).
      *
-     * @return array<string, array{headline:string, subline:string, eyebrow:string, icon:string, visual:string, site:string, cta:bool}>
+     * theme = navy or white background (see theme()).
+     *
+     * @return array<string, array{headline:string, subline:string, eyebrow:string, icon:string, visual:string, site:string, cta:bool, theme:string}>
      */
     public static function all(): array
     {
@@ -54,7 +57,22 @@ final class ShareCards
             $cards["directory/$city"] = self::card(__('Restaurants and cafes in :city', ['city' => Cities::name($city)]), $directoryLine, __('EgMenu directory'), 'store', 'directory', site: 'directory', cta: false);
         }
 
+        foreach ($cards as $key => $card) {
+            $cards[$key]['theme'] = self::theme($key);
+        }
+
         return $cards;
+    }
+
+    /**
+     * Background of a card: solid navy or solid white. Picked from the key itself (not its position), so adding a page
+     * never flips the other cards and their cached previews; the keys split about half and half, the home card is navy.
+     *
+     * @return 'navy'|'white'
+     */
+    public static function theme(string $key): string
+    {
+        return crc32($key) % 2 === 0 ? 'navy' : 'white';
     }
 
     /** Public URL of a card for the current language, with a version stamp; og-image.png when the card was never drawn. */

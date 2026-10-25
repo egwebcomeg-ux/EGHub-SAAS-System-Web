@@ -14,8 +14,9 @@ use Illuminate\Support\Facades\Storage;
  *
  * The first set is dated `days_ago` before the run. The editorial calendar (calendar()) has fixed Cairo times: the
  * ones in the past are live at once, the future ones are scheduled and go live by themselves at that time, and a
- * `draft` one stays unpublished for the owner to finish from admin › المدونة. A calendar article with a
- * cover drawn by `php artisan egmenu:blog-covers` (database/seeders/blog-covers/{slug}.webp) gets it on the public disk.
+ * `draft` one stays unpublished for the owner to finish from admin › المدونة. Every article has a cover_card; its
+ * cover drawn by `php artisan egmenu:blog-covers` (database/seeders/blog-covers/{slug}.webp) is copied to the public
+ * disk when the article is created, and `egmenu:blog-covers --apply` puts redrawn covers on articles that exist.
  */
 class BlogSeeder extends Seeder
 {
@@ -26,8 +27,12 @@ class BlogSeeder extends Seeder
     {
         foreach ($this->posts() as $post) {
             $daysAgo = $post['days_ago'];
-            unset($post['days_ago']);
-            Post::query()->firstOrCreate(['slug' => $post['slug']], $post + ['is_published' => true, 'published_at' => now()->subDays($daysAgo)->subHours(2)]);
+            unset($post['days_ago'], $post['cover_card']);
+            Post::query()->firstOrCreate(['slug' => $post['slug']], $post + [
+                'is_published' => true,
+                'published_at' => now()->subDays($daysAgo)->subHours(2),
+                'cover' => $this->cover($post['slug']),
+            ]);
         }
 
         foreach ($this->calendar() as $post) {
@@ -49,14 +54,42 @@ class BlogSeeder extends Seeder
     }
 
     /**
-     * What `egmenu:blog-covers` draws for each calendar article that has a cover.
+     * What `egmenu:blog-covers` draws for every seeded article, in publishing order (the starter set oldest first,
+     * then the calendar): two or three words, the illustration under share-cards/blog-art/, and the background,
+     * navy and white taking turns.
      *
-     * @return array<string, array{headline:string, eyebrow:string, icon:string, chips:list<string>}>
+     * @return array<string, array{label:string, art:string, theme:string}>
      */
     public function coverCards(): array
     {
-        return collect($this->calendar())->filter(fn (array $post) => isset($post['cover_card']))
-            ->mapWithKeys(fn (array $post) => [$post['slug'] => $post['cover_card']])->all();
+        $posts = [...collect($this->posts())->sortByDesc('days_ago')->values()->all(), ...$this->calendar()];
+
+        return collect($posts)->values()
+            ->mapWithKeys(fn (array $post, int $index) => [$post['slug'] => $post['cover_card'] + ['theme' => $index % 2 === 0 ? 'navy' : 'white']])
+            ->all();
+    }
+
+    /**
+     * Puts the drawn covers on the articles that already exist (`egmenu:blog-covers --apply`, run on the server after
+     * a deploy brings new files): an article without a cover, or still showing a cover this seeder gave it, gets the
+     * current drawing; a cover uploaded from admin is kept. Returns how many articles changed.
+     */
+    public function applyCovers(): int
+    {
+        $changed = 0;
+        foreach (array_keys($this->coverCards()) as $slug) {
+            $post = Post::query()->where('slug', $slug)->first();
+            if ($post === null || ($post->cover !== null && ! $this->isSeededCover($slug, $post->cover))) {
+                continue;
+            }
+            $cover = $this->cover($slug);
+            if ($cover !== null && $cover !== $post->cover) {
+                $post->update(['cover' => $cover]);
+                $changed++;
+            }
+        }
+
+        return $changed;
     }
 
     /** The calendar slugs with their planned time (Cairo), in order. @return array<string, string> */
@@ -65,14 +98,17 @@ class BlogSeeder extends Seeder
         return collect($this->calendar())->mapWithKeys(fn (array $post) => [$post['slug'] => $post['at']])->all();
     }
 
-    /** Copies a drawn cover to the public disk (once) and returns its path; null when none was drawn. */
+    /**
+     * Copies a drawn cover to the public disk (once) and returns its path; null when none was drawn. The file name
+     * carries a hash of the drawing, so a redrawn cover gets a new address and no browser or CDN keeps the old one.
+     */
     private function cover(string $slug): ?string
     {
         $source = database_path("seeders/blog-covers/$slug.webp");
         if (! is_file($source)) {
             return null;
         }
-        $path = "platform/blog/$slug.webp";
+        $path = "platform/blog/$slug-".substr((string) md5_file($source), 0, 8).'.webp';
         if (! Storage::disk('public')->exists($path)) {
             Storage::disk('public')->put($path, (string) file_get_contents($source));
         }
@@ -80,12 +116,19 @@ class BlogSeeder extends Seeder
         return $path;
     }
 
-    /** @return list<array<string, string|int>> */
+    /** Whether a post's cover is one this seeder put there (platform/blog/{slug}.webp, with or without the hash). */
+    private function isSeededCover(string $slug, string $cover): bool
+    {
+        return (bool) preg_match('~^platform/blog/'.preg_quote($slug, '~').'(-[0-9a-f]{8})?\.webp$~', $cover);
+    }
+
+    /** @return list<array<string, mixed>> */
     private function posts(): array
     {
         return [
             [
                 'slug' => 'qr-menu-mistakes',
+                'cover_card' => ['label' => 'منيو الـQR', 'art' => 'qr-table'],
                 'days_ago' => 22,
                 'title' => '٧ أخطاء في منيو الـQR بتخسّرك طلبات (وإزاي تصلحها في ساعة)',
                 'title_en' => '7 QR menu mistakes that cost you orders (and the one-hour fix)',
@@ -144,6 +187,7 @@ MD,
             ],
             [
                 'slug' => 'loyalty-card-small-cafe',
+                'cover_card' => ['label' => 'كارت الولاء', 'art' => 'loyalty'],
                 'days_ago' => 21,
                 'title' => 'إزاي تعمل كارت ولاء ينفع كافيه صغير (من غير تطبيق ولا كروت ورق)',
                 'title_en' => 'A loyalty card that works for a small cafe (no app, no paper cards)',
@@ -189,6 +233,7 @@ MD,
             ],
             [
                 'slug' => 'online-ordering-no-commission',
+                'cover_card' => ['label' => 'أونلاين بلا عمولة', 'art' => 'online-order'],
                 'days_ago' => 20,
                 'title' => 'الطلب الأونلاين من غير عمولة: إيه اللي محتاجه فعلاً عشان يشتغل',
                 'title_en' => 'Online ordering without commission: what you actually need to make it work',
@@ -234,6 +279,7 @@ MD,
             ],
             [
                 'slug' => 'food-cost-menu-pricing',
+                'cover_card' => ['label' => 'تكلفة الطبق', 'art' => 'food-cost'],
                 'days_ago' => 1,
                 'title' => 'إزاي تحسب تكلفة الطبق وتسعّر المنيو صح (بمثال بالأرقام)',
                 'title_en' => 'How to cost a dish and price your menu right (with a worked example)',
@@ -319,6 +365,7 @@ MD,
             ],
             [
                 'slug' => 'menu-engineering',
+                'cover_card' => ['label' => 'هندسة المنيو', 'art' => 'menu-engineering'],
                 'days_ago' => 3,
                 'title' => 'هندسة المنيو: إزاي تعرف الأصناف اللي بتكسبك وترتّبها صح',
                 'title_en' => 'Menu engineering: find the dishes that earn and place them right',
@@ -415,6 +462,7 @@ MD,
             ],
             [
                 'slug' => 'kitchen-waste-inventory',
+                'cover_card' => ['label' => 'تقليل الهدر', 'art' => 'waste'],
                 'days_ago' => 5,
                 'title' => 'تقليل الهدر في المطبخ والمخزن: خطوات بسيطة بتوفّر فلوس كل شهر',
                 'title_en' => 'Cutting waste in the kitchen and store room: simple steps that save money every month',
@@ -502,6 +550,7 @@ MD,
             ],
             [
                 'slug' => 'dining-room-service-details',
+                'cover_card' => ['label' => 'خدمة الصالة', 'art' => 'waiter'],
                 'days_ago' => 7,
                 'title' => 'خدمة العملاء في الصالة: ١٠ تفاصيل صغيرة بتفرق مع الزبون',
                 'title_en' => 'Dining room service: 10 small details customers remember',
@@ -585,6 +634,7 @@ MD,
             ],
             [
                 'slug' => 'profitable-delivery',
+                'cover_card' => ['label' => 'الدليفري', 'art' => 'delivery'],
                 'days_ago' => 9,
                 'title' => 'التوصيل من غير خسارة: إزاي تحدد المناطق والرسوم والحد الأدنى للطلب',
                 'title_en' => 'Delivery without losing money: zones, fees and minimum order',
@@ -682,6 +732,7 @@ MD,
             ],
             [
                 'slug' => 'responding-to-negative-reviews',
+                'cover_card' => ['label' => 'الرد على التقييمات', 'art' => 'reviews'],
                 'days_ago' => 11,
                 'title' => 'تقييم وحش على جوجل أو فيسبوك؟ إزاي ترد صح وتستفيد منه',
                 'title_en' => 'A bad review on Google or Facebook? How to reply well and learn from it',
@@ -778,6 +829,7 @@ MD,
             ],
             [
                 'slug' => 'phone-food-photography',
+                'cover_card' => ['label' => 'تصوير الأكل', 'art' => 'photo'],
                 'days_ago' => 13,
                 'title' => 'صوّر الأكل بموبايلك: دليل بسيط لصور منيو وسوشيال تفتح النفس',
                 'title_en' => 'Food photos with your phone: a simple guide for menu and social media',
@@ -871,6 +923,7 @@ MD,
             ],
             [
                 'slug' => 'cafe-shifts-cash-drawer',
+                'cover_card' => ['label' => 'تقفيل الدرج', 'art' => 'cash-drawer'],
                 'days_ago' => 15,
                 'title' => 'تقفيل الدرج وإدارة الورديات في الكافيه: إزاي توقف الفروقات',
                 'title_en' => 'Closing the cash drawer and running shifts in a cafe: how to stop discrepancies',
@@ -964,6 +1017,7 @@ MD,
             ],
             [
                 'slug' => 'seasonal-offers-egypt',
+                'cover_card' => ['label' => 'عروض المواسم', 'art' => 'seasonal'],
                 'days_ago' => 17,
                 'title' => 'عروض المواسم في مصر: رمضان والعيد والصيف والدراسة من غير ما تحرق أسعارك',
                 'title_en' => 'Seasonal offers in Egypt: Ramadan, Eid, summer and school without burning your prices',
@@ -1051,6 +1105,7 @@ MD,
             ],
             [
                 'slug' => 'opening-second-branch',
+                'cover_card' => ['label' => 'الفرع التاني', 'art' => 'second-branch'],
                 'days_ago' => 19,
                 'title' => 'فتح فرع تاني: إمتى يبقى الوقت مناسب وإزاي تعملها من غير ما تخسر الأول',
                 'title_en' => 'Opening a second branch: when the time is right and how to do it without hurting the first',
@@ -1164,8 +1219,8 @@ MD,
         return [
             [
                 'slug' => 'takeaway-packaging-guide',
+                'cover_card' => ['label' => 'التغليف', 'art' => 'packaging'],
                 'at' => '2026-10-09 20:40',
-                'cover_card' => ['headline' => 'إزاي تختار علب التيك أواي والدليفري', 'eyebrow' => 'التغليف', 'icon' => 'box', 'chips' => ['سخن', 'سايل', 'مقلي', 'حلويات']],
                 'title' => 'إزاي تختار علب التيك أواي والدليفري',
                 'title_en' => 'How to choose takeaway and delivery packaging',
                 'excerpt' => 'العلبة أول حاجة العميل بيشوفها من محلك وهو في البيت. إزاي تختارها حسب نوع الأكل والخامة، تقارن بين الموردين، وتقفل باب شكاوى التغليف.',
@@ -1268,8 +1323,8 @@ MD,
             ],
             [
                 'slug' => 'packaging-cost-per-order',
+                'cover_card' => ['label' => 'تكلفة التغليف', 'art' => 'packaging-cost'],
                 'at' => '2026-10-14 21:10',
-                'cover_card' => ['headline' => 'تكلفة التغليف: احسبها صح ودخّلها في السعر', 'eyebrow' => 'التسعير', 'icon' => 'percent', 'chips' => ['العلبة', 'الكيس', 'الاستيكر']],
                 'title' => 'تكلفة التغليف: احسبها صح ودخّلها في سعر الصنف',
                 'title_en' => 'Packaging cost: work it out and put it in the price',
                 'excerpt' => 'العلبة والكيس والاستيكر والمعالق بيتجمعوا لرقم مش صغير في آخر الشهر. إزاي تحسب تكلفة التغليف لكل طلب، وتقرر تحطها في سعر الصنف ولا لوحدها.',
@@ -1364,8 +1419,8 @@ MD,
             ],
             [
                 'slug' => 'delivery-complaints-checklist',
+                'cover_card' => ['label' => 'شكاوى الدليفري', 'art' => 'delivery-check'],
                 'at' => '2026-10-20 19:50',
-                'cover_card' => ['headline' => 'شكاوى الدليفري: راجع قبل ما الطلب يخرج', 'eyebrow' => 'الدليفري', 'icon' => 'scooter', 'chips' => ['ناقص', 'بارد', 'متأخر']],
                 'title' => 'شكاوى الدليفري: قائمة مراجعة قبل ما الطلب يخرج من الباب',
                 'title_en' => 'Delivery complaints: a checklist before the order leaves',
                 'excerpt' => 'أغلب شكاوى الدليفري بتتكرر: صنف ناقص، أكل بارد، صوص مدلوق، طيار متأخر. قايمة عملية قبل ما الطلب يخرج، وإزاي تتعامل مع الشكوى لما تيجي.',
@@ -1466,8 +1521,8 @@ MD,
         return [
             [
                 'slug' => 'winter-menu-hot-drinks',
+                'cover_card' => ['label' => 'منيو الشتا', 'art' => 'hot-drinks'],
                 'at' => '2026-11-02 20:30',
-                'cover_card' => ['headline' => 'منيو الشتا من غير ما تكبّر المخزن', 'eyebrow' => 'المنيو', 'icon' => 'cup', 'chips' => ['سحلب', 'هوت شوكليت', 'شوربة']],
                 'title' => 'منيو الشتا: المشروبات السخنة والأصناف الموسمية من غير ما تكبّر المخزن',
                 'title_en' => 'A winter menu: hot drinks and seasonal items without a bigger stockroom',
                 'excerpt' => 'الشتا فرصة لأصناف سخنة بتتباع كويس، بس كل صنف جديد معناه خامات جديدة على الرف. إزاي تختار ٣ أو ٤ أصناف بتشارك نفس الخامات، وتسعّرها، وتعرف إمتى تشيلها.',
@@ -1542,8 +1597,8 @@ MD,
             ],
             [
                 'slug' => 'custom-cake-pricing',
+                'cover_card' => ['label' => 'تسعير التورت', 'art' => 'cake'],
                 'at' => '2026-11-06 19:45',
-                'cover_card' => ['headline' => 'تسعير التورت والطلبات الخاصة', 'eyebrow' => 'محلات الحلويات', 'icon' => 'gift', 'chips' => ['بالكيلو', 'التزيين', 'العربون']],
                 'title' => 'تسعير التورت والطلبات الخاصة في محل الحلويات',
                 'title_en' => 'Pricing custom cakes and special orders at a pastry shop',
                 'excerpt' => 'التورتة المطبوعة بصورة أو اللي عليها اسم وفيجرز تكلفتها أكبر من تورتة الفاترينة. إزاي تحسب سعرها بالكيلو والتزيين، وتاخد الطلب من غير مشاكل يوم الاستلام.',
@@ -1619,8 +1674,8 @@ MD,
             ],
             [
                 'slug' => 'food-safety-small-kitchen',
+                'cover_card' => ['label' => 'سلامة الأكل', 'art' => 'food-safety'],
                 'at' => '2026-11-12 21:15',
-                'cover_card' => ['headline' => 'النظافة وسلامة الأكل في مطبخ صغير', 'eyebrow' => 'المطبخ', 'icon' => 'shield', 'chips' => ['الإيد', 'الفصل', 'الحرارة', 'التخزين']],
                 'title' => 'النظافة وسلامة الأكل في مطبخ صغير: الأساسيات اللي متتنازلش عنها',
                 'title_en' => 'Hygiene and food safety in a small kitchen: the basics you never skip',
                 'excerpt' => 'مش محتاج مطبخ فندق عشان تشتغل نضيف. الأساسيات اليومية: غسيل الإيد، فصل النيّ عن المطبوخ، الحرارة، التخزين، وتقفيل آخر اليوم، مع قائمة تطبعها.',
@@ -1717,8 +1772,8 @@ MD,
             ],
             [
                 'slug' => 'kitchen-prep-before-rush',
+                'cover_card' => ['label' => 'تحضير المطبخ', 'art' => 'prep'],
                 'at' => '2026-11-17 20:05',
-                'cover_card' => ['headline' => 'تحضير المطبخ قبل الزحمة', 'eyebrow' => 'المطبخ', 'icon' => 'clock', 'chips' => ['ورقة التحضير', 'المحطات', 'الذروة']],
                 'title' => 'تحضير المطبخ قبل الزحمة: إزاي الطلبات ما تتأخرش وقت الذروة',
                 'title_en' => 'Kitchen prep before the rush: keeping orders on time at peak hours',
                 'excerpt' => 'الطلبات بتتأخر في الذروة عشان حاجات كان ممكن تتعمل الصبح. ورقة التحضير، كمياتها، توزيع المحطات، وترتيب الطلبات، بخطوات تنفع لمطبخ صغير.',
@@ -1808,8 +1863,8 @@ MD,
             ],
             [
                 'slug' => 'pastry-seasons-calendar-egypt',
+                'cover_card' => ['label' => 'مواسم الحلويات', 'art' => 'pastry-calendar'],
                 'at' => '2026-11-23 19:30',
-                'cover_card' => ['headline' => 'تقويم مواسم محل الحلويات في مصر', 'eyebrow' => 'محلات الحلويات', 'icon' => 'calendar', 'chips' => ['رمضان', 'الأعياد', 'الكريسماس', 'المدارس']],
                 'title' => 'تقويم مواسم محل الحلويات في مصر وتخطيط المخزون',
                 'title_en' => 'A pastry shop\'s seasons calendar in Egypt, and planning stock',
                 'excerpt' => 'محل الحلويات في مصر بيعيش على مواسم: رمضان والعيدين والكريسماس وراس السنة وعيد الأم وبداية الدراسة. إزاي تعمل تقويم للسنة، وتحسب كمية كل موسم من أرقامك إنت.',
@@ -1884,8 +1939,8 @@ MD,
             ],
             [
                 'slug' => 'christmas-new-year-orders',
+                'cover_card' => ['label' => 'الكريسماس وراس السنة', 'art' => 'christmas'],
                 'at' => '2026-11-28 20:50',
-                'cover_card' => ['headline' => 'طلبات الكريسماس وراس السنة: جهّز من دلوقتي', 'eyebrow' => 'محلات الحلويات', 'icon' => 'star', 'chips' => ['٢٥ ديسمبر', '٣١ ديسمبر', '٧ يناير']],
                 'title' => 'طلبات الكريسماس وراس السنة في محل الحلويات: جهّز من دلوقتي',
                 'title_en' => 'Christmas and New Year orders at a pastry shop: get ready now',
                 'excerpt' => 'من ٢٥ ديسمبر لحد ٧ يناير فيه تلات أيام كبيرة ورا بعض. إزاي تعمل منيو محدود، تقفل الطلب المسبق في معاده، وتنظّم الاستلام عشان ما تتزنقش في آخر يومين.',
@@ -1970,8 +2025,8 @@ MD,
         return [
             [
                 'slug' => 'corporate-bulk-orders',
+                'cover_card' => ['label' => 'طلبات الشركات', 'art' => 'bulk'],
                 'at' => '2026-12-03 20:10',
-                'cover_card' => ['headline' => 'طلبات الشركات والمناسبات الكبيرة', 'eyebrow' => 'التشغيل', 'icon' => 'bag', 'chips' => ['التسعير', 'الميعاد', 'العربون', 'الفاتورة']],
                 'title' => 'طلبات الشركات والمناسبات الكبيرة: إزاي تاخدها من غير ما تبوّظ يومك',
                 'title_en' => 'Company and event orders: taking them without wrecking your day',
                 'excerpt' => 'طلب ٥٠ علبة لشركة فرصة كويسة، بس ممكن يوقف المطبخ. إزاي تسعّره، تحدد ميعاده، وتنظّم تجهيزه جنب الشغل العادي.',
@@ -2047,8 +2102,8 @@ MD,
             ],
             [
                 'slug' => 'choosing-ingredient-suppliers',
+                'cover_card' => ['label' => 'اختيار المورّد', 'art' => 'supplier'],
                 'at' => '2026-12-08 21:00',
-                'cover_card' => ['headline' => 'اختيار مورّد الخامات والاتفاق معاه', 'eyebrow' => 'المخزن', 'icon' => 'tag', 'chips' => ['العينة', 'سعر الكيلو', 'الاتفاق', 'الاستلام']],
                 'title' => 'اختيار مورّد الخامات والاتفاق معاه',
                 'title_en' => 'Choosing an ingredient supplier and agreeing terms',
                 'excerpt' => 'المورّد الأرخص مش دايماً الأوفر. إزاي تقارن بين المورّدين على الجودة والثبات ومواعيد التوريد، وتتفق على اللي يحميك.',
@@ -2143,8 +2198,8 @@ MD,
             ],
             [
                 'slug' => 'new-waiter-first-week',
+                'cover_card' => ['label' => 'ويتر جديد', 'art' => 'new-waiter'],
                 'at' => '2026-12-12 19:40',
-                'cover_card' => ['headline' => 'أول أسبوع لويتر جديد', 'eyebrow' => 'الفريق', 'icon' => 'users', 'chips' => ['المنيو', 'الترابيزات', 'الدفع', 'الشكاوى']],
                 'title' => 'أول أسبوع لويتر جديد: خطة تدريب بسيطة',
                 'title_en' => 'A new waiter\'s first week: a simple training plan',
                 'excerpt' => 'الويتر الجديد بيتعلم من اللي جنبه، وده بيعلّمه الصح والغلط مع بعض. خطة أسبوع واحد، يوم بيوم، توصّله يشتغل لوحده.',
@@ -2229,8 +2284,8 @@ MD,
             ],
             [
                 'slug' => 'year-end-review',
+                'cover_card' => ['label' => 'مراجعة السنة', 'art' => 'year-review'],
                 'at' => '2026-12-17 20:25',
-                'cover_card' => ['headline' => 'مراجعة آخر السنة في ورقة واحدة', 'eyebrow' => 'الأرقام', 'icon' => 'chart', 'chips' => ['المبيعات', 'الأصناف', 'الخامات', '٣ أهداف']],
                 'title' => 'مراجعة آخر السنة لمحلك في ورقة واحدة',
                 'title_en' => 'Your year-end review on a single sheet',
                 'excerpt' => 'قبل ما السنة تخلص، ساعة واحدة مع أرقامك بتوفّر عليك غلطات السنة الجاية. إيه الأرقام اللي تبص عليها وإيه الأسئلة اللي تسألها.',
@@ -2315,8 +2370,8 @@ MD,
             ],
             [
                 'slug' => 'weekly-sales-report-10-minutes',
+                'cover_card' => ['label' => 'تقرير الأسبوع', 'art' => 'weekly-report'],
                 'at' => '2026-12-22 19:55',
-                'cover_card' => ['headline' => 'تقرير المبيعات الأسبوعي في ١٠ دقايق', 'eyebrow' => 'الأرقام', 'icon' => 'trend', 'chips' => ['المبيعات', 'متوسط الطلب', 'بالساعة', 'الإلغاءات']],
                 'title' => 'تقرير المبيعات الأسبوعي في ١٠ دقايق: تبص على إيه',
                 'title_en' => 'The weekly sales report in ten minutes: what to look at',
                 'excerpt' => 'التقارير كتير والوقت قليل. خمس أرقام تبص عليهم كل أسبوع، وإيه اللي كل رقم بيقولهولك.',
@@ -2403,8 +2458,8 @@ MD,
             ],
             [
                 'slug' => 'year-end-stock-count',
+                'cover_card' => ['label' => 'جرد آخر السنة', 'art' => 'stock-count'],
                 'at' => '2026-12-28 20:35',
-                'cover_card' => ['headline' => 'جرد آخر السنة: خطوات عملية للمخزن', 'eyebrow' => 'المخزن', 'icon' => 'layers', 'chips' => ['قبل الجرد', 'العد', 'الفرق', 'الطلب الجاي']],
                 'title' => 'جرد آخر السنة: خطوات عملية للمخزن',
                 'title_en' => 'The year-end stock count: practical steps for the stockroom',
                 'excerpt' => 'الجرد بيبان شغلانة تقيلة، بس هو اللي بيقولك الهدر الحقيقي. إزاي تجهّز له، تخلّصه في ساعتين، وتقرا نتيجته.',

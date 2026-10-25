@@ -1,10 +1,11 @@
 {{--
     One share card (1200×630), drawn by headless Chrome from `php artisan egmenu:share-images` (App\Support\ShareCards).
-    Same family as public/og-image.svg: navy with the orange glow and dots, the EgHub wordmark (the exact paths of
-    components/logo.blade.php, "hub" in white), Cairo. Text on the start side, the page's own drawing on the other.
+    Same family as public/og-image.svg: a solid background with flat dots (no gradients or glows), either navy ("hub"
+    of the EgHub wordmark in white) or white ("hub" in navy, navy text, orange accents) by $card['theme'], the exact
+    paths of components/logo.blade.php, Cairo. Text on the start side, the page's own drawing on the other.
     Everything important stays inside the middle 1100×580 (WhatsApp and Facebook crop the edges a little).
     $card: ShareCards::all() entry · $pageUrl: the page address (the drawings' QR codes open it) · $domain: the pill ·
-    $background: the navy, dots and glow, drawn by the command (Chrome would dither CSS gradients into heavy noise).
+    $background: the solid navy or white with its dots, drawn by the command.
 --}}
 @php
     $dir = app()->getLocale() === 'en' ? 'ltr' : 'rtl';
@@ -63,13 +64,26 @@
     .thumb { flex: none; width: 46px; height: 46px; border-radius: 12px; }
     .ring { position: absolute; border: 4px solid rgba(255,133,77,.55); border-radius: 50%; }
     svg.i { width: 1em; height: 1em; }
+
+    /* the white cards: navy text, orange accents, white drawings outlined so they do not melt into the page */
+    body.white { background-color: #fff; color: #061A2E; }
+    .white .logo .hub { fill: #061A2E; }
+    .white .eyebrow { color: #E0570F; }
+    .white .subline { color: #3E5A78; }
+    .white .pill { border-color: rgba(6,26,46,.22); }
+    .white .pill.cta { color: #fff; }
+    .white .ring { border-color: rgba(242,101,34,.6); }
+    .white .card, .white .toast { outline: 2px solid #DCE4EE; }
+    .white .card { box-shadow: 0 22px 54px rgba(6,26,46,.18); }
+    .white .toast { box-shadow: 0 14px 36px rgba(6,26,46,.16); }
+    .white .phone { box-shadow: 0 26px 60px rgba(6,26,46,.28); }
 </style>
 </head>
-<body class="{{ $card['visual'] === 'legal' ? 'legal' : '' }}">
+<body @class(['legal' => $card['visual'] === 'legal', $card['theme'] ?? 'navy'])>
 
 <div class="text">
     <svg class="logo" viewBox="0 -720 2660 940" role="img" aria-label="EgHub" style="direction: ltr">
-        <g transform="scale(1 -1)"><g fill="#F26522"><path fill-rule="evenodd" transform="translate(0 0)" d="M271 500 A250 250 0 0 1 21 250 A250 250 0 0 1 271 0 A250 250 0 0 1 459.7 86.0 L402.1 125.2 A181 181 0 0 0 93.6 213.9 L520.5 214 A250 250 0 0 1 271 500 Z M271 429 A179 179 0 0 0 446.6 284.8 L95.4 284.8 A179 179 0 0 0 271 429 Z"/><path fill-rule="evenodd" transform="translate(552 0)" d="M271 500 A250 250 0 0 1 21 250 A250 250 0 0 1 271 0 L443.7 0.2 A180 180 0 0 0 271 -129 L138 -129 L138 -199 L271 -199 A250 250 0 0 1 521 51 L521 250 A250 250 0 0 1 271 500 Z M450 250 L450 70 L271 70 A180 180 0 0 0 91 250 A180 180 0 0 0 271 429 A180 180 0 0 0 450 250 Z"/></g><g fill="#ffffff"><path fill-rule="evenodd" transform="translate(1103 0)" d="M20 0 L20 700 L91 700 L91 426.1 A249 249 0 0 0 518 252 L518 0 L447 0 L447 252 A178 178 0 0 1 91 252 L91 0 Z"/><path fill-rule="evenodd" transform="translate(1651 0)" d="M20 500 L20 191 A202.5 191 0 0 1 222.5 0 A202.5 191 0 0 1 425 191 L425 500 L354 500 L354 194 A131 123 0 0 0 223 71 A131 123 0 0 0 92 194 L92 500 Z"/><path fill-rule="evenodd" transform="translate(2106 0)" d="M20 700 L90 700 L90 500 L270 500 A250 250 0 0 0 520 250 A250 250 0 0 0 270 0 A250 250 0 0 0 20 250 Z M90 250 L90 429.5 L270 429.5 A179.5 179.5 0 0 0 449.5 250 A179.5 179.5 0 0 0 270 70.5 A179.5 179.5 0 0 0 90 250 Z"/></g></g>
+        <g transform="scale(1 -1)"><g fill="#F26522"><path fill-rule="evenodd" transform="translate(0 0)" d="M271 500 A250 250 0 0 1 21 250 A250 250 0 0 1 271 0 A250 250 0 0 1 459.7 86.0 L402.1 125.2 A181 181 0 0 0 93.6 213.9 L520.5 214 A250 250 0 0 1 271 500 Z M271 429 A179 179 0 0 0 446.6 284.8 L95.4 284.8 A179 179 0 0 0 271 429 Z"/><path fill-rule="evenodd" transform="translate(552 0)" d="M271 500 A250 250 0 0 1 21 250 A250 250 0 0 1 271 0 L443.7 0.2 A180 180 0 0 0 271 -129 L138 -129 L138 -199 L271 -199 A250 250 0 0 1 521 51 L521 250 A250 250 0 0 1 271 500 Z M450 250 L450 70 L271 70 A180 180 0 0 0 91 250 A180 180 0 0 0 271 429 A180 180 0 0 0 450 250 Z"/></g><g class="hub" fill="#ffffff"><path fill-rule="evenodd" transform="translate(1103 0)" d="M20 0 L20 700 L91 700 L91 426.1 A249 249 0 0 0 518 252 L518 0 L447 0 L447 252 A178 178 0 0 1 91 252 L91 0 Z"/><path fill-rule="evenodd" transform="translate(1651 0)" d="M20 500 L20 191 A202.5 191 0 0 1 222.5 0 A202.5 191 0 0 1 425 191 L425 500 L354 500 L354 194 A131 123 0 0 0 223 71 A131 123 0 0 0 92 194 L92 500 Z"/><path fill-rule="evenodd" transform="translate(2106 0)" d="M20 700 L90 700 L90 500 L270 500 A250 250 0 0 0 520 250 A250 250 0 0 0 270 0 A250 250 0 0 0 20 250 Z M90 250 L90 429.5 L270 429.5 A179.5 179.5 0 0 0 449.5 250 A179.5 179.5 0 0 0 270 70.5 A179.5 179.5 0 0 0 90 250 Z"/></g></g>
     </svg>
     <div class="middle">
         @if ($card['eyebrow'] !== 'EgHub')

@@ -58,8 +58,10 @@ class ShareImagesCommand extends Command
                 return self::FAILURE;
             }
             app()->setLocale($locale);
-            $dir = $locale === 'en' ? 'ltr' : 'rtl';
-            $background = $this->background($dir, "$work/background-$dir.png");
+            $backgrounds = [
+                'navy' => $this->background('navy', "$work/background-navy.png"),
+                'white' => $this->background('white', "$work/background-white.png"),
+            ];
             foreach (ShareCards::all() as $key => $card) {
                 if ($patterns !== [] && ! collect($patterns)->contains(fn (string $pattern) => fnmatch($pattern, $key))) {
                     continue;
@@ -69,7 +71,7 @@ class ShareImagesCommand extends Command
                 File::put($html, view('share-cards.card', [
                     'card' => $card,
                     'domain' => $domain,
-                    'background' => 'file:///'.str_replace('\\', '/', $background),
+                    'background' => 'file:///'.str_replace('\\', '/', $backgrounds[$card['theme']]),
                     'pageUrl' => 'https://'.$domain.'/'.$this->pagePath($key),
                 ])->render());
                 $jobs[] = ['key' => $key, 'locale' => $locale, 'html' => $html, 'png' => public_path(ShareCards::path($key, $locale))];
@@ -133,7 +135,7 @@ class ShareImagesCommand extends Command
         $fresh = $png.'.new';
         imagepng($image, $fresh, 9, PNG_ALL_FILTERS);
         if (filesize($fresh) > self::MAX_BYTES) {
-            // too heavy (has not happened yet): 256 colours keep it small, at the cost of some banding in the glow
+            // too heavy (has not happened yet): 256 colours keep it small, at the cost of some banding
             imagetruecolortopalette($image, false, 256);
             imagepng($image, $fresh, 9, PNG_ALL_FILTERS);
         }
@@ -148,32 +150,30 @@ class ShareImagesCommand extends Command
     }
 
     /**
-     * The card background (navy, dots, the orange glow behind the drawing and a blue one under it) as a PNG drawn here
-     * with GD: Chrome dithers CSS gradients, and that noise would make every card three times heavier.
+     * The card background as a PNG drawn here with GD: a solid colour (navy, or white for the light cards) with a flat
+     * pattern of faint dots. No gradients or glows (the brand rule); a CSS dot pattern would also be dithered by Chrome.
+     *
+     * @param  'navy'|'white'  $theme
      */
-    private function background(string $dir, string $file): string
+    private function background(string $theme, string $file): string
     {
         [$width, $height] = [ShareCards::WIDTH, ShareCards::HEIGHT];
-        $mirror = fn (float $x) => $dir === 'ltr' ? $width - $x : $x;
-        // [centre x, centre y, radius x, radius y, fade-out at, [r, g, b], strength]
-        $glows = [
-            [$mirror(0.14 * $width), 0.08 * $height, 0.62 * $width, 0.88 * $height, 0.72, [242, 101, 34], 0.42],
-            [$mirror(0.30 * $width), $height, 0.40 * $width, 0.55 * $height, 0.70, [0, 91, 166], 0.30],
-        ];
+        // [background, dot colour, dot strength]
+        [$base, $dot, $strength] = $theme === 'white'
+            ? [[255, 255, 255], [6, 26, 46], 0.06]
+            : [[6, 26, 46], [255, 255, 255], 0.075];
         $image = imagecreatetruecolor($width, $height);
+        $baseColor = ($base[0] << 16) | ($base[1] << 8) | $base[2];
+        $dotColor = ((int) round($base[0] + ($dot[0] - $base[0]) * $strength) << 16)
+            | ((int) round($base[1] + ($dot[1] - $base[1]) * $strength) << 8)
+            | (int) round($base[2] + ($dot[2] - $base[2]) * $strength);
+        imagefilledrectangle($image, 0, 0, $width - 1, $height - 1, $baseColor);
         for ($y = 0; $y < $height; $y++) {
             for ($x = 0; $x < $width; $x++) {
-                [$r, $g, $b] = [6, 26, 46];
                 if ($x % 28 >= 13 && $x % 28 <= 16 && $y % 28 >= 13 && $y % 28 <= 16
                     && ($x % 28 - 14.5) ** 2 + ($y % 28 - 14.5) ** 2 <= 2.9) {
-                    [$r, $g, $b] = [$r + (255 - $r) * 0.075, $g + (255 - $g) * 0.075, $b + (255 - $b) * 0.075];
+                    imagesetpixel($image, $x, $y, $dotColor);
                 }
-                foreach ($glows as [$cx, $cy, $rx, $ry, $stop, $color, $strength]) {
-                    $distance = sqrt((($x - $cx) / $rx) ** 2 + (($y - $cy) / $ry) ** 2);
-                    $alpha = $strength * max(0, 1 - $distance / $stop);
-                    [$r, $g, $b] = [$r + ($color[0] - $r) * $alpha, $g + ($color[1] - $g) * $alpha, $b + ($color[2] - $b) * $alpha];
-                }
-                imagesetpixel($image, $x, $y, ((int) round($r) << 16) | ((int) round($g) << 8) | (int) round($b));
             }
         }
         imagepng($image, $file, 1);

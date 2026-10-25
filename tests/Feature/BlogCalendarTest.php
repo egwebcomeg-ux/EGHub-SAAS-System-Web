@@ -187,4 +187,25 @@ class BlogCalendarTest extends TenantTestCase
         $this->assertTrue($post->fresh()->is_published);
         $this->assertFalse($post->fresh()->isLive());
     }
+
+    public function test_every_seeded_article_gets_a_cover_and_apply_swaps_in_redrawn_ones_but_keeps_uploaded_covers(): void
+    {
+        $this->assertCount(28, (new BlogSeeder)->coverCards());
+        $this->assertSame(0, Post::query()->whereNull('cover')->count());
+
+        // production: an article from before the covers, one with the first drawing, one the owner gave a cover
+        Post::query()->where('slug', 'menu-engineering')->update(['cover' => null]);
+        Post::query()->where('slug', 'takeaway-packaging-guide')->update(['cover' => 'platform/blog/takeaway-packaging-guide.webp']);
+        Post::query()->where('slug', 'year-end-review')->update(['cover' => 'platform/blog/owner-upload.webp']);
+
+        $this->artisan('egmenu:blog-covers', ['--apply' => true])->expectsOutput('2 article covers updated.')->assertSuccessful();
+
+        foreach (['menu-engineering', 'takeaway-packaging-guide'] as $slug) {
+            $cover = Post::query()->where('slug', $slug)->value('cover');
+            $this->assertMatchesRegularExpression("~^platform/blog/$slug-[0-9a-f]{8}\.webp$~", $cover);
+            Storage::disk('public')->assertExists($cover);
+        }
+        $this->assertSame('platform/blog/owner-upload.webp', Post::query()->where('slug', 'year-end-review')->value('cover'));
+        $this->artisan('egmenu:blog-covers', ['--apply' => true])->expectsOutput('0 article covers updated.');
+    }
 }

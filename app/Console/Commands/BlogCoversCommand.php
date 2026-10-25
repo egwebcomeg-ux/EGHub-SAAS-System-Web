@@ -8,16 +8,17 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Process;
 
 /**
- * Draws the covers of the calendar articles in database/seeders/BlogSeeder.php (coverCards()) into
+ * Draws the covers of the articles in database/seeders/BlogSeeder.php (coverCards()) into
  * database/seeders/blog-covers/{slug}.webp with a local headless Chrome, the same way as `egmenu:share-images`
  * (resources/js/tools/share-cards.mjs). Run it on a developer machine and commit the files: the server has no Chrome.
- * BlogSeeder copies a drawn cover to the public disk when it creates the article.
+ * BlogSeeder copies a drawn cover to the public disk when it creates the article; on the server, `--apply` (no Chrome
+ * needed) puts the committed drawings on the articles that already exist.
  */
 class BlogCoversCommand extends Command
 {
     protected $signature = 'egmenu:blog-covers
-        {--only=* : Article slugs to draw (all calendar covers when empty)}
-        {--domain=eghub.app : Domain shown on the covers}
+        {--only=* : Article slugs to draw (all covers when empty)}
+        {--apply : Do not draw: put the committed drawings on the existing articles (run on the server after a deploy)}
         {--chrome= : Path to Chrome or Chromium (found automatically when empty)}';
 
     protected $description = 'Draw the blog article covers with headless Chrome';
@@ -37,6 +38,12 @@ class BlogCoversCommand extends Command
 
     public function handle(): int
     {
+        if ($this->option('apply')) {
+            $this->info((new BlogSeeder)->applyCovers().' article covers updated.');
+
+            return self::SUCCESS;
+        }
+
         $chrome = $this->option('chrome') ?: collect(self::CHROME_PATHS)->first(fn (string $path) => is_file($path));
         if (! $chrome || ! is_file($chrome)) {
             $this->error('Chrome not found: pass --chrome=/path/to/chrome');
@@ -63,7 +70,7 @@ class BlogCoversCommand extends Command
         $jobs = [];
         foreach ($cards as $slug => $card) {
             $html = "$work/$slug.html";
-            File::put($html, view('share-cards.blog-cover', ['card' => $card, 'domain' => $this->option('domain')])->render());
+            File::put($html, view('share-cards.blog-cover', ['card' => $card])->render());
             $jobs[] = ['slug' => $slug, 'html' => 'file:///'.str_replace('\\', '/', $html), 'png' => "$work/$slug.png"];
         }
         app()->setLocale($previousLocale);
