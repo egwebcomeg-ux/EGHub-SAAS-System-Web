@@ -1,9 +1,11 @@
 {{--
     The EgHub screen player: eghub.app/screen (mode "device", paired with a code) and the older /tv/{token} link
     (mode "link", the link is the key). One self-contained page: no Tailwind build and no Vite, because TV browsers are
-    old Chromium (Samsung Tizen 4-6 = Chromium 56-76, LG webOS 4-6 = Chrome 53-79). The CSS avoids grid, flex `gap`,
-    custom properties, `inset` and dvh; the script is ES5 with Promise/XHR only (no arrows, async, ?. or ??).
+    old Chromium (Samsung Tizen 3-6 = Chromium 47-76, LG webOS 3-6 = Chrome 38-79). The CSS avoids grid, flex `gap`,
+    custom properties, `inset` and dvh; the script is ES5 with Promise/XHR only (no arrows, let/const, async, ?. or ??).
     Sizes are rem, and the root font size is 1% of the screen's short side, so 1080p and 4K look the same.
+    A split screen has two areas (zones): each is drawn at the size of a whole screen of its own shape and scaled down
+    to its box, so every slide and design reads the same in a side column as on a full screen.
 --}}
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -22,16 +24,32 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
 * { box-sizing: border-box; }
 #stage { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
 #frame { position: absolute; left: 0; top: 0; overflow: hidden; background: #0f1420; -webkit-transform-origin: 0 0; transform-origin: 0 0; }
+.zone { position: absolute; overflow: hidden; }
+.zone-in { position: absolute; left: 0; top: 0; overflow: hidden; -webkit-transform-origin: 0 0; transform-origin: 0 0; }
 .layer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: 0; -webkit-transition: opacity .7s ease; transition: opacity .7s ease; overflow: hidden; }
 .layer.on { opacity: 1; }
 .slide { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; }
-.has-ticker .slide { height: 93%; }
 .top { position: absolute; left: 0; top: 0; width: 100%; height: 10%; padding: 0 3%; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; }
 .top img { height: 70%; max-width: 18%; -o-object-fit: contain; object-fit: contain; border-radius: 1rem; background: #fff; padding: .4rem; margin-left: 2rem; }
 .ltr .top img { margin-left: 0; margin-right: 2rem; }
 .top .brand { font-size: 4.2rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -webkit-flex: 1; flex: 1; }
 .top .clock { font-size: 3.4rem; font-weight: 700; opacity: .75; direction: ltr; }
 .body { position: absolute; left: 0; top: 10%; width: 100%; height: 90%; padding: 0 3% 2.5%; }
+.zone-side .top { display: none; }
+.zone-side .body { top: 0; height: 100%; padding-top: 3%; }
+.qr-on .top { height: 15%; }
+.qr-on .body { top: 15%; height: 85%; }
+.qrc { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; margin-right: 3rem; height: 100%; padding: 1rem 0; }
+.ltr .qrc { margin-right: 0; margin-left: 3rem; }
+.qrc span { font-size: 2.4rem; font-weight: 800; margin-left: 1.4rem; max-width: 14rem; line-height: 1.2; text-align: center; }
+.ltr .qrc span { margin-left: 0; margin-right: 1.4rem; }
+.qrc .box, .qrf .box { background: #fff; border-radius: 1rem; padding: .6rem; }
+.qrc .box { height: 100%; width: 12.5rem; }
+.qrc svg, .qrf svg { width: 100%; height: 100%; display: block; }
+.qrf { position: absolute; top: 2.5rem; z-index: 2; text-align: center; font-size: 2.4rem; font-weight: 800; color: #fff; }
+.qrf .box { width: 16rem; height: 16rem; margin-bottom: .8rem; }
+.qrf span { background: #0A2540; border-radius: .8rem; padding: .3rem 1.2rem; }
+.rtl .qrf { left: 2.5rem; } .ltr .qrf { right: 2.5rem; }
 .split { display: -webkit-box; display: -webkit-flex; display: flex; }
 .split .main { -webkit-flex: 0 0 63%; flex: 0 0 63%; height: 100%; position: relative; }
 .split .side { -webkit-flex: 1; flex: 1; height: 100%; margin-right: 2.5%; border-radius: 2rem; overflow: hidden; position: relative; background: #000; }
@@ -51,6 +69,7 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
 .ltr .row img { margin-left: 0; margin-right: .7em; }
 .row .item { -webkit-flex: 1; flex: 1; min-width: 0; font-weight: 700; line-height: 1.2; overflow: hidden; }
 .row .desc { font-size: .62em; font-weight: 500; opacity: .65; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tag { display: inline-block; font-size: .5em; font-weight: 800; padding: .12em .55em; border-radius: 1em; margin: 0 .5em; vertical-align: middle; line-height: 1.4; }
 .price { font-weight: 800; white-space: nowrap; margin-right: .8em; }
 .ltr .price { margin-right: 0; margin-left: .8em; }
 .price s { font-size: .65em; opacity: .55; font-weight: 600; margin: 0 .4em; }
@@ -60,6 +79,7 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
 .card .in { border-radius: 1.2em; overflow: hidden; height: 100%; }
 .card .ph { position: relative; width: 100%; padding-top: 62%; background: rgba(127,127,127,.15); }
 .card .ph img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; -o-object-fit: cover; object-fit: cover; }
+.card .ph .tag { position: absolute; top: .5em; font-size: .6em; margin: 0 .5em; }
 .card .tx { padding: .5em .7em .6em; }
 .card .nm { font-weight: 800; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card .price { margin: 0; display: block; }
@@ -77,6 +97,7 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
 .offer .pct { font-size: 15rem; font-weight: 900; line-height: 1.25; }
 .offer h1 { font-size: 6.4rem; margin: .45em 0 .15em; font-weight: 900; line-height: 1.15; }
 .offer .meta { font-size: 3.6rem; opacity: .85; font-weight: 700; }
+.offer .cdn { display: inline-block; direction: ltr; unicode-bidi: embed; font-weight: 900; padding: .1em .5em; border-radius: .4em; margin: 0 .3em; }
 .offer .grid { margin-top: 4rem; -webkit-justify-content: center; justify-content: center; font-size: 3rem; }
 .ready { height: 100%; text-align: center; padding-top: 1rem; }
 .ready h1 { font-size: 8rem; margin: 0 0 3rem; font-weight: 900; }
@@ -86,7 +107,7 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
 .ready .empty { font-size: 4.6rem; opacity: .7; margin-top: 12rem; }
 .idle { height: 100%; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; }
 .idle img { width: 26rem; height: 26rem; -o-object-fit: contain; object-fit: contain; border-radius: 3rem; background: #fff; padding: 2rem; }
-.idle .brand { font-size: 7rem; font-weight: 900; margin-top: 3rem; }
+.idle .brand { font-size: 7rem; font-weight: 900; margin-top: 3rem; text-align: center; }
 .idle .clock { font-size: 5rem; opacity: .6; margin-top: 1rem; direction: ltr; }
 #ticker { position: absolute; left: 0; bottom: 0; width: 100%; height: 7%; overflow: hidden; white-space: nowrap; display: none; font-size: 3.6rem; font-weight: 800; -webkit-box-align: center; -webkit-align-items: center; align-items: center; }
 .has-ticker #ticker { display: -webkit-box; display: -webkit-flex; display: flex; }
@@ -97,8 +118,15 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
 .rtl #ticker .move { -webkit-animation-name: tickr; animation-name: tickr; }
 @-webkit-keyframes tickr { 0% { -webkit-transform: translateX(0); } 100% { -webkit-transform: translateX(100%); } }
 @keyframes tickr { 0% { transform: translateX(0); } 100% { transform: translateX(100%); } }
-#dot { position: absolute; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: #f59e0b; left: 1.4rem; bottom: 1.4rem; display: none; opacity: .85; z-index: 5; }
+#dot { position: absolute; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: #f59e0b; left: 1.4rem; bottom: 1.4rem; display: none; opacity: .85; z-index: 9; }
 #dot.on { display: block; }
+#alert { position: absolute; left: 0; top: 0; width: 100%; display: none; z-index: 8; overflow: hidden; }
+#alert.on { display: block; }
+#alert.banner { height: 16%; }
+#alert.full { height: 100%; }
+#alert .in { position: absolute; left: 4%; right: 4%; top: 0; bottom: 0; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; text-align: center; font-weight: 900; line-height: 1.25; word-wrap: break-word; }
+#alert.banner .in { font-size: 5.4rem; }
+#alert.full .in { font-size: 10rem; }
 #pair, #note { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: #0A2540; color: #fff; display: none; z-index: 10; }
 #pair.on, #note.on { display: block; }
 #pair { cursor: default; }
@@ -107,8 +135,8 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
 .ltr #pair .qr { margin-left: 0; margin-right: 6rem; }
 #pair .qr svg { width: 100%; height: 100%; display: block; }
 #pair .txt { -webkit-flex: 1; flex: 1; min-width: 0; }
-.portrait #pair .wrap { -webkit-flex-direction: column-reverse; flex-direction: column-reverse; -webkit-justify-content: center; justify-content: center; text-align: center; }
-.portrait #pair .qr { margin: 5rem 0 0; }
+.f-portrait #pair .wrap { -webkit-flex-direction: column-reverse; flex-direction: column-reverse; -webkit-justify-content: center; justify-content: center; text-align: center; }
+.f-portrait #pair .qr { margin: 5rem 0 0; }
 #pair .logo { font-size: 4rem; font-weight: 900; letter-spacing: .05em; color: #F37623; }
 #pair h1 { font-size: 5.4rem; margin: 1.5rem 0 .5rem; line-height: 1.2; font-weight: 800; }
 #pair .en { font-size: 2.8rem; opacity: .6; margin: 0 0 2.5rem; direction: ltr; }
@@ -122,9 +150,10 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
 #note .wrap { position: absolute; left: 10%; right: 10%; top: 35%; text-align: center; font-size: 4.6rem; font-weight: 800; line-height: 1.4; }
 #note .wrap small { display: block; font-size: 2.8rem; opacity: .6; margin-top: 2rem; font-weight: 600; }
 </style>
+@include('screen.partials.designs')
 </head>
 <body>
-<div id="frame"><div id="stage"></div><div id="ticker"></div><div id="dot" title="offline"></div>
+<div id="frame"><div id="stage"></div><div id="ticker"></div><div id="alert"><div class="in" id="alert-text"></div></div><div id="dot" title="offline"></div>
     <div id="pair" role="dialog" aria-live="polite">
         <div class="wrap">
             <div class="qr" id="pair-qr"></div>
@@ -152,6 +181,7 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
         'paused' => __('This screen is paused. Check the subscription in the dashboard.'),
         'no_network' => __('No internet. The screen starts as soon as the connection is back.'),
         'paired' => __('Paired! Loading the screen…'),
+        'scan' => __('Scan to order'),
     ],
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
 @verbatim
@@ -169,12 +199,15 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
     var frame = document.getElementById('frame');
     var stage = document.getElementById('stage');
     var tickerEl = document.getElementById('ticker');
+    var alertEl = document.getElementById('alert');
     var dot = document.getElementById('dot');
     var state = {
-        token: null, data: null, version: null, reload: null, skew: 0, tz: 120, index: -1, page: 0, pages: 1,
-        timer: null, lastOk: 0, lastAdvance: Date.now(), started: Date.now(), media: {}, readyCache: {}, layers: [], active: 0,
-        pairing: null, pairTimer: null, pollTimer: null, beatTimer: null, readyTimer: null, video: null
+        token: null, data: null, version: null, reload: null, skew: 0, tz: 120, lists: { main: [], side: [] },
+        lastOk: 0, started: Date.now(), media: {}, readyCache: {}, zoneLayout: null,
+        pairing: null, pairTimer: null, pollTimer: null, liveTimer: null, alert: null, alertTimer: null, fw: 0, fh: 0
     };
+    /* the areas of the screen: one ("main"), or a main and a side area; each loops its own slides */
+    var zones = [];
 
     /* ---------- small helpers ---------- */
     function parseQuery(q) {
@@ -233,7 +266,8 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
         if (d && d.now) { state.skew = d.now - Date.now(); }
         if (d && typeof d.tz === 'number') { state.tz = d.tz; }
     }
-    function cairo() { return new Date(Date.now() + state.skew + state.tz * 60000); }
+    function serverNow() { return Date.now() + state.skew; }
+    function cairo() { return new Date(serverNow() + state.tz * 60000); }
     function two(n) { return (n < 10 ? '0' : '') + n; }
     function hhmm(d) { return two(d.getUTCHours()) + ':' + two(d.getUTCMinutes()); }
     function ymd(d) { return d.getUTCFullYear() + '-' + two(d.getUTCMonth() + 1) + '-' + two(d.getUTCDate()); }
@@ -257,6 +291,13 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
         if ((o.starts_on && day < o.starts_on) || (o.ends_on && day > o.ends_on)) { return false; }
         return hoursOk({ days: o.days, from: o.from, to: o.to }, d);
     }
+    /* milliseconds until a running offer's hours end today (null without an end time) */
+    function offerLeft(o, d) {
+        if (!o.to) { return null; }
+        var p = o.to.split(':'), end = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), parseInt(p[0], 10), parseInt(p[1], 10));
+        if (end <= d.getTime()) { end += 86400000; }
+        return end - d.getTime();
+    }
 
     /* ---------- size: the frame fills the screen, turned for a portrait screen hung on a landscape output ---------- */
     function layout() {
@@ -264,6 +305,8 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
         var o = state.data ? state.data.screen.orientation : 'landscape';
         var turn = (o === 'portrait' || o === 'portrait2') && w > h;
         var fw = turn ? h : w, fh = turn ? w : h;
+        state.fw = fw;
+        state.fh = fh;
         frame.style.width = fw + 'px';
         frame.style.height = fh + 'px';
         var t = '';
@@ -273,7 +316,7 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
         /* the owner's text size (screen size and distance, or set by hand): 1 = 1% of the short side */
         var scale = state.data && state.data.screen.scale ? Math.max(0.8, Math.min(1.5, state.data.screen.scale)) : 1;
         document.documentElement.style.fontSize = (Math.min(fw, fh) * scale / 100) + 'px';
-        var cls = [fh > fw ? 'portrait' : 'landscape'];
+        var cls = [fh > fw ? 'f-portrait' : 'f-landscape'];
         if (state.data) {
             cls.push(state.data.screen.dir === 'ltr' ? 'ltr' : 'rtl');
             cls.push(state.data.screen.theme === 'light' ? 'light' : 'dark');
@@ -282,22 +325,76 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
             cls.push(document.documentElement.dir === 'ltr' ? 'ltr' : 'rtl');
         }
         frame.className = cls.join(' ');
+        placeZones();
+    }
+    /* where each area goes: a side column (or a band at the bottom when portrait), or two halves */
+    function placeZones() {
+        if (!zones.length) { return; }
+        var fw = state.fw, fh = state.fh, d = state.data;
+        var sh = Math.round(fh * (d && d.screen.ticker ? 0.93 : 1));
+        stage.style.height = sh + 'px';
+        var rects = [{ x: 0, y: 0, w: fw, h: sh }];
+        if (zones.length > 1) {
+            var gap = Math.round(Math.min(fw, fh) * 0.012), share = d.screen.zones === 'halves' ? 0.5 : 0.68, rtl = d.screen.dir !== 'ltr';
+            if (fh > fw) {
+                var mh = Math.round((sh - gap) * share);
+                rects = [{ x: 0, y: 0, w: fw, h: mh }, { x: 0, y: mh + gap, w: fw, h: sh - mh - gap }];
+            } else {
+                var mw = Math.round((fw - gap) * share), sw = fw - gap - mw;
+                rects = rtl ? [{ x: sw + gap, y: 0, w: mw, h: sh }, { x: 0, y: 0, w: sw, h: sh }] : [{ x: 0, y: 0, w: mw, h: sh }, { x: mw + gap, y: 0, w: sw, h: sh }];
+            }
+        }
+        var shortSide = Math.min(fw, fh);
+        for (var i = 0; i < zones.length; i++) {
+            var z = zones[i], r = rects[i] || rects[0];
+            /* a full screen keeps its own size; an area is drawn as a whole screen of its shape, then scaled to its box */
+            var f = zones.length > 1 ? Math.min(r.w, r.h) / shortSide : 1;
+            z.el.style.left = r.x + 'px';
+            z.el.style.top = r.y + 'px';
+            z.el.style.width = r.w + 'px';
+            z.el.style.height = r.h + 'px';
+            z.inner.style.width = (r.w / f) + 'px';
+            z.inner.style.height = (r.h / f) + 'px';
+            var tf = f === 1 ? '' : 'scale(' + f + ')';
+            z.inner.style.webkitTransform = tf;
+            z.inner.style.transform = tf;
+            z.portrait = r.h > r.w;
+            var qr = z.name === 'main' && d && d.screen.show_qr && d.brand.qr;
+            z.inner.className = 'zone-in ' + (z.portrait ? 'portrait' : 'landscape') + (z.name === 'side' ? ' zone-side' : '') + (qr ? ' qr-on' : '');
+        }
+    }
+    function buildZones() {
+        var want = state.data && (state.data.screen.zones === 'side' || state.data.screen.zones === 'halves') ? state.data.screen.zones : 'full';
+        if (want === state.zoneLayout && zones.length) { return; }
+        state.zoneLayout = want;
+        zones.forEach(function (z) { clearTimeout(z.timer); clearTimeout(z.readyTimer); clearInterval(z.tickTimer); });
+        stage.innerHTML = '';
+        zones = [];
+        var names = want === 'full' ? ['main'] : ['main', 'side'];
+        names.forEach(function (name) {
+            var z = { name: name, el: el('div', 'zone'), inner: el('div', 'zone-in'), index: -1, page: 0, pages: 1, timer: null, layers: [], active: 0,
+                menuPages: null, menuSlide: null, readyTimer: null, tickTimer: null, lastAdvance: Date.now(), portrait: false, cur: null };
+            z.el.appendChild(z.inner);
+            stage.appendChild(z.el);
+            zones.push(z);
+        });
     }
 
     /* ---------- colours of the current playlist (no CSS variables on old TVs) ---------- */
     function applyTheme() {
-        var d = state.data, light = d.screen.theme === 'light', p = d.brand.primary || '#F26522';
+        var d = state.data, light = d.screen.theme === 'light', p = d.brand.primary || '#F26522', pf = window.EgDesigns ? EgDesigns.on(p) : '#fff';
         var css = '#frame{background:' + (light ? '#ffffff' : '#0f1420') + ';color:' + (light ? '#0A2540' : '#f3f4f6') + '}' +
             '.cat,.card .in{background:' + (light ? '#f3f5f9' : 'rgba(255,255,255,.05)') + '}' +
             '.cat h2,.price,.offer .pct,.top .brand{color:' + p + '}' +
-            '.ready .num{background:' + p + ';color:#fff}' +
+            '.ready .num,.tag,.offer .cdn{background:' + p + ';color:' + pf + '}' +
             '.offer{color:' + (light ? '#0A2540' : '#fff') + '}' +
-            '#ticker{background:' + p + ';color:#fff}';
+            '#ticker{background:' + p + ';color:' + pf + '}';
         var tag = document.getElementById('theme');
         if (!tag) { tag = el('style'); tag.id = 'theme'; document.head.appendChild(tag); }
         tag.textContent = css;
         document.documentElement.lang = d.screen.lang === 'en' ? 'en' : 'ar';
         document.documentElement.dir = d.screen.dir;
+        if (window.EgDesigns) { EgDesigns.labels = d.labels.design || null; }
         if (d.screen.ticker) {
             tickerEl.innerHTML = '<span class="move" style="-webkit-animation-duration:' + Math.max(15, d.screen.ticker.length / 4) + 's;animation-duration:' + Math.max(15, d.screen.ticker.length / 4) + 's">' + esc(d.screen.ticker) + '</span>';
         } else {
@@ -365,11 +462,17 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
         /* the newest «reload» the screen already obeyed: an old request never reloads it again */
         state.reload = Math.max(state.reload || 0, d.reload || 0, parseInt(get('reload-seen') || '0', 10) || 0);
         if (!fromCache) { set('playlist:' + storeKey, JSON.stringify(d)); }
+        state.lists = { main: [], side: [] };
+        d.slides.forEach(function (s) { state.lists[s.zone === 'side' ? 'side' : 'main'].push(s); });
+        var before = state.zoneLayout;
+        buildZones();
         applyTheme();
         layout();
         hideOverlays();
-        prefetch(d.media || []).then(function () { if (state.index === -1) { next(); } });
-        if (first) { setTimeout(function () { if (state.index === -1) { next(); } }, 2500); }
+        /* a new layout starts every area again; otherwise each area goes on from where it is */
+        var restart = before !== state.zoneLayout;
+        prefetch(d.media || []).then(function () { zones.forEach(function (z) { if (z.index === -1 || restart) { next(z); } }); });
+        if (first) { setTimeout(function () { zones.forEach(function (z) { if (z.index === -1) { next(z); } }); }, 2500); }
     }
     function eligible(s, now) {
         if (!hoursOk(s.hours, now)) { return false; }
@@ -379,67 +482,79 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
             return false;
         }
         if (s.type === 'ready') { return !!state.data.ready_allowed; }
+        if (s.type === 'promo') { return (!s.ends || s.ends > serverNow()) && mediaReady(s.image); }
         return true;
     }
-    function next() {
-        clearTimeout(state.timer);
-        state.lastAdvance = Date.now();
+    function next(z) {
+        clearTimeout(z.timer);
+        clearInterval(z.tickTimer);
+        z.lastAdvance = Date.now();
         var d = state.data;
         if (!d) { return; }
-        var now = cairo();
-        if (!hoursOk(d.screen.hours, now) || !d.slides.length) { show(idleSlide(), 60); return; }
-        var cur = d.slides[state.index];
-        if (cur && state.page + 1 < state.pages) { state.page++; showPage(); return; }
-        var n = d.slides.length;
+        var now = cairo(), list = state.lists[z.name] || [];
+        if (!hoursOk(d.screen.hours, now) || !list.length) { z.index = -1; z.cur = null; show(z, idleSlide(z), 60); return; }
+        var cur = list[z.index];
+        if (cur && z.page + 1 < z.pages) { z.page++; showPage(z); return; }
+        var n = list.length;
         for (var k = 1; k <= n; k++) {
-            var i = (state.index + k + n) % n;
-            if (eligible(d.slides[i], now)) { state.index = i; state.page = 0; render(d.slides[i]); return; }
+            var i = (z.index + k + n) % n;
+            if (eligible(list[i], now)) { z.index = i; z.page = 0; z.cur = list[i]; render(z, list[i]); return; }
         }
-        state.index = -1;
-        show(idleSlide(), 30);
+        z.index = -1;
+        z.cur = null;
+        show(z, idleSlide(z), 30);
     }
 
     /* ---------- drawing ---------- */
-    function header() {
+    function qrHtml(cls) {
+        var d = state.data;
+        if (!d || !d.screen.show_qr || !d.brand.qr) { return ''; }
+        return '<div class="' + cls + '"><div class="box">' + d.brand.qr + '</div><span>' + esc(T.scan) + '</span></div>';
+    }
+    function header(z) {
         var b = state.data.brand;
         return '<div class="top">' + (b.logo ? '<img src="' + esc(src(b.logo)) + '" alt="">' : '') +
-            '<div class="brand">' + esc(b.name) + '</div><div class="clock" data-clock>' + esc(clockText()) + '</div></div>';
+            '<div class="brand">' + esc(b.name) + '</div><div class="clock" data-clock>' + esc(clockText()) + '</div>' + (z.name === 'main' ? qrHtml('qrc') : '') + '</div>';
     }
     function priceHtml(it) {
         var cur = state.data.brand.currency;
         return '<span class="price">' + (it.was ? '<s>' + esc(it.was) + '</s>' : '') + esc(it.price) + (cur ? '<i>' + esc(cur) + '</i>' : '') + '</span>';
     }
-    function idleSlide() {
-        var b = state.data ? state.data.brand : { name: 'EgHub' };
-        var s = el('div', 'slide', '<div class="idle">' + (b.logo ? '<img src="' + esc(src(b.logo)) + '" alt="">' : '') +
-            '<div class="brand">' + esc(b.name) + '</div><div class="clock" data-clock>' + esc(clockText()) + '</div></div>');
-        return s;
+    function tagHtml(it) {
+        if (!it.tag) { return ''; }
+        var L = state.data.labels;
+        return '<b class="tag">' + esc(it.tag === 'new' ? L.tag_new : L.tag_best) + '</b>';
     }
-    function menuRows(cats, s) {
+    function idleSlide(z) {
+        var b = state.data ? state.data.brand : { name: 'EgHub' };
+        return el('div', 'slide', '<div class="idle">' + (b.logo ? '<img src="' + esc(src(b.logo)) + '" alt="">' : '') +
+            '<div class="brand">' + esc(b.name) + '</div>' + (z.name === 'main' ? '<div class="clock" data-clock>' + esc(clockText()) + '</div>' : '') + '</div>');
+    }
+    function menuRows(z, cats, s) {
         var html = '';
         cats.forEach(function (c) {
             html += '<div class="cat"><h2>' + esc(c.name) + (c.alt ? '<small>' + esc(c.alt) + '</small>' : '') + '</h2>';
             c.items.forEach(function (it) {
                 html += '<div class="row">' + (s.show_images && it.image ? '<img src="' + esc(src(it.image)) + '" alt="">' : '') +
-                    '<div class="item">' + esc(it.name) + (it.alt ? '<small>' + esc(it.alt) + '</small>' : '') +
+                    '<div class="item">' + esc(it.name) + tagHtml(it) + (it.alt ? '<small>' + esc(it.alt) + '</small>' : '') +
                     (it.desc ? '<div class="desc">' + esc(it.desc) + '</div>' : '') + '</div>' + priceHtml(it) + '</div>';
             });
             html += '</div>';
         });
-        var n = columnsFor(s, 2);
+        var n = columnsFor(z, s, 2);
         return '<div class="fit cols" style="-webkit-column-count:' + n + ';-moz-column-count:' + n + ';column-count:' + n + '">' + html + '</div>';
     }
-    function menuCards(items, s) {
-        var w = (100 / columnsFor(s, 3)).toFixed(3) + '%', html = '';
+    function menuCards(z, items, s) {
+        var w = (100 / columnsFor(z, s, 3)).toFixed(3) + '%', html = '';
         items.forEach(function (it) {
-            html += '<div class="card" style="width:' + w + '"><div class="in">' + (s.show_images ? '<div class="ph">' + (it.image ? '<img src="' + esc(src(it.image)) + '" alt="">' : '') + '</div>' : '') +
+            html += '<div class="card" style="width:' + w + '"><div class="in">' + (s.show_images ? '<div class="ph">' + (it.image ? '<img src="' + esc(src(it.image)) + '" alt="">' : '') + tagHtml(it) + '</div>' : '') +
                 '<div class="tx"><div class="nm">' + esc(it.name) + '</div>' + priceHtml(it) + '</div></div></div>';
         });
         return '<div class="fit grid">' + html + '</div>';
     }
-    /* a portrait screen is narrow: fewer columns than a wide one */
-    function columnsFor(s, portraitMax) {
-        return frame.className.indexOf('portrait') !== -1 ? Math.min(portraitMax, s.columns) : s.columns;
+    /* a portrait area is narrow: fewer columns than a wide one */
+    function columnsFor(z, s, portraitMax) {
+        return z.portrait ? Math.min(portraitMax, s.columns) : s.columns;
     }
     function sideHtml(side) {
         if (!side) { return ''; }
@@ -483,95 +598,120 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
         inner.style.fontSize = lo + 'rem';
         return !over();
     }
+    /* what a ready design needs: the slide's words and price, the brand, the photo from the cache */
+    function designData(s) {
+        var d = state.data;
+        return {
+            title: s.title, alt: s.alt, desc: s.desc, price: s.price, was: s.was, badge: s.badge, bg: s.bg, ends: s.ends,
+            image: s.image ? src(s.image) : null, now: serverNow(), lang: d.screen.lang === 'en' ? 'en' : 'ar',
+            labels: d.labels.design || {},
+            brand: { name: d.brand.name, logo: d.brand.logo ? src(d.brand.logo) : null, primary: d.brand.primary, secondary: d.brand.secondary, currency: d.brand.currency, qr: d.brand.qr }
+        };
+    }
 
-    function render(s) {
+    function render(z, s) {
         var node, seconds = s.duration || 15;
-        state.pages = 1;
+        z.pages = 1;
         if (s.type === 'menu') {
             if (s.layout === 'featured' && s.item) {
                 var it = s.item;
-                node = el('div', 'slide', header() + '<div class="body"><div class="feat"><div class="ph">' + (it.image ? '<img class="fill" src="' + esc(src(it.image)) + '" alt="">' : '') +
-                    '</div><div class="info"><h1>' + esc(it.name) + (it.alt ? '<small style="display:block;font-size:.45em;opacity:.7">' + esc(it.alt) + '</small>' : '') + '</h1>' +
+                node = el('div', 'slide', header(z) + '<div class="body"><div class="feat"><div class="ph">' + (it.image ? '<img class="fill" src="' + esc(src(it.image)) + '" alt="">' : '') +
+                    '</div><div class="info"><h1>' + esc(it.name) + tagHtml(it) + (it.alt ? '<small style="display:block;font-size:.45em;opacity:.7">' + esc(it.alt) + '</small>' : '') + '</h1>' +
                     (it.desc ? '<p>' + esc(it.desc) + '</p>' : '') + priceHtml(it) + '</div></div></div>');
-                show(node, seconds);
+                show(z, node, seconds);
                 return;
             }
-            state.menuPages = menuPages(s);
-            state.pages = state.menuPages.length;
-            state.menuSlide = s;
-            showPage();
+            z.menuPages = menuPages(s);
+            z.pages = z.menuPages.length;
+            z.menuSlide = s;
+            showPage(z);
             return;
         }
         if (s.type === 'image') {
-            node = el('div', 'slide', '<img class="fill" src="' + esc(src(s.url)) + '" alt="">');
-            show(node, seconds);
+            node = el('div', 'slide', '<img class="fill" src="' + esc(src(s.url)) + '" alt="">' + (z.name === 'main' ? qrHtml('qrf') : ''));
+            show(z, node, seconds);
             return;
         }
         if (s.type === 'video') {
-            node = el('div', 'slide', '<video class="fill" muted playsinline preload="auto"' + (s.duration ? ' loop' : '') + ' src="' + esc(src(s.url)) + '"></video>');
-            show(node, s.duration || 0);
+            node = el('div', 'slide', '<video class="fill" muted playsinline preload="auto"' + (s.duration ? ' loop' : '') + ' src="' + esc(src(s.url)) + '"></video>' + (z.name === 'main' ? qrHtml('qrf') : ''));
+            show(z, node, s.duration || 0);
+            return;
+        }
+        if (s.type === 'promo' && window.EgDesigns) {
+            node = el('div', 'slide', EgDesigns.html(s.template, designData(s), { portrait: z.portrait }));
+            show(z, node, seconds, function (n) { EgDesigns.fit(n); });
+            if (s.ends) { z.tickTimer = setInterval(function () { EgDesigns.tick(node, serverNow()); }, 1000); }
             return;
         }
         if (s.type === 'offer') {
             var now = cairo(), o = null;
             for (var i = 0; i < s.offers.length; i++) { if (offerRuns(s.offers[i], now)) { o = s.offers[i]; break; } }
-            if (!o) { next(); return; }
-            var L = state.data.labels, cards = (s.items || []).slice(0, state.data.screen.orientation === 'landscape' ? 4 : 6);
-            node = el('div', 'slide', header() + '<div class="body"><div class="offer"><div class="pct">' + esc(L.off.replace('%s', o.percent)) + '</div><h1>' + esc(o.title) + '</h1>' +
-                '<div class="meta">' + esc(o.category) + (o.to ? (o.category ? ' · ' : '') + esc(L.until.replace('%s', o.to)) : '') + '</div>' +
-                (cards.length ? menuCards(cards, { columns: Math.min(cards.length, state.data.screen.orientation === 'landscape' ? 4 : 3), show_images: true }) : '') + '</div></div>');
-            show(node, seconds);
+            if (!o) { next(z); return; }
+            var L = state.data.labels, cards = (s.items || []).slice(0, z.portrait ? 6 : 4), ms = offerLeft(o, now);
+            /* a time-limited offer counts down its last hours */
+            var cdn = ms !== null && ms < 6 * 3600000 ? ' · ' + esc(L.ends_in) + '<span class="cdn" data-left="' + (serverNow() + ms) + '">' + esc(window.EgDesigns ? EgDesigns.countdownText(ms, L.design || {}) : '') + '</span>' : '';
+            node = el('div', 'slide', header(z) + '<div class="body"><div class="offer"><div class="pct">' + esc(L.off.replace('%s', o.percent)) + '</div><h1>' + esc(o.title) + '</h1>' +
+                '<div class="meta">' + esc(o.category) + (o.to ? (o.category ? ' · ' : '') + esc(L.until.replace('%s', o.to)) : '') + cdn + '</div>' +
+                (cards.length ? menuCards(z, cards, { columns: Math.min(cards.length, z.portrait ? 3 : 4), show_images: true }) : '') + '</div></div>');
+            show(z, node, seconds);
+            if (cdn) {
+                z.tickTimer = setInterval(function () {
+                    var c = node.querySelector('[data-left]');
+                    if (c && window.EgDesigns) { c.textContent = EgDesigns.countdownText(parseInt(c.getAttribute('data-left'), 10) - serverNow(), L.design || {}); }
+                }, 1000);
+            }
             return;
         }
         if (s.type === 'ready') {
-            node = el('div', 'slide', header() + '<div class="body"><div class="ready"><h1>' + esc(state.data.labels.ready) + '</h1><div class="nums" data-nums></div><div class="prep" data-prep></div></div></div>');
-            show(node, seconds);
+            node = el('div', 'slide', header(z) + '<div class="body"><div class="ready"><h1>' + esc(state.data.labels.ready) + '</h1><div class="nums" data-nums></div><div class="prep" data-prep></div></div></div>');
+            show(z, node, seconds);
             drawReady(node, s, state.readyCache[s.branch || 0]);
-            pollReady(node, s);
+            pollReady(z, node, s);
             return;
         }
-        next();
+        next(z);
     }
-    function showPage() {
-        var s = state.menuSlide, part = state.menuPages[state.page] || [];
-        var inner = s.layout === 'grid' ? menuCards(part, s) : menuRows(part, s);
+    function showPage(z) {
+        var s = z.menuSlide, part = z.menuPages[z.page] || [];
+        var inner = s.layout === 'grid' ? menuCards(z, part, s) : menuRows(z, part, s);
         var body = s.side ? '<div class="body split"><div class="main"><div class="fit-box">' + inner + '</div></div>' + sideHtml(s.side) + '</div>'
             : '<div class="body"><div class="fit-box">' + inner + '</div></div>';
-        var node = el('div', 'slide', header() + body);
-        show(node, s.duration || 15, function (n) {
+        var node = el('div', 'slide', header(z) + body);
+        show(z, node, s.duration || 15, function (n) {
             var box = n.querySelector('.fit-box');
             var ok = fit(box, s.layout === 'grid' ? 4 : 4.6, 1.9);
             /* too much for one page at a readable size: split this page in two and show the first half */
             if (!ok && part.length > 1) {
                 var half = Math.ceil(part.length / 2);
-                state.menuPages.splice(state.page, 1, part.slice(0, half), part.slice(half));
-                state.pages = state.menuPages.length;
-                var again = s.layout === 'grid' ? menuCards(part.slice(0, half), s) : menuRows(part.slice(0, half), s);
-                box.innerHTML = again;
+                z.menuPages.splice(z.page, 1, part.slice(0, half), part.slice(half));
+                z.pages = z.menuPages.length;
+                box.innerHTML = s.layout === 'grid' ? menuCards(z, part.slice(0, half), s) : menuRows(z, part.slice(0, half), s);
                 fit(box, s.layout === 'grid' ? 4 : 4.6, 1.2);
             } else if (!ok) {
                 fit(box, 4.6, 1.0);
             }
         });
     }
-    function show(node, seconds, measure) {
-        if (!state.layers.length) {
-            state.layers = [el('div', 'layer'), el('div', 'layer')];
-            stage.appendChild(state.layers[0]);
-            stage.appendChild(state.layers[1]);
+    function show(z, node, seconds, measure) {
+        if (!z.layers.length) {
+            z.layers = [el('div', 'layer'), el('div', 'layer')];
+            z.inner.appendChild(z.layers[0]);
+            z.inner.appendChild(z.layers[1]);
         }
-        var nextLayer = state.layers[1 - state.active], oldLayer = state.layers[state.active];
+        var nextLayer = z.layers[1 - z.active], oldLayer = z.layers[z.active];
         nextLayer.innerHTML = '';
         nextLayer.appendChild(node);
         if (measure) { try { measure(node); } catch (e) {} }
         /* nothing inside may stay scrolled (a hidden overflow can still be scrolled by the browser) */
         nextLayer.scrollTop = 0;
+        z.inner.scrollTop = 0;
+        z.el.scrollTop = 0;
         stage.scrollTop = 0;
         frame.scrollTop = 0;
         frame.scrollLeft = 0;
         nextLayer.className = 'layer on';
         oldLayer.className = 'layer';
-        state.active = 1 - state.active;
+        z.active = 1 - z.active;
         setTimeout(function () {
             var vids = oldLayer.getElementsByTagName('video');
             for (var i = 0; i < vids.length; i++) { try { vids[i].pause(); } catch (e) {} }
@@ -579,15 +719,15 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
         }, 900);
         var vids = node.getElementsByTagName('video');
         for (var i = 0; i < vids.length; i++) { playVideo(vids[i]); }
-        clearTimeout(state.timer);
+        clearTimeout(z.timer);
         var main = node.querySelector('.slide > video, video.fill');
         if (!seconds && main && node.firstChild === main) {
             /* a video without a duration plays to its end (capped at 10 minutes) */
-            main.onended = function () { next(); };
-            main.onerror = function () { next(); };
-            state.timer = setTimeout(next, 600000);
+            main.onended = function () { next(z); };
+            main.onerror = function () { next(z); };
+            z.timer = setTimeout(function () { next(z); }, 600000);
         } else {
-            state.timer = setTimeout(next, Math.max(5, seconds || 15) * 1000);
+            z.timer = setTimeout(function () { next(z); }, Math.max(5, seconds || 15) * 1000);
         }
     }
     function playVideo(v) {
@@ -605,17 +745,63 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
             : '<div class="empty">' + esc(state.data.labels.none_ready) + '</div>';
         prep.innerHTML = (data.preparing || []).length ? esc(state.data.labels.preparing) + ': ' + esc(data.preparing.slice(-15).join('  ·  ')) : '';
     }
-    function pollReady(node, s) {
-        clearTimeout(state.readyTimer);
+    function pollReady(z, node, s) {
+        clearTimeout(z.readyTimer);
         var tick = function () {
             if (!node.parentNode) { return; }
             request('GET', base + '/ready' + (s.branch ? '?branch=' + s.branch : '')).then(function (d) {
                 state.readyCache[s.branch || 0] = d;
                 drawReady(node, s, d);
             }, function () {});
-            state.readyTimer = setTimeout(tick, 5000);
+            z.readyTimer = setTimeout(tick, 5000);
         };
         tick();
+    }
+
+    /* ---------- urgent message («رسالة عاجلة») ---------- */
+    function showAlert(a) {
+        clearTimeout(state.alertTimer);
+        if (!a || (a.until && a.until <= serverNow())) {
+            state.alert = null;
+            alertEl.className = '';
+            set('alert', null);
+            return;
+        }
+        var same = state.alert && state.alert.id === a.id && state.alert.text === a.text;
+        state.alert = a;
+        set('alert', JSON.stringify(a));
+        var color = a.color || '#F26522', fg = window.EgDesigns ? EgDesigns.on(color) : '#fff';
+        alertEl.style.background = color;
+        alertEl.style.color = fg;
+        if (!same) { document.getElementById('alert-text').textContent = a.text; }
+        alertEl.className = 'on ' + (a.style === 'full' ? 'full' : 'banner');
+        if (!same) { fitAlert(); }
+        if (a.until) { state.alertTimer = setTimeout(function () { showAlert(null); }, Math.min(a.until - serverNow(), 2147483000)); }
+    }
+    function fitAlert() {
+        var box = document.getElementById('alert-text'), size = alertEl.className.indexOf('full') !== -1 ? 10 : 5.4;
+        box.style.fontSize = size + 'rem';
+        for (var i = 0; i < 10 && box.scrollHeight > box.clientHeight + 2 && size > 2; i++) {
+            size = size * 0.86;
+            box.style.fontSize = size + 'rem';
+        }
+    }
+    /* the fast check: the message, a reload, and (from a paired device) which slide each area shows now */
+    function live() {
+        clearTimeout(state.liveTimer);
+        if (pairEl.className === 'on') { return; }
+        var every = 8000;
+        var showing = zones.map(function (z) { return z.name + ':' + (z.cur ? z.cur.id : 0); }).join(',');
+        request('GET', base + '/live' + (mode === 'device' && showing ? '?showing=' + encodeURIComponent(showing) : '')).then(function (d) {
+            if (d.poll) { every = Math.max(4, d.poll) * 1000; }
+            showAlert(d.alert || null);
+            if (d.reload && state.reload !== null && d.reload > state.reload) { set('reload-seen', String(d.reload)); hardReload(); }
+            state.liveTimer = setTimeout(live, every);
+        }, function (err) {
+            handleError(err);
+            /* offline: a timed message still ends on time; one until cleared stays until the line is back */
+            state.liveTimer = setTimeout(live, 15000);
+        });
     }
 
     /* ---------- staying fresh ---------- */
@@ -656,7 +842,7 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
             screen: window.screen ? (window.screen.width * (window.devicePixelRatio || 1)) + 'x' + (window.screen.height * (window.devicePixelRatio || 1)) : '',
             online: navigator.onLine !== false
         }).then(function (d) {
-            if (d.reload && state.reload !== null && d.reload > state.reload) { hardReload(); }
+            if (d.reload && state.reload !== null && d.reload > state.reload) { set('reload-seen', String(d.reload)); hardReload(); }
         }, handleError);
         /* a fresh token about once a month */
         var rotated = parseInt(get('rotated') || '0', 10);
@@ -680,9 +866,9 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
         for (var i = 0; i < clocks.length; i++) { clocks[i].textContent = t; }
         heartbeat();
         online(navigator.onLine !== false && (!state.lastOk || Date.now() - state.lastOk < 150000));
-        /* a stuck screen (nothing changed for 15 minutes) starts again; once a night around 4:00 it reloads */
+        /* a stuck area (nothing changed for 15 minutes) starts again; once a night around 4:00 the screen reloads */
         var d = cairo();
-        if (Date.now() - state.lastAdvance > 900000) { next(); }
+        zones.forEach(function (z) { if (Date.now() - z.lastAdvance > 900000) { next(z); } });
         if (d.getUTCHours() === 4 && d.getUTCMinutes() < 10 && Date.now() - state.started > 3600000 && get('night') !== ymd(d)) {
             set('night', ymd(d));
             hardReload();
@@ -694,12 +880,14 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
     function startPairing() {
         clearTimeout(state.pairTimer);
         clearTimeout(state.pollTimer);
-        clearTimeout(state.timer);
+        clearTimeout(state.liveTimer);
+        zones.forEach(function (z) { clearTimeout(z.timer); clearTimeout(z.readyTimer); clearInterval(z.tickTimer); });
         state.data = null;
-        state.index = -1;
+        state.zoneLayout = null;
+        zones = [];
         stage.innerHTML = '';
-        state.layers = [];
         tickerEl.innerHTML = '';
+        showAlert(null);
         layout();
         pairEl.className = 'on';
         document.getElementById('note').className = '';
@@ -731,7 +919,7 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
                 set('rotated', String(Date.now()));
                 callBridge('saveToken', d.token);
                 document.getElementById('pair-left').textContent = T.paired;
-                loadPlaylist().then(function () { poll(); heartbeat(); });
+                loadPlaylist().then(function () { poll(); live(); heartbeat(); });
                 return;
             }
             if (d.state === 'expired' || d.state === 'used') { startPairing(); return; }
@@ -771,10 +959,11 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
     }
     window.addEventListener('resize', function () {
         layout();
-        if (state.data && state.index !== -1 && state.data.slides[state.index] && state.data.slides[state.index].type === 'menu') { render(state.data.slides[state.index]); }
+        if (alertEl.className.indexOf('on') !== -1) { fitAlert(); }
+        zones.forEach(function (z) { if (z.cur && (z.cur.type === 'menu' || z.cur.type === 'promo')) { clearInterval(z.tickTimer); z.page = 0; render(z, z.cur); } });
     });
     document.addEventListener('visibilitychange', function () { if (!document.hidden) { keepAwake(); } });
-    window.addEventListener('online', function () { online(true); poll(); });
+    window.addEventListener('online', function () { online(true); poll(); live(); });
     window.addEventListener('offline', function () { online(false); });
     if (mode === 'device' && 'serviceWorker' in navigator) {
         try { navigator.serviceWorker.register('/screen/sw.js', { scope: '/screen' })['catch'](function () {}); } catch (e) {}
@@ -782,6 +971,8 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
     layout();
     keepAwake();
     setInterval(everyMinute, 60000);
+    /* a message that was on before a restart shows again at once (it ends on its own time) */
+    try { var kept = get('alert'); if (kept) { showAlert(JSON.parse(kept)); } } catch (e) {}
 
     if (mode === 'device') {
         state.token = get('token') || callBridge('getToken') || null;
@@ -792,12 +983,14 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
             if (pairEl.className === 'on') { return; }
             if (!d && !state.data && document.getElementById('note').className !== 'on') { note(T.no_network); }
             poll();
+            live();
             heartbeat();
         });
     } else {
         var saved = get('playlist:' + storeKey);
         if (cfg.boot) { useData(cfg.boot, false); } else if (saved) { try { useData(JSON.parse(saved), true); } catch (e) {} }
         poll();
+        live();
     }
 })();
 </script>

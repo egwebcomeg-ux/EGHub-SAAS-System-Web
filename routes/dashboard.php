@@ -61,6 +61,8 @@ use App\Http\Controllers\Dashboard\SupportAccessController;
 use App\Http\Controllers\Dashboard\TablesController;
 use App\Http\Controllers\Dashboard\TableSessionsController;
 use App\Http\Controllers\Dashboard\TerminalsController;
+use App\Http\Controllers\Dashboard\TvAlertsController;
+use App\Http\Controllers\Dashboard\TvGroupsController;
 use App\Http\Controllers\Dashboard\TvPairingController;
 use App\Http\Controllers\Dashboard\TvPlaylistController;
 use App\Http\Controllers\Dashboard\TvScreenDeviceController;
@@ -468,6 +470,26 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/tv-screens/{screen}', [TvScreensController::class, 'update'])->whereNumber('screen')->name('tv.update');
         Route::post('/tv-screens/{screen}/link', [TvScreensController::class, 'regenerate'])->name('tv.regenerate');
         Route::post('/tv-screens/{screen}/delete', [TvScreensController::class, 'destroy'])->name('tv.delete');
+        Route::post('/tv-screens/{screen}/zones', [TvPlaylistController::class, 'zones'])->whereNumber('screen')->name('tv.zones');
+        Route::post('/tv-screens/{screen}/copy', [TvPlaylistController::class, 'copy'])->whereNumber('screen')->name('tv.copy');
+        // what every screen shows now (the screens pages refresh it), and the ready designs drawn for the picker
+        Route::get('/tv-screens/live', [TvScreensController::class, 'live'])->middleware('throttle:60,1')->name('tv.live');
+        Route::get('/tv-screens/design', [TvScreensController::class, 'design'])->name('tv.design');
+        // «رسالة عاجلة» on the screens, from the phone
+        Route::get('/tv-screens/urgent', [TvAlertsController::class, 'index'])->name('tv.alerts');
+        Route::post('/tv-screens/urgent', [TvAlertsController::class, 'store'])->middleware('throttle:20,1')->name('tv.alerts.store');
+        Route::post('/tv-screens/urgent/{alert}/clear', [TvAlertsController::class, 'clear'])->whereNumber('alert')->name('tv.alerts.clear');
+        // screen groups with one shared playlist
+        Route::post('/tv-groups', [TvGroupsController::class, 'store'])->name('tv.groups.store');
+        Route::get('/tv-groups/{group}', [TvGroupsController::class, 'show'])->whereNumber('group')->name('tv.groups.show');
+        Route::post('/tv-groups/{group}', [TvGroupsController::class, 'update'])->whereNumber('group')->name('tv.groups.update');
+        Route::post('/tv-groups/{group}/delete', [TvGroupsController::class, 'destroy'])->whereNumber('group')->name('tv.groups.delete');
+        Route::post('/tv-groups/{group}/zones', [TvGroupsController::class, 'zones'])->whereNumber('group')->name('tv.groups.zones');
+        Route::post('/tv-groups/{group}/copy', [TvPlaylistController::class, 'copyGroup'])->whereNumber('group')->name('tv.groups.copy');
+        Route::post('/tv-groups/{group}/slides', [TvPlaylistController::class, 'storeGroupSlide'])->whereNumber('group')->name('tv.groups.slides.store');
+        Route::post('/tv-groups/{group}/slides/{slide}', [TvPlaylistController::class, 'updateGroupSlide'])->whereNumber(['group', 'slide'])->name('tv.groups.slides.update');
+        Route::post('/tv-groups/{group}/slides/{slide}/move', [TvPlaylistController::class, 'moveGroupSlide'])->whereNumber(['group', 'slide'])->name('tv.groups.slides.move');
+        Route::post('/tv-groups/{group}/slides/{slide}/delete', [TvPlaylistController::class, 'destroyGroupSlide'])->whereNumber(['group', 'slide'])->name('tv.groups.slides.delete');
     });
 
     // Delivery zones (call-center pack)

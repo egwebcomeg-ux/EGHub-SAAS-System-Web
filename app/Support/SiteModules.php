@@ -272,7 +272,10 @@ final class SiteModules
                 'benefits' => [
                     ['tv', __('Any TV, no link to type'), __('Open eghub.app/tv on a Samsung or LG smart TV, an Android TV box, Fire TV or a computer, then type the code it shows in your dashboard.')],
                     ['zap', __('Updates by itself'), __('Change a price or mark an item sold out and the screen follows within a minute: sold-out items leave the screen.')],
-                    ['tag', __('A playlist for each screen'), __('Menu sections, your pictures and videos, running offers and ready order numbers, each slide with its own seconds and hours.')],
+                    ['tag', __('A playlist for each screen or group'), __('Menu sections, pictures, videos, offers and ready order numbers, each slide with its own seconds and hours. Put screens in a group to edit one playlist for all of them, each with its branch prices.')],
+                    ['sparkles', __('Ready designs for offers'), __('15 designs that take your logo, your colours and an item’s photo and live price, in landscape and portrait. The slide of a sold-out item hides by itself.')],
+                    ['megaphone', __('Urgent message from your phone'), __('Type one line and it shows on the screens you pick within about 10 seconds, as a band at the top or on the whole screen, for some minutes or until you clear it.')],
+                    ['qr', __('Split screen and «Scan to order»'), __('The menu in one part and a video or offers in the other, and a QR in the corner that opens your online menu on the guest’s phone.')],
                 ],
                 'steps' => [
                     [__('Build the playlist'), __('Pick the slides: hot drinks, a video, the happy-hour offer, the breakfast menu until noon.')],
@@ -290,6 +293,10 @@ final class SiteModules
                     [__('Can the TV hang vertically?'), __('Yes. Choose portrait for the screen and the player turns everything, on 1080p and 4K TVs alike.')],
                     [__('Does it work on a small or a big TV?'), __('Landscape or portrait, any size from a tablet to 75 inches and more: choose the size and how far the guests stand, and the text grows or shrinks to match. You can set the text size by hand too.')],
                     [__('Can a screen show offers only?'), __('Yes. Add only offer slides: each shows while its offer runs and the screen skips it the rest of the day.')],
+                    [__('Can I change all my screens at once?'), __('Yes. Put them in a group and edit the group’s playlist once, or copy one screen’s playlist to the others. Every screen keeps its own branch prices.')],
+                    [__('How fast does an urgent message show?'), __('Each screen checks every 8 seconds, so the message shows within about 10 seconds on a screen with internet. A screen without internet shows it when the line is back.')],
+                    [__('Do I need a designer for the offer slides?'), __('No. Pick one of the 15 ready designs, choose the item or type the words and the price, and it takes your logo and colours. You see it before you save.')],
+                    [__('Can I see what each screen is showing?'), __('Yes. The dashboard shows whether each screen is on, when it last checked in, its player version and the slide it is showing now.')],
                     [__('Is there an app for Android TV?'), __('Yes: the EgHub Screens app for Android TV and TV boxes, downloaded from eghub.app/tv.apk. Other smart TVs open eghub.app/tv in their browser.')],
                 ],
                 'related' => ['offers', 'qr-menu', 'printed-menu'],

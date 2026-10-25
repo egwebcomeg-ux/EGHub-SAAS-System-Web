@@ -98,6 +98,7 @@ Route::domain($domain)->group(function () use ($slug) {
             Route::get('/pair/status', [ScreenPlayerController::class, 'pairStatus'])->middleware('throttle:40,1')->name('pair.status');
             Route::get('/playlist', [ScreenPlayerController::class, 'playlist'])->middleware('throttle:30,1')->name('playlist');
             Route::get('/version', [ScreenPlayerController::class, 'version'])->middleware('throttle:120,1')->name('version');
+            Route::get('/live', [ScreenPlayerController::class, 'live'])->middleware('throttle:240,1')->name('live');
             Route::get('/ready', [ScreenPlayerController::class, 'ready'])->middleware('throttle:120,1')->name('ready');
             Route::post('/heartbeat', [ScreenPlayerController::class, 'heartbeat'])->middleware('throttle:20,1')->name('heartbeat');
             Route::post('/rotate', [ScreenPlayerController::class, 'rotate'])->middleware('throttle:5,1')->name('rotate');

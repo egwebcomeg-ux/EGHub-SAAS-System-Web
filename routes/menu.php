@@ -65,6 +65,7 @@ Route::get('/board/feed', [BoardController::class, 'feed'])->name('board.feed');
 Route::get('/tv/{token}', [TvController::class, 'show'])->where('token', '[a-f0-9]{20}')->name('tv');
 Route::get('/tv/{token}/version', [TvController::class, 'version'])->where('token', '[a-f0-9]{20}')->name('tv.version');
 Route::get('/tv/{token}/playlist', [TvController::class, 'playlist'])->where('token', '[a-f0-9]{20}')->middleware('throttle:30,1')->name('tv.playlist');
+Route::get('/tv/{token}/live', [TvController::class, 'live'])->where('token', '[a-f0-9]{20}')->middleware('throttle:240,1')->name('tv.live');
 Route::get('/tv/{token}/ready', [TvController::class, 'ready'])->where('token', '[a-f0-9]{20}')->middleware('throttle:60,1')->name('tv.ready');
 
 // Digital loyalty card

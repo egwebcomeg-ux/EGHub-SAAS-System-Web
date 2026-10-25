@@ -39,20 +39,55 @@
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <h2 class="section-title">{{ __('TV screens') }}</h2>
                     <div class="flex flex-wrap gap-2">
+                        <a href="{{ route('dash.tv.alerts') }}" class="btn-ghost min-h-9 border-red-200 px-3 text-red-700" data-urgent>{{ __('Urgent message') }}</a>
                         <a href="{{ route('dash.tv.pair') }}" class="btn-primary min-h-9 px-3" data-pair-tv>{{ __('Pair a TV') }}</a>
                         @if ($tab === 'all')<a href="{{ route('dash.devices', ['tab' => 'tv']) }}#add-tv" class="btn-ghost min-h-9 px-3">＋ {{ __('Add screen') }}</a>@endif
                     </div>
                 </div>
                 <p class="text-sm text-navy-500">{!! __('On the TV open :url (any smart TV browser, a TV box or the EgHub app): it shows a code you type here. Each screen plays its own playlist: the menu with live prices, pictures, video, offers and ready orders, and keeps playing when the internet drops.', ['url' => '<b dir="ltr">'.e(preg_replace('#^https?://#', '', platform_url(null, 'tv'))).'</b>']) !!}</p>
+                @if ($tvAlerts->isNotEmpty())
+                    <a href="{{ route('dash.tv.alerts') }}" class="flex flex-wrap items-center gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-900" data-alerts-banner>
+                        <span class="size-2.5 rounded-full bg-red-500"></span>
+                        <b>{{ trans_choice(':count urgent message is on the screens now|:count urgent messages are on the screens now', $tvAlerts->count()) }}:</b>
+                        <span class="min-w-0 flex-1 truncate" dir="auto">{{ $tvAlerts->first()->text }}</span>
+                        <span class="font-bold underline">{{ __('Clear it') }}</span>
+                    </a>
+                @endif
                 @if ($tab === 'tv')
                     <div class="max-w-md">@include('dashboard.partials.tv-limit', ['limit' => $screenLimit, 'paired' => $pairedScreens])</div>
+                    @unless (auth()->user()->branch_id)
+                        {{-- groups: one shared playlist for several screens --}}
+                        <div class="card space-y-3" id="tv-groups">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <h3 class="text-base font-bold">{{ __('Screen groups') }}</h3>
+                                <span class="text-xs text-navy-500">{{ __('Edit one playlist and every screen of the group plays it, in any branch.') }}</span>
+                            </div>
+                            @if ($tvGroups->isNotEmpty())
+                                <div class="flex flex-wrap gap-2">
+                                    @foreach ($tvGroups as $g)
+                                        <a href="{{ route('dash.tv.groups.show', $g) }}" class="inline-flex min-h-10 items-center gap-2 rounded-xl border border-navy-100 px-3 text-sm font-semibold hover:border-brand-400" data-group-link="{{ $g->id }}">
+                                            {{ $g->name }} <span class="badge bg-navy-50 text-navy-600">{{ trans_choice(':count screen|:count screens', $g->screens_count) }}</span>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            @endif
+                            <form method="post" action="{{ route('dash.tv.groups.store') }}" class="flex flex-wrap items-end gap-2">
+                                @csrf
+                                <label class="min-w-0 flex-1"><span class="field-label">{{ __('New group') }}</span><input class="field" name="name" required maxlength="60" placeholder="{{ __('e.g. Cashier screens, Entrance screens') }}"></label>
+                                <button class="btn-ghost min-h-11 px-4">＋ {{ __('Create group') }}</button>
+                            </form>
+                        </div>
+                    @endunless
                 @endif
                 <div @class(['grid gap-4', 'xl:grid-cols-3' => $tab === 'tv', 'md:grid-cols-2 2xl:grid-cols-3' => $tab !== 'tv'])>
                     <div @class(['grid content-start gap-4 md:grid-cols-2 xl:col-span-2' => $tab === 'tv', 'contents' => $tab !== 'tv'])>
                         @forelse ($screens as $s)
                             <x-dash.device-card type="tv" :label="__('TV screen')" :name="$s->name" :url="$s->url()" :qr="$qrs['tv'][$s->id]" :inactive="! $s->is_active" :open="__('Preview')"
-                                :meta="($s->slides_count ? trans_choice(':count slide|:count slides', $s->slides_count) : __('Whole menu')) . ($s->branch ? ' · ' . tr($s->branch->name, $s->branch->name_en) : '')">
-                                @include('dashboard.partials.tv-status', ['screen' => $s])
+                                :meta="(($n = $s->followsGroup() ? $s->group->slides_count : $s->slides_count) ? trans_choice(':count slide|:count slides', $n) : __('Whole menu')) . ($s->branch ? ' · ' . tr($s->branch->name, $s->branch->name_en) : '')">
+                                @if ($s->group)
+                                    <p class="text-sm"><span class="badge {{ $s->followsGroup() ? 'bg-sky-50 text-sky-800' : 'bg-amber-50 text-amber-800' }}">{{ __('Group') }}: {{ $s->group->name }}{{ $s->followsGroup() ? '' : ' · ' . __('Own playlist') }}</span></p>
+                                @endif
+                                <div data-tv-live="{{ $s->id }}">@include('dashboard.partials.tv-now', ['screen' => $s, 'nowSlides' => null])</div>
                                 @include('dashboard.partials.tv-device-line', ['screen' => $s])
                                 <div class="flex flex-wrap gap-2">
                                     <a href="{{ route('dash.tv.edit', $s) }}" class="btn-primary min-h-9 px-3" data-edit-playlist>{{ __('Edit playlist') }}</a>
@@ -172,4 +207,5 @@
         try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = @js(__('Copied')); } catch (e) { prompt('', b.dataset.copy); }
     }));
 </script>
+@include('dashboard.partials.tv-live-refresh')
 @endsection

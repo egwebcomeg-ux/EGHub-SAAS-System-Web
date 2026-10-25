@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Platform\ScreenPlayerController;
 use App\Models\TvScreen;
 use App\Services\Entitlements;
+use App\Services\Screens\ScreenAlerts;
 use App\Services\Screens\ScreenPlaylist;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -43,6 +44,12 @@ class TvController extends Controller
             'v' => (new ScreenPlaylist($screen))->version(), 'reload' => $screen->reload_requested_at?->timestamp,
             'now' => (int) floor(microtime(true) * 1000), 'tz' => now()->utcOffset(),
         ], 200, self::NO_STORE);
+    }
+
+    /** The urgent message and a reload, every ScreenAlerts::POLL_SECONDS (the link is not a paired device: no report). */
+    public function live(string $token): JsonResponse
+    {
+        return response()->json((new ScreenAlerts($this->screen($token)))->payload(), 200, self::NO_STORE, JSON_UNESCAPED_UNICODE);
     }
 
     public function ready(Request $request, string $token): JsonResponse
