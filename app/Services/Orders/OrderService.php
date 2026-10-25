@@ -23,6 +23,7 @@ use App\Services\Loyalty\LoyaltyService;
 use App\Services\Loyalty\Membership;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Notify\GuestNotifier;
+use App\Services\Push\StaffPush;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
 use App\Support\DineIn;
@@ -162,6 +163,7 @@ final class OrderService
                     OrderStatusHistory::query()->create(['order_id' => $order->id, 'to_status' => 'new', 'user_id' => $by?->id]);
                     app(StockService::class)->deductForOrder($order); // inventory pack only
                     DB::afterCommit(fn () => app(GuestNotifier::class)->orderPlaced($order)); // WhatsApp "we got your order"
+                    DB::afterCommit(fn () => app(StaffPush::class)->orderPlaced($order)); // the staff's phones (EgHub apps)
 
                     if (! empty($data['pay_wallet'])) {
                         app(WalletService::class)->payOrder($order, $by);
@@ -518,6 +520,7 @@ final class OrderService
                 $order->items()->whereNull('ready_at')->update(['ready_at' => now()]);
                 if ($from !== 'on_way') {
                     Pager::orderReady($order); // the guest's phone rings (pager feature, auto-call setting)
+                    DB::afterCommit(fn () => app(StaffPush::class)->orderReady($order)); // the waiters' phones (EgHub waiter app)
                 }
             }
             if ($to === 'cancelled' && $order->table_session_id) {

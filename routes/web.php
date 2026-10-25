@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Platform\AppsController;
 use App\Http\Controllers\Platform\AssistantController;
 use App\Http\Controllers\Platform\BillingWebhookController;
 use App\Http\Controllers\Platform\BlogController;
@@ -52,6 +53,8 @@ Route::domain($domain)->group(function () use ($slug) {
         Route::post('/services', [ServicesController::class, 'store'])->middleware('throttle:5,1')->name('services.request');
         Route::get('/features', [FeaturesController::class, 'index'])->name('features');
         Route::get('/features/{slug}', [FeaturesController::class, 'show'])->where('slug', '[a-z-]{2,40}')->name('features.show');
+        // the EgHub Android apps: what each does and whether it can be downloaded yet (App\Support\EgHubApps)
+        Route::get('/apps', [AppsController::class, 'index'])->name('apps');
         // blog for cafe and restaurant owners (App\Models\Post), plus its RSS feed
         Route::get('/blog', [BlogController::class, 'index'])->name('blog');
         Route::get('/blog/{slug}', [BlogController::class, 'show'])->where('slug', '[a-z0-9-]{2,120}')->name('blog.show');

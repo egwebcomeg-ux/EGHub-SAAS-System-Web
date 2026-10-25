@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DriverLocation;
 use App\Models\Order;
 use App\Services\Orders\DeliveryService;
+use App\Services\Orders\NativeTracking;
 use App\Services\Orders\OrderConfirmation;
 use App\Services\Orders\OrderException;
 use App\Services\Settings;
@@ -82,6 +83,20 @@ class DriverController extends Controller
         }
 
         return response()->json(['ok' => true, 'sharing' => true] + $result);
+    }
+
+    /**
+     * What the EgHub driver app needs to keep sending the position in the background for this order (only while it
+     * is out for delivery with this driver): a signed endpoint and a short-lived token (App\Services\Orders\NativeTracking).
+     */
+    public function tracking(Request $request, Order $order): JsonResponse
+    {
+        abort_unless($order->driver_id === $request->user()->id, 404);
+        if ($order->delivery_status !== 'picked_up' || $order->status !== 'on_way') {
+            return response()->json(['message' => __('No order is out for delivery with you.')], 409);
+        }
+
+        return response()->json(NativeTracking::issue($order, $request->user()));
     }
 
     private function act(Request $request, Order $order, \Closure $action): JsonResponse

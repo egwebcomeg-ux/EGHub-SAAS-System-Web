@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\PosTerminal;
+use App\Services\Printing\PrintJobs;
 use App\Services\Reports\ZReport;
 use App\Services\Settings;
 use Carbon\CarbonImmutable;
@@ -22,7 +23,7 @@ class ZReportController extends Controller
     {
         $request->validate([
             'date' => 'nullable|date_format:Y-m-d', 'branch' => 'nullable|integer', 'terminal' => 'nullable|integer',
-            'format' => ['nullable', Rule::in(['80mm', 'a4', 'csv', 'xlsx'])],
+            'format' => ['nullable', Rule::in(['80mm', 'a4', 'csv', 'xlsx', 'job'])],
         ]);
         $day = $request->filled('date') ? CarbonImmutable::createFromFormat('Y-m-d', (string) $request->query('date'))->startOfDay() : CarbonImmutable::today();
         if ($day->isFuture()) {
@@ -37,6 +38,9 @@ class ZReportController extends Controller
         $z = $report->build();
         $format = (string) $request->query('format', '');
 
+        if ($format === 'job') { // the EgHub cashier app prints it on its own printer
+            return response()->json(['job' => PrintJobs::zReport($z, $branch, $day, $terminal?->label())]);
+        }
         if (in_array($format, ['csv', 'xlsx'], true)) {
             $name = 'z-report-'.$day->format('Ymd').'-'.$branch->slug.($terminal ? '-'.$terminal->code : '');
 

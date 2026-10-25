@@ -9,6 +9,7 @@ use App\Models\Shift;
 use App\Services\Audit;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\Terminals;
+use App\Services\Printing\PrintJobs;
 use App\Services\Settings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,6 +30,7 @@ class TerminalsController extends Controller
 
         return view('dashboard.pos.terminals', [
             'branches' => $branches, 'terminals' => $terminals, 'open' => $open, 'offlineHours' => Terminals::offlineHours(),
+            'printing' => PrintJobs::settings(),
         ]);
     }
 

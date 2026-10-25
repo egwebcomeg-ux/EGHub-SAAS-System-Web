@@ -16,6 +16,7 @@
             'pickedUp' => url('/driver/orders/__ID__/picked-up'),
             'delivered' => url('/driver/orders/__ID__/delivered'),
             'failed' => url('/driver/orders/__ID__/failed'),
+            'tracking' => url('/driver/orders/__ID__/tracking'),
         ],
         'i18n' => [
             'empty' => __('No orders with you now. New ones show up here by themselves.'),

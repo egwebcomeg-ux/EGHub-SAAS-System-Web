@@ -111,8 +111,12 @@
      data-can-manage="{{ $canManage ? 1 : 0 }}"
      data-busy='{{ json_encode($busy, JSON_UNESCAPED_UNICODE) }}'
      data-i18n='{{ json_encode($i18n, JSON_UNESCAPED_UNICODE) }}'>
+    @php
+        // a waiter on a phone (EgHub waiter app) serves what is ready: that column comes first on narrow screens
+        $readyFirst = auth()->user()->hasRole('waiter');
+    @endphp
     @foreach (['new' => __('New'), 'preparing' => __('Preparing'), 'ready' => __('Ready')] as $status => $label)
-        <section class="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-navy-100" data-section="{{ $status }}">
+        <section @class(['rounded-2xl bg-white p-3 shadow-sm ring-1 ring-navy-100', 'max-lg:order-first' => $readyFirst && $status === 'ready']) data-section="{{ $status }}">
             <h2 class="mb-3 flex items-center justify-between px-1 font-bold">
                 <span>{{ $label }}</span>
                 <span class="badge bg-navy-100 text-navy-700" data-count="{{ $status }}">0</span>

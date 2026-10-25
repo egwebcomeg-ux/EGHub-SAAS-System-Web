@@ -27,6 +27,15 @@
     </form>
 </section>
 
+{{-- alerts on the phone through the EgHub apps (App\Services\Push\StaffPush) --}}
+<section class="card mb-4 flex max-w-5xl flex-wrap items-center justify-between gap-3" data-push-link>
+    <div>
+        <h2 class="section-title">{{ __('Phone notifications') }}</h2>
+        <p class="mt-1 text-sm text-navy-500">{{ __('New orders, the guest\'s answers, bookings and ready orders on your phone through the EgHub app.') }}</p>
+    </div>
+    <a href="{{ route('dash.push') }}" class="btn-ghost">{{ __('Choose notifications') }}</a>
+</section>
+
 @include('auth.two-factor-settings')
 
 @if (\App\Http\Controllers\Dashboard\SecurityController::mayHavePin($user))

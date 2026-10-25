@@ -90,6 +90,13 @@ return [
         ],
     ],
 
+    // Push notifications to the EgHub Android apps (restaurant, waiter): Firebase Cloud Messaging HTTP v1 with a
+    // service account (App\Services\Push\FcmClient). Both empty = pushes are skipped (logged once).
+    'fcm' => [
+        'project_id' => env('FCM_PROJECT_ID'),
+        'credentials' => env('FCM_CREDENTIALS'), // path to the service-account JSON (outside public/)
+    ],
+
     'facebook' => [
         'client_id' => env('FACEBOOK_CLIENT_ID'),
         'client_secret' => env('FACEBOOK_CLIENT_SECRET'),

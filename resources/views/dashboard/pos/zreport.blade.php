@@ -1,4 +1,4 @@
-@extends('layouts.dashboard')
+@extends('layouts.dashboard', ['viteEntries' => ['resources/js/native-print.js']])
 @section('title', __('End of day (Z)'))
 
 @section('content')
@@ -11,6 +11,9 @@
 <x-dash.page-header :title="__('POS')" :help="__('The day of one branch (or one terminal): sales by payment method, refunds, cancels, cash in and out, and each shift\'s counted cash.')">
     <x-slot:actions>
         <a href="{{ route('dash.zreport', $query + ['format' => '80mm']) }}" target="_blank" class="btn-ghost" data-z-print="80mm">🧾 {{ __('Print 80mm') }}</a>
+        {{-- only inside the EgHub cashier app (resources/js/native-print.js): straight to the till's printer --}}
+        <button type="button" class="btn-ghost" hidden data-native-z="{{ route('dash.zreport', $query + ['format' => 'job']) }}"
+            data-done="{{ __('Sent to the printer') }}" data-failed="{{ __('Printing failed') }}">🧾 {{ __('Print on the cashier printer') }}</button>
         <a href="{{ route('dash.zreport', $query + ['format' => 'a4']) }}" target="_blank" class="btn-ghost" data-z-print="a4">🖨 {{ __('Print A4') }}</a>
         <a href="{{ route('dash.zreport', $query + ['format' => 'csv']) }}" class="btn-ghost">CSV</a>
         <a href="{{ route('dash.zreport', $query + ['format' => 'xlsx']) }}" class="btn-ghost">Excel</a>

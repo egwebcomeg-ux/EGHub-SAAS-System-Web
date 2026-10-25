@@ -33,6 +33,7 @@ class Tenant extends BaseTenant
         'up', 'health', 'sitemap', 'robots', 'favicon', 'manifest', 'webhooks', 'lang', 'menu', 'card', 'qr', 'localhost',
         'restaurants', 'restaurant', 'cafes', 'directory', 'search', 'explore', 'cities', 'cuisines', 'feed', 'rss', 'llms',
         'services', 'refund', 'refund-policy', 'refunds', 'tools', 'qr-code-generator', 'screen', 'screens', 'player',
+        'apps', 'download', 'downloads',
     ];
 
     protected $keyType = 'string';

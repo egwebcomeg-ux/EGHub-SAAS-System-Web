@@ -4,6 +4,7 @@ import { canScanQr, planVouchers, scanQr } from './corporate-vouchers';
 import { createOffline, NetworkError, printLocalReceipt } from './pos-offline';
 import './kb-drawer';
 import { bindPager, pagerButtons, pagerStatus } from './pager-call';
+import { createNativePrinter } from './native-print';
 
 const dataEl = document.getElementById('pos-data');
 if (dataEl) {
@@ -33,6 +34,11 @@ if (dataEl) {
     let lastOffline = null; // the last sale saved on this device while offline (printed from here)
     // offline mode (POS only): terminal, catalog and the sales made without internet, synced when it is back
     const off = !CC && D.tenant ? createOffline(D, session) : null;
+    // inside the EgHub cashier app: the app's printers (receipt, kitchen per station); null in a browser
+    const printer = !CC && D.printing ? createNativePrinter({
+        tenant: D.tenant, csrf: () => session.csrf, printing: D.printing,
+        urls: { jobs: D.urls.printJobs, release: D.urls.printRelease, queue: D.urls.printQueue }, texts: T.native || {},
+    }) : null;
 
     // every request of the screen: a lost connection throws NetworkError (with a readable message), a refusal Error
     async function api(url, body, method = 'POST') {
@@ -574,9 +580,17 @@ if (dataEl) {
         reset();
         refreshOpen();
         doneDialog.showModal();
+        if (printer) {
+            // the cashier app prints by itself: the receipt once paid (setting), the kitchen tickets of the new order
+            if (printer.receiptAuto && (status === T.paid || order.paid)) printer.printOrder(order.id, ['receipt']);
+            printer.poll();
+        }
     }
     $$('[data-print]').forEach((b) => b.addEventListener('click', () => {
         if (lastOffline) return printLocalReceipt(lastOffline, D.receiptHeader, T, b.dataset.print === 'kitchen');
+        if (printer && lastOrderId) {
+            return printer.printOrder(lastOrderId, b.dataset.print === 'kitchen' ? printer.kitchenRoles() : ['receipt'], { reprint: true });
+        }
         if (lastOrderId) window.open(D.urls.receipt.replace('__ID__', lastOrderId) + (b.dataset.print === 'kitchen' ? '?copy=kitchen' : ''), '_blank', 'width=420,height=700');
     }));
 
@@ -1331,6 +1345,41 @@ if (dataEl) {
         refreshHolds();
     }
 
+    // ---- the printers of the EgHub cashier app: a printer per role, a test page, kitchen tickets on this device ----
+    if (printer && $('[data-printers-open]')) {
+        const dlg = $('[data-printers-dialog]');
+        const N = T.native || {};
+        const typeLabel = { bluetooth: 'Bluetooth', usb: 'USB', lan: 'LAN', sunmi: 'Sunmi' };
+        function renderPrinters() {
+            const printers = printer.printers();
+            const byRole = Object.fromEntries(printers.filter((p) => p.role).map((p) => [p.role, p]));
+            $('[data-printers-roles]').innerHTML = Object.entries(printer.roles()).map(([role, label]) => {
+                const p = byRole[role];
+                return `<li class="flex flex-wrap items-center justify-between gap-2 py-3">
+                    <div class="min-w-0"><b>${esc(label)}</b>
+                        <div class="text-xs text-navy-500">${p ? esc(p.name) + ' · ' + esc(typeLabel[p.type] || p.type) + ' · ' + esc(p.width) + 'mm' : esc(N.noPrinter)}</div></div>
+                    <div class="flex shrink-0 gap-1">
+                        <button type="button" class="btn-ghost min-h-11 px-3" data-printer-choose="${esc(role)}">${esc(p ? N.change : N.choose)}</button>
+                        ${p ? `<button type="button" class="btn-ghost min-h-11 px-3" data-printer-test="${esc(role)}">${esc(N.test)}</button>` : ''}
+                    </div></li>`;
+            }).join('');
+            const kitchen = $('[data-printers-kitchen]');
+            kitchen.checked = printer.deviceKitchen();
+            $('[data-printers-kitchen-row]').classList.toggle('hidden', !D.printing.kitchenAuto);
+        }
+        $('[data-printers-open]').classList.remove('hidden');
+        $('[data-printers-open]').addEventListener('click', () => { renderPrinters(); dlg.showModal(); });
+        $('[data-printers-roles]').addEventListener('click', (e) => {
+            const c = e.target.closest('[data-printer-choose]');
+            if (c) { printer.choose(c.dataset.printerChoose); setTimeout(renderPrinters, 600); return; }
+            const t = e.target.closest('[data-printer-test]');
+            if (t) printer.test(t.dataset.printerTest);
+        });
+        $('[data-printers-kitchen]').addEventListener('change', (e) => { printer.setDeviceKitchen(e.target.checked); printer.poll(); });
+        // the app is shown again (back from its own printer picker): refresh the list
+        document.addEventListener('visibilitychange', () => { if (!document.hidden && dlg.open) renderPrinters(); });
+    }
+
     // ---- recent paid orders: find by number or OFF-K1-3, reprint, share, refund with a manager's OK ----
     if (!CC && $('[data-orders-open]')) {
         const ordersDialog = $('[data-orders-dialog]');
@@ -1372,6 +1421,7 @@ if (dataEl) {
         bindPager($('[data-orders-list]'), () => loadRecent());
         $('[data-orders-list]').addEventListener('click', (e) => {
             const p = e.target.closest('[data-recent-print]');
+            if (p && printer) return printer.printOrder(recent[Number(p.dataset.recentPrint)].id, ['receipt'], { reprint: true });
             if (p) return window.open(recent[Number(p.dataset.recentPrint)].receipt, '_blank', 'width=420,height=700');
             const s = e.target.closest('[data-recent-share]');
             if (s) return shareReceipt(recent[Number(s.dataset.recentShare)]);
