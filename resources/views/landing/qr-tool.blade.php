@@ -25,7 +25,7 @@
     $base = [
         'body' => 'square', 'eye_frame' => 'square', 'eye_ball' => 'square', 'fill_type' => 'solid', 'color1' => '#0a2540', 'color2' => '#0a2540', 'angle' => 45,
         'eye_custom' => false, 'eye_frame_color' => '#0a2540', 'eye_ball_color' => '#0a2540', 'bg_color' => '#ffffff', 'bg_transparent' => false,
-        'logo' => 'none', 'logo_size' => 22, 'logo_clear' => true, 'logo_plate' => true,
+        'logo' => 'none', 'logo_size' => 'medium', 'logo_white' => true,
         'frame' => 'none', 'frame_text' => __('Scan me'), 'frame_color' => '#0a2540', 'frame_text_color' => '#ffffff',
     ];
     $presets = [
@@ -34,7 +34,7 @@
         'sunset' => [__('Gradient sunset'), ['body' => 'dots', 'eye_frame' => 'leaf', 'eye_ball' => 'leaf', 'fill_type' => 'linear', 'color1' => '#b3125a', 'color2' => '#e04e00', 'angle' => 35] + $base],
         'minimal' => [__('Dots minimal'), ['body' => 'dots', 'eye_frame' => 'circle', 'eye_ball' => 'circle', 'color1' => '#111827', 'color2' => '#111827'] + $base],
         'gold' => [__('Luxury gold'), ['body' => 'classy', 'eye_frame' => 'double', 'eye_ball' => 'diamond', 'fill_type' => 'radial', 'color1' => '#5c430b', 'color2' => '#9c7418', 'eye_custom' => true, 'eye_frame_color' => '#1a1a1a', 'eye_ball_color' => '#9c7418', 'bg_color' => '#fffdf5', 'frame' => 'bottom', 'frame_color' => '#111111', 'frame_text_color' => '#d9b54a'] + $base],
-        'restaurant' => [__('Restaurant menu'), ['body' => 'rounded', 'eye_frame' => 'rounded', 'eye_ball' => 'rounded', 'eye_custom' => true, 'eye_frame_color' => '#e05310', 'eye_ball_color' => '#0a2540', 'logo' => 'menu', 'logo_size' => 24, 'frame' => 'bottom', 'frame_text' => __('Scan the menu'), 'frame_color' => '#e05310'] + $base],
+        'restaurant' => [__('Restaurant menu'), ['body' => 'rounded', 'eye_frame' => 'rounded', 'eye_ball' => 'rounded', 'eye_custom' => true, 'eye_frame_color' => '#e05310', 'eye_ball_color' => '#0a2540', 'logo' => 'menu', 'logo_size' => 'large', 'frame' => 'bottom', 'frame_text' => __('Scan the menu'), 'frame_color' => '#e05310'] + $base],
     ];
     $d = $presets['egmenu'][1];
 
@@ -46,7 +46,6 @@
         'slowDown' => __('Too many changes in a minute. Wait a moment and the code updates.'),
         'lowContrast' => __('The colours are too close to the background: cameras may not read it. Use a darker colour on a light background.'),
         'inverted' => __('A light code on a dark background: many cameras cannot read it. Keep the code darker than the background.'),
-        'bigLogo' => __('The logo is big: keep it under 30% of the code, or turn on the plate behind it, and test the scan.'),
         'transparent' => __('Transparent background: print it on a light surface only.'),
     ];
     $faq = [
@@ -81,8 +80,8 @@
 <section data-hero class="lp-hero lp-glow">
     <div class="mx-auto max-w-3xl px-4 pt-8 pb-10 text-center sm:px-6 lg:pt-12 lg:pb-12">
         <p class="lp-eyebrow" data-reveal>{{ __('Free tool') }}</p>
-        <h1 class="mx-auto mt-4 text-[1.9rem] leading-[1.3] font-black tracking-tight sm:text-5xl sm:leading-[1.2]" data-reveal style="--d: 70ms">{{ __('Free QR code generator, with your style and logo') }}</h1>
-        <p class="lp-lead mx-auto mt-4 max-w-2xl" data-reveal style="--d: 140ms">{{ __('A link, WhatsApp, Wi-Fi, a contact card or a location: pick the shapes and colours, add your logo and download in high quality.') }}</p>
+        <h1 class="mx-auto mt-4 text-[1.9rem] leading-[1.3] font-black tracking-tight sm:text-5xl sm:leading-[1.2]" data-reveal style="--d: 70ms">{{ __('Free QR generator with shapes, colours and your logo') }}</h1>
+        <p class="lp-lead mx-auto mt-4 max-w-2xl" data-reveal style="--d: 140ms">{{ __('Turn a link, WhatsApp, Wi-Fi or a location into a QR code in your colours with your logo, and download it right away. No sign-up needed.') }}</p>
         <ul class="mt-6 flex flex-wrap justify-center gap-2 text-sm font-bold text-navy-700" data-reveal style="--d: 210ms">
             @foreach ([__('No sign-up'), __('No watermark'), __('Never expires'), __('Your logo stays on your device')] as $perk)
                 <li class="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-navy-100 bg-white/80 px-3"><x-landing.icon name="check" class="size-4 text-emerald-600" />{{ $perk }}</li>
@@ -246,8 +245,8 @@
                 </details>
 
                 {{-- logo --}}
-                <details class="rounded-3xl border border-navy-100 bg-white">
-                    <summary class="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-4 text-base font-black text-navy-900 sm:px-6">{{ __('Logo in the middle') }}<svg class="qr-chev size-5 text-navy-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5.3 7.3a1 1 0 0 1 1.4 0L10 10.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 0-1.4z"/></svg></summary>
+                <details open data-qr-logo class="rounded-3xl border border-navy-100 bg-white">
+                    <summary class="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-4 text-base font-black text-navy-900 sm:px-6">{{ __('Put your logo in the middle') }}<svg class="qr-chev size-5 text-navy-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5.3 7.3a1 1 0 0 1 1.4 0L10 10.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 0-1.4z"/></svg></summary>
                     <div class="grid gap-5 border-t border-navy-100 px-4 py-5 sm:px-6">
                         <fieldset>
                             <legend class="field-label">{{ __('Pick an icon or upload your logo') }}</legend>
@@ -260,21 +259,29 @@
                             </div>
                         </fieldset>
                         <div>
-                            <label class="btn-ghost relative min-h-11 cursor-pointer rounded-full focus-within:outline-2 focus-within:outline-brand-600">
-                                <x-landing.icon name="upload" class="size-5" />{{ __('Upload your logo') }}
-                                <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" data-qr-logo-file class="absolute inset-0 cursor-pointer opacity-0" aria-label="{{ __('Upload your logo') }}">
-                            </label>
-                            <p class="muted mt-2">{{ __('PNG, JPG, WebP or SVG up to 5 MB. It stays on your device and is never uploaded.') }}</p>
-                            <p data-qr-logo-error hidden class="field-error">{{ __('Pick an image file (PNG, JPG, WebP or SVG) up to 5 MB.') }}</p>
-                        </div>
-                        <div class="grid gap-4 sm:grid-cols-2">
-                            <label class="block text-sm font-bold text-navy-800">{{ __('Logo size') }}<input type="range" name="logo_size" min="10" max="40" step="1" value="{{ $d['logo_size'] }}"></label>
-                            <div class="grid gap-1">
-                                <label class="flex min-h-11 items-center gap-2 text-sm font-semibold text-navy-700"><input type="checkbox" name="logo_plate" @checked($d['logo_plate']) class="size-5 accent-brand-700">{{ __('Background plate behind the logo') }}</label>
-                                <label class="flex min-h-11 items-center gap-2 text-sm font-semibold text-navy-700"><input type="checkbox" name="logo_clear" @checked($d['logo_clear']) class="size-5 accent-brand-700">{{ __('Clear the dots behind the logo') }}</label>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <label class="btn-ghost relative min-h-11 cursor-pointer rounded-full focus-within:outline-2 focus-within:outline-brand-600">
+                                    <x-landing.icon name="upload" class="size-5" />{{ __('Upload your logo') }}
+                                    <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg" data-qr-logo-file class="absolute inset-0 cursor-pointer opacity-0" aria-label="{{ __('Upload your logo') }}" aria-describedby="qr-logo-help qr-logo-private">
+                                </label>
+                                <button type="button" data-qr-logo-remove hidden class="min-h-11 rounded-full px-4 text-sm font-bold text-red-700 hover:bg-red-50">{{ __('Remove the logo') }}</button>
                             </div>
+                            <p id="qr-logo-private" class="mt-3 flex items-center gap-2 text-sm font-bold text-emerald-800"><x-landing.icon name="shield" class="size-5 shrink-0" />{{ __('Your logo stays on your device; it is never uploaded to us.') }}</p>
+                            <p id="qr-logo-help" class="muted mt-1">{{ __('PNG, JPG, WebP or SVG, up to 5 MB.') }}</p>
+                            <p data-qr-logo-error hidden role="alert" class="field-error">{{ __('Pick an image file (PNG, JPG, WebP or SVG) up to 5 MB.') }}</p>
                         </div>
-                        <p class="muted">{{ __('With a logo, error correction goes up to the highest level (H) so the code still scans.') }}</p>
+                        <div class="grid gap-4 sm:grid-cols-2 sm:items-end">
+                            <fieldset>
+                                <legend class="field-label">{{ __('Logo size') }}</legend>
+                                <div class="grid grid-cols-3 gap-2">
+                                    @foreach (['small' => __('Small'), 'medium' => __('Medium'), 'large' => __('Large')] as $value => $label)
+                                        <label class="flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-navy-200 px-2 text-sm font-bold text-navy-700 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-brand-600"><input type="radio" name="logo_size" value="{{ $value }}" @checked($d['logo_size'] === $value) class="sr-only">{{ $label }}</label>
+                                    @endforeach
+                                </div>
+                            </fieldset>
+                            <label class="flex min-h-11 items-center gap-2 text-sm font-semibold text-navy-700"><input type="checkbox" name="logo_white" @checked($d['logo_white']) class="size-5 accent-brand-700">{{ __('White background for the logo') }}</label>
+                        </div>
+                        <p class="muted">{{ __('With a logo, error correction goes up to the highest level (H) and only the middle of the code is cleared, so it still scans.') }}</p>
                     </div>
                 </details>
 
@@ -346,6 +353,27 @@
     </div>
 </section>
 
+{{-- the offer, right under the tool: a printed code that opens a live menu --}}
+<section class="lp-band lp-glow py-12 lg:py-16" data-qr-cta>
+    <div class="mx-auto grid max-w-5xl items-center gap-8 px-4 sm:px-6 lg:grid-cols-[1.4fr_1fr]">
+        <div class="text-center lg:text-start">
+            <p class="lp-eyebrow">{{ __('For restaurants, cafes, pastry shops and bakeries') }}</p>
+            <h2 class="lp-h2 mt-3">{{ __('A QR that opens a live menu, which you edit without reprinting') }}</h2>
+            <p class="lp-lead mt-3">{{ __('With EgHub, the code on your tables opens your menu with photos and prices in Arabic and English. Change a price or hide a sold-out item from your phone, and the same printed code shows it right away. The QR menu is free; ordering and the rest come with the paid plans.') }}</p>
+            <div class="mt-6 flex flex-wrap justify-center gap-3 lg:justify-start">
+                <a href="{{ route('register') }}" class="btn-primary min-h-12 rounded-full px-7 text-base">{{ __('Make my free menu') }}</a>
+                <a href="{{ route('features.show', 'qr-menu') }}" class="btn-ghost min-h-12 rounded-full px-6 text-base">{{ __('See the QR menu') }}</a>
+            </div>
+            <p class="mt-3 text-sm text-navy-500">{{ __('No card, no contract.') }}</p>
+        </div>
+        <ul class="grid gap-3 text-sm font-bold text-navy-800">
+            @foreach ([__('A QR for every table, ready to print'), __('Update the menu without new codes'), __('The QR menu stays free, with no card')] as $point)
+                <li class="flex items-center gap-3 rounded-2xl border border-navy-100 bg-white px-4 py-3"><x-landing.icon name="check" class="size-5 shrink-0 text-emerald-600" />{{ $point }}</li>
+            @endforeach
+        </ul>
+    </div>
+</section>
+
 {{-- how it works + FAQ (also what search engines read) --}}
 <section class="py-12 lg:py-16">
     <div class="mx-auto max-w-5xl px-4 sm:px-6">
@@ -372,27 +400,6 @@
                 </details>
             @endforeach
         </div>
-    </div>
-</section>
-
-{{-- the offer: from one QR code to a whole QR menu --}}
-<section class="lp-band lp-glow mb-8 py-14 lg:py-20" data-qr-cta>
-    <div class="mx-auto grid max-w-5xl items-center gap-8 px-4 sm:px-6 lg:grid-cols-[1.4fr_1fr]">
-        <div class="text-center lg:text-start">
-            <p class="lp-eyebrow">{{ __('For restaurants and cafes') }}</p>
-            <h2 class="lp-h2 mt-3">{{ __('Want a full QR menu for your restaurant? EgHub makes it free') }}</h2>
-            <p class="lp-lead mt-3">{{ __('One QR on every table opens your menu with photos and prices in Arabic and English. Change a price any time without reprinting, and take orders from the table without commission.') }}</p>
-            <div class="mt-6 flex flex-wrap justify-center gap-3 lg:justify-start">
-                <a href="{{ route('register') }}" class="btn-primary min-h-12 rounded-full px-7 text-base">{{ __('Make my free menu') }}</a>
-                <a href="{{ route('features.show', 'qr-menu') }}" class="btn-ghost min-h-12 rounded-full px-6 text-base">{{ __('See the QR menu') }}</a>
-            </div>
-            <p class="mt-3 text-sm text-navy-500">{{ __('No card, no contract.') }}</p>
-        </div>
-        <ul class="grid gap-3 text-sm font-bold text-navy-800">
-            @foreach ([__('A QR for every table, ready to print'), __('Update the menu without new codes'), __('Orders and WhatsApp without commission')] as $point)
-                <li class="flex items-center gap-3 rounded-2xl border border-navy-100 bg-white px-4 py-3"><x-landing.icon name="check" class="size-5 shrink-0 text-emerald-600" />{{ $point }}</li>
-            @endforeach
-        </ul>
     </div>
 </section>
 @endsection

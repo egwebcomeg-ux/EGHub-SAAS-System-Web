@@ -282,6 +282,8 @@ body.lp-locked { overflow: hidden; }
 
 /* website assistant open: the floating "Ask us" button and the mobile bar step aside */
 .asst-open .lp-ask, .asst-open .lp-bottom { visibility: hidden; }
+/* phones: the panel fills the screen, so the page behind it does not scroll under the finger or the keyboard */
+@media (max-width: 639px) { html.asst-open, html.asst-open body { overflow: hidden; } }
 
 /* real numbers count up once (landing.js); tabular figures keep their width */
 [data-counter] { font-variant-numeric: tabular-nums; }

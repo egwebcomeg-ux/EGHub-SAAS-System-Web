@@ -167,38 +167,92 @@ const ICONS = {
 };
 const iconSvg = (name) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">${ICONS[name]}</svg>`;
 
+/* ---------------------------------------------------------------- the logo area ---------------------------------------------------------------- */
+
+/** Centres of the alignment patterns per version (ISO/IEC 18004 table E.1, the same table BaconQrCode uses). */
+const ALIGNMENT = [
+    [], [6, 18], [6, 22], [6, 26], [6, 30], [6, 34], [6, 22, 38], [6, 24, 42], [6, 26, 46], [6, 28, 50], [6, 30, 54], [6, 32, 58], [6, 34, 62],
+    [6, 26, 46, 66], [6, 26, 48, 70], [6, 26, 50, 74], [6, 30, 54, 78], [6, 30, 56, 82], [6, 30, 58, 86], [6, 34, 62, 90],
+    [6, 28, 50, 72, 94], [6, 26, 50, 74, 98], [6, 30, 54, 78, 102], [6, 28, 54, 80, 106], [6, 32, 58, 84, 110], [6, 30, 58, 86, 114], [6, 34, 62, 90, 118],
+    [6, 26, 50, 74, 98, 122], [6, 30, 54, 78, 102, 126], [6, 26, 52, 78, 104, 130], [6, 30, 56, 82, 108, 134], [6, 34, 60, 86, 112, 138], [6, 30, 58, 86, 114, 142], [6, 34, 62, 90, 118, 146],
+    [6, 30, 54, 78, 102, 126, 150], [6, 24, 50, 76, 102, 128, 154], [6, 28, 54, 80, 106, 132, 158], [6, 32, 58, 84, 110, 136, 162], [6, 26, 54, 82, 110, 138, 166], [6, 30, 58, 86, 114, 142, 170],
+];
+
+/** Logo sizes: the width of the cleared square as a share of the code (all safe with error correction H). */
+const LOGO_SIZES = { small: 0.17, medium: 0.21, large: 0.24 };
+
+/**
+ * The square of whole modules cleared for the logo: centred, about `share` of the code wide, and never touching the
+ * finder patterns and their separators, the format and version information, the timing lines or an alignment pattern.
+ * Only from version 7 on may an alignment pattern that sits entirely inside the square (the one in the middle) be
+ * covered; decoders still find the code from the others. Returns {start, size} in modules.
+ */
+function logoSquare(n, share) {
+    const version = (n - 17) / 4;
+    const centres = ALIGNMENT[version - 1] ?? [];
+    const patterns = [];
+    for (const cy of centres) {
+        for (const cx of centres) {
+            const onFinder = (cx < 9 && cy < 9) || (cx > n - 10 && cy < 9) || (cx < 9 && cy > n - 10);
+            if (!onFinder) patterns.push([cx - 2, cy - 2]);
+        }
+    }
+    const reserved = (x, y) =>
+        (x < 9 && y < 9) || (x >= n - 8 && y < 9) || (x < 9 && y >= n - 8) || x === 6 || y === 6 ||
+        (version >= 7 && ((x < 6 && y >= n - 11) || (y < 6 && x >= n - 11)));
+
+    // odd widths only (n is odd, so the square sits exactly in the middle): the one nearest the target first, then
+    // its neighbours, smaller before larger, never more than 3% over the target
+    const target = Math.max(3, Math.round((n * share - 1) / 2) * 2 + 1);
+    const sizes = [];
+    for (let step = 0; step <= target; step += 2) {
+        sizes.push(target - step, target + step);
+    }
+    for (const size of sizes) {
+        if (size < 3 || size / n > share + 0.03) continue;
+        const a = (n - size) / 2;
+        const b = a + size;
+        let ok = true;
+        for (let y = a; y < b && ok; y++) {
+            for (let x = a; x < b && ok; x++) {
+                if (reserved(x, y)) ok = false;
+            }
+        }
+        for (const [px, py] of patterns) {
+            const touches = px < b && px + 5 > a && py < b && py + 5 > a;
+            const inside = px >= a && px + 5 <= b && py >= a && py + 5 <= b;
+            if (touches && !(inside && version >= 7)) ok = false;
+        }
+        if (ok) return { start: a, size };
+    }
+    return { start: (n - 3) / 2, size: 3 };
+}
+
 /* ---------------------------------------------------------------- the whole picture ---------------------------------------------------------------- */
 
 /**
  * The styled QR code as an SVG string. `matrix` holds rows of 0/1 without the quiet zone; `o` is the design
- * (see readDesign()). `pixels` sets the width/height attributes (the longer side).
+ * (see readDesign()). `pixels` sets the width/height attributes (the longer side). With `withLogoImage` false the
+ * logo picture itself is left out (the PNG export draws it on the canvas); `logoBox` says where it goes.
  */
-function buildSvg(matrix, o, pixels = null, idPrefix = 'q') {
+function buildSvg(matrix, o, pixels = null, idPrefix = 'q', withLogoImage = true) {
     const n = matrix.length;
     const m = o.margin;
     const q = n + 2 * m;
     const inFinder = (x, y) => (x < 7 && y < 7) || (x >= n - 7 && y < 7) || (x < 7 && y >= n - 7);
 
-    // logo box (module units, centred), the plate behind it and the modules it clears
+    // the cleared square (whole modules) and the logo fitted inside it with a padding
     let logo = null;
     if (o.logo) {
-        const s = (o.logoSize / 100) * n;
-        const iw = o.logo.ratio >= 1 ? s : s * o.logo.ratio;
-        const ih = o.logo.ratio >= 1 ? s / o.logo.ratio : s;
-        const pad = o.logoPlate ? Math.max(0.6, s * 0.08) : 0.25;
-        logo = { x: (n - iw) / 2, y: (n - ih) / 2, w: iw, h: ih, pad };
+        const sq = logoSquare(n, LOGO_SIZES[o.logoSize] ?? LOGO_SIZES.medium);
+        const box = sq.size - 2 * Math.max(0.5, sq.size * 0.1);
+        const lw = o.logo.ratio >= 1 ? box : box * o.logo.ratio;
+        const lh = o.logo.ratio >= 1 ? box / o.logo.ratio : box;
+        logo = { sq, x: sq.start + (sq.size - lw) / 2, y: sq.start + (sq.size - lh) / 2, w: lw, h: lh };
     }
-    const cleared = (x, y) => {
-        if (!logo || !(o.logoClear || o.logoPlate)) return false;
-        return x + 1 > logo.x - logo.pad && x < logo.x + logo.w + logo.pad && y + 1 > logo.y - logo.pad && y < logo.y + logo.h + logo.pad;
-    };
+    const cleared = (x, y) => !!logo && x >= logo.sq.start && x < logo.sq.start + logo.sq.size && y >= logo.sq.start && y < logo.sq.start + logo.sq.size;
     const on = (x, y) => x >= 0 && y >= 0 && x < n && y < n && matrix[y][x] === 1 && !inFinder(x, y) && !cleared(x, y);
     const light = (x, y) => matrix[y][x] !== 1 && !inFinder(x, y) && !cleared(x, y);
-
-    let clearedCount = 0;
-    if (logo) {
-        for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (cleared(x, y)) clearedCount++;
-    }
 
     // paint: one colour, or a gradient across the code
     const defs = [];
@@ -218,7 +272,8 @@ function buildSvg(matrix, o, pixels = null, idPrefix = 'q') {
     const frameFill = o.eyeCustom ? o.eyeFrameColor : fill;
     const ballFill = o.eyeCustom ? o.eyeBallColor : fill;
     const bg = o.transparent ? null : o.bg;
-    const plateColor = o.transparent ? '#ffffff' : o.bg;
+    // "white background for the logo": a white rounded plate; without it the square shows the code's own background
+    const plateColor = o.logoWhite ? '#ffffff' : bg;
 
     // layout: the code with its quiet zone, inside an optional frame with a label
     let w = q, h = q, qx = 0, qy = 0;
@@ -254,10 +309,13 @@ function buildSvg(matrix, o, pixels = null, idPrefix = 'q') {
     let code = `<path fill="${fill}" d="${bodyPath(n, o.body, on, light)}"/>`;
     code += `<path fill="${frameFill}" fill-rule="evenodd" d="${frames}"/><path fill="${ballFill}" d="${balls}"/>`;
     if (logo) {
-        if (o.logoPlate) {
-            code += `<path fill="${plateColor}" d="${rrect(logo.x - logo.pad, logo.y - logo.pad, logo.w + 2 * logo.pad, logo.h + 2 * logo.pad, Math.min(logo.w, logo.h) * 0.18)}"/>`;
+        if (plateColor) {
+            const { start, size: side } = logo.sq;
+            code += `<path fill="${plateColor}" d="${rrect(start + 0.1, start + 0.1, side - 0.2, side - 0.2, side * 0.2)}"/>`;
         }
-        code += `<image href="${o.logo.src}" x="${r3(logo.x)}" y="${r3(logo.y)}" width="${r3(logo.w)}" height="${r3(logo.h)}" preserveAspectRatio="xMidYMid meet"/>`;
+        if (withLogoImage) {
+            code += `<image href="${esc(o.logo.src)}" x="${r3(logo.x)}" y="${r3(logo.y)}" width="${r3(logo.w)}" height="${r3(logo.h)}" preserveAspectRatio="xMidYMid meet"/>`;
+        }
     }
     parts.push(`<g transform="translate(${r3(qx + m)} ${r3(qy + m)})">${code}</g>`);
 
@@ -271,7 +329,9 @@ function buildSvg(matrix, o, pixels = null, idPrefix = 'q') {
     const size = scale ? ` width="${Math.round(w * scale)}" height="${Math.round(h * scale)}"` : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${r3(w)} ${r3(h)}"${size}>${defs.length ? `<defs>${defs.join('')}</defs>` : ''}${parts.join('')}</svg>`;
 
-    return { svg, width: w, height: h, hasFrame, logoShare: logo ? (logo.w * logo.h) / (n * n) : 0, clearedShare: clearedCount / (n * n) };
+    const logoBox = logo ? { x: qx + m + logo.x, y: qy + m + logo.y, w: logo.w, h: logo.h } : null;
+
+    return { svg, width: w, height: h, scale: scale ?? 1, hasFrame, logoBox };
 }
 
 /* ---------------------------------------------------------------- payloads ---------------------------------------------------------------- */
@@ -358,7 +418,8 @@ function init(root) {
     const downloads = root.querySelectorAll('[data-qr-download]');
     const eccSelect = form.elements.ecc;
     const eccNote = root.querySelector('[data-qr-ecc-note]');
-    const t = JSON.parse(root.dataset.qrI18n || '{}');
+    const logoRemove = root.querySelector('[data-qr-logo-remove]');
+    const t =JSON.parse(root.dataset.qrI18n || '{}');
     const endpoint = root.dataset.endpoint;
     const maxLength = Number(root.dataset.max) || 2000;
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
@@ -429,9 +490,8 @@ function init(root) {
             transparent: !!v.bg_transparent,
             margin: Math.min(8, Math.max(2, Number(v.margin) || 4)),
             logo,
-            logoSize: Math.min(40, Math.max(10, Number(v.logo_size) || 22)),
-            logoClear: !!v.logo_clear,
-            logoPlate: !!v.logo_plate,
+            logoSize: LOGO_SIZES[v.logo_size] ? v.logo_size : 'medium',
+            logoWhite: !!v.logo_white,
             frame: v.frame || 'none',
             frameText: String(v.frame_text ?? '').slice(0, 40),
             frameColor: hex(v.frame_color, '#0a2540'),
@@ -440,7 +500,7 @@ function init(root) {
     }
 
     /* ------- warnings: keep it scannable ------- */
-    function warn(o, result) {
+    function warn(o) {
         const list = [];
         const bg = o.transparent ? '#ffffff' : o.bg;
         const inks = [o.color1];
@@ -448,7 +508,6 @@ function init(root) {
         if (o.eyeCustom) inks.push(o.eyeFrameColor, o.eyeBallColor);
         if (inks.some((c) => luminance(c) > luminance(bg))) list.push(t.inverted);
         else if (inks.some((c) => contrast(c, bg) < 3)) list.push(t.lowContrast);
-        if (o.logo && (o.logoSize > 30 || result.clearedShare > 0.2)) list.push(t.bigLogo);
         if (o.transparent) list.push(t.transparent);
         warnings.innerHTML = list.map((w) => `<li>${esc(w)}</li>`).join('');
         warnings.hidden = list.length === 0;
@@ -463,7 +522,7 @@ function init(root) {
         preview.innerHTML = result.svg;
         preview.querySelector('svg')?.setAttribute('aria-hidden', 'true');
         if (mini) mini.innerHTML = buildSvg(current.matrix, o, null, 'm').svg;
-        warn(o, result);
+        warn(o);
         drawPresetThumbs();
     }
 
@@ -479,6 +538,7 @@ function init(root) {
         const withLogo = v.logo && v.logo !== 'none' && (v.logo !== 'upload' || uploaded);
         eccSelect.disabled = !!withLogo;
         if (eccNote) eccNote.hidden = !withLogo;
+        if (logoRemove) logoRemove.hidden = !withLogo;
         return withLogo ? 'H' : ['L', 'M', 'Q', 'H'].includes(v.ecc) ? v.ecc : 'M';
     }
 
@@ -539,25 +599,35 @@ function init(root) {
         }
     }
 
-    /* ------- logo upload: read, downscale, keep in memory ------- */
+    /*
+     * ------- logo upload: read with FileReader, downscale, keep in memory (never sent anywhere) -------
+     * An SVG logo is only ever loaded as an image (an <img> here, an SVG <image> in the code): its markup is never put
+     * into the page, so any script inside it cannot run.
+     */
     const fileInput = root.querySelector('[data-qr-logo-file]');
     const logoError = root.querySelector('[data-qr-logo-error]');
+    const uploadRadio = form.querySelector('input[name="logo"][value="upload"]');
     fileInput?.addEventListener('change', () => {
         const file = fileInput.files?.[0];
         logoError.hidden = true;
         if (!file) return;
-        if (!/^image\/(png|jpe?g|webp|gif|svg\+xml)$/.test(file.type) || file.size > 5 * 1024 * 1024) {
+        const isSvg = file.type === 'image/svg+xml' || (file.type === '' && /\.svg$/i.test(file.name));
+        if (!(isSvg || /^image\/(png|jpe?g|webp)$/.test(file.type)) || file.size > 5 * 1024 * 1024) {
             logoError.hidden = false;
             fileInput.value = '';
             return;
         }
         const reader = new FileReader();
         reader.onload = () => {
+            let dataUrl = String(reader.result);
+            // a .svg the system gave no type to: label it, so the browser renders it as an image
+            if (isSvg && !dataUrl.startsWith('data:image/svg+xml')) dataUrl = 'data:image/svg+xml;base64,' + dataUrl.split(',')[1];
             const img = new Image();
             img.onload = () => {
                 const ratio = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1;
-                let src = reader.result;
-                if (file.type !== 'image/svg+xml' || String(src).length > 300000) {
+                let src = dataUrl;
+                // photos are downscaled to a light PNG; a small SVG stays a vector for the SVG download
+                if (!isSvg || src.length > 300000) {
                     const k = Math.min(1, 600 / Math.max(img.naturalWidth || 600, img.naturalHeight || 600));
                     const c = document.createElement('canvas');
                     c.width = Math.max(1, Math.round((img.naturalWidth || 600) * k));
@@ -566,17 +636,33 @@ function init(root) {
                     src = c.toDataURL('image/png');
                 }
                 uploaded = { src, ratio };
-                const radio = form.querySelector('input[name="logo"][value="upload"]');
-                if (radio) {
-                    radio.disabled = false;
-                    radio.checked = true;
+                if (uploadRadio) {
+                    uploadRadio.disabled = false;
+                    uploadRadio.checked = true;
                 }
+                syncControls();
                 update();
             };
-            img.onerror = () => (logoError.hidden = false);
-            img.src = reader.result;
+            img.onerror = () => {
+                logoError.hidden = false;
+                fileInput.value = '';
+            };
+            img.src = dataUrl;
         };
+        reader.onerror = () => (logoError.hidden = false);
         reader.readAsDataURL(file);
+    });
+
+    logoRemove?.addEventListener('click', () => {
+        uploaded = null;
+        if (fileInput) fileInput.value = '';
+        logoError.hidden = true;
+        if (uploadRadio) uploadRadio.disabled = true;
+        const none = form.querySelector('input[name="logo"][value="none"]');
+        if (none) none.checked = true;
+        syncControls();
+        update();
+        fileInput?.focus();
     });
 
     /* ------- dependent controls ------- */
@@ -671,20 +757,32 @@ function init(root) {
         return buildSvg(current.matrix, o, pixels, 'x').svg;
     }
 
-    function toPng(pixels) {
-        return new Promise((resolve, reject) => {
-            const svg = exportSvg(pixels);
+    const loadImage = (src) =>
+        new Promise((resolve, reject) => {
             const img = new Image();
-            img.onload = () => {
-                const c = document.createElement('canvas');
-                c.width = img.naturalWidth || pixels;
-                c.height = img.naturalHeight || pixels;
-                c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-                resolve(c.toDataURL('image/png'));
-            };
+            img.onload = () => resolve(img);
             img.onerror = reject;
-            img.src = svgDataUrl(svg);
+            img.src = src;
         });
+
+    /** The code without the logo goes on the canvas first, then the logo itself with drawImage (no nested images in the SVG). */
+    async function toPng(pixels) {
+        const o = readDesign(values());
+        const result = buildSvg(current.matrix, o, pixels, 'x', false);
+        const code = await loadImage(svgDataUrl(result.svg));
+        const c = document.createElement('canvas');
+        c.width = code.naturalWidth || Math.round(result.width * result.scale);
+        c.height = code.naturalHeight || Math.round(result.height * result.scale);
+        const ctx = c.getContext('2d');
+        ctx.drawImage(code, 0, 0, c.width, c.height);
+        if (o.logo && result.logoBox) {
+            const logo = await loadImage(o.logo.src);
+            const k = c.width / result.width;
+            const { x, y, w, h } = result.logoBox;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(logo, x * k, y * k, w * k, h * k);
+        }
+        return c.toDataURL('image/png');
     }
 
     const save = (href, name) => {

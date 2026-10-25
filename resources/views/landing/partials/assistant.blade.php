@@ -2,7 +2,7 @@
 @php
     $asstWa = \App\Services\Assistant::salesWhatsApp();
     $asstL10n = [
-        'welcome' => __('Hi 👋 I’m the EgHub assistant. Ask me about plans and prices, the free plan, add-ons, payment, or how your cafe gets started.'),
+        'welcome' => __('Hi, I’m the EgHub assistant. Ask me about the plans and prices, the free plan, payment, or how your place gets started.'),
         'typing' => __('Typing…'),
         'failed' => __('Sorry, something went wrong and I couldn’t answer. You can message our team on WhatsApp.'),
         'tooMany' => __('You’ve asked a lot in a short time. Continue with our team on WhatsApp, or try again a bit later.'),
@@ -11,7 +11,8 @@
         'handoffText' => __("Hi, I was asking the EgHub assistant on the website:\n:q"),
         'helloText' => __('Hi, I would like to know more about EgHub for my place'),
     ];
-    $asstChips = [__('How much are the plans?'), __('What does the free plan include?'), __('Can I buy one module only?'), __('How do I pay?')];
+    // the first questions owners really ask; each one is answered by the assistant's reference (App\Services\Assistant)
+    $asstChips = [__('How do I get started?'), __('I have a paper menu, can you add it?'), __('Is there a commission on orders?'), __('How much are the plans?')];
 @endphp
 <div id="asst" hidden role="dialog" aria-modal="true" aria-labelledby="asst-title" data-endpoint="{{ route('assistant') }}" data-lang="{{ app()->getLocale() }}" data-wa="{{ $asstWa }}"
      data-l10n="{{ json_encode($asstL10n, JSON_UNESCAPED_UNICODE) }}"
@@ -86,6 +87,7 @@
     function bubble(role, text, extra) {
         var div = document.createElement('div');
         div.className = (role === 'user' ? ME : BOT) + (extra ? ' ' + extra : '');
+        div.dir = 'auto'; // an English question on the Arabic page (or the reverse) reads in its own direction
         div.innerHTML = render(text);
         log.appendChild(div);
         log.scrollTop = log.scrollHeight;
@@ -120,6 +122,7 @@
         bubble('user', text);
         refreshHuman();
         input.value = '';
+        grow();
         var typing = bubble('assistant', L.typing, 'italic text-navy-500');
         fetch(endpoint, {
             method: 'POST',
@@ -145,11 +148,32 @@
             handoffCard();
         }).then(function () { busy = false; send.disabled = false; input.focus(); });
     }
+    /* phones: the panel follows the visible area, so the on-screen keyboard never covers the input,
+       and the last message stays in view while the keyboard opens */
+    var vv = window.visualViewport;
+    var phone = window.matchMedia('(max-width: 639px)');
+    function fit() {
+        if (panel.hidden) return;
+        if (vv && phone.matches) {
+            panel.style.height = vv.height + 'px';
+            panel.style.top = vv.offsetTop + 'px';
+            panel.style.bottom = 'auto';
+        } else {
+            panel.style.height = panel.style.top = panel.style.bottom = '';
+        }
+        log.scrollTop = log.scrollHeight;
+    }
+    if (vv) { vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); }
+    function grow() {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 112) + 'px';
+    }
     function open() {
         lastFocus = document.activeElement;
         panel.hidden = false;
         document.documentElement.classList.add('asst-open');
         redraw();
+        fit();
         setTimeout(function () { input.focus(); }, 50);
     }
     function close() {
@@ -157,6 +181,16 @@
         document.documentElement.classList.remove('asst-open');
         if (lastFocus && lastFocus.focus) lastFocus.focus();
     }
+    // a modal dialog: Tab cycles inside the panel
+    panel.addEventListener('keydown', function (e) {
+        if (e.key !== 'Tab') return;
+        var items = Array.prototype.filter.call(panel.querySelectorAll('button, a[href], textarea'), function (el) { return !el.disabled && el.offsetParent !== null; });
+        if (!items.length) return;
+        var first = items[0], last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
+    input.addEventListener('input', grow);
     document.addEventListener('click', function (e) {
         var t = e.target.closest('[data-assistant-open]');
         if (t) { e.preventDefault(); open(); }

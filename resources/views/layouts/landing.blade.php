@@ -68,7 +68,8 @@
             <a href="{{ route('pricing') }}" class="flex min-h-11 items-center rounded-lg px-3 hover:bg-navy-50 hover:text-navy-900">{{ __('Pricing') }}</a>
             <a href="{{ route('services') }}" class="flex min-h-11 items-center rounded-lg px-3 hover:bg-navy-50 hover:text-navy-900">{{ __('Services') }}</a>
             <a href="{{ route('blog') }}" class="flex min-h-11 items-center rounded-lg px-3 hover:bg-navy-50 hover:text-navy-900">{{ __('Blog') }}</a>
-            <a href="{{ $home }}#faq" class="flex min-h-11 items-center rounded-lg px-3 hover:bg-navy-50 hover:text-navy-900">{{ __('FAQ') }}</a>
+            <a href="{{ route('tools.qr') }}" data-nav-qr @if (request()->routeIs('tools.qr')) aria-current="page" @endif class="flex min-h-11 items-center gap-1.5 rounded-lg px-3 whitespace-nowrap hover:bg-navy-50 hover:text-navy-900 aria-[current=page]:text-brand-700">{{ __('QR generator') }}<span class="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[11px] leading-none font-extrabold text-emerald-700">{{ __('Free') }}</span></a>
+            <a href="{{ $home }}#faq" class="hidden min-h-11 items-center rounded-lg px-3 hover:bg-navy-50 hover:text-navy-900 xl:flex">{{ __('FAQ') }}</a>
         </nav>
 
         <div class="ms-auto flex items-center gap-1 text-sm font-bold">
@@ -135,6 +136,7 @@
         <a href="{{ route('pricing') }}" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-extrabold text-navy-900">{{ __('Pricing') }}</a>
         <a href="{{ route('services') }}" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-extrabold text-navy-900">{{ __('Services') }}</a>
         <a href="{{ route('blog') }}" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-extrabold text-navy-900">{{ __('Blog') }}</a>
+        <a href="{{ route('tools.qr') }}" data-nav-qr class="flex min-h-13 items-center gap-2 border-b border-navy-100 px-1 text-base font-extrabold text-navy-900">{{ __('QR generator') }}<span class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-extrabold text-emerald-700">{{ __('Free') }}</span></a>
         <a href="{{ $home }}#faq" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-extrabold text-navy-900">{{ __('FAQ') }}</a>
         <a href="{{ platform_url('app', '/login') }}" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-bold text-navy-600">{{ __('Log in') }}</a>
         <a href="?lang={{ $other }}" class="flex min-h-13 items-center px-1 text-base font-bold text-navy-600" lang="{{ $other }}">{{ $other === 'en' ? 'English' : 'عربي' }}</a>

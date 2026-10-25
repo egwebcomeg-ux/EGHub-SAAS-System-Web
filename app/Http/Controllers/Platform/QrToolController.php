@@ -8,6 +8,7 @@ use BaconQrCode\Encoder\Encoder;
 use BaconQrCode\Exception\WriterException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
@@ -20,6 +21,12 @@ class QrToolController extends Controller
     /** Longest payload accepted, in characters. */
     public const MAX_LENGTH = 2000;
 
+    /** Error correction levels the page may ask for; a code with a logo asks for H so it still scans. */
+    public const ECC_LEVELS = ['L', 'M', 'Q', 'H'];
+
+    /** The level used when the request names none (the page's own default). */
+    public const DEFAULT_ECC = 'M';
+
     public function show(): View
     {
         return view('landing.qr-tool', ['maxLength' => self::MAX_LENGTH]);
@@ -30,8 +37,9 @@ class QrToolController extends Controller
     {
         $data = $request->validate([
             'data' => ['required', 'string', 'max:'.self::MAX_LENGTH],
-            'ecc' => ['required', 'string', 'in:L,M,Q,H'],
+            'ecc' => ['nullable', 'string', Rule::in(self::ECC_LEVELS)],
         ]);
+        $data['ecc'] ??= self::DEFAULT_ECC;
 
         // plain ASCII keeps Bacon's compact default modes; anything else is UTF-8 (with its ECI marker)
         $encoding = mb_check_encoding($data['data'], 'ASCII') ? Encoder::DEFAULT_BYTE_MODE_ENCODING : 'UTF-8';
