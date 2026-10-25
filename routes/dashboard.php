@@ -60,6 +60,7 @@ use App\Http\Controllers\Dashboard\TableSessionsController;
 use App\Http\Controllers\Dashboard\TerminalsController;
 use App\Http\Controllers\Dashboard\TvPairingController;
 use App\Http\Controllers\Dashboard\TvPlaylistController;
+use App\Http\Controllers\Dashboard\TvScreenDeviceController;
 use App\Http\Controllers\Dashboard\TvScreensController;
 use App\Http\Controllers\Dashboard\TwoFactorController;
 use App\Http\Controllers\Dashboard\UsersController;
@@ -437,6 +438,8 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/tv-screens/{screen}/slides/{slide}', [TvPlaylistController::class, 'updateSlide'])->whereNumber(['screen', 'slide'])->name('tv.slides.update');
         Route::post('/tv-screens/{screen}/slides/{slide}/move', [TvPlaylistController::class, 'moveSlide'])->whereNumber(['screen', 'slide'])->name('tv.slides.move');
         Route::post('/tv-screens/{screen}/slides/{slide}/delete', [TvPlaylistController::class, 'destroySlide'])->whereNumber(['screen', 'slide'])->name('tv.slides.delete');
+        Route::get('/tv-screens/{screen}/device', [TvScreenDeviceController::class, 'show'])->whereNumber('screen')->name('tv.device');
+        Route::post('/tv-screens/{screen}/device', [TvScreenDeviceController::class, 'update'])->whereNumber('screen')->name('tv.device.update');
         Route::post('/tv-screens/{screen}/reload', [TvPlaylistController::class, 'reload'])->whereNumber('screen')->name('tv.reload');
         Route::post('/tv-screens/{screen}/unpair', [TvPlaylistController::class, 'unpair'])->whereNumber('screen')->middleware('support.blocked')->name('tv.unpair');
         Route::post('/tv-screens/{screen}', [TvScreensController::class, 'update'])->whereNumber('screen')->name('tv.update');

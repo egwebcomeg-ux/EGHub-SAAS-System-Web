@@ -5,7 +5,6 @@
 @php
     $status = $screen->status();
     $info = $screen->device_info ?? [];
-    $orientations = ['landscape' => __('Landscape (wide)'), 'portrait' => __('Portrait, turned right'), 'portrait2' => __('Portrait, turned left')];
     $languages = ['' => __('The menu\'s default language'), 'ar' => __('Arabic'), 'en' => __('English'), 'both' => __('Arabic and English')];
     $summary = function (\App\Models\TvSlide $s) {
         return match ($s->type) {
@@ -133,6 +132,7 @@
         <section class="card space-y-3" id="device" data-status="{{ $status }}">
             <h2 class="section-title">{{ __('The TV') }}</h2>
             @include('dashboard.partials.tv-status', ['screen' => $screen])
+            @include('dashboard.partials.tv-device-line', ['screen' => $screen])
             @if ($screen->isPaired())
                 <dl class="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-navy-600">
                     @if ($screen->paired_at)<dt>{{ __('Paired') }}</dt><dd>{{ local_time($screen->paired_at) }}</dd>@endif
@@ -162,10 +162,10 @@
             <form method="post" action="{{ route('dash.tv.settings', $screen) }}" class="grid gap-3">
                 @csrf
                 <div><label class="field-label">{{ __('Screen name') }}</label><input class="field" name="name" value="{{ $screen->name }}" required maxlength="60"></div>
-                <div>
-                    <label class="field-label">{{ __('How the TV hangs') }}</label>
-                    <select class="field" name="orientation">@foreach ($orientations as $k => $v)<option value="{{ $k }}" @selected(($screen->orientation ?: 'landscape') === $k)>{{ $v }}</option>@endforeach</select>
-                </div>
+                <details class="rounded-xl border border-navy-100 p-3" id="shape" open>
+                    <summary class="cursor-pointer text-sm font-bold text-navy-800">{{ __('Screen size and orientation') }}: <span class="font-semibold text-navy-500">{{ \App\Support\ScreenShape::summary($screen) }}</span></summary>
+                    <div class="mt-3">@include('dashboard.partials.tv-shape-fields', ['screen' => $screen])</div>
+                </details>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="field-label">{{ __('Colors') }}</label>

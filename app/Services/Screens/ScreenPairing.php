@@ -6,6 +6,7 @@ use App\Models\Tenant;
 use App\Models\TvPairing;
 use App\Models\TvScreen;
 use App\Services\Entitlements;
+use App\Support\ScreenDevices;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -46,6 +47,7 @@ final class ScreenPairing
         $pairing = TvPairing::query()->create([
             'code_hash' => self::codeHash($code), 'secret_hash' => hash('sha256', $secret),
             'ip' => mb_substr((string) $request->ip(), 0, 45), 'user_agent' => mb_substr((string) $request->userAgent(), 0, 255),
+            'device_type' => ScreenDevices::suggest($request->userAgent()),
             'expires_at' => now()->addMinutes(self::CODE_MINUTES),
         ]);
 
@@ -78,6 +80,21 @@ final class ScreenPairing
 
             return $pairing;
         });
+    }
+
+    /**
+     * The device type guessed for a code still waiting to be typed (ScreenDevices::suggest on its user agent), so the
+     * pairing page can preselect it. Null for a wrong, used or expired code.
+     */
+    public function suggestedType(string $code): ?string
+    {
+        $code = preg_replace('/\D/', '', latin_digits($code));
+        if (strlen((string) $code) !== 6) {
+            return null;
+        }
+
+        return TvPairing::query()->where('code_hash', self::codeHash($code))->whereNull('claimed_at')
+            ->where('expires_at', '>', now())->value('device_type');
     }
 
     /**

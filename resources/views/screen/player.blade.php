@@ -270,7 +270,9 @@ body { font-family: 'Cairo', 'Segoe UI', Tahoma, 'Noto Sans Arabic', 'Droid Arab
         if (turn) { t = o === 'portrait' ? 'translate(' + w + 'px,0) rotate(90deg)' : 'translate(0,' + h + 'px) rotate(-90deg)'; }
         frame.style.webkitTransform = t;
         frame.style.transform = t;
-        document.documentElement.style.fontSize = (Math.min(fw, fh) / 100) + 'px';
+        /* the owner's text size (screen size and distance, or set by hand): 1 = 1% of the short side */
+        var scale = state.data && state.data.screen.scale ? Math.max(0.8, Math.min(1.5, state.data.screen.scale)) : 1;
+        document.documentElement.style.fontSize = (Math.min(fw, fh) * scale / 100) + 'px';
         var cls = [fh > fw ? 'portrait' : 'landscape'];
         if (state.data) {
             cls.push(state.data.screen.dir === 'ltr' ? 'ltr' : 'rtl');

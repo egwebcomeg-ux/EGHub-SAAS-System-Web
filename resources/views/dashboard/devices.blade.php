@@ -53,6 +53,7 @@
                             <x-dash.device-card type="tv" :label="__('TV screen')" :name="$s->name" :url="$s->url()" :qr="$qrs['tv'][$s->id]" :inactive="! $s->is_active" :open="__('Preview')"
                                 :meta="($s->slides_count ? trans_choice(':count slide|:count slides', $s->slides_count) : __('Whole menu')) . ($s->branch ? ' · ' . tr($s->branch->name, $s->branch->name_en) : '')">
                                 @include('dashboard.partials.tv-status', ['screen' => $s])
+                                @include('dashboard.partials.tv-device-line', ['screen' => $s])
                                 <div class="flex flex-wrap gap-2">
                                     <a href="{{ route('dash.tv.edit', $s) }}" class="btn-primary min-h-9 px-3" data-edit-playlist>{{ __('Edit playlist') }}</a>
                                     @unless ($s->isPaired())<a href="{{ route('dash.tv.pair', ['screen' => $s->id]) }}" class="btn-ghost min-h-9 px-3">{{ __('Pair a TV') }}</a>@endunless

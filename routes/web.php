@@ -11,6 +11,7 @@ use App\Http\Controllers\Platform\ScreenPlayerController;
 use App\Http\Controllers\Platform\SeoController;
 use App\Http\Controllers\Platform\ServicesController;
 use App\Http\Controllers\Platform\SignupController;
+use App\Http\Controllers\Platform\SupportedScreensController;
 use App\Http\Controllers\Platform\WhatsAppWebhookController;
 use App\Models\Payment;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -60,6 +61,7 @@ Route::domain($domain)->group(function () use ($slug) {
         Route::post('/assistant', [AssistantController::class, 'chat'])->middleware('throttle:assistant')->name('assistant');
         // free tools: the styled QR code generator (the browser draws the code, the server only returns its module matrix)
         Route::get('/qr-code-generator', [QrToolController::class, 'show'])->name('tools.qr');
+        Route::get('/supported-screens', SupportedScreensController::class)->name('screens.supported');
         Route::post('/qr-code-generator/matrix', [QrToolController::class, 'matrix'])->middleware('throttle:60,1')->name('tools.qr.matrix');
         Route::get('/terms', [LandingController::class, 'terms'])->name('terms');
         Route::get('/privacy', [LandingController::class, 'privacy'])->name('privacy');
