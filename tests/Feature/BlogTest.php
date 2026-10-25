@@ -6,6 +6,7 @@ use App\Models\PlatformAdmin;
 use App\Models\Post;
 use Database\Seeders\BlogSeeder;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Tests\TenantTestCase;
 
@@ -108,11 +109,16 @@ class BlogTest extends TenantTestCase
 
     public function test_the_starter_articles_seed_once_and_render(): void
     {
+        Storage::fake('public');
+        $this->travelTo(Carbon::parse('2026-10-25 12:00', 'Africa/Cairo'));
         $this->seed(BlogSeeder::class);
         $this->seed(BlogSeeder::class);
-        $this->assertSame(13, Post::query()->count());
-        $this->assertSame(13, Post::query()->published()->count());
-        foreach (Post::query()->get() as $post) {
+        // 13 starter articles + the calendar: 3 in October (live), 6 in November (scheduled), 6 December drafts
+        $this->assertSame(28, Post::query()->count());
+        $this->assertSame(16, Post::query()->published()->count());
+        $this->assertSame(6, Post::query()->where('is_published', true)->where('published_at', '>', now())->count());
+        $this->assertSame(6, Post::query()->where('is_published', false)->count());
+        foreach (Post::query()->published()->get() as $post) {
             $this->get($this->menuUrl('blog/'.$post->slug))->assertOk()->assertSee('<h2', false);
             $this->assertGreaterThanOrEqual(2, $post->readingMinutes());
             $this->assertStringNotContainsString('منيوك', $post->title.$post->excerpt.$post->body);

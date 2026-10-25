@@ -489,3 +489,139 @@ if (systems) {
     set(0);
     fromScroll();
 }
+
+/*
+ * ---------- blog blocks (App\Support\PostBlocks, resources/views/components/blog) ----------
+ * The server already drew each block as a worked example; here the inputs come alive.
+ */
+const CALCULATORS = {
+    // the same formulas as App\Support\BlogCalculators::compute()
+    packaging: (v) => {
+        const total = v.box + v.sides + v.bag + v.seal + v.extras;
+        return { total, share: v.price > 0 ? (total * 100) / v.price : null, priced: Math.ceil(+(v.price + total).toFixed(6) / 5) * 5, monthly: total * v.orders };
+    },
+    'food-cost': (v) => {
+        const price = v.target > 0 ? v.cost / (v.target / 100) : null;
+        const rounded = price === null ? null : Math.ceil(+price.toFixed(6) / 5) * 5;
+        return { price, rounded, actual: rounded ? (v.cost * 100) / rounded : null, left: rounded === null ? null : rounded - v.cost - v.packaging };
+    },
+    'cake-price': (v) => {
+        const cost = v.kilo * v.weight + v.decor + v.box;
+        const price = v.target > 0 ? Math.ceil(+(cost / (v.target / 100)).toFixed(6) / 10) * 10 : null;
+        return { cost, price, per_kilo: price !== null && v.weight > 0 ? price / v.weight : null };
+    },
+    'season-stock': (v) => {
+        const expected = v.last * (1 + v.change / 100);
+        return { expected: Math.ceil(+Math.max(0, expected).toFixed(6)), to_make: Math.max(0, Math.ceil(+(expected * (1 + v.safety / 100) - v.on_hand).toFixed(6))) };
+    },
+};
+$$('[data-bcalc]').forEach((block) => {
+    const formula = CALCULATORS[block.dataset.bcalc];
+    if (!formula) { return; }
+    const inputs = $$('[data-bcalc-inputs] input', block);
+    const update = () => {
+        const v = {};
+        inputs.forEach((input) => {
+            const n = parseFloat(String(input.value).replace(',', '.'));
+            v[input.name] = Number.isFinite(n) ? (input.name === 'change' ? n : Math.max(0, n)) : 0;
+        });
+        const out = formula(v);
+        $$('[data-out]', block).forEach((el) => {
+            const value = out[el.dataset.out];
+            el.textContent = value === null || value === undefined || !Number.isFinite(value)
+                ? '—'
+                : new Intl.NumberFormat('en-US', { maximumFractionDigits: +el.dataset.decimals || 0 }).format(value);
+        });
+    };
+    $('[data-bcalc-inputs]', block).hidden = false;
+    $('[data-bcalc-static]', block).hidden = true;
+    $('[data-bcalc-hint]', block).hidden = false;
+    inputs.forEach((input) => input.addEventListener('input', update));
+    update();
+});
+
+$$('[data-bchecklist]').forEach((block) => {
+    const key = 'eghub:blog-checklist:' + block.dataset.bchecklist;
+    const boxes = $$('input[type="checkbox"]', block);
+    const progress = $('[data-bchecklist-progress]', block);
+    const bar = $('[data-bchecklist-bar]', block);
+    const read = () => { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; } };
+    const save = () => {
+        const ticked = boxes.filter((box) => box.checked).map((box) => +box.dataset.index);
+        try { if (ticked.length) { localStorage.setItem(key, JSON.stringify(ticked)); } else { localStorage.removeItem(key); } } catch { /* private mode: the ticks just do not persist */ }
+    };
+    const show = () => {
+        const done = boxes.filter((box) => box.checked).length;
+        progress.textContent = done === boxes.length ? 'خلّصت الـ ' + boxes.length + ' بند' : 'خلّصت ' + done + ' من ' + boxes.length;
+        bar.firstElementChild.style.setProperty('--p', Math.round((done / boxes.length) * 100) + '%');
+    };
+    const saved = read();
+    boxes.forEach((box) => {
+        box.checked = Array.isArray(saved) && saved.includes(+box.dataset.index);
+        box.addEventListener('change', () => { save(); show(); });
+    });
+    bar.hidden = false;
+    $('[data-bchecklist-actions]', block).hidden = false;
+    $('[data-bchecklist-reset]', block).addEventListener('click', () => { boxes.forEach((box) => { box.checked = false; }); save(); show(); });
+    $('[data-bchecklist-print]', block).addEventListener('click', () => {
+        const done = () => { block.classList.remove('is-printing'); document.body.classList.remove('lp-print-one'); };
+        block.classList.add('is-printing');
+        document.body.classList.add('lp-print-one');
+        window.addEventListener('afterprint', done, { once: true });
+        window.print();
+    });
+    show();
+});
+
+$$('[data-bquiz]').forEach((block) => {
+    const questions = $$('[data-bquiz-q]', block);
+    const score = $('[data-bquiz-score]', block);
+    questions.forEach((q) => {
+        const answer = $('[data-bquiz-answer]', q);
+        const feedback = $('[data-bquiz-feedback]', q);
+        answer.hidden = true;
+        $$('input[type="radio"]', q).forEach((radio) => radio.addEventListener('change', () => {
+            const right = radio.value === '1';
+            $$('label', q).forEach((label) => label.classList.remove('is-right', 'is-wrong'));
+            radio.closest('label').classList.add(right ? 'is-right' : 'is-wrong');
+            if (!right) { $('input[value="1"]', q)?.closest('label').classList.add('is-right'); }
+            q.dataset.right = right ? '1' : '0';
+            feedback.className = 'lp-quiz-feedback ' + (right ? 'is-right' : 'is-wrong');
+            feedback.replaceChildren(right ? 'صح. ' : 'مش دي. الصح: ', ...$('p', answer).cloneNode(true).childNodes);
+            feedback.hidden = false;
+            const answered = questions.filter((x) => x.dataset.right !== undefined);
+            if (answered.length === questions.length) {
+                const n = questions.filter((x) => x.dataset.right === '1').length;
+                score.textContent = n === questions.length
+                    ? 'جاوبت صح على الكل: ' + n + ' من ' + n + '.'
+                    : 'جاوبت صح على ' + n + ' من ' + questions.length + '. ارجع للجزء اللي فيه الإجابة اللي فاتتك.';
+                score.hidden = false;
+            }
+        }));
+    });
+});
+
+$$('[data-bpicker]').forEach((block) => {
+    let answers = [];
+    let map = {};
+    let typical = {};
+    try { answers = JSON.parse(block.dataset.answers); map = JSON.parse(block.dataset.map); typical = JSON.parse(block.dataset.typical || '{}'); } catch { return; }
+    const result = $('[data-bpicker-result]', block);
+    const select = (name) => $('select[name="' + name + '"]', block);
+    // a new food starts from how it usually travels; the reader can still change both
+    select('food').addEventListener('change', () => {
+        const [temp, texture] = typical[select('food').value] || [];
+        if (temp) { select('temp').value = temp; select('texture').value = texture; }
+    });
+    const update = () => {
+        const key = ['food', 'temp', 'texture'].map((name) => $('select[name="' + name + '"]', block).value).join('|');
+        const answer = answers[map[key]];
+        if (!answer) { return; }
+        ['box', 'reason', 'tip'].forEach((field) => { $('[data-field="' + field + '"]', result).textContent = answer[field]; });
+    };
+    $('[data-bpicker-form]', block).hidden = false;
+    result.hidden = false;
+    $('[data-bpicker-table]', block).open = false;
+    $$('select', block).forEach((select) => select.addEventListener('change', update));
+    update();
+});

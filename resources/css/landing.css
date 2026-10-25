@@ -489,3 +489,78 @@ body.lp-locked { overflow: hidden; }
     .hm-orbits i, .hm-orbits b, .hm-sys-rings i, .hm-sys-rings b, .hm-glass, .hm-live::after { animation: none; }
     .hm-ai-scan { display: none; }
 }
+
+/* ---------- blog: interactive blocks inside an article (App\Support\PostBlocks, resources/views/components/blog) ---------- */
+.lp-block { margin-top: 2em; border: 1px solid var(--lp-line); border-radius: 1.25rem; background: #fff; padding: 1.1rem; box-shadow: 0 14px 34px -28px rgba(19, 29, 61, .5); font-size: 1rem; line-height: 1.75; }
+@media (min-width: 640px) { .lp-block { padding: 1.5rem; } }
+/* doubled class: beats the p reset below, so the block's own rows keep their gap */
+.lp-prose .lp-block.lp-block > * + * { margin-top: 1rem; }
+.lp-block [hidden] { display: none !important; }
+.lp-prose .lp-block ul { list-style: none; padding: 0; }
+.lp-prose .lp-block p { margin-top: 0; }
+.lp-prose .lp-block table { font-size: .92em; }
+.lp-block-head { display: flex; gap: .85rem; align-items: flex-start; }
+.lp-block-ic { flex: none; display: grid; place-items: center; width: 2.6rem; height: 2.6rem; border-radius: .9rem; background: var(--color-brand-50); color: var(--eg-orange-text); }
+.lp-prose .lp-block-title, .lp-block-title { margin: 0; font-size: 1.15rem; line-height: 1.45; font-weight: 900; color: var(--lp-ink); }
+.lp-block-intro { margin: .15rem 0 0; color: var(--color-navy-500); font-size: .95rem; }
+.lp-block-label { display: block; margin-bottom: .3rem; font-weight: 700; font-size: .92rem; color: var(--color-navy-700); }
+.lp-block-note { color: var(--color-navy-500); font-size: .9rem; }
+.lp-block-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+
+.lp-calc-inputs { display: grid; gap: .85rem; }
+@media (min-width: 640px) { .lp-calc-inputs { grid-template-columns: 1fr 1fr; } }
+.lp-calc-field { display: flex; align-items: center; border: 1px solid var(--color-navy-200); border-radius: .85rem; background: #fff; overflow: hidden; }
+.lp-calc-field:focus-within { border-color: var(--eg-orange); box-shadow: 0 0 0 3px rgba(243, 118, 35, .2); }
+.lp-calc-field input { flex: 1; min-width: 0; min-height: 2.9rem; border: 0; padding: 0 .9rem; font-size: 1.05rem; font-weight: 700; background: transparent; outline: none; text-align: left; }
+.lp-calc-field span { flex: none; padding-inline: .8rem; color: var(--color-navy-500); font-size: .88rem; background: var(--color-navy-50); align-self: stretch; display: grid; place-items: center; }
+.lp-calc-out { display: grid; gap: .6rem; }
+@media (min-width: 640px) { .lp-calc-out { grid-template-columns: 1fr 1fr; } }
+.lp-calc-out > div { border-radius: .9rem; background: var(--lp-paper); padding: .7rem .9rem; }
+.lp-calc-out > div.is-main { background: var(--eg-navy); color: #fff; }
+.lp-calc-out dt { font-size: .85rem; color: var(--color-navy-500); }
+.lp-calc-out .is-main dt { color: rgba(255, 255, 255, .72); }
+.lp-calc-out dd { margin: .1rem 0 0; font-size: 1.35rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.lp-calc-out dd small { font-size: .8rem; font-weight: 700; opacity: .75; }
+
+.lp-progress { height: .5rem; border-radius: 99px; background: var(--color-navy-100); overflow: hidden; }
+.lp-progress span { display: block; height: 100%; width: var(--p, 0%); background: var(--eg-orange); border-radius: inherit; transition: width .25s ease-out; }
+.lp-checklist li + li { margin-top: .35rem; }
+.lp-checklist label { display: flex; gap: .75rem; align-items: flex-start; padding: .55rem .7rem; border-radius: .8rem; cursor: pointer; }
+.lp-checklist label:hover { background: var(--lp-paper); }
+.lp-checklist input, .lp-quiz-options input { flex: none; width: 1.25rem; height: 1.25rem; margin-top: .3rem; accent-color: var(--eg-orange); }
+.lp-checklist input:checked + span { color: var(--color-navy-400); text-decoration: line-through; text-decoration-color: rgba(243, 118, 35, .7); }
+.lp-checklist input:focus-visible, .lp-quiz-options input:focus-visible { outline: 3px solid var(--eg-orange); outline-offset: 2px; }
+
+.lp-quiz-q { border: 0; padding: 0; margin: 0; }
+.lp-quiz-q + .lp-quiz-q { margin-top: 1.25rem; padding-top: 1.1rem; border-top: 1px solid var(--lp-line); }
+/* floated, so the legend sits inside the fieldset instead of on its top border */
+.lp-quiz-q legend { float: inline-start; width: 100%; font-weight: 800; color: var(--lp-ink); padding: 0; }
+.lp-quiz-q legend + * { clear: both; }
+.lp-quiz-options { margin-top: .5rem; display: grid; gap: .4rem; }
+.lp-quiz-options label { display: flex; gap: .7rem; align-items: flex-start; padding: .55rem .75rem; border: 1px solid var(--lp-line); border-radius: .8rem; cursor: pointer; }
+.lp-quiz-options label.is-right { border-color: #16a34a; background: #f0fdf4; }
+.lp-quiz-options label.is-wrong { border-color: #e11d48; background: #fff1f2; }
+.lp-quiz-feedback { margin-top: .5rem; font-weight: 700; }
+.lp-quiz-feedback.is-right { color: #166534; }
+.lp-quiz-feedback.is-wrong { color: #9f1239; }
+.lp-quiz-answer { margin-top: .5rem; font-size: .95rem; color: var(--color-navy-600); }
+.lp-quiz-answer summary { cursor: pointer; font-weight: 700; color: var(--eg-orange-text); }
+.lp-quiz-score { border-radius: .9rem; background: var(--eg-navy); color: #fff; padding: .75rem 1rem; font-weight: 800; }
+
+.lp-picker-form { display: grid; gap: .85rem; }
+@media (min-width: 640px) { .lp-picker-form { grid-template-columns: repeat(3, 1fr); } }
+.lp-select { width: 100%; min-height: 2.9rem; border: 1px solid var(--color-navy-200); border-radius: .85rem; padding: 0 .75rem; background: #fff; font-weight: 700; }
+.lp-select:focus-visible { outline: 3px solid rgba(243, 118, 35, .45); border-color: var(--eg-orange); }
+.lp-picker-result { border-radius: 1rem; background: var(--lp-paper); padding: 1rem; border-inline-start: 4px solid var(--eg-orange); }
+.lp-prose .lp-picker-result p + p { margin-top: .4rem; }
+.lp-picker-box { font-size: 1.1rem; font-weight: 900; color: var(--lp-ink); }
+.lp-picker-table summary { cursor: pointer; font-weight: 800; color: var(--eg-orange-text); }
+.lp-picker-table table { margin-top: .75rem; }
+
+@media print {
+    body.lp-print-one * { visibility: hidden; }
+    body.lp-print-one .is-printing, body.lp-print-one .is-printing * { visibility: visible; }
+    body.lp-print-one .is-printing { position: absolute; inset: 0 0 auto 0; border: 0; box-shadow: none; }
+    .lp-block-actions { display: none; }
+    .lp-block { break-inside: avoid; box-shadow: none; }
+}

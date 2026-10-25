@@ -14,12 +14,16 @@ use Illuminate\Support\Facades\Cache;
 class SeoController extends Controller
 {
     /**
-     * Main domain: landing pages, the directory and every listed restaurant's profile and menu (cached 1 hour).
+     * Main domain: landing pages, the directory and every listed restaurant's profile and menu (cached 1 hour, or
+     * until the next scheduled blog article goes live when that comes sooner).
      * Places on an active custom domain are left out: their canonical pages live on that domain.
      */
     public function sitemap(): Response
     {
-        $xml = Cache::remember('seo.sitemap.'.platform_url(null, ''), 3600, function () {
+        // a scheduled article joins the sitemap when it goes live: the cache never outlives the next one due
+        $nextPost = Post::query()->where('is_published', true)->where('published_at', '>', now())->min('published_at');
+        $ttl = $nextPost ? (int) max(60, min(3600, ceil(now()->diffInSeconds(Carbon::parse($nextPost))) + 1)) : 3600;
+        $xml = Cache::remember('seo.sitemap.'.platform_url(null, ''), $ttl, function () {
             $urls = [];
             foreach (['landing', 'features', 'pricing', 'tools.qr', 'terms', 'privacy', 'refund'] as $name) {
                 $urls[] = [route($name), null];

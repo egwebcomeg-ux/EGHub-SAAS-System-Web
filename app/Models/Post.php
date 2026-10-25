@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PostBlocks;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +10,8 @@ use Illuminate\Support\Str;
 
 /**
  * A blog article of the marketing site (platform level). Arabic is the primary text; English is optional and falls
- * back to Arabic. Bodies are Markdown rendered with raw HTML stripped, so an article can never carry scripts.
+ * back to Arabic. Bodies are Markdown rendered with raw HTML stripped, so an article can never carry scripts; a few
+ * allow-listed block lines ([[calculator …]], [[checklist …]], …) become interactive blocks (App\Support\PostBlocks).
  */
 class Post extends Model
 {
@@ -71,15 +73,17 @@ class Post extends Model
         return (string) Str::markdown($markdown, ['html_input' => 'strip', 'allow_unsafe_links' => false, 'max_nesting_level' => 10]);
     }
 
+    /** The article HTML: the Markdown body with its interactive blocks (App\Support\PostBlocks) drawn in place. */
     public function html(): string
     {
-        return self::render($this->markdown());
+        return PostBlocks::render($this->markdown(), (string) ($this->slug ?: 'post'));
     }
 
     public function readingMinutes(): int
     {
-        $words = str_word_count(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', strip_tags($this->markdown())) ?? '', 0, 'أبتثجحخدذرزسشصضطظعغفقكلمنهويةىءآإؤئ');
-        $arabic = preg_match_all('/[\p{Arabic}]+/u', $this->markdown());
+        $prose = PostBlocks::prose($this->markdown());
+        $words = str_word_count(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', strip_tags($prose)) ?? '', 0, 'أبتثجحخدذرزسشصضطظعغفقكلمنهويةىءآإؤئ');
+        $arabic = preg_match_all('/[\p{Arabic}]+/u', $prose);
 
         return max(1, (int) ceil(max($words, $arabic) / self::WORDS_PER_MINUTE));
     }

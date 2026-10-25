@@ -25,9 +25,11 @@
                     <div class="text-xs text-navy-400" dir="ltr">/blog/{{ $post->slug }}</div>
                 </td>
                 <td>
-                    <span class="badge {{ $post->isLive() ? 'bg-emerald-50 text-emerald-800' : 'bg-navy-100 text-navy-600' }}">{{ $post->isLive() ? __('Published') : ($post->is_published ? __('Scheduled') : __('Draft')) }}</span>
+                    @php $scheduled = ! $post->isLive() && $post->is_published; @endphp
+                    <span class="badge {{ $post->isLive() ? 'bg-emerald-50 text-emerald-800' : ($scheduled ? 'bg-amber-50 text-amber-800' : 'bg-navy-100 text-navy-600') }}">{{ $post->isLive() ? __('Published') : ($scheduled ? __('Scheduled') : __('Draft')) }}</span>
                 </td>
-                <td class="whitespace-nowrap">{{ $post->published_at ? local_time($post->published_at, 'Y/m/d') : '—' }}</td>
+                {{-- a scheduled article goes live by itself at this time: Post::published() compares with now, no cron --}}
+                <td class="whitespace-nowrap" dir="ltr">{{ $post->published_at ? local_time($post->published_at, $post->isLive() ? 'Y/m/d' : 'Y/m/d h:i A') : '—' }}</td>
                 <td>{{ $post->author?->name ?? '—' }}</td>
                 <td>
                     <div class="flex justify-end gap-2">

@@ -25,6 +25,24 @@
             <label class="block"><span class="field-label">{{ __('Body (Arabic, Markdown)') }}</span>
                 <textarea class="field min-h-[420px] font-mono text-sm leading-relaxed" name="body" required>{{ old('body', $post->body) }}</textarea></label>
             <p class="text-xs text-navy-500">{{ __('Markdown: # heading, **bold**, - list, > quote, [link](https://…), ![alt](image URL). Raw HTML is removed.') }}</p>
+            {{-- the interactive blocks of App\Support\PostBlocks: each one on a line of its own --}}
+            <details class="rounded-xl bg-navy-50 p-3 text-xs text-navy-600">
+                <summary class="cursor-pointer font-semibold">{{ __('Interactive blocks') }}</summary>
+                <p class="mt-2">{{ __('Put a block on a line of its own. Anything else in double brackets stays plain text.') }}</p>
+                <pre class="mt-2 overflow-x-auto whitespace-pre rounded-lg bg-white p-3 font-mono leading-relaxed" dir="ltr">[[calculator {{ implode('|', array_keys(\App\Support\BlogCalculators::all())) }}]]
+[[box-picker]]
+
+[[checklist {{ __('List title') }}]]
+- {{ __('one item per line') }}
+[[/checklist]]
+
+[[quiz {{ __('Quiz title') }}]]
+? {{ __('the question') }}
+- {{ __('a wrong answer') }}
++ {{ __('the right answer') }}
+= {{ __('why, shown after answering') }}
+[[/quiz]]</pre>
+            </details>
             <details>
                 <summary class="cursor-pointer text-sm font-semibold">{{ __('English body (optional)') }}</summary>
                 <textarea class="field mt-2 min-h-[300px] font-mono text-sm leading-relaxed" name="body_en" dir="ltr">{{ old('body_en', $post->body_en) }}</textarea>
