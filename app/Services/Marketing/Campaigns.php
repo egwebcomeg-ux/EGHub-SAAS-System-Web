@@ -11,6 +11,7 @@ use App\Models\WhatsAppMessage;
 use App\Services\Customers\Segments;
 use App\Services\Entitlements;
 use App\Services\Notify\GuestNotifier;
+use App\Services\WhatsApp\OwnNumber;
 use App\Services\WhatsApp\WhatsApp;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -57,7 +58,8 @@ final class Campaigns
         $optedOut = $this->audience($segment, $value)->where('whatsapp_opt_out', true)->count();
         $recipients = $audience - $optedOut;
 
-        return ['audience' => $audience, 'opted_out' => $optedOut, 'recipients' => $recipients, 'cost' => $recipients,
+        // from the restaurant's own number Meta bills its own account: no EgHub credit
+        return ['audience' => $audience, 'opted_out' => $optedOut, 'recipients' => $recipients, 'cost' => OwnNumber::covers('campaign') ? 0 : $recipients,
             'balance' => $this->credits->balance(tenant())];
     }
 

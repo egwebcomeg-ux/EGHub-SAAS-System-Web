@@ -167,7 +167,8 @@ class OnboardingTest extends TenantTestCase
             ->assertSee(route('dash.menu'), false)->assertSee(route('dash.users'), false)
             ->assertSee('data-help-step="dash.drivers"', false)->assertSee(route('dash.drivers'), false)
             ->assertDontSee('data-help-step="dash.terminals"', false)->assertDontSee('data-help-step="dash.corporate"', false)
-            ->assertSee('data-help-count="9"', false)->assertSee(__(':n short steps from an empty account to a menu guests scan every day.', ['n' => 9]));
+            ->assertSee('data-help-count="10"', false)->assertSee(__(':n short steps from an empty account to a menu guests scan every day.', ['n' => 10]))
+            ->assertSee('data-help-step="dash.whatsapp-number"', false);
         $this->assertFileExists(public_path('img/site/menu-editor-sm.webp'));
 
         // a waiter can read it too, without the steps of pages they cannot open
@@ -180,7 +181,7 @@ class OnboardingTest extends TenantTestCase
         $this->actingAs($this->owner($e))->get($this->dashUrl('/help'))->assertOk()
             ->assertSee(route('dash.terminals'), false)->assertSee(route('dash.drivers'), false)
             ->assertSee(route('dash.corporate'), false)->assertSee(route('dash.redeem'), false)
-            ->assertSee('data-help-count="12"', false);
+            ->assertSee('data-help-count="13"', false);
         // a cashier redeems vouchers but signs no contracts
         $this->actingAs($this->staff($e, 'cashier', 'c@cafe-e.test'))->get($this->dashUrl('/help'))->assertOk()
             ->assertSee('data-help-step="dash.redeem"', false)->assertDontSee('data-help-step="dash.corporate"', false)

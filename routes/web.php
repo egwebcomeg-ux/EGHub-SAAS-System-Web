@@ -81,6 +81,12 @@ Route::domain($domain)->group(function () use ($slug) {
     // Inbound WhatsApp (Meta Cloud API handshake + signed payloads, or another provider with X-EgMenu-Secret).
     Route::get('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify'])->name('webhooks.whatsapp');
     Route::post('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive'])->middleware('throttle:600,1');
+    // A restaurant's own WhatsApp number: its own Meta app calls this URL (shown on its dashboard) and signs with its
+    // own app secret (App\Models\WhatsAppConnection).
+    Route::get('/webhooks/whatsapp/{key}', [WhatsAppWebhookController::class, 'verifyOwn'])->where('key', '[a-f0-9]{32}')
+        ->middleware('throttle:60,1')->name('webhooks.whatsapp.own');
+    Route::post('/webhooks/whatsapp/{key}', [WhatsAppWebhookController::class, 'receiveOwn'])->where('key', '[a-f0-9]{32}')
+        ->middleware('throttle:600,1');
 
     // The canonical menu address eghub.app/{tenant}/... (IdentifyTenantByPath). Platform paths above win;
     // reserved slugs (Tenant::RESERVED) can never be registered as restaurants.

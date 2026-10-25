@@ -34,7 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(SecurityHeaders::class);
         // Inbound WhatsApp (Meta / provider) is server-to-server: authenticated by signature or shared secret, not CSRF.
         // The payment gateway's webhook (app.<domain>/billing/kashier/webhook) is signed by the gateway the same way.
-        $middleware->validateCsrfTokens(except: ['webhooks/whatsapp', 'billing/*/webhook']);
+        $middleware->validateCsrfTokens(except: ['webhooks/whatsapp', 'webhooks/whatsapp/*', 'billing/*/webhook']);
         $middleware->alias([
             'tenant.path' => IdentifyTenantByPath::class,
             'tenant.subdomain' => IdentifyTenantBySubdomain::class,

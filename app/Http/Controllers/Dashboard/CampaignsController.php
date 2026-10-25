@@ -80,7 +80,7 @@ class CampaignsController extends Controller
         if ($preview['recipients'] === 0) {
             return back()->withInput()->withErrors(['segment' => __('No customers match this audience.')]);
         }
-        if ($data['when'] === 'now' && $preview['balance'] < 1) {
+        if ($data['when'] === 'now' && $preview['cost'] > 0 && $preview['balance'] < 1) {
             return back()->withInput()->withErrors(['when' => __('Your WhatsApp credits ran out').'. '.__('Top up to send this campaign.')]);
         }
 

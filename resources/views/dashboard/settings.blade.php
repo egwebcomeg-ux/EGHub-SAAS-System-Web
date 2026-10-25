@@ -366,6 +366,18 @@
             </div>
             @if ($whatsapp)
                 @php
+                    $ownNumber = \App\Services\WhatsApp\OwnNumber::current();
+                @endphp
+                <a href="{{ route('dash.whatsapp-number') }}" class="flex items-center justify-between gap-3 rounded-xl border border-navy-100 p-3 hover:border-brand-500 lg:col-span-2" data-wa-own-number-link>
+                    <span>
+                        <span class="block text-sm font-semibold">{{ __('Send from your restaurant’s number') }}</span>
+                        <span class="block text-xs text-navy-500">{{ $ownNumber?->isConnected()
+                            ? __('Connected: :phone. Messages with an approved template go out from your number.', ['phone' => $ownNumber->display_phone ?: $ownNumber->phone_number_id])
+                            : __('Connect your own WhatsApp Business number so guests get messages with your name. Step-by-step guide inside.') }}</span>
+                    </span>
+                    <span class="text-sm font-semibold text-brand-700">{{ $ownNumber ? __('Manage') : __('Connect') }}</span>
+                </a>
+                @php
                     $waToggles = [
                         'wa_order_received' => [__('Order received'), __('Online, kiosk and call-center orders')],
                         'wa_order_ready' => [__('Order ready'), __('When the order is marked ready')],

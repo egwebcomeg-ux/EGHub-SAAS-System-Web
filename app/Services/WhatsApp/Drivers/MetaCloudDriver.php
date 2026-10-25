@@ -13,9 +13,16 @@ use Illuminate\Support\Facades\Http;
  * (Templates::BUTTONS) as button components carrying their payloads. Free text only answers a guest inside the
  * 24-hour window they opened. The access token is only ever sent as the Authorization header, never logged nor put
  * in an error.
+ *
+ * Without arguments it sends from the platform number (config whatsapp.meta); with a phone number id and a token it
+ * sends from a restaurant's own number (App\Services\WhatsApp\OwnNumber), where the templates of the same names live in
+ * the restaurant's own WhatsApp Business account. A Meta error keeps its code on the exception (190 = token
+ * expired or revoked).
  */
 final class MetaCloudDriver implements InteractiveGateway
 {
+    public function __construct(private ?string $phoneId = null, private ?string $token = null) {}
+
     public function send(string $to, string $templateKey, array $params, string $locale = 'ar', string $text = ''): string
     {
         return $this->sendWithButtons($to, $templateKey, $params, [], $locale, $text);
@@ -57,8 +64,8 @@ final class MetaCloudDriver implements InteractiveGateway
     /** @param  array<string,mixed>  $payload */
     private function post(array $payload): string
     {
-        $phoneId = (string) config('whatsapp.meta.phone_id');
-        $token = (string) config('whatsapp.meta.token');
+        $phoneId = (string) ($this->phoneId ?? config('whatsapp.meta.phone_id'));
+        $token = (string) ($this->token ?? config('whatsapp.meta.token'));
         if ($phoneId === '' || $token === '') {
             throw new WhatsAppException('WhatsApp Cloud API is not configured (WHATSAPP_PHONE_ID / WHATSAPP_TOKEN).');
         }
@@ -71,7 +78,7 @@ final class MetaCloudDriver implements InteractiveGateway
         }
         if ($response->failed()) {
             $error = (string) ($response->json('error.message') ?? 'HTTP '.$response->status());
-            throw new WhatsAppException(mb_substr(str_replace($token, '***', $error), 0, 200));
+            throw new WhatsAppException(mb_substr(str_replace($token, '***', $error), 0, 200), (int) $response->json('error.code', 0));
         }
 
         return (string) ($response->json('messages.0.id') ?? throw new WhatsAppException('WhatsApp Cloud API returned no message id.'));

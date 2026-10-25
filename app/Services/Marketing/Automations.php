@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Models\WhatsAppMessage;
 use App\Services\Entitlements;
 use App\Services\Notify\GuestNotifier;
+use App\Services\WhatsApp\OwnNumber;
 use App\Services\WhatsApp\WhatsApp;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -88,7 +89,7 @@ final class Automations
     {
         $at ??= now();
         if (! $automation->is_enabled || ! $automation->inWindow($at) || ! Entitlements::current()->allows('campaigns')
-            || $this->credits->balance(tenant()) < 1) {
+            || ! $this->canPay()) {
             return 0;
         }
         $sent = 0;
@@ -96,7 +97,7 @@ final class Automations
             if ($customer->whatsapp_opt_out) {
                 continue;
             }
-            if ($this->credits->balance(tenant()) < 1) {
+            if (! $this->canPay()) {
                 break; // the rest wait for a top-up and the next run
             }
             $message = $this->whatsapp->record($customer->phone, 'automation', ['text' => $this->render($automation, $customer)], $customer->id, null, $automation->id);
@@ -123,7 +124,7 @@ final class Automations
         foreach (Tenant::query()->whereIn('id', $tenantIds)->where('status', 'active')->get() as $tenant) {
             tenancy()->initialize($tenant);
             try {
-                if (! Entitlements::for($tenant)->allows('campaigns') || $this->credits->balance($tenant) < 1) {
+                if (! Entitlements::for($tenant)->allows('campaigns') || ! $this->canPay()) {
                     continue;
                 }
                 foreach (CampaignAutomation::query()->with('coupon')->where('is_enabled', true)->get() as $automation) {
@@ -141,6 +142,12 @@ final class Automations
     public function balance(): int
     {
         return $this->credits->balance(tenant());
+    }
+
+    /** A credit is left, or the messages go out from the restaurant's own number (Meta bills its own account). */
+    private function canPay(): bool
+    {
+        return OwnNumber::covers('automation') || $this->credits->balance(tenant()) >= 1;
     }
 
     /** The message one guest reads: {name}, {restaurant}, {coupon} and {link} (the menu, with the coupon filled in). */

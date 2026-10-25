@@ -113,6 +113,57 @@ final class Templates
         return strtr(self::LINK_LINE[$locale === 'en' ? 'en' : 'ar'], ['{link}' => $link]);
     }
 
+    /** Free-text templates are marketing on Meta (campaigns, automations); every other message is a utility. */
+    public static function metaCategory(string $key): string
+    {
+        return in_array($key, ['campaign', 'automation'], true) ? 'MARKETING' : 'UTILITY';
+    }
+
+    /**
+     * The body to submit to Meta for $key: {name}, {restaurant}... become {{1}}, {{2}}... in PARAMS order. Meta
+     * refuses a body that starts or ends with a variable, so a greeting or a closing line is added where needed.
+     * Null for a key without a template (session replies).
+     */
+    public static function metaBody(string $key, string $locale = 'ar'): ?string
+    {
+        if (in_array($key, self::SESSION, true) || ! isset(self::TEXT[$key])) {
+            return null;
+        }
+        $en = $locale === 'en';
+        $replace = [];
+        foreach (self::PARAMS[$key] ?? [] as $index => $name) {
+            $replace['{'.$name.'}'] = '{{'.($index + 1).'}}';
+        }
+        $body = trim(strtr(self::TEXT[$key][$en ? 'en' : 'ar'], $replace));
+        if (str_starts_with($body, '{{')) {
+            $body = ($en ? 'Hi 👋' : 'أهلاً 👋')."\n".$body;
+        }
+        if (str_ends_with($body, '}}')) {
+            $body .= "\n".($en ? 'Thank you 🙏' : 'شكراً ليك 🙏');
+        }
+
+        return $body;
+    }
+
+    /**
+     * Sample values Meta asks for with every variable, in PARAMS order.
+     *
+     * @return list<string>
+     */
+    public static function metaExamples(string $key, string $locale = 'ar'): array
+    {
+        $en = $locale === 'en';
+        $samples = [
+            'name' => $en ? 'Ahmed' : 'أحمد', 'restaurant' => 'Rosto', 'number' => '128', 'link' => 'https://eghub.app/rosto/o/a1b2c3',
+            'date' => $en ? 'Fri 8:00 PM' : 'الجمعة 8:00 م', 'guests' => '4', 'reward' => $en ? 'Free coffee' : 'قهوة مجانية',
+            'text' => $en ? 'Our new menu is out, with 20% off this week' : 'المنيو الجديد نزل وعليه خصم 20% الأسبوع ده',
+            'items' => $en ? 'Burger ×2, Fries ×1' : 'برجر ×2، بطاطس ×1', 'total' => $en ? '240 EGP' : '240 جنيه',
+            'address' => $en ? 'Maadi - 12 Street 9' : 'المعادي - 12 شارع 9',
+        ];
+
+        return array_map(fn (string $name) => $samples[$name] ?? 'x', self::PARAMS[$key] ?? []);
+    }
+
     /**
      * Keeps only the template's parameters, in its order (missing ones become "").
      *

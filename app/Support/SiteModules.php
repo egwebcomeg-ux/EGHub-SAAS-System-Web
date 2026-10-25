@@ -523,6 +523,7 @@ final class SiteModules
                     ['check', __('Cash orders confirmed by the guest'), __('A delivery order paid at the door asks the guest on WhatsApp to confirm, change or cancel with one tap. Your kitchen starts right away; the answer shows as a badge on the order.')],
                     ['calendar', __('Bookings and rewards'), __('A message when a booking is confirmed, and when a guest earns a reward on the loyalty card.')],
                     ['pencil', __('You choose the messages'), __('Switch each message on or off, and set the name your guests see in it.')],
+                    ['chat', __('Send from your restaurant’s number'), __('Connect your own WhatsApp Business number and guests get the messages from your number and name. Meta bills those messages to your own WhatsApp account, without EgHub credits.')],
                     ['wallet', __('Pay per message'), __('Each message uses one credit. Credits come in packs you pay once, and they never expire.')],
                 ],
                 'steps' => [
@@ -537,6 +538,7 @@ final class SiteModules
                 ],
                 'faq' => [
                     [__('Do I need my own WhatsApp Business account?'), __('No. Messages go out from the EgHub WhatsApp channel, with your place’s name in every message.')],
+                    [__('Can the messages come from my own number?'), __('Yes. Connect your WhatsApp Business number from Settings with the step-by-step guide. Each message goes out from your number once Meta approves its template, and Meta bills it to your own account; until then it goes out from the EgHub number as usual.')],
                     [__('What does a message cost?'), __('One message is one credit. Credit packs are paid once, and their prices are on the pricing page.')],
                     [__('Can a guest stop the messages?'), __('Yes. Guests who opt out are skipped, and no credit is used for them.')],
                     [__('Does the kitchen wait for the guest to confirm a cash order?'), __('No. The order goes to the kitchen at once. The guest’s answer only shows on the order: confirmed, wants a change, asks to cancel, or no reply, so you know whom to call.')],

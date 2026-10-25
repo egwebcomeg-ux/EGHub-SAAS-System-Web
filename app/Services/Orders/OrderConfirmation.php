@@ -8,11 +8,13 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\WhatsAppConnection;
 use App\Models\WhatsAppMessage;
 use App\Services\Audit;
 use App\Services\Entitlements;
 use App\Services\Notify\GuestNotifier;
 use App\Services\Settings;
+use App\Services\WhatsApp\OwnNumber;
 use App\Services\WhatsApp\WhatsApp;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -93,8 +95,10 @@ final class OrderConfirmation
             if ($order->confirm_status !== null || ! self::qualifies($order) || ! self::enabled()) {
                 return false;
             }
-            if ($this->credits->balance(tenant()) < 1) {
-                return false; // no credit: the restaurant calls as before, no badge waits for a message that never left
+            // no credit: the restaurant calls as before, no badge waits for a message that never left (a message from
+            // the restaurant's own number needs no credit: Meta bills its own account)
+            if (! OwnNumber::covers('order_confirm') && $this->credits->balance(tenant()) < 1) {
+                return false;
             }
             if ($order->customer_id && Customer::query()->whereKey($order->customer_id)->where('whatsapp_opt_out', true)->exists()) {
                 return false;
@@ -272,15 +276,17 @@ final class OrderConfirmation
     /**
      * A tap on a quick-reply button, from the inbound webhook (no tenant context). The payload names the order by
      * its random token; the tap must come from the order's own mobile. The order's restaurant is opened only for
-     * this answer. Returns the order answered, or null when the tap was ignored.
+     * this answer. A tap that reached a restaurant's own number ($via) only ever answers that restaurant's orders,
+     * and the reply leaves from that same number. Returns the order answered, or null when the tap was ignored.
      */
-    public function handleTap(string $from, string $payload): ?Order
+    public function handleTap(string $from, string $payload, ?WhatsAppConnection $via = null): ?Order
     {
         if (! preg_match(self::PAYLOAD, trim($payload), $m) || tenancy()->initialized) {
             return null;
         }
         [$action, $token] = [$m[1], $m[2]];
-        $found = Order::query()->withoutGlobalScopes()->where('confirm_token', $token)->first(['id', 'tenant_id', 'customer_phone']);
+        $found = Order::query()->withoutGlobalScopes()->where('confirm_token', $token)
+            ->when($via, fn ($q) => $q->where('tenant_id', $via->tenant_id))->first(['id', 'tenant_id', 'customer_phone']);
         $sender = normalize_phone($from);
         if (! $found || $sender === null || $sender !== normalize_phone((string) $found->customer_phone)) {
             Log::info('whatsapp order confirmation ignored', ['known_order' => $found !== null]);
@@ -302,7 +308,8 @@ final class OrderConfirmation
             $result = $this->answer($order, $action, 'whatsapp');
             // a guest tapping again and again gets one reply a minute, not one per tap
             if (Cache::add('wa:order-confirm-reply:'.$order->id, 1, 60) || $result === 'applied') {
-                $this->whatsapp->reply((string) $order->customer_phone, $this->replyText($order, $action, $result), $order->customer_id);
+                $this->whatsapp->reply((string) $order->customer_phone, $this->replyText($order, $action, $result), $order->customer_id,
+                    $via ? 'own' : 'platform');
             }
 
             return $order;
