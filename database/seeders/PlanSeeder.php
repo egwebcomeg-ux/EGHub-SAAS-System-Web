@@ -159,7 +159,7 @@ class PlanSeeder extends Seeder
             ['key' => 'tables', 'type' => 'limit', 'credits' => 10, 'monthly_price' => 29, 'sort_order' => 8, 'name' => '10 ترابيزات إضافية', 'name_en' => '10 extra tables'],
             // EgHub screens, priced per screen on top of any plan (the free one included): each one adds a screen
             // the restaurant may pair, and switches the TV screens module on
-            ['key' => 'screens', 'type' => 'limit', 'credits' => 1, 'monthly_price' => 150, 'sort_order' => 4, 'features' => ['tv_screens'],
+            ['key' => 'screens', 'type' => 'limit', 'credits' => 1, 'monthly_price' => 300, 'sort_order' => 4, 'features' => ['tv_screens'],
                 'name' => 'شاشة عرض', 'name_en' => 'TV screen',
                 'description' => 'شاشة زيادة في المحل: منيو بأسعار لايف وصور وفيديو وعروض وأرقام الطلبات الجاهزة، على أي تليفزيون أو بوكس',
                 'description_en' => 'One more screen in the shop: a live-price menu, pictures, video, offers and ready order numbers, on any TV or box'],
