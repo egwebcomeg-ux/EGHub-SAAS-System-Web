@@ -88,6 +88,24 @@ final class BlogCalculators
                     'to_make' => self::output('المطلوب تحضيره أو تطلبه', 'وحدة', 0),
                 ],
             ],
+            'stock-count' => [
+                'title' => 'حاسبة فرق الجرد',
+                'intro' => 'لخامة واحدة: رصيدها في الجرد اللي فات، واللي اشتريته، واللي المفروض اتصرف حسب المبيعات، واللي اتعد النهارده. استعمل نفس الوحدة في كل الخانات: كيلو، لتر، أو حتة.',
+                'formula' => 'المفروض يكون موجود = رصيد الجرد اللي فات + المشتريات − الاستهلاك المفروض. الفرق = المفروض − اللي اتعد (بالسالب لو لقيت أكتر من المفروض). نسبة الفرق = الفرق ÷ الاستهلاك المفروض × 100. قيمة الفرق = الفرق × تكلفة الوحدة.',
+                'inputs' => [
+                    'opening' => self::input('الرصيد في الجرد اللي فات', 20, 0.5, 'وحدة'),
+                    'purchases' => self::input('اللي اشتريته من ساعتها', 100, 0.5, 'وحدة'),
+                    'used' => self::input('المفروض اتصرف حسب المبيعات والوصفات', 95, 0.5, 'وحدة'),
+                    'counted' => self::input('اللي اتعد في الجرد', 18, 0.5, 'وحدة'),
+                    'unit_cost' => self::input('تكلفة الوحدة', 120, 1, $pound),
+                ],
+                'outputs' => [
+                    'gap' => self::output('الفرق: الناقص من المخزن', 'وحدة', 2),
+                    'share' => self::output('نسبة الفرق من الاستهلاك', '٪', 1),
+                    'value' => self::output('قيمة الفرق', $pound, 0),
+                    'expected' => self::output('المفروض كان يكون موجود', 'وحدة', 2),
+                ],
+            ],
         ];
     }
 
@@ -133,6 +151,11 @@ final class BlogCalculators
                 $price = $roundUp($divide($cost, $v['target'] / 100), 10);
 
                 return ['cost' => $cost, 'price' => $price, 'per_kilo' => $price === null ? null : $divide($price, $v['weight'])];
+            case 'stock-count':
+                $expected = $v['opening'] + $v['purchases'] - $v['used'];
+                $gap = $expected - $v['counted'];
+
+                return ['expected' => $expected, 'gap' => $gap, 'share' => $divide($gap * 100, $v['used']), 'value' => $gap * $v['unit_cost']];
             default: // season-stock
                 $expected = $v['last'] * (1 + $v['change'] / 100);
 

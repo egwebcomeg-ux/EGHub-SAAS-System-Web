@@ -514,6 +514,11 @@ const CALCULATORS = {
         const expected = v.last * (1 + v.change / 100);
         return { expected: Math.ceil(+Math.max(0, expected).toFixed(6)), to_make: Math.max(0, Math.ceil(+(expected * (1 + v.safety / 100) - v.on_hand).toFixed(6))) };
     },
+    'stock-count': (v) => {
+        const expected = v.opening + v.purchases - v.used;
+        const gap = expected - v.counted;
+        return { expected, gap, share: v.used > 0 ? (gap * 100) / v.used : null, value: gap * v.unit_cost };
+    },
 };
 $$('[data-bcalc]').forEach((block) => {
     const formula = CALCULATORS[block.dataset.bcalc];

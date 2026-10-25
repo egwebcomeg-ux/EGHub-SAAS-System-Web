@@ -38,6 +38,15 @@ class PostBlocksTest extends TestCase
         // a fall in sales is allowed, a negative stock is not; on hand above the need makes nothing
         $this->assertSame(['expected' => 180.0, 'to_make' => 0.0], BlogCalculators::compute('season-stock', ['change' => -10, 'on_hand' => 500, 'safety' => -5]));
 
+        // stock count: 20 + 100 − 95 = 25 expected, 18 counted, 7 short; a surplus shows as a negative gap
+        $this->assertSame(['expected' => 25.0, 'gap' => 7.0, 'value' => 840.0], array_intersect_key(BlogCalculators::compute('stock-count'), ['expected' => 0, 'gap' => 0, 'value' => 0]));
+        $this->assertSame('7.4', BlogCalculators::format(BlogCalculators::compute('stock-count')['share'], 1));
+        $this->assertSame(['gap' => -5.0, 'value' => -600.0], array_intersect_key(BlogCalculators::compute('stock-count', ['counted' => 30]), ['gap' => 0, 'value' => 0]));
+        $this->assertNull(BlogCalculators::compute('stock-count', ['used' => 0])['share']);
+        $html = PostBlocks::render('[[calculator stock-count]]', 'count');
+        $this->assertStringContainsString('<span data-out="gap" data-decimals="2">7</span>', $html);
+        $this->assertStringContainsString('<span data-out="value" data-decimals="0">840</span>', $html);
+
         // nonsense in, no division by zero out
         $zero = BlogCalculators::compute('food-cost', ['target' => 0]);
         $this->assertNull($zero['price']);

@@ -113,11 +113,11 @@ class BlogTest extends TenantTestCase
         $this->travelTo(Carbon::parse('2026-10-25 12:00', 'Africa/Cairo'));
         $this->seed(BlogSeeder::class);
         $this->seed(BlogSeeder::class);
-        // 13 starter articles + the calendar: 3 in October (live), 6 in November (scheduled), 6 December drafts
+        // 13 starter articles + the calendar: 3 in October (live), 6 in November and 6 in December (scheduled)
         $this->assertSame(28, Post::query()->count());
         $this->assertSame(16, Post::query()->published()->count());
-        $this->assertSame(6, Post::query()->where('is_published', true)->where('published_at', '>', now())->count());
-        $this->assertSame(6, Post::query()->where('is_published', false)->count());
+        $this->assertSame(12, Post::query()->where('is_published', true)->where('published_at', '>', now())->count());
+        $this->assertSame(0, Post::query()->where('is_published', false)->count());
         foreach (Post::query()->published()->get() as $post) {
             $this->get($this->menuUrl('blog/'.$post->slug))->assertOk()->assertSee('<h2', false);
             $this->assertGreaterThanOrEqual(2, $post->readingMinutes());

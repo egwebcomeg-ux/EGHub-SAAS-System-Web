@@ -112,20 +112,79 @@ class BlogCalendarTest extends TenantTestCase
         $this->get($this->menuUrl('blog/custom-cake-pricing'))->assertNotFound();
     }
 
-    public function test_december_outlines_are_drafts_and_admin_shows_the_scheduled_time(): void
+    public function test_the_december_articles_are_scheduled_and_each_appears_at_its_own_time(): void
     {
-        $draft = Post::query()->where('slug', 'year-end-review')->firstOrFail();
-        $this->assertFalse($draft->is_published);
-        $this->assertStringContainsString('مسودة للمراجعة', $draft->body);
-        $this->get($this->menuUrl('blog/year-end-review'))->assertNotFound();
+        $blocks = [
+            'corporate-bulk-orders' => ['data-bcalc="food-cost"', 'data-bchecklist'],
+            'choosing-ingredient-suppliers' => ['data-bchecklist', 'data-bquiz'],
+            'new-waiter-first-week' => ['data-bchecklist', 'data-bquiz'],
+            'year-end-review' => ['data-bchecklist', 'data-bquiz'],
+            'weekly-sales-report-10-minutes' => ['data-bchecklist', 'data-bquiz'],
+            'year-end-stock-count' => ['data-bcalc="stock-count"', 'data-bchecklist'],
+        ];
+        $schedule = (new BlogSeeder)->schedule();
+        foreach ($blocks as $slug => $markers) {
+            $post = Post::query()->where('slug', $slug)->firstOrFail();
+            $this->assertTrue($post->is_published, "$slug is scheduled, not a draft");
+            $this->assertStringNotContainsString('مسودة للمراجعة', $post->body);
+            $this->assertNotSame('', $post->title_en);
+            Storage::disk('public')->assertExists($post->cover);
+            $at = Carbon::parse($schedule[$slug], 'Africa/Cairo');
 
+            $this->travelTo($at->copy()->subMinute());
+            $this->assertFalse($post->fresh()->isLive());
+            $this->get($this->menuUrl("blog/$slug"))->assertNotFound();
+            $this->get($this->menuUrl('blog'))->assertOk()->assertDontSee(e($post->title), false);
+
+            $this->travelTo($at->copy()->addMinute());
+            $page = $this->get($this->menuUrl("blog/$slug"))->assertOk()->assertSee('<h2', false);
+            foreach ($markers as $marker) {
+                $page->assertSee($marker, false);
+            }
+            $this->get($this->menuUrl('blog'))->assertOk()->assertSee(e($post->title), false);
+            $this->assertStringContainsString(route('blog.show', $slug), $this->get($this->menuUrl('rss.xml'))->getContent());
+        }
+    }
+
+    public function test_a_december_outline_left_as_a_draft_is_filled_in_once_and_an_edited_article_is_left_alone(): void
+    {
+        // production has the six as outlines (drafts), seeded before the articles were written
+        Post::query()->where('slug', 'year-end-review')->update(['is_published' => false, 'body' => '> مسودة للمراجعة. الفكرة: ...
+
+## الأرقام
+
+- المبيعات بالشهر
+', 'title_en' => '']);
+        Post::query()->where('slug', 'year-end-stock-count')->update(['is_published' => false, 'body' => 'كتبه صاحب المحل بنفسه']);
+
+        $this->seed(BlogSeeder::class);
+        $this->seed(BlogSeeder::class);
+
+        $review = Post::query()->where('slug', 'year-end-review')->firstOrFail();
+        $this->assertTrue($review->is_published);
+        $this->assertStringContainsString('[[checklist أرقام المراجعة]]', $review->body);
+        $this->assertSame('2026-12-17 20:25', $review->published_at->timezone('Africa/Cairo')->format('Y-m-d H:i'));
+        $this->assertNotSame('', $review->title_en);
+        Storage::disk('public')->assertExists($review->cover);
+        $this->assertSame(1, Post::query()->where('slug', 'year-end-review')->count());
+
+        $edited = Post::query()->where('slug', 'year-end-stock-count')->firstOrFail();
+        $this->assertFalse($edited->is_published);
+        $this->assertSame('كتبه صاحب المحل بنفسه', $edited->body);
+    }
+
+    public function test_admin_shows_the_scheduled_time(): void
+    {
         $admin = PlatformAdmin::query()->create(['name' => 'EgWeb', 'email' => 'calendar@egmenu.test', 'password' => bcrypt('Secret-pass-123')]);
         $this->actingAs($admin, 'admin')->get($this->adminUrl('/blog'))->assertOk()
-            ->assertSee(__('Scheduled'))->assertSee(__('Draft'))->assertSee('2026/11/02 08:30 م');
+            ->assertSee(__('Scheduled'))->assertSee('2026/11/02 08:30 م');
 
-        // publishing a draft from admin schedules it for its planned time
-        $this->actingAs($admin, 'admin')->post($this->adminUrl("/blog/{$draft->id}/publish"))->assertRedirect();
-        $this->assertTrue($draft->fresh()->is_published);
-        $this->assertFalse($draft->fresh()->isLive());
+        // hiding a scheduled article and publishing it again keeps its planned time
+        $post = Post::query()->where('slug', 'year-end-review')->firstOrFail();
+        $this->actingAs($admin, 'admin')->post($this->adminUrl("/blog/{$post->id}/publish"))->assertRedirect();
+        $this->assertFalse($post->fresh()->is_published);
+        $this->actingAs($admin, 'admin')->post($this->adminUrl("/blog/{$post->id}/publish"))->assertRedirect();
+        $this->assertTrue($post->fresh()->is_published);
+        $this->assertFalse($post->fresh()->isLive());
     }
 }
