@@ -123,7 +123,7 @@ final class DemoContent
                 if ($rights->allows('delivery_zones|online_ordering') && $rights->canAdd('staff')
                     && Role::query()->where('name', 'driver')->where('guard_name', 'web')->exists()) {
                     $driver = User::query()->create([
-                        'name' => 'كابتن محمود '.self::MARK, 'email' => 'driver.'.tenant()->getTenantKey().'@demo.egmenu.app',
+                        'name' => 'كابتن محمود '.self::MARK, 'email' => 'driver.'.tenant()->getTenantKey().'@demo.'.central_domain(),
                         'password' => Str::password(32), 'is_active' => false, 'branch_id' => $branch->id,
                     ]);
                     $driver->assignRole('driver');
@@ -296,7 +296,7 @@ final class DemoContent
                 'delivery_address' => $type === 'delivery' ? 'شارع التسعين، التجمع الخامس '.self::MARK : null,
                 'subtotal' => $subtotal, 'total' => $subtotal,
                 'payment_status' => $status === 'served' ? 'paid' : 'unpaid', 'payment_method' => $status === 'served' ? ($i % 3 === 0 ? 'card' : 'cash') : null,
-                'tracking_token' => random_token(16),
+                'tracking_token' => random_token(12),
                 'preparing_at' => in_array($status, ['preparing', 'ready', 'served'], true) ? $at->copy()->addMinutes(2) : null,
                 'ready_at' => in_array($status, ['ready', 'served'], true) ? $at->copy()->addMinutes(14) : null,
                 'completed_at' => $status === 'served' ? $at->copy()->addMinutes(30) : null,

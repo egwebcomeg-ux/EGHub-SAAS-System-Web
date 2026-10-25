@@ -22,9 +22,9 @@
                     @endif
                 </div>
             </div>
-            <form method="post" action="{{ route('dash.support-access.exit') }}" class="shrink-0">
+            <form method="post" action="{{ route('dash.support-access.exit') }}" class="basis-full shrink-0 sm:basis-auto">
                 @csrf
-                <button class="min-h-10 rounded-xl bg-white px-4 text-sm font-bold text-red-800 hover:bg-red-50">{{ __('Leave and go back to the admin') }}</button>
+                <button class="min-h-10 w-full rounded-xl bg-white px-4 text-sm font-bold text-red-800 hover:bg-red-50 sm:w-auto">{{ __('Leave and go back to the admin') }}</button>
             </form>
         </div>
     </div>

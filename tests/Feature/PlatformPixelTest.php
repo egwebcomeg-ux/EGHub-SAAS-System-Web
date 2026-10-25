@@ -20,6 +20,12 @@ class PlatformPixelTest extends TenantTestCase
             ->assertSee("fbq('init', '".self::PIXEL."')", false)
             ->assertSee("fbq('track', 'Contact')", false)
             ->assertDontSee('CompleteRegistration');
+
+        // the sign-up page is part of the funnel: a PageView there, the CompleteRegistration only after the sign-up
+        $this->get($this->menuUrl('register'))->assertOk()
+            ->assertSee("fbq('init', '".self::PIXEL."')", false)
+            ->assertSee("fbq('track', 'PageView')", false)
+            ->assertDontSee('CompleteRegistration');
     }
 
     public function test_a_sign_up_counts_once_and_restaurant_menus_never_load_it(): void

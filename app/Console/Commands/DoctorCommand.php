@@ -37,7 +37,7 @@ class DoctorCommand extends Command
             foreach (['pos_terminals', 'driver_locations', 'corporate_vouchers', 'kb_articles'] as $table) {
                 $this->check("Migrations ran ($table table)", Schema::hasTable($table), 'run php artisan migrate --force');
             }
-            $this->check('Queue table reachable', $this->queueReachable(), 'jobs table missing: run migrate');
+            $this->check('Queue table reachable', $this->queueReachable(), 'run php artisan migrate --force (the jobs table is missing)');
             $this->check('Migrations ran (tenant_backups table)', Schema::hasTable('tenant_backups'), 'run php artisan migrate --force (the restaurant backups need it)', warn: true);
             $this->check('Roles seeded (driver role)', $this->roleExists('driver'), 'run php artisan db:seed --class=RoleSeeder --force');
             $missing = $this->missingPermissions();

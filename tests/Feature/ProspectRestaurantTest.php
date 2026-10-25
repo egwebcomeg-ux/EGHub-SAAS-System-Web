@@ -80,6 +80,11 @@ class ProspectRestaurantTest extends TenantTestCase
             $this->assertTrue(Order::query()->where('status', 'new')->exists());
         });
 
+        // a demo order's tracking link opens like a real one (the route only accepts the 24-hex token real orders get)
+        $token = $this->as($tenant, fn () => Order::query()->where('status', 'new')->value('tracking_token'));
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{24}$/', $token);
+        $this->get($this->subUrl('cafe-nile', "o/$token"))->assertOk();
+
         $this->actingAs($this->admin(), 'admin')->get($this->adminUrl('/tenants/cafe-nile'))->assertOk()
             ->assertSee($this->kitUrl($tenant))->assertSee($owner->temporary_password)->assertSee('wa.me/201012345678', false);
     }

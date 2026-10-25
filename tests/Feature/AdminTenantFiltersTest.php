@@ -102,6 +102,8 @@ class AdminTenantFiltersTest extends TenantTestCase
         $this->assertSame(['bravo'], $this->listed(['q' => '+20 101 234 5678']));
         $this->assertSame(['charlie'], $this->listed(['q' => 'charlie-food.com']));
         $this->assertSame([], $this->listed(['q' => 'nothing-like-this']));
+        $this->actingAs($this->admin, 'admin')->get($this->adminUrl('/tenants?q=nothing-like-this'))->assertOk()
+            ->assertSee('مفيش مطعم مطابق للبحث')->assertDontSee('مفيش مطاعم لسه');
     }
 
     public function test_sorting_and_filters_survive_pagination_with_a_reset_link(): void

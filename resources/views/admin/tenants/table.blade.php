@@ -77,7 +77,7 @@
                 @endif
             </tr>
         @empty
-            <tr><td colspan="9" class="py-8 text-center text-navy-500">{{ __('No restaurants yet.') }}</td></tr>
+            <tr><td colspan="9" class="py-8 text-center text-navy-500">{{ ($filtered ?? false) ? __('No restaurant matches this search or these filters.') : __('No restaurants yet.') }}</td></tr>
         @endforelse
         </tbody>
     </table>
@@ -117,6 +117,6 @@
             @endunless
         </li>
     @empty
-        <li class="py-8 text-center text-sm text-navy-500">{{ __('No restaurants yet.') }}</li>
+        <li class="py-8 text-center text-sm text-navy-500">{{ ($filtered ?? false) ? __('No restaurant matches this search or these filters.') : __('No restaurants yet.') }}</li>
     @endforelse
 </ul>

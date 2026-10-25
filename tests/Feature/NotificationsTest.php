@@ -75,6 +75,10 @@ class NotificationsTest extends TenantTestCase
         $html = (string) app()->call(fn () => (new SubscriptionEndingSoon($sub))->toMail($owner)->render());
         $this->assertStringContainsString('dir="rtl"', $html);
         $this->assertStringContainsString('التجربة المجانية', $html);
+        // the header is the EgHub wordmark (eg + hub), the old brand is gone
+        $this->assertMatchesRegularExpression('/>eg<span[^>]*>hub<\/span>/', $html);
+        $this->assertStringNotContainsString('menu</span>', $html);
+        $this->assertStringNotContainsString('EgMenu', $html);
         $this->assertSame('ar', $owner->preferredLocale());
     }
 }

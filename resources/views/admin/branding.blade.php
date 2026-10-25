@@ -5,7 +5,7 @@
 @php
     $colors = [
         'brand_color_primary' => [__('Primary color'), __('Buttons, links and highlights')],
-        'brand_color_secondary' => [__('Secondary color'), __('The "menu" of the wordmark and blue accents')],
+        'brand_color_secondary' => [__('Secondary color'), __('The "hub" of the wordmark and blue accents')],
         'brand_color_navy' => [__('Dark color'), __('Sidebars, footer and dark surfaces')],
     ];
     $uploads = [
@@ -97,7 +97,7 @@
                         <div class="h-2 w-2/3 rounded-full bg-white/30"></div>
                     </div>
                     <div class="min-w-0 flex-1 space-y-3 bg-navy-50 p-4">
-                        <div class="text-lg font-black leading-tight" dir="ltr"><span style="color: var(--p)">eg</span><span style="color: var(--s)">menu</span> <span class="text-xs font-semibold text-navy-500" data-preview-name-out>{{ $brand['brand_site_name'] }}</span></div>
+                        <div class="text-lg font-black leading-tight" dir="ltr"><span style="color: var(--p)">eg</span><span style="color: var(--s)">hub</span> <span class="text-xs font-semibold text-navy-500" data-preview-name-out>{{ $brand['brand_site_name'] }}</span></div>
                         <div class="rounded-xl bg-white p-3 text-sm shadow-sm">
                             <div class="font-bold text-navy-900">{{ __('A card title') }}</div>
                             <div class="text-navy-500">{{ __('Some text with') }} <span class="font-semibold" style="color: var(--p)">{{ __('a link') }}</span>.</div>

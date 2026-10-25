@@ -51,6 +51,8 @@ class AssistantTest extends TenantTestCase
                 && str_contains($system, '1,250')                       // the Complete price from the database
                 && str_contains($system, 'فرع إضافي')                   // an add-on still on sale
                 && str_contains($system, 'wa.me/201271133655')           // the sales number for hand-offs
+                && str_contains($system, 'http://egmenu.test/register')  // links on the live main domain
+                && ! str_contains($system, 'egmenu.app')
                 && ($body['system'][1]['cache_control']['type'] ?? '') === 'ephemeral'
                 && $body['messages'][0]['content'] === 'الباقات بكام؟';
         });

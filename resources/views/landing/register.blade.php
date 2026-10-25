@@ -125,3 +125,7 @@
     })();
 </script>
 @endsection
+
+@push('scripts')
+    @include('partials.platform-pixel')
+@endpush
