@@ -37,6 +37,7 @@ use App\Http\Controllers\Dashboard\MenuExportController;
 use App\Http\Controllers\Dashboard\MenuImportController;
 use App\Http\Controllers\Dashboard\MenuTranslationController;
 use App\Http\Controllers\Dashboard\ModulesController;
+use App\Http\Controllers\Dashboard\NativeTrackingController;
 use App\Http\Controllers\Dashboard\NotificationsController;
 use App\Http\Controllers\Dashboard\OnboardingController;
 use App\Http\Controllers\Dashboard\OrdersController;
@@ -44,7 +45,9 @@ use App\Http\Controllers\Dashboard\PagerController;
 use App\Http\Controllers\Dashboard\PasswordResetController;
 use App\Http\Controllers\Dashboard\PhoneVerificationController;
 use App\Http\Controllers\Dashboard\PosController;
+use App\Http\Controllers\Dashboard\PrintController;
 use App\Http\Controllers\Dashboard\PrintMenuController;
+use App\Http\Controllers\Dashboard\PushController;
 use App\Http\Controllers\Dashboard\PwaController;
 use App\Http\Controllers\Dashboard\RefundsController;
 use App\Http\Controllers\Dashboard\ReportsController;
@@ -110,8 +113,22 @@ Route::get('/support-access/{ticket}', [SupportAccessController::class, 'enter']
 Route::post('/billing/{gateway}/webhook', [BillingWebhookController::class, 'receive'])
     ->whereIn('gateway', Payment::ONLINE_GATEWAYS)->middleware('throttle:120,1')->name('billing.webhook');
 
+// The EgHub driver app's background location (App\Services\Orders\NativeTracking): the signed URL and the bearer token
+// it was given are the only keys, no session and no CSRF.
+Route::post('/native/track/{order}', [NativeTrackingController::class, 'store'])->whereNumber('order')
+    ->middleware('throttle:native-track')->name('native.track')
+    ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class]);
+
 Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    // EgHub apps: this phone's push token (registered by the app's page on every load) and the user's own choice of
+    // notifications on the phone
+    Route::post('/devices/push-token', [PushController::class, 'register'])->middleware('throttle:30,1')->name('push.register');
+    Route::post('/devices/push-token/delete', [PushController::class, 'unregister'])->middleware('throttle:30,1')->name('push.unregister');
+    Route::get('/notifications/push', [PushController::class, 'settings'])->name('push');
+    Route::post('/notifications/push', [PushController::class, 'update'])->name('push.update');
+    Route::post('/notifications/push/devices/{device}/delete', [PushController::class, 'removeDevice'])->whereNumber('device')->name('push.devices.delete');
     Route::post('/locale', [AuthController::class, 'locale'])->name('locale');
     Route::post('/support-access/exit', [SupportAccessController::class, 'exit'])->name('support-access.exit');
 
@@ -402,6 +419,11 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/pos/orders/recent', [RefundsController::class, 'recent'])->name('pos.orders.recent');
         Route::post('/pos/orders/{order}/refund', [RefundsController::class, 'store'])->whereNumber('order')->middleware('throttle:30,1')->name('pos.refund');
         Route::get('/pos/refunds/{refund}/receipt', [RefundsController::class, 'receipt'])->whereNumber('refund')->name('pos.refunds.receipt');
+        // printing from the EgHub cashier app: an order's jobs (each copy claimed once), a failed copy released, and
+        // the orders still waiting for their kitchen tickets
+        Route::post('/pos/orders/{order}/print-jobs', [PrintController::class, 'jobs'])->whereNumber('order')->middleware('throttle:120,1')->name('pos.print.jobs');
+        Route::post('/pos/orders/{order}/print-jobs/release', [PrintController::class, 'release'])->whereNumber('order')->middleware('throttle:60,1')->name('pos.print.release');
+        Route::get('/pos/print-queue', [PrintController::class, 'queue'])->middleware('throttle:30,1')->name('pos.print.queue');
     });
     // end of day (Z) report: per branch / terminal / day, on screen, printed (80mm / A4) or as CSV / Excel
     Route::get('/pos/z-report', [ZReportController::class, 'show'])->middleware(['feature:pos', 'permission:reports.view|shifts.manage'])->name('zreport');
@@ -410,6 +432,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/pos/terminals', [TerminalsController::class, 'index'])->name('terminals');
         Route::post('/pos/terminals', [TerminalsController::class, 'store'])->name('terminals.store');
         Route::post('/pos/terminals/settings', [TerminalsController::class, 'settings'])->name('terminals.settings');
+        Route::post('/pos/printing', [PrintController::class, 'settings'])->name('pos.printing');
         Route::post('/pos/terminals/{terminal}', [TerminalsController::class, 'update'])->whereNumber('terminal')->name('terminals.update');
         Route::post('/pos/terminals/{terminal}/release', [TerminalsController::class, 'release'])->whereNumber('terminal')->name('terminals.release');
     });
@@ -466,6 +489,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/driver/orders/{order}/delivered', [DriverController::class, 'deliver'])->whereNumber('order')->middleware('throttle:30,1')->name('driver.delivered');
         Route::post('/driver/orders/{order}/failed', [DriverController::class, 'fail'])->whereNumber('order')->middleware('throttle:30,1')->name('driver.failed');
         Route::post('/driver/location', [DriverController::class, 'location'])->middleware('throttle:12,1')->name('driver.location');
+        Route::post('/driver/orders/{order}/tracking', [DriverController::class, 'tracking'])->whereNumber('order')->middleware('throttle:20,1')->name('driver.tracking');
     });
     Route::middleware(['feature:delivery_zones|online_ordering', 'permission:delivery.assign'])->group(function () {
         Route::post('/orders/{order}/driver', [DriversController::class, 'assign'])->whereNumber('order')->name('orders.driver');

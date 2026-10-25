@@ -62,6 +62,8 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('pager', fn (Request $r) => Limit::perMinute(40)->by($r->ip().'|'.$r->path()));
         // the pager's "picked up" and rating: per page too, so a busy café on one Wi-Fi never blocks its guests
         RateLimiter::for('pager-actions', fn (Request $r) => Limit::perMinute(10)->by('pa:'.$r->ip().'|'.$r->path()));
+        // the EgHub driver app's background fixes (one every ~20 s per delivery, a few more after a dead zone)
+        RateLimiter::for('native-track', fn (Request $r) => Limit::perMinute(12)->by('nt:'.$r->route('order')));
         // The website assistant costs money per answer: a chat's worth per visitor, and a daily ceiling for everyone.
         RateLimiter::for('assistant', fn (Request $r) => [
             Limit::perMinutes(10, 20)->by('as:'.$r->ip()),

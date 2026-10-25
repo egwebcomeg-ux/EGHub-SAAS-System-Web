@@ -8,6 +8,7 @@ use App\Support\Permissions;
 use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -66,7 +67,14 @@ class User extends Authenticatable implements HasLocalePreference
             'is_active' => 'boolean',
             'must_change_password' => 'boolean',
             'temporary_password' => 'encrypted',
+            'push_preferences' => 'array',
         ];
+    }
+
+    /** The push tokens of this user's phones in the EgHub apps (App\Services\Push\StaffPush). */
+    public function deviceTokens(): HasMany
+    {
+        return $this->hasMany(DeviceToken::class);
     }
 
     public function hasVerifiedPhone(): bool

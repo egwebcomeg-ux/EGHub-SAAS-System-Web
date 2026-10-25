@@ -79,6 +79,23 @@
             <input class="field" id="pos_offline_hours" name="pos_offline_hours" type="number" min="1" max="72" value="{{ $offlineHours }}" required>
             <button class="btn-ghost w-full">{{ __('Save') }}</button>
         </form>
+        {{-- printing from the EgHub cashier app (App\Services\Printing\PrintJobs); in a browser the receipt page prints as before --}}
+        <form method="post" action="{{ route('dash.pos.printing') }}" class="card space-y-2" data-printing-settings>
+            @csrf
+            <h2 class="section-title">{{ __('Automatic printing') }}</h2>
+            <p class="muted text-sm">{{ __('With the EgHub cashier app on the till, the receipt and the kitchen tickets print by themselves on the printers chosen in the app. Each copy prints once, even with several devices. In a browser nothing changes: the receipt opens to print.') }}</p>
+            <label class="flex items-start gap-2 text-sm font-semibold"><input type="checkbox" class="mt-0.5 size-5" name="pos_print_receipt_auto" value="1" @checked($printing['receipt_auto'])> {{ __('Print the receipt by itself after the payment') }}</label>
+            <label class="flex items-start gap-2 text-sm font-semibold"><input type="checkbox" class="mt-0.5 size-5" name="pos_print_kitchen_auto" value="1" @checked($printing['kitchen_auto'])> {{ __('Print a kitchen ticket for each station as soon as the order arrives') }}</label>
+            <label class="flex items-start gap-2 text-sm font-semibold"><input type="checkbox" class="mt-0.5 size-5" name="pos_print_open_drawer" value="1" @checked($printing['open_drawer'])> {{ __('Open the cash drawer with a cash payment') }}</label>
+            <label class="flex items-start gap-2 text-sm font-semibold"><input type="checkbox" class="mt-0.5 size-5" name="pos_print_logo" value="1" @checked($printing['logo'])> {{ __('The logo on top of the receipt') }}</label>
+            <div class="grid grid-cols-2 gap-2">
+                <label class="block"><span class="field-label">{{ __('Receipt copies') }}</span>
+                    <input class="field" name="pos_print_copies" type="number" min="1" max="{{ \App\Services\Printing\PrintJobs::MAX_COPIES }}" value="{{ $printing['copies'] }}" required></label>
+                <label class="block"><span class="field-label">{{ __('Kitchen ticket copies') }}</span>
+                    <input class="field" name="pos_print_kitchen_copies" type="number" min="1" max="{{ \App\Services\Printing\PrintJobs::MAX_COPIES }}" value="{{ $printing['kitchen_copies'] }}" required></label>
+            </div>
+            <button class="btn-ghost w-full">{{ __('Save') }}</button>
+        </form>
     </div>
 </div>
 @endsection

@@ -2,6 +2,9 @@
 // deliver), refreshed every `ping` seconds and on demand, with a banner + sound + vibration when a new order is given
 // to them, and the phone's position sent every `ping` seconds while an order is out for delivery — only while this
 // page is visible, with the state always shown on top. The server refuses positions when nothing is out.
+// Inside the EgHub driver app the app's own service keeps sending the position in the background (screen off, other
+// apps open): started when an order goes out, stopped when nothing is out any more (App\Services\Orders\NativeTracking).
+import { call, callJson, inApp } from './native';
 
 const dataEl = document.getElementById('driver-data');
 if (dataEl) {
@@ -103,6 +106,36 @@ if (dataEl) {
         lastSignature = signature; // unchanged orders keep the page as it is (an opened item list stays open)
         sharing = orders.some((o) => o.delivery_status === 'picked_up');
         syncWatch();
+        syncNative();
+    }
+
+    // ---- the driver app's background tracking: one delivery at a time, the next one when it is delivered ----
+    const nativeApp = inApp('driver');
+    let nativeFor = null;
+    let nativeBusy = false;
+    const nativeRunning = () => {
+        const s = callJson('trackingState');
+        return s === true || s === 'running' || !!(s && typeof s === 'object' && (s.running || s.tracking || s.active));
+    };
+    async function syncNative() {
+        if (!nativeApp || nativeBusy) return;
+        const out = orders.filter((o) => o.delivery_status === 'picked_up');
+        if (!out.length) {
+            if (nativeFor !== null || nativeRunning()) call('stopTracking');
+            nativeFor = null;
+            return;
+        }
+        if (out.some((o) => o.id === nativeFor) && nativeRunning()) return;
+        nativeBusy = true;
+        try {
+            const r = await api(D.urls.tracking.replace('__ID__', out[0].id), {});
+            if (r.ok) {
+                call('startTracking', JSON.stringify(r.data));
+                nativeFor = out[0].id;
+            }
+        } catch { /* offline: the next refresh tries again */ } finally {
+            nativeBusy = false;
+        }
     }
 
     // "with you for N min" ticks every minute without redrawing the cards

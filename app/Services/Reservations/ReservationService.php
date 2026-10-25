@@ -8,6 +8,7 @@ use App\Models\Reservation;
 use App\Models\User;
 use App\Services\Entitlements;
 use App\Services\Notify\ReservationNotifier;
+use App\Services\Push\StaffPush;
 use App\Services\Settings;
 use App\Support\OpeningHours;
 use Carbon\CarbonInterface;
@@ -212,6 +213,9 @@ final class ReservationService
             ]);
         });
         $this->notifier->created($reservation);
+        if ($by === null) {
+            app(StaffPush::class)->reservationCreated($reservation); // a guest's booking: the staff's phones (EgHub app)
+        }
 
         return $reservation;
     }

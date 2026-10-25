@@ -25,7 +25,7 @@ class SeoController extends Controller
         $ttl = $nextPost ? (int) max(60, min(3600, ceil(now()->diffInSeconds(Carbon::parse($nextPost))) + 1)) : 3600;
         $xml = Cache::remember('seo.sitemap.'.platform_url(null, ''), $ttl, function () {
             $urls = [];
-            foreach (['landing', 'features', 'pricing', 'tools.qr', 'screens.supported', 'terms', 'privacy', 'refund'] as $name) {
+            foreach (['landing', 'features', 'apps', 'pricing', 'tools.qr', 'screens.supported', 'terms', 'privacy', 'refund'] as $name) {
                 $urls[] = [route($name), null];
             }
             foreach (array_keys(SiteModules::all()) as $slug) {

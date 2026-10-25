@@ -13,6 +13,7 @@ use App\Models\WhatsAppMessage;
 use App\Services\Audit;
 use App\Services\Entitlements;
 use App\Services\Notify\GuestNotifier;
+use App\Services\Push\StaffPush;
 use App\Services\Settings;
 use App\Services\WhatsApp\OwnNumber;
 use App\Services\WhatsApp\WhatsApp;
@@ -232,6 +233,7 @@ final class OrderConfirmation
         }
         $order->refresh();
         Audit::record('order.confirm.'.$action, '#'.$order->number, ['id' => $order->id, 'via' => $via]);
+        app(StaffPush::class)->confirmationAnswered($order); // the staff's phones (EgHub restaurant app)
 
         return 'applied';
     }

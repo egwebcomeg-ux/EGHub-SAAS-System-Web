@@ -20,7 +20,14 @@
         <meta name="robots" content="noindex">
     @endif
     @fonts
-    @vite(array_merge(['resources/css/app.css'], $viteEntries ?? []))
+    @php
+        // inside the EgHub restaurant / waiter apps the signed-in staff member's phone registers for push notifications
+        $nativePush = auth()->check() && request()->getHost() === 'app.'.(config('tenancy.central_domains')[0] ?? 'localhost');
+    @endphp
+    @if ($nativePush)
+        <meta name="eg-push-register" content="{{ route('dash.push.register') }}" data-unregister="{{ route('dash.push.unregister') }}" data-user="{{ auth()->id() }}">
+    @endif
+    @vite(array_merge(['resources/css/app.css'], $viteEntries ?? [], $nativePush ? ['resources/js/native-push.js'] : []))
     @include('partials.platform-brand')
     @stack('head')
 </head>

@@ -57,6 +57,8 @@
             @endunless
             <button type="button" @class(['btn-ghost min-h-9 px-3', 'hidden' => $cc]) data-customer-display title="{{ __('Opens a window to drag onto the screen facing the guest') }}">🖥 {{ __('Customer display') }}</button>
             @unless ($cc)
+                {{-- shown only inside the EgHub cashier app (resources/js/native-print.js) --}}
+                <button type="button" class="btn-ghost hidden min-h-9 px-3" data-printers-open>🖨 {{ __('Printers') }}</button>
                 <button type="button" class="btn-ghost min-h-9 min-w-9 px-3 font-extrabold" data-help-open aria-label="{{ __('Keyboard shortcuts') }}" title="{{ __('Keyboard shortcuts') }}">?</button>
             @endunless
         </div>
@@ -498,8 +500,28 @@
     </form>
 </dialog>
 
+@unless ($cc)
+    {{-- the EgHub cashier app's printers: one per role (receipt, each kitchen station), chosen and tested on the device --}}
+    <dialog class="m-auto max-h-[95dvh] w-full max-w-md overflow-y-auto rounded-2xl p-0 backdrop:bg-black/50" data-printers-dialog>
+        <form method="dialog" class="p-5">
+            <h2 class="text-lg font-bold">🖨 {{ __('Printers') }}</h2>
+            <p class="mt-1 text-sm text-navy-500">{{ __('Choose the printer of each copy on this device. The owner sets automatic printing in POS → Terminals.') }}</p>
+            <ul class="mt-2 divide-y divide-navy-100" data-printers-roles></ul>
+            <label class="mt-3 flex items-center gap-2 rounded-xl bg-navy-50 p-3 text-sm font-semibold" data-printers-kitchen-row>
+                <input type="checkbox" class="size-5" data-printers-kitchen> {{ __('This device prints the kitchen tickets of new orders') }}
+            </label>
+            <button value="ok" class="btn-primary mt-4 w-full">{{ __('Done') }}</button>
+        </form>
+    </dialog>
+@endunless
+
 @php
     $i18n = [
+        // the EgHub cashier app (resources/js/native-print.js)
+        'native' => [
+            'receipt' => __('Receipt'), 'noPrinter' => __('No printer chosen'), 'choose' => __('Choose a printer'), 'change' => __('Change the printer'),
+            'test' => __('Test page'), 'printFailed' => __('Printing failed'),
+        ],
         'total' => __('Total'), 'subtotal' => __('Subtotal'), 'service' => __('Service'), 'tax' => __('Tax'), 'discount' => __('Discount'),
         'all' => __('All'), 'empty' => __('Tap items to add them.'), 'required' => __('Required'), 'pickRequired' => __('Please choose: :group', ['group' => '__G__']),
         'chooseTable' => __('Choose a table.'), 'change' => __('Change: :amount', ['amount' => '__A__']), 'short' => __('Short by :amount', ['amount' => '__A__']),

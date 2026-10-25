@@ -19,6 +19,7 @@ use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use App\Services\Orders\ShiftService;
 use App\Services\Orders\Terminals;
+use App\Services\Printing\PrintJobs;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
 use Illuminate\Http\JsonResponse;
@@ -74,7 +75,15 @@ class PosController extends Controller
                 'offlineMethods' => OrderService::OFFLINE_METHODS,
                 'receiptHeader' => self::receiptHeader($branch),
                 'generatedAt' => now()->toIso8601String(),
+                // printing from the EgHub cashier app (resources/js/native-print.js): the owner's settings and the
+                // printer roles of this branch (receipt, one per kitchen station); unused in a browser
+                'printing' => [
+                    'receiptAuto' => PrintJobs::settings()['receipt_auto'], 'kitchenAuto' => PrintJobs::settings()['kitchen_auto'],
+                    'roles' => PrintJobs::kitchenRoles($branch),
+                ],
                 'urls' => [
+                    'printJobs' => url('/pos/orders/__ID__/print-jobs'), 'printRelease' => url('/pos/orders/__ID__/print-jobs/release'),
+                    'printQueue' => route('dash.pos.print.queue'),
                     'order' => route('dash.pos.order'), 'pay' => url('/pos/orders/__ID__/pay'), 'open' => route('dash.pos.open'),
                     'receipt' => url('/orders/__ID__/receipt'), 'display' => route('dash.pos.display'),
                     'catalog' => route('dash.pos.catalog'), 'ping' => route('dash.pos.ping'), 'sync' => route('dash.pos.sync'),

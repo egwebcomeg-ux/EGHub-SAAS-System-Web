@@ -1,8 +1,14 @@
 // Self-order kiosk: idle screen → menu (categories on the side, big tiles) → item sheet with options → cart
 // drawer → name / order type / table → big order number "pay at the cashier" → back to idle. Nothing is kept
 // between guests; the server recomputes every amount (OrderService).
+// Inside the EgHub kiosk app the tablet is locked to this page (no home / back) and the screen stays on.
+import { call, inApp } from './native';
 
 const dataEl = document.getElementById('kiosk-data');
+if (dataEl && inApp('kiosk')) {
+    call('setKiosk', true);
+    call('keepAwake', true);
+}
 if (dataEl) {
     const D = JSON.parse(dataEl.textContent);
     const T = JSON.parse(document.getElementById('kiosk-i18n').textContent);

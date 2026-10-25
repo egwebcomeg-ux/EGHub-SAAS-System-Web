@@ -109,7 +109,10 @@
         <div class="border-t border-navy-100 bg-navy-50/60">
             <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3 text-sm">
                 <span class="text-navy-500">{{ __('The menu is free. The systems come with the plans, and a few extras are sold on their own, like the guest pager and TV screens.') }}</span>
-                <a href="{{ route('features') }}" class="font-extrabold text-brand-700 hover:text-brand-600">{{ __('All features') }} <span aria-hidden="true" class="rtl:inline-block rtl:rotate-180">→</span></a>
+                <span class="flex items-center gap-5">
+                    <a href="{{ route('apps') }}" class="font-extrabold text-navy-700 hover:text-brand-600" data-nav-apps>{{ __('EgHub apps') }}</a>
+                    <a href="{{ route('features') }}" class="font-extrabold text-brand-700 hover:text-brand-600">{{ __('All features') }} <span aria-hidden="true" class="rtl:inline-block rtl:rotate-180">→</span></a>
+                </span>
             </div>
         </div>
     </div>
@@ -133,6 +136,7 @@
             </details>
         @endforeach
         <a href="{{ route('features') }}" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-extrabold text-navy-900">{{ __('All features') }}</a>
+        <a href="{{ route('apps') }}" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-extrabold text-navy-900">{{ __('EgHub apps') }}</a>
         <a href="{{ route('pricing') }}" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-extrabold text-navy-900">{{ __('Pricing') }}</a>
         <a href="{{ route('services') }}" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-extrabold text-navy-900">{{ __('Services') }}</a>
         <a href="{{ route('blog') }}" class="flex min-h-13 items-center border-b border-navy-100 px-1 text-base font-extrabold text-navy-900">{{ __('Blog') }}</a>
@@ -200,6 +204,7 @@
                     <ul class="grid grid-cols-2 gap-x-6 gap-y-2 sm:block sm:space-y-2">
                         <li class="sm:hidden"><a href="{{ route('features') }}" class="hover:text-white">{{ __('All features') }}</a></li>
                         <li><a href="{{ route('pricing') }}" class="hover:text-white">{{ __('Pricing') }}</a></li>
+                        <li><a href="{{ route('apps') }}" class="hover:text-white" data-footer-apps>{{ __('EgHub apps') }}</a></li>
                         <li><a href="{{ route('services') }}" class="hover:text-white">{{ __('Services') }}</a></li>
                         <li><a href="{{ route('blog') }}" class="hover:text-white">{{ __('Blog') }}</a></li>
                         {{-- free tools --}}
