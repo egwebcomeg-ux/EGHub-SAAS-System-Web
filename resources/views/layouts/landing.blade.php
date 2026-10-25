@@ -41,7 +41,7 @@
     <link rel="alternate" type="application/rss+xml" title="EgHub" href="{{ route('blog.rss') }}">
     <meta property="og:type" content="@yield('og_type', 'website')">
     <meta property="og:site_name" content="EgHub">
-    <meta property="og:locale" content="{{ app()->getLocale() === 'ar' ? 'ar_EG' : 'en_US' }}">
+    <meta property="og:locale" content="{{ app()->getLocale() === 'ar' ? 'ar_AR' : 'en_US' }}">
     <meta property="og:title" content="@yield('title', 'EgHub')">
     <meta property="og:description" content="@yield('description', $description)">
     <meta property="og:url" content="@yield('canonical', $defaultCanonical)">

@@ -7,7 +7,7 @@
     <meta name="description" content="{{ __('Your QR menu is free, forever. Add ordering, loyalty and the rest when you need them.') }}">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="EgHub">
-    <meta property="og:locale" content="{{ app()->getLocale() === 'ar' ? 'ar_EG' : 'en_US' }}">
+    <meta property="og:locale" content="{{ app()->getLocale() === 'ar' ? 'ar_AR' : 'en_US' }}">
     <meta property="og:title" content="@yield('title')">
     <meta property="og:description" content="{{ __('Your QR menu is free, forever. Add ordering, loyalty and the rest when you need them.') }}">
     <meta property="og:url" content="{{ route('register') }}">

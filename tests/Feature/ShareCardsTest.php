@@ -34,7 +34,8 @@ class ShareCardsTest extends TenantTestCase
 
         $this->get($this->menuUrl('features/pager?lang=ar'))
             ->assertSee('<meta property="og:image:alt" content="النداء على الزبون — موبايل الزبون هو البيجر: بيرنّ لما الطلب يجهز">', false)
-            ->assertSee('<meta property="og:title" content="النداء على الزبون · EgHub">', false);
+            ->assertSee('<meta property="og:title" content="النداء على الزبون · EgHub">', false)
+            ->assertSee('<meta property="og:locale" content="ar_AR">', false);
     }
 
     public function test_other_marketing_pages_and_the_directory_share_their_own_card(): void
