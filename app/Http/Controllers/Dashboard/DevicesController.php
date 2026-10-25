@@ -7,6 +7,8 @@ use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Kiosk;
 use App\Models\KitchenStation;
+use App\Models\TvAlert;
+use App\Models\TvGroup;
 use App\Models\TvScreen;
 use App\Models\User;
 use App\Services\Entitlements;
@@ -82,7 +84,7 @@ class DevicesController extends Controller
         $qr = fn (string $url) => Qr::svg($url, 160, is_hex_color($color) ? $color : '#0A2540');
         $shows = fn (string $type) => ($types[$type] ?? false) && ($tab === 'all' || $tab === $type);
 
-        $screens = $shows('tv') ? TvScreen::query()->with('branch')->withCount('slides')->orderBy('id')->get() : collect();
+        $screens = $shows('tv') ? TvScreen::query()->manageableBy($user)->with(['branch', 'group' => fn ($q) => $q->withCount('slides')])->withCount('slides')->orderBy('id')->get() : collect();
         $kiosks = $shows('kiosk') ? Kiosk::query()->with('branch')->orderBy('id')->get() : collect();
         $branches = Branch::query()->orderBy('sort_order')->get();
 
@@ -90,10 +92,13 @@ class DevicesController extends Controller
             'tab' => $tab,
             'types' => $types,
             'counts' => [
-                'tv' => ($types['tv'] ?? false) ? TvScreen::query()->count() : 0,
+                'tv' => ($types['tv'] ?? false) ? TvScreen::query()->manageableBy($user)->count() : 0,
                 'kiosk' => ($types['kiosk'] ?? false) ? Kiosk::query()->count() : 0,
             ],
             'screens' => $screens,
+            // groups are restaurant-wide: not for staff tied to one branch
+            'tvGroups' => $shows('tv') && ! $user->branch_id ? TvGroup::query()->withCount('screens')->orderBy('name')->get() : collect(),
+            'tvAlerts' => $shows('tv') ? TvAlert::query()->active()->get()->filter(fn (TvAlert $a) => $screens->pluck('id')->intersect($a->screen_ids ?? [])->isNotEmpty())->values() : collect(),
             'screenLimit' => ($types['tv'] ?? false) ? Entitlements::current()->limit('screens') : 0,
             'pairedScreens' => ($types['tv'] ?? false) ? ScreenPairing::pairedCount() : 0,
             'kiosks' => $kiosks,

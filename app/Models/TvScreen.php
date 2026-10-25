@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\HasScreenHours;
 use App\Models\Concerns\TenantModel;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * code it keeps a long random token whose SHA-256 is device_token_hash (one device per screen; pairing again or
  * unpairing replaces it). The older secret link /tv/{token} still opens the same playlist.
  * A screen without slides shows its menu as before (category_ids, layout, columns, rotate_seconds, show_images).
+ * A screen in a group (TvGroup) plays the group's playlist unless it keeps its own (own_playlist): playlistOwner().
  */
 class TvScreen extends TenantModel
 {
@@ -28,6 +30,9 @@ class TvScreen extends TenantModel
 
     public const LANGUAGES = ['', 'ar', 'en', 'both'];
 
+    /** full = one area; side = a main area and a side column (a band at the bottom when portrait); halves = two halves */
+    public const ZONE_LAYOUTS = ['full', 'side', 'halves'];
+
     /** A device that checked in within this many minutes counts as on. */
     public const ONLINE_MINUTES = 3;
 
@@ -36,7 +41,8 @@ class TvScreen extends TenantModel
     protected function casts(): array
     {
         return ['category_ids' => 'array', 'show_images' => 'boolean', 'is_active' => 'boolean', 'days' => 'array',
-            'device_info' => 'array', 'paired_at' => 'datetime', 'last_seen_at' => 'datetime', 'reload_requested_at' => 'datetime'];
+            'device_info' => 'array', 'paired_at' => 'datetime', 'last_seen_at' => 'datetime', 'reload_requested_at' => 'datetime',
+            'own_playlist' => 'boolean', 'show_qr' => 'boolean', 'now_showing' => 'array'];
     }
 
     public function branch(): BelongsTo
@@ -47,6 +53,41 @@ class TvScreen extends TenantModel
     public function slides(): HasMany
     {
         return $this->hasMany(TvSlide::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(TvGroup::class, 'tv_group_id');
+    }
+
+    /** Whether this screen plays its group's playlist (in a group and not keeping its own). */
+    public function followsGroup(): bool
+    {
+        return $this->tv_group_id !== null && ! $this->own_playlist && $this->group !== null;
+    }
+
+    /** Where the slides it plays live: its group, or itself. */
+    public function playlistOwner(): TvScreen|TvGroup
+    {
+        return $this->followsGroup() ? $this->group : $this;
+    }
+
+    /**
+     * Screens a dashboard user may manage: everything for the owner and staff of the whole restaurant; staff tied to
+     * a branch (users.branch_id) only the screens of that branch.
+     *
+     * @param  Builder<TvScreen>  $query
+     */
+    public function scopeManageableBy(Builder $query, User $user): void
+    {
+        if ($user->branch_id) {
+            $query->where('branch_id', $user->branch_id);
+        }
+    }
+
+    public function manageableBy(User $user): bool
+    {
+        return ! $user->branch_id || $this->branch_id === $user->branch_id;
     }
 
     public function url(): string

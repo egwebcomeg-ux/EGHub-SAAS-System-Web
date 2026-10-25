@@ -12,16 +12,21 @@ use App\Models\TvScreen;
 use App\Models\TvSlide;
 use App\Services\Entitlements;
 use App\Services\Menu\MenuCatalog;
+use App\Services\Qr;
 use App\Services\Settings;
 use App\Support\MenuLocales;
+use App\Support\ScreenDesigns;
 use App\Support\ScreenShape;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
  * What a TV screen plays, as the JSON the player (resources/views/screen/player.blade.php) reads: the screen's look,
  * the brand, and its slides in order with everything each one needs, so the device can keep looping it offline.
- * Built inside the screen's restaurant. Menu prices come from MenuCatalog (branch prices, running offers, dayparts);
- * sold-out items are left out. Every slide carries its hours and whether it shows right now (`live`): the player
+ * Built inside the screen's restaurant. The slides come from the screen's playlist owner (its group's shared playlist,
+ * or its own: TvScreen::playlistOwner()), each in the main or the side area of the owner's zone layout. Menu prices
+ * come from MenuCatalog (branch prices, running offers, dayparts) of the screen's own branch; sold-out items are left
+ * out, and a ready design (promo) of a sold-out item is skipped. Every slide carries its hours and whether it shows right now (`live`): the player
  * re-checks the hours on its own clock (corrected by the server time) while it is offline.
  *
  * version() is a short fingerprint of the same payload: the player polls it and swaps the slides in place when it
@@ -97,6 +102,9 @@ final class ScreenPlaylist
             $color = fn (string $key, string $default) => is_hex_color($settings[$key] ?? null) ? $settings[$key] : $default;
             $slides = $this->slides();
             $now = now();
+            $owner = $this->screen->playlistOwner();
+            $zones = in_array($owner->zone_layout, TvScreen::ZONE_LAYOUTS, true) ? $owner->zone_layout : 'full';
+            $needsQr = $this->screen->show_qr || collect($slides)->contains(fn (array $s) => ($s['template'] ?? null) === 'scan');
 
             return [
                 'screen' => [
@@ -110,6 +118,8 @@ final class ScreenPlaylist
                     'ticker' => (string) $this->screen->ticker_text,
                     'hours' => $this->screen->hoursForPlayer(),
                     'on' => $this->screen->isOnAt($now),
+                    'zones' => $zones,
+                    'show_qr' => (bool) $this->screen->show_qr,
                 ],
                 'brand' => [
                     'name' => tr($settings['brand_name'] ?? '', $settings['brand_name_en'] ?? '') ?: (string) tenant()->name,
@@ -117,15 +127,18 @@ final class ScreenPlaylist
                     'primary' => $color('color_primary', '#F26522'),
                     'secondary' => $color('color_secondary', '#0A2540'),
                     'currency' => tr($settings['currency'] ?? '', $settings['currency_en'] ?? ''),
+                    'qr' => $needsQr ? Qr::svg($this->menuLink(), 300, $color('color_secondary', '#0A2540')) : null,
                 ],
                 'labels' => [
                     'sold_out' => __('Sold out'), 'ready' => __('Ready for pickup'), 'preparing' => __('Preparing'),
                     'off' => __(':percent% off', ['percent' => '%s']), 'until' => __('Until :time', ['time' => '%s']),
                     'offline' => __('Offline'), 'none_ready' => __('Your number shows here when your order is ready'),
+                    'ends_in' => __('Ends in'), 'tag_new' => __('New'), 'tag_best' => __('Best seller'),
+                    'design' => ScreenDesigns::labels(),
                 ],
                 'ready_allowed' => Entitlements::current()->allows(TvSlide::READY_FEATURE),
                 'slides' => $slides,
-                'media' => collect($slides)->flatMap(fn (array $s) => array_filter([$s['url'] ?? null, $s['side']['url'] ?? null, $s['item']['image'] ?? null]))
+                'media' => collect($slides)->flatMap(fn (array $s) => array_filter([$s['url'] ?? null, $s['side']['url'] ?? null, $s['item']['image'] ?? null, $s['image'] ?? null]))
                     ->merge(collect($slides)->flatMap(fn (array $s) => collect($s['categories'] ?? [])->flatMap(fn ($c) => array_column($c['items'], 'image'))))
                     ->merge(collect($slides)->flatMap(fn (array $s) => array_column($s['items'] ?? [], 'image')))
                     ->push(($settings['logo'] ?? '') ? '/storage/'.$settings['logo'] : null)
@@ -142,7 +155,9 @@ final class ScreenPlaylist
     /** @return list<array<string, mixed>> */
     private function slides(): array
     {
-        $slides = $this->screen->slides()->where('is_active', true)->with(['media', 'sideMedia', 'offer.category', 'item'])->get();
+        $owner = $this->screen->playlistOwner();
+        $split = in_array($owner->zone_layout, ['side', 'halves'], true);
+        $slides = $owner->slides()->where('is_active', true)->with(['media', 'sideMedia', 'offer.category', 'item'])->get();
         if ($slides->isEmpty()) {
             // a screen made before playlists: its menu, as it always showed
             $menu = $this->menuSlide(new TvSlide([
@@ -150,7 +165,7 @@ final class ScreenPlaylist
                 'columns' => $this->screen->columns ?: 3, 'show_images' => $this->screen->show_images, 'category_ids' => $this->screen->category_ids,
             ]), $this->screen->layout === 'rotate' ? max(1, (int) $this->screen->columns) : 0);
 
-            return $menu ? [$menu + ['hours' => null, 'live' => true]] : [];
+            return $menu ? [$menu + ['hours' => null, 'live' => true, 'zone' => 'main']] : [];
         }
         $now = now();
         $out = [];
@@ -160,11 +175,13 @@ final class ScreenPlaylist
                 'image', 'video' => $this->mediaSlide($slide),
                 'offer' => $this->offerSlide($slide),
                 'ready' => $this->readySlide($slide),
+                'promo' => $this->promoSlide($slide),
                 default => null,
             };
             if ($data === null) {
                 continue;
             }
+            $data['zone'] = $split && $slide->zone === 'side' ? 'side' : 'main';
             $data['hours'] = $slide->hoursForPlayer();
             $data['live'] = ($data['live'] ?? true) && $slide->isOnAt($now);
             $out[] = $data;
@@ -273,10 +290,72 @@ final class ScreenPlaylist
             'branch' => $slide->branch_id ?? $this->screen->branch_id];
     }
 
+    /**
+     * A ready design: the item's live name, price and photo (skipped while it is sold out or off the menu today), or
+     * the free text and price typed for it, with a library picture; with a countdown to options.ends_at, after which
+     * it stops showing.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function promoSlide(TvSlide $slide): ?array
+    {
+        $item = null;
+        if ($slide->item_id) {
+            $item = $this->categories()->flatMap(fn (Category $c) => $c->items)->firstWhere('id', $slide->item_id);
+            if (! $item || $item->is_sold_out) {
+                return null;
+            }
+        }
+        $row = $item ? $this->itemRow($item, true) : null;
+        $option = fn (string $key) => trim((string) $slide->option($key, ''));
+        $language = $this->language();
+        $title = $language === 'en' ? ($option('title_en') ?: $option('title')) : $option('title');
+        $subtitle = $language === 'en' ? ($option('subtitle_en') ?: $option('subtitle')) : $option('subtitle');
+        $price = $option('price');
+        $was = $option('was');
+        $ends = null;
+        if ($option('ends_at') !== '') {
+            try {
+                $ends = Carbon::parse($option('ends_at'), config('app.timezone'));
+            } catch (\Throwable) {
+                $ends = null;
+            }
+        }
+        $alt = '';
+        if ($language === 'both') {
+            $alt = $title !== '' ? ($option('title_en') !== $title ? $option('title_en') : '') : ($row['alt'] ?? '');
+        }
+
+        return [
+            'id' => $slide->id, 'type' => 'promo', 'duration' => max(5, (int) $slide->duration),
+            'template' => in_array($slide->template, ScreenDesigns::keys(), true) ? $slide->template : 'spotlight',
+            'bg' => in_array($slide->option('bg'), TvSlide::BACKGROUNDS, true) ? $slide->option('bg') : 'dark',
+            'title' => $title !== '' ? $title : ($row['name'] ?? ''),
+            'alt' => $alt,
+            'desc' => $subtitle !== '' ? $subtitle : ($row['desc'] ?? ''),
+            'price' => $row ? $row['price'] : ($price !== '' && is_numeric($price) ? money($price) : ''),
+            'was' => $row ? $row['was'] : ($was !== '' && is_numeric($was) ? money($was) : null),
+            'image' => $row['image'] ?? ($slide->media && ! $slide->media->isVideo() ? $slide->media->url() : null),
+            'badge' => mb_substr($option('badge'), 0, 30),
+            'ends' => $ends?->getTimestampMs(),
+            'live' => ! $ends || $ends->isFuture(),
+        ];
+    }
+
+    /** The menu the «امسح واطلب» QR opens: the screen's branch when the restaurant has more than one. */
+    private function menuLink(): string
+    {
+        $branch = $this->screen->branch_id ? Branch::query()->where('is_active', true)->find($this->screen->branch_id) : null;
+        $several = $branch && Branch::query()->where('is_active', true)->count() > 1;
+
+        return tenant()->url($several && $branch->slug ? '?branch='.rawurlencode((string) $branch->slug) : '');
+    }
+
     /** @return array<string, mixed> */
     private function itemRow(MenuItem $item, bool $withImage): array
     {
         $was = $item->getAttribute('offer_from');
+        $badges = (array) ($item->badges ?? []);
 
         return [
             'id' => $item->id,
@@ -286,6 +365,8 @@ final class ScreenPlaylist
             'price' => money($item->price),
             'was' => $was ? money($was) : null,
             'image' => $withImage && $item->image ? '/storage/'.$item->image : null,
+            // «جديد» / «الأكتر طلباً» chosen on the item show as a small label on the screen
+            'tag' => in_array('new', $badges, true) ? 'new' : (in_array('bestseller', $badges, true) ? 'best' : null),
         ];
     }
 
@@ -338,6 +419,8 @@ final class ScreenPlaylist
     /** @param array<string, mixed> $content */
     private function hash(array $content): string
     {
-        return substr(md5(json_encode([$content, $this->screen->updated_at?->timestamp], JSON_UNESCAPED_UNICODE)), 0, 16);
+        $owner = $this->screen->playlistOwner();
+
+        return substr(md5(json_encode([$content, $this->screen->updated_at?->timestamp, $owner->updated_at?->timestamp], JSON_UNESCAPED_UNICODE)), 0, 16);
     }
 }

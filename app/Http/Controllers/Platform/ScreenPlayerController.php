@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Platform;
 use App\Http\Controllers\Controller;
 use App\Models\TvScreen;
 use App\Services\Qr;
+use App\Services\Screens\ScreenAlerts;
 use App\Services\Screens\ScreenPairing;
 use App\Services\Screens\ScreenPlaylist;
 use Illuminate\Http\JsonResponse;
@@ -21,7 +22,7 @@ use Symfony\Component\HttpFoundation\Cookie;
 class ScreenPlayerController extends Controller
 {
     /** Bumped when the player page changes, so the service worker drops its old copy. */
-    public const VERSION = '1.0.1';
+    public const VERSION = '1.1.0';
 
     private const NO_STORE = ['Cache-Control' => 'no-store, private', 'X-Robots-Tag' => 'noindex, nofollow'];
 
@@ -87,6 +88,20 @@ class ScreenPlayerController extends Controller
             'v' => (new ScreenPlaylist($screen))->version(), 'reload' => $screen->reload_requested_at?->timestamp,
             'now' => (int) floor(microtime(true) * 1000), 'tz' => now()->utcOffset(),
         ], 200, self::NO_STORE);
+    }
+
+    /** The fast check (every ScreenAlerts::POLL_SECONDS): the urgent message, a reload, and what the device shows now. */
+    public function live(Request $request, ScreenPairing $pairing): JsonResponse
+    {
+        $screen = $this->screen($request, $pairing);
+        if ($screen instanceof JsonResponse) {
+            return $screen;
+        }
+        $this->seen($screen);
+        $alerts = new ScreenAlerts($screen);
+        $alerts->report((string) $request->query('showing', ''));
+
+        return response()->json($alerts->payload(), 200, self::NO_STORE, JSON_UNESCAPED_UNICODE);
     }
 
     public function ready(Request $request, ScreenPairing $pairing): JsonResponse
