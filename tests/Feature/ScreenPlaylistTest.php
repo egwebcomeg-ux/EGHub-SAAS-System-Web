@@ -203,7 +203,7 @@ class ScreenPlaylistTest extends TenantTestCase
         Storage::disk('public')->assertExists($media[0]->path);
 
         // a script named .mp4, a file pretending to be a video, and a video over 80 MB are refused
-        $script = UploadedFile::fake()->createWithContent('promo.mp4', '<?php system($_GET["c"]); ?>');
+        $script = UploadedFile::fake()->createWithContent('promo.mp4', '<?php echo "not a video"; ?>');
         $this->actingAs($owner)->post($this->dashUrl('/tv-screens/media'), ['file' => $script])->assertSessionHasErrors('file');
         $fake = UploadedFile::fake()->createWithContent('promo.mp4', str_repeat("\x01", 4096));
         $this->actingAs($owner)->post($this->dashUrl('/tv-screens/media'), ['file' => $fake])->assertSessionHasErrors();
