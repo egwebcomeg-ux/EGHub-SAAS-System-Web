@@ -47,6 +47,9 @@
     <meta property="og:url" content="@yield('canonical', $defaultCanonical)">
     @include('landing.partials.share-image')
     <link rel="preload" as="image" href="{{ versioned_asset('img/site/orders-sm.webp') }}" media="(min-width: 1024px)">
+    {{-- Fetches a page's HTML when the pointer rests on (or a finger touches) a link to it, so the next page opens at once.
+         Prefetch, not prerender: no scripts run early, so the pixel does not count a visit that never happens. --}}
+    <script type="speculationrules">{"prefetch":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":["/login","/register*","/logout","/*.apk","/tv.apk","/blog/rss*"]}},{"not":{"selector_matches":"[download],[target=_blank],[rel~=nofollow]"}}]},"eagerness":"moderate"}]}</script>
 @endpush
 
 @push('scripts')
