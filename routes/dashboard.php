@@ -155,11 +155,12 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         // the restaurant's own WhatsApp Business number (App\Services\WhatsApp\OwnNumber): the page explains on a plan
         // without WhatsApp messages; the token is the owner's, so EgWeb support can only test it (support.blocked)
         Route::get('/settings/whatsapp-number', [WhatsAppNumberController::class, 'show'])->name('whatsapp-number');
+        // deleting the stored token never depends on the plan: a restaurant that lost WhatsApp messages can still revoke it
+        Route::post('/settings/whatsapp-number/disconnect', [WhatsAppNumberController::class, 'disconnect'])->middleware('support.blocked')->name('whatsapp-number.disconnect');
         Route::middleware('feature:whatsapp_notifications')->group(function () {
             Route::post('/settings/whatsapp-number', [WhatsAppNumberController::class, 'save'])->middleware(['support.blocked', 'throttle:10,1'])->name('whatsapp-number.save');
             Route::post('/settings/whatsapp-number/test', [WhatsAppNumberController::class, 'test'])->middleware('throttle:10,1')->name('whatsapp-number.test');
             Route::post('/settings/whatsapp-number/templates', [WhatsAppNumberController::class, 'templates'])->middleware(['support.blocked', 'throttle:6,1'])->name('whatsapp-number.templates');
-            Route::post('/settings/whatsapp-number/disconnect', [WhatsAppNumberController::class, 'disconnect'])->middleware('support.blocked')->name('whatsapp-number.disconnect');
         });
 
         // backups of the whole restaurant: owner only (backups.manage is never granted to staff); the page explains

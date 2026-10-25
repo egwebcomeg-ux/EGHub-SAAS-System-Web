@@ -384,6 +384,22 @@ class WhatsAppOwnNumberTest extends TenantTestCase
         $this->assertSame(['whatsapp.own_number.disconnected'], $this->as($a, fn () => AuditLog::query()->pluck('action')->all()));
     }
 
+    /** Security regression: losing WhatsApp in the plan must never lock the owner's token on our server. */
+    public function test_a_restaurant_whose_plan_lost_whatsapp_can_still_delete_its_stored_token(): void
+    {
+        $this->fakeMeta();
+        $basic = $this->restaurant('cafe-basic', 'basic');
+        $this->connected($basic, '444555666', self::SECRET);
+
+        $this->actingAs($this->owner($basic))->get($this->dashUrl('/settings/whatsapp-number'))->assertOk()
+            ->assertSee('data-wa-number-disconnect', false)->assertDontSee(__('Save and connect'));
+        $this->actingAs($this->owner($basic))->post($this->dashUrl('/settings/whatsapp-number/disconnect'))->assertSessionHas('ok');
+
+        $this->assertNull($this->connection($basic));
+        $this->assertSame(0, DB::table('whatsapp_connections')->count());
+        Http::assertSent(fn ($r) => $r->method() === 'DELETE' && str_ends_with($r->url(), '/subscribed_apps'));
+    }
+
     public function test_only_owners_and_managers_with_whatsapp_in_the_plan_reach_it(): void
     {
         $a = $this->restaurant('cafe-a');

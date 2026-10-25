@@ -55,6 +55,14 @@
     <div class="card max-w-2xl">
         <p class="text-navy-700">{{ \App\Services\Entitlements::current()->upgradeMessage('whatsapp_notifications') }}</p>
         @can('billing.manage')<a href="{{ route('dash.billing') }}" class="btn-primary mt-4">{{ __('Add-ons') }}</a>@endcan
+        {{-- a number connected on an earlier plan: its stored token can always be deleted --}}
+        @if ($connection && ! $support)
+            <form method="post" action="{{ route('dash.whatsapp-number.disconnect') }}" class="mt-4 flex flex-wrap items-center gap-3 border-t border-navy-100 pt-4" onsubmit="return confirm(@js(__('Disconnect this number? Your messages go out from the EgHub number again, and the stored token is deleted.')))" data-wa-number-disconnect>
+                @csrf
+                <span class="text-sm text-navy-600" dir="ltr">{{ $connection->display_phone ?: $connection->phone_number_id }}</span>
+                <button class="btn-ghost text-red-600">{{ __('Disconnect the number') }}</button>
+            </form>
+        @endif
     </div>
 @else
     @if ($connection)

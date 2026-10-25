@@ -70,6 +70,22 @@ class LegacyDomainTest extends TenantTestCase
         $this->assertNotSame(404, $status);
     }
 
+    /** Security regression: the redirects rebuild the address from our own domain; a crafted path never becomes another host. */
+    public function test_legacy_redirects_never_leave_our_domains(): void
+    {
+        foreach ([
+            'http://egmenu.test//evil.test/x' => 'http://eghub.test/evil.test/x',
+            'http://egmenu.test/@evil.test' => 'http://eghub.test/@evil.test',
+            'http://app.egmenu.test//evil.test' => 'http://app.eghub.test/evil.test',
+            'http://www.egmenu.test//evil.test/menu' => 'http://egmenu.test/evil.test/menu',
+            'http://eghub.test/restaurants//evil.test' => 'http://egmenu.test/restaurants//evil.test',
+        ] as $from => $to) {
+            $location = (string) $this->get($from)->assertRedirect()->headers->get('Location');
+            $this->assertSame($to, $location, $from);
+            $this->assertMatchesRegularExpression('~^http://(app\.|www\.)?(eghub|egmenu)\.test/~', $location, $from);
+        }
+    }
+
     public function test_old_domain_cannot_be_claimed_as_a_custom_domain(): void
     {
         $this->assertNull(Domain::normalize('menu.egmenu.test'));
