@@ -38,16 +38,27 @@
             <section class="space-y-3" id="tv">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <h2 class="section-title">{{ __('TV screens') }}</h2>
-                    @if ($tab === 'all')<a href="{{ route('dash.devices', ['tab' => 'tv']) }}#add-tv" class="btn-ghost min-h-9 px-3">＋ {{ __('Add screen') }}</a>@endif
+                    <div class="flex flex-wrap gap-2">
+                        <a href="{{ route('dash.tv.pair') }}" class="btn-primary min-h-9 px-3" data-pair-tv>{{ __('Pair a TV') }}</a>
+                        @if ($tab === 'all')<a href="{{ route('dash.devices', ['tab' => 'tv']) }}#add-tv" class="btn-ghost min-h-9 px-3">＋ {{ __('Add screen') }}</a>@endif
+                    </div>
                 </div>
-                <p class="text-sm text-navy-500">{{ __('Open the screen link once in the TV browser (or a TV stick) and leave it. It updates by itself within a minute when you change a price, an item or an offer.') }}</p>
+                <p class="text-sm text-navy-500">{!! __('On the TV open :url (any smart TV browser, a TV box or the EgHub app): it shows a code you type here. Each screen plays its own playlist: the menu with live prices, pictures, video, offers and ready orders, and keeps playing when the internet drops.', ['url' => '<b dir="ltr">'.e(preg_replace('#^https?://#', '', platform_url(null, 'tv'))).'</b>']) !!}</p>
+                @if ($tab === 'tv')
+                    <div class="max-w-md">@include('dashboard.partials.tv-limit', ['limit' => $screenLimit, 'paired' => $pairedScreens])</div>
+                @endif
                 <div @class(['grid gap-4', 'xl:grid-cols-3' => $tab === 'tv', 'md:grid-cols-2 2xl:grid-cols-3' => $tab !== 'tv'])>
                     <div @class(['grid content-start gap-4 md:grid-cols-2 xl:col-span-2' => $tab === 'tv', 'contents' => $tab !== 'tv'])>
                         @forelse ($screens as $s)
-                            <x-dash.device-card type="tv" :label="__('TV screen')" :name="$s->name" :url="$s->url()" :qr="$qrs['tv'][$s->id]" :inactive="! $s->is_active" :open="__('Open screen')"
-                                :meta="($s->layout === 'rotate' ? __('Pages that take turns') : __('Whole menu on one page')) . ($s->branch ? ' · ' . tr($s->branch->name, $s->branch->name_en) : '')">
+                            <x-dash.device-card type="tv" :label="__('TV screen')" :name="$s->name" :url="$s->url()" :qr="$qrs['tv'][$s->id]" :inactive="! $s->is_active" :open="__('Preview')"
+                                :meta="($s->slides_count ? trans_choice(':count slide|:count slides', $s->slides_count) : __('Whole menu')) . ($s->branch ? ' · ' . tr($s->branch->name, $s->branch->name_en) : '')">
+                                @include('dashboard.partials.tv-status', ['screen' => $s])
+                                <div class="flex flex-wrap gap-2">
+                                    <a href="{{ route('dash.tv.edit', $s) }}" class="btn-primary min-h-9 px-3" data-edit-playlist>{{ __('Edit playlist') }}</a>
+                                    @unless ($s->isPaired())<a href="{{ route('dash.tv.pair', ['screen' => $s->id]) }}" class="btn-ghost min-h-9 px-3">{{ __('Pair a TV') }}</a>@endunless
+                                </div>
                                 <details>
-                                    <summary class="cursor-pointer text-sm font-semibold text-brand-700">{{ __('Rename and settings') }}</summary>
+                                    <summary class="cursor-pointer text-sm font-semibold text-brand-700">{{ __('Whole-menu settings') }}</summary>
                                     <form method="post" action="{{ route('dash.tv.update', $s) }}" class="mt-3 grid gap-3 sm:grid-cols-2">
                                         @csrf
                                         @include('dashboard.partials.tv-fields', ['s' => $s])

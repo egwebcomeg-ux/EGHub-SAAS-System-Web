@@ -25,6 +25,11 @@ use Illuminate\View\View;
  */
 class BillingController extends Controller
 {
+    /** The per-screen add-on (EgHub screens): sold by quantity. */
+    public const SCREENS_ADDON = 'screens';
+
+    public const MAX_SCREENS_PER_ORDER = 20;
+
     public function index(Credits $credits, OnlinePayments $online): View
     {
         $subscription = tenant()->subscription()->with('plan')->first();
@@ -74,7 +79,9 @@ class BillingController extends Controller
         if ($addon->isFeaturePack() && $addon->features && collect($addon->features)->every(fn ($f) => Entitlements::current()->allows($f))) {
             return back()->with('ok', __('Everything in this add-on is already included in your subscription.'));
         }
-        $invoice = $billing->invoiceForAddon(tenant(), $addon, 1);
+        // screens are bought by the number the restaurant needs (one invoice for all of them)
+        $quantity = $addon->key === self::SCREENS_ADDON ? max(1, min(self::MAX_SCREENS_PER_ORDER, (int) $request->input('quantity', 1))) : 1;
+        $invoice = $billing->invoiceForAddon(tenant(), $addon, $quantity);
         if ((float) $invoice->total === 0.0) {
             // nothing to pay (the launch offer's free branch): switched on at once
             $billing->markPaid($invoice, 'offer', null, 0, 'offer-'.$invoice->number);

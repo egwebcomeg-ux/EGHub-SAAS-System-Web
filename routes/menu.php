@@ -61,9 +61,11 @@ Route::prefix('/p/{key}')->where(['key' => PagerController::KEY])->name('pager')
 Route::get('/board', [BoardController::class, 'show'])->name('board');
 Route::get('/board/feed', [BoardController::class, 'feed'])->name('board.feed');
 
-// Menu boards on TVs (Business): secret link per screen
+// TV screens: the older secret link per screen, now the same player as eghub.app/screen (no pairing: the link is the key)
 Route::get('/tv/{token}', [TvController::class, 'show'])->where('token', '[a-f0-9]{20}')->name('tv');
 Route::get('/tv/{token}/version', [TvController::class, 'version'])->where('token', '[a-f0-9]{20}')->name('tv.version');
+Route::get('/tv/{token}/playlist', [TvController::class, 'playlist'])->where('token', '[a-f0-9]{20}')->middleware('throttle:30,1')->name('tv.playlist');
+Route::get('/tv/{token}/ready', [TvController::class, 'ready'])->where('token', '[a-f0-9]{20}')->middleware('throttle:60,1')->name('tv.ready');
 
 // Digital loyalty card
 Route::get('/card', [LoyaltyCardController::class, 'join'])->name('card.join');

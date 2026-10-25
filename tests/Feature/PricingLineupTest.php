@@ -110,7 +110,7 @@ class PricingLineupTest extends TenantTestCase
     {
         // the guest pager is the one module still sold on its own (cheap, on top of any plan)
         $this->assertSame(['featured_listing', 'pager_pack'], AddonPrice::query()->where('type', 'feature')->where('is_active', true)->orderBy('key')->pluck('key')->all());
-        $this->assertSame(['branches', 'staff', 'menu_items', 'tables', 'wa_500', 'wa_2000'], AddonPrice::query()->where('type', '!=', 'feature')->where('is_active', true)->orderBy('sort_order')->pluck('key')->all());
+        $this->assertSame(['screens', 'branches', 'staff', 'menu_items', 'tables', 'wa_500', 'wa_2000'], AddonPrice::query()->where('type', '!=', 'feature')->where('is_active', true)->orderBy('sort_order')->pluck('key')->all());
 
         $tenant = $this->restaurant('cafe-free', 'free');
         $owner = $this->owner($tenant);

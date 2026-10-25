@@ -132,10 +132,21 @@
                         <span class="text-xs text-navy-500">{{ __('Needs the :plan plan', ['plan' => $plans->firstWhere('code', $addon->min_plan)?->displayName()]) }}</span>
                     @elseif ($covered)
                         <span class="badge bg-emerald-100 text-emerald-800">{{ __('Included') }}</span>
+                    @elseif ($addon->key === \App\Http\Controllers\Dashboard\BillingController::SCREENS_ADDON)
+                        {{-- screens are priced per screen: pick how many --}}
+                        <form method="post" action="{{ route('dash.billing.addon', $addon->key) }}" class="flex items-center gap-2" id="addon-screens">
+                            @csrf
+                            <label class="sr-only" for="screens-qty">{{ __('Screens') }}</label>
+                            <input id="screens-qty" class="field w-16 min-h-9 px-2 text-center" type="number" name="quantity" min="1" max="{{ \App\Http\Controllers\Dashboard\BillingController::MAX_SCREENS_PER_ORDER }}" value="{{ max(1, (int) request('screens', 1)) }}" inputmode="numeric">
+                            <button class="btn-ghost min-h-9 px-3">{{ __('Add screens') }}</button>
+                        </form>
                     @elseif (! $addon->isFeaturePack() || $qty === 0)
                         <form method="post" action="{{ route('dash.billing.addon', $addon->key) }}">@csrf<button class="btn-ghost min-h-9 px-3">{{ $addon->isFeaturePack() ? __('Add') : __('Add one') }}</button></form>
                     @endif
                 </div>
+                @if ($addon->key === \App\Http\Controllers\Dashboard\BillingController::SCREENS_ADDON)
+                    <p class="mt-2 text-xs text-navy-500">{{ __('Price per screen. Your plan includes :n.', ['n' => (int) ($subscription?->plan?->entitlements()['limits']['screens'] ?? 0)]) }}</p>
+                @endif
             </div>
         @endforeach
     </div>

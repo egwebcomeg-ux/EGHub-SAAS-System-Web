@@ -24,7 +24,7 @@ class PlanSeeder extends Seeder
     public const LEGACY = ['starter', 'basic', 'pro', 'business'];
 
     /** Add-ons still on sale under the new line-up; every other feature pack is switched off. */
-    public const STILL_SOLD = ['wa_500', 'wa_2000', 'featured_listing', 'branches', 'staff', 'menu_items', 'tables', 'pager_pack'];
+    public const STILL_SOLD = ['wa_500', 'wa_2000', 'featured_listing', 'branches', 'staff', 'menu_items', 'tables', 'pager_pack', 'screens'];
 
     /** The operations features as they were when the older plans were made (delivery zones was one of them). */
     private const LEGACY_OPERATIONS = ['pos', 'shifts', 'customer_display', 'kitchen_display', 'kitchen_stations', 'call_center', 'delivery_zones', 'kiosk', 'inventory'];
@@ -54,7 +54,7 @@ class PlanSeeder extends Seeder
                 'tagline' => 'منيو QR أونلاين لمحلك من غير أي تكلفة، لحد ما تحتاج أكتر',
                 'tagline_en' => 'Your QR menu online at no cost, until you need more',
                 'features' => ['excel_import'],
-                'limits' => ['branches' => 1, 'menu_items' => 30, 'staff' => 1, 'tables' => 5, 'ai_imports_per_month' => 0]],
+                'limits' => ['branches' => 1, 'menu_items' => 30, 'staff' => 1, 'tables' => 5, 'ai_imports_per_month' => 0, 'screens' => 0]],
             // 1,250 a month shown against the regular 2,500 (the launch discount). A plan that already exists keeps the
             // prices the super admin set, crossed-out price included (clearing it ends the launch period).
             ['code' => 'full', 'name' => 'الكاملة', 'name_en' => 'Complete', 'monthly_price' => 1250, 'original_price' => 2500, 'sort_order' => 10, 'is_featured' => true,
@@ -62,33 +62,33 @@ class PlanSeeder extends Seeder
                 'tagline' => 'كل حاجة للمطعم أو الكافيه: الطلبات والتوصيل والحجز والولاء والمحفظة والتسويق والتقارير',
                 'tagline_en' => 'Everything for one place: ordering, delivery, bookings, loyalty, wallet, marketing and reports',
                 'features' => $complete,
-                'limits' => ['branches' => 1, 'menu_items' => null, 'staff' => 8, 'tables' => null, 'ai_imports_per_month' => 20]],
+                'limits' => ['branches' => 1, 'menu_items' => null, 'staff' => 8, 'tables' => null, 'ai_imports_per_month' => 20, 'screens' => 1]],
             ['code' => 'enterprise', 'name' => 'الاحترافية', 'name_en' => 'Enterprise', 'monthly_price' => 0, 'sort_order' => 20, 'contact_sales' => true,
                 'cycles' => [],
                 'tagline' => 'للسلاسل والمحلات الكبيرة: الكاشير والمطبخ والكشك والكول سنتر والمخزون وفروع أكتر، بسعر حسب احتياجك',
                 'tagline_en' => 'For chains and busy places: POS, kitchen, kiosk, call center, inventory and more branches, priced for you',
                 'features' => $enterprise,
-                'limits' => ['branches' => null, 'menu_items' => null, 'staff' => null, 'tables' => null, 'ai_imports_per_month' => null]],
+                'limits' => ['branches' => null, 'menu_items' => null, 'staff' => null, 'tables' => null, 'ai_imports_per_month' => null, 'screens' => null]],
             ['code' => 'starter', 'name' => 'مبتدئ', 'name_en' => 'Starter', 'monthly_price' => 99, 'sort_order' => 0,
                 'tagline' => 'منيو QR بشكل محترم لكافيه صغير: العميل يشوف المنيو والأسعار',
                 'tagline_en' => 'A good-looking QR menu for a small cafe: guests browse the menu and prices',
                 'features' => $starter,
-                'limits' => ['branches' => 1, 'menu_items' => 60, 'staff' => 1, 'tables' => 10, 'ai_imports_per_month' => 0]],
+                'limits' => ['branches' => 1, 'menu_items' => 60, 'staff' => 1, 'tables' => 10, 'ai_imports_per_month' => 0, 'screens' => 0]],
             ['code' => 'basic', 'name' => 'أساسية', 'name_en' => 'Basic', 'monthly_price' => 199, 'sort_order' => 1,
                 'tagline' => 'منيو QR وطلب من الترابيزة لمطعم أو كافيه بفرع واحد',
                 'tagline_en' => 'QR menu and table ordering for a single-branch venue',
                 'features' => $basic,
-                'limits' => ['branches' => 1, 'menu_items' => 150, 'staff' => 2, 'tables' => 15, 'ai_imports_per_month' => 0]],
+                'limits' => ['branches' => 1, 'menu_items' => 150, 'staff' => 2, 'tables' => 15, 'ai_imports_per_month' => 0, 'screens' => 0]],
             ['code' => 'pro', 'name' => 'احترافية', 'name_en' => 'Pro', 'monthly_price' => 399, 'sort_order' => 2,
                 'tagline' => 'طلب من الترابيزة وكارت ولاء وعروض ومنيو مطبوع',
                 'tagline_en' => 'Table ordering, loyalty card, offers and a printed menu',
                 'features' => $pro,
-                'limits' => ['branches' => 1, 'menu_items' => null, 'staff' => 8, 'tables' => 50, 'ai_imports_per_month' => 5]],
+                'limits' => ['branches' => 1, 'menu_items' => null, 'staff' => 8, 'tables' => 50, 'ai_imports_per_month' => 5, 'screens' => 0]],
             ['code' => 'business', 'name' => 'بيزنس', 'name_en' => 'Business', 'monthly_price' => 799, 'sort_order' => 3,
                 'tagline' => 'فروع متعددة وأسعار لكل فرع ونقاط ولاء وصلاحيات كاملة',
                 'tagline_en' => 'Multiple branches, per-branch prices, loyalty points and full permissions',
                 'features' => $business,
-                'limits' => ['branches' => 3, 'menu_items' => null, 'staff' => null, 'tables' => null, 'ai_imports_per_month' => 20]],
+                'limits' => ['branches' => 3, 'menu_items' => null, 'staff' => null, 'tables' => null, 'ai_imports_per_month' => 20, 'screens' => 3]],
         ];
 
         foreach ($plans as $p) {
@@ -157,6 +157,12 @@ class PlanSeeder extends Seeder
             // limit packs: `credits` = how many units one pack adds (50 items, 10 tables)
             ['key' => 'menu_items', 'type' => 'limit', 'credits' => 50, 'monthly_price' => 29, 'sort_order' => 7, 'name' => '50 صنف إضافي', 'name_en' => '50 extra menu items'],
             ['key' => 'tables', 'type' => 'limit', 'credits' => 10, 'monthly_price' => 29, 'sort_order' => 8, 'name' => '10 ترابيزات إضافية', 'name_en' => '10 extra tables'],
+            // EgHub screens, priced per screen on top of any plan (the free one included): each one adds a screen
+            // the restaurant may pair, and switches the TV screens module on
+            ['key' => 'screens', 'type' => 'limit', 'credits' => 1, 'monthly_price' => 150, 'sort_order' => 4, 'features' => ['tv_screens'],
+                'name' => 'شاشة عرض', 'name_en' => 'TV screen',
+                'description' => 'شاشة زيادة في المحل: منيو بأسعار لايف وصور وفيديو وعروض وأرقام الطلبات الجاهزة، على أي تليفزيون أو بوكس',
+                'description_en' => 'One more screen in the shop: a live-price menu, pictures, video, offers and ready order numbers, on any TV or box'],
             // every module on its own, on top of any plan — the free one included
             ['key' => 'ordering_pack', 'type' => 'feature', 'monthly_price' => 99, 'sort_order' => 3,
                 'name' => 'الطلب من الترابيزة', 'name_en' => 'Table ordering',

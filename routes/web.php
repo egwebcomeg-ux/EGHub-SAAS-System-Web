@@ -7,13 +7,17 @@ use App\Http\Controllers\Platform\DirectoryController;
 use App\Http\Controllers\Platform\FeaturesController;
 use App\Http\Controllers\Platform\LandingController;
 use App\Http\Controllers\Platform\QrToolController;
+use App\Http\Controllers\Platform\ScreenPlayerController;
 use App\Http\Controllers\Platform\SeoController;
 use App\Http\Controllers\Platform\ServicesController;
 use App\Http\Controllers\Platform\SignupController;
 use App\Http\Controllers\Platform\WhatsAppWebhookController;
 use App\Models\Payment;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Http\Request;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /*
 | Hosts (first CENTRAL_DOMAINS entry, "localhost" while developing):
@@ -76,6 +80,23 @@ Route::domain($domain)->group(function () use ($slug) {
             ))->where('any', '.*');
         }
     });
+    // EgHub screens: the universal TV player (App\Http\Controllers\Platform\ScreenPlayerController). /tv is the short
+    // address typed with a remote ("tv" can never be a restaurant: slugs have 3+ characters). Its data calls carry the
+    // device token, not a session: no session cookie, no CSRF.
+    Route::get('/tv', fn (Request $request) => redirect('/screen'.(($q = $request->getQueryString()) ? '?'.$q : '')));
+    Route::get('/screen', [ScreenPlayerController::class, 'show'])->name('screen')
+        ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class]);
+    Route::prefix('/screen')->name('screen.')->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])
+        ->group(function () {
+            Route::get('/sw.js', [ScreenPlayerController::class, 'serviceWorker'])->name('sw');
+            Route::post('/pair', [ScreenPlayerController::class, 'startPairing'])->middleware('throttle:10,1')->name('pair');
+            Route::get('/pair/status', [ScreenPlayerController::class, 'pairStatus'])->middleware('throttle:40,1')->name('pair.status');
+            Route::get('/playlist', [ScreenPlayerController::class, 'playlist'])->middleware('throttle:30,1')->name('playlist');
+            Route::get('/version', [ScreenPlayerController::class, 'version'])->middleware('throttle:120,1')->name('version');
+            Route::get('/ready', [ScreenPlayerController::class, 'ready'])->middleware('throttle:120,1')->name('ready');
+            Route::post('/heartbeat', [ScreenPlayerController::class, 'heartbeat'])->middleware('throttle:20,1')->name('heartbeat');
+            Route::post('/rotate', [ScreenPlayerController::class, 'rotate'])->middleware('throttle:5,1')->name('rotate');
+        });
     Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('sitemap');
     Route::get('/robots.txt', [SeoController::class, 'robots'])->name('robots');
     // Inbound WhatsApp (Meta Cloud API handshake + signed payloads, or another provider with X-EgMenu-Secret).

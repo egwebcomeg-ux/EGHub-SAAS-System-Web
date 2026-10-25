@@ -28,6 +28,8 @@ final class ImageService
         // brand character, slogan and pattern tile of the mascot intro (App\Services\BrandAssets), lossless like the logo
         'mascot' => ['brand', 900, 900, false, true],
         'banner' => ['banners', 1600, 700, false],
+        // pictures on the TV screens (App\Models\TvMedia): full HD, landscape or portrait
+        'screen' => ['screens', 1920, 1920, false],
         'post' => ['blog', 1600, 900, false],            // platform blog covers (no tenant)
         'testimonial' => ['testimonials', 400, 400, false], // owner photos on the marketing site (no tenant)
         'platform_logo' => ['brand', 900, 300, false, true], // the platform logo, admin › branding (no tenant)

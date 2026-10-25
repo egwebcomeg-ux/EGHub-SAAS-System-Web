@@ -70,7 +70,8 @@ class PlansController extends Controller
             $addon->update([
                 'name' => $a['name'], 'name_en' => $a['name_en'] ?? '', 'description' => $a['description'] ?? '',
                 'monthly_price' => $a['monthly_price'], 'is_active' => $request->boolean("addons.$id.is_active"),
-                'features' => $addon->isFeaturePack() ? array_values($a['features'] ?? []) : null,
+                // a limit pack keeps the features it switches on (extra branch → per-branch prices, a screen → TV screens)
+                'features' => $addon->isFeaturePack() ? array_values($a['features'] ?? []) : ($addon->isCreditPack() ? null : $addon->features),
                 'per_branch' => $request->boolean("addons.$id.per_branch"), 'min_plan' => $a['min_plan'] ?? null,
             ]);
         }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\TvScreen;
+use App\Services\Entitlements;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -17,11 +18,16 @@ class TvScreensController extends Controller
         return redirect()->route('dash.devices', ['tab' => 'tv']);
     }
 
+    /** A new screen, within the screens the plan and the add-ons allow (Entitlements limit `screens`). */
     public function store(Request $request): RedirectResponse
     {
-        TvScreen::query()->create($this->validated($request) + ['token' => random_token(10)]);
+        $rights = Entitlements::current();
+        if (! $rights->canAdd('screens')) {
+            return back()->withInput()->withErrors(['screens' => __('You use all the screens in your subscription (:n). Add a screen to pair another one.', ['n' => (int) $rights->limit('screens')])]);
+        }
+        $screen = TvScreen::query()->create($this->validated($request) + ['token' => random_token(10)]);
 
-        return back()->with('ok', __('Screen saved.'));
+        return redirect()->route('dash.tv.edit', $screen)->with('ok', __('Screen saved. Now open eghub.app/tv on the TV and pair it with the code it shows.'));
     }
 
     public function update(Request $request, TvScreen $screen): RedirectResponse

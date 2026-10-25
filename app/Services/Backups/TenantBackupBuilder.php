@@ -41,7 +41,7 @@ class TenantBackupBuilder
         'two_factor_confirmed_at', 'manager_pin', 'device_token', 'phone_verification_code'];
 
     /** table => columns that are secret links to the shop's devices (kiosk / TV screens open with them). */
-    private const REDACTED_BY_TABLE = ['kiosks' => ['token'], 'tv_screens' => ['token'], 'pos_terminals' => ['token'], 'pager_tickets' => ['token'],
+    private const REDACTED_BY_TABLE = ['kiosks' => ['token'], 'tv_screens' => ['token', 'device_token_hash'], 'pos_terminals' => ['token'], 'pager_tickets' => ['token'],
         // the restaurant's own WhatsApp Business credentials (WhatsAppConnection: token, app secret, verify token)
         'whatsapp_connections' => ['access_token', 'app_secret', 'verify_token']];
 

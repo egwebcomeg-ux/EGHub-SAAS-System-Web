@@ -58,6 +58,8 @@ use App\Http\Controllers\Dashboard\SupportAccessController;
 use App\Http\Controllers\Dashboard\TablesController;
 use App\Http\Controllers\Dashboard\TableSessionsController;
 use App\Http\Controllers\Dashboard\TerminalsController;
+use App\Http\Controllers\Dashboard\TvPairingController;
+use App\Http\Controllers\Dashboard\TvPlaylistController;
 use App\Http\Controllers\Dashboard\TvScreensController;
 use App\Http\Controllers\Dashboard\TwoFactorController;
 use App\Http\Controllers\Dashboard\UsersController;
@@ -420,11 +422,24 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     // Screens & devices: TV boards, kiosks, customer display / order board, kitchen display links (each type by its right)
     Route::get('/devices', [DevicesController::class, 'index'])->name('devices');
 
-    // TV menu boards (Business)
+    // EgHub screens (TV screens): playlists, pairing a TV with the code it shows on eghub.app/screen, screen media
     Route::middleware(['feature:tv_screens', 'permission:menu.manage'])->group(function () {
         Route::get('/tv-screens', [TvScreensController::class, 'index'])->name('tv');
         Route::post('/tv-screens', [TvScreensController::class, 'store'])->name('tv.store');
-        Route::post('/tv-screens/{screen}', [TvScreensController::class, 'update'])->name('tv.update');
+        // a device stays attached after a support session: not for EgWeb support signed in from the admin
+        Route::get('/tv-screens/pair', [TvPairingController::class, 'show'])->name('tv.pair');
+        Route::post('/tv-screens/pair', [TvPairingController::class, 'store'])->middleware(['support.blocked', 'throttle:10,1'])->name('tv.pair.store');
+        Route::post('/tv-screens/media', [TvPlaylistController::class, 'upload'])->middleware('throttle:30,1')->name('tv.media.store');
+        Route::post('/tv-screens/media/{media}/delete', [TvPlaylistController::class, 'destroyMedia'])->whereNumber('media')->name('tv.media.delete');
+        Route::get('/tv-screens/{screen}', [TvPlaylistController::class, 'edit'])->whereNumber('screen')->name('tv.edit');
+        Route::post('/tv-screens/{screen}/settings', [TvPlaylistController::class, 'settings'])->whereNumber('screen')->name('tv.settings');
+        Route::post('/tv-screens/{screen}/slides', [TvPlaylistController::class, 'storeSlide'])->whereNumber('screen')->name('tv.slides.store');
+        Route::post('/tv-screens/{screen}/slides/{slide}', [TvPlaylistController::class, 'updateSlide'])->whereNumber(['screen', 'slide'])->name('tv.slides.update');
+        Route::post('/tv-screens/{screen}/slides/{slide}/move', [TvPlaylistController::class, 'moveSlide'])->whereNumber(['screen', 'slide'])->name('tv.slides.move');
+        Route::post('/tv-screens/{screen}/slides/{slide}/delete', [TvPlaylistController::class, 'destroySlide'])->whereNumber(['screen', 'slide'])->name('tv.slides.delete');
+        Route::post('/tv-screens/{screen}/reload', [TvPlaylistController::class, 'reload'])->whereNumber('screen')->name('tv.reload');
+        Route::post('/tv-screens/{screen}/unpair', [TvPlaylistController::class, 'unpair'])->whereNumber('screen')->middleware('support.blocked')->name('tv.unpair');
+        Route::post('/tv-screens/{screen}', [TvScreensController::class, 'update'])->whereNumber('screen')->name('tv.update');
         Route::post('/tv-screens/{screen}/link', [TvScreensController::class, 'regenerate'])->name('tv.regenerate');
         Route::post('/tv-screens/{screen}/delete', [TvScreensController::class, 'destroy'])->name('tv.delete');
     });

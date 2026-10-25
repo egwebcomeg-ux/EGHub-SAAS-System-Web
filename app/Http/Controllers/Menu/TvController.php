@@ -3,40 +3,51 @@
 namespace App\Http\Controllers\Menu;
 
 use App\Http\Controllers\Controller;
-use App\Models\Category;
-use App\Models\MenuItem;
-use App\Models\MenuTranslation;
+use App\Http\Controllers\Platform\ScreenPlayerController;
 use App\Models\TvScreen;
 use App\Services\Entitlements;
-use App\Services\Menu\MenuCatalog;
-use App\Services\Settings;
-use App\Support\MenuLocales;
+use App\Services\Screens\ScreenPlaylist;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Collection;
-use Illuminate\View\View;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 /**
- * Menu board on a TV (Business). The TV keeps the page open all day; it asks for a short fingerprint of what it
- * shows every minute and reloads only when that changes (new price, sold out, an offer starting or ending).
+ * The older secret link of a TV screen (/tv/{token} on the menu's address): it keeps working and now opens the same
+ * player as eghub.app/screen with the screen's playlist, without pairing (the link is the key). The page carries the
+ * first playlist so it shows at once; then it asks /version every POLL_SECONDS and swaps the slides when it changes.
  */
 class TvController extends Controller
 {
-    public function show(string $token): View
+    private const NO_STORE = ['Cache-Control' => 'no-store, private', 'X-Robots-Tag' => 'noindex, nofollow'];
+
+    public function show(string $token): Response
     {
         $screen = $this->screen($token);
-        $board = $this->board($screen);
 
-        return view('menu.tv', [
-            'screen' => $screen, 'categories' => $board, 'settings' => Settings::all(),
-            'version' => $this->fingerprint($screen, $board),
-        ]);
+        return response()->view('screen.player', [
+            'mode' => 'link', 'boot' => (new ScreenPlaylist($screen))->payload(), 'base' => null,
+            'version' => ScreenPlayerController::VERSION,
+        ])->withHeaders(['X-Robots-Tag' => 'noindex, nofollow', 'Cache-Control' => 'no-cache']);
+    }
+
+    public function playlist(string $token): JsonResponse
+    {
+        return response()->json((new ScreenPlaylist($this->screen($token)))->payload(), 200, self::NO_STORE, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
     public function version(string $token): JsonResponse
     {
         $screen = $this->screen($token);
 
-        return response()->json(['v' => $this->fingerprint($screen, $this->board($screen))]);
+        return response()->json([
+            'v' => (new ScreenPlaylist($screen))->version(), 'reload' => $screen->reload_requested_at?->timestamp,
+            'now' => (int) floor(microtime(true) * 1000), 'tz' => now()->utcOffset(),
+        ], 200, self::NO_STORE);
+    }
+
+    public function ready(Request $request, string $token): JsonResponse
+    {
+        return response()->json((new ScreenPlaylist($this->screen($token)))->readyNumbers($request->integer('branch') ?: null), 200, self::NO_STORE);
     }
 
     private function screen(string $token): TvScreen
@@ -44,31 +55,5 @@ class TvController extends Controller
         abort_unless(Entitlements::current()->allows('tv_screens'), 404);
 
         return TvScreen::query()->where('token', $token)->where('is_active', true)->firstOrFail();
-    }
-
-    /** @return Collection<int, Category> */
-    private function board(TvScreen $screen)
-    {
-        $branch = $screen->branch_id ? $screen->branch()->where('is_active', true)->first() : null;
-        $categories = MenuCatalog::forBranch($branch)->categories();
-        if ($screen->category_ids) {
-            $order = array_flip(array_map('intval', $screen->category_ids));
-            $categories = $categories->filter(fn (Category $c) => isset($order[$c->id]))->values();
-        }
-
-        return $categories;
-    }
-
-    private function fingerprint(TvScreen $screen, $categories): string
-    {
-        $data = $categories->map(fn (Category $c) => [$c->id, $c->name, $c->name_en, $c->items->map(fn (MenuItem $i) => [
-            $i->id, $i->name, $i->name_en, $i->description, $i->price, $i->is_sold_out, $i->image, $i->getAttribute('offer_percent'),
-        ])]);
-        $settings = Settings::all();
-        // shown in an extra language: a new or edited translation reloads the screen too
-        $translations = MenuLocales::current() ? [MenuLocales::current(), MenuTranslation::query()->where('locale', MenuLocales::current())->count(),
-            (string) MenuTranslation::query()->where('locale', MenuLocales::current())->max('updated_at')] : null;
-
-        return md5(json_encode([$data, $screen->updated_at?->timestamp, $settings['brand_name'] ?? '', $settings['logo'] ?? '', $settings['color_primary'] ?? '', $translations]));
     }
 }

@@ -18,11 +18,15 @@ final class ItemVideo
 
     public const MAX_KB = 15360;
 
-    /** Magic bytes of the accepted containers: ISO-BMFF ("ftyp" at offset 4) and Matroska/WebM (EBML header). */
-    public function store(UploadedFile $file): string
+    /**
+     * Magic bytes of the accepted containers: ISO-BMFF ("ftyp" at offset 4) and Matroska/WebM (EBML header). The file
+     * is kept under a random name with the extension of what it really is, never the uploaded name. TV screens store
+     * longer videos (up to TvMedia::MAX_VIDEO_KB) in their own folder.
+     */
+    public function store(UploadedFile $file, int $maxKb = self::MAX_KB, string $dir = 'videos', ?string $error = null): string
     {
-        $fail = fn () => throw ValidationException::withMessages(['video' => __('Upload an MP4 or WebM video up to 15 MB.')]);
-        if (! $file->isValid() || $file->getSize() > self::MAX_KB * 1024 || $file->getSize() < 64) {
+        $fail = fn () => throw ValidationException::withMessages(['video' => $error ?? __('Upload an MP4 or WebM video up to 15 MB.')]);
+        if (! $file->isValid() || $file->getSize() > $maxKb * 1024 || $file->getSize() < 64) {
             $fail();
         }
         $head = (string) file_get_contents($file->getRealPath(), false, null, 0, 16);
@@ -34,15 +38,15 @@ final class ItemVideo
         if (! $ext || ! in_array($file->getMimeType(), ['video/mp4', 'video/webm', 'video/quicktime', 'audio/mp4', 'application/octet-stream'], true)) {
             $fail();
         }
-        $path = 'tenants/'.tenant()->getTenantKey().'/videos/'.Str::uuid().".$ext";
+        $path = 'tenants/'.tenant()->getTenantKey()."/$dir/".Str::uuid().".$ext";
         Storage::disk('public')->putFileAs(dirname($path), $file, basename($path));
 
         return $path;
     }
 
-    public function delete(?string $path): void
+    public function delete(?string $path, string $dir = 'videos'): void
     {
-        if ($path && str_starts_with($path, 'tenants/'.tenant()->getTenantKey().'/videos/')) {
+        if ($path && str_starts_with($path, 'tenants/'.tenant()->getTenantKey()."/$dir/")) {
             Storage::disk('public')->delete($path);
         }
     }

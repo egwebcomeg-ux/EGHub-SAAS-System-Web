@@ -11,6 +11,7 @@ use App\Models\TvScreen;
 use App\Models\User;
 use App\Services\Entitlements;
 use App\Services\Qr;
+use App\Services\Screens\ScreenPairing;
 use App\Services\Settings;
 use App\Support\BusinessType;
 use Illuminate\Http\Request;
@@ -81,7 +82,7 @@ class DevicesController extends Controller
         $qr = fn (string $url) => Qr::svg($url, 160, is_hex_color($color) ? $color : '#0A2540');
         $shows = fn (string $type) => ($types[$type] ?? false) && ($tab === 'all' || $tab === $type);
 
-        $screens = $shows('tv') ? TvScreen::query()->with('branch')->orderBy('id')->get() : collect();
+        $screens = $shows('tv') ? TvScreen::query()->with('branch')->withCount('slides')->orderBy('id')->get() : collect();
         $kiosks = $shows('kiosk') ? Kiosk::query()->with('branch')->orderBy('id')->get() : collect();
         $branches = Branch::query()->orderBy('sort_order')->get();
 
@@ -93,6 +94,8 @@ class DevicesController extends Controller
                 'kiosk' => ($types['kiosk'] ?? false) ? Kiosk::query()->count() : 0,
             ],
             'screens' => $screens,
+            'screenLimit' => ($types['tv'] ?? false) ? Entitlements::current()->limit('screens') : 0,
+            'pairedScreens' => ($types['tv'] ?? false) ? ScreenPairing::pairedCount() : 0,
             'kiosks' => $kiosks,
             'qrs' => [
                 'tv' => $screens->mapWithKeys(fn (TvScreen $s) => [$s->id => $qr($s->url())]),

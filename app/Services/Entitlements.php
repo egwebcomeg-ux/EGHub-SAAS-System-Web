@@ -10,6 +10,7 @@ use App\Models\MenuImport;
 use App\Models\MenuItem;
 use App\Models\Plan;
 use App\Models\Tenant;
+use App\Models\TvScreen;
 use App\Models\User;
 
 /**
@@ -133,6 +134,7 @@ final class Entitlements
             'menu_items' => MenuItem::query()->count(),
             'staff' => User::query()->count(),
             'tables' => DiningTable::query()->count(),
+            'screens' => TvScreen::query()->count(),
             'ai_imports_per_month' => MenuImport::query()->whereIn('source', ['image', 'pdf'])
                 ->where('created_at', '>=', now()->startOfMonth())->count(),
             default => 0,

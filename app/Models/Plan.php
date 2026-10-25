@@ -88,6 +88,8 @@ class Plan extends Model
         'staff' => ['المستخدمين', 'Staff accounts'],
         'tables' => ['الترابيزات', 'Tables'],
         'ai_imports_per_month' => ['تحويل صور المنيو شهرياً', 'AI menu imports / month'],
+        // TV screens a restaurant may pair (App\Models\TvScreen); more are bought per screen (add-on `screens`)
+        'screens' => ['شاشات العرض', 'TV screens'],
     ];
 
     public const GROUPS = [
