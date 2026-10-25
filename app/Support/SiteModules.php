@@ -288,9 +288,11 @@ final class SiteModules
                     [__('How many screens can I have?'), __('Your plan includes some, and each extra screen is a small monthly add-on you buy from the subscription page.')],
                     [__('Does the TV need internet?'), __('Only to pick up your changes. The screen downloads its pictures and videos and keeps playing the last playlist when the internet drops.')],
                     [__('Can the TV hang vertically?'), __('Yes. Choose portrait for the screen and the player turns everything, on 1080p and 4K TVs alike.')],
+                    [__('Does it work on a small or a big TV?'), __('Landscape or portrait, any size from a tablet to 75 inches and more: choose the size and how far the guests stand, and the text grows or shrinks to match. You can set the text size by hand too.')],
                     [__('Can a screen show offers only?'), __('Yes. Add only offer slides: each shows while its offer runs and the screen skips it the rest of the day.')],
                 ],
                 'related' => ['offers', 'qr-menu', 'printed-menu'],
+                'guide' => ['screens.supported', __('Screens that work with EgHub'), __('Samsung, LG, Xiaomi, Fire TV, Google TV, Android boxes, computers and tablets: the exact steps for each, how to keep it on all day and what happens after a power cut.')],
             ],
             [
                 'slug' => 'menu-import', 'group' => 'menu', 'icon' => 'upload', 'for' => ['cafe', 'restaurant'],

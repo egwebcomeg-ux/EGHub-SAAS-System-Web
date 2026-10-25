@@ -14,6 +14,7 @@ use App\Services\Entitlements;
 use App\Services\ImageService;
 use App\Services\ItemVideo;
 use App\Services\Screens\ScreenPairing;
+use App\Support\ScreenShape;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -54,16 +55,19 @@ class TvPlaylistController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:60',
             'branch_id' => ['nullable', Rule::exists('branches', 'id')->where('tenant_id', tenant()->getTenantKey())],
-            'orientation' => ['required', Rule::in(TvScreen::ORIENTATIONS)],
+            'orientation' => ['required_without:shape', 'nullable', Rule::in(TvScreen::ORIENTATIONS)],
             'theme' => ['required', Rule::in(TvScreen::THEMES)],
             'language' => ['nullable', Rule::in(TvScreen::LANGUAGES)],
             'ticker_text' => 'nullable|string|max:300',
-        ] + $this->hourRules());
+        ] + ScreenShape::rules() + $this->hourRules());
+        // «مقاس الشاشة واتجاهها» (shape, turn, size, distance, text size) when the form has it, else the plain orientation
+        $shape = $request->has('shape') ? ScreenShape::attributes($data, $request->boolean('text_scale_manual')) : [];
+        $data['orientation'] = $shape['orientation'] ?? $data['orientation'];
         $screen->update([
             'name' => $data['name'], 'branch_id' => $data['branch_id'] ?? null, 'orientation' => $data['orientation'], 'theme' => $data['theme'],
             'language' => (string) ($data['language'] ?? ''), 'ticker_text' => $data['ticker_text'] ?? null,
             'is_active' => $request->boolean('is_active'),
-        ] + $this->hours($data));
+        ] + $shape + $this->hours($data));
 
         return back()->with('ok', __('Screen saved.'));
     }

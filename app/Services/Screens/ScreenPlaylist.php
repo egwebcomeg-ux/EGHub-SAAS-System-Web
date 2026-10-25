@@ -14,6 +14,7 @@ use App\Services\Entitlements;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Settings;
 use App\Support\MenuLocales;
+use App\Support\ScreenShape;
 use Illuminate\Support\Collection;
 
 /**
@@ -102,6 +103,7 @@ final class ScreenPlaylist
                     'id' => $this->screen->id,
                     'name' => $this->screen->name,
                     'orientation' => $this->screen->orientation ?: 'landscape',
+                    'scale' => ScreenShape::scale($this->screen),
                     'theme' => $this->screen->theme ?: 'dark',
                     'lang' => $language,
                     'dir' => $language === 'en' ? 'ltr' : 'rtl',

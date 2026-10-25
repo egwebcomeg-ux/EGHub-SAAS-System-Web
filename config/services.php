@@ -76,6 +76,14 @@ return [
     | Apple's older .p12 encryption: convert it once with `openssl pkcs12 -legacy -in pass.p12 -out pass.pem -nodes`.
     | Google: the Wallet issuer ID and the JSON key file of a service account that has access to that issuer.
     */
+    /*
+    | The EgHub Screens Android TV app (app.eghub.screens). Until its Google Play listing is live the setup steps install
+    | the signed APK from eghub.app/tv.apk through Downloader; set the listing URL here and they point to Google Play.
+    */
+    'eghub_screens' => [
+        'play_url' => env('EGHUB_SCREENS_PLAY_URL'),
+    ],
+
     'wallet' => [
         'apple' => [
             'pass_type_id' => env('WALLET_APPLE_PASS_TYPE_ID'),

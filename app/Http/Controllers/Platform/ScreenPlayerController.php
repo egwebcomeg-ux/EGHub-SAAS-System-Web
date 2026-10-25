@@ -21,7 +21,7 @@ use Symfony\Component\HttpFoundation\Cookie;
 class ScreenPlayerController extends Controller
 {
     /** Bumped when the player page changes, so the service worker drops its old copy. */
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.0.1';
 
     private const NO_STORE = ['Cache-Control' => 'no-store, private', 'X-Robots-Tag' => 'noindex, nofollow'];
 

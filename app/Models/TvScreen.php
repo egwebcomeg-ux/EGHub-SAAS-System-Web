@@ -23,7 +23,8 @@ class TvScreen extends TenantModel
 
     public const THEMES = ['dark', 'light'];
 
-    public const ORIENTATIONS = ['landscape', 'portrait'];
+    /** landscape, portrait = turned right, portrait2 = turned left (the player turns the picture) */
+    public const ORIENTATIONS = ['landscape', 'portrait', 'portrait2'];
 
     public const LANGUAGES = ['', 'ar', 'en', 'both'];
 

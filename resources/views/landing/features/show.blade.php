@@ -83,6 +83,23 @@
     </div>
 </section>
 
+{{-- ============ GUIDE (a page of its own that goes deeper, e.g. the screens that work with EgHub) ============ --}}
+@if (! empty($module['guide']))
+    @php [$guideRoute, $guideTitle, $guideText] = $module['guide']; @endphp
+    <section class="pb-16 lg:pb-20" data-module-guide>
+        <div class="mx-auto max-w-4xl px-4 sm:px-6">
+            <a href="{{ route($guideRoute) }}" class="lp-lift flex flex-col gap-4 rounded-[24px] border border-navy-100 bg-white p-6 sm:flex-row sm:items-center">
+                <span class="lp-idea-icon shrink-0"><x-landing.icon :name="$module['icon']" class="size-6" /></span>
+                <span class="min-w-0 flex-1">
+                    <span class="block text-lg font-extrabold text-navy-900">{{ $guideTitle }}</span>
+                    <span class="mt-1 block leading-relaxed text-navy-600">{{ $guideText }}</span>
+                </span>
+                <span class="font-bold text-brand-700">{{ __('See the list') }} <span aria-hidden="true" class="inline-block rtl:rotate-180">→</span></span>
+            </a>
+        </div>
+    </section>
+@endif
+
 {{-- ============ MORE SCREENS (from tablet width up: on a phone the hero shot and the animation already show it) ============ --}}
 @foreach ($module['gallery'] ?? [] as [$shot, $frame, $url, $caption])
     <section class="hidden border-t border-navy-100 py-14 sm:block lg:py-16">
