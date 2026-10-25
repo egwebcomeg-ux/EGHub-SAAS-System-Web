@@ -92,6 +92,10 @@ class PlanSeeder extends Seeder
         ];
 
         foreach ($plans as $p) {
+            // the older plans were removed from production (nobody is on them); tests and local installs keep them
+            if (app()->isProduction() && in_array($p['code'], self::LEGACY, true)) {
+                continue;
+            }
             $plan = Plan::query()->firstOrCreate(['code' => $p['code']], [
                 'name' => $p['name'], 'name_en' => $p['name_en'], 'tagline' => $p['tagline'], 'tagline_en' => $p['tagline_en'],
                 'monthly_price' => $p['monthly_price'], 'original_price' => $p['original_price'] ?? null,
@@ -113,27 +117,27 @@ class PlanSeeder extends Seeder
         Plan::query()->where('code', 'free')->where('name', 'مجاني')->update(['name' => 'مجانية']);
 
         foreach ([
-            ['key' => 'pos_pack', 'type' => 'feature', 'monthly_price' => 199, 'sort_order' => 1, 'per_branch' => true, 'min_plan' => 'basic',
+            ['key' => 'pos_pack', 'type' => 'feature', 'monthly_price' => 199, 'sort_order' => 1, 'per_branch' => true, 'min_plan' => 'full',
                 'name' => 'الكاشير', 'name_en' => 'POS pack',
                 'description' => 'نقطة بيع، وورديات ودرج كاش، وشاشة عميل، ولوحة أرقام الطلبات',
                 'description_en' => 'Point of sale, shifts & cash drawer, customer display, order-number board',
                 'features' => ['pos', 'shifts', 'customer_display']],
-            ['key' => 'kitchen_pack', 'type' => 'feature', 'monthly_price' => 149, 'sort_order' => 2, 'per_branch' => true, 'min_plan' => 'basic',
+            ['key' => 'kitchen_pack', 'type' => 'feature', 'monthly_price' => 149, 'sort_order' => 2, 'per_branch' => true, 'min_plan' => 'full',
                 'name' => 'شاشة المطبخ', 'name_en' => 'Kitchen display',
                 'description' => 'شاشة طلبات للمطبخ بالوقت والألوان، وأقسام مطبخ (شاشة لكل قسم)',
                 'description_en' => 'Kitchen order screen with timers, kitchen stations (a screen per station)',
                 'features' => ['kitchen_display', 'kitchen_stations']],
-            ['key' => 'callcenter_pack', 'type' => 'feature', 'monthly_price' => 199, 'sort_order' => 3, 'min_plan' => 'basic',
+            ['key' => 'callcenter_pack', 'type' => 'feature', 'monthly_price' => 199, 'sort_order' => 3, 'min_plan' => 'full',
                 'name' => 'الكول سنتر والتوصيل', 'name_en' => 'Call center & delivery',
                 'description' => 'شاشة كول سنتر بالبحث برقم العميل، ومناطق توصيل برسوم وحد أدنى لكل منطقة',
                 'description_en' => 'Call-center screen with phone lookup, delivery zones with fees and minimums',
                 'features' => ['call_center', 'delivery_zones', 'customers']],
-            ['key' => 'inventory_pack', 'type' => 'feature', 'monthly_price' => 199, 'sort_order' => 4, 'per_branch' => true, 'min_plan' => 'basic',
+            ['key' => 'inventory_pack', 'type' => 'feature', 'monthly_price' => 199, 'sort_order' => 4, 'per_branch' => true, 'min_plan' => 'full',
                 'name' => 'المخزون', 'name_en' => 'Inventory',
                 'description' => 'خامات وتكلفة وصفات وخصم تلقائي من المخزون',
                 'description_en' => 'Ingredients, recipe costing and automatic stock deduction',
                 'features' => ['inventory']],
-            ['key' => 'ops_bundle', 'type' => 'feature', 'monthly_price' => 549, 'sort_order' => 0, 'per_branch' => true, 'min_plan' => 'basic',
+            ['key' => 'ops_bundle', 'type' => 'feature', 'monthly_price' => 549, 'sort_order' => 0, 'per_branch' => true, 'min_plan' => 'full',
                 'name' => 'التشغيل الكامل (وفّر 25٪)', 'name_en' => 'Full operations (save 25%)',
                 'description' => 'الكاشير وشاشة المطبخ والكول سنتر والمخزون مع بعض بسعر أقل',
                 'description_en' => 'POS, kitchen display, call center and inventory together for less',
@@ -217,12 +221,12 @@ class PlanSeeder extends Seeder
                 'description' => 'أداء الأصناف وخريطة الزحمة ومقارنة الفروع والفترات وتصدير CSV وتقرير أسبوعي بالإيميل',
                 'description_en' => 'Item performance, busy-hours heat map, branch and period comparison, CSV exports and a weekly email report',
                 'features' => ['advanced_reports', 'daily_reports']],
-            ['key' => 'wallet_pack', 'type' => 'feature', 'monthly_price' => 149, 'sort_order' => 7, 'min_plan' => 'basic',
+            ['key' => 'wallet_pack', 'type' => 'feature', 'monthly_price' => 149, 'sort_order' => 7, 'min_plan' => 'full',
                 'name' => 'المحفظة وكروت الهدايا', 'name_en' => 'Wallet & gift cards',
                 'description' => 'العميل يشحن رصيد عندك ويدفع منه في المحل أو أونلاين، وكروت هدايا مطبوعة بكود وQR يضيفها لرصيده. موجودة في باقة بيزنس',
                 'description_en' => 'Guests top up a balance and pay from it in the shop or online, plus printed gift cards with a code and QR they add to their wallet. Included in Business',
                 'features' => ['wallet', 'customers']],
-            ['key' => 'cards_pack', 'type' => 'feature', 'monthly_price' => 199, 'sort_order' => 7, 'min_plan' => 'basic',
+            ['key' => 'cards_pack', 'type' => 'feature', 'monthly_price' => 199, 'sort_order' => 7, 'min_plan' => 'full',
                 'name' => 'بطاقات الولاء المتقدمة', 'name_en' => 'Advanced loyalty cards',
                 'description' => 'المحفظة وكروت الهدايا + كاش باك نسبة من كل طلب تتجمع في رصيد العميل، وباقات مسبقة الدفع (10 قهوة بـ150 ج صالحة شهر)، ومستويات عضوية (سيلفر/جولد/VIP) بخصم تلقائي. موجودة في باقة بيزنس',
                 'description_en' => 'Wallet & gift cards + cashback on every order into the guest\'s balance, prepaid packages (10 coffees for 150 EGP, valid a month) and membership tiers (Silver/Gold/VIP) with an automatic discount. Included in Business',
@@ -232,7 +236,7 @@ class PlanSeeder extends Seeder
                 'description' => 'مطعمك يظهر في أول دليل eghub.app/restaurants وصفحة مدينتك ونوع أكلك بعلامة «مميز» (5 أماكن بالدور في كل صفحة). لازم يكون ظاهر في الدليل',
                 'description_en' => 'Your place shows first in eghub.app/restaurants, your city and cuisine pages with a "Featured" badge (5 places take turns per page). Your place must be listed in the directory',
                 'features' => ['featured_listing']],
-            ['key' => 'kiosk_pack', 'type' => 'feature', 'monthly_price' => 149, 'sort_order' => 7, 'per_branch' => true, 'min_plan' => 'basic',
+            ['key' => 'kiosk_pack', 'type' => 'feature', 'monthly_price' => 149, 'sort_order' => 7, 'per_branch' => true, 'min_plan' => 'full',
                 'name' => 'كشك الطلب الذاتي', 'name_en' => 'Self-order kiosk',
                 'description' => 'تابلت عند الكاشير: العميل يختار ويطلب بنفسه وياخد رقم طلبه ويدفع عند الكاشير',
                 'description_en' => 'A tablet at the counter: guests order by themselves, get their order number and pay at the cashier',
@@ -243,7 +247,7 @@ class PlanSeeder extends Seeder
                 'description' => 'بدل أجهزة البيجر: الزبون يمسح QR وموبايله يرن لما طلبه يجهز، من غير تطبيق ولا حساب. لوحدها فوق أي باقة',
                 'description_en' => 'Instead of pager devices: the guest scans a QR and their phone rings when the order is ready, no app and no account. On its own, on top of any plan',
                 'features' => ['pager']],
-            ['key' => 'reservations_pack', 'type' => 'feature', 'monthly_price' => 149, 'sort_order' => 8, 'min_plan' => 'basic',
+            ['key' => 'reservations_pack', 'type' => 'feature', 'monthly_price' => 149, 'sort_order' => 8, 'min_plan' => 'full',
                 'name' => 'حجز الترابيزات', 'name_en' => 'Table reservations',
                 'description' => 'العميل يحجز ترابيزة من لينك المنيو بميعاد وعدد أفراد، وانت تأكد وتتابع الحجوزات من لوحة الطلبات',
                 'description_en' => 'Guests book a table from your menu link with a time and party size; you confirm and follow them from the order board',

@@ -137,4 +137,20 @@ class ArchivedPlansTest extends TenantTestCase
         $this->assertSame(4, Plan::query()->whereIn('code', PlanSeeder::LEGACY)->whereNotNull('archived_at')->count());
         $this->assertSame(7, Plan::query()->count());
     }
+
+    public function test_the_seeder_never_recreates_the_legacy_plans_in_production(): void
+    {
+        Plan::query()->whereIn('code', PlanSeeder::LEGACY)->each(fn (Plan $plan) => $plan->features()->delete());
+        Plan::query()->whereIn('code', PlanSeeder::LEGACY)->delete();
+
+        $this->app->detectEnvironment(fn () => 'production');
+        try {
+            app(PlanSeeder::class)->run(); // not $this->seed(): the production guard would ask for confirmation
+        } finally {
+            $this->app->detectEnvironment(fn () => 'testing');
+        }
+
+        $this->assertSame([], Plan::query()->whereIn('code', PlanSeeder::LEGACY)->pluck('code')->all());
+        $this->assertEqualsCanonicalizing(['free', 'full', 'enterprise'], Plan::query()->pluck('code')->all());
+    }
 }
