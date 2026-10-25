@@ -216,6 +216,8 @@ class AdminSupportAccessTest extends TenantTestCase
 
         // menus and settings stay editable, and the restaurant's audit names the EgWeb admin
         $this->post($this->dashUrl('/menu/categories'), ['name' => 'Desserts'])->assertSessionDoesntHaveErrors('support_access');
+        $this->post($this->dashUrl('/settings'), ['brand_name' => 'Cafe A', 'currency' => 'ج.م', 'currency_en' => 'EGP', 'color_primary' => '#F26522',
+            'color_secondary' => '#0A2540', 'color_bg' => '#FFFFFF', 'font' => 'Cairo', 'default_locale' => 'ar'])->assertSessionDoesntHaveErrors('support_access');
         $tagged = $this->as($tenant, fn () => AuditLog::query()->where('action', '!=', 'support.access_by_platform')->get());
         $this->assertNotEmpty($tagged);
         $this->assertTrue($tagged->every(fn (AuditLog $log) => ($log->meta['support_admin'] ?? null) === 'owner@egweb.test'));
