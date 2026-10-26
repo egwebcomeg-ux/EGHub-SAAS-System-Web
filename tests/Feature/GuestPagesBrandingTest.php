@@ -7,38 +7,39 @@ use App\Services\Settings;
 use Tests\TenantTestCase;
 
 /**
- * The guest menu's platform marks and header: the "by EgWeb" capsule on every restaurant that does not pay yet
- * (trial or Free), the "Powered by EgHub" link following hide_badge, and the name next to the logo
+ * The guest menu's platform marks and header: a "by EgHub" capsule on every restaurant that does not pay yet
+ * (trial or Free) and never EgWeb, the "Powered by EgHub" link following hide_badge, and the name next to the logo
  * (header_show_name: auto hides it when a logo exists).
  */
 class GuestPagesBrandingTest extends TenantTestCase
 {
-    public function test_the_egweb_capsule_shows_on_a_trial_and_on_free(): void
+    public function test_the_eghub_capsule_shows_on_a_trial_and_on_free_without_egweb(): void
     {
         $trial = $this->restaurant('cafe-trial', 'full', trial: true);
         $this->item($trial);
-        $this->get($this->subUrl('cafe-trial'))->assertOk()->assertSee('data-guest-egweb-badge', false)
-            ->assertSee('egweb.com.eg', false);
-        $this->get($this->subUrl('cafe-trial', 'about'))->assertOk()->assertSee('data-guest-egweb-badge', false);
+        $this->get($this->subUrl('cafe-trial'))->assertOk()->assertSee('data-guest-brand-badge', false)
+            ->assertDontSee('egweb.com.eg', false)->assertDontSee('data-egweb-badge', false);
+        $this->get($this->subUrl('cafe-trial', 'about'))->assertOk()->assertSee('data-guest-brand-badge', false);
 
         $free = $this->restaurant('cafe-free', 'free');
         $this->item($free);
-        $this->get($this->subUrl('cafe-free'))->assertOk()->assertSee('data-guest-egweb-badge', false)->assertSee('مقدم من');
+        $this->get($this->subUrl('cafe-free'))->assertOk()->assertSee('data-guest-brand-badge', false)->assertDontSee('مقدم من')
+            ->assertDontSee('egweb.com.eg', false);
     }
 
     public function test_a_paying_restaurant_follows_hide_badge_and_has_no_capsule(): void
     {
         $paid = $this->restaurant('cafe-paid', 'full');
         $this->item($paid);
-        $this->get($this->subUrl('cafe-paid'))->assertOk()->assertDontSee('data-guest-egweb-badge', false)->assertDontSee('مقدم من');
+        $this->get($this->subUrl('cafe-paid'))->assertOk()->assertDontSee('data-guest-brand-badge', false)->assertDontSee('مقدم من');
 
         $pro = $this->restaurant('cafe-pro', 'pro');
         $this->item($pro);
-        $this->get($this->subUrl('cafe-pro'))->assertOk()->assertDontSee('data-guest-egweb-badge', false)->assertSee('مقدم من');
+        $this->get($this->subUrl('cafe-pro'))->assertOk()->assertDontSee('data-guest-brand-badge', false)->assertSee('مقدم من');
 
         // the same paying place whose subscription lapsed: unpaid again, the capsule is back
         Subscription::query()->where('tenant_id', 'cafe-paid')->update(['status' => 'past_due']);
-        $this->get($this->subUrl('cafe-paid'))->assertOk()->assertSee('data-guest-egweb-badge', false);
+        $this->get($this->subUrl('cafe-paid'))->assertOk()->assertSee('data-guest-brand-badge', false);
     }
 
     public function test_the_header_name_hides_next_to_a_logo_on_auto(): void

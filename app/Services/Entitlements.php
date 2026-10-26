@@ -106,7 +106,7 @@ final class Entitlements
     }
 
     /**
-     * Whether the restaurant pays for its plan. Until it does (trial or Free) its guest pages carry the "by EgWeb"
+     * Whether the restaurant pays for its plan. Until it does (trial or Free) its guest pages carry the "by EgHub"
      * capsule whatever the plan includes; the "Powered by EgHub" link keeps following the hide_badge feature.
      */
     public function isPaid(): bool
@@ -114,8 +114,8 @@ final class Entitlements
         return $this->paid;
     }
 
-    /** The "by EgWeb" capsule on the guest pages: every restaurant that does not pay yet. */
-    public function showsEgWebBadge(): bool
+    /** The "by EgHub" capsule on the guest pages: every restaurant that does not pay yet. */
+    public function showsBrandCapsule(): bool
     {
         return ! $this->paid;
     }
