@@ -40,7 +40,7 @@
     .m-choice-close { display: none; }
     html.choice-reopen .m-choice-close, .m-choice-card--closable .m-choice-close { display: grid; }
 
-    /* intro: brand glow, logo rises with a soft scale, tagline fades in, then the overlay fades out (≈1.8 s; full ≈2.3 s) */
+    /* intro: a solid brand colour (no glow behind the logo), logo rises with a soft scale, tagline fades in, then the overlay fades out (≈1.8 s; full ≈2.3 s) */
     .m-intro {
         --intro-end: 1.4s;
         position: fixed; inset: 0; z-index: 100; flex-direction: column; align-items: center; justify-content: center; gap: 18px;

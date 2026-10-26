@@ -49,7 +49,6 @@
     </div>
 @elseif ($intro !== 'off')
     <div @class(['m-intro m-intro--' . $intro, 'm-intro--light' => $introLight]) data-intro data-intro-background="{{ $introLight ? 'light' : 'brand' }}" aria-hidden="true">
-        <div class="m-intro-glow"></div>
         @if ($intro === 'full')
             <div class="m-intro-pattern"></div>
         @endif
