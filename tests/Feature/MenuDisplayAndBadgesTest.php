@@ -39,6 +39,23 @@ class MenuDisplayAndBadgesTest extends TenantTestCase
         $this->get($this->subUrl('cafe-a', 'item/'.$latte->id))->assertRedirect();
     }
 
+    public function test_the_item_sheet_keeps_the_add_bar_on_screen_and_folds_the_kitchen_note_in_both_displays(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $this->item($a, 'Latte', 60);
+
+        foreach (['simple', 'pro'] as $display) {
+            $this->as($a, fn () => Settings::put(['menu_display' => $display]));
+            $this->get($this->subUrl('cafe-a'))->assertOk()
+                ->assertSee('class="m-sheet-bar m-surface sticky bottom-0 z-10 mt-auto px-5 pt-3" data-sheet-actions', false)
+                ->assertSee('aria-expanded="false" aria-controls="sheet-notes-field" data-sheet-notes-toggle', false)
+                ->assertSee('<label id="sheet-notes-field" class="block" hidden>', false)
+                ->assertSee('aria-controls="sheet-desc" data-sheet-more', false)
+                ->assertSee('"requiredChip":"مطلوب"', false)
+                ->assertSee('أضف للسلة');
+        }
+    }
+
     public function test_the_professional_display_follows_the_plan_and_the_setting_is_validated(): void
     {
         $a = $this->restaurant('cafe-a');

@@ -73,6 +73,120 @@ if (dataEl) {
         $('[data-sheet-qty]', sheet).textContent = qty;
     }
 
+    // ---- the choices of the item sheet ----
+    // Required groups come first, open, with a "required" chip. Optional groups fold into one row each (what is picked
+    // shows on the end side) and open on a tap; an optional single choice (e.g. "make it a combo") starts on "without".
+    const chevron = '<svg viewBox="0 0 24 24" class="m-opt-chev" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+
+    // the option a single-choice group starts on: the owner's default, else (a required one) the cheapest in stock
+    function startOption(g) {
+        if (g.type !== 'single') return null;
+        const inStock = g.options.filter((o) => !o.soldOut);
+        const preset = inStock.find((o) => o.default);
+        if (preset) return preset.id;
+        if (!g.required || !inStock.length) return null;
+        return inStock.reduce((cheapest, o) => (o.price < cheapest.price ? o : cheapest)).id;
+    }
+
+    function renderGroups(item) {
+        const ordered = [...item.groups].sort((a, b) => Number(b.required) - Number(a.required));
+        return ordered.map((g) => {
+            const start = startOption(g);
+            const kind = g.type === 'single' ? 'radio' : 'checkbox';
+            const rows = g.options.map((o) => `
+                <label class="m-opt-row">
+                    <input type="${kind}" name="g${g.id}" value="${o.id}" data-option data-group="${g.id}" ${o.soldOut ? 'disabled' : ''} ${o.id === start ? 'checked' : ''}>
+                    <span class="m-opt-name">${esc(o.name)}</span>
+                    ${o.price ? `<span class="m-opt-price">+${esc(fmt(o.price))}</span>` : ''}
+                </label>`).join('');
+            const limit = g.type === 'single' ? T.chooseOne : g.max ? T.chooseUpTo.replace('__N__', g.max) : '';
+            if (g.required) {
+                return `<div class="m-opt-group" role="group" aria-labelledby="sheet-gt${g.id}" data-group-box="${g.id}">
+                    <div class="m-opt-head">
+                        <span class="min-w-0"><span id="sheet-gt${g.id}" class="m-opt-title">${esc(g.name)}</span>${limit ? `<span class="m-opt-sub">${esc(limit)}</span>` : ''}</span>
+                        <span class="m-req">${esc(T.requiredChip)}</span>
+                    </div>
+                    <p class="m-opt-alert text-red-600 hidden" role="alert" data-group-alert></p>
+                    <div class="m-opt-list">${rows}</div>
+                </div>`;
+            }
+            const prices = g.options.filter((o) => !o.soldOut && o.price > 0).map((o) => o.price);
+            const sub = [prices.length ? T.fromPrice.replace('__A__', `+${fmt(Math.min(...prices))}`) : T.optional, g.type === 'multiple' ? limit : '']
+                .filter(Boolean).join(' · ');
+            const none = g.type === 'single'
+                ? `<label class="m-opt-row"><input type="radio" name="g${g.id}" value="" data-option-none data-group="${g.id}" ${start ? '' : 'checked'}><span class="m-opt-name">${esc(T.without)}</span></label>`
+                : '';
+            return `<div class="m-opt-group" data-group-box="${g.id}">
+                <button type="button" class="m-opt-head" aria-expanded="false" aria-controls="sheet-gp${g.id}" data-group-toggle>
+                    <span class="min-w-0"><span id="sheet-gt${g.id}" class="m-opt-title">${esc(g.name)}</span><span class="m-opt-sub">${esc(sub)}</span></span>
+                    <span class="m-opt-sum" data-group-sum><span></span>${chevron}</span>
+                </button>
+                <div id="sheet-gp${g.id}" class="m-opt-list" role="group" aria-labelledby="sheet-gt${g.id}" hidden>${none}${rows}</div>
+            </div>`;
+        }).join('');
+    }
+
+    // the end side of a folded group: what is picked ("without", the one option, or "2 chosen")
+    function syncGroupSummary(g) {
+        const sum = sheet.querySelector(`[data-group-box="${g.id}"] [data-group-sum]`);
+        if (!sum) return;
+        const picked = g.options.filter((o) => sheet.querySelector(`[data-group="${g.id}"][value="${o.id}"]`)?.checked);
+        sum.firstElementChild.textContent = !picked.length
+            ? (g.type === 'single' ? T.without : '')
+            : (g.type === 'single' ? picked[0].name : T.nChosen.replace('__N__', picked.length));
+        sum.classList.toggle('is-set', picked.length > 0);
+    }
+
+    // a required group left empty: scroll to it, mark it and say what is missing (instead of a silent fail)
+    function flagMissing(g) {
+        const box = sheet.querySelector(`[data-group-box="${g.id}"]`);
+        if (!box) {
+            alert(T.pickRequired.replace('__G__', g.name));
+            return;
+        }
+        const note = $('[data-group-alert]', box);
+        if (note) {
+            note.textContent = T.pickRequired.replace('__G__', g.name);
+            note.classList.remove('hidden');
+        }
+        box.classList.remove('m-opt-missing');
+        void box.offsetWidth; // restart the nudge
+        box.classList.add('m-opt-missing');
+        const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        box.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'center' });
+        box.querySelector('input:not(:disabled)')?.focus({ preventScroll: true });
+    }
+
+    // the kitchen note: folded behind one link, opened on a tap
+    const notesToggle = $('[data-sheet-notes-toggle]', sheet);
+    const notesField = $('#sheet-notes-field', sheet);
+    function resetNotes() {
+        $('[data-sheet-notes]', sheet).value = '';
+        notesField.hidden = true;
+        notesToggle.setAttribute('aria-expanded', 'false');
+    }
+    notesToggle.addEventListener('click', () => {
+        const open = notesField.hidden;
+        notesField.hidden = !open;
+        notesToggle.setAttribute('aria-expanded', String(open));
+        if (open) $('[data-sheet-notes]', sheet).focus();
+    });
+
+    // a long description: three lines, then "read more"
+    const descEl = $('[data-sheet-desc]', sheet);
+    const descMore = $('[data-sheet-more]', sheet);
+    function syncDescMore() {
+        descEl.classList.add('line-clamp-3');
+        descMore.setAttribute('aria-expanded', 'false');
+        descMore.textContent = T.readMore;
+        descMore.classList.toggle('hidden', descEl.scrollHeight <= descEl.clientHeight + 1);
+    }
+    descMore.addEventListener('click', () => {
+        const open = descEl.classList.toggle('line-clamp-3') === false;
+        descMore.setAttribute('aria-expanded', String(open));
+        descMore.textContent = open ? T.showLess : T.readMore;
+    });
+
     // ad pixels of the restaurant (menu/partials/pixels): no-op when none is set
     const track = (event, params) => { try { window.egmTrack?.(event, params); } catch {} };
 
@@ -135,23 +249,9 @@ if (dataEl) {
             comboBox.innerHTML = `<b>${esc(T.comboHas)}</b><ul class="mt-1 list-disc ps-5">${current.combo.parts.map((p) => `<li>${p.qty}× ${esc(p.name)}</li>`).join('')}</ul>`
                 + (current.combo.saving > 0 ? `<div class="mt-1 font-bold text-emerald-700">${esc(T.save.replace('__A__', fmt(current.combo.saving)))}</div>` : '');
         }
-        $('[data-sheet-notes]', sheet).value = '';
-        $('[data-sheet-groups]', sheet).innerHTML = current.groups.map((g) => {
-            const hint = g.type === 'single' ? T.chooseOne : g.max ? T.chooseUpTo.replace('__N__', g.max) : T.optional;
-            const options = g.options.map((o) => `
-                <label class="flex min-h-11 items-center justify-between gap-3 m-border rounded-xl border px-3 ${o.soldOut ? 'opacity-50' : ''}">
-                    <span class="flex items-center gap-3">
-                        <input type="${g.type === 'single' ? 'radio' : 'checkbox'}" name="g${g.id}" value="${o.id}" data-option data-group="${g.id}"
-                            class="size-5 accent-[var(--menu-primary)]" ${o.soldOut ? 'disabled' : ''} ${g.type === 'single' && o.default && !o.soldOut ? 'checked' : ''}>
-                        ${esc(o.name)}
-                    </span>
-                    ${o.price ? `<span class="m-muted text-sm">+${fmt(o.price)}</span>` : ''}
-                </label>`).join('');
-            return `<fieldset data-group-box="${g.id}">
-                <legend class="mb-2 flex w-full items-center justify-between font-bold">${esc(g.name)}
-                    <span class="badge ${g.required ? 'bg-brand-100 text-brand-700' : 'badge-soft'}">${g.required ? T.required : esc(hint)}</span></legend>
-                <div class="space-y-2">${options}</div></fieldset>`;
-        }).join('');
+        resetNotes();
+        $('[data-sheet-groups]', sheet).innerHTML = renderGroups(current);
+        current.groups.forEach((g) => syncGroupSummary(g));
         // menu only in the hall (and no takeaway / delivery): nothing to add
         const soldOut = current.soldOut || mode === 'none';
         $('[data-sheet-soldout]', sheet).classList.toggle('hidden', !current.soldOut);
@@ -161,7 +261,8 @@ if (dataEl) {
         $('[data-sheet-notes-box]', sheet).classList.toggle('hidden', soldOut);
         refreshSheetTotal();
         if (!sheet.open) sheet.showModal();
-        if (PRO) $('[data-item-form]', sheet).scrollTop = 0;
+        $('[data-item-form]', sheet).scrollTop = 0;
+        syncDescMore();
         countView(current.id);
     }
 
@@ -249,6 +350,13 @@ if (dataEl) {
             const picked = sheet.querySelectorAll(`[data-group="${g.id}"]:checked`);
             if (g.max && picked.length > g.max) input.checked = false;
         }
+        const box = e.target.closest('[data-group-box]');
+        if (box && current) {
+            const g = current.groups.find((x) => x.id === Number(box.dataset.groupBox));
+            if (g) syncGroupSummary(g);
+            box.classList.remove('m-opt-missing');
+            $('[data-group-alert]', box)?.classList.add('hidden');
+        }
         refreshSheetTotal();
     });
     sheet.addEventListener('click', (e) => {
@@ -257,17 +365,27 @@ if (dataEl) {
             qty = Math.min(30, Math.max(1, qty + Number(step.dataset.qty)));
             refreshSheetTotal();
         }
+        const fold = e.target.closest('[data-group-toggle]');
+        if (fold) {
+            const open = fold.getAttribute('aria-expanded') !== 'true';
+            fold.setAttribute('aria-expanded', String(open));
+            sheet.querySelector(`#${fold.getAttribute('aria-controls')}`).hidden = !open;
+        }
     });
     $('[data-add-to-cart]', sheet).addEventListener('click', () => {
         const ids = chosenIds();
         const missing = current.groups.find((g) => g.required && !g.options.some((o) => ids.includes(o.id)));
         if (missing) {
-            alert(T.pickRequired.replace('__G__', missing.name));
+            flagMissing(missing);
             return;
         }
-        addLine(current, ids, qty, $('[data-sheet-notes]', sheet).value.trim());
+        const item = current;
+        addLine(item, ids, qty, $('[data-sheet-notes]', sheet).value.trim());
         sheet.close();
-        showPairings(current);
+        // back on the menu: the cart bar counts up and a short "added" note shows
+        bumpCount();
+        toast(T.added.replace('__N__', item.name));
+        showPairings(item);
     });
 
     // the one way a line enters the cart (item sheet, "goes well with", quick "+"): same item, options and notes add up
