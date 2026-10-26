@@ -6331,5 +6331,14 @@
     ":pct% off the next :n subscription invoice(s), until :date": "خصم :pct% على :n فاتورة اشتراك جاية، لحد :date",
     "You have :pct% off from the EgHub team": "ليك خصم :pct% من فريق EgHub",
     "It comes off your next subscription invoice by itself when you choose a plan, until :date.": "بيتخصم لوحده من فاتورة الاشتراك الجاية لما تختار باقة، لحد :date.",
-    "More filters": "فلاتر تانية"
+    "More filters": "فلاتر تانية",
+    "Required choice": "مطلوب",
+    "Without it": "من غير",
+    "From :amount": "من :amount",
+    ":n chosen": ":n مختار",
+    "Read more": "اقرا أكتر",
+    "A note for the kitchen?": "ملاحظة للمطبخ؟",
+    "Add to cart": "أضف للسلة",
+    "One less": "واحدة أقل",
+    "One more": "واحدة كمان"
 }

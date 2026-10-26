@@ -55,6 +55,39 @@
     .m-filter[aria-pressed="true"] { background: var(--menu-accent); color: var(--menu-accent-text); box-shadow: none; }
     /* professional display: the item sheet as a full page */
     .m-item-page { height: 100dvh; max-height: none; width: 100%; max-width: none; margin: 0; border: 0; }
+    /* item sheet: the parts keep their height inside the scrolling column, the add bar sticks to its bottom */
+    [data-item-form] > * { flex-shrink: 0; }
+    .m-sheet-bar { padding-bottom: max(.75rem, env(safe-area-inset-bottom)); border-top: 1px solid var(--menu-border);
+        box-shadow: 0 -8px 20px -12px rgba(0, 0, 0, .35); }
+    /* choice groups: one card each; the required ones open with a "required" chip, the optional ones a folded row */
+    .m-opt-group { border-radius: 1rem; border: 1px solid var(--menu-border); background: var(--menu-surface); overflow: hidden;
+        transition: box-shadow .2s ease, border-color .2s ease; scroll-margin: 1rem; }
+    .m-opt-head { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: .75rem; min-height: 3rem;
+        padding: .5rem .9rem; text-align: start; }
+    button.m-opt-head:focus-visible, .m-opt-row:focus-within { outline: 2px solid var(--menu-accent); outline-offset: -2px; }
+    .m-opt-title { font-weight: 800; font-size: .95rem; line-height: 1.35; }
+    .m-opt-sub { display: block; margin-top: .1rem; font-size: .75rem; font-weight: 600; color: var(--menu-muted); }
+    .m-opt-sum { display: inline-flex; align-items: center; gap: .3rem; flex-shrink: 0; max-width: 45%; font-size: .8rem; font-weight: 700; color: var(--menu-muted); }
+    .m-opt-sum > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .m-opt-sum.is-set { color: var(--menu-accent); }
+    .m-opt-chev { width: 1.1rem; height: 1.1rem; flex-shrink: 0; transition: transform .2s ease; }
+    [aria-expanded="true"] .m-opt-chev { transform: rotate(180deg); }
+    .m-req { flex-shrink: 0; border-radius: 999px; padding: .15rem .6rem; font-size: .72rem; font-weight: 800;
+        background: color-mix(in srgb, var(--menu-accent) 14%, transparent); color: var(--menu-accent); }
+    .m-opt-list { border-top: 1px solid var(--menu-border); }
+    .m-opt-row { display: flex; align-items: center; gap: .7rem; min-height: 2.9rem; padding: .35rem .9rem; cursor: pointer; }
+    .m-opt-row + .m-opt-row { border-top: 1px solid color-mix(in srgb, var(--menu-border) 70%, transparent); }
+    .m-opt-row input { width: 1.2rem; height: 1.2rem; flex-shrink: 0; accent-color: var(--menu-accent); }
+    .m-opt-row:has(input:checked) { background: color-mix(in srgb, var(--menu-accent) 8%, transparent); }
+    .m-opt-row:has(input:checked) .m-opt-name { font-weight: 800; }
+    .m-opt-row:has(input:disabled) { opacity: .5; cursor: not-allowed; }
+    .m-opt-name { flex: 1; min-width: 0; font-size: .92rem; }
+    .m-opt-price { flex-shrink: 0; font-size: .85rem; font-weight: 700; color: var(--menu-muted); font-variant-numeric: tabular-nums; }
+    /* a required group left empty when "add" was tapped */
+    .m-opt-missing { border-color: #DC2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, .2); animation: m-nudge .4s ease; }
+    .m-opt-alert { padding: 0 .9rem .55rem; font-size: .8rem; font-weight: 700; color: #DC2626; }
+    @keyframes m-nudge { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+    @media (prefers-reduced-motion: reduce) { .m-opt-missing { animation: none; } .m-opt-chev { transition: none; } }
     /* the scrollable rows (category chips, banners, recommended) without a scrollbar line */
     .m-noscroll { scrollbar-width: none; }
     .m-noscroll::-webkit-scrollbar { display: none; }
@@ -118,7 +151,7 @@
         background: var(--menu-accent); color: var(--menu-accent-text); box-shadow: 0 4px 12px rgba(0, 0, 0, .25); }
     /* professional item page: a hero in the accent with the photo in a big circle */
     .m-hero { background: var(--menu-accent); color: var(--menu-accent-text); border-end-start-radius: 2.5rem; border-end-end-radius: 2.5rem; }
-    .m-hero-circle { display: grid; place-items: center; width: min(15rem, 62vw); aspect-ratio: 1; border-radius: 999px; overflow: hidden;
+    .m-hero-circle { display: grid; place-items: center; width: min(12.5rem, 52vw); aspect-ratio: 1; border-radius: 999px; overflow: hidden;
         background: var(--menu-surface-2); color: var(--menu-accent); box-shadow: 0 0 0 6px color-mix(in srgb, var(--menu-accent-text) 35%, transparent), 0 14px 30px rgba(0, 0, 0, .25); }
     .m-hero-circle img { width: 100%; height: 100%; object-fit: cover; }
     .m-best-badge { display: inline-flex; align-items: center; gap: .3rem; border-radius: 999px; padding: .3rem .8rem; font-size: .8rem; font-weight: 800;
@@ -538,7 +571,7 @@
     /item/{id} (resources/js/menu.js pushes it, the browser back closes it and the menu keeps its scroll).
 --}}
 <dialog @class(['m-0 w-full max-w-none p-0', 'mt-auto bg-transparent backdrop:bg-black/50 sm:m-auto sm:max-w-lg' => ! $pro, 'm-item-page m-surface h-dvh max-h-none backdrop:bg-black' => $pro]) data-item-sheet @if ($pro) data-item-page @endif aria-labelledby="sheet-name">
-    <form method="dialog" @class(['m-surface', 'max-h-[90dvh] overflow-y-auto rounded-t-3xl sm:rounded-3xl' => ! $pro, 'h-full overflow-y-auto' => $pro]) data-item-form>
+    <form method="dialog" @class(['m-surface flex flex-col', 'max-h-[90dvh] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-3xl' => ! $pro, 'h-full overflow-y-auto overscroll-contain' => $pro]) data-item-form>
         @if ($pro)
             <div class="pointer-events-none fixed inset-x-0 top-0 z-10 mx-auto flex max-w-2xl items-center justify-between p-3">
                 <button value="cancel" class="pointer-events-auto grid size-11 place-items-center rounded-full bg-black/45 text-white backdrop-blur" aria-label="{{ __('Back to the menu') }}" data-sheet-back>
@@ -578,11 +611,11 @@
                 <button type="button" class="m-primary absolute bottom-3 start-3 hidden min-h-10 items-center gap-2 rounded-full px-4 text-sm font-extrabold shadow-lg" data-sheet-video-play>▶ {{ __('Watch the video') }}</button>
             </div>
         @endif
-        <div @class(['p-5', 'mx-auto max-w-2xl pb-28' => $pro]) data-sheet-body>
+        <div @class(['px-5 pt-4 pb-4', 'mx-auto w-full max-w-2xl' => $pro]) data-sheet-body>
             <div class="flex items-start justify-between gap-3">
-                <h3 id="sheet-name" @class(['font-extrabold', 'text-xl' => ! $pro, 'text-2xl' => $pro]) data-sheet-name></h3>
+                <h3 id="sheet-name" @class(['font-extrabold leading-snug', 'text-xl' => ! $pro, 'text-2xl' => $pro]) data-sheet-name></h3>
                 @unless ($pro)
-                    <span class="flex shrink-0 items-center gap-1">
+                    <span class="-me-2 -mt-1 flex shrink-0 items-center gap-1">
                         <button type="button" class="m-fav relative grid size-10 place-items-center rounded-full" aria-pressed="false" aria-label="{{ __('Keep in my favourites') }}" data-sheet-fav>
                             <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8C19.5 15.4 12 20 12 20Z"/></svg>
                         </button>
@@ -593,30 +626,41 @@
             @unless ($pro)
                 <span class="m-tag mt-1 hidden w-fit items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold" data-sheet-best>🔥 {{ __('Most ordered') }}</span>
             @endunless
-            <p class="m-primary-text mt-1 flex flex-wrap items-center gap-2 text-lg font-extrabold" data-sheet-price></p>
+            <p class="m-primary-text mt-0.5 flex flex-wrap items-center gap-2 text-lg font-extrabold" data-sheet-price></p>
             <div class="mt-2 hidden flex-wrap gap-1" data-sheet-badges></div>
-            <p @class(['m-muted mt-2', 'leading-relaxed' => $pro]) data-sheet-desc></p>
+            {{-- a long description shows three lines; "read more" opens the rest (resources/js/menu.js) --}}
+            <p id="sheet-desc" class="m-muted mt-1.5 line-clamp-3 text-sm leading-relaxed" data-sheet-desc></p>
+            <button type="button" class="m-primary-text hidden min-h-8 text-sm font-bold" aria-expanded="false" aria-controls="sheet-desc" data-sheet-more>{{ __('Read more') }}</button>
             <p class="m-muted mt-1 text-xs" data-sheet-cal></p>
             <div class="mt-2 hidden flex-wrap items-center gap-1.5 text-xs" data-sheet-allergens></div>
             <div class="mt-3 hidden rounded-xl bg-brand-50 p-3 text-sm" data-sheet-combo></div>
-            <div class="mt-4 space-y-5" data-sheet-groups></div>
-            <label class="mt-5 block" data-sheet-notes-box>
-                <span class="field-label">{{ __('Notes for the kitchen') }}</span>
-                <input class="field" maxlength="200" data-sheet-notes placeholder="{{ __('e.g. no sugar') }}">
-            </label>
-            <div @class(['flex items-center gap-3', 'mt-5' => ! $pro, 'm-surface m-border fixed inset-x-0 bottom-0 z-10 border-t px-5 py-3' => $pro]) data-sheet-actions>
-                <div @class(['flex w-full items-center gap-3', 'mx-auto max-w-2xl' => $pro])>
-                    <div class="m-stepper">
-                        <button type="button" data-qty="-1" aria-label="−">−</button>
-                        <span data-sheet-qty aria-live="polite">1</span>
-                        <button type="button" data-qty="1" aria-label="+">+</button>
-                    </div>
-                    <button type="button" class="m-primary min-h-12 flex-1 rounded-xl font-bold" data-add-to-cart>
-                        {{ __('Add') }} · <span data-sheet-total></span>
-                    </button>
-                </div>
+            {{-- choices: the required ones open and first, the optional ones folded into one row each until tapped --}}
+            <div class="mt-4 space-y-3" data-sheet-groups></div>
+            {{-- the kitchen note stays folded behind one link until the guest wants it --}}
+            <div class="mt-3" data-sheet-notes-box>
+                <button type="button" class="m-primary-text flex min-h-11 items-center gap-1.5 text-sm font-bold" aria-expanded="false" aria-controls="sheet-notes-field" data-sheet-notes-toggle>
+                    <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>
+                    {{ __('A note for the kitchen?') }}
+                </button>
+                <label id="sheet-notes-field" class="block" hidden>
+                    <span class="sr-only">{{ __('Notes for the kitchen') }}</span>
+                    <input class="field" maxlength="200" data-sheet-notes placeholder="{{ __('e.g. no sugar') }}">
+                </label>
             </div>
             <p class="mt-3 hidden text-center font-bold text-red-600" data-sheet-soldout>{{ __('Sold out') }}</p>
+        </div>
+        {{-- the add bar: always on screen at the bottom of the sheet / item page, whatever the guest scrolled to --}}
+        <div class="m-sheet-bar m-surface sticky bottom-0 z-10 mt-auto px-5 pt-3" data-sheet-actions>
+            <div @class(['flex w-full items-center gap-3', 'mx-auto max-w-2xl' => $pro])>
+                <div class="m-stepper shrink-0">
+                    <button type="button" data-qty="-1" aria-label="{{ __('One less') }}">−</button>
+                    <span data-sheet-qty aria-live="polite">1</span>
+                    <button type="button" data-qty="1" aria-label="{{ __('One more') }}">+</button>
+                </div>
+                <button type="button" class="m-primary flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-xl px-3 font-extrabold" data-add-to-cart>
+                    <span>{{ __('Add to cart') }}</span><span aria-hidden="true">·</span><span class="tabular-nums" data-sheet-total aria-live="polite"></span>
+                </button>
+            </div>
         </div>
     </form>
 </dialog>
@@ -973,7 +1017,9 @@
 @php
     $i18n = [
         'required' => __('Required'), 'chooseOne' => __('Choose one'), 'chooseUpTo' => __('Choose up to :n', ['n' => '__N__']),
-        'optional' => __('Optional'), 'subtotal' => __('Subtotal'), 'service' => __('Service'), 'tax' => __('Tax'), 'total' => __('Total'),
+        'optional' => __('Optional'), 'requiredChip' => __('Required choice'), 'without' => __('Without it'),
+        'fromPrice' => __('From :amount', ['amount' => '__A__']), 'nChosen' => __(':n chosen', ['n' => '__N__']),
+        'readMore' => __('Read more'), 'showLess' => __('Show less'), 'subtotal' => __('Subtotal'), 'service' => __('Service'), 'tax' => __('Tax'), 'total' => __('Total'),
         'remove' => __('Remove'), 'sending' => __('Sending…'), 'pickRequired' => __('Please choose: :group', ['group' => '__G__']),
         'cal' => __(':n kcal', ['n' => '__N__']), 'empty' => __('Your cart is empty.'),
         'comboHas' => __('This combo has:'), 'save' => __('You save :amount', ['amount' => '__A__']), 'add' => __('Add'),
