@@ -83,11 +83,12 @@
     .m-toast.is-on { opacity: 1; transform: none; }
     /* the big search bar on top (16px text so phones do not zoom in) */
     .m-search { display: flex; align-items: center; gap: .6rem; min-height: 3.25rem; border-radius: 999px; padding-inline: 1.1rem;
-        background: var(--menu-surface); color: var(--menu-text); box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--menu-accent) 45%, var(--menu-border)), 0 4px 14px rgba(0, 0, 0, .06); }
+        background: var(--menu-surface); color: var(--menu-text); box-shadow: 0 0 0 1px var(--menu-border), 0 4px 14px rgba(0, 0, 0, .06); }
     .m-search:focus-within { box-shadow: 0 0 0 2.5px var(--menu-accent), 0 4px 14px rgba(0, 0, 0, .08); }
     .m-search input { flex: 1; min-width: 0; min-height: 3rem; background: transparent; border: 0; outline: 0; font-size: 1rem; color: inherit; }
     .m-search input::placeholder { color: var(--menu-muted); opacity: 1; }
-    .m-search svg { color: var(--menu-accent); }
+    .m-search svg { color: var(--menu-muted); }
+    .m-search:focus-within svg { color: var(--menu-accent); }
     /* category row as circles (setting menu_category_style = circles): a photo or icon, the active one ringed */
     [data-cat-nav] a.m-cat-circle { display: flex; flex-direction: column; align-items: center; gap: .3rem; width: 4.75rem; padding: .15rem 0; background: transparent !important; border: 0 !important; color: var(--menu-text); }
     [data-cat-nav] a.m-cat-circle.hidden { display: none; }
