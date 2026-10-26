@@ -28,3 +28,6 @@ Thumbs.db
 
 # agent worktrees
 .claude/worktrees/
+
+# hidden beta downloads of the Android apps, uploaded to the server only
+/public/b-*/
