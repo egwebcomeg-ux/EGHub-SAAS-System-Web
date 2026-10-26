@@ -183,7 +183,6 @@
             {{-- the name and tagline next to the logo (setting header_show_name); hidden, the name stays for screen readers --}}
             <h1 @class(['truncate text-xl font-black', 'sr-only' => ! $showName]) data-header-name="{{ $showName ? 'shown' : 'hidden' }}">{{ $brand }}</h1>
             @if ($showName && ($t = tr($settings['tagline'], $settings['tagline_en'])))<p class="truncate text-sm text-white/75" data-header-tagline>{{ $t }}</p>@endif
-            <a href="{{ route('menu.about') }}" class="text-xs font-semibold text-white/80 underline underline-offset-2" data-about-link>{{ __('About the place') }}</a>
         </div>
         @if ($accountEntry ?? false)
             {{-- "حسابي": the remembered guest's page, or the sheet with the ways in --}}
@@ -201,9 +200,9 @@
             <a href="{{ route('menu.reserve', $branches->count() > 1 ? ['branch' => $branch->id] : []) }}" class="m-primary inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-sm font-bold shadow" data-reserve-link>{{ __('Book a table') }}</a>
         @endif
     </div>
-    @if ($table || $waysMenu || $branchPicker)
-        {{-- how the guest orders and from which branch: a scanned table fixes both --}}
-        <div class="relative mx-auto flex max-w-2xl flex-wrap items-center gap-2 px-4 pb-3" data-header-chips>
+    {{-- how the guest orders and from which branch (a scanned table fixes both), then at the end small round buttons:
+         the place's page (about) and its social accounts --}}
+    <div class="relative mx-auto flex max-w-2xl flex-wrap items-center gap-2 px-4 pb-3" data-header-chips>
             @if ($table)
                 <span class="m-primary inline-flex min-h-9 items-center rounded-full px-3 text-sm font-bold" data-table-chip>🍽 {{ __('Table :name', ['name' => $table->name]) }}@if ($branches->count() > 1) · {{ tr($branch->name, $branch->name_en) }}@endif</span>
             @else
@@ -214,8 +213,12 @@
                     <button type="button" class="m-chip" data-branch-open>📍 <span class="max-w-40 truncate">{{ tr($branch->name, $branch->name_en) }}</span> <span aria-hidden="true">▾</span></button>
                 @endif
             @endif
-        </div>
-    @endif
+            <div class="ms-auto flex items-center gap-1.5" data-header-links>
+                <a href="{{ route('menu.about') }}" aria-label="{{ __('About the place') }}" title="{{ __('About the place') }}" data-about-link
+                   class="inline-grid size-8 place-items-center rounded-full bg-white/15 text-white hover:bg-white/25"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg></a>
+                @include('menu.partials.social-links', ['style' => 'header'])
+            </div>
+    </div>
     @if ($openNow !== null)
         <div class="relative mx-auto max-w-2xl px-4 pb-3">
             <span @class(['rounded-full px-3 py-1 text-xs font-bold', 'bg-emerald-500/90 text-white' => $openNow, 'bg-white/20 text-white/90' => ! $openNow]) data-open-now>{{ $openNow ? __('Open now') : __('Closed now') }}@if ($branch->working_hours) · <span dir="auto">{{ $branch->working_hours }}</span>@endif</span>
@@ -501,11 +504,7 @@
     @endif
 
     <footer class="mt-10 space-y-3 text-center text-sm m-muted">
-        <div class="flex justify-center gap-4">
-            @foreach (['instagram' => 'Instagram', 'facebook' => 'Facebook', 'tiktok' => 'TikTok'] as $key => $label)
-                @if ($settings[$key])<a href="{{ $settings[$key] }}" target="_blank" rel="noopener" class="font-semibold">{{ $label }}</a>@endif
-            @endforeach
-        </div>
+        @include('menu.partials.social-links', ['style' => 'footer'])
         @if ($branch->address)<div>{{ $branch->address }}@if ($branch->working_hours) · {{ $branch->working_hours }}@endif</div>@endif
         @if (\App\Services\KnowledgeBase::hasPublic())
             {{-- the knowledge base's public answers live on the about page: a quiet link down here, never a banner on top --}}

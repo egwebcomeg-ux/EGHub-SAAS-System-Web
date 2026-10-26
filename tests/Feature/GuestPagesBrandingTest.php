@@ -79,4 +79,19 @@ class GuestPagesBrandingTest extends TenantTestCase
 
         $this->actingAs($owner, 'web')->post($this->dashUrl('/settings'), $form + ['header_show_name' => 'sometimes'])->assertSessionHasErrors('header_show_name');
     }
+
+    public function test_social_accounts_show_in_the_header_and_a_follow_us_card_only_when_set(): void
+    {
+        $tenant = $this->restaurant('cafe-social', 'full');
+        $this->item($tenant);
+
+        $this->get($this->subUrl('cafe-social'))->assertOk()->assertSee('data-about-link', false)
+            ->assertDontSee('data-social="header"', false)->assertDontSee('data-social="footer"', false);
+
+        $this->as($tenant, fn () => Settings::put(['instagram' => 'https://instagram.com/cafe.social', 'tiktok' => 'https://tiktok.com/@cafe.social']));
+        $this->get($this->subUrl('cafe-social'))->assertOk()
+            ->assertSee('data-social="header"', false)->assertSee('data-social="footer"', false)
+            ->assertSee('https://instagram.com/cafe.social', false)->assertSee('https://tiktok.com/@cafe.social', false)
+            ->assertDontSee('aria-label="Facebook"', false);
+    }
 }
