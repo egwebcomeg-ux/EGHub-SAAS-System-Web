@@ -31,6 +31,7 @@ final class Settings
         // contact
         'phone' => '',
         'whatsapp' => '',
+        'show_platform_badge' => '0', // the EgHub team keeps «Powered by EgHub» on a plan that hides it (partners)
         'instagram' => '',
         'facebook' => '',
         'tiktok' => '',

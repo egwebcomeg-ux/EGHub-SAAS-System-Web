@@ -95,4 +95,14 @@ class GuestPagesBrandingTest extends TenantTestCase
             ->assertSee('https://instagram.com/cafe.social', false)->assertSee('https://tiktok.com/@cafe.social', false)
             ->assertDontSee('aria-label="Facebook"', false);
     }
+
+    public function test_the_platform_can_keep_the_eghub_mark_on_a_plan_that_hides_it(): void
+    {
+        $pro = $this->restaurant('cafe-partner', 'full');
+        $this->item($pro);
+        $this->get($this->subUrl('cafe-partner'))->assertOk()->assertDontSee('مقدم من');
+
+        $this->as($pro, fn () => Settings::put(['show_platform_badge' => '1']));
+        $this->get($this->subUrl('cafe-partner'))->assertOk()->assertSee('مقدم من')->assertDontSee('data-guest-brand-badge', false);
+    }
 }
