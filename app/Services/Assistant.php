@@ -67,7 +67,7 @@ final class Assistant
         }
         $asked = (string) end($messages)['content'];
         $handoff = str_contains($text, self::HANDOFF) || self::wantsPerson($asked);
-        $text = self::plain(str_replace(self::HANDOFF, '', $text));
+        $text = self::onlyEgHub(self::plain(str_replace(self::HANDOFF, '', $text)));
         if ($text === '') {
             throw new \RuntimeException('assistant: empty answer');
         }
@@ -210,13 +210,24 @@ TXT;
         $stamp = (string) Plan::query()->max('updated_at').'|'.(string) AddonPrice::query()->max('updated_at').'|'.app()->getLocale()
             .'|'.self::paymentFact();
 
-        return Cache::remember("assistant:kb:$lang:".md5($stamp), 3600, function () use ($lang) {
-            return 'REFERENCE (current as of '.now()->format('Y-m-d').")\n\n"
+        return Cache::remember("assistant:kb:v2:$lang:".md5($stamp), 3600, function () use ($lang) {
+            return self::onlyEgHub('REFERENCE (current as of '.now()->format('Y-m-d').")\n\n"
                 .self::plansText()."\n\n"
                 .self::addonsText()."\n\n"
                 .self::modulesText()."\n\n"
-                .self::facts($lang);
+                .self::facts($lang));
         });
+    }
+
+    /**
+     * The assistant speaks for EgHub only: the old EgMenu name and the egmenu.app host never reach a visitor
+     * (eghub.app/restaurants and the other paths redirect to the directory where it lives).
+     */
+    public static function onlyEgHub(string $text): string
+    {
+        $text = preg_replace('~(?:https?://)?(?:[a-z0-9-]+\.)?egmenu\.app~i', 'https://eghub.app', $text);
+
+        return str_ireplace(['EgMenu', 'إيجي منيو'], ['EgHub', 'EgHub'], $text);
     }
 
     private static function plansText(): string

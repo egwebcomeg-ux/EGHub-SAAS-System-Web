@@ -79,6 +79,19 @@ class AssistantTest extends TenantTestCase
         $this->assertSame(2, AssistantMessage::query()->where('handoff', true)->count());
     }
 
+    public function test_answers_never_carry_the_old_egmenu_name_or_host(): void
+    {
+        config(['assistant.key' => 'test-key']);
+        $this->fakeClaude('باقات EgMenu من هنا https://egmenu.app/pricing ودليل المطاعم egmenu.app/restaurants');
+        $reply = $this->postJson($this->menuUrl('assistant'), ['messages' => [['role' => 'user', 'content' => 'الباقات بكام؟']]])
+            ->assertOk()->json('reply');
+
+        $this->assertStringNotContainsStringIgnoringCase('egmenu', $reply);
+        $this->assertStringContainsString('https://eghub.app/pricing', $reply);
+        $this->assertStringContainsString('https://eghub.app/restaurants', $reply);
+        $this->assertStringNotContainsStringIgnoringCase('egmenu', Assistant::knowledge('ar'));
+    }
+
     public function test_malformed_turns_are_cleaned_and_provider_errors_fail_softly(): void
     {
         config(['assistant.key' => 'test-key']);

@@ -174,6 +174,8 @@ class DeliveryCompletionTest extends TenantTestCase
 
     public function test_per_driver_numbers_and_the_reports_delivery_section_stay_inside_the_restaurant(): void
     {
+        // midday, so the minutes travelled below never cross into tomorrow's "today" numbers
+        $this->travelTo(now(config('app.timezone'))->setTime(12, 0));
         $a = $this->restaurant('cafe-a');
         $b = $this->restaurant('cafe-b');
         $karim = $this->driver($a, 'karim@cafe-a.test');
