@@ -671,7 +671,7 @@
 @endif
 
 @if (($accountEntry ?? false) && ! $accountUrl)
-    {{-- "حسابي" on a phone that does not know the guest: the account link, or mobile + a previous order number --}}
+    {{-- "حسابي" on a phone that does not know the guest: Google, WhatsApp, mobile + a previous order number, the link --}}
     <dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/50 sm:m-auto sm:max-w-lg" data-account-sheet aria-labelledby="account-sheet-title">
         <div class="m-surface max-h-[90dvh] overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl">
             <div class="mb-1 flex items-center justify-between">

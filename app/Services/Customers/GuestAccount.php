@@ -79,6 +79,24 @@ final class GuestAccount
         return $token;
     }
 
+    /**
+     * A guest who came in with Google and had no mobile ($google) just proved a mobile ($proven: WhatsApp or a
+     * previous order number) in the same browser: the Google sign-in moves onto the proven guest, and the empty
+     * Google-only row (no mobile, orders, points or balance) is removed. Both rows belong to the current restaurant
+     * (tenant scope); a proven guest already linked to a Google account is never relinked.
+     */
+    public static function adoptGoogleGuest(?Customer $google, Customer $proven): void
+    {
+        if (! $google || $google->is($proven) || $google->google_sub === null || $google->phone !== '' || $proven->google_sub !== null
+            || (int) $google->points_balance !== 0 || (float) $google->credit_balance != 0.0
+            || Order::query()->where('customer_id', $google->id)->exists() || $google->walletTransactions()->exists()) {
+            return;
+        }
+        $identity = ['google_sub' => $google->google_sub, 'email' => $google->email];
+        $google->delete();
+        $proven->forceFill($identity + (trim((string) $proven->name) === '' ? ['name' => $google->name] : []))->save();
+    }
+
     /** Long-lived, HttpOnly, SameSite=Lax, Secure on https / in production. */
     public static function rememberCookie(string $token): Cookie
     {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Platform;
 use App\Http\Controllers\Controller;
 use App\Models\WhatsAppConnection;
 use App\Models\WhatsAppMessage;
+use App\Services\Customers\SignIn\WhatsAppSignIn;
 use App\Services\Orders\OrderConfirmation;
 use App\Services\WhatsApp\PhoneVerification;
 use Illuminate\Http\JsonResponse;
@@ -16,7 +17,8 @@ use Illuminate\Support\Facades\Log;
 /**
  * Inbound WhatsApp on the main domain. Three callers:
  *  - Meta Cloud API for the EgHub number (/webhooks/whatsapp): GET for the one-time subscription handshake, POST
- *    with every payload signed by EgHub's app secret (X-Hub-Signature-256). Texts feed the phone confirmation;
+ *    with every payload signed by EgHub's app secret (X-Hub-Signature-256). Texts feed the owner's phone
+ *    confirmation and a guest's «ادخل بواتساب» code (App\Services\Customers\SignIn\WhatsAppSignIn);
  *    button taps answer an order confirmation (App\Services\Orders\OrderConfirmation); message statuses update
  *    whatsapp_messages. A change whose metadata.phone_number_id is a restaurant's connected number (our own app
  *    subscribed to its WABA, as Embedded Signup will do) is handled for that restaurant only.
@@ -56,9 +58,10 @@ class WhatsAppWebhookController extends Controller
             $text = (string) $request->input('text', '');
             $payload = (string) $request->input('payload', '');
             $user = $from !== '' && $text !== '' ? $verification->confirm($from, $text) : null;
+            $guest = $from !== '' && $text !== '' ? app(WhatsAppSignIn::class)->confirm($from, $text) : null;
             $order = $from !== '' && $payload !== '' ? $confirmation->handleTap($from, $payload) : null;
 
-            return response()->json(['ok' => true, 'verified' => $user !== null, 'answered' => $order !== null]);
+            return response()->json(['ok' => true, 'verified' => $user !== null || $guest !== null, 'answered' => $order !== null]);
         }
 
         $this->assertMetaSignature($request, (string) config('whatsapp.app_secret'), true);
@@ -97,9 +100,10 @@ class WhatsAppWebhookController extends Controller
                     $connection = $this->connectionFor($phoneId);
                 }
                 foreach ((array) ($value['messages'] ?? []) as $message) {
-                    // the account phone confirmation is a message to the EgHub number only
+                    // the owner's phone confirmation and a guest's «ادخل بواتساب» code are messages to the EgHub number only
                     if (! $connection && $verification && ($message['type'] ?? '') === 'text' && isset($message['from'], $message['text']['body'])) {
                         $verification->confirm((string) $message['from'], (string) $message['text']['body']);
+                        app(WhatsAppSignIn::class)->confirm((string) $message['from'], (string) $message['text']['body']);
                     }
                     // a tap on a template's quick-reply button (type button) or on an interactive reply button
                     $payload = $message['button']['payload'] ?? $message['interactive']['button_reply']['id'] ?? null;

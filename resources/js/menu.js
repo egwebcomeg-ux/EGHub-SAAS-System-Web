@@ -1405,7 +1405,7 @@ if (dataEl) {
         splitSheet.addEventListener('change', renderSplit, { once: true });
     });
 
-    // ---- "حسابي" on a phone that does not know the guest: the sheet with the account link / mobile + order number ----
+    // ---- "حسابي" on a phone that does not know the guest: the sheet with the ways in (partials.account-sign-in) ----
     const accountSheet = $('[data-account-sheet]');
     if (accountSheet) {
         $('[data-account-open]')?.addEventListener('click', () => accountSheet.showModal());

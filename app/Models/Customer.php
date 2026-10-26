@@ -3,11 +3,21 @@
 namespace App\Models;
 
 use App\Models\Concerns\TenantModel;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-/** A guest of the restaurant, identified by phone. Owns the digital loyalty card (card_token). */
+/**
+ * A guest of the restaurant, identified by phone. Owns the digital loyalty card (card_token). A guest who came in
+ * with Google (google_sub, email) may have no mobile yet: the column is null and reads as "".
+ */
 class Customer extends TenantModel
 {
+    /** A missing mobile reads as "" so every caller keeps handling a string. */
+    protected function phone(): Attribute
+    {
+        return Attribute::get(fn (?string $value) => (string) $value);
+    }
+
     protected static function booted(): void
     {
         static::creating(function (self $customer) {

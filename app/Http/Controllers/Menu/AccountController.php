@@ -62,6 +62,7 @@ class AccountController extends Controller
                     ? __('Too many tries. Please try again in an hour.')
                     : __('We could not open an account with this mobile and order number. Check both, or ask the restaurant for your account link.')], 'verify');
         }
+        GuestAccount::adoptGoogleGuest(GuestAccount::fromRequest($request), $customer);
 
         return redirect()->to(GuestAccount::url($customer))->withHeaders(self::HEADERS)
             ->withCookie(GuestAccount::rememberCookie(GuestAccount::token($customer)));
