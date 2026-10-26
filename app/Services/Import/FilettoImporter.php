@@ -9,11 +9,13 @@ use App\Models\Category;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\DeliveryZone;
+use App\Models\DiningTable;
 use App\Models\ItemOption;
 use App\Models\ItemOptionGroup;
 use App\Models\KbArticle;
 use App\Models\KbCategory;
 use App\Models\MenuItem;
+use App\Models\Order;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Tenant;
@@ -38,7 +40,9 @@ use RuntimeException;
  * Moves Filetto BBQ (Tanta) from its old Laravel 11 + React ordering site into EgHub as the restaurant `filetto`:
  * the restaurant itself (created through App\Services\TenantProvisioner and the admin's welcome kit when missing) on a
  * non-expiring Enterprise subscription, its brand, social links, branch, menu (categories, items, sizes, combo and
- * extras as option groups, photos), delivery zones, coupons, knowledge base and guest list.
+ * extras as option groups, photos), delivery zones, knowledge base and guest list. Pickup and delivery only: no
+ * tables, no dine-in, no reservations; the old coupons are not carried over (the owner's decisions of 2026-10-27,
+ * with the split tagines and the added smoked sojok sandwich of NEW_ITEMS).
  *
  * The old database is opened read-only. Everything is written inside the restaurant's tenant scope and one
  * transaction; a dry run rolls it back and stores no file. Re-running updates what an earlier run imported (ids kept
@@ -92,6 +96,25 @@ final class FilettoImporter
         'drink' => ['drinks', 'مشروبات', 'Drinks', 4],
     ];
 
+    /**
+     * Items the owner set up differently from the old menu (2026-10-27): each tagine on its own instead of the two
+     * merged ones (`replaces` the old item, at its place), and a smoked sojok sandwich next to the grilled one
+     * (`after`). They copy the category, combo and extras of that old item; `price` is the old price (the price file
+     * gives the new one, target type new_item).
+     *
+     * @var array<string, array{name: string, name_en: string, price: float|int, replaces?: int, after?: int}>
+     */
+    public const NEW_ITEMS = [
+        'sand_smoked_sojok' => ['name' => 'ساندوتش سجق مدخن', 'name_en' => 'Smoked Sojok Sandwich', 'price' => 115, 'after' => 41],
+        'tagine_okra_meat' => ['name' => 'طاجن بامية باللحمة (وسط)', 'name_en' => 'Okra Tagine with Meat (medium)', 'price' => 295, 'replaces' => 59],
+        'tagine_potato_meat' => ['name' => 'طاجن بطاطس باللحمة (وسط)', 'name_en' => 'Potato Tagine with Meat (medium)', 'price' => 295, 'replaces' => 59],
+        'tagine_mixed_meat' => ['name' => 'طاجن خضار مشكّل باللحمة (وسط)', 'name_en' => 'Mixed Vegetable Tagine with Meat (medium)', 'price' => 295, 'replaces' => 59],
+        'tagine_okra_plain' => ['name' => 'طاجن بامية سادة (وسط)', 'name_en' => 'Plain Okra Tagine (medium)', 'price' => 119, 'replaces' => 60],
+        'tagine_potato_plain' => ['name' => 'طاجن بطاطس سادة (وسط)', 'name_en' => 'Plain Potato Tagine (medium)', 'price' => 119, 'replaces' => 60],
+        'tagine_molokhia_plain' => ['name' => 'طاجن ملوخية سادة (وسط)', 'name_en' => 'Plain Molokhia Tagine (medium)', 'price' => 119, 'replaces' => 60],
+        'tagine_mixed_plain' => ['name' => 'طاجن خضار مشكّل سادة (وسط)', 'name_en' => 'Plain Mixed Vegetable Tagine (medium)', 'price' => 119, 'replaces' => 60],
+    ];
+
     /** Old badges with an EgHub badge; «بريميوم» is the premium categories' own name, so it is not repeated. */
     private const BADGES = ['جديد' => 'new'];
 
@@ -104,8 +127,8 @@ final class FilettoImporter
     /** @var array<string, array<string, int>> what an earlier run imported: kind => old key => new id */
     private array $map = [];
 
-    /** @var array{item: array<int, float>, variation: array<int, float>} */
-    private array $prices = ['item' => [], 'variation' => []];
+    /** @var array{item: array<int, float>, variation: array<int, float>, new_item: array<string, float>} */
+    private array $prices = ['item' => [], 'variation' => [], 'new_item' => []];
 
     /** @var array<string, array<string, int>> */
     private array $counts = [];
@@ -167,7 +190,8 @@ final class FilettoImporter
                 $categories = $this->importCategories();
                 $this->importItems($categories);
                 $this->importDeliveryZones();
-                $this->importCoupons();
+                $this->removeImportedCoupons();
+                $this->removeTables();
                 $this->importKnowledgeBase();
                 $this->importCustomers();
                 $this->reportSkipped();
@@ -199,24 +223,25 @@ final class FilettoImporter
     }
 
     /**
-     * The `rows` of the mapping file: each matched row's `target` (an old menu item or variation id) gets `new_price`.
-     * Two rows may point at the same target only with the same price.
+     * The `rows` and `derived_rows` of the mapping file: each matched row's `target` (an old menu item or variation
+     * id, or a NEW_ITEMS key) gets `new_price`. Two rows may point at the same target only with the same price.
      *
      * @param  array<string, mixed>|null  $file
-     * @return array{item: array<int, float>, variation: array<int, float>}
+     * @return array{item: array<int, float>, variation: array<int, float>, new_item: array<string, float>}
      */
     public function priceOverrides(?array $file): array
     {
-        $out = ['item' => [], 'variation' => []];
-        foreach ((array) ($file['rows'] ?? []) as $i => $row) {
+        $out = ['item' => [], 'variation' => [], 'new_item' => []];
+        foreach ([...(array) ($file['rows'] ?? []), ...(array) ($file['derived_rows'] ?? [])] as $i => $row) {
             $target = $row['target'] ?? null;
             if (! is_array($target)) {
                 continue;
             }
             $type = (string) ($target['type'] ?? '');
-            $id = (int) ($target['source_id'] ?? 0);
+            $id = $type === 'new_item' ? (string) ($target['key'] ?? '') : (int) ($target['source_id'] ?? 0);
             $price = $row['new_price'] ?? null;
-            if (! isset($out[$type]) || $id <= 0 || ! is_numeric($price) || (float) $price < 0) {
+            $validId = $type === 'new_item' ? isset(self::NEW_ITEMS[$id]) : $id > 0;
+            if (! isset($out[$type]) || ! $validId || ! is_numeric($price) || (float) $price < 0) {
                 throw new RuntimeException('Price file row '.($i + 1).' has no valid target / new_price.');
             }
             if (isset($out[$type][$id]) && abs($out[$type][$id] - (float) $price) > 0.001) {
@@ -342,8 +367,11 @@ final class FilettoImporter
             'city' => 'tanta',
             'area' => 'شارع المتحف',
             'cuisine' => 'grills,burgers',
+            // pickup and delivery only: no tables, no dine-in, no reservations
             'online_takeaway' => '1',
             'online_delivery' => '1',
+            'dine_in_mode' => 'off',
+            'reservations_enabled' => '0',
         ];
         $primary = BrandStyle::hex($old['color_primary'] ?? null);
         $background = BrandStyle::hex($old['color_background'] ?? null);
@@ -406,10 +434,10 @@ final class FilettoImporter
         $extras = collect($this->rows('extras'))->keyBy('slug');
         $settings = collect($this->rows('settings'))->pluck('value', 'key');
         $combo = $this->comboChoices($settings->all());
-        $known = ['item' => [], 'variation' => []];
+        $known = ['item' => [], 'variation' => [], 'new_item' => []];
         $order = [];
 
-        foreach ($this->rows('menu_items', 'category_id, id') as $row) {
+        foreach ($this->itemPlan() as [$key, $row]) {
             $category = $categories[(int) $row['category_id']] ?? null;
             if (! $category) {
                 $this->count('items', 'skipped (no category)');
@@ -417,15 +445,20 @@ final class FilettoImporter
                 continue;
             }
             $id = (int) $row['id'];
-            $known['item'][$id] = true;
-            $sizes = $variations[$id] ?? [];
+            $isNew = str_starts_with($key, 'new:');
+            $isNew ? $known['new_item'][substr($key, 4)] = true : $known['item'][$id] = true;
+            $sizes = $isNew ? [] : ($variations[$id] ?? []);
             $sizePrices = [];
             foreach ($sizes as $v) {
                 $known['variation'][(int) $v['id']] = true;
                 $sizePrices[(int) $v['id']] = $this->prices['variation'][(int) $v['id']] ?? (float) $v['price'];
             }
             // EgHub adds the chosen size to the item price: the item carries the cheapest size, the sizes the difference
-            $base = $sizePrices ? min($sizePrices) : ($this->prices['item'][$id] ?? (float) $row['base_price']);
+            $base = match (true) {
+                $sizePrices !== [] => min($sizePrices),
+                $isNew => $this->prices['new_item'][substr($key, 4)] ?? (float) $row['base_price'],
+                default => $this->prices['item'][$id] ?? (float) $row['base_price'],
+            };
             if ($sizePrices && isset($this->prices['item'][$id])) {
                 $this->notes[] = "Price file sets item {$id} itself, but it has sizes: the sizes' prices were used.";
             }
@@ -442,19 +475,19 @@ final class FilettoImporter
                 'is_sold_out' => (int) $row['is_available'] !== 1,
                 'sort_order' => $order[$category->id],
             ];
-            $item = $this->upsert(MenuItem::class, 'items', (string) $id, $attributes,
+            $item = $this->upsert(MenuItem::class, 'items', $key, $attributes,
                 ['category_id' => $category->id, 'name' => $attributes['name']]);
             if (! $item->image && ($path = $this->storeImage((string) ($row['image'] ?? ''), 'item')) !== null) {
                 $item->forceFill(['image' => $path])->save();
             }
 
-            $this->syncGroup($item, $id, 'size', 'الحجم', 'Size', 'single', true, 0, collect($sizes)->map(fn ($v) => [
+            $this->syncGroup($item, $key, 'size', 'الحجم', 'Size', 'single', true, 0, collect($sizes)->map(fn ($v) => [
                 'key' => (string) $v['id'],
                 'name' => self::SIZE_AR[trim((string) $v['name'])] ?? trim((string) $v['name']),
                 'name_en' => self::SIZE_EN[trim((string) $v['name'])] ?? trim((string) $v['name']),
                 'price' => round($sizePrices[(int) $v['id']] - $base, 2),
             ])->values()->all());
-            $this->syncGroup($item, $id, 'combo', 'حوّلها كومبو (بطاطس + مشروب)', 'Make it a combo (fries + drink)', 'single', false, 1,
+            $this->syncGroup($item, $key, 'combo', 'حوّلها كومبو (بطاطس + مشروب)', 'Make it a combo (fries + drink)', 'single', false, 1,
                 (int) $row['allow_combo'] === 1 ? $combo : []);
 
             $byGroup = [];
@@ -465,28 +498,77 @@ final class FilettoImporter
 
                     continue;
                 }
-                [$key, $ar, $en, $sort] = self::EXTRA_GROUPS[$extra['category']] ?? self::EXTRA_GROUPS['side'];
-                $byGroup[$key]['meta'] = [$ar, $en, $sort];
-                $byGroup[$key]['options'][] = [
+                [$group, $ar, $en, $sort] = self::EXTRA_GROUPS[$extra['category']] ?? self::EXTRA_GROUPS['side'];
+                $byGroup[$group]['meta'] = [$ar, $en, $sort];
+                $byGroup[$group]['options'][] = [
                     'key' => (string) $slug, 'name' => trim((string) $extra['name']),
                     'name_en' => self::EXTRA_EN[$slug] ?? Str::headline((string) $slug), 'price' => (float) $extra['price'],
                 ];
             }
-            foreach (['sauces', 'sides', 'drinks'] as $key) {
-                [$ar, $en, $sort] = $byGroup[$key]['meta'] ?? ['', '', 0];
-                $this->syncGroup($item, $id, $key, $ar, $en, 'multiple', false, $sort, $byGroup[$key]['options'] ?? []);
+            foreach (['sauces', 'sides', 'drinks'] as $group) {
+                [$ar, $en, $sort] = $byGroup[$group]['meta'] ?? ['', '', 0];
+                $this->syncGroup($item, $key, $group, $ar, $en, 'multiple', false, $sort, $byGroup[$group]['options'] ?? []);
             }
         }
 
-        foreach (['item', 'variation'] as $type) {
+        foreach (['item', 'variation', 'new_item'] as $type) {
             foreach (array_diff_key($this->prices[$type], $known[$type]) as $missing => $_) {
-                $this->notes[] = "Price file targets {$type} {$missing}, which is not in the old menu: ignored.";
+                $this->notes[] = "Price file targets {$type} {$missing}, which is not in the menu: ignored.";
             }
         }
-        $this->count('prices', 'overridden', count($this->prices['item']) + count($this->prices['variation']));
+        $this->count('prices', 'overridden', count($this->prices['item']) + count($this->prices['variation']) + count($this->prices['new_item']));
+        $this->removeReplacedItems();
         $unusedExtras = $extras->keys()->diff(collect($this->rows('menu_items'))->flatMap(fn ($r) => (array) json_decode((string) ($r['suggested_extras'] ?? '[]'), true)));
         if ($unusedExtras->isNotEmpty()) {
             $this->notes[] = 'Extras no item offers in the old menu (not imported, nothing to attach them to): '.$unusedExtras->implode(', ').'.';
+        }
+    }
+
+    /**
+     * The menu to write, in order: [map key, row in the old menu_items shape]. An old item the owner split
+     * (NEW_ITEMS `replaces`) gives way to its new items at its place; an added item (`after`) follows its neighbour.
+     * New items take the category, badge, combo and extras of that old item (never its photo); they start available.
+     *
+     * @return list<array{0: string, 1: array<string, mixed>}>
+     */
+    private function itemPlan(): array
+    {
+        $plan = [];
+        foreach ($this->rows('menu_items', 'category_id, id') as $row) {
+            $id = (int) $row['id'];
+            if (! in_array($id, array_column(self::NEW_ITEMS, 'replaces'), true)) {
+                $plan[] = [(string) $id, $row];
+            }
+            foreach (self::NEW_ITEMS as $key => $new) {
+                if (($new['replaces'] ?? $new['after'] ?? null) === $id) {
+                    $plan[] = ['new:'.$key, ['name' => $new['name'], 'english_name' => $new['name_en'], 'description' => null,
+                        'base_price' => $new['price'], 'image' => null, 'has_sizes' => 0, 'is_available' => 1] + $row];
+                }
+            }
+        }
+
+        return $plan;
+    }
+
+    /** The old items the owner split (the merged tagines): what an earlier run made of them goes. */
+    private function removeReplacedItems(): void
+    {
+        foreach (array_unique(array_filter(array_column(self::NEW_ITEMS, 'replaces'))) as $old) {
+            $id = $this->map['items'][(string) $old] ?? null;
+            $item = $id ? MenuItem::query()->find($id) : null;
+            if ($item) {
+                foreach ($item->optionGroups as $group) {
+                    $group->options()->delete();
+                    $group->delete();
+                }
+                $this->images->delete($item->image);
+                $item->delete();
+                $this->count('items', 'removed (split by the owner)');
+            }
+            unset($this->map['items'][(string) $old]);
+            foreach (['groups', 'options'] as $kind) {
+                $this->map[$kind] = array_filter($this->map[$kind] ?? [], fn ($k) => ! str_starts_with((string) $k, $old.':'), ARRAY_FILTER_USE_KEY);
+            }
         }
     }
 
@@ -531,7 +613,7 @@ final class FilettoImporter
      *
      * @param  list<array{key: string, name: string, name_en: string, price: float}>  $options
      */
-    private function syncGroup(MenuItem $item, int $oldItem, string $kind, string $name, string $nameEn, string $type, bool $required, int $sort, array $options): void
+    private function syncGroup(MenuItem $item, string $oldItem, string $kind, string $name, string $nameEn, string $type, bool $required, int $sort, array $options): void
     {
         $groupKey = "{$oldItem}:{$kind}";
         $group = isset($this->map['groups'][$groupKey]) ? ItemOptionGroup::query()->find($this->map['groups'][$groupKey]) : null;
@@ -596,27 +678,47 @@ final class FilettoImporter
         }
     }
 
-    private function importCoupons(): void
+    /**
+     * The old coupons are not carried over (the owner's decision, 2026-10-27). An earlier run of this command made
+     * them as public vouchers noted with the old title: those go again, unless a guest already used one.
+     */
+    private function removeImportedCoupons(): void
     {
-        foreach ($this->rows('coupons') as $row) {
-            $code = strtoupper(trim((string) $row['code']));
-            $percent = $row['discount_type'] === 'percentage';
-            $values = [
-                'type' => $percent ? 'percent' : 'amount', 'value' => (float) $row['discount_value'],
-                'max_discount' => $percent && $row['max_discount_amount'] !== null ? (float) $row['max_discount_amount'] : null,
-                'min_order' => (float) $row['min_order_amount'],
-                'expires_at' => $row['expires_at'] ? Carbon::parse($row['expires_at']) : null,
-                'is_active' => (int) $row['is_active'] === 1, 'source' => 'voucher', 'customer_id' => null,
-                'note' => Str::limit(trim((string) $row['title']), 255, ''),
-            ];
-            $coupon = Coupon::query()->where('code', $code)->first();
-            if ($coupon) {
-                $coupon->update($values);
-                $this->count('coupons', 'updated');
-            } else {
-                Coupon::query()->create($values + ['code' => $code]);
-                $this->count('coupons', 'created');
+        $old = collect($this->rows('coupons'));
+        if ($old->isNotEmpty()) {
+            $this->count('coupons', 'not imported (owner)', $old->count());
+        }
+        foreach ($old as $row) {
+            $coupon = Coupon::query()->where('code', strtoupper(trim((string) $row['code'])))->where('source', 'voucher')->whereNull('customer_id')
+                ->where('note', Str::limit(trim((string) $row['title']), 255, ''))->first();
+            if (! $coupon) {
+                continue;
             }
+            if ($coupon->uses > 0) {
+                $coupon->update(['is_active' => false]);
+                $this->notes[] = "Coupon {$coupon->code} from an earlier run was already used: switched off instead of deleted.";
+                $this->count('coupons', 'switched off (used)');
+
+                continue;
+            }
+            $coupon->delete();
+            $this->count('coupons', 'removed (earlier run)');
+        }
+    }
+
+    /**
+     * Filetto has no tables and no dine-in: the tables the provisioner made go (a table with orders on it is kept,
+     * its orders point at it).
+     */
+    private function removeTables(): void
+    {
+        $used = Order::query()->whereNotNull('dining_table_id')->distinct()->pluck('dining_table_id');
+        $removed = DiningTable::query()->whereNotIn('id', $used)->delete();
+        if ($removed) {
+            $this->count('tables', 'removed', $removed);
+        }
+        if ($kept = DiningTable::query()->count()) {
+            $this->notes[] = "{$kept} tables kept: they already have orders.";
         }
     }
 

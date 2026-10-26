@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\DeliveryZone;
+use App\Models\DiningTable;
 use App\Models\KbArticle;
 use App\Models\MenuItem;
 use App\Models\Subscription;
@@ -30,7 +31,8 @@ class FilettoImportTest extends TenantTestCase
         $this->folder = sys_get_temp_dir().'/filetto-import-test-'.uniqid();
         File::ensureDirectoryExists($this->folder.'/assets/uploads/menu');
         $this->oldDatabase();
-        $this->prices([['type' => 'variation', 'source_id' => 2, 'new_price' => 110], ['type' => 'item', 'source_id' => 11, 'new_price' => 130]]);
+        $this->prices([['type' => 'variation', 'source_id' => 2, 'new_price' => 110], ['type' => 'item', 'source_id' => 11, 'new_price' => 130],
+            ['type' => 'new_item', 'key' => 'tagine_okra_plain', 'new_price' => 130], ['type' => 'new_item', 'key' => 'sand_smoked_sojok', 'new_price' => 125]]);
     }
 
     protected function tearDown(): void
@@ -40,9 +42,10 @@ class FilettoImportTest extends TenantTestCase
     }
 
     /**
-     * A small copy of the old schema: kofta with two sizes (75 / 98) and a combo, a hawawshi (95), the logo, two
-     * delivery zones (area + street), a coupon, a knowledge-base answer, and guests whose mobiles repeat in other
-     * forms, one invalid and one test row.
+     * A small copy of the old schema: kofta with two sizes (75 / 98) and a combo, a hawawshi (95), the grilled sojok
+     * sandwich (41, with a combo: the smoked one is added after it), the merged plain tagine (60, split by the owner),
+     * the logo, two delivery zones (area + street), a coupon (not carried over), a knowledge-base answer, and guests
+     * whose mobiles repeat in other forms, one invalid and one test row.
      */
     private function oldDatabase(): void
     {
@@ -66,7 +69,8 @@ class FilettoImportTest extends TenantTestCase
         $db->exec("INSERT INTO menu_items VALUES
             (10, 'sand_kofta', 1, 'كفتة', 'Kofta Sandwich', NULL, 75, 'uploads/menu/kofta.png', NULL, 1, 1, 1, '[\"sauce_cheddar\",\"drink_can\"]'),
             (11, 'sand_hawawshi', 1, 'حواوشي', 'Hawawshi', NULL, 95, NULL, 'جديد', 0, 0, 1, '[]'),
-            (12, 'sand_sojok', 1, 'سجق', 'Sojok', NULL, 95, NULL, NULL, 0, 0, 0, '[]')");
+            (41, 'sand_sojok', 1, 'سجق', 'Sojok', NULL, 95, NULL, NULL, 0, 1, 0, '[\"drink_can\"]'),
+            (60, 'cass_vegetable_plain', 1, 'طاجن خضار سادة', 'Vegetable Tagine', NULL, 119, NULL, 'جديد', 0, 0, 1, '[]')");
         $db->exec("INSERT INTO menu_variations VALUES (1, 10, 'v1', 'سنجل', 75, 0, NULL), (2, 10, 'v2', 'دبل', 98, 1, NULL)");
         $db->exec("INSERT INTO extras VALUES (1, 'sauce_cheddar', 'صوص شيدر', 25, 'sauce'), (2, 'drink_can', 'كانز', 25, 'drink')");
         $db->exec("INSERT INTO delivery_zones VALUES (1, 'zone_a', 'A — المركز', 30, 30, 80, 1, NULL, '[[30.7,30.9],[30.7,31.1],[30.8,31.1]]', '#22c55e', 1),
@@ -87,10 +91,10 @@ class FilettoImportTest extends TenantTestCase
         }
     }
 
-    /** @param  list<array{type:string, source_id:int, new_price:float|int}>  $targets */
+    /** @param  list<array{type:string, source_id?:int, key?:string, new_price:float|int}>  $targets */
     private function prices(array $targets): void
     {
-        $rows = array_map(fn (array $t) => ['new_price' => $t['new_price'], 'target' => ['type' => $t['type'], 'source_id' => $t['source_id']]], $targets);
+        $rows = array_map(fn (array $t) => ['new_price' => $t['new_price'], 'target' => array_intersect_key($t, array_flip(['type', 'source_id', 'key']))], $targets);
         file_put_contents($this->folder.'/prices.json', json_encode(['rows' => [...$rows, ['pdf_name' => 'not on the menu', 'new_price' => 125, 'target' => null]]]));
     }
 
@@ -147,9 +151,49 @@ class FilettoImportTest extends TenantTestCase
             $this->assertSame(['A — المركز', 30.0], [$street->parent->name, $street->effective('fee')]);
             $this->assertCount(3, $street->parent->polygon);
 
-            $coupon = Coupon::query()->where('code', 'FILETTO15')->firstOrFail();
-            $this->assertSame(['percent', 15.0, 75.0, 200.0, 'voucher'], [$coupon->type, $coupon->value, $coupon->max_discount, $coupon->min_order, $coupon->source]);
             $this->assertSame('internal', KbArticle::query()->firstOrFail()->visibility);
+            // pickup and delivery only: no coupons carried over, no tables, no dine-in, no reservations
+            $this->assertSame(0, Coupon::query()->count());
+            $this->assertSame(0, DiningTable::query()->count());
+            $this->assertSame(['off', '0', '1', '1'], [$s['dine_in_mode'], $s['reservations_enabled'], $s['online_takeaway'], $s['online_delivery']]);
+        });
+    }
+
+    public function test_the_owner_s_split_tagines_and_added_sandwich(): void
+    {
+        $this->import()->assertSuccessful();
+
+        $this->as($this->filetto(), function () {
+            $names = MenuItem::query()->orderBy('sort_order')->pluck('price', 'name')->all();
+            $this->assertArrayNotHasKey('طاجن خضار سادة', $names); // the merged tagine gave way to one item per tagine
+            $this->assertSame([130.0, 119.0, 119.0, 119.0], [$names['طاجن بامية سادة (وسط)'], $names['طاجن بطاطس سادة (وسط)'],
+                $names['طاجن ملوخية سادة (وسط)'], $names['طاجن خضار مشكّل سادة (وسط)']]);
+            $this->assertSame(['كفتة', 'حواوشي', 'سجق', 'ساندوتش سجق مدخن', 'طاجن بامية سادة (وسط)'], array_slice(array_keys($names), 0, 5));
+
+            $smoked = MenuItem::query()->where('name', 'ساندوتش سجق مدخن')->with('optionGroups')->firstOrFail();
+            $this->assertSame([125.0, 'Smoked Sojok Sandwich', false], [$smoked->price, $smoked->name_en, $smoked->is_sold_out]);
+            $this->assertSame(['Make it a combo (fries + drink)', 'Drinks'], $smoked->optionGroups->pluck('name_en')->all()); // like the grilled one
+            $this->assertSame(['new'], MenuItem::query()->where('name', 'طاجن ملوخية سادة (وسط)')->value('badges'));
+        });
+    }
+
+    public function test_a_merged_tagine_and_coupons_from_an_earlier_run_are_removed(): void
+    {
+        $this->import()->assertSuccessful();
+        $this->as($this->filetto(), function () {
+            $merged = MenuItem::query()->create(['category_id' => Category::query()->value('id'), 'name' => 'طاجن خضار سادة', 'price' => 119]);
+            $map = json_decode(Settings::get('import_filetto_map'), true);
+            $map['items']['60'] = $merged->id;
+            Settings::put(['import_filetto_map' => json_encode($map)]);
+            Coupon::query()->create(['code' => 'FILETTO15', 'type' => 'percent', 'value' => 15, 'min_order' => 200, 'source' => 'voucher', 'note' => 'خصم 15%']);
+            Coupon::query()->create(['code' => 'OWN10', 'type' => 'percent', 'value' => 10, 'min_order' => 0, 'source' => 'voucher', 'note' => 'the owner\'s own']);
+        });
+
+        $this->import()->assertSuccessful();
+
+        $this->as($this->filetto(), function () {
+            $this->assertFalse(MenuItem::query()->where('name', 'طاجن خضار سادة')->exists());
+            $this->assertSame(['OWN10'], Coupon::query()->pluck('code')->all());
         });
     }
 
@@ -179,7 +223,8 @@ class FilettoImportTest extends TenantTestCase
         $this->assertSame(1, Tenant::query()->whereKey('filetto')->count());
         $this->assertSame(1, User::query()->withoutGlobalScopes()->where('tenant_id', 'filetto')->count());
         $this->as($this->filetto(), function () {
-            $this->assertSame([1, 3, 2, 2, 1, 1], [Category::query()->count(), MenuItem::query()->count(), Customer::query()->count(),
+            // 3 old items + the smoked sojok sandwich + 4 plain tagines
+            $this->assertSame([1, 8, 2, 2, 0, 1], [Category::query()->count(), MenuItem::query()->count(), Customer::query()->count(),
                 DeliveryZone::query()->count(), Coupon::query()->count(), KbArticle::query()->count()]);
             $kofta = MenuItem::query()->where('name', 'كفتة')->with('optionGroups.options')->firstOrFail();
             $this->assertCount(4, $kofta->optionGroups);
