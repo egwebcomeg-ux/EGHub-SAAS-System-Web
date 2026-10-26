@@ -9,7 +9,7 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call([PlanSeeder::class, RoleSeeder::class]);
+        $this->call([PlanSeeder::class, RoleSeeder::class, CallScriptSeeder::class]);
 
         if (app()->isLocal()) {
             $this->call(DemoSeeder::class);

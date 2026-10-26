@@ -28,6 +28,17 @@
     </section>
 @endif
 
+{{-- a discount the EgHub team gave on a call: taken off the next subscription invoice (Billing::quote) --}}
+@php
+    $teamDiscount = \App\Models\TenantDiscount::usableFor(tenant());
+@endphp
+@if ($teamDiscount)
+    <div class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900" data-team-discount>
+        <div class="font-extrabold">{{ __('You have :pct% off from the EgHub team', ['pct' => money($teamDiscount->percent)]) }}</div>
+        <p class="text-sm">{{ __('It comes off your next subscription invoice by itself when you choose a plan, until :date.', ['date' => local_time($teamDiscount->expires_at, 'Y/m/d')]) }}</p>
+    </div>
+@endif
+
 <h2 class="mb-3 text-lg font-bold">{{ __('Choose a plan') }}</h2>
 <div class="grid gap-4 lg:grid-cols-3" data-billing-plans>
     @foreach ($plans as $p)

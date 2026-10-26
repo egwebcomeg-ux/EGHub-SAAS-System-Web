@@ -164,8 +164,12 @@ final class AdminTenantSearch
         return $types;
     }
 
-    /** @param Builder<Tenant> $query */
-    private function whereType(Builder $query, string $type): void
+    /**
+     * Places of one business type; $query selects from `tenants` or joins it (the sales follow-up's leads list).
+     *
+     * @param  Builder<covariant \Illuminate\Database\Eloquent\Model>  $query
+     */
+    public function whereType(Builder $query, string $type): void
     {
         $setting = fn (QueryBuilder $s) => $s->from('tenant_settings')->whereColumn('tenant_settings.tenant_id', 'tenants.id')
             ->where('tenant_settings.key', 'business_type');

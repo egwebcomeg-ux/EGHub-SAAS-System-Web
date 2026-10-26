@@ -59,9 +59,13 @@ class Tenant extends BaseTenant
         return ['suspended_at' => 'datetime', 'data' => 'array', 'showcase_on_site' => 'boolean', 'showcase_sort' => 'integer', 'hidden_from_directory' => 'boolean'];
     }
 
-    /** The home page's logo strip lists active, opted-in places: rebuilt when either changes. */
+    /**
+     * The home page's logo strip lists active, opted-in places: rebuilt when either changes. Every new restaurant
+     * becomes a lead of the sales follow-up (a sign-up; one made by the team for a prospect is marked manual there).
+     */
     protected static function booted(): void
     {
+        static::created(fn (Tenant $tenant) => Lead::for($tenant));
         static::saved(function (Tenant $tenant) {
             if ($tenant->wasChanged(['status', 'showcase_on_site', 'showcase_sort', 'name', 'deleted_at'])) {
                 SiteShowcase::flush();
@@ -110,6 +114,17 @@ class Tenant extends BaseTenant
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);
+    }
+
+    /** Its place in the sales follow-up (admin only). */
+    public function lead(): HasOne
+    {
+        return $this->hasOne(Lead::class);
+    }
+
+    public function discounts(): HasMany
+    {
+        return $this->hasMany(TenantDiscount::class);
     }
 
     public function isSuspended(): bool

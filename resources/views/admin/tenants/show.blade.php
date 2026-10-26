@@ -73,6 +73,29 @@
 
 @include('admin.tenants.welcome-kit')
 
+@if (($lead && $me->allows('crm.view')) || ($teamDiscount && ($canBilling || $me->allows('crm.view'))))
+    <section class="card mb-4 flex flex-wrap items-center justify-between gap-3 p-4" data-tenant-follow-up>
+        <div class="min-w-0 space-y-1">
+            @if ($lead && $me->allows('crm.view'))
+                <div class="flex flex-wrap items-center gap-2 text-sm">
+                    <span class="font-bold text-navy-900">{{ __('Customer follow-up') }}</span>
+                    <span class="badge {{ $lead->stageClasses() }}">{{ $lead->stageLabel() }}</span>
+                    @if ($lead->next_follow_up_at)<span class="text-navy-500">{{ __('Next follow-up: :at', ['at' => local_time($lead->next_follow_up_at, 'd/m h:i A')]) }}</span>@endif
+                </div>
+            @endif
+            @if ($teamDiscount)
+                <div class="text-sm text-emerald-800" data-tenant-discount>
+                    {{ __(':pct% off the next :n subscription invoice(s), until :date', ['pct' => money($teamDiscount->percent), 'n' => $teamDiscount->invoicesLeft(), 'date' => local_time($teamDiscount->expires_at, 'Y/m/d')]) }}
+                    <span class="text-xs text-navy-500">· {{ $teamDiscount->note }}</span>
+                </div>
+            @endif
+        </div>
+        @if ($lead && $me->allows('crm.view'))
+            <a href="{{ route('admin.crm.show', $lead) }}" class="btn-ghost">{{ __('Open the call screen') }}</a>
+        @endif
+    </section>
+@endif
+
 <div class="grid gap-4 lg:grid-cols-3">
     {{-- the restaurant's users: support actions per user --}}
     <section class="card lg:col-span-2" id="users">

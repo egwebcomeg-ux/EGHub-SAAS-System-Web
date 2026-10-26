@@ -7,6 +7,7 @@ use App\Models\Invoice;
 use App\Models\ServiceRequest;
 use App\Models\Subscription;
 use App\Models\Tenant;
+use App\Services\Crm\LeadSearch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -44,6 +45,8 @@ class DashboardController extends Controller
             'latest' => Tenant::query()->with('subscription.plan')->latest()->limit(6)->get(),
             'invoices' => $admin->allows('billing.manage') ? Invoice::query()->with('tenant', 'plan', 'payments')->latest('id')->limit(6)->get() : collect(),
             'admin' => $admin,
+            // «متابعة العملاء»: new sign-ups nobody called, follow-ups due today and overdue
+            'crm' => $admin->allows('crm.view') ? app(LeadSearch::class)->counts() : null,
             'betaApps' => $this->betaApps(),
         ]);
     }

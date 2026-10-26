@@ -21,7 +21,13 @@ final class AdminPermissions
         'assistant.view' => ['أسئلة الزوار للمساعد', 'Assistant questions'],
         'settings.manage' => ['إعدادات الدفع والهوية والشكل', 'Payment settings & branding'],
         'admins.manage' => ['فريق الإدارة والصلاحيات', 'Admin team & permissions'],
+        'crm.view' => ['متابعة العملاء: عرض العملاء الجداد والمكالمات', 'Customer follow-up: see leads and calls'],
+        'crm.manage' => ['متابعة العملاء: تسجيل المكالمات وتغيير المرحلة والتعيين', 'Customer follow-up: log calls, change stages, assign'],
+        'crm.discount' => ['متابعة العملاء: إعطاء خصم على الفاتورة الجاية (في حدود النسبة المسموحة)', 'Customer follow-up: give a discount on the next invoice (within the allowed %)'],
     ];
+
+    /** Default most % each role may give on a call when the admin has no own limit (the owner: TenantDiscount::CAP). */
+    public const DISCOUNT_DEFAULTS = ['manager' => 20, 'sales' => 10];
 
     /** role => [label, permissions ('*' = everything), description] */
     public const ROLES = [
@@ -32,13 +38,18 @@ final class AdminPermissions
         ],
         'manager' => [
             'label' => ['مدير', 'Manager'],
-            'permissions' => ['tenants.view', 'tenants.manage', 'billing.manage', 'plans.manage', 'services.manage', 'content.manage', 'assistant.view'],
+            'permissions' => ['tenants.view', 'tenants.manage', 'billing.manage', 'plans.manage', 'services.manage', 'content.manage', 'assistant.view', 'crm.view', 'crm.manage', 'crm.discount'],
             'hint' => ['كل الشغل اليومي من غير إعدادات المنصة وفريق الإدارة', 'Day-to-day work, without platform settings and the team'],
         ],
         'support' => [
             'label' => ['دعم فني', 'Support'],
-            'permissions' => ['tenants.view', 'tenants.manage', 'services.manage', 'assistant.view'],
+            'permissions' => ['tenants.view', 'tenants.manage', 'services.manage', 'assistant.view', 'crm.view', 'crm.manage'],
             'hint' => ['يساعد المطاعم: كلمات السر، التحقق، طلبات الخدمات', 'Helps restaurants: passwords, verification, service requests'],
+        ],
+        'sales' => [
+            'label' => ['مبيعات', 'Sales'],
+            'permissions' => ['tenants.view', 'crm.view', 'crm.manage', 'crm.discount'],
+            'hint' => ['يكلم العملاء الجداد ويتابعهم، ويدي خصم في حدود نسبته', 'Calls and follows up new sign-ups, gives discounts within their limit'],
         ],
         'finance' => [
             'label' => ['حسابات', 'Finance'],

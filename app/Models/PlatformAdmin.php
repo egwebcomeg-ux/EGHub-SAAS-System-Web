@@ -37,6 +37,7 @@ class PlatformAdmin extends Authenticatable
             'last_login_at' => 'datetime',
             'permissions' => 'array',
             'is_active' => 'boolean',
+            'crm_discount_max' => 'integer',
         ];
     }
 
@@ -57,6 +58,23 @@ class PlatformAdmin extends Authenticatable
         $extra = array_values(array_intersect((array) ($this->permissions ?? []), array_keys(AdminPermissions::ALL)));
 
         return array_values(array_unique([...AdminPermissions::of((string) $this->role), ...$extra]));
+    }
+
+    /**
+     * The most % this admin may give a restaurant on a sales call: 0 without crm.discount; the platform owner up to
+     * TenantDiscount::CAP; anyone else their own limit (crm_discount_max) or their role's default, never above the cap.
+     */
+    public function discountLimit(): int
+    {
+        if (! $this->allows('crm.discount')) {
+            return 0;
+        }
+        if ($this->isOwner()) {
+            return TenantDiscount::CAP;
+        }
+        $limit = $this->crm_discount_max ?? AdminPermissions::DISCOUNT_DEFAULTS[(string) $this->role] ?? 10;
+
+        return max(0, min(TenantDiscount::CAP, (int) $limit));
     }
 
     public function roleName(): string

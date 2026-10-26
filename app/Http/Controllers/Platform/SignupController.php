@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SocialAccount;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Notifications\NewSignup;
 use App\Services\Auth\SocialProviders;
 use App\Services\MenuSetupRequest;
 use App\Services\TenantProvisioner;
@@ -14,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -98,6 +100,8 @@ class SignupController extends Controller
             $request->session()->forget(self::SOCIAL_SESSION);
         }
         app(MenuSetupRequest::class)->fromSignup($request, $tenant, $owner);
+        // the lead is already in the admin's customer follow-up (Tenant::created): tell whoever calls new sign-ups
+        Notification::send(NewSignup::recipients(), new NewSignup($tenant, $owner, $data['business_type'] ?? BusinessType::DEFAULT));
 
         return redirect()->away(URL::temporarySignedRoute('dash.welcome', now()->addMinutes(5), ['user' => $owner->id]));
     }

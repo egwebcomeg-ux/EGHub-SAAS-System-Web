@@ -5,11 +5,13 @@ namespace App\Billing;
 use App\Models\AddonPrice;
 use App\Models\Branch;
 use App\Models\Invoice;
+use App\Models\Lead;
 use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\PlatformAdmin;
 use App\Models\Subscription;
 use App\Models\Tenant;
+use App\Models\TenantDiscount;
 use App\Notifications\PaymentClaimed;
 use App\Notifications\PaymentConfirmed;
 use App\Services\Audit;
@@ -41,7 +43,7 @@ final class Billing
         return round((float) $sub->period_value * min(1, $left / $total), 2);
     }
 
-    /** @return array{lines: list<array{label:string, amount:float}>, subtotal: float, discount: float, total: float, renewal: bool} */
+    /** @return array{lines: list<array{label:string, amount:float}>, subtotal: float, discount: float, total: float, renewal: bool, tenant_discount_id: ?int} */
     public function quote(Tenant $tenant, Plan $plan, int $months): array
     {
         $months = in_array($months, Plan::CYCLES, true) ? $months : 1;
@@ -77,13 +79,24 @@ final class Billing
                 $lines[] = ['label' => __('Extra branch: launch offer, free until :date', ['date' => local_time($offerUntil, 'Y/m/d')]), 'amount' => 0.0];
             }
         }
+        // a discount given on a sales call (admin › متابعة العملاء) takes its % off what this invoice bills
+        $teamDiscount = TenantDiscount::usableFor($tenant);
+        $teamDiscountId = null;
+        if ($teamDiscount) {
+            $off = round(max(0, array_sum(array_column($lines, 'amount'))) * $teamDiscount->percent / 100);
+            if ($off > 0) {
+                $lines[] = ['label' => __('EgHub team discount :pct%', ['pct' => money($teamDiscount->percent)]), 'amount' => -$off];
+                $teamDiscountId = $teamDiscount->id;
+            }
+        }
         $credit = $sub && ! $renewal ? $this->credit($sub) : 0.0;
         if ($credit > 0) {
             $lines[] = ['label' => __('Unused balance of your current plan'), 'amount' => -$credit];
         }
         $total = round(max(0, array_sum(array_column($lines, 'amount'))), 2);
 
-        return ['lines' => $lines, 'subtotal' => $full, 'discount' => round($full - $total, 2), 'total' => $total, 'renewal' => $renewal];
+        return ['lines' => $lines, 'subtotal' => $full, 'discount' => round($full - $total, 2), 'total' => $total, 'renewal' => $renewal,
+            'tenant_discount_id' => $teamDiscountId];
     }
 
     /** Open invoice for a plan/cycle; an identical open one is reused, other open plan invoices are voided. */
@@ -110,7 +123,7 @@ final class Billing
                 'tenant_id' => $tenant->id, 'number' => 'TMP-'.random_token(6), 'kind' => 'subscription',
                 'plan_id' => $plan->id, 'cycle_months' => $months, 'lines' => $q['lines'], 'subtotal' => $q['subtotal'],
                 'discount' => $q['discount'], 'total' => $q['total'], 'status' => 'open', 'due_at' => now()->addDays(3),
-                'meta' => ['renewal' => $q['renewal']],
+                'meta' => array_filter(['renewal' => $q['renewal'], 'tenant_discount_id' => $q['tenant_discount_id']], fn ($v) => $v !== null),
             ]);
             $invoice->update(['number' => 'EGM-'.now()->format('Ym').'-'.str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT)]);
 
@@ -257,6 +270,7 @@ final class Billing
             }
             $invoice->update(['status' => 'paid', 'paid_at' => now()]);
             $this->apply($invoice);
+            $this->settleSales($invoice);
 
             return true;
         });
@@ -265,6 +279,20 @@ final class Billing
         }
 
         return $applied;
+    }
+
+    /**
+     * The sales side of a paid invoice: the team discount it carried uses one of its invoices, and a restaurant that
+     * paid anything is a won lead of the follow-up.
+     */
+    private function settleSales(Invoice $invoice): void
+    {
+        if ($id = $invoice->meta['tenant_discount_id'] ?? null) {
+            TenantDiscount::query()->whereKey($id)->whereColumn('invoices_used', '<', 'invoices')->increment('invoices_used');
+        }
+        if ($invoice->total > 0) {
+            Lead::markWon($invoice->tenant, $invoice);
+        }
     }
 
     /**

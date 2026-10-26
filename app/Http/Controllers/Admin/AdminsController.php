@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\PlatformAdmin;
+use App\Models\TenantDiscount;
 use App\Support\AdminPermissions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -45,7 +46,7 @@ class AdminsController extends Controller
 
         $member = PlatformAdmin::query()->create([
             'name' => trim($data['name']), 'email' => $data['email'], 'role' => $data['role'],
-            'permissions' => $this->extraPermissions($data), 'is_active' => true,
+            'permissions' => $this->extraPermissions($data), 'is_active' => true, 'crm_discount_max' => $data['crm_discount_max'] ?? null,
             'password' => $data['access'] === 'password' ? $data['password'] : Str::random(40),
         ]);
 
@@ -90,7 +91,7 @@ class AdminsController extends Controller
 
         $member->update([
             'name' => trim($data['name']), 'email' => $data['email'], 'role' => $data['role'],
-            'permissions' => $this->extraPermissions($data), 'is_active' => $active,
+            'permissions' => $this->extraPermissions($data), 'is_active' => $active, 'crm_discount_max' => $data['crm_discount_max'] ?? null,
         ]);
         if (! $active) {
             $member->forceFill(['remember_token' => Str::random(60)])->save();
@@ -142,6 +143,8 @@ class AdminsController extends Controller
             'role' => ['required', Rule::in($roles)],
             'permissions' => 'array',
             'permissions.*' => ['string', Rule::in($me->isOwner() ? array_keys(AdminPermissions::ALL) : $mine)],
+            // nobody hands out a bigger discount limit than their own
+            'crm_discount_max' => ['nullable', 'integer', 'min:0', 'max:'.($me->isOwner() ? TenantDiscount::CAP : $me->discountLimit())],
         ];
     }
 

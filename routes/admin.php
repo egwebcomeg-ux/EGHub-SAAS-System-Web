@@ -5,16 +5,19 @@ use App\Http\Controllers\Admin\AssistantController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\BlogController;
 use App\Http\Controllers\Admin\BrandingController;
+use App\Http\Controllers\Admin\CallScriptController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DomainsController;
 use App\Http\Controllers\Admin\EgwebClientsController;
 use App\Http\Controllers\Admin\InvoicesController;
+use App\Http\Controllers\Admin\LeadsController;
 use App\Http\Controllers\Admin\PasswordResetController;
 use App\Http\Controllers\Admin\PlansController;
 use App\Http\Controllers\Admin\SecurityController;
 use App\Http\Controllers\Admin\ServicesController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\SupportAccessController;
+use App\Http\Controllers\Admin\TenantDiscountsController;
 use App\Http\Controllers\Admin\TenantsController;
 use App\Http\Controllers\Admin\TenantUsersController;
 use App\Http\Controllers\Admin\TestimonialsController;
@@ -68,6 +71,28 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         Route::get('/invoices', [InvoicesController::class, 'index'])->name('invoices');
         Route::post('/invoices/{invoice}/paid', [InvoicesController::class, 'markPaid'])->name('invoices.paid');
         Route::post('/invoices/{invoice}/void', [InvoicesController::class, 'void'])->name('invoices.void');
+    });
+
+    // «متابعة العملاء»: every restaurant is a lead. crm.view to look, crm.manage to log calls and change them, crm.discount
+    // to give a discount on the next invoice within the admin's limit; the call script is edited by the platform owner
+    Route::middleware('admin.access:crm.view')->group(function () {
+        Route::get('/crm', [LeadsController::class, 'index'])->name('crm');
+        Route::get('/crm/leads/{lead}', [LeadsController::class, 'show'])->whereNumber('lead')->name('crm.show');
+        Route::get('/crm/leads/{lead}/offer', [LeadsController::class, 'offer'])->whereNumber('lead')->name('crm.offer');
+    });
+    Route::middleware('admin.access:crm.manage')->group(function () {
+        Route::post('/crm/leads/{lead}/calls', [LeadsController::class, 'call'])->whereNumber('lead')->name('crm.call');
+        Route::post('/crm/leads/{lead}', [LeadsController::class, 'update'])->whereNumber('lead')->name('crm.update');
+        Route::get('/crm/script', [CallScriptController::class, 'index'])->name('crm.script');
+        Route::post('/crm/script', [CallScriptController::class, 'store'])->name('crm.script.store');
+        Route::post('/crm/script/defaults', [CallScriptController::class, 'defaults'])->name('crm.script.defaults');
+        Route::post('/crm/script/{item}', [CallScriptController::class, 'update'])->whereNumber('item')->name('crm.script.update');
+        Route::post('/crm/script/{item}/move', [CallScriptController::class, 'move'])->whereNumber('item')->name('crm.script.move');
+        Route::post('/crm/script/{item}/delete', [CallScriptController::class, 'destroy'])->whereNumber('item')->name('crm.script.delete');
+    });
+    Route::middleware('admin.access:crm.discount')->group(function () {
+        Route::post('/crm/leads/{lead}/discount', [TenantDiscountsController::class, 'store'])->whereNumber('lead')->name('crm.discount');
+        Route::post('/crm/discounts/{discount}/revoke', [TenantDiscountsController::class, 'revoke'])->whereNumber('discount')->name('crm.discount.revoke');
     });
 
     // Plans and add-ons: two tabs of one section; each add-on is edited on its own page and saved through the same route

@@ -44,6 +44,30 @@
     </div>
 @endif
 
+@if ($crm)
+    <section class="card mb-3 p-4" data-crm-card>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+                <h2 class="section-title">{{ __('Customer follow-up') }}</h2>
+                <p class="muted">{{ __('New sign-ups to call and follow-ups waiting for you.') }}</p>
+            </div>
+            <a href="{{ route('admin.crm') }}" class="btn-primary">{{ __('Open the call list') }}</a>
+        </div>
+        <div class="mt-3 grid grid-cols-3 gap-2">
+            @foreach ([
+                ['uncontacted', __('New, not contacted'), route('admin.crm', ['stage' => 'new']), 'text-brand-700'],
+                ['today', __('Due today'), route('admin.crm', ['due' => 'today']), 'text-navy-900'],
+                ['overdue', __('Overdue'), route('admin.crm', ['due' => 'overdue']), 'text-red-700'],
+            ] as [$key, $label, $href, $tone])
+                <a href="{{ $href }}" class="rounded-xl border border-navy-100 p-3 transition hover:border-navy-300" data-crm-count="{{ $key }}">
+                    <div class="text-xs font-semibold text-navy-500">{{ $label }}</div>
+                    <div class="text-2xl font-black {{ $crm[$key] > 0 ? $tone : 'text-navy-300' }}">{{ number_format($crm[$key]) }}</div>
+                </a>
+            @endforeach
+        </div>
+    </section>
+@endif
+
 @if ($canTenants)
     <div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5" data-kpis="tenants">
         @foreach ([

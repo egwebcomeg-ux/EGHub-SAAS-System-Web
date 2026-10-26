@@ -9,10 +9,12 @@ use App\Http\Controllers\Controller;
 use App\Models\AddonPrice;
 use App\Models\AuditLog;
 use App\Models\CreditTransaction;
+use App\Models\Lead;
 use App\Models\Plan;
 use App\Models\PlatformAuditLog;
 use App\Models\Subscription;
 use App\Models\Tenant;
+use App\Models\TenantDiscount;
 use App\Models\User;
 use App\Services\AdminTenantSearch;
 use App\Services\Audit;
@@ -93,6 +95,8 @@ class TenantsController extends Controller
             'phone' => $phone, 'password' => Str::password(40), 'plan' => $data['plan'], 'trial' => $trialDays > 0,
             'trial_days' => max(1, $trialDays), 'business_type' => $data['business_type'] ?? BusinessType::DEFAULT,
         ]);
+        // a prospect the team brought in: a manual lead of the follow-up, followed by whoever created it
+        Lead::for($tenant)->update(['source' => 'manual', 'assigned_admin_id' => $request->user('admin')->allows('crm.manage') ? $request->user('admin')->id : null]);
         $owner = $kit->owner($tenant) ?? User::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->firstOrFail();
         $kit->issue($tenant, $owner);
         // the sample rows are a nicety: the restaurant and its kit stand even when they fail (all or nothing inside)
@@ -187,6 +191,9 @@ class TenantsController extends Controller
             'platformActions' => $platformActions,
             'welcomeKit' => $welcomeKit,
             'demoRows' => $demoRows,
+            // the sales follow-up and a discount given on a call (admin only)
+            'lead' => $tenant->lead,
+            'teamDiscount' => TenantDiscount::usableFor($tenant),
         ]);
     }
 

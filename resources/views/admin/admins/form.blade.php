@@ -60,6 +60,14 @@
                 </label>
             @endforeach
         </div>
+        {{-- how much this member may give on a sales call (crm.discount); empty = the role's default --}}
+        <div class="mt-4 max-w-sm" data-discount-limit>
+            <label class="field-label" for="m-discount">{{ __('Most discount on a sales call (%)') }}</label>
+            <input class="field" id="m-discount" name="crm_discount_max" type="number" min="0" max="{{ $me->isOwner() ? \App\Models\TenantDiscount::CAP : $me->discountLimit() }}" step="1" dir="ltr"
+                value="{{ old('crm_discount_max', $member->crm_discount_max) }}" placeholder="{{ __('Role default') }}">
+            <p class="mt-1 text-xs text-navy-500">{{ __('Used only with the "give a discount" permission. Empty: :manager% for a manager, :sales% for sales, 10% otherwise. The owner can give up to :cap%.', ['manager' => AdminPermissions::DISCOUNT_DEFAULTS['manager'], 'sales' => AdminPermissions::DISCOUNT_DEFAULTS['sales'], 'cap' => \App\Models\TenantDiscount::CAP]) }}</p>
+            @error('crm_discount_max')<p class="field-error">{{ $message }}</p>@enderror
+        </div>
     </section>
 
     @unless ($member->exists)
