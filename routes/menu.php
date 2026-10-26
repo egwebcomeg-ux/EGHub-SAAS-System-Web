@@ -7,6 +7,7 @@ use App\Http\Controllers\Menu\CardAppController;
 use App\Http\Controllers\Menu\CorporateVoucherController;
 use App\Http\Controllers\Menu\FeedbackController;
 use App\Http\Controllers\Menu\GiftController;
+use App\Http\Controllers\Menu\GuestSignInController;
 use App\Http\Controllers\Menu\ItemViewController;
 use App\Http\Controllers\Menu\KioskController;
 use App\Http\Controllers\Menu\LinksController;
@@ -85,11 +86,21 @@ Route::prefix('/card/{token}')->where(['token' => '[a-f0-9]{24}'])->name('card.'
 });
 
 // "حسابي": the guest's account (orders, order again, addresses, points, balance) at /me/{card token}. A new phone gets
-// in with the link or with the mobile + a previous order number (App\Services\Customers\SignIn: throttled per IP and
-// per mobile, one answer for every failure); a WhatsApp code would be one more action here.
+// in with Google, with a WhatsApp message to the EgHub number, with the mobile + a previous order number
+// (App\Services\Customers\SignIn: throttled per IP and per mobile, one answer for every failure) or with the link.
+// None of these pages is ever page-cached (no page.cache middleware) and all answer with AccountController::HEADERS.
 Route::get('/me', [AccountController::class, 'signIn'])->middleware('throttle:30,1')->name('account.sign-in');
 Route::get('/me/open', [AccountController::class, 'open'])->middleware('throttle:10,1')->name('account.open');
 Route::post('/me/verify/order', [AccountController::class, 'verifyByOrder'])->middleware('throttle:10,1')->name('account.verify.order');
+// «الدخول بجوجل»: out to eghub.app/auth/google/start and back here with a one-time ticket (App\Services\Customers\SignIn\GuestOAuth)
+Route::get('/me/google', [GuestSignInController::class, 'google'])->middleware('throttle:20,1')->name('account.google');
+Route::get('/me/google/done', [GuestSignInController::class, 'googleDone'])->middleware('throttle:20,1')->name('account.google.done');
+// «ادخل بواتساب»: a code the guest sends to the EgHub number, confirmed by its webhook, polled here (WhatsAppSignIn)
+Route::post('/me/whatsapp', [GuestSignInController::class, 'whatsappStart'])->middleware('throttle:10,1')->name('account.whatsapp');
+Route::get('/me/whatsapp/status', [GuestSignInController::class, 'whatsappStatus'])->middleware('throttle:60,1')->name('account.whatsapp.status');
+// the mobile, asked once after a Google sign-in (for orders; not verified)
+Route::get('/me/phone', [GuestSignInController::class, 'phone'])->middleware('throttle:30,1')->name('account.phone');
+Route::post('/me/phone', [GuestSignInController::class, 'savePhone'])->middleware('throttle:10,1')->name('account.phone.save');
 Route::prefix('/me/{token}')->where(['token' => '[a-f0-9]{24}'])->group(function () {
     Route::get('/', [AccountController::class, 'show'])->middleware('throttle:30,1')->name('account');
     Route::post('/sign-out', [AccountController::class, 'signOut'])->middleware('throttle:10,1')->name('account.sign-out');

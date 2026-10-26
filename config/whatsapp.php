@@ -16,6 +16,14 @@ return [
      */
     'number' => env('WHATSAPP_NUMBER'),
 
+    /*
+     * «ادخل بواتساب» in a menu's «حسابي» (App\Services\Customers\SignIn\WhatsAppSignIn): the guest sends a prepared
+     * message with a 6-digit code to the number above and the inbound webhook confirms the sender's mobile. Offered
+     * only when that number AND a verified inbound webhook (app secret, or the provider secret) are set; false here
+     * hides it anyway.
+     */
+    'guest_sign_in' => (bool) env('WHATSAPP_GUEST_SIGN_IN', true),
+
     // Inbound webhook (GET/POST /webhooks/whatsapp on the main domain): Meta's verify token and the app secret
     // that signs every POST (X-Hub-Signature-256). Without the app secret every Meta payload is refused.
     'verify_token' => env('WHATSAPP_VERIFY_TOKEN'),

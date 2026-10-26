@@ -6,6 +6,7 @@ use App\Http\Controllers\Platform\BillingWebhookController;
 use App\Http\Controllers\Platform\BlogController;
 use App\Http\Controllers\Platform\DirectoryController;
 use App\Http\Controllers\Platform\FeaturesController;
+use App\Http\Controllers\Platform\GuestOAuthController;
 use App\Http\Controllers\Platform\LandingController;
 use App\Http\Controllers\Platform\PageCacheController;
 use App\Http\Controllers\Platform\QrToolController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Platform\SignupController;
 use App\Http\Controllers\Platform\SupportedScreensController;
 use App\Http\Controllers\Platform\WhatsAppWebhookController;
 use App\Models\Payment;
+use App\Services\Customers\SignIn\GuestOAuth;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\StartSession;
@@ -122,6 +124,13 @@ Route::domain($domain)->group(function () use ($slug) {
         ->middleware('throttle:60,1')->name('webhooks.whatsapp.own');
     Route::post('/webhooks/whatsapp/{key}', [WhatsAppWebhookController::class, 'receiveOwn'])->where('key', '[a-f0-9]{32}')
         ->middleware('throttle:600,1');
+
+    // A restaurant guest's «الدخول بجوجل», whatever host the menu is on: the one callback address Google knows
+    // (App\Http\Controllers\Platform\GuestOAuthController). Never page-cached; "auth" is a reserved slug.
+    Route::get('/auth/{provider}/start', [GuestOAuthController::class, 'start'])->whereIn('provider', GuestOAuth::PROVIDERS)
+        ->middleware('throttle:30,1')->name('guest-oauth.start');
+    Route::get('/auth/{provider}/callback', [GuestOAuthController::class, 'callback'])->whereIn('provider', GuestOAuth::PROVIDERS)
+        ->middleware('throttle:30,1')->name('guest-oauth.callback');
 
     // The canonical menu address eghub.app/{tenant}/... (IdentifyTenantByPath). Platform paths above win;
     // reserved slugs (Tenant::RESERVED) can never be registered as restaurants.

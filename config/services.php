@@ -13,6 +13,14 @@ $socialCallback = function (string $provider): string {
     return ($appUrl['scheme'] ?? 'https')."://app.$domain$port/auth/$provider/callback";
 };
 
+$guestCallback = function (string $provider): string {
+    $appUrl = parse_url((string) env('APP_URL', 'http://localhost'));
+    $domain = trim(explode(',', (string) env('CENTRAL_DOMAINS', 'localhost'))[0]) ?: 'localhost';
+    $port = isset($appUrl['port']) ? ':'.$appUrl['port'] : '';
+
+    return ($appUrl['scheme'] ?? 'https')."://$domain$port/auth/$provider/callback";
+};
+
 return [
 
     // Hidden folder of public/ holding Android app builds under test, listed on the admin home (temporary).
@@ -58,6 +66,11 @@ return [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URI') ?: $socialCallback('google'),
+        // restaurant guests ("الدخول بجوجل" in a menu's «حسابي»), whatever host the menu is on, all come back to ONE
+        // address on the main domain: <scheme>://<first CENTRAL_DOMAINS entry>[:port]/auth/google/callback, e.g.
+        // https://eghub.app/auth/google/callback (App\Http\Controllers\Platform\GuestOAuthController). It is a second
+        // "Authorized redirect URI" of the same Google client; GOOGLE_GUEST_REDIRECT_URI overrides it.
+        'guest_redirect' => env('GOOGLE_GUEST_REDIRECT_URI') ?: $guestCallback('google'),
     ],
 
     /*
