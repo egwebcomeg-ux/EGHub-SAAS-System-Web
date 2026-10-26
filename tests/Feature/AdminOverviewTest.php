@@ -49,4 +49,24 @@ class AdminOverviewTest extends TenantTestCase
         $this->actingAs($this->admin('content'), 'admin')->get($this->adminUrl('/'))->assertOk()
             ->assertDontSee('data-kpis="tenants"', false)->assertDontSee(__('MRR'))->assertDontSee('Restaurant cafe-a');
     }
+
+    public function test_beta_app_links_show_only_when_the_hidden_folder_is_set(): void
+    {
+        $this->actingAs($this->admin(), 'admin')->get($this->adminUrl('/'))->assertOk()->assertDontSee('data-beta-apps', false);
+
+        $dir = 'b-test'.bin2hex(random_bytes(3));
+        mkdir(public_path($dir));
+        file_put_contents(public_path("$dir/eghub-pos-1.0.1.apk"), 'apk');
+        config(['services.apps_beta.dir' => $dir]);
+
+        try {
+            $this->actingAs($this->admin('support'), 'admin')->get($this->adminUrl('/'))->assertOk()
+                ->assertSee('data-beta-apps', false)->assertSee("$dir/eghub-pos-1.0.1.apk", false);
+            config(['services.apps_beta.dir' => '../storage']);
+            $this->actingAs($this->admin('content'), 'admin')->get($this->adminUrl('/'))->assertOk()->assertDontSee('data-beta-apps', false);
+        } finally {
+            unlink(public_path("$dir/eghub-pos-1.0.1.apk"));
+            rmdir(public_path($dir));
+        }
+    }
 }

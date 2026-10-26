@@ -27,6 +27,23 @@
     </div>
 </div>
 
+@if ($betaApps)
+    <div class="card mb-5 p-4" data-beta-apps>
+        <div class="font-bold text-navy-900">{{ __('Android apps under test') }}</div>
+        <p class="muted text-sm">{{ __('Hidden links for trying the apps on real devices. Not on the site and not on Google Play yet.') }}</p>
+        <ul class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            @foreach ($betaApps as $app)
+                <li>
+                    <a href="{{ $app['url'] }}" class="btn-ghost w-full justify-between" dir="ltr" download>
+                        <span>{{ $app['name'] }}</span>
+                        <span class="text-xs text-navy-500">{{ number_format($app['size'] / 1024) }} KB</span>
+                    </a>
+                </li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+
 @if ($canTenants)
     <div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5" data-kpis="tenants">
         @foreach ([

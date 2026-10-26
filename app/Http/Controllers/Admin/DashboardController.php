@@ -44,7 +44,27 @@ class DashboardController extends Controller
             'latest' => Tenant::query()->with('subscription.plan')->latest()->limit(6)->get(),
             'invoices' => $admin->allows('billing.manage') ? Invoice::query()->with('tenant', 'plan', 'payments')->latest('id')->limit(6)->get() : collect(),
             'admin' => $admin,
+            'betaApps' => $this->betaApps(),
         ]);
+    }
+
+    /**
+     * The Android app builds under test, uploaded to a hidden folder of public/ (APPS_BETA_DIR); none when unset.
+     *
+     * @return list<array{name: string, url: string, size: int}>
+     */
+    private function betaApps(): array
+    {
+        $dir = trim((string) config('services.apps_beta.dir'), '/');
+        if ($dir === '' || ! preg_match('/^[A-Za-z0-9_-]+$/', $dir) || ! is_dir(public_path($dir))) {
+            return [];
+        }
+
+        return collect(glob(public_path($dir).'/*.apk') ?: [])->sort()->map(fn (string $path) => [
+            'name' => basename($path),
+            'url' => asset($dir.'/'.basename($path)),
+            'size' => (int) filesize($path),
+        ])->values()->all();
     }
 
     /**

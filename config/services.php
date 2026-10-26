@@ -15,6 +15,11 @@ $socialCallback = function (string $provider): string {
 
 return [
 
+    // Hidden folder of public/ holding Android app builds under test, listed on the admin home (temporary).
+    'apps_beta' => [
+        'dir' => env('APPS_BETA_DIR'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
