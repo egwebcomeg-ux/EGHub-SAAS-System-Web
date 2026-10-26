@@ -11,6 +11,7 @@ use App\Services\Auth\TwoFactor;
 use App\Services\Settings;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Tests\TenantTestCase;
 
 /**
@@ -317,5 +318,25 @@ class TwoFactorTest extends TenantTestCase
         $this->flushSession();
         $this->post($this->dashUrl('/login'), ['login' => 'owner@cafe-a.test', 'password' => 'Secret-pass-123'])->assertRedirect(route('dash.home'));
         $this->assertInstanceOf(Tenant::class, $a);
+    }
+
+    public function test_a_platform_admin_changes_their_own_password_with_the_current_one(): void
+    {
+        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@egmenu.test', 'password' => 'Secret-pass-123']);
+
+        $this->actingAs($admin, 'admin')->get($this->adminUrl('/security'))->assertOk()->assertSee('data-password-form', false);
+        $this->actingAs($admin, 'admin')->from($this->adminUrl('/security'))->post($this->adminUrl('/security/password'), [
+            'current_password' => 'wrong-pass-123', 'password' => 'New-secret-456', 'password_confirmation' => 'New-secret-456',
+        ])->assertSessionHasErrors('current_password');
+        $this->actingAs($admin, 'admin')->from($this->adminUrl('/security'))->post($this->adminUrl('/security/password'), [
+            'current_password' => 'Secret-pass-123', 'password' => 'short1', 'password_confirmation' => 'short1',
+        ])->assertSessionHasErrors('password');
+        $this->assertTrue(Hash::check('Secret-pass-123', $admin->fresh()->password));
+
+        $this->actingAs($admin, 'admin')->from($this->adminUrl('/security'))->post($this->adminUrl('/security/password'), [
+            'current_password' => 'Secret-pass-123', 'password' => 'New-secret-456', 'password_confirmation' => 'New-secret-456',
+        ])->assertSessionHasNoErrors()->assertSessionHas('ok');
+        $this->assertTrue(Hash::check('New-secret-456', $admin->fresh()->password));
+        $this->assertDatabaseHas('platform_audit_logs', ['action' => 'admin.password_changed']);
     }
 }

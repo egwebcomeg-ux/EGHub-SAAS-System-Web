@@ -145,5 +145,6 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
     Route::post('/security/two-factor', [SecurityController::class, 'enable'])->name('security.enable');
     Route::post('/security/two-factor/confirm', [SecurityController::class, 'confirm'])->middleware('throttle:10,1')->name('security.confirm');
     Route::post('/security/two-factor/disable', [SecurityController::class, 'disable'])->middleware('throttle:10,1')->name('security.disable');
+    Route::post('/security/password', [SecurityController::class, 'password'])->middleware('throttle:10,1')->name('security.password');
     Route::post('/tenants/{tenant}/users/{user}/reset-2fa', [TenantsController::class, 'resetTwoFactor'])->whereNumber('user')->middleware('admin.access:tenants.manage')->name('tenants.reset-2fa');
 });
