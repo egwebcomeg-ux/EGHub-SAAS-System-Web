@@ -24,6 +24,21 @@
         <div class="mt-1 max-w-3xl">@include('dashboard.partials.menu-links')</div>
     </details>
 </x-dash.page-header>
+@can('settings.manage')
+    @if (\App\Services\Entitlements::current()->allows('online_ordering'))
+        @php($orderingOn = \App\Services\Settings::get('ordering_enabled') === '1')
+        {{-- one switch for the whole menu: take orders, or show the dishes and prices only --}}
+        <form method="post" action="{{ route('dash.settings.ordering') }}" @class(['card mb-4 flex flex-wrap items-center justify-between gap-3', 'border-amber-300 bg-amber-50' => ! $orderingOn]) data-ordering-switch="{{ $orderingOn ? 'on' : 'off' }}">
+            @csrf
+            <input type="hidden" name="on" value="{{ $orderingOn ? '0' : '1' }}">
+            <div>
+                <div class="font-bold">{{ $orderingOn ? __('Taking orders: on') : __('Taking orders: off') }}</div>
+                <p class="muted text-sm">{{ $orderingOn ? __('Guests can order from your menu.') : __('Your menu shows the dishes and prices only, with no ordering.') }}</p>
+            </div>
+            <button @class(['min-h-11 rounded-xl px-4 font-bold', 'btn-ghost' => $orderingOn, 'btn-primary' => ! $orderingOn])>{{ $orderingOn ? __('Stop orders') : __('Start taking orders') }}</button>
+        </form>
+    @endif
+@endcan
 
 @if ($showNextStep && $settingUp)
     {{-- a new account: the setup checklist first, the apps under it --}}

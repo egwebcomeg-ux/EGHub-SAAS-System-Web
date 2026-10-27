@@ -164,6 +164,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::middleware('permission:settings.manage')->group(function () {
         Route::get('/settings', [SettingsController::class, 'edit'])->name('settings');
         Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
+        Route::post('/settings/ordering', [SettingsController::class, 'ordering'])->name('settings.ordering');
         Route::post('/settings/ai-test', [SettingsController::class, 'testAi'])->middleware('throttle:6,1')->name('settings.ai-test');
         // "what will you use?": first stop after signup (?welcome=1), then from Settings; focus only, never access
         Route::get('/modules', [ModulesController::class, 'edit'])->name('modules');

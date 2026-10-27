@@ -6586,5 +6586,13 @@
     "No results. Try another word, or move the pin by hand.": "مفيش نتايج. جرّب كلمة تانية، أو حرّك الدبوس بإيدك.",
     "The search is busy right now. Try again in a moment, or move the pin by hand.": "البحث عليه ضغط دلوقتي. جرّب كمان شوية، أو حرّك الدبوس بإيدك.",
     "the street": "الشارع",
-    "e.g. :n": "مثلاً :n"
+    "e.g. :n": "مثلاً :n",
+    "Taking orders: on": "استقبال الطلبات: شغّال",
+    "Taking orders: off": "استقبال الطلبات: مقفول",
+    "Guests can order from your menu.": "الزباين يقدروا يطلبوا من المنيو بتاعك.",
+    "Your menu shows the dishes and prices only, with no ordering.": "المنيو بيعرض الأصناف والأسعار بس، من غير طلب.",
+    "Stop orders": "وقّف الطلبات",
+    "Start taking orders": "شغّل الطلبات",
+    "Ordering is on: guests can order from your menu.": "الطلبات اشتغلت: الزباين يقدروا يطلبوا من المنيو.",
+    "Ordering is off: your menu shows the dishes and prices only.": "الطلبات وقفت: المنيو بيعرض الأصناف والأسعار بس."
 }

@@ -57,6 +57,16 @@ class SettingsController extends Controller
         ]);
     }
 
+    /** «استقبال الطلبات» on the home page: on, or the menu only shows the dishes and prices (no cart, no ordering). */
+    public function ordering(Request $request): RedirectResponse
+    {
+        $on = $request->boolean('on');
+        Settings::put(['ordering_enabled' => $on ? '1' : '0']);
+        Audit::record('settings.updated', '', ['keys' => ['ordering_enabled'], 'ordering' => $on]);
+
+        return back()->with('ok', $on ? __('Ordering is on: guests can order from your menu.') : __('Ordering is off: your menu shows the dishes and prices only.'));
+    }
+
     public function update(Request $request, ImageService $images): RedirectResponse
     {
         // pixel ids as the providers show them (upper-case, no spaces) before they are checked
