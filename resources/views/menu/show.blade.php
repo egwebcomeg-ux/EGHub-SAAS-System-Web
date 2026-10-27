@@ -645,7 +645,7 @@
                 </button>
                 <label id="sheet-notes-field" class="block" hidden>
                     <span class="sr-only">{{ __('Notes for the kitchen') }}</span>
-                    <input class="field" maxlength="200" data-sheet-notes placeholder="{{ __('e.g. no sugar') }}">
+                    <input class="field" maxlength="200" data-sheet-notes placeholder="{{ match (\App\Support\BusinessType::current()) { 'restaurant' => __('e.g. no onions, extra sauce'), 'pastry' => __('e.g. write a name on the cake'), 'shop' => __('e.g. gift wrap it'), 'both' => __('e.g. no onions, less sugar'), default => __('e.g. no sugar') } }}">
                 </label>
             </div>
             <p class="mt-3 hidden text-center font-bold text-red-600" data-sheet-soldout>{{ __('Sold out') }}</p>
