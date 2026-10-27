@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\DeliveryZone;
+use App\Services\Delivery\DeliveryPricing;
 use App\Services\Settings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -48,6 +49,35 @@ class DeliveryZonesController extends Controller
         Settings::put(['delivery_zone_mode' => $data['mode']]);
 
         return back()->with('ok', $data['mode'] === 'map' ? __('Map drawing is on.') : __('Manual areas are on.'));
+    }
+
+    /**
+     * How a branch prices delivery: by its zones, or by the straight-line distance from its pin with rings
+     * ("up to 2 km: 25"). Distance needs the pin and at least one ring; the last ring is the farthest delivered.
+     */
+    public function pricing(Request $request, Branch $branch): RedirectResponse
+    {
+        $data = $request->validate([
+            'method' => ['required', Rule::in([DeliveryPricing::ZONES, DeliveryPricing::DISTANCE])],
+            'lat' => 'nullable|numeric|between:-90,90|required_with:lng|required_if:method,distance',
+            'lng' => 'nullable|numeric|between:-180,180|required_with:lat|required_if:method,distance',
+            'rings' => 'array|max:'.DeliveryPricing::MAX_RINGS.'|required_if:method,distance',
+            'rings.*.km' => 'required|numeric|min:0.1|max:'.DeliveryPricing::MAX_KM.'|distinct',
+            'rings.*.fee' => 'required|numeric|min:0|max:10000',
+            'rings.*.min' => 'nullable|numeric|min:0|max:100000',
+            'rings.*.minutes' => 'nullable|integer|min:5|max:300',
+        ], [], ['rings.*.km' => __('distance'), 'rings.*.fee' => __('delivery fee')]);
+
+        $rings = collect($data['rings'] ?? [])->map(fn (array $r) => [
+            'km' => round((float) $r['km'], 2), 'fee' => round((float) $r['fee'], 2),
+            'min' => round((float) ($r['min'] ?? 0), 2), 'minutes' => isset($r['minutes']) && $r['minutes'] !== '' ? (int) $r['minutes'] : null,
+        ])->sortBy('km')->values()->all();
+        // back to zones keeps the rings, so switching to distance again finds them
+        $branch->update(['delivery_pricing' => $data['method']]
+            + ($data['method'] === DeliveryPricing::DISTANCE ? ['delivery_rings' => $rings] : [])
+            + (isset($data['lat'], $data['lng']) ? ['lat' => round((float) $data['lat'], 7), 'lng' => round((float) $data['lng'], 7)] : []));
+
+        return back()->with('ok', $data['method'] === DeliveryPricing::DISTANCE ? __('Delivery is priced by distance now.') : __('Delivery is priced by your zones now.'));
     }
 
     /** Saves the area drawn on the map: [[lat, lng], ...], or clears it. */

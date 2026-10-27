@@ -1,4 +1,6 @@
-// Delivery zones map: shows every zone's area and lets the owner draw one by clicking its corners.
+// Delivery zones map: shows every zone's area (sub-zones dashed) and lets the owner draw one by clicking its corners,
+// drag a corner to move it, drag (or tap) the small dot between two corners to add one, right-click / long-press a
+// corner to remove it.
 // Leaflet comes from the CDN (window.L). Saving posts the points as a normal form.
 
 const dataEl = document.getElementById('zones-map-data');
@@ -15,7 +17,7 @@ if (dataEl && window.L) {
     const bounds = [];
     D.zones.forEach((z, i) => {
         if (!z.polygon || z.polygon.length < 3) return;
-        layers[z.id] = L.polygon(z.polygon, { color: colors[i % colors.length], weight: 2, fillOpacity: 0.15 })
+        layers[z.id] = L.polygon(z.polygon, { color: colors[i % colors.length], weight: z.parent ? 1.5 : 2.5, dashArray: z.parent ? '5 5' : null, fillOpacity: z.parent ? 0.2 : 0.12 })
             .bindTooltip(z.name, { sticky: true }).addTo(map);
         bounds.push(...z.polygon);
     });
@@ -26,10 +28,30 @@ if (dataEl && window.L) {
     let zoneId = null;
     const draft = L.polygon([], { color: '#F26522', weight: 3, dashArray: '6 4', fillOpacity: 0.25 }).addTo(map);
     const dots = L.layerGroup().addTo(map);
+    const handle = (size, fill) => L.divIcon({
+        className: '', iconSize: [size, size],
+        html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${fill};border:2px solid #F26522;box-shadow:0 1px 3px rgba(0,0,0,.35)"></div>`,
+    });
+    const round = (ll) => [+ll.lat.toFixed(6), +ll.lng.toFixed(6)];
     function redraw() {
         draft.setLatLngs(points);
         dots.clearLayers();
-        points.forEach((p) => L.circleMarker(p, { radius: 5, color: '#F26522', fillOpacity: 1 }).addTo(dots));
+        points.forEach((p, i) => {
+            const corner = L.marker(p, { draggable: true, icon: handle(16, '#F26522'), zIndexOffset: 500 }).addTo(dots);
+            corner.on('drag', () => { points[i] = round(corner.getLatLng()); draft.setLatLngs(points); });
+            corner.on('dragend', redraw);
+            corner.on('contextmenu', () => { points.splice(i, 1); redraw(); });
+        });
+        // the dot halfway along each side adds a corner there
+        if (points.length >= 3) {
+            points.forEach((p, i) => {
+                const q = points[(i + 1) % points.length];
+                const mid = L.marker([(p[0] + q[0]) / 2, (p[1] + q[1]) / 2], { draggable: true, icon: handle(11, '#fff'), opacity: 0.9 }).addTo(dots);
+                const add = () => { points.splice(i + 1, 0, round(mid.getLatLng())); redraw(); };
+                mid.on('dragend', add);
+                mid.on('click', add);
+            });
+        }
         $('[data-points]').textContent = points.length;
         $('[data-save-area]').disabled = !zoneId || (points.length > 0 && points.length < 3);
     }

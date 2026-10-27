@@ -49,7 +49,8 @@ final class OrderService
     /**
      * @param array{client_uuid?:string, items:array<int,array{item_id:int, qty:int, option_ids?:int[], notes?:string}>,
      *              notes?:string, customer_name?:string, customer_phone?:string, type?:string, source?:string,
-     *              delivery_zone?:DeliveryZone, delivery_address?:array<string,string>, pay_wallet?:bool, terminal_id?:?int} $data
+     *              delivery_zone?:DeliveryZone, delivery_quote?:?array{fee:float, min:float, label:string},
+     *              delivery_address?:array<string,mixed>, pay_wallet?:bool, terminal_id?:?int} $data
      *
      * With `pay_wallet` the order is paid at once from the customer's prepaid balance (whole total, or nothing is placed).
      */
@@ -109,7 +110,7 @@ final class OrderService
         $service = $type === 'dine_in' ? round(($subtotal - $discount) * $this->percent('service_percent'), 2) : 0.0;
         $tax = round(($subtotal - $discount + $service) * $this->percent('tax_percent'), 2);
 
-        // Delivery (call center): the zone sets the fee and the minimum; its sub-areas inherit empty values.
+        // Delivery: the zone sets the fee and the minimum (its sub-areas inherit empty values), or the distance quote.
         $zone = $type === 'delivery' ? ($data['delivery_zone'] ?? null) : null;
         $deliveryFee = 0.0;
         if ($zone instanceof DeliveryZone) {
@@ -121,6 +122,13 @@ final class OrderService
                 throw new OrderException(__('The minimum order for :zone is :amount.', ['zone' => $zone->label(), 'amount' => money($min)]));
             }
             $deliveryFee = round((float) ($zone->effective('fee') ?? 0), 2);
+        } elseif ($type === 'delivery' && is_array($quote = $data['delivery_quote'] ?? null)) {
+            // priced by the distance from the branch pin (DeliveryPricing, computed by the caller on the server)
+            $min = (float) ($quote['min'] ?? 0);
+            if ($min > 0 && $subtotal - $discount < $min) {
+                throw new OrderException(__('The minimum order for :zone is :amount.', ['zone' => (string) ($quote['label'] ?? ''), 'amount' => money($min)]));
+            }
+            $deliveryFee = round(max(0, (float) ($quote['fee'] ?? 0)), 2);
         }
 
         $phone = isset($data['customer_phone']) && $data['customer_phone'] !== '' ? normalize_phone((string) $data['customer_phone']) : null;

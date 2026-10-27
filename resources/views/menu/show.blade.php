@@ -797,27 +797,50 @@
                                 @if ($online['delivery'])<button type="button" class="m-border min-h-11 rounded-xl border font-bold" data-otype="delivery">🛵 {{ __('Delivery') }}</button>@endif
                             </div>
                         @endif
+                        @php
+                            $mapFirst = $online['pricing']['map'] ?? false;
+                        @endphp
                         <div class="hidden space-y-3" data-delivery-fields>
-                            <label class="block">
-                                <span class="m-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg> {{ __('Your area') }}</span>
-                                <select class="field" data-zone>
-                                    <option value="">{{ __('Choose your area') }}</option>
-                                    @foreach ($online['zones'] as $z)<option value="{{ $z['id'] }}">{{ $z['name'] }} · {{ money($z['fee']) }} {{ tr($settings['currency'], $settings['currency_en']) }}</option>@endforeach
-                                </select>
-                            </label>
+                            @if ($mapFirst)
+                                {{-- map first: the pin prices the delivery (area or distance, fee, minimum, time); the list stays one tap away --}}
+                                <div class="space-y-2" data-loc-box>
+                                    <span class="m-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg> {{ __('Where should we deliver?') }}</span>
+                                    <button type="button" class="m-primary flex min-h-12 w-full items-center justify-center gap-2 rounded-xl font-extrabold" data-pin-open data-loc-start>📍 {{ __('Pin your location to see the delivery fee') }}</button>
+                                    <div class="m-surface-2 m-border hidden items-center justify-between gap-3 rounded-xl border p-3" data-loc-card>
+                                        <span class="min-w-0">
+                                            <span class="block font-extrabold" data-loc-name></span>
+                                            <span class="m-muted block text-xs" data-loc-facts></span>
+                                        </span>
+                                        <button type="button" class="m-primary-text min-h-11 shrink-0 px-1 font-bold underline" data-pin-open>{{ __('Change the location') }}</button>
+                                    </div>
+                                </div>
+                            @endif
+                            <div @class(['block', 'hidden' => $mapFirst]) data-zone-field>
+                                <label class="block">
+                                    <span class="m-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg> {{ __('Your area') }}</span>
+                                    <select class="field" data-zone>
+                                        <option value="">{{ __('Choose your area') }}</option>
+                                        @foreach ($online['zones'] as $z)<option value="{{ $z['id'] }}">{{ $z['name'] }} · {{ money($z['fee']) }} {{ tr($settings['currency'], $settings['currency_en']) }}</option>@endforeach
+                                    </select>
+                                </label>
+                                @if ($mapFirst)
+                                    <button type="button" class="m-primary-text mt-1 min-h-11 text-sm font-bold" data-use-map>🗺️ {{ __('Pin my location on the map instead') }}</button>
+                                @endif
+                            </div>
                             <label class="block">
                                 <span class="m-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg> {{ __('The address in detail') }}</span>
                                 <textarea class="field min-h-16 py-2" maxlength="300" data-address placeholder="{{ __('Street, building, floor, apartment, landmark') }}"></textarea>
                             </label>
-                            {{-- optional pin on the map: the driver navigates straight to it (with drawn zones it picks the zone too) --}}
+                            {{-- areas typed by hand: an optional pin on the map, the driver navigates straight to it --}}
+                            @unless ($mapFirst)
                             <div class="space-y-2" data-pin-box>
                                 <button type="button" class="m-border flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border font-bold" data-pin-open>🗺️ <span data-pin-open-text>{{ __('Pin my location on the map') }}</span></button>
                                 <div class="hidden items-center justify-between gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-900 ring-1 ring-emerald-200" data-pin-done>
                                     <span>📍 {{ __('Your location is pinned: the driver comes straight to it.') }}</span>
                                     <button type="button" class="shrink-0 font-bold underline" data-pin-clear>{{ __('Remove') }}</button>
                                 </div>
-                                <p class="hidden rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 ring-1 ring-amber-200" data-pin-outside>{{ __('Sorry, we do not deliver to your location yet.') }}</p>
                             </div>
+                            @endunless
                         </div>
                         @if ($online['scheduled'])
                             {{-- as soon as possible by default; a set time only for the guest who asks for one --}}
@@ -947,7 +970,9 @@
                 <button value="cancel" class="m-muted text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
             </div>
             <p class="m-muted mb-3 text-sm">{{ __('Choose your area to see the delivery fee, the minimum order and the time.') }}</p>
-            @if ($zoneMap)
+            @if ($online['pricing']['map'] ?? false)
+                <button type="button" class="m-primary mb-3 min-h-12 w-full rounded-2xl font-extrabold" data-use-map>🗺️ {{ __('Pin my location on the map') }}</button>
+            @elseif ($zoneMap)
                 <button type="button" class="m-primary mb-3 min-h-12 w-full rounded-2xl font-extrabold" data-zone-detect>📍 {{ __('Detect my area') }}</button>
             @endif
             <div class="mb-3 hidden rounded-2xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-200" data-zone-outside>
@@ -994,22 +1019,42 @@
         </form>
     </dialog>
 
-    {{-- "pin my location": a draggable pin on the map (Leaflet loads on demand), "use my current location", confirm --}}
+    {{-- the delivery map: a draggable pin (Leaflet loads on demand). Map first: the price of the point shows live and
+         "confirm" makes it the delivery; else (areas typed by hand) an optional pin for the driver --}}
+    @php
+        $mapFirst = $online['pricing']['map'] ?? false;
+    @endphp
     <dialog class="m-0 mt-auto w-full max-w-none bg-transparent p-0 backdrop:bg-black/50 sm:m-auto sm:max-w-lg" data-pin-sheet aria-labelledby="pin-sheet-title">
-        <form method="dialog" class="m-surface max-h-[92dvh] overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl">
+        <form method="dialog" class="m-surface max-h-[94dvh] overflow-y-auto rounded-t-3xl p-4 sm:rounded-3xl sm:p-5">
             <div class="mb-1 flex items-center justify-between">
-                <h3 id="pin-sheet-title" class="text-xl font-extrabold">📍 {{ __('Where exactly are you?') }}</h3>
-                <button value="cancel" class="m-muted text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
+                <h3 id="pin-sheet-title" class="text-xl font-extrabold">📍 {{ $mapFirst ? __('Where should we deliver?') : __('Where exactly are you?') }}</h3>
+                <button value="cancel" class="m-muted min-h-11 min-w-11 text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
             </div>
-            <p class="m-muted mb-3 text-sm">{{ __('Drag the pin to your door, or tap the map. The driver navigates straight to it.') }}</p>
-            <div class="h-72 overflow-hidden rounded-2xl bg-black/5" dir="ltr" data-pin-map></div>
+            <p class="m-muted mb-3 text-sm">{{ $mapFirst ? __('Drag the pin to your door, or tap the map: the delivery fee shows right away.') : __('Drag the pin to your door, or tap the map. The driver navigates straight to it.') }}</p>
+            <div @class(['relative z-0 overflow-hidden rounded-2xl bg-black/5', 'h-[46dvh] max-h-[26rem] min-h-64' => $mapFirst, 'h-72' => ! $mapFirst]) dir="ltr" data-pin-map></div>
             <p class="m-muted mt-2 hidden text-center text-sm" data-pin-loading>{{ __('Loading the map…') }}</p>
-            <p class="mt-2 hidden rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 ring-1 ring-amber-200" data-pin-sheet-outside>{{ __('This point is outside our delivery areas. Move the pin closer, or choose your area from the list.') }}</p>
-            <p class="mt-2 hidden rounded-xl bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-900 ring-1 ring-emerald-200" data-pin-zone></p>
+            @if ($mapFirst)
+                <div class="mt-3" aria-live="polite">
+                    <div class="hidden rounded-2xl bg-emerald-50 p-3 text-emerald-950 ring-1 ring-emerald-200" data-pin-quote-in>
+                        <b class="block" data-pin-quote-name></b>
+                        <span class="block text-sm" data-pin-quote-facts></span>
+                    </div>
+                    <div class="hidden rounded-2xl bg-amber-50 p-3 text-sm text-amber-950 ring-1 ring-amber-200" data-pin-quote-out>
+                        <b class="block text-base">{{ __('Sorry, we do not deliver here') }}</b>
+                        <span>{{ __('Move the pin closer to us, or message us on WhatsApp and we will see how to get it to you.') }}</span>
+                        @if ($data['whatsapp'])
+                            <a href="https://wa.me/{{ $data['whatsapp'] }}" target="_blank" rel="noopener" class="mt-2 flex min-h-11 items-center justify-center rounded-xl bg-emerald-600 font-bold text-white">💬 {{ __('Ask on WhatsApp') }}</a>
+                        @endif
+                    </div>
+                </div>
+            @endif
             <div class="mt-3 grid grid-cols-2 gap-2">
-                <button type="button" class="m-border min-h-12 rounded-2xl border font-bold" data-pin-locate>🎯 {{ __('Use my current location') }}</button>
-                <button type="button" class="m-primary min-h-12 rounded-2xl font-extrabold" data-pin-confirm>✓ {{ __('Confirm the location') }}</button>
+                <button type="button" class="m-border min-h-12 rounded-2xl border font-bold" data-pin-locate>🎯 {{ __('My current location') }}</button>
+                <button type="button" class="m-primary min-h-12 rounded-2xl font-extrabold disabled:opacity-50" data-pin-confirm>✓ {{ __('Confirm the location') }}</button>
             </div>
+            @if ($mapFirst && $online['zones'] !== [])
+                <button type="button" class="m-primary-text mt-2 min-h-11 w-full text-sm font-bold" data-pin-list>📋 {{ __('Choose your area from the list instead of the map') }}</button>
+            @endif
         </form>
     </dialog>
 @endif
@@ -1055,8 +1100,10 @@
         'linkCopied' => __('Link copied'),
         'missing' => __('To send, add: :list', ['list' => '__L__']), 'missingName' => __('your name'), 'missingPhone' => __('your mobile'),
         'missingZone' => __('your area'), 'missingAddress' => __('the address'),
-        'pinOutside' => __('The pinned location is outside our delivery areas.'), 'pinInZone' => __('Your pin is in :zone', ['zone' => '__Z__']),
-        'pinChange' => __('Change my location on the map'), 'pinNoLocation' => __('We could not get your location. Drag the pin to your door.'),
+        'pinChange' => __('Change my location on the map'),
+        'pinFirst' => __('Pin your location on the map to see the delivery fee.'), 'missingPin' => __('your location on the map'),
+        'distanceName' => __(':km km from the restaurant', ['km' => '__K__']), 'restaurantHere' => __('We are here'),
+        'factFee' => __('Delivery :fee', ['fee' => '__A__']), 'factMin' => __('Minimum :amount', ['amount' => '__A__']), 'factEta' => __('About :n min', ['n' => '__N__']), 'pinNoLocation' => __('We could not get your location. Drag the pin to your door.'),
         'pinMapFailed' => __('The map could not load. Write the address in detail instead.'),
         'missingMin' => __('Add :left more to reach the minimum order of your area (:min)', ['left' => '__A__', 'min' => '__M__']),
         'etaPickup' => __('Ready for pickup in about :n minutes', ['n' => '__N__']), 'etaDelivery' => __('At your door in about :n minutes', ['n' => '__N__']),
