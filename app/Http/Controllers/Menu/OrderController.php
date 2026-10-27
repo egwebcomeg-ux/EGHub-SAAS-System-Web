@@ -19,6 +19,7 @@ use App\Services\Orders\OrderService;
 use App\Services\Orders\Pager;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
+use App\Support\DeliveryAddress;
 use App\Support\OrderTracking;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -55,6 +56,8 @@ class OrderController extends Controller
             'branch_id' => 'nullable|integer',
             'zone_id' => 'nullable|integer',
             'address' => 'nullable|string|max:300',
+            // the address in parts (street, building, floor…): the server writes the one line from them (DeliveryAddress)
+            ...DeliveryAddress::rules(),
             // the guest's pin on the map: it prices the delivery when no area is picked from the list (DeliveryPricing)
             'lat' => 'nullable|numeric|between:-90,90|required_with:lng',
             'lng' => 'nullable|numeric|between:-180,180|required_with:lat',
@@ -198,7 +201,13 @@ class OrderController extends Controller
      */
     private function delivery(array $data, Branch $branch): array
     {
-        $text = trim((string) ($data['address'] ?? ''));
+        // the address in parts (the checkout's fields) makes the one line; an older page sends the line itself
+        $parts = DeliveryAddress::clean($data['address_parts'] ?? null);
+        if ($parts !== [] && ! isset($parts['street'])) {
+            throw new OrderException(__('Write the street name.'));
+        }
+        $text = $parts !== [] ? DeliveryAddress::compose($parts) : trim((string) ($data['address'] ?? ''));
+        $kept = $parts !== [] ? ['parts' => $parts] : [];
         if (! empty($data['zone_id'])) {
             $zone = DeliveryZone::query()->with('parent')->where('branch_id', $branch->id)->where('is_active', true)->find($data['zone_id']);
             if (! $zone) {
@@ -208,7 +217,7 @@ class OrderController extends Controller
                 throw new OrderException(__('Write the delivery address.'));
             }
 
-            return [$zone, ['zone' => $zone->label(), 'text' => $text] + $this->pin($data, $zone), null];
+            return [$zone, ['zone' => $zone->label(), 'text' => $text] + $this->pin($data, $zone) + $kept, null];
         }
 
         if (! isset($data['lat'], $data['lng']) || ! DeliveryPricing::byLocation($branch, Settings::all())) {
@@ -225,7 +234,8 @@ class OrderController extends Controller
         }
         $address = ['zone' => $quote['label'], 'text' => $text, 'lat' => $point[0], 'lng' => $point[1]]
             + ($quote['km'] !== null ? ['km' => $quote['km']] : [])
-            + ($quote['zone'] === null && $quote['minutes'] ? ['minutes' => $quote['minutes']] : []);
+            + ($quote['zone'] === null && $quote['minutes'] ? ['minutes' => $quote['minutes']] : [])
+            + $kept;
 
         return $quote['zone']
             ? [$quote['zone'], $address, null]

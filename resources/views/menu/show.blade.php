@@ -164,6 +164,15 @@
     .m-label { display: flex; align-items: center; gap: .35rem; margin-bottom: .3rem; font-size: .85rem; font-weight: 700; color: var(--menu-text); }
     .m-label svg { width: 1rem; height: 1rem; color: var(--menu-accent); flex-shrink: 0; }
     .m-send:disabled { opacity: .55; cursor: not-allowed; }
+    /* the delivery address: «احفظه باسم» chips (البيت / الشغل / تاني) and the map's search results */
+    .m-addr-chip { cursor: pointer; }
+    .m-addr-chip span { display: inline-flex; min-height: 2.75rem; align-items: center; gap: .3rem; border-radius: 999px; padding: 0 1rem; font-size: .85rem; font-weight: 700;
+        background: var(--menu-surface); color: var(--menu-text); box-shadow: inset 0 0 0 1px var(--menu-border); transition: background-color .15s, box-shadow .15s; }
+    .m-addr-chip input:checked + span { background: color-mix(in srgb, var(--menu-accent) 14%, var(--menu-surface)); box-shadow: inset 0 0 0 2px var(--menu-accent); }
+    .m-addr-chip input:focus-visible + span { outline: 2px solid var(--menu-accent); outline-offset: 2px; }
+    .m-pin-result { display: block; width: 100%; min-height: 3rem; padding: .6rem .9rem; text-align: start; border-bottom: 1px solid var(--menu-border); }
+    .m-pin-result:last-child { border-bottom: 0; }
+    .m-pin-result:hover, .m-pin-result:focus-visible { background: var(--menu-surface-2); outline: none; }
     /* header brand pieces (setting menu_header_brand): the pattern at 7% fading down, the character peeking in */
     .m-brand-pattern { position: absolute; inset: 0; pointer-events: none; background-size: 200px; background-repeat: repeat; opacity: .07;
         -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent); mask-image: linear-gradient(to bottom, #000 40%, transparent); }
@@ -840,17 +849,23 @@
                             $mapFirst = $online['pricing']['map'] ?? false;
                         @endphp
                         <div class="hidden space-y-3" data-delivery-fields>
+                            {{-- the remembered guest's saved addresses (from /me/summary): one tap fills the pin, the area and the fields --}}
+                            <div class="hidden" data-saved-addresses>
+                                <p class="m-muted mb-1 text-xs font-bold">{{ __('Your saved addresses') }}</p>
+                                <div class="flex flex-wrap gap-2" data-saved-addresses-list></div>
+                            </div>
                             @if ($mapFirst)
                                 {{-- map first: the pin prices the delivery (area or distance, fee, minimum, time); the list stays one tap away --}}
                                 <div class="space-y-2" data-loc-box>
                                     <span class="m-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg> {{ __('Where should we deliver?') }}</span>
                                     <button type="button" class="m-primary flex min-h-12 w-full items-center justify-center gap-2 rounded-xl font-extrabold" data-pin-open data-loc-start>📍 {{ __('Pin your location to see the delivery fee') }}</button>
+                                    {{-- the confirmed pin: the place found for it («شارع البحر، قسم أول طنطا»), its area and price, «غيّر» --}}
                                     <div class="m-surface-2 m-border hidden items-center justify-between gap-3 rounded-xl border p-3" data-loc-card>
                                         <span class="min-w-0">
-                                            <span class="block font-extrabold" data-loc-name></span>
+                                            <span class="block truncate font-extrabold" dir="auto" data-loc-place></span>
                                             <span class="m-muted block text-xs" data-loc-facts></span>
                                         </span>
-                                        <button type="button" class="m-primary-text min-h-11 shrink-0 px-1 font-bold underline" data-pin-open>{{ __('Change the location') }}</button>
+                                        <button type="button" class="m-primary-text min-h-11 shrink-0 px-2 font-bold underline" data-pin-open>{{ __('Change the place') }}</button>
                                     </div>
                                 </div>
                             @endif
@@ -866,25 +881,57 @@
                                     <button type="button" class="m-primary-text mt-1 min-h-11 text-sm font-bold" data-use-map>🗺️ {{ __('Pin my location on the map instead') }}</button>
                                 @endif
                             </div>
-                            <label class="block">
-                                <span class="m-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg> {{ __('The address in detail') }}</span>
-                                <textarea class="field min-h-16 py-2" maxlength="300" data-address placeholder="{{ __('Street, building, floor, apartment, landmark') }}"></textarea>
-                            </label>
-                            {{-- the remembered guest's saved addresses (from /me/summary): one tap fills the area and the address --}}
-                            <div class="hidden" data-saved-addresses>
-                                <p class="m-muted mb-1 text-xs font-bold">{{ __('Your saved addresses') }}</p>
-                                <div class="flex flex-wrap gap-2" data-saved-addresses-list></div>
-                            </div>
-                            {{-- areas typed by hand: an optional pin on the map, the driver navigates straight to it --}}
+                            {{-- areas typed by hand: an optional pin on the map, the driver navigates straight to it and its street fills the fields --}}
                             @unless ($mapFirst)
                             <div class="space-y-2" data-pin-box>
                                 <button type="button" class="m-border flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border font-bold" data-pin-open>🗺️ <span data-pin-open-text>{{ __('Pin my location on the map') }}</span></button>
                                 <div class="hidden items-center justify-between gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-900 ring-1 ring-emerald-200" data-pin-done>
-                                    <span>📍 {{ __('Your location is pinned: the driver comes straight to it.') }}</span>
-                                    <button type="button" class="shrink-0 font-bold underline" data-pin-clear>{{ __('Remove') }}</button>
+                                    <span class="min-w-0">📍 <span dir="auto" data-pin-done-text>{{ __('Your location is pinned: the driver comes straight to it.') }}</span></span>
+                                    <button type="button" class="min-h-11 shrink-0 px-1 font-bold underline" data-pin-clear>{{ __('Remove') }}</button>
                                 </div>
                             </div>
                             @endunless
+                            {{-- the address in parts, like the delivery apps: the street comes from the pin, the guest adds the rest;
+                                 the server writes the one line the restaurant reads (App\Support\DeliveryAddress) --}}
+                            <div @class(['space-y-3', 'hidden' => $mapFirst]) data-addr-form>
+                                <p class="m-muted hidden text-xs font-semibold" data-addr-auto>✨ {{ __('We filled the street from your pin. Check it and add the building and the floor.') }}</p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <label class="block min-w-0">
+                                        <span class="m-label">{{ __('Area') }}</span>
+                                        <input class="field" type="text" maxlength="80" autocomplete="address-level3" dir="auto" data-addr="area" placeholder="{{ __('District or area') }}">
+                                    </label>
+                                    <label class="block min-w-0">
+                                        <span class="m-label">{{ __('Street') }} <span class="m-primary-text" aria-hidden="true">*</span></span>
+                                        <input class="field" type="text" maxlength="120" autocomplete="address-line1" dir="auto" aria-required="true" data-addr="street" placeholder="{{ __('Street name') }}">
+                                    </label>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <label class="block min-w-0">
+                                        <span class="m-label">{{ __('Building no.') }}</span>
+                                        <input class="field" type="text" maxlength="30" dir="auto" data-addr="building" placeholder="{{ __('e.g. :n', ['n' => 12]) }}">
+                                    </label>
+                                    <label class="block min-w-0">
+                                        <span class="m-label">{{ __('Floor') }}</span>
+                                        <input class="field" type="text" maxlength="20" dir="auto" data-addr="floor" placeholder="{{ __('e.g. :n', ['n' => 3]) }}">
+                                    </label>
+                                    <label class="block min-w-0">
+                                        <span class="m-label">{{ __('Apartment') }}</span>
+                                        <input class="field" type="text" maxlength="20" dir="auto" data-addr="apartment" placeholder="{{ __('e.g. :n', ['n' => 5]) }}">
+                                    </label>
+                                </div>
+                                <label class="block">
+                                    <span class="m-label">{{ __('Landmark (optional)') }}</span>
+                                    <input class="field" type="text" maxlength="150" dir="auto" data-addr="landmark" placeholder="{{ __('Next to the pharmacy, in front of the mosque…') }}">
+                                </label>
+                                <div role="radiogroup" aria-label="{{ __('Save it as') }}">
+                                    <span class="m-muted mb-1 block text-xs font-bold">{{ __('Save it as') }}</span>
+                                    <div class="flex flex-wrap gap-2">
+                                        <label class="m-addr-chip"><input type="radio" name="addr-label" value="home" class="sr-only" data-addr-label><span>🏠 {{ __('My home') }}</span></label>
+                                        <label class="m-addr-chip"><input type="radio" name="addr-label" value="work" class="sr-only" data-addr-label><span>💼 {{ __('My work') }}</span></label>
+                                        <label class="m-addr-chip"><input type="radio" name="addr-label" value="other" class="sr-only" data-addr-label><span>📍 {{ __('Other place') }}</span></label>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         @if ($online['scheduled'])
                             {{-- as soon as possible by default; a set time only for the guest who asks for one --}}
@@ -1086,8 +1133,20 @@
                 <button value="cancel" class="m-muted min-h-11 min-w-11 text-2xl leading-none" aria-label="{{ __('Close') }}">×</button>
             </div>
             <p class="m-muted mb-3 text-sm">{{ $mapFirst ? __('Drag the pin to your door, or tap the map: the delivery fee shows right away.') : __('Drag the pin to your door, or tap the map. The driver navigates straight to it.') }}</p>
+            @if ($data['geo'])
+                {{-- "search a street or a place": through this host (Menu\GeoController), a result moves the pin --}}
+                <div class="relative mb-3" data-pin-search-box>
+                    <svg class="m-muted pointer-events-none absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                    <input type="search" class="field ps-10" maxlength="100" autocomplete="off" enterkeyhint="search" dir="auto"
+                        placeholder="{{ __('Search for a street or a place') }}" aria-label="{{ __('Search for a street or a place') }}"
+                        aria-controls="pin-results" aria-expanded="false" data-pin-search>
+                    <div id="pin-results" class="m-surface m-border absolute inset-x-0 top-full z-20 mt-1 hidden max-h-64 overflow-y-auto rounded-2xl border shadow-lg" role="listbox" data-pin-results></div>
+                </div>
+            @endif
             <div @class(['relative z-0 overflow-hidden rounded-2xl bg-black/5', 'h-[46dvh] max-h-[26rem] min-h-64' => $mapFirst, 'h-72' => ! $mapFirst]) dir="ltr" data-pin-map></div>
             <p class="m-muted mt-2 hidden text-center text-sm" data-pin-loading>{{ __('Loading the map…') }}</p>
+            {{-- the street found for the pin while it moves («شارع البحر، قسم أول طنطا») --}}
+            <p class="mt-2 hidden truncate text-sm font-bold" dir="auto" aria-live="polite" data-pin-place></p>
             @if ($mapFirst)
                 <div class="mt-3" aria-live="polite">
                     <div class="hidden rounded-2xl bg-emerald-50 p-3 text-emerald-950 ring-1 ring-emerald-200" data-pin-quote-in>
@@ -1156,6 +1215,11 @@
         'missing' => __('To send, add: :list', ['list' => '__L__']), 'missingName' => __('your name'), 'missingPhone' => __('your mobile'),
         'missingZone' => __('your area'), 'missingAddress' => __('the address'),
         'pinChange' => __('Change my location on the map'),
+        'placeLoading' => __('Finding the street name…'), 'placeUnknown' => __('We could not find the street name: type it below.'),
+        'pinnedAt' => __('Pinned at :place', ['place' => '__P__']),
+        'searchNone' => __('No results. Try another word, or move the pin by hand.'),
+        'searchFailed' => __('The search is busy right now. Try again in a moment, or move the pin by hand.'),
+        'missingStreet' => __('the street'), 'enterStreet' => __('Write the street name.'),
         'pinFirst' => __('Pin your location on the map to see the delivery fee.'), 'missingPin' => __('your location on the map'),
         'distanceName' => __(':km km from the restaurant', ['km' => '__K__']), 'restaurantHere' => __('We are here'),
         'factFee' => __('Delivery :fee', ['fee' => '__A__']), 'factMin' => __('Minimum :amount', ['amount' => '__A__']), 'factEta' => __('About :n min', ['n' => '__N__']), 'pinNoLocation' => __('We could not get your location. Drag the pin to your door.'),

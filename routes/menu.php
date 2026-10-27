@@ -6,6 +6,7 @@ use App\Http\Controllers\Menu\BrandAssetController;
 use App\Http\Controllers\Menu\CardAppController;
 use App\Http\Controllers\Menu\CorporateVoucherController;
 use App\Http\Controllers\Menu\FeedbackController;
+use App\Http\Controllers\Menu\GeoController;
 use App\Http\Controllers\Menu\GiftController;
 use App\Http\Controllers\Menu\GuestEmailController;
 use App\Http\Controllers\Menu\GuestSignInController;
@@ -41,6 +42,9 @@ Route::get('/t/{token}', [MenuController::class, 'table'])->where('token', '[a-f
 Route::post('/order', [OrderController::class, 'store'])->middleware('throttle:menu-orders')->name('order');
 // the cart's coupon preview before sending, priced like the order
 Route::post('/coupon', [OrderController::class, 'coupon'])->middleware('throttle:20,1')->name('coupon');
+// the checkout map: the street of the guest's pin and "search a street or a place" (Menu\GeoController, never cached)
+Route::get('/geo/reverse', [GeoController::class, 'reverse'])->middleware('throttle:geo-reverse')->name('geo.reverse');
+Route::get('/geo/search', [GeoController::class, 'search'])->middleware('throttle:geo-search')->name('geo.search');
 Route::get('/o/{token}', [OrderController::class, 'show'])->where('token', '[a-f0-9]{24}')->name('order.show');
 Route::get('/o/{token}/status', [OrderController::class, 'status'])->where('token', '[a-f0-9]{24}')->middleware('throttle:60,1')->name('order.status');
 // the read-only receipt (QR on the printed receipt, WhatsApp link from the POS): signed, nothing personal

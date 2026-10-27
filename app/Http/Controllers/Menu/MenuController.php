@@ -15,6 +15,7 @@ use App\Models\Season;
 use App\Services\Customers\GuestAccount;
 use App\Services\Delivery\DeliveryPricing;
 use App\Services\Entitlements;
+use App\Services\Geocoding\AddressLookup;
 use App\Services\ItemVideo;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Marketing\WelcomeReward;
@@ -243,6 +244,9 @@ class MenuController extends Controller
                 // "pin my location" at the delivery step: the map library loads on demand (App\Support\Leaflet), the
                 // map opens on the branch; with drawn zones the pin picks the zone and must fall inside one
                 'leaflet' => $online && $online['delivery'] ? Leaflet::assets() : null,
+                // the pin's street and the map's search, asked from this host (Menu\GeoController); off with GEOCODER=none
+                'geo' => $online && $online['delivery'] && AddressLookup::enabled()
+                    ? ['reverse' => route('menu.geo.reverse'), 'search' => route('menu.geo.search')] : null,
                 'zoneMode' => $settings['delivery_zone_mode'] === 'map' ? 'map' : 'manual',
                 'branchPoint' => $branch->lat !== null && $branch->lng !== null ? [(float) $branch->lat, (float) $branch->lng] : null,
                 'canOrder' => $canOrder,

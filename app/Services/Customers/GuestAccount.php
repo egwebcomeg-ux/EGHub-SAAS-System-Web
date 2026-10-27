@@ -7,6 +7,7 @@ use App\Models\DeliveryZone;
 use App\Models\Order;
 use App\Services\Customers\SignIn\GuestIdentity;
 use App\Services\Settings;
+use App\Support\DeliveryAddress;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -149,7 +150,7 @@ final class GuestAccount
      * The guest's saved delivery addresses (the same list the call center uses), most recent first. The first time
      * it is read, a guest who never had a list gets one from their past delivery orders.
      *
-     * @return list<array{key:string, label:string, zone_id:?int, zone:string, text:string, lat:?float, lng:?float}>
+     * @return list<array{key:string, label:string, zone_id:?int, zone:string, text:string, lat:?float, lng:?float, parts:array<string,string>}>
      */
     public static function addresses(Customer $customer): array
     {
@@ -165,6 +166,7 @@ final class GuestAccount
             'text' => (string) ($a['text'] ?? ''),
             'lat' => isset($a['lat']) ? (float) $a['lat'] : null,
             'lng' => isset($a['lng']) ? (float) $a['lng'] : null,
+            'parts' => DeliveryAddress::clean(is_array($a['parts'] ?? null) ? $a['parts'] : null),
         ], $saved);
     }
 
@@ -196,9 +198,12 @@ final class GuestAccount
             return;
         }
         self::backfillAddresses($customer);
-        $entry = ['label' => '', 'zone_id' => $order->delivery_zone_id ? (int) $order->delivery_zone_id : null, 'text' => $text]
+        // the address typed in parts keeps them, and the label chosen with it (البيت / الشغل)
+        $parts = DeliveryAddress::clean(is_array($order->delivery_address['parts'] ?? null) ? $order->delivery_address['parts'] : null);
+        $entry = ['label' => DeliveryAddress::labelName($parts['label'] ?? null), 'zone_id' => $order->delivery_zone_id ? (int) $order->delivery_zone_id : null, 'text' => $text]
             + ($order->delivery_zone_id ? [] : ['zone' => (string) ($order->delivery_address['zone'] ?? '')])
-            + ($pinned ? ['lat' => (float) $order->delivery_address['lat'], 'lng' => (float) $order->delivery_address['lng']] : []);
+            + ($pinned ? ['lat' => (float) $order->delivery_address['lat'], 'lng' => (float) $order->delivery_address['lng']] : [])
+            + ($parts !== [] ? ['parts' => $parts] : []);
         $customer->addresses = collect((array) $customer->addresses)->filter(fn ($a) => is_array($a))
             ->reject(fn (array $a) => self::addressKey($a) === self::addressKey($entry))
             ->prepend($entry)->take(self::MAX_ADDRESSES)->values()->all();

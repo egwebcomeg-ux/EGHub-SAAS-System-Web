@@ -31,6 +31,13 @@ if (dataEl) {
     const pinKey = `egmenu.pin.${M.tenant}`;
     let pin = null;
     try { pin = JSON.parse(session.get(pinKey) || 'null'); } catch { pin = null; }
+    // the place found for the confirmed pin («شارع البحر، قسم أول طنطا»), asked from this host (M.geo), one call per ~25 m
+    const GEO = M.geo;
+    const placeKey = `egmenu.place.${M.tenant}`;
+    let place = null;
+    try { place = JSON.parse(session.get(placeKey) || 'null'); } catch { place = null; }
+    const placeCache = new Map();
+    const cell = (lat, lng) => `${Math.round(lat / 0.00025)},${Math.round(lng / 0.00025)}`;
     const pinQuote = (lat, lng) => quoteAt(O?.pricing, O?.zones, lat, lng, (d) => T.distanceName.replace('__K__', d.toFixed(1)));
     const hallCart = H.mode === 'order' ? 'table' : H.mode === 'list' ? 'list' : 'none';
     let mode = M.mode;
@@ -753,7 +760,7 @@ if (dataEl) {
         if (!val('[data-customer-name]')) list.push(T.missingName);
         if (!val('[data-customer-phone]')) list.push(T.missingPhone);
         if (otype === 'delivery' && !t.zone) list.push(byMap() ? T.missingPin : T.missingZone);
-        if (otype === 'delivery' && !val('[data-address]')) list.push(T.missingAddress);
+        if (otype === 'delivery' && !val('[data-addr="street"]')) list.push(T.missingStreet);
         return list;
     }
     function renderSendHelp(t = totals()) {
@@ -771,7 +778,7 @@ if (dataEl) {
         help.classList.toggle('hidden', !blocked);
     }
     cartSheet.addEventListener('input', (e) => {
-        if (e.target.closest('[data-customer-name], [data-customer-phone], [data-address]')) renderSendHelp();
+        if (e.target.closest('[data-customer-name], [data-customer-phone], [data-addr]')) renderSendHelp();
     });
 
     $('[data-open-cart]').addEventListener('click', () => { renderCart(); cartSheet.showModal(); });
@@ -1038,27 +1045,93 @@ if (dataEl) {
     // ---- the delivery map: a draggable pin (Leaflet loaded on demand from the pinned CDN copy) ----
     // Map first (mapFirst): the pin prices the delivery live (area or distance, fee, minimum, time, or "we do not
     // deliver here") and "confirm" makes it the delivery; the list of areas is the fallback. Without it (areas typed
-    // by hand) the pin is optional and only shows the driver the door.
+    // by hand) the pin is optional and only shows the driver the door. Either way the pin's street fills the address
+    // fields, like the delivery apps (asked from this host: Menu\GeoController, cached there).
     const pinSheet = $('[data-pin-sheet]');
     const pinOpenLabel = $('[data-pin-open-text]')?.textContent || '';
+    const pinDoneLabel = $('[data-pin-done-text]')?.textContent || '';
     // "Delivery 25 EGP · Minimum 100 EGP · About 45 min"
     const quoteFacts = (q) => [
         T.factFee.replace('__A__', fmt(q.fee)),
         q.min > 0 ? T.factMin.replace('__A__', fmt(q.min)) : null,
         q.eta ? T.factEta.replace('__N__', q.eta) : null,
     ].filter(Boolean).join(' · ');
+
+    // ---- the address in parts (area, street, building, floor, apartment, landmark, «احفظه باسم») ----
+    const ADDR = ['area', 'street', 'building', 'floor', 'apartment', 'landmark'];
+    const addrField = (k) => $(`[data-addr="${k}"]`);
+    function addrParts() {
+        const parts = {};
+        ADDR.forEach((k) => { const v = addrField(k)?.value.trim(); if (v) parts[k] = v; });
+        const label = $('[data-addr-label]:checked')?.value;
+        if (label) parts.label = label;
+        return parts;
+    }
+    // auto: from the pin, only into empty fields or fields the pin filled before (what the guest typed stays)
+    function fillAddress(parts, { auto = false } = {}) {
+        let filled = false;
+        ADDR.forEach((k) => {
+            const field = addrField(k);
+            if (!field || (auto && !(k in parts))) return;
+            const value = String(parts[k] ?? '').slice(0, Number(field.maxLength) > 0 ? Number(field.maxLength) : 150);
+            if (auto && field.value.trim() && field.dataset.auto !== '1') return;
+            field.value = value;
+            if (auto && value) { field.dataset.auto = '1'; filled ||= k === 'street'; } else delete field.dataset.auto;
+        });
+        if (!auto && parts.label) document.querySelectorAll('[data-addr-label]').forEach((r) => { r.checked = r.value === parts.label; });
+        $('[data-addr-auto]')?.classList.toggle('hidden', !(auto && filled));
+        renderSendHelp();
+    }
+    document.addEventListener('input', (e) => {
+        const field = e.target.closest('[data-addr]');
+        if (!field) return;
+        delete field.dataset.auto; // typed by the guest: a new pin never writes over it
+        $('[data-addr-auto]')?.classList.add('hidden');
+    });
+
+    // ---- the place at the pin («شارع البحر، قسم أول طنطا»): one call per ~25 m, kept for this visit ----
+    function lookupPlace(lat, lng) {
+        if (!GEO) return Promise.resolve(null);
+        const key = cell(lat, lng);
+        if (!placeCache.has(key)) {
+            const url = new URL(GEO.reverse, location.href);
+            url.searchParams.set('lat', lat.toFixed(6));
+            url.searchParams.set('lng', lng.toFixed(6));
+            if (O?.branch) url.searchParams.set('branch', O.branch);
+            const ask = fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store', credentials: 'same-origin' })
+                .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+            ask.then((d) => { if (!d) placeCache.delete(key); }); // busy or offline: asked again next time
+            placeCache.set(key, ask);
+        }
+        return placeCache.get(key);
+    }
+    // a place already known for a point (a saved address, a search result): no call for it
+    const knowPlace = (lat, lng, p) => placeCache.set(cell(lat, lng), Promise.resolve({ found: true, ...p }));
+    function setPlace(p) {
+        place = p;
+        session.set(placeKey, p && !p.pending ? JSON.stringify(p) : '');
+        renderPin();
+        renderLocation();
+    }
+    if (pin && place && cell(pin.lat, pin.lng) !== cell(place.lat, place.lng)) setPlace(null);
+    if (pin && place) knowPlace(pin.lat, pin.lng, place);
+
     function renderPin() {
         const box = $('[data-pin-box]');
         if (!box) return;
         $('[data-pin-done]', box).classList.toggle('hidden', !pin);
         $('[data-pin-done]', box).classList.toggle('flex', !!pin);
         $('[data-pin-open-text]', box).textContent = pin ? T.pinChange : pinOpenLabel;
+        const done = $('[data-pin-done-text]', box);
+        if (done) done.textContent = place?.pending ? T.placeLoading : place?.formatted_ar ? T.pinnedAt.replace('__P__', place.formatted_ar) : pinDoneLabel;
     }
-    // the cart's delivery place: the confirmed pin with its price (map), or the list of areas (fallback)
+    // the cart's delivery place: the confirmed pin with its street and price (map), or the list of areas (fallback);
+    // the address fields come below once the pin is confirmed
     function renderLocation() {
         const box = $('[data-loc-box]');
-        if (!box) return;
         const q = byMap() && pin ? pinQuote(pin.lat, pin.lng) : null;
+        $('[data-addr-form]')?.classList.toggle('hidden', byMap() && !q);
+        if (!box) return;
         box.classList.toggle('hidden', !byMap());
         $('[data-zone-field]')?.classList.toggle('hidden', byMap());
         $('[data-loc-start]', box).classList.toggle('hidden', !!q);
@@ -1066,17 +1139,42 @@ if (dataEl) {
         $('[data-loc-card]', box).classList.toggle('hidden', !q);
         $('[data-loc-card]', box).classList.toggle('flex', !!q);
         if (q) {
-            $('[data-loc-name]', box).textContent = q.name;
-            $('[data-loc-facts]', box).textContent = quoteFacts(q);
+            $('[data-loc-place]', box).textContent = place?.pending ? T.placeLoading : `📍 ${place?.formatted_ar || q.name}`;
+            $('[data-loc-facts]', box).textContent = (place?.formatted_ar ? `${q.name} · ` : '') + quoteFacts(q);
         }
     }
     function setPin(point) {
         pin = point;
         session.set(pinKey, point ? JSON.stringify(point) : '');
+        if (!point) setPlace(null);
         renderPin();
         renderLocation();
         renderSendHelp();
     }
+    // the pin is confirmed: its area right away (drawn zone / ring), then its street into the fields
+    async function applyPlaceFor(point) {
+        const quote = mapFirst && byMap() ? pinQuote(point.lat, point.lng) : null;
+        if (!byMap()) {
+            const zone = zoneAt(O?.zones, point.lat, point.lng);
+            if (zone && $('[data-zone]')?.value !== String(zone.id)) pickZone(zone.id);
+        }
+        if (!GEO) return;
+        setPlace({ pending: true, lat: point.lat, lng: point.lng });
+        const p = await lookupPlace(point.lat, point.lng);
+        if (!pin || cell(pin.lat, pin.lng) !== cell(point.lat, point.lng)) return; // moved again meanwhile
+        const found = p?.found && p.formatted_ar;
+        setPlace(found ? { formatted_ar: p.formatted_ar, street: p.street, house_number: p.house_number, area: p.area, city: p.city, lat: point.lat, lng: point.lng } : null);
+        // the area: the district of the pin, or the name of its delivery area (never "2.3 km from the restaurant")
+        const zoneName = quote?.id ? quote.name : (!byMap() ? currentZone()?.name : null);
+        fillAddress({ street: p?.street || '', building: p?.house_number || '', area: p?.area || zoneName || '' }, { auto: true });
+        // areas typed by hand: the one named like the pin's district, when the server is sure of it
+        if (!byMap() && p?.zone?.id && !$('[data-zone]')?.value) pickZone(p.zone.id);
+        if (cartSheet.open) {
+            const next = ['street', 'building'].map(addrField).find((f) => f && !f.value.trim()) || addrField('floor');
+            setTimeout(() => next?.focus(), 80);
+        }
+    }
+
     let leafletLoading = null;
     function loadLeaflet() {
         if (window.L) return Promise.resolve();
@@ -1110,10 +1208,34 @@ if (dataEl) {
         if (poly) return [poly.reduce((s, p) => s + p[0], 0) / poly.length, poly.reduce((s, p) => s + p[1], 0) / poly.length];
         return [30.0444, 31.2357];
     }
+    // the street under the map while the pin moves: asked ~0.7 s after it stops (a known square answers at once)
+    let placeTimer = 0;
+    let placeSeq = 0;
+    function schedulePlace(lat, lng) {
+        const line = $('[data-pin-place]', pinSheet);
+        if (!GEO || !line) return;
+        clearTimeout(placeTimer);
+        const seq = ++placeSeq;
+        const known = placeCache.has(cell(lat, lng));
+        if (!known) {
+            line.textContent = T.placeLoading;
+            line.classList.add('m-muted');
+            line.classList.remove('hidden');
+        }
+        placeTimer = setTimeout(async () => {
+            const p = await lookupPlace(lat, lng);
+            if (seq !== placeSeq) return;
+            line.classList.toggle('m-muted', !p?.found);
+            line.textContent = p?.found && p.formatted_ar ? `📍 ${p.formatted_ar}` : T.placeUnknown;
+            line.classList.remove('hidden');
+        }, known ? 0 : 700);
+    }
     // the live price under the map while the pin moves
     function pinMoved() {
-        if (!pinMarker || !mapFirst) return;
+        if (!pinMarker) return;
         const { lat, lng } = pinMarker.getLatLng();
+        schedulePlace(lat, lng);
+        if (!mapFirst) return;
         const q = pinQuote(lat, lng);
         const inBox = $('[data-pin-quote-in]', pinSheet);
         inBox.classList.toggle('hidden', !q);
@@ -1184,7 +1306,10 @@ if (dataEl) {
     });
     $('[data-pin-clear]')?.addEventListener('click', () => setPin(null));
     pinSheet?.addEventListener('click', (e) => {
-        if (e.target.closest('[data-pin-locate]')) {
+        const result = e.target.closest('[data-pin-result]');
+        if (result) {
+            pickSearchResult(Number(result.dataset.pinResult));
+        } else if (e.target.closest('[data-pin-locate]')) {
             locateMe(e.target.closest('[data-pin-locate]'));
         } else if (e.target.closest('[data-pin-list]')) {
             // "choose your area from the list instead of the map"
@@ -1197,13 +1322,67 @@ if (dataEl) {
             const { lat, lng } = pinMarker.getLatLng();
             if (mapFirst && !pinQuote(lat, lng)) return pinMoved(); // outside: "we do not deliver here" stays up
             if (mapFirst) setDeliveryBy('map');
-            setPin({ lat: Math.round(lat * 1e6) / 1e6, lng: Math.round(lng * 1e6) / 1e6 });
+            const point = { lat: Math.round(lat * 1e6) / 1e6, lng: Math.round(lng * 1e6) / 1e6 };
+            setPin(point);
             pinSheet.close();
             renderMode();
             renderCart();
-            // next: the address in detail (street, building, floor, landmark)
-            if (cartSheet.open) setTimeout(() => $('[data-address]')?.focus(), 80);
+            // next: the address in detail, its street already filled from the pin
+            applyPlaceFor(point);
         }
+    });
+
+    // ---- «دوّر على شارع أو مكان»: after a pause in typing (3+ letters) or Enter; a result moves the pin ----
+    const searchBox = $('[data-pin-search]', pinSheet || document);
+    const resultsBox = $('[data-pin-results]', pinSheet || document);
+    let searchResults = [];
+    let searchTimer = 0;
+    let searchSeq = 0;
+    function showResults(html) {
+        if (!resultsBox) return;
+        resultsBox.innerHTML = html;
+        resultsBox.classList.toggle('hidden', !html);
+        searchBox?.setAttribute('aria-expanded', html ? 'true' : 'false');
+    }
+    async function runSearch() {
+        const q = searchBox.value.trim();
+        clearTimeout(searchTimer);
+        if (q.length < 3 || !GEO) return showResults('');
+        const seq = ++searchSeq;
+        showResults(`<p class="m-muted p-3 text-sm">${esc(T.placeLoading)}</p>`);
+        const url = new URL(GEO.search, location.href);
+        url.searchParams.set('q', q.slice(0, 100));
+        if (O?.branch) url.searchParams.set('branch', O.branch);
+        const d = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store', credentials: 'same-origin' })
+            .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+        if (seq !== searchSeq) return;
+        searchResults = d?.results || [];
+        if (!d?.ok) return showResults(`<p class="m-muted p-3 text-sm">${esc(T.searchFailed)}</p>`);
+        if (!searchResults.length) return showResults(`<p class="m-muted p-3 text-sm">${esc(T.searchNone)}</p>`);
+        showResults(searchResults.map((r, i) => `
+            <button type="button" class="m-pin-result" role="option" data-pin-result="${i}">
+                <span class="block truncate text-sm font-bold" dir="auto">📍 ${esc(r.label)}</span>
+                ${r.city && !r.label.includes(r.city) ? `<span class="m-muted block truncate text-xs" dir="auto">${esc(r.city)}</span>` : ''}
+            </button>`).join(''));
+    }
+    function pickSearchResult(i) {
+        const r = searchResults[i];
+        if (!r || !pinMarker) return;
+        knowPlace(r.lat, r.lng, r);
+        pinMarker.setLatLng([r.lat, r.lng]);
+        pinMap.setView([r.lat, r.lng], 17);
+        showResults('');
+        searchBox.value = r.label;
+        pinMoved();
+    }
+    searchBox?.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(runSearch, 1000);
+        if (searchBox.value.trim().length < 3) showResults('');
+    });
+    searchBox?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); runSearch(); }
+        if (e.key === 'Escape' && !resultsBox.classList.contains('hidden')) { e.preventDefault(); e.stopPropagation(); showResults(''); }
     });
     renderPin();
 
@@ -1283,7 +1462,10 @@ if (dataEl) {
         if (mode === 'online') {
             if (!$('[data-customer-phone]').value.trim()) return fail(T.phoneRequired);
             if (otype === 'delivery' && !currentZone()) return fail(byMap() ? T.pinFirst : T.chooseZone);
-            if (otype === 'delivery' && !$('[data-address]').value.trim()) return fail(T.enterAddress);
+            if (otype === 'delivery' && !addrField('street')?.value.trim()) {
+                addrField('street')?.focus();
+                return fail(T.enterStreet);
+            }
         }
         sendBtn.disabled = true;
         sendBtn.dataset.busy = '1';
@@ -1307,7 +1489,8 @@ if (dataEl) {
                     ...(mode === 'online' ? {
                         // map first: only the pin goes, the server finds its area or distance ring and its fee
                         type: otype, branch_id: O.branch, zone_id: byMap() ? null : currentZone()?.id ?? null,
-                        address: $('[data-address]')?.value.trim() || null, scheduled_for: $('[data-scheduled]')?.value || null,
+                        // the address in parts: the server writes the one line the restaurant reads
+                        address_parts: otype === 'delivery' ? addrParts() : null, scheduled_for: $('[data-scheduled]')?.value || null,
                         ...(otype === 'delivery' && pin && (!mapFirst || byMap()) ? { lat: pin.lat, lng: pin.lng } : {}),
                     } : {}),
                 }),
@@ -1474,22 +1657,37 @@ if (dataEl) {
                     $('[data-guest-favs]', welcomeBox).classList.remove('hidden');
                 }
                 welcomeBox.classList.remove('hidden');
-                // saved delivery addresses: a tap fills the area and the address
-                const saved = (g.addresses || []).filter((a) => a.zone_id && O?.zones?.some((z) => String(z.id) === String(a.zone_id)));
+                // saved delivery addresses: a tap puts the pin back, the area and every field (no new street lookup)
+                const pinned = (a) => a.lat !== null && a.lng !== null && a.lat !== undefined;
+                const usable = (a) => (mapFirst && pinned(a) && pinQuote(a.lat, a.lng))
+                    || (a.zone_id && O?.zones?.some((z) => String(z.id) === String(a.zone_id)));
+                const saved = (g.addresses || []).filter(usable);
                 const savedBox = $('[data-saved-addresses]');
                 if (savedBox && saved.length) {
+                    const partsOf = (a) => (a.parts && Object.keys(a.parts).length ? a.parts : { street: a.text });
                     $('[data-saved-addresses-list]', savedBox).innerHTML = saved.map((a, i) => `
-                        <button type="button" class="m-border max-w-full truncate rounded-full border px-3 py-2 text-xs font-bold" data-saved-address="${i}">📍 ${esc(a.label || a.zone)} · ${esc(a.text.slice(0, 40))}</button>`).join('');
+                        <button type="button" class="m-border min-h-11 max-w-full truncate rounded-full border px-3 py-2 text-xs font-bold" data-saved-address="${i}">${a.parts?.label === 'work' ? '💼' : a.parts?.label === 'home' ? '🏠' : '📍'} ${esc(a.label || a.zone)} · ${esc((partsOf(a).street || a.text).slice(0, 40))}</button>`).join('');
                     savedBox.classList.remove('hidden');
                     savedBox.addEventListener('click', (e) => {
                         const b = e.target.closest('[data-saved-address]');
                         if (!b) return;
                         const a = saved[Number(b.dataset.savedAddress)];
-                        pickZone(a.zone_id);
-                        const field = $('[data-address]');
-                        if (field) field.value = a.text;
-                        if (a.lat !== null && a.lng !== null) { pin = { lat: a.lat, lng: a.lng }; renderPin(); }
-                        renderSendHelp?.();
+                        const parts = partsOf(a);
+                        if (mapFirst && pinned(a) && pinQuote(a.lat, a.lng)) {
+                            setDeliveryBy('map');
+                        } else {
+                            pickZone(a.zone_id);
+                        }
+                        if (pinned(a)) {
+                            const known = { formatted_ar: [parts.street, parts.area].filter(Boolean).join('، ') || a.text, street: parts.street || null, area: parts.area || null, lat: a.lat, lng: a.lng };
+                            knowPlace(a.lat, a.lng, known);
+                            setPin({ lat: a.lat, lng: a.lng });
+                            setPlace(known);
+                        }
+                        fillAddress({ area: '', building: '', floor: '', apartment: '', landmark: '', ...parts });
+                        savedBox.querySelectorAll('[data-saved-address]').forEach((x) => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+                        renderMode();
+                        renderCart();
                     });
                 }
             })

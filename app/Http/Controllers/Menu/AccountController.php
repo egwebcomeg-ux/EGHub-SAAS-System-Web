@@ -130,7 +130,7 @@ class AccountController extends Controller
             'stamps' => $card && $card['type'] === 'stamps' ? ['have' => (int) $card['stamps'], 'of' => (int) $card['required']] : null,
             'wallet' => WalletService::enabled() && (float) $customer->credit_balance > 0 ? round((float) $customer->credit_balance, 2) : null,
             'addresses' => array_map(fn (array $a) => ['zone_id' => $a['zone_id'], 'text' => $a['text'], 'label' => $a['label'], 'zone' => $a['zone'],
-                'lat' => $a['lat'], 'lng' => $a['lng']], GuestAccount::addresses($customer)),
+                'lat' => $a['lat'], 'lng' => $a['lng'], 'parts' => (object) $a['parts']], GuestAccount::addresses($customer)),
             'email' => $customer->email === null && $customer->pending_email === null,
         ]], 200, self::HEADERS);
     }

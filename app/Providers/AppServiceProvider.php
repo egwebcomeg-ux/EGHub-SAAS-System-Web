@@ -9,6 +9,9 @@ use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\SubscriptionAddon;
 use App\Models\Tenant;
+use App\Services\Geocoding\Geocoder;
+use App\Services\Geocoding\NominatimGeocoder;
+use App\Services\Geocoding\NullGeocoder;
 use App\Services\Notify\ReservationNotifier;
 use App\Services\Notify\WhatsAppReservationNotifier;
 use App\Services\PageCache;
@@ -45,6 +48,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ReservationNotifier::class, WhatsAppReservationNotifier::class);
         // Online subscription payments: Kashier is the gateway EgWeb has a contract with (App\Billing\OnlinePayments)
         $this->app->bind(PaymentGateway::class, KashierGateway::class);
+        // the street of a delivery pin and the checkout map's search (config geocoding.driver): nominatim | none
+        $this->app->bind(Geocoder::class, fn () => match (config('geocoding.driver')) {
+            'nominatim' => new NominatimGeocoder,
+            default => new NullGeocoder,
+        });
         // one list of purges per request or command (App\Services\PageCache); a queue worker flushes it after each job
         $this->app->singleton(PageCache::class);
     }
@@ -69,6 +77,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('signup', fn (Request $r) => Limit::perHour(5)->by($r->ip()));
         // Guests placing orders from a menu: generous for a table of friends, tight for scripts.
         RateLimiter::for('menu-orders', fn (Request $r) => Limit::perMinute(6)->by($r->ip().'|'.$r->path()));
+        // The checkout map asks the street of the pin (debounced while dragging) and searches places: per visitor
+        RateLimiter::for('geo-reverse', fn (Request $r) => Limit::perMinute(30)->by('geor:'.$r->ip()));
+        RateLimiter::for('geo-search', fn (Request $r) => Limit::perMinute(20)->by('geos:'.$r->ip()));
         // The guest pager page polls every 5 s: a budget per page and device (many guests share the shop's Wi-Fi).
         RateLimiter::for('pager', fn (Request $r) => Limit::perMinute(40)->by($r->ip().'|'.$r->path()));
         // the pager's "picked up" and rating: per page too, so a busy café on one Wi-Fi never blocks its guests
