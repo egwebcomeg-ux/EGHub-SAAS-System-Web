@@ -8,19 +8,31 @@ use Tests\TenantTestCase;
 /** The «EgHub apps» page: only an app that can really be downloaded says «available». */
 class AppsPageTest extends TenantTestCase
 {
-    public function test_only_the_screens_app_is_available_and_every_other_app_is_coming_soon(): void
+    public function test_the_screens_app_is_available_and_the_others_download_as_early_versions(): void
     {
         $page = $this->get($this->menuUrl('apps'))->assertOk()->assertSeeText('تطبيقات EgHub');
 
         $html = $page->getContent();
         $this->assertMatchesRegularExpression('~data-app="screens" data-status="available"~', $html);
         foreach (['pos', 'restaurant', 'waiter', 'driver', 'kiosk'] as $app) {
-            $this->assertMatchesRegularExpression('~data-app="'.$app.'" data-status="soon"~', $html);
+            $this->assertMatchesRegularExpression('~data-app="'.$app.'" data-status="beta"~', $html);
+            $page->assertSee('href="http://egmenu.test/apps/eghub-'.$app.'.apk"', false);
         }
         $page->assertSee('href="http://egmenu.test/tv.apk"', false);
-        $this->assertSame(1, substr_count($html, 'data-app-download'));
-        $page->assertSeeText('قريباً')->assertSeeText('لسه مش على متاجر التطبيقات');
-        $page->assertDontSee('Google Play')->assertDontSee('App Store');
+        $this->assertSame(6, substr_count($html, 'data-app-download'));
+        $page->assertSeeText('نسخة أولى')->assertSeeText('لسه مش على Google Play')->assertDontSee('App Store');
+    }
+
+    public function test_an_early_version_without_its_file_falls_back_to_coming_soon(): void
+    {
+        $path = public_path('apps/eghub-kiosk.apk');
+        rename($path, $path.'.bak');
+        try {
+            $html = $this->get($this->menuUrl('apps'))->assertOk()->getContent();
+            $this->assertMatchesRegularExpression('~data-app="kiosk" data-status="soon"~', $html);
+        } finally {
+            rename($path.'.bak', $path);
+        }
     }
 
     public function test_the_apps_page_is_linked_from_the_site_and_listed_in_the_sitemap(): void
