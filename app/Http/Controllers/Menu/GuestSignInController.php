@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Menu;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Services\Customers\GuestAccount;
+use App\Services\Customers\SignIn\GuestIdentity;
 use App\Services\Customers\SignIn\GuestOAuth;
 use App\Services\Customers\SignIn\WhatsAppSignIn;
 use App\Services\Settings;
@@ -22,6 +23,9 @@ use Illuminate\Http\Response;
  */
 class GuestSignInController extends Controller
 {
+    /** Session key (+ restaurant) of a guest a claim link opened, to link to the Google account that comes back. */
+    public const LINK_GOOGLE_KEY = 'guest.link_google.';
+
     /** Google's answers on the way back, as the guest reads them. */
     private const GOOGLE_ERRORS = [
         'cancelled' => 'You cancelled the Google sign-in. Try again whenever you like, or use another way below.',
@@ -52,6 +56,11 @@ class GuestSignInController extends Controller
 
             return redirect()->route('menu.account.sign-in')->withHeaders(AccountController::HEADERS)->withCookie($forgetNonce)
                 ->withErrors(['google' => __($message)], 'google');
+        }
+        // a claim link sent this phone to Google: the Google account joins the guest the link opened
+        $linkTo = $request->session()->pull(self::LINK_GOOGLE_KEY.tenant()->getTenantKey());
+        if ($linkTo && ($claimed = Customer::query()->find((int) $linkTo)) && GuestIdentity::adopt($customer, $claimed)) {
+            $customer = $claimed->refresh();
         }
         $target = $customer->phone === '' ? route('menu.account.phone') : route('menu.show');
 

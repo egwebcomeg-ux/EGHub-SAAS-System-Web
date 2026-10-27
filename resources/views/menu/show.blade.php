@@ -443,6 +443,45 @@
 {{-- running offers show in the ticker under the header; m-quick-off hides the quick "+" while the cart cannot order --}}
 {{-- the floating 🛎 of a scanned table: room under the list so it never sits on the last card's "+" --}}
 <main @class(['mx-auto max-w-2xl px-4 pt-5', 'pb-32' => ! $calls, 'pb-52' => $calls, 'm-quick-off' => ! $quickOn]) data-menu-main>
+    @if ($welcomeReward && ! $accountUrl)
+        {{-- «سجّل وخد …»: the place's gift on the first online order, for phones that do not know the guest (App\Services\Marketing\WelcomeReward) --}}
+        <button type="button" class="m-surface m-border mb-4 flex w-full items-center gap-3 rounded-2xl border p-3 text-start shadow-sm" data-welcome-banner data-account-open>
+            <span class="grid size-11 shrink-0 place-items-center rounded-full bg-amber-100 text-2xl" aria-hidden="true">🎁</span>
+            <span class="min-w-0 flex-1">
+                <span class="block font-extrabold">{{ __('Sign up and get :gift', ['gift' => $welcomeReward]) }}</span>
+                <span class="m-muted block text-sm">{{ __('On your first online order. It comes off by itself.') }}</span>
+            </span>
+            <span class="m-primary shrink-0 rounded-full px-3 py-2 text-sm font-extrabold">{{ __('Sign up') }}</span>
+        </button>
+    @endif
+
+    {{-- the returning guest: «أهلاً {name}» with their last order and the dishes they order most, filled by
+         resources/js/menu.js from /me/summary (never in the cached page) --}}
+    <section class="m-surface m-border mb-6 hidden overflow-hidden rounded-3xl border shadow-sm" data-guest-welcome aria-live="polite">
+        <div class="flex items-center justify-between gap-3 p-4 pb-2">
+            <div class="min-w-0">
+                <p class="text-lg font-black" data-guest-hello></p>
+                <p class="m-muted text-sm" data-guest-extra></p>
+            </div>
+            <a href="#" class="m-primary-text shrink-0 text-sm font-bold underline underline-offset-4" data-guest-account>{{ __('My account') }}</a>
+        </div>
+        <div class="mx-4 mb-3 hidden rounded-2xl m-surface-2 p-3" data-guest-last>
+            <div class="flex items-center gap-3">
+                <span class="text-2xl" aria-hidden="true">🧾</span>
+                <div class="min-w-0 flex-1">
+                    <p class="font-extrabold" data-guest-last-title></p>
+                    <p class="m-muted line-clamp-2 text-sm" data-guest-last-lines></p>
+                </div>
+            </div>
+            <p class="mt-2 hidden text-xs font-semibold text-amber-700" data-guest-last-skipped></p>
+            <button type="button" class="m-primary mt-3 min-h-12 w-full rounded-2xl text-base font-extrabold" data-guest-again>🔁 {{ __('Order my last order again') }}</button>
+        </div>
+        <div class="hidden px-4 pb-4" data-guest-favs>
+            <p class="mb-2 text-sm font-extrabold">⭐ {{ __('Your usual orders') }}</p>
+            <div class="m-noscroll flex gap-3 overflow-x-auto pb-1" data-guest-favs-list></div>
+        </div>
+    </section>
+
     @if ($quickAdd)
         {{-- "اطلب تاني": the last order placed from this phone (localStorage, resources/js/menu.js fills and shows it) --}}
         <section class="m-surface m-border mb-6 hidden rounded-2xl border p-3 shadow-sm" data-last-order aria-labelledby="last-order-title">
@@ -809,6 +848,11 @@
                                 <span class="m-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 11 9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg> {{ __('The address in detail') }}</span>
                                 <textarea class="field min-h-16 py-2" maxlength="300" data-address placeholder="{{ __('Street, building, floor, apartment, landmark') }}"></textarea>
                             </label>
+                            {{-- the remembered guest's saved addresses (from /me/summary): one tap fills the area and the address --}}
+                            <div class="hidden" data-saved-addresses>
+                                <p class="m-muted mb-1 text-xs font-bold">{{ __('Your saved addresses') }}</p>
+                                <div class="flex flex-wrap gap-2" data-saved-addresses-list></div>
+                            </div>
                             {{-- optional pin on the map: the driver navigates straight to it (with drawn zones it picks the zone too) --}}
                             <div class="space-y-2" data-pin-box>
                                 <button type="button" class="m-border flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border font-bold" data-pin-open>🗺️ <span data-pin-open-text>{{ __('Pin my location on the map') }}</span></button>
@@ -841,6 +885,17 @@
                         <span class="m-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/></svg> {{ $online ? __('Mobile number') : __('Mobile (optional, for offers & loyalty)') }}</span>
                         <input class="field" maxlength="20" inputmode="tel" autocomplete="tel" dir="ltr" data-customer-phone placeholder="01xxxxxxxxx">
                     </label>
+                    @if ($online)
+                        {{-- optional: the email the guest signs in with next time (kept unproven until an emailed link is used) --}}
+                        <label class="block" data-customer-email-box>
+                            <span class="m-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg> {{ __('Email (optional)') }}</span>
+                            <input class="field" type="email" maxlength="190" inputmode="email" autocomplete="email" dir="ltr" data-customer-email placeholder="name@example.com">
+                            <span class="m-muted mt-1 block text-xs">{{ __('So you can sign in to your account with it next time.') }}</span>
+                        </label>
+                        @if ($welcomeReward && in_array(\App\Services\Marketing\WelcomeReward::type(), ['percent', 'amount'], true))
+                            <p class="rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-900 ring-1 ring-amber-200" data-welcome-cart>🎁 {{ __('First online order here? :gift comes off by itself when you send it.', ['gift' => $welcomeReward]) }}</p>
+                        @endif
+                    @endif
                     {{-- the name and mobile remembered on this phone from the last order (resources/js/menu.js) --}}
                     <button type="button" class="m-primary-text hidden min-h-9 justify-self-start text-xs font-bold underline underline-offset-2" data-guest-forget>{{ __('Not you? Clear my details') }}</button>
                     {{-- optional extras folded away so the cart stays short: a coupon code and notes --}}
@@ -1062,6 +1117,11 @@
         'etaPickup' => __('Ready for pickup in about :n minutes', ['n' => '__N__']), 'etaDelivery' => __('At your door in about :n minutes', ['n' => '__N__']),
         'offersSaved' => __('You save :amount with the offers', ['amount' => '__A__']),
         'reordered' => __('Added :n item(s) from your order', ['n' => '__N__']),
+        'helloName' => __('Hi :name 👋', ['name' => '__N__']), 'hello' => __('Welcome back 👋'),
+        'lastOrderTitle' => __('Your last order · #:number · :date', ['number' => '__N__', 'date' => '__D__']),
+        'notAvailableNow' => __('Not available now: :items', ['items' => '__N__']),
+        'pointsLine' => __('You have :n points', ['n' => '__N__']), 'stampsLine' => __('Your card: :n stamps', ['n' => '__N__']),
+        'walletLine' => __('Balance: :n', ['n' => '__N__']),
         'reorderSkipped' => __(':n item(s) are not available now and were skipped', ['n' => '__N__']),
         'reorderNone' => __('The items of that order are not available now.'),
         'favOn' => __('Saved in your favourites'), 'favOff' => __('Removed from your favourites'),

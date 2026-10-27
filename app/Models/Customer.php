@@ -9,9 +9,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * A guest of the restaurant, identified by phone. Owns the digital loyalty card (card_token). A guest who came in
  * with Google (google_sub, email) may have no mobile yet: the column is null and reads as "".
+ * The guest's own sign-in at THIS restaurant: email (proven once email_verified_at is set) and an optional password
+ * (App\Services\Customers\SignIn\PasswordSignIn); pending_email / pending_phone are typed but not proven yet.
  */
 class Customer extends TenantModel
 {
+    protected $hidden = ['password'];
+
     /** A missing mobile reads as "" so every caller keeps handling a string. */
     protected function phone(): Attribute
     {
@@ -36,6 +40,8 @@ class Customer extends TenantModel
             'whatsapp_opt_out' => 'boolean',
             'last_visit_at' => 'datetime',
             'last_contacted_at' => 'datetime',
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
         ];
     }
 

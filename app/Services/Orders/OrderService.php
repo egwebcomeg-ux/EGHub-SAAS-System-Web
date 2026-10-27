@@ -21,6 +21,7 @@ use App\Services\Entitlements;
 use App\Services\Inventory\StockService;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Loyalty\Membership;
+use App\Services\Marketing\WelcomeReward;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Notify\GuestNotifier;
 use App\Services\Push\StaffPush;
@@ -89,6 +90,15 @@ final class OrderService
         if (trim((string) ($data['coupon'] ?? '')) !== '') {
             [$coupon, $couponOff] = app(Coupons::class)->check((string) $data['coupon'], $subtotal - $discount, normalize_phone((string) ($data['customer_phone'] ?? '')), $lines);
             $discount = round($discount + $couponOff, 2);
+        } elseif (($data['source'] ?? '') === 'online' && ($welcome = WelcomeReward::coupon())) {
+            // «سجّل وخد …»: the welcome gift comes off a mobile's first online order by itself (no code typed)
+            try {
+                [$coupon, $couponOff] = app(Coupons::class)->check($welcome->code, $subtotal - $discount, normalize_phone((string) ($data['customer_phone'] ?? '')), $lines);
+                $discount = round($discount + $couponOff, 2);
+            } catch (OrderException) {
+                $coupon = null;
+                $couponOff = 0.0;
+            }
         }
         // Cart goal of the menu ("add X and get Y free"): decided here with the server's prices, never by the client.
         $goalOff = 0.0;
@@ -153,7 +163,13 @@ final class OrderService
                         'delivery_address' => $type === 'delivery' ? ($data['delivery_address'] ?? null) : null,
                         'total' => round($subtotal - $discount + $service + $tax + $deliveryFee, 2), 'created_by' => $by?->id,
                         'terminal_id' => $data['terminal_id'] ?? null,
+                        'guest_email' => $data['guest_email'] ?? null,
+                        'campaign_recipient_id' => $data['campaign_recipient_id'] ?? null,
                     ]);
+                    // an email typed with the order: kept as unproven until the guest uses an emailed link
+                    if ($customer && ($data['guest_email'] ?? null) && $customer->email !== $data['guest_email']) {
+                        $customer->forceFill(['pending_email' => $data['guest_email']])->save();
+                    }
                     foreach ($lines as $line) {
                         $order->items()->create($line);
                     }

@@ -29,7 +29,7 @@ class CampaignsController extends Controller
 
         return view('dashboard.campaigns.index', [
             'tab' => $tab,
-            'campaigns' => Campaign::query()->with('coupon')->latest('id')->limit(30)->get(),
+            'campaigns' => Campaign::query()->where('channel', 'whatsapp')->with('coupon')->latest('id')->limit(30)->get(),
             'preview' => $campaigns->preview('all'),
             'sender' => GuestNotifier::senderName(),
             'menuUrl' => tenant()->url(),
@@ -118,7 +118,7 @@ class CampaignsController extends Controller
     /** @return Builder<Coupon> codes a campaign may send: no guest attached, not a printed single-use batch, still usable */
     public static function pickable(): Builder
     {
-        return Coupon::query()->whereNull('customer_id')->where('source', '!=', 'batch')->usable();
+        return Coupon::query()->whereNull('customer_id')->whereNotIn('source', ['batch', 'welcome'])->usable();
     }
 
     public function cancel(Campaign $campaign): RedirectResponse

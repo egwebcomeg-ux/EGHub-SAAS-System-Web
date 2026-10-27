@@ -53,6 +53,18 @@ final class MetaCloudDriver implements InteractiveGateway
         ]);
     }
 
+    /** An Authentication template: the code in the body and in the copy-code button. */
+    public function sendAuthCode(string $to, string $templateName, string $language, string $code): string
+    {
+        return $this->post([
+            'messaging_product' => 'whatsapp', 'to' => $to, 'type' => 'template',
+            'template' => ['name' => $templateName, 'language' => ['code' => $language], 'components' => [
+                ['type' => 'body', 'parameters' => [['type' => 'text', 'text' => $code]]],
+                ['type' => 'button', 'sub_type' => 'url', 'index' => '0', 'parameters' => [['type' => 'text', 'text' => $code]]],
+            ]],
+        ]);
+    }
+
     public function reply(string $to, string $text): string
     {
         return $this->post([

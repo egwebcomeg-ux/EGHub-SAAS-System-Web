@@ -1172,6 +1172,24 @@ if (dataEl) {
         if (mode === 'online' && otype === 'delivery' && !currentZone()) openZones();
     }
 
+    // ---- the personal link of a manual campaign (?ref=): kept 14 days on this phone and sent with the next order ----
+    const refKey = `egmenu.ref.${M.tenant}`;
+    try {
+        const here = new URL(location.href);
+        const ref = here.searchParams.get('ref');
+        if (ref && /^[a-f0-9]{10}$/.test(ref)) {
+            localStorage.setItem(refKey, JSON.stringify({ ref, at: Date.now() }));
+            here.searchParams.delete('ref');
+            history.replaceState(history.state, '', here.toString());
+        }
+    } catch {}
+    function campaignRef() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(refKey) || 'null');
+            return saved && Date.now() - (saved.at || 0) < 14 * 86400000 ? saved.ref : null;
+        } catch { return null; }
+    }
+
     // ---- send order (a scanned table, or online pickup / delivery) ----
     // a coupon from a campaign link (?coupon=CODE) is kept for this visit and filled in the cart
     try {
@@ -1210,6 +1228,8 @@ if (dataEl) {
                     items: cart.map((l) => ({ item_id: l.item_id, qty: l.qty, option_ids: l.option_ids, notes: l.notes })),
                     customer_name: $('[data-customer-name]').value.trim(),
                     customer_phone: $('[data-customer-phone]').value.trim(),
+                    customer_email: $('[data-customer-email]')?.value.trim() || null,
+                    ref: campaignRef(),
                     notes: $('[data-order-notes]').value.trim(),
                     coupon: $('[data-coupon]')?.value.trim() || null,
                     pay_wallet: !!$('[data-pay-wallet]')?.checked,
@@ -1227,6 +1247,7 @@ if (dataEl) {
             }
             rememberLastOrder();
             rememberGuest();
+            try { localStorage.removeItem(refKey); } catch {}
             cart = [];
             save();
             window.location.href = body.url;
@@ -1248,8 +1269,9 @@ if (dataEl) {
     function rememberGuest() {
         const name = $('[data-customer-name]')?.value.trim() || '';
         const phone = $('[data-customer-phone]')?.value.trim() || '';
+        const email = $('[data-customer-email]')?.value.trim() || '';
         if (!name && !phone) return;
-        try { localStorage.setItem(guestKey, JSON.stringify({ name, phone })); } catch {}
+        try { localStorage.setItem(guestKey, JSON.stringify({ name, phone, email })); } catch {}
     }
     // signed out of "حسابي" on this phone (Menu\AccountController::signOut): the saved name, mobile and last order go too
     try {
@@ -1268,6 +1290,8 @@ if (dataEl) {
         if (saved && nameField && phoneField && (saved.name || saved.phone)) {
             if (!nameField.value) nameField.value = String(saved.name || '').slice(0, 100);
             if (!phoneField.value) phoneField.value = String(saved.phone || '').slice(0, 20);
+            const emailField = $('[data-customer-email]');
+            if (emailField && !emailField.value) emailField.value = String(saved.email || '').slice(0, 190);
             guestForget?.classList.remove('hidden');
         }
         // the guest this phone remembers ("حسابي"): their name and mobile when nothing else is saved
@@ -1281,6 +1305,7 @@ if (dataEl) {
         try { localStorage.removeItem(guestKey); } catch {}
         $('[data-customer-name]').value = '';
         $('[data-customer-phone]').value = '';
+        if ($('[data-customer-email]')) $('[data-customer-email]').value = '';
         guestForget.classList.add('hidden');
         $('[data-customer-name]').focus();
         renderSendHelp?.();
@@ -1327,6 +1352,76 @@ if (dataEl) {
                 if (putBack(lastOrder.lines)) { renderCart(); cartSheet.showModal(); }
             });
         }
+    }
+    // ---- the returning guest («أهلاً {name}»): asked from /me/summary (no-store) so nothing personal sits in the
+    // cached menu; their last order again in one tap, the dishes they order most, their saved addresses at checkout ----
+    const welcomeBox = $('[data-guest-welcome]');
+    if (welcomeBox && M.summaryUrl) {
+        const url = new URL(M.summaryUrl, location.href);
+        if (M.branch) url.searchParams.set('branch', M.branch);
+        fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' }, cache: 'no-store' })
+            .then((r) => (r.ok ? r.json() : null))
+            .then((d) => {
+                const g = d?.guest;
+                if (!g) return;
+                $('[data-guest-hello]', welcomeBox).textContent = g.name ? T.helloName.replace('__N__', g.name) : T.hello;
+                const extra = [];
+                if (g.points !== null && g.points !== undefined) extra.push(T.pointsLine.replace('__N__', g.points));
+                if (g.stamps) extra.push(T.stampsLine.replace('__N__', `${g.stamps.have}/${g.stamps.of}`));
+                if (g.wallet) extra.push(T.walletLine.replace('__N__', fmt(g.wallet)));
+                $('[data-guest-extra]', welcomeBox).textContent = extra.join(' · ');
+                $('[data-guest-account]', welcomeBox).href = g.account;
+                const last = g.last;
+                const lastBox = $('[data-guest-last]', welcomeBox);
+                if (last && (last.lines.length || last.skipped) && quickOn()) {
+                    $('[data-guest-last-title]', lastBox).textContent = T.lastOrderTitle.replace('__N__', last.number).replace('__D__', last.date);
+                    $('[data-guest-last-lines]', lastBox).textContent = last.summary;
+                    const skippedEl = $('[data-guest-last-skipped]', lastBox);
+                    if (last.skippedNames?.length) {
+                        skippedEl.textContent = T.notAvailableNow.replace('__N__', last.skippedNames.join(document.documentElement.lang === 'ar' ? '، ' : ', '));
+                        skippedEl.classList.remove('hidden');
+                    }
+                    const again = $('[data-guest-again]', lastBox);
+                    again.disabled = !last.lines.length;
+                    again.addEventListener('click', () => {
+                        if (!quickOn()) return;
+                        if (putBack(last.lines, last.skipped)) { renderCart(); cartSheet.showModal(); }
+                    });
+                    lastBox.classList.remove('hidden');
+                    // the phone-only "your last order" box says the same thing: one card is enough
+                    $('[data-last-order]')?.classList.add('hidden');
+                }
+                const favs = (g.favourites || []).map((id) => M.items[id]).filter((item) => item && !item.soldOut);
+                if (favs.length) {
+                    $('[data-guest-favs-list]', welcomeBox).innerHTML = favs.map((item) => `
+                        <button type="button" data-item="${item.id}" class="w-28 shrink-0 overflow-hidden rounded-2xl border m-border m-surface text-start shadow-sm">
+                            ${phTile(item, 'aspect-square w-full')}
+                            <div class="p-2"><div class="line-clamp-2 text-xs font-bold">${esc(item.name)}</div>
+                            ${hidePrices() ? '' : `<div class="m-primary-text text-xs font-extrabold">${esc(fmt(item.price))}</div>`}</div>
+                        </button>`).join('');
+                    $('[data-guest-favs]', welcomeBox).classList.remove('hidden');
+                }
+                welcomeBox.classList.remove('hidden');
+                // saved delivery addresses: a tap fills the area and the address
+                const saved = (g.addresses || []).filter((a) => a.zone_id && O?.zones?.some((z) => String(z.id) === String(a.zone_id)));
+                const savedBox = $('[data-saved-addresses]');
+                if (savedBox && saved.length) {
+                    $('[data-saved-addresses-list]', savedBox).innerHTML = saved.map((a, i) => `
+                        <button type="button" class="m-border max-w-full truncate rounded-full border px-3 py-2 text-xs font-bold" data-saved-address="${i}">📍 ${esc(a.label || a.zone)} · ${esc(a.text.slice(0, 40))}</button>`).join('');
+                    savedBox.classList.remove('hidden');
+                    savedBox.addEventListener('click', (e) => {
+                        const b = e.target.closest('[data-saved-address]');
+                        if (!b) return;
+                        const a = saved[Number(b.dataset.savedAddress)];
+                        pickZone(a.zone_id);
+                        const field = $('[data-address]');
+                        if (field) field.value = a.text;
+                        if (a.lat !== null && a.lng !== null) { pin = { lat: a.lat, lng: a.lng }; renderPin(); }
+                        renderSendHelp?.();
+                    });
+                }
+            })
+            .catch(() => {});
     }
     if (M.reorder && quickOn()) {
         // the order page's "order again": once, then the address goes back to the plain menu
@@ -1526,7 +1621,7 @@ if (dataEl) {
     // ---- "حسابي" on a phone that does not know the guest: the sheet with the ways in (partials.account-sign-in) ----
     const accountSheet = $('[data-account-sheet]');
     if (accountSheet) {
-        $('[data-account-open]')?.addEventListener('click', () => accountSheet.showModal());
+        document.querySelectorAll('[data-account-open]').forEach((b) => b.addEventListener('click', () => accountSheet.showModal()));
         $('[data-account-close]', accountSheet)?.addEventListener('click', () => accountSheet.close());
         accountSheet.addEventListener('click', (e) => { if (e.target === accountSheet) accountSheet.close(); });
     }

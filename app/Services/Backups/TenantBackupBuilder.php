@@ -42,6 +42,8 @@ class TenantBackupBuilder
 
     /** table => columns that are secret links to the shop's devices (kiosk / TV screens open with them). */
     private const REDACTED_BY_TABLE = ['kiosks' => ['token'], 'tv_screens' => ['token', 'device_token_hash'], 'pos_terminals' => ['token'], 'pager_tickets' => ['token'],
+        // a manual campaign's personal account-claim links (each opens a guest's account once)
+        'campaign_recipients' => ['claim_link'],
         // the restaurant's own WhatsApp Business credentials (WhatsAppConnection: token, app secret, verify token)
         'whatsapp_connections' => ['access_token', 'app_secret', 'verify_token']];
 

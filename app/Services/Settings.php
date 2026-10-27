@@ -154,6 +154,10 @@ final class Settings
         'cashback_percent' => '0',
         'cashback_min_order' => '0',
         'cashback_expire_days' => '0',      // 0 = cashback never expires; else unspent cashback is taken back after N days
+        // «سجّل وخد …»: the gift on a guest's first online order (App\Services\Marketing\WelcomeReward)
+        'welcome_reward_enabled' => '0',
+        'welcome_reward_type' => 'percent', // percent | amount | points
+        'welcome_reward_value' => '10',
         // extra menu languages (feature extra_languages): JSON list of App\Support\MenuLocales codes
         'menu_locales' => '[]',
         // progress of the AI translation of the whole menu (App\Jobs\TranslateMenu), JSON

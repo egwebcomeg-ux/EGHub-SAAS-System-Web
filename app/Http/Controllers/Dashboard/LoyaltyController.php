@@ -11,10 +11,13 @@ use App\Models\LoyaltyProgram;
 use App\Models\LoyaltyReward;
 use App\Models\MenuItem;
 use App\Models\PrepaidPackage;
+use App\Services\Audit;
 use App\Services\Entitlements;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Loyalty\Membership;
 use App\Services\Loyalty\Packages;
+use App\Services\Marketing\WelcomeReward;
+use App\Services\Settings;
 use App\Services\Wallet\WalletService;
 use App\Support\BusinessType;
 use Illuminate\Http\RedirectResponse;
@@ -51,6 +54,28 @@ class LoyaltyController extends Controller
                 'redeemed' => LoyaltyReward::query()->whereIn('loyalty_card_id', $program->cards()->select('id'))->where('status', 'redeemed')->count(),
             ] : null,
         ]);
+    }
+
+    /** «سجّل وخد …»: on/off, the kind of gift and its value; the hidden welcome coupon follows (WelcomeReward::sync). */
+    public function welcome(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'type' => ['required', Rule::in(WelcomeReward::TYPES)],
+            'value' => ['required', 'numeric', 'min:1', $request->input('type') === 'percent' ? 'max:100' : 'max:100000'],
+        ]);
+        if ($data['type'] === 'points' && app(LoyaltyService::class)->program()?->type !== 'points') {
+            return back()->withErrors(['type' => __('Points need a points loyalty program. Set one up above, or choose a discount.')]);
+        }
+        Settings::put([
+            'welcome_reward_enabled' => $request->boolean('enabled') ? '1' : '0',
+            'welcome_reward_type' => $data['type'],
+            'welcome_reward_value' => (string) round((float) $data['value'], 2),
+        ]);
+        Settings::flush();
+        WelcomeReward::sync();
+        Audit::record('loyalty.welcome_reward', $data['type'], ['value' => (float) $data['value'], 'enabled' => $request->boolean('enabled')]);
+
+        return redirect()->to(route('dash.loyalty.setup').'#welcome-reward')->with('ok', __('Saved.'));
     }
 
     public function update(Request $request): RedirectResponse

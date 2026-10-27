@@ -16,6 +16,7 @@ use App\Services\Customers\GuestAccount;
 use App\Services\Entitlements;
 use App\Services\ItemVideo;
 use App\Services\Loyalty\LoyaltyService;
+use App\Services\Marketing\WelcomeReward;
 use App\Services\Menu\BestSellers;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Orders\BusyMode;
@@ -173,6 +174,8 @@ class MenuController extends Controller
             // "حسابي" in the header: the remembered guest's page, else the sheet with the ways in (no table scanned)
             'accountUrl' => $accountGuest ? GuestAccount::url($accountGuest) : null,
             'accountEntry' => $accountGuest !== null || ($table === null && $online !== null),
+            // «سجّل وخد …» on the first online order (the same for every visitor without a remembered guest)
+            'welcomeReward' => $online !== null && WelcomeReward::enabled() ? WelcomeReward::label() : null,
             'feedback' => Entitlements::current()->allows('feedback'),
             'settings' => $settings,
             'categories' => $categories,
@@ -251,6 +254,8 @@ class MenuController extends Controller
                 'callUrl' => $calls ? route('menu.call') : null,
                 // the remembered guest fills the cart's name and mobile when this phone has none saved
                 'account' => $accountGuest ? ['name' => (string) $accountGuest->name, 'phone' => (string) $accountGuest->phone] : null,
+                // the returning guest's card is asked for by the page (AccountController::summary), never written here
+                'summaryUrl' => $accountGuest ? route('menu.account.summary') : null,
                 'wallet' => $walletGuest && $walletGuest->credit_balance > 0
                     ? ['balance' => round((float) $walletGuest->credit_balance, 2), 'phone' => $walletGuest->phone] : null,
                 'online' => $online,
@@ -361,11 +366,22 @@ class MenuController extends Controller
             return null;
         }
         $order = Order::query()->where('tracking_token', $token)->with('items')->first();
-        if ($order === null) {
-            return null;
-        }
+
+        return $order === null ? null : self::reorderLines($order, $available);
+    }
+
+    /**
+     * The lines of $order that can be ordered again now (item on the menu and not sold out, options still there),
+     * with how many were skipped: the menu's "order again" and the returning guest's card (AccountController::summary).
+     *
+     * @param  Collection<int, MenuItem>  $available
+     * @return array{lines: list<array{item_id:int, option_ids:list<int>, qty:int, notes:string}>, skipped:int, skippedNames:list<string>}
+     */
+    public static function reorderLines(Order $order, Collection $available): array
+    {
         $lines = [];
         $skipped = 0;
+        $skippedNames = [];
         foreach ($order->items as $line) {
             if ((float) $line->line_total <= 0 && (float) $line->unit_price <= 0) {
                 continue;
@@ -374,13 +390,14 @@ class MenuController extends Controller
             $optionIds = $item ? self::reorderOptions($item, (array) ($line->options ?? [])) : null;
             if ($item === null || $item->is_sold_out || $optionIds === null) {
                 $skipped++;
+                $skippedNames[] = (string) $line->name;
 
                 continue;
             }
             $lines[] = ['item_id' => $item->id, 'option_ids' => $optionIds, 'qty' => min(30, max(1, (int) $line->quantity)), 'notes' => (string) $line->notes];
         }
 
-        return ['lines' => $lines, 'skipped' => $skipped];
+        return ['lines' => $lines, 'skipped' => $skipped, 'skippedNames' => array_values(array_unique($skippedNames))];
     }
 
     /**

@@ -8,6 +8,9 @@ use App\Models\Customer;
 use App\Models\DeliveryZone;
 use App\Models\Order;
 use App\Services\Customers\GuestAccount;
+use App\Services\Customers\Outreach;
+use App\Services\Customers\SignIn\EmailConfirmation;
+use App\Services\Customers\SignIn\GuestIdentity;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Orders\BusyMode;
 use App\Services\Orders\OrderException;
@@ -41,6 +44,10 @@ class OrderController extends Controller
             'notes' => 'nullable|string|max:500',
             'customer_name' => 'nullable|string|max:100',
             'customer_phone' => 'nullable|string|max:20',
+            // optional: an email so the guest can sign in with it next time (kept unproven until a link is used)
+            'customer_email' => 'nullable|string|email:rfc|max:190',
+            // the personal link of a manual campaign the guest came from (App\Services\Customers\Outreach)
+            'ref' => 'nullable|string|max:12',
             'coupon' => 'nullable|string|max:30',
             // online ordering (no table)
             'type' => ['nullable', Rule::in(['takeaway', 'delivery'])],
@@ -64,6 +71,10 @@ class OrderController extends Controller
             }
         }
 
+        $data['guest_email'] = GuestIdentity::normalizeEmail($data['customer_email'] ?? null);
+        $data['campaign_recipient_id'] = Outreach::recipientFor($data['ref'] ?? null);
+        unset($data['customer_email'], $data['ref']);
+
         $table = MenuController::currentTable($request);
         // a mobile no guest of this restaurant had before: the order creates the guest, so this phone may keep them
         $phone = normalize_phone((string) ($data['customer_phone'] ?? ''));
@@ -83,6 +94,11 @@ class OrderController extends Controller
 
         if ($order->wasRecentlyCreated && $order->source === 'online') {
             GuestAccount::rememberAddress($order);
+        }
+        // «أكّد إيميلك»: the email typed with the order becomes a sign-in only through its link (EmailConfirmation)
+        if ($order->wasRecentlyCreated && $order->guest_email && $order->customer_id && ($guest = Customer::query()->find($order->customer_id))
+            && ! ($guest->email === $order->guest_email && $guest->email_verified_at !== null)) {
+            app(EmailConfirmation::class)->request($guest, $order->guest_email, (string) $request->ip());
         }
         // "حسابي" on this phone right away for a brand-new guest; an existing guest's account never opens just
         // because someone typed their mobile (they use their link or mobile + a delivered order's number)

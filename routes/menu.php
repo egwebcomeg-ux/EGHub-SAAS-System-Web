@@ -7,6 +7,7 @@ use App\Http\Controllers\Menu\CardAppController;
 use App\Http\Controllers\Menu\CorporateVoucherController;
 use App\Http\Controllers\Menu\FeedbackController;
 use App\Http\Controllers\Menu\GiftController;
+use App\Http\Controllers\Menu\GuestEmailController;
 use App\Http\Controllers\Menu\GuestSignInController;
 use App\Http\Controllers\Menu\ItemViewController;
 use App\Http\Controllers\Menu\KioskController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Menu\MenuController;
 use App\Http\Controllers\Menu\OrderConfirmController;
 use App\Http\Controllers\Menu\OrderController;
 use App\Http\Controllers\Menu\PagerController;
+use App\Http\Controllers\Menu\PhoneCodeController;
 use App\Http\Controllers\Menu\ProfileController;
 use App\Http\Controllers\Menu\PwaController;
 use App\Http\Controllers\Menu\ReceiptController;
@@ -101,6 +103,33 @@ Route::get('/me/whatsapp/status', [GuestSignInController::class, 'whatsappStatus
 // the mobile, asked once after a Google sign-in (for orders; not verified)
 Route::get('/me/phone', [GuestSignInController::class, 'phone'])->middleware('throttle:30,1')->name('account.phone');
 Route::post('/me/phone', [GuestSignInController::class, 'savePhone'])->middleware('throttle:10,1')->name('account.phone.save');
+// the returning guest's card on the menu, loaded by the page (never in the cached HTML): AccountController::summary
+Route::get('/me/summary', [AccountController::class, 'summary'])->middleware('throttle:60,1')->name('account.summary');
+// «ادخل برقم موبايلك»: a 6-digit code by the restaurant's own WhatsApp number or SMS, or another way (PhoneCodeSignIn)
+Route::post('/me/phone-code', [PhoneCodeController::class, 'start'])->middleware('throttle:10,1')->name('account.phone-code');
+Route::post('/me/phone-code/verify', [PhoneCodeController::class, 'verify'])->middleware('throttle:15,1')->name('account.phone-code.verify');
+// «ادخل بالإيميل»: a one-time link + a 6-digit code (App\Services\Customers\SignIn\EmailSignIn); the link opens a page
+// with one button so a mail scanner does not use it up
+Route::post('/me/email', [GuestEmailController::class, 'start'])->middleware('throttle:10,1')->name('account.email');
+Route::post('/me/email/code', [GuestEmailController::class, 'code'])->middleware('throttle:10,1')->name('account.email.code');
+Route::get('/me/email/{token}', [GuestEmailController::class, 'link'])->where('token', '[a-f0-9]{64}')->middleware('throttle:20,1')->name('account.email.link');
+Route::post('/me/email/{token}', [GuestEmailController::class, 'redeem'])->where('token', '[a-f0-9]{64}')->middleware('throttle:10,1')->name('account.email.redeem');
+// «أكّد إيميلك» after an order with an email (EmailConfirmation): confirms only where the guest is proven
+Route::get('/me/email/confirm/{token}', [GuestEmailController::class, 'confirmPage'])->where('token', '[a-f0-9]{64}')->middleware('throttle:20,1')->name('account.email.confirm');
+Route::post('/me/email/confirm/{token}', [GuestEmailController::class, 'confirm'])->where('token', '[a-f0-9]{64}')->middleware('throttle:10,1')->name('account.email.confirm.save');
+Route::post('/me/email/confirm-again', [GuestEmailController::class, 'confirmAgain'])->middleware('throttle:6,1')->name('account.email.confirm.again');
+// email + password (PasswordSignIn): «اعمل حساب», «ادخل», «نسيت الباسورد؟» and the reset link
+Route::post('/me/register', [GuestEmailController::class, 'register'])->middleware('throttle:10,1')->name('account.register');
+Route::post('/me/login', [GuestEmailController::class, 'login'])->middleware('throttle:20,1')->name('account.login');
+Route::post('/me/forgot', [GuestEmailController::class, 'forgot'])->middleware('throttle:6,1')->name('account.forgot');
+Route::get('/me/reset/{token}', [GuestEmailController::class, 'resetForm'])->where('token', '[a-f0-9]{64}')->middleware('throttle:20,1')->name('account.reset');
+Route::post('/me/reset/{token}', [GuestEmailController::class, 'reset'])->where('token', '[a-f0-9]{64}')->middleware('throttle:10,1')->name('account.reset.save');
+// «ادعي عملاءك»: the personal claim link of an existing guest (App\Services\Customers\ClaimLinks)
+Route::get('/me/claim/{token}', [GuestEmailController::class, 'claim'])->where('token', '[a-f0-9]{64}')->middleware('throttle:20,1')->name('account.claim');
+Route::post('/me/claim/{token}', [GuestEmailController::class, 'claimPassword'])->where('token', '[a-f0-9]{64}')->middleware('throttle:10,1')->name('account.claim.save');
+Route::post('/me/claim/{token}/google', [GuestEmailController::class, 'claimGoogle'])->where('token', '[a-f0-9]{64}')->middleware('throttle:10,1')->name('account.claim.google');
+// a new account's mobile that another guest here has: a sign-in link to that guest's email joins the two
+Route::post('/me/prove-phone/email', [GuestEmailController::class, 'proveByOldEmail'])->middleware('throttle:6,1')->name('account.prove.email');
 Route::prefix('/me/{token}')->where(['token' => '[a-f0-9]{24}'])->group(function () {
     Route::get('/', [AccountController::class, 'show'])->middleware('throttle:30,1')->name('account');
     Route::post('/sign-out', [AccountController::class, 'signOut'])->middleware('throttle:10,1')->name('account.sign-out');

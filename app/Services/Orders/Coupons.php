@@ -6,6 +6,7 @@ use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\MenuItem;
 use App\Models\Order;
+use App\Services\Marketing\WelcomeReward;
 
 /**
  * Discount codes on orders (sent as "coupon" in the order payload). Checked before the order is priced, counted
@@ -31,6 +32,10 @@ final class Coupons
         }
         if ($coupon->starts_at && $coupon->starts_at->isFuture()) {
             throw new OrderException(__('This coupon starts on :date.', ['date' => local_time($coupon->starts_at, 'Y/m/d')]));
+        }
+        // the welcome gift (App\Services\Marketing\WelcomeReward): a mobile's first online order only
+        if ($coupon->source === WelcomeReward::SOURCE && (! WelcomeReward::enabled() || ! WelcomeReward::firstOnlineOrder($phone))) {
+            throw new OrderException($phone ? __('The welcome gift is for the first online order only.') : __('Enter your mobile number to use this coupon.'));
         }
         if ($coupon->max_uses !== null && $coupon->uses >= $coupon->max_uses) {
             throw new OrderException(__('This coupon was already fully used.'));

@@ -44,6 +44,33 @@
     <div class="space-y-4 px-4 pt-4">
         <x-flash />
 
+        @if ($customer->pending_email && ! $customer->pending_phone)
+            {{-- the email typed at checkout: it becomes the sign-in once its link is opened on this (proven) phone --}}
+            <section class="card" data-account-pending-email>
+                <h2 class="section-title">✉️ {{ __('Confirm your email') }}</h2>
+                <p class="mt-1 text-sm m-muted">{{ __('Open the link we sent to :email on this phone, and next time you sign in with it.', ['email' => \App\Http\Controllers\Menu\GuestEmailController::maskEmail((string) $customer->pending_email)]) }}</p>
+                <form method="post" action="{{ route('menu.account.email.confirm.again') }}" class="mt-3">
+                    @csrf
+                    <button class="btn-ghost w-full min-h-12 border" data-confirm-again>{{ __('Send the link again') }}</button>
+                </form>
+            </section>
+        @endif
+
+        @if ($customer->pending_phone)
+            {{-- a new account's mobile is another guest's here: proving it joins the two (orders, addresses, points) --}}
+            <section id="phone" class="card border-2 border-amber-300" data-account-prove-phone>
+                <h2 class="section-title">📱 {{ __('Confirm your mobile') }}</h2>
+                <p class="mt-1 text-sm m-muted">{{ __('The mobile :phone already has an account here. Confirm it is yours and we join it to this account, with its orders and addresses.', ['phone' => \App\Services\Customers\GuestAccount::maskedPhone($customer->pending_phone)]) }}</p>
+                <form method="post" action="{{ route('menu.account.prove.email') }}" class="mt-3">
+                    @csrf
+                    <button class="btn-ghost w-full min-h-12 border" data-prove-email>✉️ {{ __('Send a link to the email of that account') }}</button>
+                </form>
+                <div class="mt-3">
+                    @include('menu.partials.account-sign-in', ['idSuffix' => 'prove', 'hideGoogle' => true, 'showEmail' => false])
+                </div>
+            </section>
+        @endif
+
         {{-- the link is the key: keep it, or send it to your own WhatsApp to open it on another phone --}}
         <section class="card" data-account-link>
             <h2 class="section-title">{{ __('Open your account on any phone') }}</h2>

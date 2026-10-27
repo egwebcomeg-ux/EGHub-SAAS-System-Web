@@ -3,13 +3,18 @@
 namespace App\Http\Controllers\Menu;
 
 use App\Http\Controllers\Controller;
+use App\Models\Branch;
 use App\Models\Customer;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Services\Customers\GuestAccount;
 use App\Services\Customers\SignIn\OrderNumberSignIn;
 use App\Services\Customers\SignIn\SignInGuard;
 use App\Services\Loyalty\CardState;
+use App\Services\Menu\MenuCatalog;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -34,7 +39,8 @@ class AccountController extends Controller
         }
         $request->attributes->set('noindex', true);
 
-        return response()->view('menu.account-sign-in', ['settings' => Settings::all()], 200, self::HEADERS);
+        return response()->view('menu.account-sign-in', ['settings' => Settings::all(),
+            'tab' => in_array($request->query('tab'), ['login', 'register'], true) ? $request->query('tab') : null], 200, self::HEADERS);
     }
 
     /** "عندي لينك حسابي": the pasted link (or just its key) opens the account of this restaurant only. */
@@ -84,6 +90,49 @@ class AccountController extends Controller
             'wallet' => WalletService::enabled() ? round((float) $customer->credit_balance, 2) : null,
             'shareUrl' => GuestAccount::publicUrl($customer),
         ], 200, self::HEADERS)->withCookie(GuestAccount::rememberCookie($customer->card_token));
+    }
+
+    /**
+     * The returning guest on the menu (resources/js/menu.js asks once per page): their first name, the last order with
+     * what can be ordered again on this branch now, the 4 dishes they order most, points and balance. Loaded by the
+     * page itself so nothing personal is ever in the cached menu; answered from the guest cookie only, never stored.
+     */
+    public function summary(Request $request, CardState $cards): JsonResponse
+    {
+        $customer = GuestAccount::fromRequest($request);
+        if (! $customer) {
+            return response()->json(['guest' => null], 200, self::HEADERS);
+        }
+        $branch = Branch::query()->where('is_active', true)->find((int) $request->query('branch', 0)) ?? MenuCatalog::defaultBranch();
+        $available = MenuCatalog::forBranch($branch)->categories()->flatMap(fn ($c) => $c->items)->keyBy('id');
+        $last = Order::query()->where('customer_id', $customer->id)->where('status', '!=', 'cancelled')->with('items')->latest('id')->first();
+        $again = $last ? MenuController::reorderLines($last, $available) : null;
+        $favourites = OrderItem::query()->whereIn('order_id', Order::query()->where('customer_id', $customer->id)->where('status', '!=', 'cancelled')->select('id'))
+            ->whereNotNull('menu_item_id')->selectRaw('menu_item_id, sum(quantity) as qty')->groupBy('menu_item_id')->orderByDesc('qty')
+            ->limit(20)->pluck('menu_item_id')->map(fn ($id) => (int) $id)
+            ->filter(fn (int $id) => $available->has($id) && ! $available->get($id)->is_sold_out)->take(4)->values();
+        $card = $cards->for($customer);
+        $first = trim(explode(' ', trim((string) $customer->name))[0] ?? '');
+
+        return response()->json(['guest' => [
+            'name' => $first,
+            'account' => GuestAccount::url($customer),
+            'last' => $last ? [
+                'number' => (int) $last->number,
+                'date' => local_time($last->created_at, 'Y/m/d'),
+                'summary' => GuestAccount::itemsSummary($last, 3),
+                'lines' => $again['lines'],
+                'skipped' => $again['skipped'],
+                'skippedNames' => $again['skippedNames'],
+            ] : null,
+            'favourites' => $favourites,
+            'points' => $card && $card['type'] === 'points' ? (int) $card['points'] : null,
+            'stamps' => $card && $card['type'] === 'stamps' ? ['have' => (int) $card['stamps'], 'of' => (int) $card['required']] : null,
+            'wallet' => WalletService::enabled() && (float) $customer->credit_balance > 0 ? round((float) $customer->credit_balance, 2) : null,
+            'addresses' => array_map(fn (array $a) => ['zone_id' => $a['zone_id'], 'text' => $a['text'], 'label' => $a['label'], 'zone' => $a['zone'],
+                'lat' => $a['lat'], 'lng' => $a['lng']], GuestAccount::addresses($customer)),
+            'email' => $customer->email === null && $customer->pending_email === null,
+        ]], 200, self::HEADERS);
     }
 
     /** "ده مش أنا / سجّل خروج": this phone forgets the guest (the menu also clears the saved name and mobile). */

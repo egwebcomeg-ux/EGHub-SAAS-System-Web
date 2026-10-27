@@ -35,7 +35,7 @@ class Campaign extends TenantModel
     protected function casts(): array
     {
         return [
-            'segment_value' => 'float', 'scheduled_at' => 'datetime', 'started_at' => 'datetime', 'finished_at' => 'datetime',
+            'segment_value' => 'float', 'options' => 'array', 'scheduled_at' => 'datetime', 'started_at' => 'datetime', 'finished_at' => 'datetime',
             'cursor' => 'integer', 'sent_count' => 'integer', 'failed_count' => 'integer', 'skipped_count' => 'integer',
         ];
     }

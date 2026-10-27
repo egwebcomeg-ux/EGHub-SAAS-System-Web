@@ -271,6 +271,8 @@ class MenuGuestExtrasTest extends TenantTestCase
                 ['item_id' => $pizza->id, 'option_ids' => [$large->id], 'qty' => 1, 'notes' => ''],
             ],
             'skipped' => 1,
+            // what was skipped, by name (the returning guest's card says it)
+            'skippedNames' => ['Tea'],
         ], $this->menuData($html)['reorder']);
 
         // a size that is gone: that line is skipped instead of guessing

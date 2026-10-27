@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Coupon extends TenantModel
 {
-    public const SOURCES = ['campaign', 'automation', 'voucher', 'batch'];
+    public const SOURCES = ['campaign', 'automation', 'voucher', 'batch', 'welcome'];
 
     /** What the coupons page calls each code: kind => the sources behind it (a voucher splits by whether a guest holds it). */
     public const KINDS = ['campaign' => ['campaign', 'automation'], 'guest' => ['voucher'], 'batch' => ['batch'], 'public' => ['voucher']];

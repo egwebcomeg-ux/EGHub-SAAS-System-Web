@@ -140,14 +140,19 @@ final class GuestOAuth
             if (! $customer) {
                 return Customer::query()->create([
                     'phone' => null, 'name' => mb_substr($name, 0, 100), 'google_sub' => $subject,
-                    'email' => $verifiedEmail, 'source' => 'google',
+                    'email' => $verifiedEmail, 'email_verified_at' => $verifiedEmail !== null ? now() : null, 'source' => 'google',
                 ]);
             }
             $customer->forceFill(array_filter([
                 'google_sub' => $subject,
                 'email' => $verifiedEmail ?? $customer->email,
                 'name' => trim((string) $customer->name) === '' ? mb_substr($name, 0, 100) : null,
-            ], fn ($v) => $v !== null))->save();
+            ], fn ($v) => $v !== null));
+            if ($verifiedEmail !== null && $customer->email === $verifiedEmail && $customer->email_verified_at === null) {
+                // Google proved the inbox: a sign-up password nobody proved is dropped (GuestIdentity::forProvenEmail)
+                $customer->forceFill(['email_verified_at' => now()] + ($customer->password !== null ? ['password' => null] : []));
+            }
+            $customer->save();
 
             return $customer;
         });

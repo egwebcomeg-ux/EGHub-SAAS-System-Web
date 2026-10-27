@@ -162,7 +162,10 @@ class WhatsAppOwnNumberTest extends TenantTestCase
             && $r->hasHeader('Authorization', 'Bearer '.self::TOKEN));
         Http::assertSent(fn ($r) => $r->method() === 'POST' && str_ends_with($r->url(), '/111222333/subscribed_apps'));
         $created = Http::recorded(fn ($r) => $r->method() === 'POST' && str_ends_with($r->url(), '/111222333/message_templates'));
-        $this->assertCount(14, $created); // 7 template names × ar, en
+        $this->assertCount(16, $created); // 8 template names × ar, en (the sign-in code is an Authentication template)
+        $code = $created->first(fn ($pair) => $pair[0]['name'] === 'egmenu_sign_in_code' && $pair[0]['language'] === 'ar')[0];
+        $this->assertSame('AUTHENTICATION', $code['category']);
+        $this->assertSame('COPY_CODE', $code['components'][2]['buttons'][0]['otp_type']);
         $confirm = $created->first(fn ($pair) => $pair[0]['name'] === 'egmenu_order_confirm' && $pair[0]['language'] === 'ar')[0];
         $this->assertSame('UTILITY', $confirm['category']);
         $this->assertStringContainsString('أهلاً {{1}} 🙏 طلبك رقم {{2}} من {{3}}', $confirm['components'][0]['text']);
@@ -195,7 +198,7 @@ class WhatsAppOwnNumberTest extends TenantTestCase
         $a = $this->restaurant('cafe-a');
         $this->metaTemplates = ['egmenu_order_ready' => ['ar' => 'APPROVED', 'en' => 'REJECTED'], 'someone_elses' => ['ar' => 'APPROVED']];
         $this->actingAs($this->owner($a))->post($this->dashUrl('/settings/whatsapp-number'), $this->form());
-        $this->assertCount(12, Http::recorded(fn ($r) => $r->method() === 'POST' && str_ends_with($r->url(), '/message_templates')));
+        $this->assertCount(14, Http::recorded(fn ($r) => $r->method() === 'POST' && str_ends_with($r->url(), '/message_templates')));
 
         $this->metaTemplates += ['egmenu_order_confirm' => ['ar' => 'APPROVED', 'en' => 'PENDING']];
         $this->actingAs($this->owner($a))->post($this->dashUrl('/settings/whatsapp-number/templates'))->assertSessionHas('ok');

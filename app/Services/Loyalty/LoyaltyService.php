@@ -10,6 +10,7 @@ use App\Models\LoyaltyTransaction;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\Entitlements;
+use App\Services\Marketing\WelcomeReward;
 use App\Services\Notify\GuestNotifier;
 use App\Services\Wallet\WalletService;
 use Illuminate\Support\Facades\DB;
@@ -98,6 +99,10 @@ final class LoyaltyService
             $earned = $this->earned($program, $card, $order);
             if ($earned > 0) {
                 $this->add($card, $earned, $program->type === 'points' ? 'points' : 'stamp', $order->id, null, $order->branch_id);
+            }
+            // «سجّل وخد …» as points: once, with the guest's first counted online order
+            if ($program->type === 'points' && ($gift = WelcomeReward::pointsFor($order, $customer)) > 0) {
+                $this->add($card, $gift, 'points', $order->id, null, $order->branch_id, WelcomeReward::SOURCE);
             }
         });
     }

@@ -41,6 +41,7 @@ use App\Http\Controllers\Dashboard\NativeTrackingController;
 use App\Http\Controllers\Dashboard\NotificationsController;
 use App\Http\Controllers\Dashboard\OnboardingController;
 use App\Http\Controllers\Dashboard\OrdersController;
+use App\Http\Controllers\Dashboard\OutreachController;
 use App\Http\Controllers\Dashboard\PagerController;
 use App\Http\Controllers\Dashboard\PasswordResetController;
 use App\Http\Controllers\Dashboard\PhoneVerificationController;
@@ -343,6 +344,21 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
             Route::get('/customers/import/{token}', [CustomerImportController::class, 'review'])->where('token', '[A-Za-z0-9]+')->name('customers.import.review');
             Route::post('/customers/import/{token}', [CustomerImportController::class, 'apply'])->where('token', '[A-Za-z0-9]+')->name('customers.import.apply');
         });
+        // a group of guests for Meta Ads (customer list format), owner and manager only, in the audit log
+        Route::get('/customers/audience-export', [CustomersController::class, 'audienceExport'])
+            ->middleware(['permission:customers.import', 'support.blocked', 'throttle:10,1'])->name('customers.audience-export');
+        // «حملة واتساب مجانية»: the manual campaign sent row by row from the staff's own WhatsApp (no Meta, no credits)
+        Route::middleware('permission:marketing.manage')->prefix('/customers/outreach')->name('outreach')->group(function () {
+            Route::get('/', [OutreachController::class, 'index'])->name('');
+            Route::post('/', [OutreachController::class, 'store'])->middleware('throttle:10,1')->name('.store');
+            Route::get('/{campaign}', [OutreachController::class, 'show'])->whereNumber('campaign')->name('.show');
+            Route::post('/{campaign}/rows/{recipient}/sent', [OutreachController::class, 'sent'])->whereNumber(['campaign', 'recipient'])
+                ->middleware('throttle:120,1')->name('.sent');
+            Route::post('/{campaign}/rows/{recipient}/opt-out', [OutreachController::class, 'optOut'])->whereNumber(['campaign', 'recipient'])->name('.opt-out');
+            Route::get('/{campaign}/links.csv', [OutreachController::class, 'export'])->whereNumber('campaign')
+                ->middleware(['permission:customers.import', 'support.blocked'])->name('.export');
+            Route::post('/{campaign}/sms', [OutreachController::class, 'sms'])->whereNumber('campaign')->middleware('throttle:6,1')->name('.sms');
+        });
         Route::get('/customers/{customer}', [CustomersController::class, 'show'])->name('customers.show');
         Route::post('/customers/{customer}', [CustomersController::class, 'update'])->name('customers.update');
         // "رابط جديد" of the guest's account (and card) link: every old link and remembered phone stops working
@@ -353,6 +369,8 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/loyalty/setup', [LoyaltyController::class, 'edit'])->name('loyalty.setup');
         Route::post('/loyalty/setup', [LoyaltyController::class, 'update'])->name('loyalty.update');
         Route::post('/loyalty/restart', [LoyaltyController::class, 'restart'])->name('loyalty.restart');
+        // «سجّل وخد …»: the gift on a guest's first online order (App\Services\Marketing\WelcomeReward)
+        Route::post('/loyalty/welcome', [LoyaltyController::class, 'welcome'])->name('loyalty.welcome');
         // discount vouchers of the loyalty card: single, held by a guest, printed batches
         Route::get('/loyalty/vouchers', [VouchersController::class, 'index'])->name('vouchers');
         Route::post('/loyalty/vouchers', [VouchersController::class, 'store'])->name('vouchers.store');

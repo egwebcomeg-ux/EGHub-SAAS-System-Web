@@ -59,7 +59,13 @@ return [
         // "confirm your cash-on-delivery order" (category Utility): 6 body parameters and 3 quick-reply buttons, the
         // exact text to submit is above Templates::PARAMS['order_confirm']
         'order_confirm' => env('WHATSAPP_TPL_ORDER_CONFIRM', 'egmenu_order_confirm'),
+        // the guest's sign-in code (category Authentication, a copy-code button), sent only from a restaurant's OWN
+        // number (App\Services\Customers\SignIn\PhoneCodeSignIn): Meta bills the restaurant's account, no EgHub credit
+        'sign_in_code' => env('WHATSAPP_TPL_SIGN_IN_CODE', 'egmenu_sign_in_code'),
     ],
+
+    // what one authentication message is estimated to cost the restaurant on Meta (shown on the customers page)
+    'auth_cost' => (float) env('WHATSAPP_AUTH_COST', 0),
 
     // Meta template language per restaurant language
     'languages' => ['ar' => 'ar', 'en' => 'en'],

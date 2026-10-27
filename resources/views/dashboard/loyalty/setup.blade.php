@@ -128,6 +128,41 @@
     </div>
 </form>
 
+{{-- «سجّل وخد …»: the gift on a guest's first online order (App\Services\Marketing\WelcomeReward) --}}
+@php($welcome = \App\Services\Settings::all())
+<form method="post" action="{{ route('dash.loyalty.welcome') }}" class="card mt-6 space-y-4" id="welcome-reward" data-welcome-form>
+    @csrf
+    <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <h2 class="section-title">🎁 {{ __('Welcome gift for signing up') }}</h2>
+            <p class="mt-1 text-sm text-navy-500">{{ __('The menu shows «Sign up and get …» to new guests, and the gift comes off their first online order by itself, once per mobile.') }}</p>
+        </div>
+        <label class="flex min-h-11 items-center gap-2 font-bold">
+            <input type="checkbox" name="enabled" value="1" class="size-5" @checked($welcome['welcome_reward_enabled'] === '1') data-welcome-on> {{ __('On') }}
+        </label>
+    </div>
+    <div class="grid gap-3 sm:grid-cols-3">
+        <div>
+            <label class="field-label" for="w-type">{{ __('The gift') }}</label>
+            <select class="field" id="w-type" name="type">
+                <option value="percent" @selected($welcome['welcome_reward_type'] === 'percent')>{{ __('% off the first online order') }}</option>
+                <option value="amount" @selected($welcome['welcome_reward_type'] === 'amount')>{{ __('An amount off the first online order') }}</option>
+                @if ($points)<option value="points" @selected($welcome['welcome_reward_type'] === 'points')>{{ __('Points on the loyalty card') }}</option>@endif
+            </select>
+            @error('type')<div class="field-error">{{ $message }}</div>@enderror
+        </div>
+        <div>
+            <label class="field-label" for="w-value">{{ __('Value') }}</label>
+            <input class="field" id="w-value" type="number" name="value" min="1" max="100000" step="1" value="{{ $welcome['welcome_reward_value'] }}" dir="ltr" required>
+            @error('value')<div class="field-error">{{ $message }}</div>@enderror
+        </div>
+        <div class="flex items-end">
+            <button class="btn-primary min-h-11 w-full">{{ __('Save') }}</button>
+        </div>
+    </div>
+    <p class="text-xs text-navy-500">{{ __('Points need a points loyalty program. Guests see the gift only where online ordering is on.') }}</p>
+</form>
+
 @if ($locked)
     <form method="post" action="{{ route('dash.loyalty.restart') }}" class="mt-6" onsubmit="return confirm(@js(__('Start a new program? Guests get a new empty card; old rewards stay usable.')))">
         @csrf<button class="btn-ghost">{{ __('Start a new program with other rules') }}</button>

@@ -5,6 +5,7 @@
 <x-dash.page-header :title="__('Customers')">
     <x-slot:actions>
         @can('customers.import')<a href="{{ route('dash.customers.import') }}" class="btn-ghost" data-customers-import>⬆ {{ __('Import customers') }}</a>@endcan
+        @can('marketing.manage')<a href="{{ route('dash.outreach') }}" class="btn-ghost" data-outreach-link>💬 {{ __('Free WhatsApp campaign') }}</a>@endcan
         <a href="{{ route('dash.customers.export', array_filter(['q' => $q, 'segment' => $segment])) }}" class="btn-ghost">⬇ {{ __('Export to Excel (CSV)') }}</a>
     </x-slot:actions>
 </x-dash.page-header>
@@ -25,6 +26,63 @@
     <div class="stat-card"><div class="stat-label">{{ __('Came back more than once') }}</div><div class="stat-value">{{ $stats['returning'] }}</div></div>
     <div class="stat-card"><div class="stat-label">{{ __('New this month') }}</div><div class="stat-value">{{ $stats['new_month'] }}</div></div>
 </div>
+
+@if ($codeUsage !== [])
+    {{-- the guests' sign-in codes (App\Services\Customers\SignIn\PhoneCodeSignIn): what the place's own WhatsApp number and SMS cost --}}
+    <section class="card mb-4 text-sm" data-code-usage>
+        <h2 class="font-bold">🔐 {{ __('Sign-in codes sent to guests (last 30 days)') }}</h2>
+        <div class="mt-2 flex flex-wrap gap-x-6 gap-y-1">
+            @foreach ($codeUsage as $channel => $u)
+                <span data-code-usage-channel="{{ $channel }}">{{ \App\Services\Customers\SignIn\PhoneCodeSignIn::label($channel) }}: <b>{{ number_format($u['count']) }}</b>
+                    @if ($u['cost'] > 0)<span class="text-navy-500">({{ __('about :cost', ['cost' => money($u['cost'])]) }})</span>@endif</span>
+            @endforeach
+        </div>
+        <p class="mt-1 text-xs text-navy-500">{{ __('WhatsApp codes go out from your own number and Meta bills your account; SMS from the provider set up for you.') }}</p>
+    </section>
+@endif
+
+{{-- the groups worth acting on (App\Services\Customers\Audiences): how many, what they spent, and what to do --}}
+<section class="mb-4" data-audiences aria-label="{{ __('Groups of guests') }}">
+    <div class="m-noscroll -mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2">
+        @foreach ($audiences as $a)
+            <a href="{{ route('dash.customers', array_filter(['audience' => $audience === $a['key'] ? null : $a['key'], 'q' => $q, 'sort' => $sort])) }}" data-audience="{{ $a['key'] }}"
+               @class(['min-w-40 shrink-0 snap-start rounded-2xl border p-3 transition', 'border-navy-900 bg-navy-900 text-white' => $audience === $a['key'], 'border-navy-100 bg-white hover:border-brand-500' => $audience !== $a['key']])
+               @if ($audience === $a['key']) aria-current="true" @endif>
+                <span class="block text-sm font-bold">{{ $a['label'] }}</span>
+                <span class="mt-1 block text-2xl font-black" data-audience-count>{{ number_format($a['count']) }}</span>
+                <span @class(['block text-xs', 'text-white/70' => $audience === $a['key'], 'text-navy-500' => $audience !== $a['key']])>{{ __('Spent :amount', ['amount' => money($a['revenue'])]) }}</span>
+            </a>
+        @endforeach
+    </div>
+    @if ($audience !== '')
+        <script>document.querySelector('[data-audience][aria-current]')?.scrollIntoView({ inline: 'center', block: 'nearest' });</script>
+    @endif
+    @if ($audience !== '' && ($current = collect($audiences)->firstWhere('key', $audience)))
+        <div class="mt-2 rounded-2xl border border-brand-200 bg-brand-50 p-4" data-audience-action>
+            <p class="font-bold">💡 {{ $current['action'] }}</p>
+            <div class="mt-3 flex flex-wrap gap-2">
+                @can('marketing.manage')
+                    <a href="{{ route('dash.outreach', ['audience' => $audience]) }}" class="btn-primary min-h-11" data-audience-campaign>💬 {{ __('Free WhatsApp campaign to them') }}</a>
+                @endcan
+                @can('customers.import')
+                    <a href="{{ route('dash.customers.audience-export', ['audience' => $audience]) }}" class="btn-ghost min-h-11 border" data-audience-meta>⬇ {{ __('Export for Facebook / Instagram ads') }}</a>
+                @endcan
+            </div>
+            @can('customers.import')
+                <details class="mt-3 text-sm" data-meta-guide>
+                    <summary class="cursor-pointer font-semibold text-brand-700">{{ __('How to use the file in Meta ads') }}</summary>
+                    <ol class="mt-2 list-decimal space-y-1 ps-5 text-navy-700">
+                        <li>{{ __('Download the file from the button above.') }}</li>
+                        <li>{!! __('Open :link → Audiences.', ['link' => '<a href="https://adsmanager.facebook.com/adsmanager/audiences" target="_blank" rel="noopener" class="font-semibold underline">Meta Ads Manager</a>']) !!}</li>
+                        <li>{{ __('Create audience → Custom audience → Customer list, and upload the file (the columns are already named the way Meta reads them).') }}</li>
+                        <li>{{ __('Use the audience in an ad to remind them of you, or make a Lookalike audience from it to reach people like your best guests.') }}</li>
+                        <li>{{ __('Meta matches the numbers and emails on its side; small groups (under about 100) may not be shown.') }}</li>
+                    </ol>
+                </details>
+            @endcan
+        </div>
+    @endif
+</section>
 
 @php
     $segmentStyles = [
@@ -55,6 +113,7 @@
 
 <form class="mb-4 flex flex-wrap gap-2">
     @if ($segment !== '')<input type="hidden" name="segment" value="{{ $segment }}">@endif
+    @if ($audience !== '')<input type="hidden" name="audience" value="{{ $audience }}">@endif
     <input class="field max-w-xs" name="q" value="{{ $q }}" placeholder="{{ __('Search name or mobile') }}">
     <select class="field max-w-52" name="sort" onchange="this.form.submit()">
         <option value="last_visit_at" @selected($sort === 'last_visit_at')>{{ __('Last visit') }}</option>
@@ -85,7 +144,7 @@
                 </td>
             </tr>
         @empty
-            <tr><td colspan="7" class="py-10 text-center text-navy-500">{{ $segment !== '' ? __('No guests in this segment yet.') : __('Guests appear here when they order with their mobile number or join the loyalty card.') }}</td></tr>
+            <tr><td colspan="7" class="py-10 text-center text-navy-500">{{ $segment !== '' || $audience !== '' ? __('No guests in this segment yet.') : __('Guests appear here when they order with their mobile number or join the loyalty card.') }}</td></tr>
         @endforelse
         </tbody>
     </table>

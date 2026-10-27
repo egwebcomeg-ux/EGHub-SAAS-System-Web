@@ -3,6 +3,7 @@
 namespace App\Services\WhatsApp;
 
 use App\Models\WhatsAppConnection;
+use App\Services\WhatsApp\Drivers\MetaCloudDriver;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
@@ -30,6 +31,21 @@ final class OwnNumber
 {
     /** Meta error codes meaning the token no longer works (expired, revoked, password changed). */
     public const TOKEN_ERRORS = [190];
+
+    /** The guest's sign-in code: an Authentication template with a copy-code button (config whatsapp.templates). */
+    public const AUTH_TEMPLATE = 'sign_in_code';
+
+    /**
+     * Sends a guest's sign-in code from the restaurant's own number (the Authentication template must be approved in
+     * its account; Meta bills that account, no EgHub credit). Returns Meta's message id.
+     *
+     * @throws WhatsAppException
+     */
+    public static function sendCode(WhatsAppConnection $connection, string $phone, string $code, string $locale): string
+    {
+        return (new MetaCloudDriver($connection->phone_number_id, (string) $connection->access_token))
+            ->sendAuthCode(whatsapp_number($phone), self::templateName(self::AUTH_TEMPLATE), self::language($locale), $code);
+    }
 
     /** The restaurant's connection, whatever its state (current tenant). */
     public static function current(): ?WhatsAppConnection
@@ -83,6 +99,18 @@ final class OwnNumber
                 continue;
             }
             $seen[$name] = true;
+            if ($key === self::AUTH_TEMPLATE) {
+                // Meta writes the text of an authentication template itself; we choose the expiry and the copy button
+                foreach ((array) config('whatsapp.languages') as $locale => $language) {
+                    $out[] = ['key' => $key, 'name' => $name, 'language' => (string) $language, 'category' => 'AUTHENTICATION', 'components' => [
+                        ['type' => 'BODY', 'add_security_recommendation' => true],
+                        ['type' => 'FOOTER', 'code_expiration_minutes' => 5],
+                        ['type' => 'BUTTONS', 'buttons' => [['type' => 'OTP', 'otp_type' => 'COPY_CODE', 'text' => $locale === 'en' ? 'Copy code' : 'انسخ الكود']]],
+                    ]];
+                }
+
+                continue;
+            }
             foreach ((array) config('whatsapp.languages') as $locale => $language) {
                 $body = Templates::metaBody($key, $locale);
                 if ($body === null) {
