@@ -16,7 +16,7 @@ class AppsPageTest extends TenantTestCase
         $this->assertMatchesRegularExpression('~data-app="screens" data-status="available"~', $html);
         foreach (['pos', 'restaurant', 'waiter', 'driver', 'kiosk'] as $app) {
             $this->assertMatchesRegularExpression('~data-app="'.$app.'" data-status="beta"~', $html);
-            $page->assertSee('href="http://egmenu.test/apps/eghub-'.$app.'.apk"', false);
+            $page->assertSee('href="http://egmenu.test/downloads/eghub-'.$app.'.apk"', false);
         }
         $page->assertSee('href="http://egmenu.test/tv.apk"', false);
         $this->assertSame(6, substr_count($html, 'data-app-download'));
@@ -25,7 +25,7 @@ class AppsPageTest extends TenantTestCase
 
     public function test_an_early_version_without_its_file_falls_back_to_coming_soon(): void
     {
-        $path = public_path('apps/eghub-kiosk.apk');
+        $path = public_path('downloads/eghub-kiosk.apk');
         rename($path, $path.'.bak');
         try {
             $html = $this->get($this->menuUrl('apps'))->assertOk()->getContent();
