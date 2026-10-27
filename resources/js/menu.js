@@ -1888,6 +1888,50 @@ if (dataEl) {
         splitSheet.addEventListener('change', renderSplit, { once: true });
     });
 
+    // ---- a tap outside any bottom sheet closes it (the item, the cart, "goes well with", the area…), like delivery apps.
+    // Only when the press both starts and ends on the dimmed backdrop, so a drag out of a field or the map never closes it.
+    // The full-page item (pro display) and the first-open choice keep their own buttons. ----
+    let backdropPress = null;
+    document.addEventListener('pointerdown', (e) => { backdropPress = e.target instanceof HTMLDialogElement ? e.target : null; }, true);
+    document.addEventListener('click', (e) => {
+        const dialog = e.target;
+        if (!(dialog instanceof HTMLDialogElement) || dialog !== backdropPress || !dialog.open) return;
+        if (dialog.matches('[data-item-page], [data-first-sheet], [data-keep-open]')) return;
+        dialog.close();
+    });
+
+    // Pull a bottom sheet down to close it: from its top (scrolled to the start), a drag past 110px closes, less springs back.
+    document.addEventListener('touchstart', (e) => {
+        const panel = e.target instanceof Element ? e.target.closest('dialog[open] > form') : null;
+        const dialog = panel?.parentElement;
+        if (!panel || dialog.matches('[data-item-page], [data-first-sheet], [data-keep-open]') || panel.scrollTop > 0) return;
+        if (e.target.closest('input, textarea, select, [data-map], .leaflet-container, [data-no-pull]')) return;
+        const startY = e.touches[0].clientY;
+        let dy = 0;
+        const move = (ev) => {
+            dy = Math.max(0, ev.touches[0].clientY - startY);
+            if (dy > 0 && panel.scrollTop <= 0) {
+                panel.style.transition = 'none';
+                panel.style.transform = `translateY(${dy}px)`;
+            }
+        };
+        const end = () => {
+            panel.removeEventListener('touchmove', move);
+            panel.removeEventListener('touchend', end);
+            panel.removeEventListener('touchcancel', end);
+            panel.style.transition = 'transform .18s ease';
+            if (dy > 110) {
+                panel.style.transform = 'translateY(100%)';
+                setTimeout(() => { dialog.close(); panel.style.transform = ''; panel.style.transition = ''; }, 170);
+            } else {
+                panel.style.transform = '';
+            }
+        };
+        panel.addEventListener('touchmove', move, { passive: true });
+        panel.addEventListener('touchend', end);
+        panel.addEventListener('touchcancel', end);
+    }, { passive: true });
+
     // ---- "حسابي" on a phone that does not know the guest: the sheet with the ways in (partials.account-sign-in) ----
     const accountSheet = $('[data-account-sheet]');
     if (accountSheet) {

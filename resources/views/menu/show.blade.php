@@ -636,6 +636,10 @@
                 </span>
             </div>
         @endif
+        @unless ($pro)
+            {{-- the grab handle: pull the sheet down (or tap outside it) to close --}}
+            <div class="sticky top-0 z-10 flex justify-center pt-2 pb-1" style="background: var(--menu-surface)" aria-hidden="true"><span class="h-1.5 w-10 rounded-full" style="background: var(--menu-border)"></span></div>
+        @endunless
         @if ($pro)
             {{-- professional item page: a hero in the accent with the photo (or the themed icon) in a big circle --}}
             <div class="relative" data-sheet-media>
