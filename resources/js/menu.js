@@ -2,6 +2,8 @@
 // online, the hall list for the waiter, bill split, the order-type screen and the intro splash.
 // Prices here are only for display; the server recomputes every amount when the order is placed.
 
+import { quoteAt, zoneAt } from './delivery-geo';
+
 const dataEl = document.getElementById('menu-data');
 if (dataEl) {
     const M = JSON.parse(dataEl.textContent);
@@ -20,6 +22,16 @@ if (dataEl) {
     // from the menu link) or none (menu only). The hall setting comes from the restaurant (App\Support\DineIn).
     const H = M.hall || { mode: 'off', prices: true };
     const O = M.online;
+    // delivery priced by the guest's pin (drawn zones or distance rings): the map comes first, the list of areas is
+    // the fallback ("deliveryBy" = map | list). The pin and its quote are the preview only; the server prices again.
+    const mapFirst = !!O?.pricing?.map;
+    const byKey = `egmenu.deliveryBy.${M.tenant}`;
+    let deliveryBy = mapFirst && session.get(byKey) === 'list' && (O?.zones || []).length ? 'list' : 'map';
+    const byMap = () => mapFirst && deliveryBy === 'map';
+    const pinKey = `egmenu.pin.${M.tenant}`;
+    let pin = null;
+    try { pin = JSON.parse(session.get(pinKey) || 'null'); } catch { pin = null; }
+    const pinQuote = (lat, lng) => quoteAt(O?.pricing, O?.zones, lat, lng, (d) => T.distanceName.replace('__K__', d.toFixed(1)));
     const hallCart = H.mode === 'order' ? 'table' : H.mode === 'list' ? 'list' : 'none';
     let mode = M.mode;
     let otype = O ? (O.takeaway ? 'takeaway' : 'delivery') : null;
@@ -740,7 +752,7 @@ if (dataEl) {
         const list = [];
         if (!val('[data-customer-name]')) list.push(T.missingName);
         if (!val('[data-customer-phone]')) list.push(T.missingPhone);
-        if (otype === 'delivery' && !t.zone) list.push(T.missingZone);
+        if (otype === 'delivery' && !t.zone) list.push(byMap() ? T.missingPin : T.missingZone);
         if (otype === 'delivery' && !val('[data-address]')) list.push(T.missingAddress);
         return list;
     }
@@ -779,7 +791,17 @@ if (dataEl) {
     // ---- the way of ordering: hall (table / list) or online pickup / delivery ----
     function currentZone() {
         if (mode !== 'online' || otype !== 'delivery') return null;
+        if (byMap()) return pin ? pinQuote(pin.lat, pin.lng) : null;
         return O.zones.find((z) => String(z.id) === $('[data-zone]')?.value) || null;
+    }
+    // the delivery step: the map when the pin prices it, else the list of areas
+    function openDelivery() {
+        if (byMap()) openPin();
+        else openZones();
+    }
+    function setDeliveryBy(by) {
+        deliveryBy = by;
+        session.set(byKey, by);
     }
     const show = (sel, on) => document.querySelectorAll(sel).forEach((el) => el.classList.toggle('hidden', !on));
     function renderMode() {
@@ -796,6 +818,7 @@ if (dataEl) {
         show('[data-hall-notice], [data-scan-hint], [data-show-waiter], [data-hall-tools] [data-hall-call]', wayPicked && mode === 'list');
         show('[data-hall-tools]', wayPicked && inHall());
         show('[data-open-split]', inHall() && H.prices);
+        renderLocation();
         const title = $('[data-cart-title]');
         if (title) title.textContent = mode === 'list' ? T.myOrder : T.yourOrder;
         // the order-type chip in the header: "🛵 Delivery · Maadi ▾" (nothing chosen yet: "How will you order? ▾")
@@ -820,7 +843,7 @@ if (dataEl) {
         if (!H.table) session.set(wayKey, way);
         applyWay(way);
         // delivery: the area comes first, so the fee, the minimum and the time are known before adding items
-        if (way === 'delivery' && !currentZone()) openZones();
+        if (way === 'delivery' && !currentZone()) openDelivery();
     }
     document.addEventListener('click', (e) => {
         const b = e.target.closest('[data-way], [data-online] [data-otype]');
@@ -914,7 +937,7 @@ if (dataEl) {
             return;
         }
         closeFirstSheet();
-        if (way === 'delivery' && !currentZone()) openZones();
+        if (way === 'delivery' && !currentZone()) openDelivery();
     }
     if (firstSheet) {
         const hasWays = wayCards().length > 0;
@@ -965,6 +988,7 @@ if (dataEl) {
         if (!select || !O.zones.some((z) => String(z.id) === String(id))) return;
         select.value = String(id);
         session.set(zoneKey, String(id));
+        if (mapFirst) setDeliveryBy('list');
         zoneSheet?.close();
         renderMode();
         renderCart();
@@ -977,22 +1001,20 @@ if (dataEl) {
         else if (e.target.closest('[data-zone-back]')) zoneStep('root');
         else if (e.target.closest('[data-zone-detect]')) detectZone(e.target.closest('[data-zone-detect]'));
     });
+    // "pin my location on the map instead" (zone sheet, cart): back to the map
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('[data-use-map]')) return;
+        setDeliveryBy('map');
+        zoneSheet?.close();
+        renderMode();
+        openPin();
+    });
     zoneSheet?.addEventListener('input', (e) => {
         const box = e.target.closest('[data-zone-search]');
         if (!box) return;
         const q = box.value.trim().toLowerCase();
         box.parentElement.querySelectorAll('[data-zone-text]').forEach((b) => b.classList.toggle('hidden', !!q && !b.dataset.zoneText.includes(q)));
     });
-    // ray casting, the same test as App\Models\DeliveryZone::contains (points are [lat, lng])
-    const inside = (poly, lat, lng) => {
-        let hit = false;
-        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-            const [ai, oi] = poly[i];
-            const [aj, oj] = poly[j];
-            if ((oi > lng) !== (oj > lng) && lat < ((aj - ai) * (lng - oi)) / (oj - oi) + ai) hit = !hit;
-        }
-        return hit;
-    };
     function detectZone(btn) {
         if (!navigator.geolocation) return;
         const label = btn.textContent;
@@ -1002,9 +1024,8 @@ if (dataEl) {
             btn.disabled = false;
             btn.textContent = label;
             const { latitude: lat, longitude: lng } = pos.coords;
-            const hits = O.zones.filter((z) => z.polygon && inside(z.polygon, lat, lng));
             // a drawn street inside a drawn area wins over the area
-            const zone = hits.find((z) => z.parent) || hits[0];
+            const zone = zoneAt(O.zones, lat, lng);
             if (zone) pickZone(zone.id);
             else $('[data-zone-outside]', zoneSheet).classList.remove('hidden');
         }, () => {
@@ -1014,32 +1035,46 @@ if (dataEl) {
         }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 });
     }
 
-    // ---- "pin my location": a draggable pin on the map (Leaflet loaded on demand from the pinned CDN copy) ----
-    // The point goes with the address (the driver navigates to it, the tracking map shows it). With drawn zones
-    // (map mode) the pin picks the zone by itself and must fall inside one; with manual zones it is optional.
+    // ---- the delivery map: a draggable pin (Leaflet loaded on demand from the pinned CDN copy) ----
+    // Map first (mapFirst): the pin prices the delivery live (area or distance, fee, minimum, time, or "we do not
+    // deliver here") and "confirm" makes it the delivery; the list of areas is the fallback. Without it (areas typed
+    // by hand) the pin is optional and only shows the driver the door.
     const pinSheet = $('[data-pin-sheet]');
-    const pinKey = `egmenu.pin.${M.tenant}`;
-    let pin = null;
-    try { pin = JSON.parse(session.get(pinKey) || 'null'); } catch { pin = null; }
-    const zoneOf = (lat, lng) => {
-        const hits = (O?.zones || []).filter((z) => z.polygon && inside(z.polygon, lat, lng));
-        return hits.find((z) => z.parent) || hits[0] || null; // a drawn street inside a drawn area wins over the area
-    };
-    const zonesDrawn = () => M.zoneMode === 'map' && (O?.zones || []).some((z) => z.polygon);
-    const pinOutside = () => !!pin && zonesDrawn() && !zoneOf(pin.lat, pin.lng);
     const pinOpenLabel = $('[data-pin-open-text]')?.textContent || '';
+    // "Delivery 25 EGP · Minimum 100 EGP · About 45 min"
+    const quoteFacts = (q) => [
+        T.factFee.replace('__A__', fmt(q.fee)),
+        q.min > 0 ? T.factMin.replace('__A__', fmt(q.min)) : null,
+        q.eta ? T.factEta.replace('__N__', q.eta) : null,
+    ].filter(Boolean).join(' · ');
     function renderPin() {
         const box = $('[data-pin-box]');
         if (!box) return;
         $('[data-pin-done]', box).classList.toggle('hidden', !pin);
         $('[data-pin-done]', box).classList.toggle('flex', !!pin);
         $('[data-pin-open-text]', box).textContent = pin ? T.pinChange : pinOpenLabel;
-        $('[data-pin-outside]', box).classList.toggle('hidden', !pinOutside());
+    }
+    // the cart's delivery place: the confirmed pin with its price (map), or the list of areas (fallback)
+    function renderLocation() {
+        const box = $('[data-loc-box]');
+        if (!box) return;
+        const q = byMap() && pin ? pinQuote(pin.lat, pin.lng) : null;
+        box.classList.toggle('hidden', !byMap());
+        $('[data-zone-field]')?.classList.toggle('hidden', byMap());
+        $('[data-loc-start]', box).classList.toggle('hidden', !!q);
+        $('[data-loc-start]', box).classList.toggle('flex', !q);
+        $('[data-loc-card]', box).classList.toggle('hidden', !q);
+        $('[data-loc-card]', box).classList.toggle('flex', !!q);
+        if (q) {
+            $('[data-loc-name]', box).textContent = q.name;
+            $('[data-loc-facts]', box).textContent = quoteFacts(q);
+        }
     }
     function setPin(point) {
         pin = point;
         session.set(pinKey, point ? JSON.stringify(point) : '');
         renderPin();
+        renderLocation();
         renderSendHelp();
     }
     let leafletLoading = null;
@@ -1065,23 +1100,49 @@ if (dataEl) {
     }
     let pinMap = null;
     let pinMarker = null;
+    let pinFrame = 0;
     function pinCenter() {
         if (pin) return [pin.lat, pin.lng];
+        const start = O?.pricing?.center || M.branchPoint;
+        if (start) return start;
         const zone = currentZone();
         const poly = zone?.polygon || (O?.zones || []).find((z) => z.polygon)?.polygon;
         if (poly) return [poly.reduce((s, p) => s + p[0], 0) / poly.length, poly.reduce((s, p) => s + p[1], 0) / poly.length];
-        return M.branchPoint || [30.0444, 31.2357];
+        return [30.0444, 31.2357];
     }
+    // the live price under the map while the pin moves
     function pinMoved() {
+        if (!pinMarker || !mapFirst) return;
         const { lat, lng } = pinMarker.getLatLng();
-        const zone = zonesDrawn() ? zoneOf(lat, lng) : null;
-        $('[data-pin-zone]', pinSheet).classList.toggle('hidden', !zone);
-        if (zone) $('[data-pin-zone]', pinSheet).textContent = T.pinInZone.replace('__Z__', zone.name);
-        $('[data-pin-sheet-outside]', pinSheet).classList.toggle('hidden', !(zonesDrawn() && !zone));
+        const q = pinQuote(lat, lng);
+        const inBox = $('[data-pin-quote-in]', pinSheet);
+        inBox.classList.toggle('hidden', !q);
+        $('[data-pin-quote-out]', pinSheet).classList.toggle('hidden', !!q);
+        if (q) {
+            $('[data-pin-quote-name]', inBox).textContent = q.name;
+            $('[data-pin-quote-facts]', inBox).textContent = quoteFacts(q);
+        }
+        $('[data-pin-confirm]', pinSheet).disabled = !q;
+    }
+    function locateMe(btn) {
+        if (!navigator.geolocation || !pinMarker) return;
+        if (btn) btn.disabled = true;
+        navigator.geolocation.getCurrentPosition((pos) => {
+            if (btn) btn.disabled = false;
+            const here = [pos.coords.latitude, pos.coords.longitude];
+            pinMarker.setLatLng(here);
+            pinMap.setView(here, 17);
+            pinMoved();
+        }, () => {
+            if (btn) {
+                btn.disabled = false;
+                toast(T.pinNoLocation);
+            }
+        }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
     }
     async function openPin() {
         if (!pinSheet) return;
-        pinSheet.showModal();
+        if (!pinSheet.open) pinSheet.showModal();
         $('[data-pin-loading]', pinSheet).classList.remove('hidden');
         try {
             await loadLeaflet();
@@ -1092,45 +1153,56 @@ if (dataEl) {
         $('[data-pin-loading]', pinSheet).classList.add('hidden');
         const center = pinCenter();
         if (!pinMap) {
-            pinMap = L.map($('[data-pin-map]', pinSheet), { zoomControl: true }).setView(center, pin ? 17 : 14);
+            pinMap = L.map($('[data-pin-map]', pinSheet), { zoomControl: true }).setView(center, pin ? 17 : 15);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(pinMap);
-            // the delivery areas as faint outlines, so the guest sees where the pin may go
-            (O?.zones || []).filter((z) => z.polygon).forEach((z) => L.polygon(z.polygon, { color: '#0A2540', weight: 1.5, fillOpacity: 0.06 }).addTo(pinMap));
+            // where the pin may go: the drawn areas, or the farthest distance ring around the restaurant
+            const ink = getComputedStyle(document.documentElement).getPropertyValue('--menu-primary').trim() || '#0A2540';
+            if (O?.pricing?.method === 'distance' && O.pricing.center && O.pricing.rings.length) {
+                const far = Math.max(...O.pricing.rings.map((r) => r.km));
+                L.circle(O.pricing.center, { radius: far * 1000, color: ink, weight: 1.5, dashArray: '6 6', fillOpacity: 0.04 }).addTo(pinMap);
+                L.circleMarker(O.pricing.center, { radius: 7, color: '#fff', weight: 2, fillColor: ink, fillOpacity: 1 }).bindTooltip(T.restaurantHere).addTo(pinMap);
+            } else {
+                (O?.zones || []).filter((z) => z.polygon).forEach((z) => L.polygon(z.polygon, { color: ink, weight: 1.5, fillOpacity: 0.06 }).addTo(pinMap));
+            }
             pinMarker = L.marker(center, { draggable: true, autoPan: true }).addTo(pinMap);
+            pinMarker.on('drag', () => { cancelAnimationFrame(pinFrame); pinFrame = requestAnimationFrame(pinMoved); });
             pinMarker.on('dragend', pinMoved);
             pinMap.on('click', (e) => { pinMarker.setLatLng(e.latlng); pinMoved(); });
         } else {
             pinMarker.setLatLng(center);
-            pinMap.setView(center, pin ? 17 : 14);
+            pinMap.setView(center, pin ? 17 : 15);
         }
         setTimeout(() => pinMap.invalidateSize(), 50); // the dialog was hidden when the map measured itself
         pinMoved();
+        // no pin yet and the guest already allowed their location on this site: start from where they are
+        if (mapFirst && !pin && navigator.permissions?.query) {
+            navigator.permissions.query({ name: 'geolocation' }).then((p) => { if (p.state === 'granted') locateMe(null); }).catch(() => {});
+        }
     }
-    $('[data-pin-open]')?.addEventListener('click', openPin);
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('[data-pin-open]')) openPin();
+    });
     $('[data-pin-clear]')?.addEventListener('click', () => setPin(null));
     pinSheet?.addEventListener('click', (e) => {
         if (e.target.closest('[data-pin-locate]')) {
-            const btn = e.target.closest('[data-pin-locate]');
-            if (!navigator.geolocation || !pinMarker) return;
-            btn.disabled = true;
-            navigator.geolocation.getCurrentPosition((pos) => {
-                btn.disabled = false;
-                const here = [pos.coords.latitude, pos.coords.longitude];
-                pinMarker.setLatLng(here);
-                pinMap.setView(here, 17);
-                pinMoved();
-            }, () => {
-                btn.disabled = false;
-                alert(T.pinNoLocation);
-            }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+            locateMe(e.target.closest('[data-pin-locate]'));
+        } else if (e.target.closest('[data-pin-list]')) {
+            // "choose your area from the list instead of the map"
+            setDeliveryBy('list');
+            pinSheet.close();
+            renderMode();
+            openZones();
         } else if (e.target.closest('[data-pin-confirm]')) {
             if (!pinMarker) return;
             const { lat, lng } = pinMarker.getLatLng();
-            const zone = zonesDrawn() ? zoneOf(lat, lng) : null;
-            if (zonesDrawn() && !zone) return pinMoved(); // outside every drawn area: the warning stays up
+            if (mapFirst && !pinQuote(lat, lng)) return pinMoved(); // outside: "we do not deliver here" stays up
+            if (mapFirst) setDeliveryBy('map');
             setPin({ lat: Math.round(lat * 1e6) / 1e6, lng: Math.round(lng * 1e6) / 1e6 });
-            if (zone) pickZone(zone.id);
             pinSheet.close();
+            renderMode();
+            renderCart();
+            // next: the address in detail (street, building, floor, landmark)
+            if (cartSheet.open) setTimeout(() => $('[data-address]')?.focus(), 80);
         }
     });
     renderPin();
@@ -1169,7 +1241,7 @@ if (dataEl) {
     // delivery picked together with another branch in the first-open sheet: that branch's areas come next
     if (session.get(zoneAskKey) === '1') {
         session.set(zoneAskKey, '');
-        if (mode === 'online' && otype === 'delivery' && !currentZone()) openZones();
+        if (mode === 'online' && otype === 'delivery' && !currentZone()) openDelivery();
     }
 
     // ---- the personal link of a manual campaign (?ref=): kept 14 days on this phone and sent with the next order ----
@@ -1210,9 +1282,8 @@ if (dataEl) {
         if (!wayPicked) return fail(T.chooseWay);
         if (mode === 'online') {
             if (!$('[data-customer-phone]').value.trim()) return fail(T.phoneRequired);
-            if (otype === 'delivery' && !currentZone()) return fail(T.chooseZone);
+            if (otype === 'delivery' && !currentZone()) return fail(byMap() ? T.pinFirst : T.chooseZone);
             if (otype === 'delivery' && !$('[data-address]').value.trim()) return fail(T.enterAddress);
-            if (otype === 'delivery' && pinOutside()) return fail(T.pinOutside);
         }
         sendBtn.disabled = true;
         sendBtn.dataset.busy = '1';
@@ -1234,9 +1305,10 @@ if (dataEl) {
                     coupon: $('[data-coupon]')?.value.trim() || null,
                     pay_wallet: !!$('[data-pay-wallet]')?.checked,
                     ...(mode === 'online' ? {
-                        type: otype, branch_id: O.branch, zone_id: currentZone()?.id ?? null,
+                        // map first: only the pin goes, the server finds its area or distance ring and its fee
+                        type: otype, branch_id: O.branch, zone_id: byMap() ? null : currentZone()?.id ?? null,
                         address: $('[data-address]')?.value.trim() || null, scheduled_for: $('[data-scheduled]')?.value || null,
-                        ...(otype === 'delivery' && pin ? { lat: pin.lat, lng: pin.lng } : {}),
+                        ...(otype === 'delivery' && pin && (!mapFirst || byMap()) ? { lat: pin.lat, lng: pin.lng } : {}),
                     } : {}),
                 }),
             });

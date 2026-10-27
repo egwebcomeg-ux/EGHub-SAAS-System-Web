@@ -183,18 +183,22 @@ final class GuestAccount
         return true;
     }
 
-    /** An online delivery order keeps its address on the guest (most recent first, no duplicates). */
+    /**
+     * An online delivery order keeps its address on the guest (most recent first, no duplicates), with the pin
+     * confirmed on the map. An order priced by distance has no zone: its pin and its label ("2.3 km …") are kept.
+     */
     public static function rememberAddress(Order $order): void
     {
         $customer = $order->customer_id ? Customer::query()->find($order->customer_id) : null;
         $text = trim((string) ($order->delivery_address['text'] ?? ''));
-        if (! $customer || $order->type !== 'delivery' || ! $order->delivery_zone_id || $text === '') {
+        $pinned = isset($order->delivery_address['lat'], $order->delivery_address['lng']);
+        if (! $customer || $order->type !== 'delivery' || (! $order->delivery_zone_id && ! $pinned) || $text === '') {
             return;
         }
         self::backfillAddresses($customer);
-        $entry = ['label' => '', 'zone_id' => (int) $order->delivery_zone_id, 'text' => $text]
-            + (isset($order->delivery_address['lat'], $order->delivery_address['lng'])
-                ? ['lat' => (float) $order->delivery_address['lat'], 'lng' => (float) $order->delivery_address['lng']] : []);
+        $entry = ['label' => '', 'zone_id' => $order->delivery_zone_id ? (int) $order->delivery_zone_id : null, 'text' => $text]
+            + ($order->delivery_zone_id ? [] : ['zone' => (string) ($order->delivery_address['zone'] ?? '')])
+            + ($pinned ? ['lat' => (float) $order->delivery_address['lat'], 'lng' => (float) $order->delivery_address['lng']] : []);
         $customer->addresses = collect((array) $customer->addresses)->filter(fn ($a) => is_array($a))
             ->reject(fn (array $a) => self::addressKey($a) === self::addressKey($entry))
             ->prepend($entry)->take(self::MAX_ADDRESSES)->values()->all();

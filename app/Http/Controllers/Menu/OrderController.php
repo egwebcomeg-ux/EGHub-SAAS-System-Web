@@ -11,6 +11,7 @@ use App\Services\Customers\GuestAccount;
 use App\Services\Customers\Outreach;
 use App\Services\Customers\SignIn\EmailConfirmation;
 use App\Services\Customers\SignIn\GuestIdentity;
+use App\Services\Delivery\DeliveryPricing;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Orders\BusyMode;
 use App\Services\Orders\OrderException;
@@ -54,7 +55,7 @@ class OrderController extends Controller
             'branch_id' => 'nullable|integer',
             'zone_id' => 'nullable|integer',
             'address' => 'nullable|string|max:300',
-            // the guest's pin on the map (optional; inside the zone's drawn area when the zones are drawn)
+            // the guest's pin on the map: it prices the delivery when no area is picked from the list (DeliveryPricing)
             'lat' => 'nullable|numeric|between:-90,90|required_with:lng',
             'lng' => 'nullable|numeric|between:-180,180|required_with:lat',
             'scheduled_for' => 'nullable|date',
@@ -159,15 +160,9 @@ class OrderController extends Controller
 
         $zone = null;
         $address = null;
+        $quote = null;
         if ($type === 'delivery') {
-            $zone = DeliveryZone::query()->with('parent')->where('branch_id', $branch->id)->where('is_active', true)->find($data['zone_id'] ?? 0);
-            if (! $zone) {
-                throw new OrderException(__('Choose the delivery zone.'));
-            }
-            if (trim((string) ($data['address'] ?? '')) === '') {
-                throw new OrderException(__('Write the delivery address.'));
-            }
-            $address = ['zone' => $zone->label(), 'text' => trim($data['address'])] + $this->pin($data, $zone);
+            [$zone, $address, $quote] = $this->delivery($data, $branch);
         }
 
         $scheduled = null;
@@ -183,12 +178,58 @@ class OrderController extends Controller
 
         $order = $orders->place($data + [
             'source' => 'online', 'type' => $type, 'delivery_zone' => $zone, 'delivery_address' => $address,
+            'delivery_quote' => $quote,
         ], $branch);
         if ($scheduled && $order->wasRecentlyCreated) {
             $order->update(['scheduled_for' => $scheduled]);
         }
 
         return $order;
+    }
+
+    /**
+     * Where and for how much the order is delivered. An area picked from the list (zone_id) keeps its fee, the pin
+     * being optional and inside that area when it is drawn. Otherwise the pin prices it, always on the server
+     * (DeliveryPricing: the drawn zone holding it, or the distance ring of the branch); a point the branch does
+     * not serve is refused. A fee sent by the browser is never read.
+     *
+     * @param  array<string,mixed>  $data
+     * @return array{0:?DeliveryZone, 1:array<string,mixed>, 2:?array{fee:float, min:float, label:string}}
+     */
+    private function delivery(array $data, Branch $branch): array
+    {
+        $text = trim((string) ($data['address'] ?? ''));
+        if (! empty($data['zone_id'])) {
+            $zone = DeliveryZone::query()->with('parent')->where('branch_id', $branch->id)->where('is_active', true)->find($data['zone_id']);
+            if (! $zone) {
+                throw new OrderException(__('Choose the delivery zone.'));
+            }
+            if ($text === '') {
+                throw new OrderException(__('Write the delivery address.'));
+            }
+
+            return [$zone, ['zone' => $zone->label(), 'text' => $text] + $this->pin($data, $zone), null];
+        }
+
+        if (! isset($data['lat'], $data['lng']) || ! DeliveryPricing::byLocation($branch, Settings::all())) {
+            throw new OrderException(DeliveryPricing::byLocation($branch, Settings::all())
+                ? __('Pin your location on the map, or choose your area from the list.') : __('Choose the delivery zone.'));
+        }
+        $point = [round((float) $data['lat'], 6), round((float) $data['lng'], 6)];
+        $quote = DeliveryPricing::quote($branch, ...$point);
+        if (! $quote) {
+            throw new OrderException(__('Sorry, we do not deliver to this location.'));
+        }
+        if ($text === '') {
+            throw new OrderException(__('Write the delivery address.'));
+        }
+        $address = ['zone' => $quote['label'], 'text' => $text, 'lat' => $point[0], 'lng' => $point[1]]
+            + ($quote['km'] !== null ? ['km' => $quote['km']] : [])
+            + ($quote['zone'] === null && $quote['minutes'] ? ['minutes' => $quote['minutes']] : []);
+
+        return $quote['zone']
+            ? [$quote['zone'], $address, null]
+            : [null, $address, ['fee' => $quote['fee'], 'min' => $quote['min'], 'label' => $quote['label']]];
     }
 
     /**

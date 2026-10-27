@@ -1,9 +1,18 @@
-@extends('layouts.dashboard', ['viteEntries' => ['resources/js/zones-map.js']])
+@extends('layouts.dashboard', ['viteEntries' => ['resources/js/zones-map.js', 'resources/js/delivery-pricing.js']])
 @section('title', __('Delivery zones'))
 
 @section('content')
-<x-dash.page-header :title="__('Delivery zones')" :help="__('Where you deliver and for how much. The guest ordering online (and the call center) picks the area: its fee is added and its minimum order is checked. A sub-area left empty uses its main area’s values.')" />
+<x-dash.page-header :title="__('Delivery zones')" :help="__('Where you deliver and for how much: by your zones, or by the distance from your restaurant. The guest pins the map and sees the fee at once; the server checks the fee and the minimum order again with every order.')" />
 
+@include('partials.leaflet')
+{{-- per branch: priced by zones or by distance from the branch pin, with a live preview map and a test pin --}}
+<div class="mb-4 space-y-4">
+    @foreach ($branches as $branch)
+        @include('dashboard.partials.delivery-pricing', ['branch' => $branch])
+    @endforeach
+</div>
+
+<h2 class="section-title mb-2">{{ __('Your zones') }}</h2>
 {{-- how the areas are set: typed by hand (default, simplest) or drawn on the map --}}
 <form method="post" action="{{ route('dash.zones.mode') }}" class="mb-4 grid gap-3 sm:grid-cols-2" data-zone-mode>
     @csrf
@@ -15,7 +24,6 @@
     @endforeach
 </form>
 
-@include('partials.leaflet')
 @if ($mode === 'map' && $zones->isNotEmpty())
     <section class="card mb-4 space-y-3">
         <div class="flex flex-wrap items-center gap-2">
@@ -26,7 +34,7 @@
             </select>
         </div>
         <div class="hidden flex-wrap items-center gap-2 text-sm" data-draw-tools>
-            <span class="text-navy-600">{{ __('Click the corners of the area on the map.') }} <b data-points>0</b> {{ __('points') }}</span>
+            <span class="text-navy-600">{{ __('Click the corners of the area on the map.') }} <b data-points>0</b> {{ __('points') }}<span class="block text-xs text-navy-500">{{ __('Drag a corner to move it, drag the small dot between two corners to add one, right-click (long-press) a corner to remove it.') }}</span></span>
             <button type="button" class="btn-ghost min-h-9 px-3" data-undo>{{ __('Undo point') }}</button>
             <button type="button" class="btn-ghost min-h-9 px-3" data-clear>{{ __('Clear area') }}</button>
             <button type="button" class="btn-primary min-h-9 px-4" data-save-area>{{ __('Save area') }}</button>
@@ -39,7 +47,7 @@
         $mapData = [
             'center' => $center,
             'saveUrl' => url('/delivery-zones/__ID__/area'),
-            'zones' => $zones->map(fn ($z) => ['id' => $z->id, 'name' => $z->label(), 'polygon' => $z->polygon])->values(),
+            'zones' => $zones->map(fn ($z) => ['id' => $z->id, 'name' => $z->label(), 'parent' => $z->parent_id, 'polygon' => $z->polygon])->values(),
         ];
     @endphp
     <script type="application/json" id="zones-map-data">{!! json_encode($mapData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>

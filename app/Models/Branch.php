@@ -14,6 +14,7 @@ class Branch extends TenantModel
             'is_active' => 'boolean',
             'lat' => 'float',
             'lng' => 'float',
+            'delivery_rings' => 'array',
         ];
     }
 

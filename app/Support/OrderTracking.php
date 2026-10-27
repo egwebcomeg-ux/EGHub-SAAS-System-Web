@@ -146,7 +146,7 @@ final class OrderTracking
             return null;
         }
         $prep = self::prepMinutes($this->settings);
-        $zoneMinutes = $order->type === 'delivery' ? (int) ($order->deliveryZone?->effective('estimated_minutes') ?? 0) : 0;
+        $zoneMinutes = $order->type === 'delivery' ? (int) ($order->deliveryZone?->effective('estimated_minutes') ?? $order->delivery_address['minutes'] ?? 0) : 0;
         $waiting = in_array($order->status, ['new', 'preparing'], true);
 
         if ($waiting && $order->scheduled_for?->isFuture()) {

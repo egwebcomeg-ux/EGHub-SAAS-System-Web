@@ -13,6 +13,7 @@ use App\Models\MenuVisit;
 use App\Models\Order;
 use App\Models\Season;
 use App\Services\Customers\GuestAccount;
+use App\Services\Delivery\DeliveryPricing;
 use App\Services\Entitlements;
 use App\Services\ItemVideo;
 use App\Services\Loyalty\LoyaltyService;
@@ -447,7 +448,7 @@ class MenuController extends Controller
     /**
      * What a guest without a table can order from the menu link (plan feature online_ordering), or null.
      *
-     * @return array{branch:int, takeaway:bool, delivery:bool, zones:list<array<string,mixed>>, scheduled:bool, prep:int}|null
+     * @return array{branch:int, takeaway:bool, delivery:bool, zones:list<array<string,mixed>>, pricing:array{method:string, map:bool, center:?array{0:float, 1:float}, rings:list<array<string,mixed>>}, scheduled:bool, prep:int}|null
      */
     public static function onlineOptions(Branch $branch, array $settings): ?array
     {
@@ -465,12 +466,22 @@ class MenuController extends Controller
                 ])->values()->all()
             : [];
         $takeaway = $settings['online_takeaway'] === '1';
-        if (! $takeaway && $zones === []) {
+        // priced by distance from the branch pin: delivery is on even without a single zone (DeliveryPricing)
+        $byDistance = $settings['online_delivery'] === '1' && DeliveryPricing::distanceReady($branch);
+        if (! $takeaway && $zones === [] && ! $byDistance) {
             return null;
         }
 
         return [
-            'branch' => $branch->id, 'takeaway' => $takeaway, 'delivery' => $zones !== [], 'zones' => $zones,
+            'branch' => $branch->id, 'takeaway' => $takeaway, 'delivery' => $zones !== [] || $byDistance, 'zones' => $zones,
+            // map first at the delivery step when a pin can be priced: the rings (distance) or the drawn zones
+            'pricing' => [
+                'method' => DeliveryPricing::method($branch),
+                'map' => $settings['online_delivery'] === '1' && ($byDistance || (($settings['delivery_zone_mode'] ?? 'manual') === 'map'
+                    && collect($zones)->contains(fn ($z) => $z['polygon'] !== null))),
+                'center' => $branch->lat !== null && $branch->lng !== null ? [(float) $branch->lat, (float) $branch->lng] : null,
+                'rings' => $byDistance ? DeliveryPricing::ringsForMenu($branch, $settings) : [],
+            ],
             'scheduled' => Entitlements::current()->allows('scheduled_orders'), 'prep' => OrderTracking::prepMinutes($settings),
         ];
     }
@@ -487,7 +498,8 @@ class MenuController extends Controller
     {
         $online = Entitlements::current()->allows('online_ordering') && $settings['ordering_enabled'] === '1' && ! BusyMode::isBusy();
         $delivering = $online && $settings['online_delivery'] === '1'
-            ? DeliveryZone::query()->where('is_active', true)->whereIn('branch_id', $branches->pluck('id'))->distinct()->pluck('branch_id')->all()
+            ? DeliveryZone::query()->where('is_active', true)->whereIn('branch_id', $branches->pluck('id'))->distinct()->pluck('branch_id')
+                ->merge($branches->filter(fn (Branch $b) => DeliveryPricing::distanceReady($b))->pluck('id'))->all()
             : [];
         $takeaway = $online && $settings['online_takeaway'] === '1';
 
