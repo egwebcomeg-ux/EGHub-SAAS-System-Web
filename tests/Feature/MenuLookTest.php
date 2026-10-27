@@ -135,12 +135,12 @@ class MenuLookTest extends TenantTestCase
             ->assertDontSee('data-zone-detect', false); // manual areas: no "detect my area"
         $this->assertStringContainsString('توصيل 25', $res->getContent());
 
-        // drawn areas in map mode: the guest can detect the area
+        // drawn areas in map mode: the map comes first (pin + live fee); the area list offers the way back to it
         $this->as($a, function () {
             Settings::put(['delivery_zone_mode' => 'map']);
             DeliveryZone::query()->where('name', 'Zamalek')->update(['polygon' => json_encode([[30.05, 31.21], [30.07, 31.21], [30.07, 31.23], [30.05, 31.23]])]);
         });
-        $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('data-zone-detect', false)
+        $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('data-loc-box', false)->assertSee('data-use-map', false)
             ->assertHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
     }
 }
