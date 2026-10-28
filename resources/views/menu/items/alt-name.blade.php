@@ -4,5 +4,7 @@
     with the name above it), the inner one carries the text's own language and direction.
 --}}
 @if ($alt = \App\Support\MenuBilingual::text($altOf ?? $item))
-    <span class="m-alt {{ $altClass ?? '' }}" data-alt-name><span lang="{{ \App\Support\MenuBilingual::lang() }}" dir="{{ \App\Support\MenuBilingual::dir() }}">{{ $alt }}</span></span>
+    {{-- a one-line name cuts at its own end: the ellipsis sits on the inner line, in the name's own direction --}}
+    @php($altTruncate = str_contains($altClass ?? '', 'truncate'))
+    <span class="m-alt {{ trim(str_replace('truncate', '', $altClass ?? '')) }}" data-alt-name><span{!! $altTruncate ? ' class="block truncate"' : '' !!} lang="{{ \App\Support\MenuBilingual::lang() }}" dir="{{ \App\Support\MenuBilingual::dir() }}">{{ $alt }}</span></span>
 @endif
