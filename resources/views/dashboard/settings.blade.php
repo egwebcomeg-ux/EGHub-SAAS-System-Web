@@ -463,6 +463,10 @@
             <div><label class="field-label">{{ __('Currency (Arabic)') }}</label><input class="field" name="currency" value="{{ $s['currency'] }}" required maxlength="10"></div>
             <div><label class="field-label">{{ __('Currency (English)') }}</label><input class="field" name="currency_en" value="{{ $s['currency_en'] }}" required maxlength="10" dir="ltr"></div>
             <label class="flex items-center gap-2 self-end text-sm font-semibold"><input type="checkbox" name="english_enabled" value="1" @checked($s['english_enabled'] === '1') class="size-4 accent-brand-600"> {{ __('Show English menu') }}</label>
+            <input type="hidden" name="bilingual_sent" value="1">
+            <label class="flex items-start gap-2 text-sm sm:col-span-2 lg:col-span-4"><input type="checkbox" name="menu_bilingual" value="1" @checked($s['menu_bilingual'] === '1') class="mt-0.5 size-4 accent-brand-600">
+                <span><span class="font-semibold">{{ __('Show the item name in Arabic and English together') }}</span><span class="block text-xs text-navy-500">{{ __('Under every name the other language shows in a smaller line, like a printed menu. The cashier, the kitchen and the receipts stay as they are.') }}</span></span>
+            </label>
         </section>
 
         @if ($extraLanguages)

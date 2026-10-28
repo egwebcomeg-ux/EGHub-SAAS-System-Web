@@ -28,6 +28,8 @@ final class Settings
         'business_type' => 'cafe',          // cafe | restaurant | both | pastry | shop (App\Support\BusinessType)
         'default_locale' => 'ar',
         'english_enabled' => '1',
+        // the guest menu shows the other language (ar <-> en) under each name, smaller (App\Support\MenuBilingual)
+        'menu_bilingual' => '0',
         // contact
         'phone' => '',
         'whatsapp' => '',

@@ -8,6 +8,7 @@
             <span class="mb-1 flex-1 border-b border-dotted border-[#c9a45c]/50"></span>
             <span class="flex shrink-0 items-center gap-1.5">@include('menu.items.price')</span>
         </div>
+        @include('menu.items.alt-name')
         @if ($d = tx($item, 'description'))<div class="m-muted mt-1 text-sm leading-relaxed">{{ $d }}</div>@endif
         @include('menu.items.tags')
     </div>

@@ -9,11 +9,13 @@
     <div class="min-w-0 flex-1" @unless ($withPhoto) data-item-row @endunless>
         @if ($withPhoto)
             <div class="text-lg font-bold">{{ $item->displayName() }}</div>
+            @include('menu.items.alt-name')
         @else
             <div class="flex items-baseline justify-between gap-3">
                 <div class="min-w-0 text-lg font-bold">{{ $item->displayName() }}</div>
                 <div class="flex shrink-0 flex-wrap items-center justify-end gap-1.5 text-end">@include('menu.items.price')</div>
             </div>
+            @include('menu.items.alt-name')
         @endif
         @include('menu.items.tags')
         @if ($d = tx($item, 'description'))<div class="m-muted line-clamp-2 text-sm">{{ $d }}</div>@endif

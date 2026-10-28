@@ -51,6 +51,9 @@
     .m-goal-track { height: .55rem; border-radius: 999px; background: var(--menu-surface-2); box-shadow: inset 0 0 0 1px var(--menu-border); overflow: hidden; }
     .m-goal-fill { height: 100%; border-radius: inherit; background: var(--menu-accent); transition: width .4s ease; }
     .m-tag { background: color-mix(in srgb, var(--menu-text) 8%, transparent); }
+    /* the bilingual menu (setting menu_bilingual): the other language under a name, smaller and muted */
+    .m-alt { display: block; margin-top: .1rem; font-size: max(.8em, .75rem); font-weight: 500; line-height: 1.35; color: var(--menu-muted); text-transform: none; letter-spacing: normal; overflow-wrap: anywhere; }
+    .m-opt-alt { display: block; font-size: .78rem; font-weight: 500; line-height: 1.3; color: var(--menu-muted); }
     .m-filter { background: var(--menu-surface); color: var(--menu-text); box-shadow: inset 0 0 0 1px var(--menu-border); }
     .m-filter[aria-pressed="true"] { background: var(--menu-accent); color: var(--menu-accent-text); box-shadow: none; }
     /* professional display: the item sheet as a full page */
@@ -524,6 +527,7 @@
                         @include('menu.items.photo', ['class' => 'aspect-square w-full', 'iconClass' => 'size-[38%]', 'phIcon' => $itemIcons[$item->id] ?? $categoryIcons[$item->category_id] ?? 'plate'])
                         <div class="p-2">
                             <div class="line-clamp-2 text-sm font-bold">{{ $item->displayName() }}</div>
+                            @include('menu.items.alt-name', ['altClass' => 'truncate'])
                             <div class="flex flex-wrap items-baseline gap-x-1.5 text-sm">
                                 <span class="m-primary-text font-extrabold">{{ money($item->price) }} {{ $currency }}</span>
                                 @if ($item->offer_from)<s class="m-muted text-xs">{{ money($item->offer_from) }}</s>@endif
@@ -537,7 +541,7 @@
 
     @forelse ($categories as $c)
         <section id="cat-{{ $c->id }}" class="mb-8 scroll-mt-36" data-category>
-            <h2 class="mb-1 text-xl font-extrabold" style="color: var(--menu-secondary)">{{ tx($c, 'name') }}</h2>
+            <h2 class="mb-1 text-xl font-extrabold" style="color: var(--menu-secondary)">{{ tx($c, 'name') }}@include('menu.items.alt-name', ['altOf' => $c])</h2>
             @if ($d = tx($c, 'description'))<p class="mb-3 text-sm m-muted">{{ $d }}</p>@endif
             @php
                 // the layout of this category: its own, the menu setting or the theme's (App\Support\MenuLayouts)

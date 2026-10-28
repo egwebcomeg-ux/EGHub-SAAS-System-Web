@@ -6,6 +6,7 @@
     @if ($withPhoto)
         <div class="flex min-w-0 flex-1 flex-col">
             <div class="font-bold">{{ $item->displayName() }}</div>
+            @include('menu.items.alt-name')
             @include('menu.items.tags')
             @if ($d = tx($item, 'description'))<div class="m-muted mt-0.5 line-clamp-2 text-sm">{{ $d }}</div>@endif
             <div class="mt-auto flex flex-wrap items-center gap-2 pt-2">@include('menu.items.price')</div>
@@ -17,6 +18,7 @@
                 <div class="min-w-0 font-bold">{{ $item->displayName() }}</div>
                 <div class="flex shrink-0 flex-wrap items-center justify-end gap-1.5 text-end">@include('menu.items.price')</div>
             </div>
+            @include('menu.items.alt-name')
             @include('menu.items.tags')
             @if ($d = tx($item, 'description'))<div class="m-muted mt-0.5 line-clamp-2 text-sm">{{ $d }}</div>@endif
         </div>

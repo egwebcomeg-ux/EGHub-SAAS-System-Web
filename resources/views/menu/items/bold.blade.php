@@ -7,6 +7,7 @@
     @class(['m-card m-bold flex w-full items-stretch gap-3 rounded-3xl border m-border m-surface p-3 text-start transition active:scale-[.99]', 'opacity-60' => $item->is_sold_out])>
     <div class="flex min-w-0 flex-1 flex-col">
         <div class="text-lg leading-snug font-extrabold">{{ $item->displayName() }}</div>
+        @include('menu.items.alt-name')
         @if ($d = tx($item, 'description'))<div class="m-muted mt-0.5 line-clamp-2 text-sm">{{ $d }}</div>@endif
         @include('menu.items.tags')
         <div @class(['mt-auto flex flex-wrap items-center gap-2 pt-3', 'm-bold-room' => ($qaPad ?? '') === 'bold'])>

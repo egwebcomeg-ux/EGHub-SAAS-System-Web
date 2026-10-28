@@ -168,6 +168,10 @@ class SettingsController extends Controller
             unset($values['business_type']); // not sent: keep the current type
         }
         $values['english_enabled'] = $request->boolean('english_enabled') ? '1' : '0';
+        // the bilingual menu (sent with the language section): not sent = keep it
+        if ($request->boolean('bilingual_sent')) {
+            $values['menu_bilingual'] = $request->boolean('menu_bilingual') ? '1' : '0';
+        }
         $values['ordering_enabled'] = $request->boolean('ordering_enabled') ? '1' : '0';
         // the hall: kept empty while it equals the default, so a later plan upgrade turns table ordering on by itself
         unset($values['dine_in_mode'], $values['menu_intro']);

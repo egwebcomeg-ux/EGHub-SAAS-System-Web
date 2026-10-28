@@ -31,6 +31,7 @@ use App\Support\DineIn;
 use App\Support\ItemBadges;
 use App\Support\ItemPlaceholder;
 use App\Support\Leaflet;
+use App\Support\MenuBilingual;
 use App\Support\MenuIntro;
 use App\Support\MenuLayouts;
 use App\Support\MenuThemes;
@@ -270,8 +271,10 @@ class MenuController extends Controller
                 'viewUrl' => route('menu.item.view', ['item' => 0]),
                 'service' => (float) $settings['service_percent'],
                 'tax' => (float) $settings['tax_percent'],
+                // the bilingual menu (setting menu_bilingual): the language of the second names (nameAlt) of the sheet
+                'alt' => MenuBilingual::enabled() ? ['lang' => MenuBilingual::lang(), 'dir' => MenuBilingual::dir()] : null,
                 'items' => $categories->flatMap(fn (Category $c) => $c->items)->mapWithKeys(fn (MenuItem $i) => [$i->id => [
-                    'id' => $i->id, 'name' => $i->displayName(), 'price' => (float) $i->price, 'soldOut' => $i->is_sold_out,
+                    'id' => $i->id, 'name' => $i->displayName(), 'nameAlt' => MenuBilingual::text($i), 'price' => (float) $i->price, 'soldOut' => $i->is_sold_out,
                     'icon' => $itemIcons[$i->id] ?? 'plate',
                     'offerFrom' => $i->getAttribute('offer_from'), 'offerPercent' => $i->getAttribute('offer_percent'),
                     'pairings' => $upsell ? $i->pairings->pluck('id')->filter(fn ($id) => $available->has($id))->values() : [],
@@ -285,10 +288,10 @@ class MenuController extends Controller
                     'allergens' => $i->allergenList(), 'spicy' => $i->spicyIcons(),
                     'badges' => array_values(array_filter($i->tags(), fn ($t) => ! ($i->spicyIcons() && $t['key'] === 'spicy'))),
                     'groups' => $i->optionGroups->map(fn ($g) => [
-                        'id' => $g->id, 'name' => tx($g, 'name'), 'type' => $g->type, 'required' => $g->is_required,
+                        'id' => $g->id, 'name' => tx($g, 'name'), 'nameAlt' => MenuBilingual::text($g), 'type' => $g->type, 'required' => $g->is_required,
                         'max' => $g->max_choices,
                         'options' => $g->options->map(fn ($o) => [
-                            'id' => $o->id, 'name' => tx($o, 'name'), 'price' => (float) $o->price,
+                            'id' => $o->id, 'name' => tx($o, 'name'), 'nameAlt' => MenuBilingual::text($o), 'price' => (float) $o->price,
                             'soldOut' => $o->is_sold_out, 'default' => $o->is_default,
                         ])->values(),
                     ])->values(),

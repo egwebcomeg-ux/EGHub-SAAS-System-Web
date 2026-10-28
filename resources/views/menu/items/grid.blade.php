@@ -11,6 +11,7 @@
     @endif
     <div @class(['flex flex-1 flex-col', $big ? 'p-4' : 'p-3', $big ? ($qaPad ?? '') : ''])>
         <div @class(['font-bold leading-snug', $big ? 'text-lg' : 'line-clamp-2'])>{{ $item->displayName() }}</div>
+        @include('menu.items.alt-name', ['altClass' => $big ? '' : 'truncate'])
         @include('menu.items.tags')
         @if ($big && ($d = tx($item, 'description')))<div class="m-muted mt-1 line-clamp-3 text-sm">{{ $d }}</div>@endif
         <div class="mt-auto flex flex-wrap items-center gap-1.5 pt-2 text-sm">@include('menu.items.price')</div>

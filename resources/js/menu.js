@@ -11,6 +11,9 @@ if (dataEl) {
     const $ = (sel, root = document) => root.querySelector(sel);
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     const fmt = (n) => `${Math.round(n * 100) / 100} ${M.currency}`;
+    // the bilingual menu (setting menu_bilingual): the other language under a name, in its own lang/dir; the outer
+    // span keeps the page's direction so the line stays aligned with the name above it
+    const alt = (text, cls = 'm-alt') => (M.alt && text ? `<span class="${cls}" data-alt-name><span lang="${esc(M.alt.lang)}" dir="${esc(M.alt.dir)}">${esc(text)}</span></span>` : '');
     const storeKey = `egmenu.cart.${M.tenant}`;
     const session = {
         get(key) { try { return sessionStorage.getItem(key); } catch { return null; } },
@@ -115,14 +118,14 @@ if (dataEl) {
             const rows = g.options.map((o) => `
                 <label class="m-opt-row">
                     <input type="${kind}" name="g${g.id}" value="${o.id}" data-option data-group="${g.id}" ${o.soldOut ? 'disabled' : ''} ${o.id === start ? 'checked' : ''}>
-                    <span class="m-opt-name">${esc(o.name)}</span>
+                    <span class="m-opt-name">${esc(o.name)}${alt(o.nameAlt, 'm-opt-alt')}</span>
                     ${o.price ? `<span class="m-opt-price">+${esc(fmt(o.price))}</span>` : ''}
                 </label>`).join('');
             const limit = g.type === 'single' ? T.chooseOne : g.max ? T.chooseUpTo.replace('__N__', g.max) : '';
             if (g.required) {
                 return `<div class="m-opt-group" role="group" aria-labelledby="sheet-gt${g.id}" data-group-box="${g.id}">
                     <div class="m-opt-head">
-                        <span class="min-w-0"><span id="sheet-gt${g.id}" class="m-opt-title">${esc(g.name)}</span>${limit ? `<span class="m-opt-sub">${esc(limit)}</span>` : ''}</span>
+                        <span class="min-w-0"><span id="sheet-gt${g.id}" class="m-opt-title">${esc(g.name)}</span>${alt(g.nameAlt, 'm-opt-alt')}${limit ? `<span class="m-opt-sub">${esc(limit)}</span>` : ''}</span>
                         <span class="m-req">${esc(T.requiredChip)}</span>
                     </div>
                     <p class="m-opt-alert text-red-600 hidden" role="alert" data-group-alert></p>
@@ -137,7 +140,7 @@ if (dataEl) {
                 : '';
             return `<div class="m-opt-group" data-group-box="${g.id}">
                 <button type="button" class="m-opt-head" aria-expanded="false" aria-controls="sheet-gp${g.id}" data-group-toggle>
-                    <span class="min-w-0"><span id="sheet-gt${g.id}" class="m-opt-title">${esc(g.name)}</span><span class="m-opt-sub">${esc(sub)}</span></span>
+                    <span class="min-w-0"><span id="sheet-gt${g.id}" class="m-opt-title">${esc(g.name)}</span>${alt(g.nameAlt, 'm-opt-alt')}<span class="m-opt-sub">${esc(sub)}</span></span>
                     <span class="m-opt-sum" data-group-sum><span></span>${chevron}</span>
                 </button>
                 <div id="sheet-gp${g.id}" class="m-opt-list" role="group" aria-labelledby="sheet-gt${g.id}" hidden>${none}${rows}</div>
@@ -251,7 +254,7 @@ if (dataEl) {
         }
         syncFavButtons();
         resetVideo();
-        $('[data-sheet-name]', sheet).textContent = current.name;
+        $('[data-sheet-name]', sheet).innerHTML = esc(current.name) + alt(current.nameAlt);
         $('[data-sheet-desc]', sheet).textContent = current.description || '';
         $('[data-sheet-cal]', sheet).textContent = current.calories ? T.cal.replace('__N__', current.calories) : '';
         const allergenBox = $('[data-sheet-allergens]', sheet);
@@ -684,7 +687,7 @@ if (dataEl) {
                 return `<li class="flex items-center gap-3 py-3">
                     <span class="m-qty m-primary" dir="ltr">${l.qty}×</span>
                     <div class="min-w-0 flex-1">
-                        <div class="text-base font-extrabold leading-snug">${esc(item.name)}</div>
+                        <div class="text-base font-extrabold leading-snug">${esc(item.name)}${alt(item.nameAlt)}</div>
                         ${opts ? `<div class="m-muted text-xs">${esc(opts)}</div>` : ''}
                         ${l.notes ? `<div class="m-primary-text text-xs font-semibold">${esc(l.notes)}</div>` : ''}
                         ${price}
@@ -695,7 +698,7 @@ if (dataEl) {
             return `<li class="flex items-center gap-3 py-3">
                 <span class="m-line-ph" aria-hidden="true">${item.image ? `<img src="${esc(item.image)}" alt="" loading="lazy">` : (M.placeholders ? (M.phIcons?.[item.icon] || '') : '')}</span>
                 <div class="min-w-0 flex-1">
-                    <div class="font-bold">${esc(item.name)}</div>
+                    <div class="font-bold">${esc(item.name)}${alt(item.nameAlt)}</div>
                     ${opts ? `<div class="m-muted text-xs">${esc(opts)}</div>` : ''}
                     ${l.notes ? `<div class="m-primary-text text-xs">${esc(l.notes)}</div>` : ''}
                     ${price}
