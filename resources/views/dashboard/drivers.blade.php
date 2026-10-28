@@ -27,7 +27,7 @@
             'holding' => __('Holds :amount (:n orders)', ['amount' => '__A__', 'n' => '__N__']),
             'collectedToday' => __('Collected today: :amount', ['amount' => '__A__']),
             'otherToday' => __('by card / InstaPay / wallet: :amount', ['amount' => '__A__']),
-            'settle' => __('Settled'), 'settleSure' => __('Did :name hand in :amount?', ['name' => '__D__', 'amount' => '__A__']),
+            'settle' => __('Settle the cash'), 'settleConfirm' => __('Tap again: received :amount', ['amount' => '__A__']), 'settleSure' => __('Did :name hand in :amount?', ['name' => '__D__', 'amount' => '__A__']),
             'chooseDriver' => __('Choose a driver…'), 'noDriver' => __('No driver'), 'failed' => __('Delivery failed'),
             'chooseTrail' => __('Delivered today: choose an order to see its trail…'), 'noTrail' => __('No positions were stored for this order.'),
             'trailOf' => __('Trail of #:n · :driver · :from → :to', ['n' => '__N__', 'driver' => '__D__', 'from' => '__F__', 'to' => '__T__']),

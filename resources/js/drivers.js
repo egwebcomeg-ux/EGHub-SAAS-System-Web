@@ -16,6 +16,9 @@ if (dataEl) {
     const fmt = (n) => Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
     const minutesSince = (iso) => (iso ? Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000)) : null);
     let drivers = [];
+    // the driver whose «settle» was pressed once: the second press (within a few seconds) hands the cash in
+    let armed = null;
+    let armedTimer = null;
     let recent = [];
 
     let map = null;
@@ -115,7 +118,9 @@ if (dataEl) {
             <div class="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-navy-50 px-3 py-2 text-sm">
                 <span><b>${esc(t.holding.replace('__A__', `${fmt(d.holding)} ${t.currency}`).replace('__N__', d.holding_orders))}</b>
                 <span class="block text-xs text-navy-500">${esc(t.collectedToday.replace('__A__', `${fmt(d.collected_today)} ${t.currency}`))}${d.other_today > 0 ? ` · ${esc(t.otherToday.replace('__A__', `${fmt(d.other_today)} ${t.currency}`))}` : ''}</span></span>
-                ${d.holding > 0 ? `<button class="btn-primary min-h-10 px-4" data-settle="${d.id}">${esc(t.settle)}</button>` : ''}
+                ${d.holding > 0 ? (String(armed) === String(d.id)
+                    ? `<button type="button" class="min-h-10 rounded-xl bg-emerald-600 px-4 font-bold text-white" data-settle="${d.id}" data-armed>${esc(t.settleConfirm.replace('__A__', `${fmt(d.holding)} ${t.currency}`))}</button>`
+                    : `<button type="button" class="btn-primary min-h-10 px-4" data-settle="${d.id}">${esc(t.settle)}</button>`) : ''}
             </div>` : '';
         return `
             <article class="rounded-xl border border-navy-100 p-3" data-driver="${d.id}">
@@ -145,6 +150,10 @@ if (dataEl) {
             </article>`;
     }
 
+    function renderDrivers() {
+        driversBox.innerHTML = drivers.length ? drivers.map(driverCard).join('') : `<p class="py-6 text-center text-sm text-navy-500">${esc(t.noDrivers)}</p>`;
+    }
+
     async function poll() {
         try {
             const res = await fetch(D.urls.feed, { headers: { Accept: 'application/json' }, cache: 'no-store' });
@@ -154,7 +163,7 @@ if (dataEl) {
             recent = data.recent || [];
             // a list the manager is choosing in is not redrawn under their finger
             if (!document.activeElement?.matches?.('[data-assign], [data-trail-pick]')) {
-                driversBox.innerHTML = drivers.length ? drivers.map(driverCard).join('') : `<p class="py-6 text-center text-sm text-navy-500">${esc(t.noDrivers)}</p>`;
+                renderDrivers();
                 waitingBox.innerHTML = (data.waiting || []).length ? data.waiting.map(waitingCard).join('') : `<p class="py-6 text-center text-sm text-navy-500">${esc(t.noWaiting)}</p>`;
                 renderRecent();
             }
@@ -191,8 +200,16 @@ if (dataEl) {
     driversBox.addEventListener('click', async (e) => {
         const btn = e.target.closest('[data-settle]');
         if (!btn) return;
-        const d = drivers.find((x) => String(x.id) === btn.dataset.settle);
-        if (!confirm(t.settleSure.replace('__D__', d?.name ?? '').replace('__A__', `${fmt(d?.holding)} ${t.currency}`))) return;
+        // two presses on the same button, no browser dialog: the first asks «استلمت … ؟», the second settles
+        if (String(armed) !== btn.dataset.settle) {
+            armed = btn.dataset.settle;
+            clearTimeout(armedTimer);
+            armedTimer = setTimeout(() => { armed = null; renderDrivers(); }, 6000);
+            renderDrivers();
+            return;
+        }
+        armed = null;
+        clearTimeout(armedTimer);
         btn.disabled = true;
         await post(D.urls.settle.replace('__ID__', btn.dataset.settle), {});
         poll();
