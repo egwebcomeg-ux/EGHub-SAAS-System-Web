@@ -101,6 +101,28 @@ final class DeliveryPricing
     }
 
     /**
+     * A distance ring chosen by hand (the call center knows the rough distance, not the pin): that ring's fee,
+     * minimum and time, or null when the branch has no such ring. No distance is measured, so km stays null.
+     *
+     * @return array{zone:null, km:null, fee:float, min:float, minutes:?int, label:string, ring_km:float}|null
+     */
+    public static function ring(Branch $branch, int $index): ?array
+    {
+        $ring = self::distanceReady($branch) ? (self::rings($branch)[$index] ?? null) : null;
+
+        return $ring ? [
+            'zone' => null, 'km' => null, 'fee' => $ring['fee'], 'min' => $ring['min'], 'minutes' => $ring['minutes'],
+            'label' => self::ringLabel($ring['km']), 'ring_km' => $ring['km'],
+        ] : null;
+    }
+
+    /** «لحد 2 كم من المحل». */
+    public static function ringLabel(float $km): string
+    {
+        return __('Up to :km km from the restaurant', ['km' => rtrim(rtrim(number_format($km, 1), '0'), '.')]);
+    }
+
+    /**
      * The zone holding the point: a sub-zone beats its main zone, then the smallest area.
      *
      * @param  Collection<int, DeliveryZone>  $zones

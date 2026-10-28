@@ -606,6 +606,21 @@
             'stamps' => __(':n of :of stamps', ['n' => '__N__', 'of' => '__O__']), 'rewards' => __(':n rewards ready', ['n' => '__N__']),
             'previousOrders' => __('Previous orders'), 'edit' => __('Edit'),
         ];
+        if (($data['pricing']['method'] ?? 'zones') === 'distance') {
+            // a branch priced by distance: the customer's place, the suggestions and the rings
+            $i18n += [
+                'kmAway' => __(':km km from the restaurant', ['km' => '__K__']), 'km' => __(':km km', ['km' => '__K__']),
+                'upTo' => __('Up to :km km from the restaurant', ['km' => '__K__']), 'building' => __('Building :n', ['n' => '__N__']),
+                'pickPlace' => __('Type the address or move the pin to see the delivery fee.'),
+                'distanceNotReady' => __('Delivery by distance is not set up for this branch yet.'),
+                'outsideArea' => __('This place is outside the delivery area.'), 'outsideShort' => __('Outside delivery'),
+                'choosePlace' => __('Find the customer\'s place on the map, or choose the delivery distance.'),
+                'customerPin' => __('The customer'), 'restaurant' => __('The restaurant'), 'noPlace' => __('No place chosen yet'),
+                'savedAddress' => __('Saved address'), 'previousAddress' => __('Previous order'),
+                'searching' => __('Searching…'), 'searchNone' => __('Nothing found. Pin it on the map or choose the distance.'),
+                'searchFailed' => __('The map search is busy, try again in a moment.'), 'searchMap' => __('Search the map too'),
+            ];
+        }
     }
 @endphp
 <script type="application/json" id="pos-data">{!! json_encode($data, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!}</script>

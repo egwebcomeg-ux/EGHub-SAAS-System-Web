@@ -5,6 +5,7 @@
 --}}
 @php
     $zoneMode = $data['zoneMode'] ?? 'manual';
+    $byDistance = ($data['pricing']['method'] ?? 'zones') === 'distance';
 @endphp
 <aside id="pos-ticket" class="pos-ticket flex w-[24rem] shrink-0 flex-col overflow-hidden border-s border-navy-100 bg-white max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-40 max-md:h-[92dvh] max-md:w-full max-md:rounded-t-3xl max-md:border-s-0 max-md:shadow-2xl xl:w-[42rem] min-[87.5rem]:w-[48rem]" data-ticket data-cc-panel data-cc-step="customer">
     <div class="flex items-center justify-between border-b border-navy-100 px-4 py-1.5 md:hidden">
@@ -60,7 +61,35 @@
                         <div class="flex flex-wrap gap-2" data-addresses></div>
                     </div>
                     {{-- the zone id that is sent; in manual mode it follows the two pickers below --}}
-                    @if ($zoneMode === 'manual')
+                    @if ($byDistance)
+                        {{-- priced by distance: find the customer's place (typed address → suggestions, saved address, pin), or a ring --}}
+                        <div class="space-y-2" data-dist-box>
+                            <div class="flex items-center justify-between gap-2">
+                                <label class="text-sm font-extrabold text-navy-800" for="cc-addr-q">📍 {{ __('Find the customer\'s place') }}</label>
+                                <span class="text-xs text-navy-500">{{ __('Priced by distance from :branch', ['branch' => $data['branchName'] ?? '']) }}</span>
+                            </div>
+                            <div class="relative" data-addr-search>
+                                <div class="flex gap-2">
+                                    <input id="cc-addr-q" type="search" class="field min-h-12 min-w-0 flex-1 text-base" data-addr-q maxlength="100" autocomplete="off" enterkeyhint="search"
+                                        placeholder="{{ __('Type the customer\'s address') }}" role="combobox" aria-expanded="false" aria-controls="cc-addr-results" aria-autocomplete="list">
+                                    <button type="button" class="btn-ghost size-12 shrink-0 p-0 text-lg" data-map-toggle aria-pressed="true" title="{{ __('Pin on the map') }}" aria-label="{{ __('Pin on the map') }}">🗺</button>
+                                </div>
+                                <div id="cc-addr-results" class="absolute inset-x-0 top-full z-[1200] mt-1 hidden max-h-72 overflow-y-auto rounded-xl border border-navy-100 bg-white shadow-xl" role="listbox" data-addr-results></div>
+                            </div>
+                            <div class="relative h-56 overflow-hidden rounded-xl border border-navy-100 xl:h-64" dir="ltr" data-cc-map></div>
+                            <p class="text-xs text-navy-500" data-map-hint>{{ __('Drag the pin to the customer\'s door, or tap the map.') }}</p>
+                            <label class="flex items-center gap-2 text-sm">
+                                <span class="shrink-0 font-semibold text-navy-600">{{ __('No pin? Rough distance') }}</span>
+                                <select class="field min-h-11 min-w-0 flex-1" data-ring aria-label="{{ __('Delivery distance') }}">
+                                    <option value="">{{ __('Choose the distance') }}</option>
+                                    @foreach ($data['pricing']['rings'] ?? [] as $i => $ring)
+                                        <option value="{{ $i }}">{{ __('Up to :km km', ['km' => rtrim(rtrim(number_format($ring['km'], 1), '0'), '.')]) }} · {{ (float) $ring['fee'] }} {{ $data['currency'] }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                        </div>
+                        <select class="hidden" data-zone aria-hidden="true" tabindex="-1"><option value=""></option></select>
+                    @elseif ($zoneMode === 'manual')
                         <div class="flex gap-2">
                             <div class="grid min-w-0 flex-1 grid-cols-2 gap-2">
                                 <select class="field min-h-11 min-w-0" data-zone-root aria-label="{{ __('Area') }}"><option value="">{{ __('Area') }}</option></select>
@@ -75,7 +104,9 @@
                             <button type="button" class="btn-ghost size-11 shrink-0 p-0" data-map-toggle title="{{ __('Pin on the map') }}" aria-label="{{ __('Pin on the map') }}">📍</button>
                         </div>
                     @endif
-                    <div class="hidden h-56 overflow-hidden rounded-xl border border-navy-100" dir="ltr" data-cc-map></div>
+                    @unless ($byDistance)
+                        <div class="hidden h-56 overflow-hidden rounded-xl border border-navy-100" dir="ltr" data-cc-map></div>
+                    @endunless
                     <div class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-navy-50 px-3 py-2 text-sm text-navy-700 xl:bg-white xl:ring-1 xl:ring-navy-100" data-zone-facts>
                         <span class="text-navy-500">{{ __('Choose the area to see the fee and the minimum order.') }}</span>
                     </div>

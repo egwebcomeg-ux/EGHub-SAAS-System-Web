@@ -5,6 +5,7 @@ import { createOffline, NetworkError, printLocalReceipt } from './pos-offline';
 import './kb-drawer';
 import { bindPager, pagerButtons, pagerStatus } from './pager-call';
 import { createNativePrinter } from './native-print';
+import { quoteAt } from './delivery-geo';
 
 const dataEl = document.getElementById('pos-data');
 if (dataEl) {
@@ -28,6 +29,10 @@ if (dataEl) {
     let renderCc = () => {}; // call-center panel: steps, zone facts, summary line (set below)
     let resetCc = () => {};
     let goStep = () => {};
+    // a branch priced by distance (call center): the customer's place (pin) or a distance ring prices the delivery
+    const DIST = CC && D.pricing?.method === 'distance';
+    let ccDelivery = () => zones[$('[data-zone]')?.value] || null; // the delivery chosen: {name, fee, min, minutes}
+    let ccDeliveryFields = () => ({}); // what the distance block adds to the order (pin or ring, address parts)
     const zones = Object.fromEntries((D.zones || []).map((z) => [z.id, z]));
     let state = { type: CC ? 'delivery' : 'takeaway', table: '', lines: [], category: 'all' };
     let lastOrderId = null;
@@ -141,7 +146,7 @@ if (dataEl) {
         const discount = staff + voucher;
         const service = state.type === 'dine_in' ? (subtotal - discount) * D.service / 100 : 0;
         const tax = (subtotal - discount + service) * D.tax / 100;
-        const zone = CC && state.type === 'delivery' ? zones[$('[data-zone]').value] : null;
+        const zone = CC && state.type === 'delivery' ? ccDelivery() : null;
         const delivery = zone ? zone.fee : 0;
         return { subtotal, staff, voucher, discount: Math.round(discount * 100) / 100, service, tax, delivery, zone, total: subtotal - discount + service + tax + delivery };
     }
@@ -265,8 +270,9 @@ if (dataEl) {
         if (CC) p.phone_2 = $('[data-phone2]').value.trim();
         if (state.coupon) p.coupon = state.coupon.code;
         if (CC && state.type === 'delivery') {
-            Object.assign(p, { zone_id: Number($('[data-zone]').value) || null, address: $('[data-address]').value.trim(), address_label: $('[data-address-label]').value.trim() });
+            Object.assign(p, { zone_id: DIST ? null : Number($('[data-zone]').value) || null, address: $('[data-address]').value.trim(), address_label: $('[data-address-label]').value.trim() });
             if (ccPoint()) Object.assign(p, { lat: ccPoint()[0], lng: ccPoint()[1] });
+            if (DIST) Object.assign(p, ccDeliveryFields());
         }
         return p;
     }
@@ -277,7 +283,7 @@ if (dataEl) {
             if (!$('[data-customer-phone]').value.trim()) { goStep('customer', true); alert(T.phoneFirst); $('[data-customer-phone]').focus(); return false; }
             if (state.type === 'delivery') {
                 const t = totals();
-                if (!t.zone) { goStep('delivery'); alert(T.chooseZone); return false; }
+                if (!t.zone) { goStep('delivery'); alert(DIST ? (ccPoint() ? T.outsideArea : T.choosePlace) : T.chooseZone); return false; }
                 if (!$('[data-address]').value.trim()) { goStep('delivery'); alert(T.enterAddress); $('[data-address]').focus(); return false; }
                 if (t.zone.min > 0 && t.subtotal - t.discount < t.zone.min) { alert(T.minOrder.replace('__A__', fmt(t.zone.min))); return false; }
             }
@@ -360,6 +366,7 @@ if (dataEl) {
         const drawn = D.zones.filter((z) => z.polygon && z.polygon.length >= 3).sort((a, b) => b.sub - a.sub);
         function setPoint(p, pickZone = true) {
             point = p;
+            if (DIST) return distPoint(p, pickZone);
             const pinned = $('[data-pinned]');
             pinned.textContent = p ? '📍 ✓ ' + T.pinnedOnMap : '';
             pinned.classList.toggle('hidden', !p);
@@ -376,6 +383,11 @@ if (dataEl) {
         $('[data-map-toggle]').addEventListener('click', () => {
             const box = $('[data-cc-map]');
             box.classList.toggle('hidden');
+            if (DIST) {
+                $('[data-map-toggle]').setAttribute('aria-pressed', box.classList.contains('hidden') ? 'false' : 'true');
+                $('[data-map-hint]')?.classList.toggle('hidden', box.classList.contains('hidden'));
+                return map?.invalidateSize();
+            }
             if (map || !window.L || box.classList.contains('hidden')) return;
             map = L.map(box).setView(drawn[0]?.polygon[0] || [30.0444, 31.2357], 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
@@ -386,21 +398,217 @@ if (dataEl) {
             if (point) map.setView(point, 15);
         });
 
-        // ---- saved addresses: one tap fills the zone, the address and its name ----
+        // ---- priced by distance: the customer's place on the map (draggable pin from the branch), the typed address
+        // with live suggestions (saved / previous addresses first, then the geocoder), or a rough distance ring ----
+        const ringSel = $('[data-ring]');
+        const dist = { parts: null, autoText: '', seq: 0, timer: 0, cache: new Map(), results: [] };
+        const pricing = DIST ? { method: 'distance', center: D.pricing.center, rings: D.pricing.rings } : null;
+        const kmText = (d) => T.kmAway.replace('__K__', (Math.round(d * 10) / 10).toFixed(1));
+        const ringText = (r) => T.upTo.replace('__K__', String(Math.round(r.km * 10) / 10));
+        function distQuote() {
+            if (point) {
+                const q = quoteAt(pricing, [], point[0], point[1], kmText);
+                return q ? { name: q.name, fee: q.fee, min: q.min, minutes: q.eta, km: q.km } : null;
+            }
+            const r = ringSel && ringSel.value !== '' ? D.pricing.rings[Number(ringSel.value)] : null;
+            return r ? { name: ringText(r), fee: r.fee, min: r.min, minutes: r.eta, km: null, ring: true } : null;
+        }
+        if (DIST) {
+            ccDelivery = distQuote;
+            ccDeliveryFields = () => (point ? { address_parts: dist.parts || undefined } : { ring: ringSel.value !== '' ? Number(ringSel.value) : null, address_parts: dist.parts || undefined });
+        }
+        // the address line from the geocoder's parts: «شارع البحر، عمارة 12، قسم أول طنطا»
+        const lineOf = (r) => [r.street, r.house_number ? T.building.replace('__N__', r.house_number) : '', r.area].filter(Boolean).join('، ') || r.label || '';
+        function fillAddress(text, parts) {
+            const box = $('[data-address]');
+            // the agent's own words are never overwritten; the line we filled ourselves follows the pin
+            if (text && (!box.value.trim() || box.value.trim() === dist.autoText)) {
+                box.value = text;
+                dist.autoText = text;
+            }
+            dist.parts = parts;
+        }
+        let reverseTimer = 0;
+        let reverseSeq = 0;
+        function reverseFill(p) {
+            clearTimeout(reverseTimer);
+            if (!D.urls.geoReverse || !D.geocoder) return;
+            reverseTimer = setTimeout(async () => {
+                const seq = ++reverseSeq;
+                const url = new URL(D.urls.geoReverse, location.href);
+                url.searchParams.set('lat', p[0]);
+                url.searchParams.set('lng', p[1]);
+                const r = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' }).then((x) => (x.ok ? x.json() : null)).catch(() => null);
+                if (!r || seq !== reverseSeq || point !== p || !r.found) return;
+                fillAddress(lineOf(r), { street: r.street || undefined, building: r.house_number || undefined, area: r.area || r.city || undefined });
+                render();
+            }, 600);
+        }
+        function distPoint(p, lookUp) {
+            if (ringSel && p) ringSel.value = '';
+            const pinned = $('[data-pinned]');
+            pinned.textContent = p ? '📍 ✓ ' + T.pinnedOnMap : '';
+            pinned.classList.toggle('hidden', !p);
+            if (map) {
+                if (p && !marker) {
+                    marker = L.marker(p, { draggable: true, autoPan: true, title: T.customerPin }).addTo(map);
+                    marker.on('dragend', () => {
+                        const ll = marker.getLatLng();
+                        point = [+ll.lat.toFixed(6), +ll.lng.toFixed(6)];
+                        distPoint(point, true);
+                    });
+                } else if (p) {
+                    marker.setLatLng(p);
+                } else if (marker) {
+                    marker.remove();
+                    marker = null;
+                }
+            }
+            if (p && lookUp) reverseFill(p);
+            render();
+        }
+        // the whole delivery area in view: the branch and its last ring
+        function fitDist() {
+            const last = D.pricing.rings[D.pricing.rings.length - 1];
+            if (map && D.pricing.center && last) map.fitBounds(L.latLng(D.pricing.center).toBounds(last.km * 2000), { padding: [8, 8] });
+        }
+        function initDistMap() {
+            const box = $('[data-cc-map]');
+            if (!DIST || map || !window.L || !box) return;
+            const center = D.pricing.center || [30.0444, 31.2357];
+            map = L.map(box).setView(center, 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+            if (D.pricing.center) {
+                // the rings around the branch, the last one is where delivery stops
+                [...D.pricing.rings].reverse().forEach((r, i, all) => L.circle(center, {
+                    radius: r.km * 1000, color: i === 0 ? '#0A2540' : '#64748b', weight: i === 0 ? 2 : 1, dashArray: i === 0 ? null : '4 4',
+                    fillOpacity: i === all.length - 1 ? 0.06 : 0.03, interactive: false,
+                }).addTo(map));
+                L.circleMarker(center, { radius: 8, color: '#fff', weight: 3, fillColor: '#0A2540', fillOpacity: 1 })
+                    .bindTooltip(D.branchName || T.restaurant, { permanent: false }).addTo(map);
+                fitDist();
+            }
+            map.on('click', (e) => { point = [+e.latlng.lat.toFixed(6), +e.latlng.lng.toFixed(6)]; distPoint(point, true); });
+            if (point) { distPoint(point, false); map.setView(point, 16); }
+        }
+        ringSel?.addEventListener('change', () => {
+            if (ringSel.value !== '' && point) { point = null; distPoint(null, false); }
+            render();
+        });
+
+        // «اكتب عنوان العميل»: after a pause (3+ letters) or Enter; the same words are asked once per screen
+        const qBox = $('[data-addr-q]');
+        const resultsBox = $('[data-addr-results]');
+        function showResults(html) {
+            resultsBox.innerHTML = html;
+            resultsBox.classList.toggle('hidden', !html);
+            qBox.setAttribute('aria-expanded', html ? 'true' : 'false');
+        }
+        const sourceIcon = { saved: '⭐', previous: '🕘', map: '📍' };
+        function resultRow(r, i) {
+            const d = r.delivery;
+            const facts = r.outside ? `<span class="font-bold text-red-600">${esc(T.outsideShort)}</span>`
+                : `${d.km != null ? `<span>${esc(T.km.replace('__K__', (Math.round(d.km * 10) / 10).toFixed(1)))}</span> · ` : ''}<b class="text-navy-900">${esc(fmt(d.fee))}</b>${d.min > 0 ? ` · <span>${esc(T.zoneMin.replace('__A__', fmt(d.min)))}</span>` : ''}`;
+            return `<button type="button" role="option" class="flex min-h-12 w-full items-start gap-2 border-b border-navy-50 px-3 py-2 text-start last:border-0 ${r.outside ? 'cursor-not-allowed bg-navy-50/60 text-navy-400' : 'hover:bg-brand-50 focus:bg-brand-50'}" data-addr-pick="${i}" ${r.outside ? 'aria-disabled="true"' : ''}>
+                <span class="mt-0.5 shrink-0" aria-hidden="true">${sourceIcon[r.source] || '📍'}</span>
+                <span class="min-w-0 flex-1"><span class="block truncate text-sm font-bold" dir="auto">${esc(r.label)}</span>
+                    <span class="block text-xs ${r.outside ? '' : 'text-navy-600'}">${r.source !== 'map' ? esc(r.source === 'saved' ? T.savedAddress : T.previousAddress) + ' · ' : ''}${facts}</span></span>
+            </button>`;
+        }
+        async function suggest(more = false) {
+            const q = qBox.value.trim();
+            clearTimeout(dist.timer);
+            if (q.length < 3 || !D.urls.geoSuggest) return showResults('');
+            const key = q.toLowerCase() + '|' + phoneValue() + '|' + (more ? 1 : 0);
+            const seq = ++dist.seq;
+            let r = dist.cache.get(key);
+            if (!r) {
+                showResults(`<p class="p-3 text-sm text-navy-500">${esc(T.searching)}</p>`);
+                const url = new URL(D.urls.geoSuggest, location.href);
+                url.searchParams.set('q', q.slice(0, 100));
+                if (phoneValue()) url.searchParams.set('phone', phoneValue());
+                if (more) url.searchParams.set('more', '1');
+                r = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' }).then((x) => (x.ok ? x.json() : null)).catch(() => null);
+                if (r?.ok) dist.cache.set(key, r);
+            }
+            if (seq !== dist.seq) return;
+            dist.results = r?.results || [];
+            const moreBtn = D.geocoder && r && !r.searched
+                ? `<button type="button" class="flex min-h-11 w-full items-center gap-2 px-3 text-sm font-bold text-brand-700 hover:bg-brand-50" data-addr-more>🔎 ${esc(T.searchMap)}</button>` : '';
+            if (!r) return showResults(`<p class="p-3 text-sm text-red-600">${esc(T.searchFailed)}</p>`);
+            if (!dist.results.length) {
+                return showResults(`<p class="p-3 text-sm text-navy-600">${esc(r.ok ? T.searchNone : T.searchFailed)}</p>${moreBtn}`);
+            }
+            showResults(dist.results.map(resultRow).join('') + moreBtn);
+        }
+        function pickResult(r) {
+            if (!r || r.outside) return;
+            showResults('');
+            const p = [r.lat, r.lng];
+            point = p;
+            const parts = { street: r.street || undefined, building: r.house_number || undefined, area: r.area || r.city || undefined };
+            if (r.text) {
+                // a known address: its own line, kept as it was typed then
+                $('[data-address]').value = r.text;
+                dist.autoText = r.text;
+                dist.parts = parts;
+                if (r.address_label) $('[data-address-label]').value = r.address_label;
+            } else {
+                fillAddress(lineOf(r), parts);
+            }
+            distPoint(p, false);
+            map?.setView(p, 17);
+            qBox.value = r.label;
+        }
+        if (DIST && qBox) {
+            qBox.addEventListener('input', () => {
+                clearTimeout(dist.timer);
+                if (qBox.value.trim().length < 3) return showResults('');
+                dist.timer = setTimeout(() => suggest(false), 700);
+            });
+            qBox.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); suggest(true); }
+                if (e.key === 'Escape') showResults('');
+                if (e.key === 'ArrowDown') { e.preventDefault(); $('[data-addr-pick]:not([aria-disabled])', resultsBox)?.focus(); }
+            });
+            resultsBox.addEventListener('click', (e) => {
+                if (e.target.closest('[data-addr-more]')) return suggest(true);
+                const b = e.target.closest('[data-addr-pick]');
+                if (b) pickResult(dist.results[Number(b.dataset.addrPick)]);
+            });
+            document.addEventListener('click', (e) => { if (!e.target.closest('[data-addr-search]')) showResults(''); });
+            initDistMap();
+        }
+
+        // ---- saved addresses: one tap fills the zone (or the pin), the address and its name ----
         const pick = (a) => {
             $('[data-address]').value = a.text;
             $('[data-address-label]').value = a.label || '';
+            if (DIST) {
+                dist.autoText = a.text;
+                dist.parts = a.parts || null;
+                if (ringSel) ringSel.value = '';
+                point = a.lat != null ? [a.lat, a.lng] : null;
+                distPoint(point, false);
+                if (point) map?.setView(point, 16);
+                // an old address without its pin: look its words up
+                else if (qBox) { qBox.value = a.text; suggest(false); }
+                return;
+            }
             setPoint(a.lat != null ? [a.lat, a.lng] : null, false);
             setZone(a.zone_id);
         };
+        const savedName = (a) => (DIST ? a.zone || '' : zones[a.zone_id].name);
+        const savedTitle = (a) => (DIST ? (a.label || T.savedAddress) : (a.label || zones[a.zone_id].short));
         function renderAddresses() {
             $('[data-addresses-box]').classList.toggle('hidden', !saved.length);
             const text = $('[data-address]').value.trim();
             $('[data-addresses]').innerHTML = saved.map((a, i) => {
-                const on = String(a.zone_id) === zoneSel.value && a.text === text;
+                const on = (DIST ? (a.lat == null || (point && point[0] === a.lat && point[1] === a.lng)) : String(a.zone_id) === zoneSel.value) && a.text === text;
+                const price = DIST && a.delivery ? ' · ' + fmt(a.delivery.fee) : DIST && a.outside ? ' · ' + T.outsideShort : '';
                 return `<button type="button" class="flex min-h-11 min-w-0 max-w-full flex-col items-start rounded-xl border px-3 py-1.5 text-start ${on ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600' : 'border-navy-100 bg-white hover:border-navy-300'}" data-pick-address="${i}" aria-pressed="${on}" title="${esc(a.text)}">
-                    <span class="text-sm font-bold">${a.label ? '📍 ' + esc(a.label) : '📍 ' + esc(zones[a.zone_id].short)}</span>
-                    <span class="max-w-56 truncate text-xs text-navy-500">${esc(zones[a.zone_id].name)} · ${esc(a.text)}</span>
+                    <span class="text-sm font-bold">📍 ${esc(savedTitle(a))}${esc(price)}</span>
+                    <span class="max-w-56 truncate text-xs text-navy-500">${savedName(a) ? esc(savedName(a)) + ' · ' : ''}${esc(a.text)}</span>
                 </button>`;
             }).join('');
         }
@@ -469,7 +677,8 @@ if (dataEl) {
                 $('[data-phone2]').value = c.phone_2 || '';
                 box.innerHTML = callerCard(c);
                 showSearch(false);
-                saved = c.addresses.filter((a) => zones[a.zone_id]); // addresses in zones this branch still serves
+                // addresses in zones this branch still serves; by distance every address (priced when it has its pin)
+                saved = DIST ? c.addresses.filter((a) => a.text && !a.outside) : c.addresses.filter((a) => zones[a.zone_id]);
                 renderAddresses();
                 if (saved[0] && state.type === 'delivery') pick(saved[0]); else render();
                 goStep('delivery');
@@ -502,6 +711,8 @@ if (dataEl) {
             $('[data-cc-pane="delivery"]').classList.toggle('max-xl:hidden', s !== 'delivery');
             $('[data-cc-footer-summary]').classList.toggle('hidden', s === 'order');
             if (focus && s === 'customer') $('[data-customer-phone]').focus();
+            // the map was laid out while its pane was hidden
+            if (DIST && s === 'delivery') setTimeout(() => { map?.invalidateSize(); if (point) map?.setView(point, 16); else fitDist(); }, 0);
         };
         $$('[data-cc-tab]').forEach((b) => b.addEventListener('click', () => goStep(b.dataset.ccTab)));
         $$('[data-cc-next]').forEach((b) => b.addEventListener('click', () => goStep(b.dataset.ccNext)));
@@ -513,9 +724,12 @@ if (dataEl) {
             // the chosen zone: fee, minimum and time inline, and how far below the minimum the order is
             const z = delivery ? t.zone : null;
             $('[data-zone-facts]').classList.toggle('hidden', !delivery);
+            const outside = DIST && !z && !!point;
+            $('[data-zone-facts]').classList.toggle('ring-red-300', outside);
             $('[data-zone-facts]').innerHTML = z
                 ? `<b class="text-navy-900">${esc(z.name)}</b><span>${esc(facts(z))}</span>`
-                : `<span class="text-navy-500">${esc(T.pickArea)}</span>`;
+                : outside ? `<b class="text-red-700">⛔ ${esc(T.outsideArea)}</b>`
+                    : `<span class="text-navy-500">${esc(DIST ? (D.pricing.ready ? T.pickPlace : T.distanceNotReady) : T.pickArea)}</span>`;
             const left = z && z.min > 0 ? z.min - (t.subtotal - t.discount) : 0;
             ['[data-min-warning]', '[data-min-warning-footer]'].forEach((sel) => {
                 const warn = $(sel);
@@ -528,7 +742,7 @@ if (dataEl) {
             const who = name || phone ? `👤 <b>${esc(name || phone)}</b>${name && phone ? ` <span class="text-navy-500" dir="ltr">${esc(phone)}</span>` : ''}` : `<span class="text-amber-700">👤 ${esc(T.noCustomer)}</span>`;
             const where = !delivery ? `🛍 <b>${esc(T.pickup)}</b>${D.branchName ? ' · ' + esc(D.branchName) : ''}`
                 : z ? `<span class="truncate">🛵 <b>${esc(T.delivery)}</b> · ${esc(z.name)}</span><span class="shrink-0 font-bold">· ${esc(fmt(z.fee))}</span>`
-                    : `<span class="font-bold text-amber-700">🛵 ${esc(T.delivery)} · ${esc(T.noArea)}</span>`;
+                    : `<span class="font-bold text-amber-700">🛵 ${esc(T.delivery)} · ${esc(outside ? T.outsideShort : DIST ? T.noPlace : T.noArea)}</span>`;
             $$('[data-cc-summary]').forEach((el) => { el.innerHTML = `<div class="truncate">${who}</div><div class="flex min-w-0 gap-1 overflow-hidden whitespace-nowrap"><span class="flex min-w-0 gap-1">${where}</span></div>`; });
             const count = state.lines.reduce((n, l) => n + l.qty, 0);
             $$('[data-cc-count]').forEach((el) => { el.textContent = count; });
@@ -551,7 +765,16 @@ if (dataEl) {
             $('[data-caller]').innerHTML = '';
             showSearch(true);
             if ($('[data-address-more]')) $('[data-address-more]').open = false;
-            $('[data-cc-map]').classList.add('hidden');
+            if (DIST) {
+                dist.parts = null;
+                dist.autoText = '';
+                if (qBox) qBox.value = '';
+                if (ringSel) ringSel.value = '';
+                showResults('');
+                fitDist();
+            } else {
+                $('[data-cc-map]').classList.add('hidden');
+            }
             syncPickers();
             goStep('customer');
         };

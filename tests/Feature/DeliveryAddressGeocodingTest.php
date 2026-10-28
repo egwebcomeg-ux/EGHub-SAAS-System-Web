@@ -240,7 +240,8 @@ class DeliveryAddressGeocodingTest extends TenantTestCase
 
         $res = $this->getJson($url)->assertOk()->assertJsonPath('ok', true)->assertJsonCount(1, 'results')
             ->assertJsonPath('results.0', ['label' => 'شارع البحر، قسم أول طنطا', 'lat' => 30.7866, 'lng' => 31.0003,
-                'street' => 'شارع البحر', 'house_number' => '12', 'area' => 'قسم أول طنطا', 'city' => 'طنطا', 'formatted_ar' => 'شارع البحر، قسم أول طنطا']);
+                'street' => 'شارع البحر', 'house_number' => '12', 'area' => 'قسم أول طنطا', 'city' => 'طنطا', 'formatted_ar' => 'شارع البحر، قسم أول طنطا',
+                'delivery' => ['km' => 0, 'fee' => 25, 'min' => 0], 'outside' => false]);
         $this->assertStringContainsString('no-store', (string) $res->headers->get('Cache-Control'));
         Http::assertSent(function (HttpRequest $r) {
             parse_str((string) parse_url($r->url(), PHP_URL_QUERY), $q);
@@ -258,6 +259,17 @@ class DeliveryAddressGeocodingTest extends TenantTestCase
         // busy: an empty list that says so (the menu says "try again")
         $this->travel(3)->seconds();
         $this->getJson($this->subUrl('cafe-a', 'geo/search?q=ميدان الساعة'))->assertOk()->assertExactJson(['ok' => false, 'results' => []]);
+    }
+
+    public function test_a_found_place_past_the_last_ring_says_it_is_outside(): void
+    {
+        $a = $this->restaurant('cafe-a', 'pro');
+        $this->distanceBranch($a);
+        // ~10 km north of the branch, the only ring reaches 3 km
+        Http::fake(['nominatim.openstreetmap.org/*' => Http::response([['lat' => '30.8765', 'lon' => '31.0004'] + $this->bahrStreet()])]);
+
+        $this->getJson($this->subUrl('cafe-a', 'geo/search?q='.urlencode('شارع البحر')))->assertOk()
+            ->assertJsonPath('results.0.delivery', null)->assertJsonPath('results.0.outside', true);
     }
 
     public function test_the_address_in_parts_makes_the_orders_line_and_is_kept_with_the_order_and_the_guest(): void

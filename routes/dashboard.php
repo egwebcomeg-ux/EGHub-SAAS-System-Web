@@ -8,6 +8,7 @@ use App\Http\Controllers\Dashboard\BillingController;
 use App\Http\Controllers\Dashboard\BranchesController;
 use App\Http\Controllers\Dashboard\BranchMenuController;
 use App\Http\Controllers\Dashboard\CallCenterController;
+use App\Http\Controllers\Dashboard\CallCenterGeoController;
 use App\Http\Controllers\Dashboard\CampaignsController;
 use App\Http\Controllers\Dashboard\CardsController;
 use App\Http\Controllers\Dashboard\CategoriesController;
@@ -549,6 +550,9 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/call-center', [CallCenterController::class, 'screen'])->name('callcenter');
         Route::get('/call-center/customer', [CallCenterController::class, 'lookup'])->name('callcenter.lookup');
         Route::post('/call-center/orders', [CallCenterController::class, 'store'])->name('callcenter.order');
+        // distance-priced branches: the pin's street and "اكتب عنوان العميل" suggestions (CallCenterGeoController, never cached)
+        Route::get('/call-center/geo/reverse', [CallCenterGeoController::class, 'reverse'])->middleware('throttle:staff-geo-reverse')->name('callcenter.geo.reverse');
+        Route::get('/call-center/geo/suggest', [CallCenterGeoController::class, 'suggest'])->middleware('throttle:staff-geo-search')->name('callcenter.geo.suggest');
     });
 
     // Inventory pack: ingredients, stock per branch, recipes and food cost

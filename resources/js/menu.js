@@ -1362,15 +1362,19 @@ if (dataEl) {
         searchResults = d?.results || [];
         if (!d?.ok) return showResults(`<p class="m-muted p-3 text-sm">${esc(T.searchFailed)}</p>`);
         if (!searchResults.length) return showResults(`<p class="m-muted p-3 text-sm">${esc(T.searchNone)}</p>`);
+        // each place with what delivery there costs («1.8 كم · 30 ج.م»), or greyed when the branch does not deliver there
+        const priceOf = (r) => (r.outside ? T.searchOutside
+            : r.delivery ? [r.delivery.km != null ? T.searchKm.replace('__K__', (Math.round(r.delivery.km * 10) / 10).toFixed(1)) : '', fmt(r.delivery.fee)].filter(Boolean).join(' · ') : '');
         showResults(searchResults.map((r, i) => `
-            <button type="button" class="m-pin-result" role="option" data-pin-result="${i}">
+            <button type="button" class="m-pin-result${r.outside ? ' opacity-50' : ''}" role="option" data-pin-result="${i}"${r.outside ? ' aria-disabled="true"' : ''}>
                 <span class="block truncate text-sm font-bold" dir="auto">📍 ${esc(r.label)}</span>
                 ${r.city && !r.label.includes(r.city) ? `<span class="m-muted block truncate text-xs" dir="auto">${esc(r.city)}</span>` : ''}
+                ${priceOf(r) ? `<span class="block text-xs font-bold${r.outside ? ' text-red-600' : ''}">${esc(priceOf(r))}</span>` : ''}
             </button>`).join(''));
     }
     function pickSearchResult(i) {
         const r = searchResults[i];
-        if (!r || !pinMarker) return;
+        if (!r || !pinMarker || r.outside) return;
         knowPlace(r.lat, r.lng, r);
         pinMarker.setLatLng([r.lat, r.lng]);
         pinMap.setView([r.lat, r.lng], 17);

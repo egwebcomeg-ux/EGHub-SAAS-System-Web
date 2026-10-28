@@ -80,6 +80,9 @@ class AppServiceProvider extends ServiceProvider
         // The checkout map asks the street of the pin (debounced while dragging) and searches places: per visitor
         RateLimiter::for('geo-reverse', fn (Request $r) => Limit::perMinute(30)->by('geor:'.$r->ip()));
         RateLimiter::for('geo-search', fn (Request $r) => Limit::perMinute(20)->by('geos:'.$r->ip()));
+        // the same for the call center's map and address suggestions: per signed-in agent of the restaurant
+        RateLimiter::for('staff-geo-reverse', fn (Request $r) => Limit::perMinute(40)->by('sgr:'.tenant()?->getTenantKey().'|'.$r->user()?->id));
+        RateLimiter::for('staff-geo-search', fn (Request $r) => Limit::perMinute(30)->by('sgs:'.tenant()?->getTenantKey().'|'.$r->user()?->id));
         // The guest pager page polls every 5 s: a budget per page and device (many guests share the shop's Wi-Fi).
         RateLimiter::for('pager', fn (Request $r) => Limit::perMinute(40)->by($r->ip().'|'.$r->path()));
         // the pager's "picked up" and rating: per page too, so a busy café on one Wi-Fi never blocks its guests

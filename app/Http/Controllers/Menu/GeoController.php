@@ -63,6 +63,8 @@ class GeoController extends Controller
         $branch = $this->branch($data['branch'] ?? null);
         $near = $branch->lat !== null && $branch->lng !== null ? [(float) $branch->lat, (float) $branch->lng] : null;
         $places = $lookup->search($data['q'], $near);
+        // priced by the pin (distance rings, drawn areas): each place says what delivery there costs, or that it is outside
+        $priced = DeliveryPricing::byLocation($branch, Settings::all());
 
         return response()->json([
             'ok' => $places !== null,
@@ -70,8 +72,20 @@ class GeoController extends Controller
                 'label' => $p['formatted_ar'], 'lat' => $p['lat'], 'lng' => $p['lng'],
                 'street' => $p['street'], 'house_number' => $p['house_number'], 'area' => $p['area'], 'city' => $p['city'],
                 'formatted_ar' => $p['formatted_ar'],
-            ], $places ?? []),
+            ] + ($priced ? self::priced($branch, (float) $p['lat'], (float) $p['lng']) : []), $places ?? []),
         ], 200, self::HEADERS);
+    }
+
+    /**
+     * What delivery to a found place costs (a preview: the order is priced again from its pin).
+     *
+     * @return array{delivery: array{km:?float, fee:float, min:float}|null, outside: bool}
+     */
+    private static function priced(Branch $branch, float $lat, float $lng): array
+    {
+        $quote = DeliveryPricing::quote($branch, $lat, $lng);
+
+        return ['delivery' => $quote ? ['km' => $quote['km'], 'fee' => $quote['fee'], 'min' => $quote['min']] : null, 'outside' => $quote === null];
     }
 
     /** The branch of the cart, delivering online now; anything else is not found (no free geocoding for anyone). */

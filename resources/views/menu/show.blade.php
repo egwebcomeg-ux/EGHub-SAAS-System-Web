@@ -1226,6 +1226,7 @@
         'placeLoading' => __('Finding the street name…'), 'placeUnknown' => __('We could not find the street name: type it below.'),
         'pinnedAt' => __('Pinned at :place', ['place' => '__P__']),
         'searchNone' => __('No results. Try another word, or move the pin by hand.'),
+        'searchKm' => __(':km km', ['km' => '__K__']), 'searchOutside' => __('Outside delivery'),
         'searchFailed' => __('The search is busy right now. Try again in a moment, or move the pin by hand.'),
         'missingStreet' => __('the street'), 'enterStreet' => __('Write the street name.'),
         'pinFirst' => __('Pin your location on the map to see the delivery fee.'), 'missingPin' => __('your location on the map'),
