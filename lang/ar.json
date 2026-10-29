@@ -3999,6 +3999,7 @@
     "A manager must approve: choose the manager and enter their PIN.": "لازم مدير يوافق: اختار المدير وخليه يكتب الـ PIN بتاعه.",
     "This order is paid: give the money back with a refund from the cashier screen (a manager approves).": "الطلب ده مدفوع: الفلوس بترجع بمرتجع من شاشة الكاشير (بموافقة مدير).",
     "Cancelling needs a manager: no manager has set a PIN yet, so a manager cancels it from their own account.": "الإلغاء محتاج مدير: مفيش مدير عامل PIN لسه، فالمدير يلغيه من حسابه.",
+    "Show this code at the counter to collect your stamps and rewards.": "اعرض الكود ده على الكاشير عشان تاخد أختامك ومكافآتك.",
     "Charged": "المستحق",
     "The company owes": "على الشركة",
     "Paid ahead": "مدفوع مقدماً",

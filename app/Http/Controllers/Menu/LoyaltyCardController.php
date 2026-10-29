@@ -7,6 +7,7 @@ use App\Models\Branch;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Services\Corporate\CorporateVouchers;
+use App\Services\Customers\GuestAccount;
 use App\Services\Entitlements;
 use App\Services\Loyalty\CardState;
 use App\Services\Loyalty\LoyaltyService;
@@ -90,7 +91,7 @@ class LoyaltyCardController extends Controller
         $shared = [
             'customer' => $customer, 'settings' => Settings::all(), 'wallet' => $wallet, 'vouchers' => $vouchers, 'corporate' => $corporate,
             'tier' => $membership->tierFor($customer), 'nextTier' => $membership->nextFor($customer), 'packages' => $packages,
-            'qr' => Qr::svg(route('menu.card', $token), 220, '#111111'),
+            'qr' => Qr::svg(GuestAccount::scanUrl($customer), 220, '#111111'),
             'branches' => Branch::query()->where('is_active', true)->orderBy('sort_order')->get(),
             // the card as an app on the phone: live state version, wallet buttons only when the platform has the keys
             'cardState' => $cards->for($customer) ?? abort(404), 'walletPasses' => $walletPasses,
@@ -103,6 +104,17 @@ class LoyaltyCardController extends Controller
             : view('menu.wallet', $shared);
 
         return response($view, 200, CardAppController::PRIVATE_HEADERS)->withCookie(cookie()->forever($this->cookie(), $token));
+    }
+
+    /**
+     * The card's QR opened in a browser (the cashier's phone, or anyone who photographed it): the restaurant's name and
+     * the code to type at the counter. Nothing of the guest, no cookie: the guest's own page is their card link.
+     */
+    public function scan(string $code): Response
+    {
+        abort_unless(Customer::query()->where('scan_code', $code)->exists(), 404);
+
+        return response(view('menu.card-scan', ['code' => $code, 'settings' => Settings::all()]), 200, CardAppController::PRIVATE_HEADERS);
     }
 
     private function cookie(): string

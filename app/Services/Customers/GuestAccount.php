@@ -58,6 +58,46 @@ final class GuestAccount
         return $customer->card_token;
     }
 
+    public const SCAN_PATTERN = '[a-f0-9]{20}';
+
+    /**
+     * The code the card's QR carries: the counter finds the guest by it, and it opens nothing (no account, no balance),
+     * unlike the card link, which is the guest's key. Made the first time it is needed.
+     */
+    public static function scanCode(Customer $customer): string
+    {
+        if (! is_string($customer->scan_code) || preg_match('/^'.self::SCAN_PATTERN.'$/', $customer->scan_code) !== 1) {
+            do {
+                $code = random_token(10);
+            } while (Customer::query()->where('scan_code', $code)->exists());
+            $customer->forceFill(['scan_code' => $code])->save();
+        }
+
+        return $customer->scan_code;
+    }
+
+    /** What the card's QR opens: a page with the code for the cashier, nothing of the guest's. */
+    public static function scanUrl(Customer $customer): string
+    {
+        return route('menu.card.scan', self::scanCode($customer));
+    }
+
+    /** The guest a scanned card or a typed code points at: the card's scan code, or (older cards) the card link. */
+    public static function fromScan(string $scanned): ?Customer
+    {
+        $scanned = trim($scanned);
+        // typed from the card page: upper case, in groups of four
+        $typed = strtolower((string) preg_replace('/\s+/', '', $scanned));
+        if (preg_match('/^'.self::SCAN_PATTERN.'$/', $typed) === 1) {
+            return Customer::query()->where('scan_code', $typed)->first();
+        }
+        if (preg_match('#(?:^|/)('.self::SCAN_PATTERN.')$#', $scanned, $m) === 1) {
+            return Customer::query()->where('scan_code', $m[1])->first();
+        }
+
+        return preg_match('#('.self::TOKEN_PATTERN.')$#', $scanned, $m) === 1 ? self::byToken($m[1]) : null;
+    }
+
     /** The account link on the address the guest is using (menu pages). */
     public static function url(Customer $customer): string
     {
@@ -76,7 +116,8 @@ final class GuestAccount
         do {
             $token = random_token(12);
         } while (Customer::query()->withoutGlobalScopes()->where('card_token', $token)->exists());
-        $customer->forceFill(['card_token' => $token])->save();
+        // a new card QR too: the old one may have been photographed
+        $customer->forceFill(['card_token' => $token, 'scan_code' => null])->save();
 
         return $token;
     }

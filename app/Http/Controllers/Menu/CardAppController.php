@@ -57,7 +57,7 @@ class CardAppController extends Controller
     public function image(string $token, CardState $cards): Response
     {
         $state = $cards->for($this->customer($token)) ?? abort(404);
-        $svg = view('menu.card-image', ['state' => $state, 'qr' => Qr::dataUrl($state['url'], 360, '#111111')])->render();
+        $svg = view('menu.card-image', ['state' => $state, 'qr' => Qr::dataUrl($state['scan_url'], 360, '#111111')])->render();
 
         return response($svg, 200, ['Content-Type' => 'image/svg+xml; charset=utf-8'] + self::PRIVATE_HEADERS);
     }

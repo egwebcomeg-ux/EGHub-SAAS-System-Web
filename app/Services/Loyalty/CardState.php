@@ -5,6 +5,7 @@ namespace App\Services\Loyalty;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Services\Corporate\CorporateVouchers;
+use App\Services\Customers\GuestAccount;
 use App\Services\Entitlements;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
@@ -45,6 +46,8 @@ final class CardState
             'title' => $program ? (string) tr($program->title, $program->title_en) : __('My card'),
             'name' => (string) $customer->name,
             'url' => route('menu.card', $customer->card_token),
+            // what the QR carries: the counter finds the guest by it, it opens nothing of theirs (the url is their key)
+            'scan_url' => GuestAccount::scanUrl($customer),
             'color' => is_hex_color($design['bg'] ?? null) ? $design['bg'] : (is_hex_color($s['color_secondary']) ? $s['color_secondary'] : '#B5451B'),
             'type' => $program ? ($points ? 'points' : 'stamps') : null,
             'stamps' => $card && ! $points ? (int) $card->stamps : null,

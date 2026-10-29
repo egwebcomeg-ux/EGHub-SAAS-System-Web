@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\LoyaltyCard;
 use App\Models\LoyaltyProgram;
 use App\Models\Tenant;
+use App\Services\Customers\GuestAccount;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Settings;
 use Illuminate\Testing\TestResponse;
@@ -179,5 +180,30 @@ class CardAppTest extends TenantTestCase
         $this->actingAs($this->owner($a))->get($this->dashUrl('/loyalty?q=01066666666'))->assertOk()
             ->assertSee('data-card-link', false)->assertSee('data-card-install-hint', false)
             ->assertSee('الضيف يقدر يضيف الكارت لموبايله من اللينك');
+    }
+
+    public function test_the_card_qr_carries_a_scan_code_that_finds_the_guest_at_the_counter_and_opens_nothing_of_theirs(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $token = $this->guest($a, '01066666666', 'Sara');
+        $this->get($this->subUrl('cafe-a', "card/$token"))->assertOk();
+        $code = $this->as($a, fn () => Customer::query()->where('card_token', $token)->value('scan_code'));
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{20}$/', $code);
+
+        // the QR's page: the code for the cashier, no name, no cookie that would open the guest's balance
+        $scan = $this->get($this->subUrl('cafe-a', "c/$code"))->assertOk()->assertSee('data-scan-code', false)->assertDontSee('Sara');
+        $this->assertNull($scan->getCookie('card_cafe-a'));
+        $this->assertPrivate($scan);
+        $this->get($this->subUrl('cafe-a', 'c/'.str_repeat('0', 20)))->assertNotFound();
+
+        // the counter finds the guest by the scanned link, the code typed as shown, or an older card's link
+        $owner = $this->owner($a);
+        foreach ([$this->subUrl('cafe-a', "c/$code"), trim(chunk_split(strtoupper($code), 4, ' ')), $this->subUrl('cafe-a', "card/$token")] as $scanned) {
+            $this->actingAs($owner)->get($this->dashUrl('/loyalty?q='.urlencode($scanned)))->assertOk()->assertSee('Sara');
+        }
+
+        // a new card link (the old one leaked) gives the card a new code too
+        $this->as($a, fn () => GuestAccount::rotate(Customer::query()->where('card_token', $token)->firstOrFail()));
+        $this->get($this->subUrl('cafe-a', "c/$code"))->assertNotFound();
     }
 }

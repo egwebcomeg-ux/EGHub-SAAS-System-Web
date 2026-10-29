@@ -160,7 +160,7 @@ final class WalletPasses
             'backgroundColor' => self::rgb($state['color']),
             'foregroundColor' => 'rgb(255, 255, 255)',
             'labelColor' => 'rgb(255, 255, 255)',
-            'barcodes' => [['format' => 'PKBarcodeFormatQR', 'message' => $state['url'], 'messageEncoding' => 'iso-8859-1']],
+            'barcodes' => [['format' => 'PKBarcodeFormatQR', 'message' => $state['scan_url'], 'messageEncoding' => 'iso-8859-1']],
             'storeCard' => array_filter([
                 'headerFields' => [['key' => 'title', 'label' => '', 'value' => $state['title']]],
                 'primaryFields' => [['key' => 'progress', 'label' => self::progressLabel($state), 'value' => self::progress($state)]],
@@ -206,7 +206,7 @@ final class WalletPasses
             'loyaltyPoints' => ['label' => self::progressLabel($state), 'balance' => $balance],
             'secondaryLoyaltyPoints' => $state['balance'] !== null
                 ? ['label' => __('My balance'), 'balance' => ['string' => money($state['balance']).' '.$state['currency']]] : null,
-            'barcode' => ['type' => 'QR_CODE', 'value' => $state['url']],
+            'barcode' => ['type' => 'QR_CODE', 'value' => $state['scan_url']],
             'textModulesData' => $state['tier'] ? [['id' => 'tier', 'header' => __('Tier'), 'body' => $state['tier']]] : null,
             'linksModuleData' => ['uris' => [['id' => 'card', 'uri' => $state['url'], 'description' => __('My card')]]],
         ], fn ($v) => $v !== null);

@@ -12,6 +12,7 @@ use App\Models\LoyaltyReward;
 use App\Models\MenuItem;
 use App\Models\PrepaidPackage;
 use App\Services\Audit;
+use App\Services\Customers\GuestAccount;
 use App\Services\Entitlements;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Loyalty\Membership;
@@ -148,9 +149,8 @@ class LoyaltyController extends Controller
         $program = $loyalty->program();
         $customer = $card = null;
         if ($q !== '') {
-            $token = preg_match('#([a-f0-9]{24})$#', $q, $m) ? $m[1] : null; // scanned card URL or token
-            $customer = $token ? Customer::query()->where('card_token', $token)->first()
-                : Customer::query()->where('phone', normalize_phone($q) ?? $q)->first();
+            // a scanned card (its code, or an older card's link) or a mobile number
+            $customer = GuestAccount::fromScan($q) ?? Customer::query()->where('phone', normalize_phone($q) ?? $q)->first();
             $card = $customer && $program ? $loyalty->card($program, $customer)->load(['customer', 'availableRewards', 'transactions' => fn ($t) => $t->limit(10)]) : null;
         }
         $rights = Entitlements::current();

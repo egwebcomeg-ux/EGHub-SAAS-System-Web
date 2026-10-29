@@ -15,7 +15,7 @@ class WalletPassesTest extends TestCase
 
     /** @var array{restaurant:string, brand:string, title:string, name:string, url:string, color:string, type:?string, stamps:?int, required:?int, points:?int, rewards:list<string>, balance:?float, currency:string, tier:?string, packages:int, vouchers:int, version:string} */
     private array $state = [
-        'restaurant' => 'cafe-a', 'brand' => 'كافيه أ', 'title' => 'Coffee card', 'name' => 'Sara', 'url' => 'https://cafe-a.egmenu.app/card/0123456789abcdef01234567',
+        'restaurant' => 'cafe-a', 'brand' => 'كافيه أ', 'title' => 'Coffee card', 'name' => 'Sara', 'url' => 'https://cafe-a.egmenu.app/card/0123456789abcdef01234567', 'scan_url' => 'https://cafe-a.egmenu.app/c/0123456789abcdef0123',
         'color' => '#B5451B', 'type' => 'stamps', 'stamps' => 3, 'required' => 10, 'points' => null, 'rewards' => [], 'balance' => 120.5,
         'currency' => 'ج.م', 'tier' => 'Gold', 'packages' => 0, 'vouchers' => 0, 'version' => 'abc',
     ];
@@ -91,7 +91,8 @@ class WalletPassesTest extends TestCase
         $this->assertSame($class['id'], $object['classId']);
         $this->assertSame('3388000000012345678.cafe-a-0123456789abcdef01234567', $object['id']);
         $this->assertSame('ACTIVE', $object['state']);
-        $this->assertSame(['type' => 'QR_CODE', 'value' => $this->state['url']], $object['barcode']);
+        // the QR carries the card's scan code, never the card link (the guest's key to their account and balance)
+        $this->assertSame(['type' => 'QR_CODE', 'value' => $this->state['scan_url']], $object['barcode']);
         $this->assertSame('3 / 10', $object['loyaltyPoints']['balance']['string']);
         $this->assertSame('Gold', $object['textModulesData'][0]['body']);
         $this->assertSame($this->state['url'], $object['linksModuleData']['uris'][0]['uri']);
@@ -152,7 +153,7 @@ class WalletPassesTest extends TestCase
         $this->assertSame('cafe-a-0123456789abcdef01234567', $pass['serialNumber']);
         $this->assertSame('كافيه أ', $pass['organizationName']);
         $this->assertSame('rgb(181, 69, 27)', $pass['backgroundColor']);
-        $this->assertSame([['format' => 'PKBarcodeFormatQR', 'message' => $this->state['url'], 'messageEncoding' => 'iso-8859-1']], $pass['barcodes']);
+        $this->assertSame([['format' => 'PKBarcodeFormatQR', 'message' => $this->state['scan_url'], 'messageEncoding' => 'iso-8859-1']], $pass['barcodes']);
         $this->assertSame('3 / 10', $pass['storeCard']['primaryFields'][0]['value']);
         $this->assertSame('Gold', $pass['storeCard']['secondaryFields'][0]['value']);
         $this->assertSame($this->state['url'], $pass['storeCard']['backFields'][0]['value']);
