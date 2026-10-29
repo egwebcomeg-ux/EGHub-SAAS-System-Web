@@ -6,6 +6,7 @@ use App\Billing\Billing;
 use App\Models\Branch;
 use App\Models\Customer;
 use App\Models\CustomerPackage;
+use App\Models\DiningTable;
 use App\Models\MembershipTier;
 use App\Models\Order;
 use App\Models\PrepaidPackage;
@@ -18,6 +19,7 @@ use App\Services\Orders\OrderService;
 use App\Services\Orders\ShiftService;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
+use Illuminate\Support\Str;
 use Tests\TenantTestCase;
 
 /** Advanced cards: cashback to the wallet, membership tiers with a discount, prepaid packages sold and used at the counter. */
@@ -143,6 +145,36 @@ class CardServicesTest extends TenantTestCase
         // removing the tiers removes the discount
         $this->actingAs($owner)->post($this->dashUrl('/loyalty/cards/tiers'), ['tiers' => []])->assertSessionHasNoErrors();
         $this->assertSame(60.0, (float) $this->paidOrder($tenant, $item, $cashier)->total);
+    }
+
+    public function test_a_guest_ordering_alone_gets_the_tier_discount_only_signed_in_as_that_member(): void
+    {
+        [$tenant, $item, $cashier] = $this->shop();
+        $this->actingAs($this->owner($tenant))->post($this->dashUrl('/loyalty/cards/tiers'), ['tiers' => [
+            ['name' => 'جولد', 'name_en' => 'Gold', 'min_visits' => 5, 'min_spent' => 0, 'discount_percent' => 10, 'color' => '#C9A227'],
+        ]])->assertSessionHasNoErrors();
+        $this->paidOrder($tenant, $item, $cashier);
+        $member = $this->as($tenant, function () {
+            Customer::query()->where('phone', self::PHONE)->update(['visits_count' => 5]);
+
+            return Customer::query()->where('phone', self::PHONE)->firstOrFail();
+        });
+        $qr = $this->as($tenant, fn () => DiningTable::query()->firstOrFail()->qr_token);
+        $order = function () use ($item, $qr) {
+            $this->get($this->subUrl('cafe-a', "t/$qr"));
+
+            return $this->postJson($this->subUrl('cafe-a', 'order'), [
+                'client_uuid' => (string) Str::uuid(), 'items' => [['item_id' => $item->id, 'qty' => 1]], 'customer_phone' => self::PHONE,
+            ])->assertOk()->json('number');
+        };
+        $discount = fn (int $number) => (float) $this->as($tenant, fn () => Order::query()->where('number', $number)->firstOrFail()->member_discount);
+
+        // someone typing the member's number at a table: full price
+        $this->assertSame(0.0, $discount($order()));
+
+        // the member, signed in on their own phone (their card cookie): 10% off
+        $this->withCredentials()->withCookie('card_cafe-a', $member->card_token);
+        $this->assertSame(6.0, $discount($order()));
     }
 
     public function test_prepaid_package_is_sold_at_the_counter_used_once_per_visit_and_expires(): void

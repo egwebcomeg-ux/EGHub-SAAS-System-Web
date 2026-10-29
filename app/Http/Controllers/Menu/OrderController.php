@@ -75,6 +75,10 @@ class OrderController extends Controller
             }
         }
 
+        // the membership discount follows the mobile only for the guest this phone is signed in as (card cookie)
+        $me = GuestAccount::fromRequest($request);
+        $data['member_phone_verified'] = $me !== null && normalize_phone((string) ($data['customer_phone'] ?? '')) === $me->phone;
+
         $data['guest_email'] = GuestIdentity::normalizeEmail($data['customer_email'] ?? null);
         $data['campaign_recipient_id'] = Outreach::recipientFor($data['ref'] ?? null);
         unset($data['customer_email'], $data['ref']);

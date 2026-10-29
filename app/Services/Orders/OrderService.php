@@ -113,8 +113,12 @@ final class OrderService
                 $lines[] = $reward['line'];
             }
         }
-        // Membership tier of the guest behind the mobile number: its discount comes off what is left.
-        [$tier, $memberOff] = app(Membership::class)->discountFor(normalize_phone((string) ($data['customer_phone'] ?? '')), $subtotal - $discount);
+        // Membership tier of the guest behind the mobile number: its discount comes off what is left. Staff (cashier,
+        // call center) know who they serve; a guest ordering alone only gets it signed in on their phone as that
+        // mobile's guest (member_phone_verified, set by Menu\OrderController), never by typing someone's number.
+        $memberPhone = in_array($data['source'] ?? null, ['pos', 'callcenter'], true) || ! empty($data['member_phone_verified'])
+            ? normalize_phone((string) ($data['customer_phone'] ?? '')) : null;
+        [$tier, $memberOff] = app(Membership::class)->discountFor($memberPhone, $subtotal - $discount);
         $discount = round($discount + $memberOff, 2);
         $type = in_array($data['type'] ?? null, array_keys(Order::TYPES), true) ? $data['type'] : ($table ? 'dine_in' : 'takeaway');
         $service = $type === 'dine_in' ? round(($subtotal - $discount) * $this->percent('service_percent'), 2) : 0.0;
