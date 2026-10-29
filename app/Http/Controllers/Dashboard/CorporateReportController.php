@@ -67,7 +67,7 @@ class CorporateReportController extends Controller
             $rows[] = [$c['contract']->name, $c['vouchers'], $c['issued'], $c['redeemed'], $c['remaining'], $c['lost'], $c['expired'], $c['usage'], $c['contract']->paidLabel()];
         }
 
-        return CorporateContractsController::download($rows, $name, (string) $request->query('format'), __('Vouchers report'));
+        return CorporateContractsController::download($rows, $name, (string) $request->query('format'), __('Company vouchers report'));
     }
 
     private function report(Request $request): CorporateReport

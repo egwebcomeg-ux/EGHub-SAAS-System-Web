@@ -49,8 +49,11 @@ final class ModuleChoice
         'dash.campaigns' => ['campaigns'],
         'dash.coupons' => ['loyalty', 'campaigns'],
         'dash.wallet' => ['wallet'],
+        // the Corporate app opens whichever of its tabs the user may use (App\Support\AreaTabs::corporate)
         'dash.corporate' => ['corporate-vouchers'],
+        'dash.corporate.bookings' => ['corporate-vouchers'],
         'dash.redeem' => ['corporate-vouchers'],
+        'dash.corporate.report' => ['corporate-vouchers'],
         'dash.kb' => ['knowledge-base'],
         'dash.inventory' => ['inventory'],
         'dash.zones' => ['online-ordering', 'call-center'],

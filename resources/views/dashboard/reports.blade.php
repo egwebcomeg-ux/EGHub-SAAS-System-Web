@@ -24,6 +24,7 @@
         </div>
     @endif
 </div>
+@include('dashboard.partials.area-tabs', ['area' => 'reports', 'current' => 'sales'])
 
 {{-- filters: one row above the charts --}}
 <form class="card mb-4 flex flex-wrap items-end gap-2">
@@ -143,13 +144,6 @@
         </section>
     @endforeach
 </div>
-
-@if (\App\Services\Entitlements::current()->allows('corporate_vouchers') && auth()->user()->canAny(['contracts.manage', 'reports.view']))
-    <a href="{{ route('dash.corporate.report') }}" class="card mt-4 flex min-h-11 items-center justify-between gap-3 hover:bg-navy-50" data-report-vouchers-link>
-        <span><b>🏢 {{ __('Vouchers report') }}</b> <span class="text-sm text-navy-500">· {{ __('issued, redeemed, still owed, lost and expired, per company') }}</span></span>
-        <span aria-hidden="true" class="rtl:rotate-180">→</span>
-    </a>
-@endif
 
 <div class="mt-4 grid gap-4 xl:grid-cols-3">
     <section class="card overflow-x-auto xl:col-span-2">

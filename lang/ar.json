@@ -6780,5 +6780,11 @@
     "Make the company's private link and send it: it asks for visits and sees its account.": "اعمل لينك الشركة الخاص وابعتهولها: منه بتطلب زياراتها وتشوف حسابها.",
     "Confirm each visit with the meal price per guest: the meals go on a code for the visit day, the rest on a voucher for the company.": "أكد كل زيارة بسعر الوجبة للفرد: الوجبات بتبقى كود ليوم الزيارة، والباقي فاوتشر للشركة.",
     "Send the code to the rep on WhatsApp; after the visit what the meals did not use moves to the company's voucher.": "ابعت الكود للمندوب على واتساب؛ وبعد الزيارة اللي ما اتصرفش من الوجبات بيتحول على فاوتشر الشركة.",
-    "Video tutorial": "شرح بالفيديو"
+    "Video tutorial": "شرح بالفيديو",
+    "Corporate": "الشركات",
+    "Contracts": "التعاقدات",
+    "Redeem company vouchers": "صرف فاوتشرات الشركات",
+    "Company vouchers report": "تقرير فاوتشرات الشركات",
+    "Company vouchers": "فاوتشرات الشركات",
+    "Redeem company vouchers at the counter": "اصرف فاوتشرات الشركات على الكاونتر"
 }

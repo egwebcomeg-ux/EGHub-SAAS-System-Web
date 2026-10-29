@@ -1,5 +1,5 @@
 @extends('layouts.dashboard', ['viteEntries' => ['resources/js/voucher-redeem.js']])
-@section('title', __('Redeem vouchers'))
+@section('title', __('Redeem company vouchers'))
 
 @section('content')
 @php
@@ -30,7 +30,7 @@
     ];
 @endphp
 
-<x-dash.page-header :title="__('Redeem vouchers')" :help="__('Scan or type the voucher code, or the guest\'s mobile, then take it on an open order or on a paper bill.')">
+<x-dash.page-header :title="__('Redeem company vouchers')" :help="__('Scan or type the voucher code, or the guest\'s mobile, then take it on an open order or on a paper bill.')">
     <x-slot:actions>
         @if ($branches->count() > 1)
             <form>
@@ -39,9 +39,9 @@
                 </select>
             </form>
         @endif
-        @can('contracts.manage')<a href="{{ route('dash.corporate') }}" class="btn-ghost">{{ __('Corporate contracts') }}</a>@endcan
     </x-slot:actions>
 </x-dash.page-header>
+@include('dashboard.partials.area-tabs', ['area' => 'corporate', 'current' => 'redeem'])
 
 <div class="grid gap-4 lg:grid-cols-5" data-redeem>
     <div class="space-y-4 lg:col-span-3">
