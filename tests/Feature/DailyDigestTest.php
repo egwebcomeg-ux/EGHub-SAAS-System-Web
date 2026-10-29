@@ -39,12 +39,16 @@ class DailyDigestTest extends TenantTestCase
         $this->travel(1)->days();
         $this->artisan('egmenu:daily-digest')->assertSuccessful();
 
-        Notification::assertSentTo([$owner, $manager], DailyDigestReport::class, function (DailyDigestReport $n) {
+        Notification::assertSentTo([$owner, $manager], DailyDigestReport::class, function (DailyDigestReport $n, array $channels, $notifiable) {
             $d = $n->digest;
             $this->assertSame([2, 120.0, ['cash' => 120.0]], [$d['orders'], $d['revenue'], $d['methods']]);
             $this->assertSame([['order' => '#'.Order::query()->withoutGlobalScopes()->orderBy('id')->skip(1)->value('number'), 'reason' => 'Guest left', 'approved_by' => 'Manager', 'by' => 'Manager']], $d['cancelled']);
             $this->assertSame([-20.0], array_column($d['shifts'], 'difference'));
             $this->assertSame(2, $d['open_orders']); // the paid sale and the unpaid one, both still in the kitchen
+            // a Latin name and a negative amount keep their order inside the Arabic lines ("(20-)" otherwise)
+            $lines = implode("\n", $n->toMail($notifiable)->introLines);
+            $this->assertStringContainsString("\u{2068}Manager\u{2069}", $lines);
+            $this->assertStringContainsString("\u{2066}-20\u{2069}", $lines);
 
             return true;
         });

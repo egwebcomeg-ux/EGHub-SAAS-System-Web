@@ -30,6 +30,18 @@ class DailyDigestReport extends Notification implements ShouldQueue
         ][$method] ?? $method;
     }
 
+    /** A name or reason in its own direction, so a Latin name at the end of an Arabic line keeps its brackets. */
+    private static function isolate(string $text): string
+    {
+        return "\u{2068}".$text."\u{2069}";
+    }
+
+    /** An order number or a signed amount kept left to right inside Arabic text ("-20", not "20-"). */
+    private static function ltr(string $text): string
+    {
+        return "\u{2066}".$text."\u{2069}";
+    }
+
     public function toMail(object $notifiable): MailMessage
     {
         $d = $this->digest;
@@ -44,14 +56,15 @@ class DailyDigestReport extends Notification implements ShouldQueue
             $mail->line('**'.__('Discounts given').':** '.money($d['discounts']));
         }
         foreach ($d['cancelled'] as $c) {
-            $mail->line('❌ '.__('Cancelled :order: :reason (approved by :approver)', ['order' => $c['order'], 'reason' => $c['reason'] ?: '—', 'approver' => $c['approved_by'] ?: $c['by'] ?: '—']));
+            $mail->line('❌ '.__('Cancelled :order: :reason (approved by :approver)', ['order' => self::ltr($c['order']), 'reason' => self::isolate($c['reason'] ?: '—'), 'approver' => self::isolate($c['approved_by'] ?: $c['by'] ?: '—')]));
         }
         foreach ($d['refunds'] as $r) {
-            $mail->line('↩️ '.__('Refund :order of :amount: :reason (approved by :approver)', ['order' => $r['order'], 'amount' => money($r['amount']), 'reason' => $r['reason'], 'approver' => $r['approved_by'] ?: '—']));
+            $mail->line('↩️ '.__('Refund :order of :amount: :reason (approved by :approver)', ['order' => self::ltr($r['order']), 'amount' => self::ltr(money($r['amount'])), 'reason' => self::isolate($r['reason']), 'approver' => self::isolate($r['approved_by'] ?: '—')]));
         }
         foreach (DailyDigest::cashOff($d) as $s) {
             $mail->line('💵 '.__('Shift of :user: counted :counted, expected :expected (:difference)', [
-                'user' => $s['user'], 'counted' => money($s['counted']), 'expected' => money($s['expected']), 'difference' => ($s['difference'] > 0 ? '+' : '').money($s['difference']),
+                'user' => self::isolate($s['user']), 'counted' => self::ltr(money($s['counted'])), 'expected' => self::ltr(money($s['expected'])),
+                'difference' => self::ltr(($s['difference'] > 0 ? '+' : '').money($s['difference'])),
             ]));
         }
         if ($d['open_orders'] > 0) {
