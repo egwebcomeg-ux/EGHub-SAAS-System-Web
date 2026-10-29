@@ -2,32 +2,61 @@
 
 use App\Billing\Lifecycle;
 use App\Models\Tenant;
+use App\Models\TenantSetting;
+use App\Services\Entitlements;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Loyalty\Packages;
 use App\Services\Marketing\Automations;
 use App\Services\Marketing\Campaigns;
 use App\Services\Orders\AutoCancel;
 use App\Services\Reports\WeeklyReportMailer;
+use App\Services\Settings;
 use App\Services\Wallet\WalletService;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
+
+/**
+ * Runs $fn inside each restaurant's tenant context. One restaurant's failure is logged and skipped so it never stops
+ * the others, and the context and per-restaurant caches are always cleared. Returns how many restaurants failed.
+ *
+ * @param  iterable<Tenant>  $tenants
+ */
+$forEachTenant = function (string $command, iterable $tenants, Closure $fn): int {
+    $failed = 0;
+    foreach ($tenants as $tenant) {
+        try {
+            tenancy()->initialize($tenant);
+            $fn();
+        } catch (Throwable $e) {
+            $failed++;
+            Log::error('scheduled tenant run failed', ['command' => $command, 'tenant' => $tenant->id, 'error' => $e->getMessage()]);
+        } finally {
+            if (tenancy()->initialized) {
+                tenancy()->end();
+            }
+            Settings::flush();
+            Entitlements::flush();
+        }
+    }
+
+    return $failed;
+};
 
 Artisan::command('egmenu:billing', function (Lifecycle $lifecycle) {
     $r = $lifecycle->run();
     $this->info("past_due: {$r['past_due']} · downgraded to free: {$r['downgraded']} · reminded: {$r['reminded']} · launch offer reminders: {$r['offer_reminded']}");
 })->purpose('Daily subscription lifecycle: trial/period end → grace → suspension, reminders');
 
-Artisan::command('egmenu:loyalty-expire', function (LoyaltyService $loyalty, Packages $packages, WalletService $wallet) {
+Artisan::command('egmenu:loyalty-expire', function (LoyaltyService $loyalty, Packages $packages, WalletService $wallet) use ($forEachTenant) {
     // runs per restaurant so the tenant scope and plan rights apply
     $n = $p = $c = 0;
-    foreach (Tenant::query()->where('status', 'active')->get() as $tenant) {
-        tenancy()->initialize($tenant);
+    $failed = $forEachTenant('egmenu:loyalty-expire', Tenant::query()->where('status', 'active')->orderBy('id')->get(), function () use ($loyalty, $packages, $wallet, &$n, &$p, &$c) {
         $n += $loyalty->expireStamps();
         $p += $packages->expire();
         $c += $wallet->expireCashback();
-        tenancy()->end();
-    }
-    $this->info("expired cards: $n · expired packages: $p · expired cashback lines: $c");
+    });
+    $this->info("expired cards: $n · expired packages: $p · expired cashback lines: $c · failed restaurants: $failed");
 })->purpose('Clear loyalty stamps older than each program allows, close prepaid packages past their date, take back expired cashback');
 
 Artisan::command('egmenu:campaigns', function (Campaigns $campaigns) {
@@ -37,15 +66,15 @@ Artisan::command('egmenu:weekly-report', function (WeeklyReportMailer $mailer) {
     $this->info('weekly reports sent: '.$mailer->run());
 })->purpose('Email last week\'s numbers to the owners who turned the weekly report on (advanced reports)');
 
-Artisan::command('egmenu:auto-cancel', function (AutoCancel $autoCancel) {
-    // per restaurant: only those that set online_auto_cancel_minutes have anything to cancel
+Artisan::command('egmenu:auto-cancel', function (AutoCancel $autoCancel) use ($forEachTenant) {
+    // every minute, so only the restaurants that set online_auto_cancel_minutes (0 = off, the default) are visited
+    $tenantIds = TenantSetting::query()->withoutGlobalScopes()->where('key', 'online_auto_cancel_minutes')
+        ->whereNotIn('value', ['', '0'])->pluck('tenant_id');
     $n = 0;
-    foreach (Tenant::query()->where('status', 'active')->get() as $tenant) {
-        tenancy()->initialize($tenant);
+    $failed = $forEachTenant('egmenu:auto-cancel', Tenant::query()->whereIn('id', $tenantIds)->where('status', 'active')->orderBy('id')->get(), function () use ($autoCancel, &$n) {
         $n += $autoCancel->run();
-        tenancy()->end();
-    }
-    $this->info("auto-cancelled orders: $n");
+    });
+    $this->info("auto-cancelled orders: $n · failed restaurants: $failed");
 })->purpose('Cancel the online orders nobody accepted within the restaurant\'s time limit (wallet money goes back)');
 
 // One cron line on the server runs everything: * * * * * php artisan schedule:run

@@ -88,6 +88,33 @@ class AutoCancelTest extends TenantTestCase
         $this->assertSame('cancelled', $this->as($b, fn () => Order::query()->findOrFail($orderB->id)->status));
     }
 
+    public function test_one_restaurant_failing_does_not_stop_the_run_for_the_others(): void
+    {
+        $a = $this->restaurant('cafe-a', 'pro');
+        $b = $this->restaurant('cafe-b', 'pro');
+        foreach ([$a, $b] as $tenant) {
+            $this->item($tenant);
+            $this->as($tenant, fn () => Settings::put(['online_auto_cancel_minutes' => '10']));
+        }
+        $this->travelTo(now()->subHour());
+        $orderA = $this->place($a, ['source' => 'online', 'type' => 'takeaway', 'customer_phone' => '01012345678']);
+        $orderB = $this->place($b, ['source' => 'online', 'type' => 'takeaway', 'customer_phone' => '01012345678']);
+        $this->travelBack();
+
+        // cafe-a (visited first) hits an unexpected error while cancelling
+        Order::updating(function (Order $order) use ($a) {
+            if ($order->tenant_id === $a->id) {
+                throw new \RuntimeException('database went away');
+            }
+        });
+
+        Artisan::call('egmenu:auto-cancel');
+        $this->assertStringContainsString('auto-cancelled orders: 1 · failed restaurants: 1', Artisan::output());
+        $this->assertSame('new', $this->as($a, fn () => Order::query()->findOrFail($orderA->id)->status));
+        $this->assertSame('cancelled', $this->as($b, fn () => Order::query()->findOrFail($orderB->id)->status));
+        $this->assertFalse(tenancy()->initialized);
+    }
+
     public function test_the_setting_is_saved_from_the_online_ordering_section(): void
     {
         $a = $this->restaurant('cafe-a', 'pro');
