@@ -3997,6 +3997,8 @@
     "Write a short reason for the exception.": "اكتب سبب قصير للاستثناء.",
     "An exception is only for an expired voucher that is otherwise good.": "الاستثناء بس لفاوتشر خلصت مدته ومفيهوش أي مشكلة تانية.",
     "A manager must approve: choose the manager and enter their PIN.": "لازم مدير يوافق: اختار المدير وخليه يكتب الـ PIN بتاعه.",
+    "This order is paid: give the money back with a refund from the cashier screen (a manager approves).": "الطلب ده مدفوع: الفلوس بترجع بمرتجع من شاشة الكاشير (بموافقة مدير).",
+    "Cancelling needs a manager: no manager has set a PIN yet, so a manager cancels it from their own account.": "الإلغاء محتاج مدير: مفيش مدير عامل PIN لسه، فالمدير يلغيه من حسابه.",
     "This voucher is already linked to another mobile number.": "الفاوتشر ده مربوط برقم موبايل تاني.",
     "This voucher is already linked to a mobile number.": "الفاوتشر ده مربوط برقم موبايل خلاص.",
     "This voucher can no longer be used.": "الفاوتشر ده مبقاش ينفع يتستخدم.",

@@ -21,6 +21,7 @@
         'driver' => __('Driver'), 'chooseDriver' => __('Choose a driver…'), 'noDriver' => __('No driver'),
         'pager' => \App\Services\Orders\Pager::staffTexts(),
         'confirmPhone' => __('Confirmed by phone'), 'confirmPhoneSure' => __('You called the guest and the order is fine?'),
+        'noApprover' => __('Cancelling needs a manager: no manager has set a PIN yet, so a manager cancels it from their own account.'),
     ];
     $canManage = auth()->user()->can('orders.manage');
     // quick filters: [key, label]; the counts come live from the feed
@@ -109,6 +110,8 @@
      data-reservation-url="{{ url('/reservations/__ID__/status') }}"
      data-poll="{{ $poll }}"
      data-can-manage="{{ $canManage ? 1 : 0 }}"
+     data-cancel-approvers='{{ json_encode($cancelApprovers, JSON_UNESCAPED_UNICODE) }}'
+     data-cancel-alone="{{ auth()->user()->can(\App\Http\Controllers\Dashboard\OrdersController::CANCEL_PERMISSION) ? 1 : 0 }}"
      data-busy='{{ json_encode($busy, JSON_UNESCAPED_UNICODE) }}'
      data-i18n='{{ json_encode($i18n, JSON_UNESCAPED_UNICODE) }}'>
     @php
@@ -125,6 +128,24 @@
         </section>
     @endforeach
 </div>
+
+{{-- cancelling without the manager's right: the manager picks their name and types their PIN on this device --}}
+<dialog class="w-full max-w-sm rounded-2xl p-0 shadow-xl backdrop:bg-navy-900/40" data-cancel-dialog>
+    <form method="dialog" class="space-y-3 p-5" data-cancel-form>
+        <h2 class="font-bold">{{ __('Cancel order') }}</h2>
+        <p class="text-sm text-navy-500">{{ __('A manager must approve: choose the manager and enter their PIN.') }}</p>
+        <label class="block text-sm font-semibold">{{ __('Manager') }}
+            <select class="field mt-1" data-cancel-manager required></select>
+        </label>
+        <label class="block text-sm font-semibold">{{ __('Manager PIN') }}
+            <input type="password" inputmode="numeric" autocomplete="off" maxlength="12" class="field mt-1" data-cancel-pin required>
+        </label>
+        <div class="flex justify-end gap-2 pt-1">
+            <button type="button" class="btn-ghost min-h-10 px-4" data-cancel-close>{{ __('Back') }}</button>
+            <button type="submit" class="min-h-10 rounded-xl bg-red-600 px-4 font-bold text-white">{{ __('Approve') }}</button>
+        </div>
+    </form>
+</dialog>
 
 <details class="card mt-4">
     <summary class="cursor-pointer font-bold">{{ __('Finished (last 3 hours)') }}</summary>

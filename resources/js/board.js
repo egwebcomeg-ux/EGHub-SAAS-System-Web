@@ -369,19 +369,53 @@ if (board) {
         await refresh();
     });
 
+    // cancelling is a manager's call: without that right, the manager picks their name and types their PIN here
+    const cancelApprovers = JSON.parse(board.dataset.cancelApprovers || '[]');
+    const cancelAlone = board.dataset.cancelAlone === '1';
+    const cancelDialog = document.querySelector('[data-cancel-dialog]');
+    function managerApproval() {
+        if (cancelAlone) return Promise.resolve({});
+        if (!cancelApprovers.length || !cancelDialog) {
+            alert(t.noApprover);
+            return Promise.resolve(null);
+        }
+        const select = cancelDialog.querySelector('[data-cancel-manager]');
+        const pin = cancelDialog.querySelector('[data-cancel-pin]');
+        select.replaceChildren(...cancelApprovers.map((m) => new Option(m.name, m.id)));
+        pin.value = '';
+        return new Promise((resolve) => {
+            const form = cancelDialog.querySelector('[data-cancel-form]');
+            const done = (value) => {
+                form.removeEventListener('submit', onSubmit);
+                cancelDialog.querySelector('[data-cancel-close]').removeEventListener('click', onClose);
+                cancelDialog.close();
+                resolve(value);
+            };
+            const onSubmit = (ev) => { ev.preventDefault(); done({ approver_id: Number(select.value), pin: pin.value }); };
+            const onClose = () => done(null);
+            form.addEventListener('submit', onSubmit);
+            cancelDialog.querySelector('[data-cancel-close]').addEventListener('click', onClose);
+            cancelDialog.showModal();
+            pin.focus();
+        });
+    }
+
     board.parentElement.addEventListener('click', async (e) => {
         const btn = e.target.closest('[data-move]');
         if (!btn) return;
         let reason = null;
+        let approval = {};
         if (btn.dataset.to === 'cancelled') {
             reason = prompt(t.cancelReason);
             if (reason === null) return;
+            approval = await managerApproval();
+            if (approval === null) return;
         }
         btn.disabled = true;
         const res = await fetch(board.dataset.statusUrl.replace('__ID__', btn.dataset.move), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
-            body: JSON.stringify({ status: btn.dataset.to, reason }),
+            body: JSON.stringify({ status: btn.dataset.to, reason, ...approval }),
         });
         if (!res.ok) {
             const body = await res.json().catch(() => ({}));

@@ -10,11 +10,13 @@ use App\Services\Audit;
 use App\Services\Entitlements;
 use App\Services\Orders\BusyMode;
 use App\Services\Orders\DeliveryService;
+use App\Services\Orders\ManagerApproval;
 use App\Services\Orders\OrderConfirmation;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use App\Services\Orders\Pager;
 use App\Services\Settings;
+use App\Services\Wallet\WalletService;
 use App\Support\PrepKind;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
@@ -30,9 +32,17 @@ class OrdersController extends Controller
 {
     public const POLL_SECONDS = 5;
 
-    public function board(): View
+    /** Cancelling an order is a manager's call: the same right that approves refunds, or that manager's PIN. */
+    public const CANCEL_PERMISSION = 'pos.refund';
+
+    public function board(Request $request, ManagerApproval $approvals): View
     {
-        return view('dashboard.orders.board', ['poll' => self::POLL_SECONDS, 'busy' => BusyMode::state(), 'confirmations' => OrderConfirmation::enabled()]);
+        return view('dashboard.orders.board', [
+            'poll' => self::POLL_SECONDS, 'busy' => BusyMode::state(), 'confirmations' => OrderConfirmation::enabled(),
+            // staff who may not cancel alone pick the manager who approves with their PIN
+            'cancelApprovers' => $request->user()->can(self::CANCEL_PERMISSION) ? [] : $approvals->approvers(self::CANCEL_PERMISSION)
+                ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])->values()->all(),
+        ]);
     }
 
     public function feed(Request $request): JsonResponse
@@ -184,17 +194,32 @@ class OrdersController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function transition(Request $request, Order $order, OrderService $service): JsonResponse
+    /**
+     * Moves an order along. Cancelling needs a manager (their right, or their PIN typed on this device), and an order
+     * paid in cash, by card or the like is never cancelled here: its money goes back through a refund, so the drawer
+     * and the shift report keep the trace. An order paid from the guest's balance may be cancelled: the balance comes back.
+     */
+    public function transition(Request $request, Order $order, OrderService $service, ManagerApproval $approvals): JsonResponse
     {
         abort_unless($this->visible($request, $order), 404);
-        $data = $request->validate(['status' => ['required', Rule::in(array_keys(Order::STATUSES))], 'reason' => 'nullable|string|max:200']);
+        $data = $request->validate([
+            'status' => ['required', Rule::in(array_keys(Order::STATUSES))], 'reason' => 'nullable|string|max:200',
+            'approver_id' => 'nullable|integer', 'pin' => 'nullable|string|max:12',
+        ]);
+        $cancel = $data['status'] === 'cancelled';
         try {
+            if ($cancel && $order->payment_status === 'paid' && $order->payment_method !== WalletService::METHOD) {
+                throw new OrderException(__('This order is paid: give the money back with a refund from the cashier screen (a manager approves).'));
+            }
+            $approver = $cancel
+                ? $approvals->approve($request->user(), self::CANCEL_PERMISSION, isset($data['approver_id']) ? (int) $data['approver_id'] : null, $data['pin'] ?? null, $order->reference())
+                : null;
             $service->transition($order, $data['status'], $request->user(), $data['reason'] ?? null);
         } catch (OrderException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['message' => $e->getMessage(), 'approval' => $cancel && ! $request->user()->can(self::CANCEL_PERMISSION)], 422);
         }
-        if ($data['status'] === 'cancelled') {
-            Audit::record('order.cancelled', '#'.$order->number, ['id' => $order->id, 'reason' => $data['reason'] ?? null]);
+        if ($cancel) {
+            Audit::record('order.cancelled', '#'.$order->number, ['id' => $order->id, 'reason' => $data['reason'] ?? null, 'approved_by' => $approver?->name]);
         }
 
         return response()->json(['ok' => true, 'order' => $this->present($order->load(['items', 'table', 'branch', 'driver']))]);
