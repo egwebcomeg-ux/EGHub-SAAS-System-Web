@@ -55,6 +55,7 @@ use App\Http\Controllers\Dashboard\PwaController;
 use App\Http\Controllers\Dashboard\RefundsController;
 use App\Http\Controllers\Dashboard\ReportsController;
 use App\Http\Controllers\Dashboard\ReservationsController;
+use App\Http\Controllers\Dashboard\RewardsController;
 use App\Http\Controllers\Dashboard\SecurityController;
 use App\Http\Controllers\Dashboard\SettingsController;
 use App\Http\Controllers\Dashboard\ShiftsController;
@@ -371,7 +372,13 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/customers/{customer}/account-link', [CustomersController::class, 'rotateAccountLink'])
             ->middleware('throttle:10,1')->name('customers.account-link');
     });
+    // «المكافآت»: one settings page for every reward (program, welcome, cashback, tiers, packages, wallet); each
+    // section checks its own feature and permission, and the page answers 403 when none is left
+    Route::get('/rewards', [RewardsController::class, 'index'])
+        ->middleware(['feature:loyalty_stamps|cashback|prepaid_packages|membership|wallet|campaigns', 'permission:loyalty.manage|wallet.manage|marketing.manage'])
+        ->name('rewards');
     Route::middleware(['feature:loyalty_stamps', 'permission:loyalty.manage'])->group(function () {
+        // the old program page: its section of the rewards page
         Route::get('/loyalty/setup', [LoyaltyController::class, 'edit'])->name('loyalty.setup');
         Route::post('/loyalty/setup', [LoyaltyController::class, 'update'])->name('loyalty.update');
         Route::post('/loyalty/restart', [LoyaltyController::class, 'restart'])->name('loyalty.restart');
@@ -395,8 +402,9 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         ->middleware(['feature:loyalty_stamps', 'permission:vouchers.give', 'throttle:30,1'])->name('coupons.give');
     Route::post('/loyalty/customers/{customer}/vouchers', [VouchersController::class, 'give'])
         ->middleware(['feature:loyalty_stamps', 'permission:vouchers.give'])->whereNumber('customer')->name('vouchers.give');
-    // The counter desk also serves the advanced cards (packages, tiers, cashback) when there is no stamp program.
-    Route::middleware(['feature:loyalty_stamps|prepaid_packages|membership|cashback', 'permission:loyalty.stamp'])->group(function () {
+    // The guest desk: one counter screen for the stamp card, the advanced cards (packages, tiers, cashback), the wallet
+    // and the guest's company vouchers; each panel checks its own feature and permission.
+    Route::middleware(['feature:'.LoyaltyController::DESK_FEATURES, 'permission:loyalty.stamp'])->group(function () {
         Route::get('/loyalty', [LoyaltyController::class, 'desk'])->name('loyalty.desk');
         Route::post('/loyalty/enroll', [LoyaltyController::class, 'enroll'])->name('loyalty.enroll');
     });
@@ -407,6 +415,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     });
     // Advanced cards (cards pack / Business): cashback share, membership tiers, prepaid packages on sale
     Route::middleware(['feature:cashback|prepaid_packages|membership', 'permission:loyalty.manage'])->group(function () {
+        // the old advanced cards page: its first section on the rewards page
         Route::get('/loyalty/cards', [CardsController::class, 'index'])->name('cards');
         Route::post('/loyalty/cards/cashback', [CardsController::class, 'cashback'])->name('cards.cashback');
         Route::post('/loyalty/cards/tiers', [CardsController::class, 'tiers'])->name('cards.tiers');

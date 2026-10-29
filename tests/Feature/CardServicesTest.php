@@ -66,8 +66,10 @@ class CardServicesTest extends TenantTestCase
         // the smaller wallet pack is covered by the cards pack, so it is not billed twice
         $this->assertSame(['cards_pack'], $tenant->subscription()->first()->addons()->pluck('key')->all());
 
-        // packages, cashback and tiers live in the wallet area now (one module with the balance and gift cards)
-        $this->actingAs($owner)->get($this->dashUrl('/loyalty/cards'))->assertOk()->assertSee('المحفظة')->assertSee('data-wallet-tab="dash.wallet"', false);
+        // packages, cashback and tiers are sections of the rewards page now; the old page opens the first of them
+        $this->actingAs($owner)->get($this->dashUrl('/loyalty/cards'))->assertRedirect($this->dashUrl('/rewards#cashback'));
+        $this->actingAs($owner)->get($this->dashUrl('/rewards'))->assertOk()
+            ->assertSee('data-rewards-section="cashback"', false)->assertSee('data-rewards-section="tiers"', false)->assertSee('data-rewards-section="packages"', false);
         // the cashier reaches the counter even without a stamp program
         $cashier = $this->staff($tenant, 'cashier', 'c@a.test');
         $this->actingAs($cashier)->get($this->dashUrl('/loyalty'))->assertOk();

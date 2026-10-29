@@ -79,7 +79,7 @@ class BusinessTypeTest extends TenantTestCase
         $this->actingAs($owner)->get($this->dashUrl('/kitchen'))->assertOk()->assertSee('شاشة التجهيز');
         $this->actingAs($owner)->post($this->dashUrl('/onboarding/dismiss'));
         $this->actingAs($owner)->get($this->dashUrl('/'))->assertOk()->assertSee('مقترح لـمحل')->assertSee('نقاط الولاء');
-        $this->actingAs($owner)->get($this->dashUrl('/loyalty/setup'))->assertOk()->assertSee('value="points"', false)->assertSee('name="type" value="points" class="sr-only" checked', false);
+        $this->actingAs($owner)->get($this->dashUrl('/rewards'))->assertOk()->assertSee('value="points"', false)->assertSee('name="type" value="points" class="sr-only" checked', false);
         $this->actingAs($owner)->get($this->dashUrl('/settings'))->assertOk()->assertSee('value="shop"', false);
         $this->actingAs($owner)->post($this->dashUrl('/settings'), [
             'brand_name' => 'X', 'currency' => 'ج.م', 'currency_en' => 'EGP', 'color_primary' => '#111111', 'color_secondary' => '#222222',

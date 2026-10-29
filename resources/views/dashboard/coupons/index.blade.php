@@ -18,8 +18,8 @@
 <x-dash.page-header :title="__('Coupons & vouchers')" :help="__('Every discount code in one place: campaign coupons, public codes, vouchers held by one guest and printed batches. Guests type the code in the cart or scan its QR.')">
     <x-slot:actions>
         @if ($managesCampaigns)<a href="{{ route('dash.campaigns') }}" class="btn-ghost">{{ __('Campaigns') }}</a>@endif
-        @if ($managesVouchers)<a href="{{ route('dash.loyalty.setup') }}" class="btn-ghost">{{ __('Program settings') }}</a>@endif
-        @can('loyalty.stamp')<a href="{{ route('dash.loyalty.desk') }}" class="btn-ghost">{{ __('Counter') }}</a>@endcan
+        @if ($managesVouchers)<a href="{{ route('dash.rewards') }}#program" class="btn-ghost">{{ __('Program settings') }}</a>@endif
+        @can('loyalty.stamp')<a href="{{ route('dash.loyalty.desk') }}" class="btn-ghost">{{ __('Guest desk') }}</a>@endcan
     </x-slot:actions>
 </x-dash.page-header>
 

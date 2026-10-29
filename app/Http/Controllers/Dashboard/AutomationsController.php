@@ -12,7 +12,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
-/** The "Automations" tab of the campaigns page: welcome, winback and birthday messages (plan feature campaigns). */
+/**
+ * The "Automations" tab of the campaigns page: welcome, winback and birthday messages (plan feature campaigns). The
+ * welcome one is also on the rewards page, next to the welcome gift; its forms come back there.
+ */
 class AutomationsController extends Controller
 {
     /** Saves one automation's text, coupon and send window (and switches it on or off). */
@@ -50,18 +53,26 @@ class AutomationsController extends Controller
         });
         Audit::record('automation.updated', $kind, ['enabled' => $automation->is_enabled, 'coupon' => $automation->coupon_id]);
 
-        return redirect()->route('dash.campaigns', ['tab' => 'automations'])
+        return $this->backTo($request)
             ->with('ok', $automation->is_enabled ? __('Automation saved and running.') : __('Automation saved (off).'));
     }
 
     /** Quick on/off switch. */
-    public function toggle(string $kind, Automations $automations): RedirectResponse
+    public function toggle(Request $request, string $kind, Automations $automations): RedirectResponse
     {
         $automation = $automations->all()->get($kind) ?? abort(404);
         $automation->update(['is_enabled' => ! $automation->is_enabled]);
         Audit::record('automation.toggled', $kind, ['enabled' => $automation->is_enabled]);
 
-        return redirect()->route('dash.campaigns', ['tab' => 'automations'])
+        return $this->backTo($request)
             ->with('ok', $automation->is_enabled ? __(':name is on.', ['name' => CampaignAutomation::kindLabel($kind)]) : __(':name is off.', ['name' => CampaignAutomation::kindLabel($kind)]));
+    }
+
+    /** Back where the form was: the welcome section of the rewards page, or the automations tab of the campaigns page. */
+    private function backTo(Request $request): RedirectResponse
+    {
+        return $request->input('return') === 'rewards'
+            ? redirect()->to(route('dash.rewards').'#welcome')
+            : redirect()->route('dash.campaigns', ['tab' => 'automations']);
     }
 }

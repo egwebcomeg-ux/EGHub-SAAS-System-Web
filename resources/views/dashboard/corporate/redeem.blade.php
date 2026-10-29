@@ -7,6 +7,7 @@
     $data = [
         'currency' => tr($settings['currency'], $settings['currency_en']),
         'canApprove' => $canApprove,
+        'lookup' => $lookup,
         'urls' => [
             'check' => route('dash.redeem.check'), 'link' => route('dash.redeem.link'), 'exception' => url('/vouchers/redeem/__ID__/exception'),
             'orders' => route('dash.redeem.orders'), 'pay' => url('/vouchers/redeem/orders/__ID__/pay'), 'manual' => route('dash.redeem.manual'),
