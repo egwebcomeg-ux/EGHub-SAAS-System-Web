@@ -274,7 +274,8 @@ class PosController extends Controller
         }
 
         try {
-            // with corporate vouchers or a split payment it is all or nothing: a refused one leaves no order behind
+            // paid at once, it is all or nothing: a refused payment (no open shift, short balance, a voucher) leaves no
+            // order behind in the kitchen, and the cashier's retry with the same ticket places it once
             $terminal = Terminals::fromRequest($request, $branch);
             $run = function () use ($data, $branch, $table, $request, $orders, $shifts, $terminal) {
                 $order = $orders->place(collect($data)->except(['vouchers', 'voucher_phone'])->all() + ['source' => 'pos', 'terminal_id' => $terminal?->id], $branch, $table, $request->user());
@@ -284,7 +285,7 @@ class PosController extends Controller
 
                 return $order;
             };
-            $order = empty($data['vouchers']) && empty($data['payments']) ? $run() : DB::transaction($run);
+            $order = empty($data['pay']) ? $run() : DB::transaction($run);
         } catch (OrderException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }

@@ -68,12 +68,16 @@ class OperationsTest extends TenantTestCase
         $item = $this->item($a, 'Latte', 60);
         $cashier = $this->staff($a, 'cashier', 'c@a.test');
 
-        // no shift: payment refused, order not created
-        $this->actingAs($cashier)->posOrder(['items' => [['item_id' => $item->id, 'qty' => 2]], 'pay' => 'cash'])->assertStatus(422);
+        // no shift: payment refused, and no unpaid order is left in the kitchen
+        $ticket = (string) Str::uuid();
+        $this->actingAs($cashier)->posOrder(['client_uuid' => $ticket, 'items' => [['item_id' => $item->id, 'qty' => 2]], 'pay' => 'cash'])->assertStatus(422);
+        $this->assertSame(0, $this->as($a, fn () => Order::query()->count()));
 
+        // the same ticket, once the shift is open, is placed and paid once
         $this->actingAs($cashier)->post($this->dashUrl('/shifts/open'), ['opening_cash' => 500])->assertSessionHasNoErrors();
-        $this->actingAs($cashier)->posOrder(['items' => [['item_id' => $item->id, 'qty' => 2]], 'pay' => 'cash'])
+        $this->actingAs($cashier)->posOrder(['client_uuid' => $ticket, 'items' => [['item_id' => $item->id, 'qty' => 2]], 'pay' => 'cash'])
             ->assertOk()->assertJsonPath('paid', true);
+        $this->assertSame(1, $this->as($a, fn () => Order::query()->count()));
         $this->actingAs($cashier)->posOrder(['items' => [['item_id' => $item->id, 'qty' => 1]], 'pay' => 'card'])->assertOk();
         $this->actingAs($cashier)->post($this->dashUrl('/shifts/move'), ['type' => 'out', 'amount' => 30, 'reason' => 'ice'])->assertSessionHasNoErrors();
 

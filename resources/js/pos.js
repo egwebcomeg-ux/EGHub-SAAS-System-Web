@@ -245,7 +245,24 @@ if (dataEl) {
     $('[data-discount-kind]')?.addEventListener('change', render);
     $('[data-clear]').addEventListener('click', () => { if (state.lines.length && confirm(T.clearAsk)) reset(); });
 
+    // one id per ticket until it is placed: a second tap, or a retry after an error, is the same sale to the server
+    let ticketUuid = uuid();
+    // one request at a time: the send and pay buttons wait for the answer
+    let submitting = false;
+    async function submitOnce(buttons, work) {
+        if (submitting) return;
+        submitting = true;
+        buttons.forEach((b) => b && (b.disabled = true));
+        try {
+            await work();
+        } finally {
+            submitting = false;
+            buttons.forEach((b) => b && (b.disabled = false));
+        }
+    }
+
     function reset() {
+        ticketUuid = uuid();
         state = { ...state, lines: [], table: '', coupon: null };
         if ($('[data-table]')) $('[data-table]').value = '';
         if ($('[data-coupon]')) $('[data-coupon]').value = '';
@@ -261,7 +278,7 @@ if (dataEl) {
         render();
     }
 
-    function payload(pay, clientUuid = uuid()) {
+    function payload(pay, clientUuid = ticketUuid) {
         const p = {
             client_uuid: clientUuid, type: state.type, table_id: state.type === 'dine_in' ? Number(state.table) || null : null,
             items: state.lines, discount: totals().staff, pay: pay || null,
@@ -817,11 +834,11 @@ if (dataEl) {
         if (lastOrderId) window.open(D.urls.receipt.replace('__ID__', lastOrderId) + (b.dataset.print === 'kitchen' ? '?copy=kitchen' : ''), '_blank', 'width=420,height=700');
     }));
 
-    $('[data-send]').addEventListener('click', async () => {
+    $('[data-send]').addEventListener('click', (e) => submitOnce([e.currentTarget], async () => {
         if (!canSubmit()) return;
         if (off && !off.online) return alert(T.offSend);
         try { done(await api(D.urls.order, payload(null)), CC ? T.placed : T.sent); } catch (err) { alert(err.message); }
-    });
+    }));
 
     const payDialog = $('[data-pay-dialog]');
     let payTarget = null; // null = current ticket, else {id,total} of an open order
@@ -955,7 +972,8 @@ if (dataEl) {
         if (b) { $('[data-tendered]').value = b.dataset.quickV; showChange(); }
     });
     $('[data-pay]')?.addEventListener('click', () => { if (canSubmit()) openPay(null); });
-    $('[data-pay-confirm]').addEventListener('click', async () => {
+    $('[data-pay-confirm]').addEventListener('click', (e) => submitOnce([e.currentTarget], () => confirmPay()));
+    async function confirmPay() {
         const err = $('[data-pay-error]');
         err.classList.add('hidden');
         const creditPhone = method === 'credit' ? $('[data-credit-phone]').value.trim() : '';
@@ -969,7 +987,7 @@ if (dataEl) {
         const payMethod = vouchers.length && corpPlan().rest <= 0.004 ? 'corporate' : parts ? (single.length > 1 ? 'split' : single[0]) : method;
         if (parts) extra.payments = parts;
         if (vouchers.length && payMethod === 'credit') { err.textContent = T.corpNoCredit; err.classList.remove('hidden'); return; }
-        const saleUuid = uuid();
+        const saleUuid = ticketUuid;
         const fail = (text) => { err.textContent = text; err.classList.remove('hidden'); };
         // no internet: the sale is kept on this device and synced later (cash, card, InstaPay, mobile wallet only)
         if (off && !off.online && !payTarget) return sellOffline(payMethod, vouchers.length > 0, saleUuid, fail, parts);
@@ -990,7 +1008,7 @@ if (dataEl) {
             if (e instanceof NetworkError && off && !payTarget) return sellOffline(payMethod, vouchers.length > 0, saleUuid, fail, parts);
             fail(e.message);
         }
-    });
+    }
 
     // ---- a sale made offline: priced from the catalog kept on the device, numbered OFF-{terminal}-{n} ----
     const r2 = (n) => Math.round(n * 100) / 100;
