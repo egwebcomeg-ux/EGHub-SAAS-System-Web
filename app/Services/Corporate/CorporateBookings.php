@@ -66,6 +66,7 @@ final class CorporateBookings
         if ($contract->expires_on && $at->copy()->startOfDay()->gt($contract->expires_on)) {
             throw new OrderException(__('The contract ends on :date.', ['date' => local_time($contract->expires_on, 'Y/m/d')]));
         }
+        $this->checkWindow($contract, $at);
         $party = (int) $data['party_size'];
         if ($party < 1 || $party > self::MAX_PARTY) {
             throw new OrderException(__('Between 1 and :n guests.', ['n' => self::MAX_PARTY]));
@@ -132,6 +133,7 @@ final class CorporateBookings
             if ($locked->visit_at->copy()->endOfDay()->isPast()) {
                 throw new OrderException(__('The day of this visit has passed.'));
             }
+            $this->checkWindow($contract, $locked->visit_at);
             $available = $this->available($contract);
             if ($available !== null && $locked->budget > $available + 0.004) {
                 throw new OrderException($contract->billing === 'account'
@@ -229,29 +231,42 @@ final class CorporateBookings
             if ($locked->visit_at->copy()->startOfDay()->isFuture()) {
                 throw new OrderException(__('The visit is closed on its day or after it.'));
             }
-            $contract = CorporateContract::query()->findOrFail($locked->corporate_contract_id);
-            $vouchers = CorporateVoucher::query()->where('corporate_booking_id', $locked->id)->lockForUpdate()->get();
-            $meals = $vouchers->first(fn (CorporateVoucher $v) => $v->valid_from !== null);
-            $company = $vouchers->first(fn (CorporateVoucher $v) => $v->valid_from === null);
+            $meals = CorporateVoucher::query()->where('corporate_booking_id', $locked->id)->whereNotNull('valid_from')->lockForUpdate()->first();
             $left = $meals && $meals->status === 'active' ? round($meals->balance, 2) : 0.0;
-            if ($left > 0) {
-                $meals->update(['balance' => 0, 'status' => 'used']);
-                if ($company && $company->status === 'active') {
-                    $company->update(['value' => round($company->value + $left, 2), 'balance' => round($company->balance + $left, 2)]);
-                } else {
-                    $this->vouchers->issueOne($contract, $left, $this->companyExpiry($contract, $locked->visit_at->format('Y-m-d')), null, 'balance', $locked->id);
-                }
-            } elseif ($meals && $meals->status === 'active') {
-                $meals->update(['status' => 'used']);
+            if ($meals && $meals->status === 'active') {
+                // the meals voucher keeps what it spent: its value is what the visit ate
+                $meals->update(['value' => round($meals->value - $left, 2), 'balance' => 0, 'status' => 'used']);
             }
-            $locked->update([
-                'status' => 'closed', 'closed_at' => now(),
-                'meals_amount' => round((float) $locked->meals_amount - $left, 2), 'voucher_amount' => round((float) $locked->voucher_amount + $left, 2),
-            ]);
-            Audit::record('corporate.booking_closed', $contract->name, ['booking' => $locked->id, 'moved' => $left], $by?->id);
+            $locked->update(['status' => 'closed', 'closed_at' => now()]);
+            $this->moveToCompany($locked, $left);
+            Audit::record('corporate.booking_closed', $locked->contract->name, ['booking' => $locked->id, 'moved' => $left], $by?->id);
 
             return $locked;
         });
+    }
+
+    /**
+     * Money of a visit's meals that is not spent on its day (left at closing, or an order refunded after closing)
+     * goes onto the company's voucher of that visit (a new one when it has none usable). Call inside a transaction
+     * with the visit locked.
+     */
+    public function moveToCompany(CorporateBooking $booking, float $amount): void
+    {
+        $amount = round($amount, 2);
+        if ($amount <= 0) {
+            return;
+        }
+        $company = CorporateVoucher::query()->where('corporate_booking_id', $booking->id)->whereNull('valid_from')->where('status', 'active')
+            ->lockForUpdate()->first();
+        if ($company) {
+            $company->update(['value' => round($company->value + $amount, 2), 'balance' => round($company->balance + $amount, 2)]);
+        } else {
+            $contract = CorporateContract::query()->findOrFail($booking->corporate_contract_id);
+            $this->vouchers->issueOne($contract, $amount, $this->companyExpiry($contract, $booking->visit_at->format('Y-m-d')), null, 'balance', $booking->id);
+        }
+        $booking->update([
+            'meals_amount' => round((float) $booking->meals_amount - $amount, 2), 'voucher_amount' => round((float) $booking->voucher_amount + $amount, 2),
+        ]);
     }
 
     /** The nightly run: confirmed visits of past days are closed. Returns how many. */
@@ -260,8 +275,12 @@ final class CorporateBookings
         $n = 0;
         $ids = CorporateBooking::query()->where('status', 'confirmed')->where('visit_at', '<', now()->startOfDay())->orderBy('id')->pluck('id');
         foreach ($ids as $id) {
-            $this->close(CorporateBooking::query()->findOrFail($id));
-            $n++;
+            try {
+                $this->close(CorporateBooking::query()->findOrFail($id));
+                $n++;
+            } catch (\Throwable $e) {
+                report($e); // e.g. cancelled meanwhile: the next run or a manager sees to it
+            }
         }
 
         return $n;
@@ -274,6 +293,14 @@ final class CorporateBookings
         Audit::record('corporate.portal_link', $contract->name);
 
         return $contract->portal_token;
+    }
+
+    /** The visit falls in the contract's days and hours, where its vouchers work. */
+    private function checkWindow(CorporateContract $contract, \DateTimeInterface $at): void
+    {
+        if (! $contract->allowsTime(Carbon::instance($at))) {
+            throw new OrderException(__('The contract works on :window only.', ['window' => $contract->windowLabel()]));
+        }
     }
 
     private function branchFor(CorporateContract $contract, int|string|null $id): ?Branch
@@ -312,6 +339,8 @@ final class CorporateBookings
             $booking->update(['reservation_id' => $reservation->id]);
         } catch (ReservationException) {
             // no table held: the visit stands, staff seat them as they come
+        } catch (\Throwable $e) {
+            report($e); // the visit is confirmed already; a table that could not be held never undoes that
         }
     }
 }

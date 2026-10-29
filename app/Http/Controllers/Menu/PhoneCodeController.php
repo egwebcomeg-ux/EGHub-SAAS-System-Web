@@ -63,6 +63,7 @@ class PhoneCodeController extends Controller
         $customer->refresh();
 
         return response()->json(['ok' => true, 'redirect' => route('menu.show'), 'account' => GuestAccount::url($customer)], 200, AccountController::HEADERS)
-            ->withCookie(GuestAccount::rememberCookie(GuestAccount::token($customer)));
+            ->withCookie(GuestAccount::rememberCookie(GuestAccount::token($customer)))
+            ->withCookie(GuestAccount::phoneProofCookie($customer));
     }
 }

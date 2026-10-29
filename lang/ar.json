@@ -6747,5 +6747,7 @@
     "Delivery orders": "طلبات الدليفري",
     "Every online order": "كل طلب أونلاين",
     "Stops orders with a wrong or someone else's number. The guest signs in once with a code; the next orders go straight.": "بيمنع الطلبات برقم غلط أو رقم حد تاني. العميل بيدخل مرة واحدة بكود، والطلبات اللي بعدها بتمشي على طول.",
-    "No way to send a code yet: connect your WhatsApp number (or SMS). Until then orders are not held.": "لسه مفيش طريقة لإرسال الكود: اربط رقم الواتساب بتاعك (أو SMS). لحد ما يتربط الطلبات مش هتتوقف."
+    "No way to send a code yet: connect your WhatsApp number (or SMS). Until then orders are not held.": "لسه مفيش طريقة لإرسال الكود: اربط رقم الواتساب بتاعك (أو SMS). لحد ما يتربط الطلبات مش هتتوقف.",
+    "The contract works on :window only.": "التعاقد بيشتغل :window بس.",
+    "This voucher belongs to a company visit: cancel or close the visit instead.": "الفاوتشر ده تبع زيارة شركة: الغي الزيارة أو اقفلها بدل كده."
 }

@@ -62,12 +62,13 @@ final class CorporateAccount
             throw new OrderException(__('Write why the payment is cancelled.'));
         }
         DB::transaction(function () use ($payment, $by, $reason) {
+            // the contract first, like confirming a visit, so a visit never counts a payment being cancelled
+            $contract = CorporateContract::query()->lockForUpdate()->findOrFail($payment->corporate_contract_id);
             $locked = CorporatePayment::query()->lockForUpdate()->findOrFail($payment->id);
             if ($locked->cancelled_at) {
                 throw new OrderException(__('This payment was already cancelled.'));
             }
             $locked->update(['cancelled_at' => now(), 'cancelled_by' => $by->id, 'cancel_reason' => mb_substr($reason, 0, 200)]);
-            $contract = CorporateContract::query()->lockForUpdate()->findOrFail($locked->corporate_contract_id);
             $this->refreshPaid($contract);
             Audit::record('corporate.payment_cancelled', $contract->name, ['amount' => $locked->amount, 'reason' => $reason]);
         });

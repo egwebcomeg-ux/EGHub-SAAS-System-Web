@@ -95,6 +95,7 @@ class GuestSignInController extends Controller
 
         return response()->json(['status' => 'ok', 'redirect' => GuestAccount::url($customer)], 200, AccountController::HEADERS)
             ->withCookie(GuestAccount::rememberCookie(GuestAccount::token($customer)))
+            ->withCookie(GuestAccount::phoneProofCookie($customer))
             ->withCookie(WhatsAppSignIn::forgetCookie());
     }
 

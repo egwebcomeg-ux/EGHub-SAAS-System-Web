@@ -42,7 +42,7 @@
         <x-flash />
         <div class="flex flex-wrap gap-2 text-sm">
             <span @class(['badge', 'bg-emerald-100 text-emerald-800' => $usable, 'bg-navy-100 text-navy-600' => ! $usable]) data-voucher-state="{{ $state }}">{{ $voucher->statusLabel() }}</span>
-            <span class="badge m-surface-2 m-muted">{{ $contract->modeLabel() }}</span>
+            <span class="badge m-surface-2 m-muted">{{ $voucher->modeLabel() }}</span>
             @if ($contract->windowLabel() !== '')<span class="badge m-surface-2 m-muted">{{ $contract->windowLabel() }}</span>@endif
             @if ($contract->min_order)<span class="badge m-surface-2 m-muted">{{ __('Minimum order :amount', ['amount' => money($contract->min_order)]) }}</span>@endif
         </div>

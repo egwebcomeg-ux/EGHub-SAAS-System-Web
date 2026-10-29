@@ -5,7 +5,6 @@ use App\Models\CorporateBooking;
 use App\Models\Tenant;
 use App\Models\TenantSetting;
 use App\Services\Corporate\CorporateBookings;
-use App\Services\Corporate\CorporateVouchers;
 use App\Services\Entitlements;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Loyalty\Packages;
@@ -55,9 +54,8 @@ Artisan::command('egmenu:corporate-visits', function (CorporateBookings $booking
     $n = 0;
     $failed = $forEachTenant('egmenu:corporate-visits', Tenant::query()->where('status', 'active')->whereIn('id', CorporateBooking::query()->withoutGlobalScopes()
         ->where('status', 'confirmed')->select('tenant_id'))->orderBy('id')->get(), function () use ($bookings, &$n) {
-            if (CorporateVouchers::enabled()) {
-                $n += $bookings->closePast();
-            }
+            // even when the plan no longer has the feature: what is left of the meals is the company's money
+            $n += $bookings->closePast();
         });
     $this->info("closed company visits: $n · failed restaurants: $failed");
 })->purpose('Close the company visits of past days: what the meals did not use goes onto the company\'s voucher');

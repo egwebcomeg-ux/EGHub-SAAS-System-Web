@@ -97,10 +97,11 @@ class GuestAccountTest extends TenantTestCase
         $this->placedOrder($a, $mona, ['type' => 'dine_in', 'source' => 'qr', 'number' => 10, 'total' => 333]);
         $this->placedOrder($a, $mona, ['type' => 'takeaway', 'number' => 11, 'total' => 444]);
 
-        $this->get($this->subUrl('cafe-a', "me/{$mona->card_token}"))->assertSee('333')->assertSee('444');
+        // the visible text only: a random tracking token in a link may hold the same digits
+        $this->get($this->subUrl('cafe-a', "me/{$mona->card_token}"))->assertSeeText('333')->assertSeeText('444');
 
         $this->as($a, fn () => Settings::put(['dine_in_hide_total' => '1']));
-        $this->get($this->subUrl('cafe-a', "me/{$mona->card_token}"))->assertDontSee('333')->assertSee('444');
+        $this->get($this->subUrl('cafe-a', "me/{$mona->card_token}"))->assertDontSeeText('333')->assertSeeText('444');
     }
 
     public function test_saved_addresses_come_from_past_delivery_orders_and_only_this_guest_can_remove_one(): void

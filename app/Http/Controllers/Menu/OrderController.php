@@ -86,7 +86,7 @@ class OrderController extends Controller
 
         $table = MenuController::currentTable($request);
         if (! $table && self::mustProvePhone((string) ($data['type'] ?? 'takeaway'))
-            && ! ($me && $me->phone_verified_at && normalize_phone((string) ($data['customer_phone'] ?? '')) === $me->phone)) {
+            && ! ($me && GuestAccount::provedPhone($request, $me) && normalize_phone((string) ($data['customer_phone'] ?? '')) === $me->phone)) {
             return response()->json([
                 'message' => __('Confirm your mobile number first: sign in with it (a code on WhatsApp), then send the order. Your cart stays.'),
                 'sign_in_url' => route('menu.account.sign-in'),

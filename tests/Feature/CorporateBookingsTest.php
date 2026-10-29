@@ -6,8 +6,10 @@ use App\Models\CorporateBooking;
 use App\Models\CorporateContract;
 use App\Models\CorporateVoucher;
 use App\Models\MenuItem;
+use App\Models\Order;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Corporate\CorporateVouchers;
 use Illuminate\Support\Str;
 use Tests\TenantTestCase;
 
@@ -163,6 +165,26 @@ class CorporateBookingsTest extends TenantTestCase
         $this->assertSame([880.0, 880.0], [$rest->value, $rest->balance]);
         // still charged the whole budget: the rest is the company's
         $this->assertSame(1000.0, $this->fresh($contract)->totalValue());
+        // the meals voucher keeps what the visit ate, so the issued total is still the budget
+        $this->assertSame([120.0, 1000.0], [$meals->value, round($meals->value + $rest->value, 2)]);
+        // and is managed through its visit, not voided on its own
+        $this->actingAs($this->manager)->post($this->dashUrl("/corporate/vouchers/{$meals->id}/void"))->assertSessionHasErrors('voucher');
+
+        // the order is refunded after the visit was closed: the money goes onto the company's voucher, not the spent day
+        $this->as($this->tenant, fn () => app(CorporateVouchers::class)->refundOrder(Order::query()->latest('id')->firstOrFail()));
+        $booking = $this->booking();
+        [$meals, $rest] = $this->vouchers($booking);
+        $this->assertSame([0.0, 1000.0], [$booking->meals_amount, $booking->voucher_amount]);
+        $this->assertSame(['used', 0.0, 0.0], [$meals->status, $meals->value, $meals->balance]);
+        $this->assertSame([1000.0, 1000.0], [$rest->value, $rest->balance]);
+    }
+
+    public function test_a_visit_must_fall_in_the_contract_days_and_hours(): void
+    {
+        $visit = now()->addDays(2)->setTime(13, 0);
+        $contract = $this->contract(['days' => [($visit->dayOfWeek + 1) % 7]]);
+        $this->ask($contract)->assertSessionHasErrors('date');
+        $this->assertSame(0, $this->as($this->tenant, fn () => CorporateBooking::query()->count()));
     }
 
     public function test_cancelling_an_unused_visit_voids_its_vouchers_and_takes_the_charge_back(): void

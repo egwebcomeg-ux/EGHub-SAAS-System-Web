@@ -3,6 +3,7 @@
 namespace App\Services\Corporate;
 
 use App\Models\Branch;
+use App\Models\CorporateBooking;
 use App\Models\CorporateContract;
 use App\Models\CorporateVoucher;
 use App\Models\CorporateVoucherRedemption;
@@ -177,6 +178,7 @@ final class CorporateVouchers
 
     public function extendVoucher(CorporateVoucher $voucher, string $date): void
     {
+        $this->refuseVisitMeals($voucher);
         $day = $this->futureDate($date);
         $from = $voucher->expires_on?->format('Y-m-d');
         $voucher->update(['expires_on' => $day]);
@@ -190,6 +192,7 @@ final class CorporateVouchers
             if ($locked->status !== 'active') {
                 throw new OrderException(__('Only an active voucher can be voided.'));
             }
+            $this->refuseVisitMeals($locked);
             $locked->update(['status' => 'void']);
             $voucher->status = 'void';
             Audit::record('corporate.voided', $locked->serial);
@@ -392,8 +395,7 @@ final class CorporateVouchers
             foreach ($rows as $row) {
                 $voucher = CorporateVoucher::query()->lockForUpdate()->find($row->corporate_voucher_id);
                 if ($voucher) {
-                    $balance = round(min($voucher->value, $voucher->balance + $row->amount + $row->forfeited), 2);
-                    $voucher->update(['balance' => $balance, 'status' => $voucher->status === 'used' && $balance > 0 ? 'active' : $voucher->status]);
+                    $this->giveBack($voucher, $row->amount + $row->forfeited);
                 }
                 $row->update(['refunded_at' => now(), 'refunded_by' => $approver->id, 'refund_reason' => $reason]);
                 Audit::record('corporate.manual_cancelled', ($voucher?->serial ?? '').' · '.__('Paper bill').($row->reference ? ' '.$row->reference : ''), [
@@ -517,8 +519,7 @@ final class CorporateVouchers
             foreach ($rows as $row) {
                 $voucher = CorporateVoucher::query()->lockForUpdate()->find($row->corporate_voucher_id);
                 if ($voucher) {
-                    $balance = round(min($voucher->value, $voucher->balance + $row->amount + $row->forfeited), 2);
-                    $voucher->update(['balance' => $balance, 'status' => $voucher->status === 'used' && $balance > 0 ? 'active' : $voucher->status]);
+                    $this->giveBack($voucher, $row->amount + $row->forfeited);
                 }
                 $row->update(['refunded_at' => now()]);
                 Audit::record('corporate.refunded', ($voucher?->serial ?? '').' · #'.$order->number, ['amount' => $row->amount], $by?->id);
@@ -526,6 +527,24 @@ final class CorporateVouchers
 
             return $rows->count();
         });
+    }
+
+    /**
+     * A refunded use goes back on its voucher, usable again. A visit's meals voucher whose visit is closed already
+     * has had its day: the money goes onto the company's voucher of that visit, like what was left at closing.
+     */
+    private function giveBack(CorporateVoucher $voucher, float $amount): void
+    {
+        $booking = $voucher->valid_from !== null && $voucher->corporate_booking_id
+            ? CorporateBooking::query()->lockForUpdate()->find($voucher->corporate_booking_id) : null;
+        if ($booking && $booking->status === 'closed') {
+            $voucher->update(['value' => round(max(0, $voucher->value - $amount), 2)]);
+            app(CorporateBookings::class)->moveToCompany($booking, $amount);
+
+            return;
+        }
+        $balance = round(min($voucher->value, $voucher->balance + $amount), 2);
+        $voucher->update(['balance' => $balance, 'status' => $voucher->status === 'used' && $balance > 0 ? 'active' : $voucher->status]);
     }
 
     /**
@@ -720,6 +739,14 @@ final class CorporateVouchers
         }
 
         return substr($clean !== '' ? $clean : 'CV', 0, 6);
+    }
+
+    /** A visit's meals voucher follows its visit: cancel or close the visit instead. */
+    private function refuseVisitMeals(CorporateVoucher $voucher): void
+    {
+        if ($voucher->valid_from !== null && $voucher->corporate_booking_id) {
+            throw new OrderException(__('This voucher belongs to a company visit: cancel or close the visit instead.'));
+        }
     }
 
     private function lastSerialNumber(string $prefix): int

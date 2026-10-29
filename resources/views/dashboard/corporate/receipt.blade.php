@@ -36,7 +36,7 @@
                 <tr><td>{{ __('Valid until') }}</td><td class="n">{{ local_time($v->expires_on, 'Y/m/d') }}</td></tr>
             </table>
             <div class="terms">
-                {{ $contract->mode === 'single' ? __('One use: the whole value in one order') : __('Balance: what is left stays for next time') }}
+                {{ $v->modeName() === 'single' ? __('One use: the whole value in one order') : __('Balance: what is left stays for next time') }}
                 @if ($contract->windowLabel() !== '') · {{ $contract->windowLabel() }}@endif
                 @if ($contract->min_order) · {{ __('Minimum order :amount', ['amount' => money($contract->min_order)]) }}@endif
             </div>

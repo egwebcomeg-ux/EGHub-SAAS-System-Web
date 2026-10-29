@@ -139,6 +139,29 @@ final class GuestAccount
         return cookie()->forever(self::cookieName(), $token, null, null, self::secure(), true, false, 'lax');
     }
 
+    /**
+     * This browser proved the guest's mobile (a code sent to it, or a message from it): kept apart from the card cookie,
+     * which a typed mobile on a first order or the card sign-up also hands out. Tied to the guest and the mobile, so it
+     * stops counting when either changes.
+     */
+    public static function phoneProofCookie(Customer $customer): Cookie
+    {
+        return cookie()->forever('phone_ok_'.tenant()->getTenantKey(), self::phoneProof($customer), null, null, self::secure(), true, false, 'lax');
+    }
+
+    /** The guest this phone remembers proved this mobile from this browser. */
+    public static function provedPhone(Request $request, Customer $customer): bool
+    {
+        $proof = $request->cookie('phone_ok_'.tenant()->getTenantKey());
+
+        return $customer->phone !== '' && is_string($proof) && hash_equals(self::phoneProof($customer), $proof);
+    }
+
+    private static function phoneProof(Customer $customer): string
+    {
+        return hash_hmac('sha256', tenant()->getTenantKey().'|'.$customer->id.'|'.$customer->phone, (string) config('app.key'));
+    }
+
     public static function forgetCookie(): Cookie
     {
         return cookie(self::cookieName(), '', -2628000, null, null, self::secure(), true, false, 'lax');

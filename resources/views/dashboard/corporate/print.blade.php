@@ -8,7 +8,6 @@
     $accent = is_hex_color($settings['color_primary'] ?? '') ? $settings['color_primary'] : '#F26522';
     $currency = tr($settings['currency'], $settings['currency_en']);
     $terms = array_filter([
-        $contract->mode === 'single' ? __('One use: the whole value in one order') : __('Balance: what is left stays for next time'),
         $contract->windowLabel(),
         $contract->min_order ? __('Minimum order :amount', ['amount' => money($contract->min_order)]) : null,
         $branches->isNotEmpty() ? $branches->map(fn ($b) => tr($b->name, $b->name_en))->implode('، ') : null,
@@ -76,7 +75,7 @@
                         <div class="cv__code" dir="ltr">{{ $v->formattedCode() }}</div>
                         <div class="cv__meta">
                             <b>{{ __('Valid until :date', ['date' => local_time($v->expires_on, 'Y/m/d')]) }}</b><br>
-                            {{ implode(' · ', $terms) }}
+                            {{ implode(' · ', [$v->modeName() === 'single' ? __('One use: the whole value in one order') : __('Balance: what is left stays for next time'), ...$terms]) }}
                         </div>
                     </div>
                     <div>

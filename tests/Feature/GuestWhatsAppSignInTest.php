@@ -205,19 +205,23 @@ class GuestWhatsAppSignInTest extends TenantTestCase
             'customer_phone' => $phone, 'type' => $type, 'zone_id' => $zone->id, 'address' => '9 Road 233',
         ]);
 
-        // a typed mobile: the delivery waits for the guest to sign in with it; a pickup goes as before
+        // a typed mobile: the delivery waits for the guest to sign in with it; a pickup goes as before, and (a new
+        // guest) hands this browser the guest's card, which is no proof of the mobile
         $order('delivery')->assertStatus(422)->assertJson(['sign_in_url' => $this->subUrl('cafe-a', 'me')]);
         $this->assertSame(0, $this->as($a, fn () => Order::query()->count()));
         $this->defaultCookies = [];
-        $order('takeaway')->assertOk();
+        $typedCard = $order('takeaway')->assertOk()->getCookie('card_cafe-a')->getValue();
 
-        // signed in with WhatsApp: the mobile is proven, the delivery goes with that mobile only
+        // the owner of the mobile signs in with WhatsApp in their own browser: proven there, and only there
         $this->defaultCookies = [];
         $started = $this->start('cafe-a');
         $this->message('201012345678', $started->json('code'))->assertOk();
-        $card = $this->poll('cafe-a', $this->secret($started, 'cafe-a'))->assertJson(['status' => 'ok'])->getCookie('card_cafe-a')->getValue();
+        $signedIn = $this->poll('cafe-a', $this->secret($started, 'cafe-a'))->assertJson(['status' => 'ok']);
         $this->assertNotNull($this->guests($a)->firstWhere('phone', '01012345678')->phone_verified_at);
-        $this->defaultCookies = ['card_cafe-a' => $card];
+        $this->defaultCookies = ['card_cafe-a' => $typedCard];
+        $order('delivery')->assertStatus(422);
+
+        $this->defaultCookies = ['card_cafe-a' => $signedIn->getCookie('card_cafe-a')->getValue(), 'phone_ok_cafe-a' => $signedIn->getCookie('phone_ok_cafe-a')->getValue()];
         $order('delivery', '01099999999')->assertStatus(422);
         $order('delivery')->assertOk();
 
