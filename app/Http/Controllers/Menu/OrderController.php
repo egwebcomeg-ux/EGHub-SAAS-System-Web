@@ -11,6 +11,7 @@ use App\Services\Customers\GuestAccount;
 use App\Services\Customers\Outreach;
 use App\Services\Customers\SignIn\EmailConfirmation;
 use App\Services\Customers\SignIn\GuestIdentity;
+use App\Services\Customers\SignIn\PhoneCodeSignIn;
 use App\Services\Delivery\DeliveryPricing;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Orders\BusyMode;
@@ -84,6 +85,13 @@ class OrderController extends Controller
         unset($data['customer_email'], $data['ref']);
 
         $table = MenuController::currentTable($request);
+        if (! $table && self::mustProvePhone((string) ($data['type'] ?? 'takeaway'))
+            && ! ($me && $me->phone_verified_at && normalize_phone((string) ($data['customer_phone'] ?? '')) === $me->phone)) {
+            return response()->json([
+                'message' => __('Confirm your mobile number first: sign in with it (a code on WhatsApp), then send the order. Your cart stays.'),
+                'sign_in_url' => route('menu.account.sign-in'),
+            ], 422);
+        }
         // a mobile no guest of this restaurant had before: the order creates the guest, so this phone may keep them
         $phone = normalize_phone((string) ($data['customer_phone'] ?? ''));
         $newGuest = $phone !== null && ! Customer::query()->where('phone', $phone)->exists();
@@ -118,6 +126,17 @@ class OrderController extends Controller
         }
 
         return $response;
+    }
+
+    /**
+     * The restaurant asks for a proven mobile before this online order (setting online_verify_phone), and a code can
+     * reach the guest at all; without any way to send one the setting would only block every order.
+     */
+    public static function mustProvePhone(string $type): bool
+    {
+        $rule = Settings::get('online_verify_phone', 'off');
+
+        return ($rule === 'all' || ($rule === 'delivery' && $type === 'delivery')) && PhoneCodeSignIn::canProve();
     }
 
     /**

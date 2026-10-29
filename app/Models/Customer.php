@@ -41,6 +41,7 @@ class Customer extends TenantModel
             'last_visit_at' => 'datetime',
             'last_contacted_at' => 'datetime',
             'email_verified_at' => 'datetime',
+            'phone_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
     }

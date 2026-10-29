@@ -1195,6 +1195,7 @@
         'deliveryFee' => __('Delivery fee'), 'minOrder' => __('Minimum order for this zone: :amount', ['amount' => '__A__']),
         'chooseZone' => __('Choose your area'), 'enterAddress' => __('Write the delivery address.'),
         'phoneRequired' => __('Enter your mobile number so the restaurant can reach you.'),
+        'confirmMobile' => __('Confirm my mobile number'),
         'payFromBalance' => __('Pay from my balance'), 'notEnoughBalance' => __('Not enough balance for this order.'),
         'contains' => __('Contains:'), 'spicy' => __('Spicy'),
         'myOrder' => __('My order'), 'yourOrder' => __('Your order'), 'waiterCount' => __(':lines items · :pieces pieces', ['lines' => '__L__', 'pieces' => '__Q__']), 'viewOrder' => __('View order'),

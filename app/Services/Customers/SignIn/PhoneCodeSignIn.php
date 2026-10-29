@@ -56,6 +56,12 @@ final class PhoneCodeSignIn
         return true;
     }
 
+    /** A code can reach the guest's mobile (their own WhatsApp number or SMS) or the guest can message the EgHub number. */
+    public static function canProve(): bool
+    {
+        return self::senders() !== [] || WhatsAppSignIn::available();
+    }
+
     /**
      * The other ways for this mobile: the senders not used, the reverse WhatsApp code, an email the guest has here.
      *
@@ -164,6 +170,7 @@ final class PhoneCodeSignIn
             return null;
         }
         $customer = Customer::query()->firstOrCreate(['phone' => $phone], ['source' => 'menu']);
+        $customer->forceFill(['phone_verified_at' => now()])->save();
         $row->forceFill(['customer_id' => $customer->id])->save();
 
         return $customer;

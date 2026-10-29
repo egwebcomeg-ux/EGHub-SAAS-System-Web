@@ -351,6 +351,17 @@
                         <input class="field min-h-9 w-20" name="online_auto_cancel_minutes" type="number" min="0" max="{{ \App\Services\Orders\AutoCancel::MAX_MINUTES }}" value="{{ $s['online_auto_cancel_minutes'] }}"> {{ __('minutes') }}
                         <span class="text-xs text-navy-500">{{ __('0 = never. Money paid from a wallet goes back to the guest; the guest sees why on the tracking page.') }}</span>
                     </label>
+                    <label class="mt-3 flex flex-wrap items-center gap-2 text-sm" data-verify-phone>{{ __('Confirm the guest\'s mobile (a code on WhatsApp) before') }}
+                        <select class="field min-h-9 w-auto" name="online_verify_phone">
+                            @foreach (['off' => __('No confirmation'), 'delivery' => __('Delivery orders'), 'all' => __('Every online order')] as $key => $label)
+                                <option value="{{ $key }}" @selected(($s['online_verify_phone'] ?? 'off') === $key)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        <span class="text-xs text-navy-500">{{ __('Stops orders with a wrong or someone else\'s number. The guest signs in once with a code; the next orders go straight.') }}</span>
+                        @if (! \App\Services\Customers\SignIn\PhoneCodeSignIn::canProve())
+                            <span class="w-full text-xs font-semibold text-amber-700">{{ __('No way to send a code yet: connect your WhatsApp number (or SMS). Until then orders are not held.') }}</span>
+                        @endif
+                    </label>
                 </div>
             @endif
             <div><label class="field-label">{{ __('Service %') }}</label><input class="field" name="service_percent" type="number" step="0.5" min="0" max="30" value="{{ $s['service_percent'] }}"></div>

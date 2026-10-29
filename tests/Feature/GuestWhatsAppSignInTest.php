@@ -2,11 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Models\Branch;
 use App\Models\Customer;
+use App\Models\DeliveryZone;
 use App\Models\GuestSignIn;
+use App\Models\Order;
 use App\Models\Tenant;
 use App\Services\Customers\SignIn\WhatsAppSignIn;
+use App\Services\Settings;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Tests\TenantTestCase;
 
@@ -183,5 +188,42 @@ class GuestWhatsAppSignInTest extends TenantTestCase
             $this->start('cafe-a')->assertNotFound();
             $this->poll('cafe-a', null)->assertNotFound();
         }
+    }
+
+    public function test_a_restaurant_asking_for_a_proven_mobile_takes_delivery_only_from_a_guest_signed_in_with_it(): void
+    {
+        config(['whatsapp.guest_sign_in' => true]);
+        $a = $this->restaurant('cafe-a');
+        $latte = $this->item($a, 'Latte', 60);
+        $zone = $this->as($a, function () {
+            Settings::put(['online_delivery' => '1', 'online_verify_phone' => 'delivery']);
+
+            return DeliveryZone::query()->create(['branch_id' => Branch::query()->first()->id, 'name' => 'Maadi', 'fee' => 25, 'min_order' => 0]);
+        });
+        $order = fn (string $type, string $phone = '01012345678') => $this->withCredentials()->postJson($this->subUrl('cafe-a', 'order'), [
+            'client_uuid' => (string) Str::uuid(), 'items' => [['item_id' => $latte->id, 'qty' => 1]], 'customer_name' => 'Mona',
+            'customer_phone' => $phone, 'type' => $type, 'zone_id' => $zone->id, 'address' => '9 Road 233',
+        ]);
+
+        // a typed mobile: the delivery waits for the guest to sign in with it; a pickup goes as before
+        $order('delivery')->assertStatus(422)->assertJson(['sign_in_url' => $this->subUrl('cafe-a', 'me')]);
+        $this->assertSame(0, $this->as($a, fn () => Order::query()->count()));
+        $this->defaultCookies = [];
+        $order('takeaway')->assertOk();
+
+        // signed in with WhatsApp: the mobile is proven, the delivery goes with that mobile only
+        $this->defaultCookies = [];
+        $started = $this->start('cafe-a');
+        $this->message('201012345678', $started->json('code'))->assertOk();
+        $card = $this->poll('cafe-a', $this->secret($started, 'cafe-a'))->assertJson(['status' => 'ok'])->getCookie('card_cafe-a')->getValue();
+        $this->assertNotNull($this->guests($a)->firstWhere('phone', '01012345678')->phone_verified_at);
+        $this->defaultCookies = ['card_cafe-a' => $card];
+        $order('delivery', '01099999999')->assertStatus(422);
+        $order('delivery')->assertOk();
+
+        // with no way to send a code the setting holds nothing
+        config(['whatsapp.number' => '']);
+        $this->defaultCookies = [];
+        $order('delivery', '01077777777')->assertOk();
     }
 }

@@ -64,6 +64,8 @@ final class Settings
         'delivery_zone_mode' => 'manual',   // manual (main area → sub-areas/streets, fees typed) | map (areas drawn on the map)
         'online_prep_minutes' => '20',
         'online_auto_cancel_minutes' => '0',  // 0 = off; else online orders nobody accepted in N minutes are cancelled (egmenu:auto-cancel)
+        // off | delivery | all: online orders (no table) only from a guest signed in with a mobile they proved (a code)
+        'online_verify_phone' => 'off',
         // the guest pager (plan feature pager, App\Services\Orders\Pager): call the guest's phone by itself when the order
         // turns ready, and close the pager station's tickets nobody closed after this many hours
         'pager_auto_call' => '1',

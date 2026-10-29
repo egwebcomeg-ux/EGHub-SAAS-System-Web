@@ -1505,7 +1505,9 @@ if (dataEl) {
             const body = await res.json().catch(() => ({}));
             if (!res.ok) {
                 const first = body.errors ? Object.values(body.errors)[0][0] : null;
-                throw new Error(body.message || first || res.status);
+                const error = new Error(body.message || first || res.status);
+                error.signInUrl = body.sign_in_url || null;
+                throw error;
             }
             rememberLastOrder();
             rememberGuest();
@@ -1515,6 +1517,15 @@ if (dataEl) {
             window.location.href = body.url;
         } catch (err) {
             errorBox.textContent = err.message;
+            // the restaurant asks for a confirmed mobile first: the way to sign in, the cart stays on this phone
+            if (err.signInUrl) {
+                const link = document.createElement('a');
+                link.href = err.signInUrl;
+                link.className = 'mt-2 block font-extrabold underline';
+                link.textContent = T.confirmMobile || err.signInUrl;
+                link.dataset.confirmMobile = '';
+                errorBox.append(link);
+            }
             errorBox.classList.remove('hidden');
             // a refused coupon: show the field it is about
             if ($('[data-coupon]')?.value) $('[data-coupon]').closest('details')?.setAttribute('open', '');

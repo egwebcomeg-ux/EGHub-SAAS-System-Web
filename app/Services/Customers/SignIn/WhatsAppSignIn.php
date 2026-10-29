@@ -127,6 +127,7 @@ final class WhatsAppSignIn
         }
         // the mobile WhatsApp vouched for: its guest here, or a new guest here
         $customer = Customer::query()->firstOrCreate(['phone' => $phone], ['source' => 'menu']);
+        $customer->forceFill(['phone_verified_at' => now()])->save();
         $row->forceFill(['customer_id' => $customer->id])->save();
 
         return ['ok', $customer];

@@ -104,6 +104,7 @@ class SettingsController extends Controller
             'service_percent' => 'nullable|numeric|min:0|max:30',
             'online_prep_minutes' => 'nullable|integer|min:5|max:240',
             'online_auto_cancel_minutes' => 'nullable|integer|min:0|max:'.AutoCancel::MAX_MINUTES,
+            'online_verify_phone' => ['nullable', Rule::in(['off', 'delivery', 'all'])],
             'tax_percent' => 'nullable|numeric|min:0|max:30',
             'ai_provider' => ['nullable', Rule::in(array_keys(AiProviders::PROVIDERS))],
             'ai_model' => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._:\/-]+$/'],
@@ -219,8 +220,9 @@ class SettingsController extends Controller
             $values['online_takeaway'] = $request->boolean('online_takeaway') ? '1' : '0';
             $values['online_delivery'] = $request->boolean('online_delivery') ? '1' : '0';
             $values['online_auto_cancel_minutes'] = (string) (int) ($data['online_auto_cancel_minutes'] ?? 0);
+            $values['online_verify_phone'] = ($data['online_verify_phone'] ?? '') !== '' ? $data['online_verify_phone'] : 'off';
         } else {
-            unset($values['online_auto_cancel_minutes']);
+            unset($values['online_auto_cancel_minutes'], $values['online_verify_phone']);
         }
         // WhatsApp messages to guests: each toggle switches one message type on
         if (Entitlements::current()->allows('whatsapp_notifications')) {
