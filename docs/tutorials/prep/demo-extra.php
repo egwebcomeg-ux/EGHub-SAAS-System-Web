@@ -2,6 +2,7 @@
 
 use App\Models\Branch;
 use App\Models\Category;
+use App\Models\CorporateContract;
 use App\Models\DeliveryZone;
 use App\Models\Ingredient;
 use App\Models\Tenant;
@@ -21,4 +22,6 @@ foreach (['الكوربة', 'روكسي'] as $i => $n) {
 Category::whereDoesntHave('items')->delete();
 // milk is already in the stock list: the inventory tutorial adds the coffee beans and the takeaway cup on camera
 Ingredient::create(['name' => 'لبن', 'kind' => 'ingredient', 'unit' => 'ml', 'cost_per_unit' => 0.04, 'min_stock' => 2000]);
+// the corporate tutorial signs إيجي ويب للبرمجيات on camera: the sample contract of the demo data would be a twin
+CorporateContract::query()->where('name', 'like', '%(تجربة)%')->get()->each->delete();
 echo "extra ok\n";

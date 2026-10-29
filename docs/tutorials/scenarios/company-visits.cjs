@@ -3,12 +3,12 @@ const day = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
 module.exports = {
     id: 'company-visits', title: 'زيارات الشركات', subtitle: 'المندوب جاي ببادجت: وجبات + فاوتشر للشركة', as: 'owner', start: 'app:/corporate',
     async run(t) {
-        await t.click((p) => p.locator('table a, [data-contract] a, a').filter({ hasText: 'شركة النيل' }).first(), 'افتح عقد الشركة من تعاقدات الشركات.');
+        await t.click((p) => p.locator('table a, [data-contract] a, a').filter({ hasText: 'إيجي ويب' }).first(), 'افتح عقد الشركة من تعاقدات الشركات.');
         await t.click((p) => p.getByRole('link', { name: 'كشف حساب الشركة' }).first(), 'الأول نتأكد إن الشركة دافعة: افتح كشف الحساب.');
         await t.fill('[data-payment-form] input[name=amount]', 5000, 'سجّل الدفعة اللي الشركة دفعتها (تحويل، شيك، كاش...).');
         await t.click((p) => p.locator('[data-payment-form] button').last(), 'واحفظ الدفعة: بتنزل في كشف الحساب.');
         await t.go('app:/corporate', 'نرجع للعقد.');
-        await t.click((p) => p.locator('a').filter({ hasText: 'شركة النيل' }).first(), '');
+        await t.click((p) => p.locator('a').filter({ hasText: 'إيجي ويب' }).first(), '');
         await t.click('[data-portal-make]', 'اعمل لينك خاص للشركة وابعتهولها: منه بتطلب زياراتها وتشوف حسابها.');
         const url = await t.page.inputValue('[data-portal-url]');
         await t.point('[data-portal-url]', 'ده لينك الشركة.');

@@ -131,7 +131,7 @@ final class DemoContent
                 }
                 if ($rights->allows('corporate_vouchers') && $owner) {
                     $contract = $this->corporate->createContract([
-                        'name' => 'شركة النيل للبرمجيات '.self::MARK, 'contact_name' => 'أ. سارة', 'contact_phone' => '01000000005',
+                        'name' => 'إيجي ويب للبرمجيات '.self::MARK, 'contact_name' => 'أ. سارة', 'contact_phone' => '01000000005',
                         'prefix' => 'DEMO', 'voucher_value' => 150, 'quantity' => 5, 'expires_on' => now()->addMonths(3)->toDateString(),
                         'mode' => 'single', 'paid_amount' => 750,
                     ], $owner);

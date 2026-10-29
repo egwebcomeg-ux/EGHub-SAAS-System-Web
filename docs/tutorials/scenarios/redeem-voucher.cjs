@@ -6,7 +6,7 @@ module.exports = {
     prepare() {
         // an open shift (the rest of the bill is taken in cash) and an unused voucher of the demo company
         tinker.openShift();
-        const out = tinker('echo "CODE=".App\\Models\\CorporateVoucher::whereHas("contract", fn ($q) => $q->where("name", "like", "%النيل%"))->where("balance", ">", 0)->orderBy("id")->value("code");');
+        const out = tinker('echo "CODE=".App\\Models\\CorporateVoucher::whereHas("contract", fn ($q) => $q->where("name", "like", "%إيجي ويب%"))->where("balance", ">", 0)->orderBy("id")->value("code");');
         code = out.match(/CODE=([A-Z0-9]+)/)[1];
     },
     async run(t) {

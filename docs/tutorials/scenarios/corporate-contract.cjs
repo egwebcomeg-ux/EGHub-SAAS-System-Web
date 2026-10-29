@@ -6,7 +6,7 @@ module.exports = {
         await t.say('تعاقدات الشركات: شركة بتشتري فاوتشرات لموظفينها، وإنت بتتابع الصرف والحساب.', 3400);
         await t.click('[data-new-contract]', 'دوس «تعاقد جديد».', 1400);
         const form = '[data-contract-form]';
-        await t.fill(`${form} input[name=name]`, 'شركة الأمل للبرمجيات', 'اسم الشركة...');
+        await t.fill(`${form} input[name=name]`, 'إيجي ويب للبرمجيات', 'اسم الشركة...');
         await t.fill(`${form} input[name=contact_name]`, 'منى', '...واسم المسؤول...');
         await t.fill(`${form} input[name=contact_phone]`, '01055556666', '...وموبايله.');
         await t.select(`${form} select[name=billing]`, 'prepaid', 'الشركة هتدفع إزاي: مقدماً أو آجل بحد أقصى.');
@@ -14,7 +14,7 @@ module.exports = {
         await t.fill(`${form} input[name=voucher_value]`, 150, 'قيمة الفاوتشر: 150 جنيه...');
         await t.fill(`${form} input[name=quantity]`, 20, '...وعددها: 20 فاوتشر لـ 20 موظف.');
         await t.fill(`${form} input[name=expires_on]`, expires, 'صالحة لحد إمتى.');
-        await t.fill(`${form} input[name=prefix]`, 'AML', 'وبادئة السيريال: AML-0001، AML-0002...');
+        await t.fill(`${form} input[name=prefix]`, 'EGW', 'وبادئة السيريال: EGW-0001، EGW-0002...');
         await t.click((p) => p.locator(`${form} label`).filter({ has: p.locator('input[name=mode][value=balance]') }), 'والاستخدام: زي الرصيد، اللي يفضل بيتشال للطلب الجاي.', 1200);
         await t.click((p) => p.locator(`${form} button.btn-primary`).last(), 'ودوس «اعمل التعاقد والفاوتشرات».', 2200);
         await t.point('[data-contract-stats]', 'التعاقد جاهز: 20 فاوتشر، وتشوف اللي اتصرف واللي باقي.', 3400);
