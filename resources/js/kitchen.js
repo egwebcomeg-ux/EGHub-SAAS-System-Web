@@ -15,6 +15,7 @@ if (kds) {
     };
     let lastMax = null;
     let tickets = [];
+    let lastTickets = null; // the last feed drawn, to skip redraws when nothing changed
     let soundOn = false;
     try { soundOn = localStorage.getItem('egmenu.kds.sound') === '1'; } catch {}
     let audio = null;
@@ -78,7 +79,25 @@ if (kds) {
         return `<button class="min-h-14 rounded-xl bg-emerald-600 text-lg font-bold text-white" data-bump="${t.id}" data-action="ready" data-kind="${t.only || ''}">${esc(T.ready)} ✓</button>`;
     }
 
+    // a finger on the screen: the redraw waits, so the button under it is still the one tapped
+    let pressing = false;
+    let redrawLater = false;
+    kds.addEventListener('pointerdown', () => { pressing = true; });
+    const release = () => {
+        pressing = false;
+        if (redrawLater) {
+            redrawLater = false;
+            setTimeout(render, 0);
+        }
+    };
+    window.addEventListener('pointerup', release);
+    window.addEventListener('pointercancel', release);
+
     function render() {
+        if (pressing) {
+            redrawLater = true;
+            return;
+        }
         renderChips();
         const shown = tickets.map((t) => view(t, filter)).filter(Boolean);
         document.querySelector('[data-count]').textContent = shown.length;
@@ -116,6 +135,10 @@ if (kds) {
         const data = await res.json();
         if (lastMax !== null && data.max_id > lastMax) chime();
         lastMax = data.max_id;
+        // only what changed is drawn again (the minutes move with the 30-second redraw)
+        const fresh = JSON.stringify(data.tickets);
+        if (fresh === lastTickets) return;
+        lastTickets = fresh;
         tickets = data.tickets;
         render();
     }
@@ -131,10 +154,17 @@ if (kds) {
         const b = e.target.closest('[data-bump]');
         if (!b) return;
         b.disabled = true;
-        await fetch(kds.dataset.bump.replace('__ID__', b.dataset.bump), {
-            method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
-            body: JSON.stringify({ action: b.dataset.action, kind: b.dataset.kind || null }),
-        });
+        try {
+            const res = await fetch(kds.dataset.bump.replace('__ID__', b.dataset.bump), {
+                method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
+                body: JSON.stringify({ action: b.dataset.action, kind: b.dataset.kind || null }),
+            });
+            // a refused tap is said, not silently dropped (the order was cancelled, the connection broke...)
+            if (!res.ok) alert((await res.json().catch(() => ({}))).message || T.failed);
+        } catch {
+            alert(T.failed);
+        }
+        lastTickets = null;
         try { await load(); } catch { render(); }
     });
 

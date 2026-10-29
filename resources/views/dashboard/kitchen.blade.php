@@ -6,7 +6,7 @@
 @php
     $i18n = [
         'start' => __('Start'), 'ready' => __('Ready'), 'new' => __('New'), 'preparing' => __('Preparing'),
-        'table' => __('Table :name', ['name' => '__N__']), 'empty' => __('No orders right now'), 'scheduled' => __('Scheduled :time', ['time' => '__T__']),
+        'table' => __('Table :name', ['name' => '__N__']), 'empty' => __('No orders right now'), 'failed' => __('That did not go through. Check the connection and try again.'), 'scheduled' => __('Scheduled :time', ['time' => '__T__']),
         'foodReady' => __('Food ready'), 'drinksReady' => __('Drinks ready'),
         'pager' => \App\Services\Orders\Pager::staffTexts(),
     ];

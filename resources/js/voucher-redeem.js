@@ -253,7 +253,9 @@ if (dataEl) {
             <td><b dir="ltr">${esc(l.serial)}</b><div class="text-xs text-navy-500">${esc(l.company)}</div>${l.lost > 0 ? `<div class="text-xs text-amber-700">⚠ ${esc(T.lost.replace('__A__', fmt(l.lost)))}</div>` : ''}</td>
             <td class="font-bold">${fmt(l.amount)}</td><td>${fmt(l.balance)}</td></tr>`).join('');
         $('[data-done-total]').textContent = fmt(r.covered);
-        show($('[data-done-rest]'), r.rest > 0.004 ? T.rest.replace('__A__', fmt(r.rest)) : '');
+        // on an order the rest was paid just now with the method chosen; on a paper bill it is still to be paid
+        const paidBy = r.order && method ? $(`[data-method="${method}"]`)?.textContent.trim() : null;
+        show($('[data-done-rest]'), r.rest > 0.004 ? (paidBy ? T.restPaid.replace('__A__', fmt(r.rest)).replace('__M__', paidBy) : T.rest.replace('__A__', fmt(r.rest))) : '');
         $('[data-done-receipt]').href = r.receipt;
         doneDialog.showModal();
     }

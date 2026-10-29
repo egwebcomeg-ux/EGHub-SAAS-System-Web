@@ -23,7 +23,7 @@
         'lost' => __('One use: :amount of it is lost.', ['amount' => '__A__']), 'remove' => __('Remove'),
         'singleWarn' => __('The bill is smaller than the voucher: :amount will be lost.', ['amount' => '__A__']),
         'leftAfter' => __(':amount left after', ['amount' => '__A__']),
-        'rest' => __('Left to pay: :amount', ['amount' => '__A__']), 'covered' => __('Fully paid by the vouchers.'),
+        'rest' => __('Left to pay: :amount', ['amount' => '__A__']), 'restPaid' => __('The rest, :amount, paid by :method.', ['amount' => '__A__', 'method' => '__M__']), 'covered' => __('Fully paid by the vouchers.'),
         'noOrders' => __('No open orders today in this branch.'), 'table' => __('Table :name', ['name' => '__N__']),
         'addVoucher' => __('Add a corporate voucher first.'), 'pickOrder' => __('Choose the order.'), 'enterAmount' => __('Enter the bill amount.'),
         'chooseMethod' => __('Choose how the rest is paid.'), 'order' => __('Order #:n', ['n' => '__N__']), 'paper' => __('Paper bill'),

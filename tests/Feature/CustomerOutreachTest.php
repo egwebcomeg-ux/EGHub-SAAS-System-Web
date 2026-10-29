@@ -107,6 +107,8 @@ class CustomerOutreachTest extends TenantTestCase
         $this->assertSame(1, $rows[0]->coupon->max_uses);
 
         $page = $this->actingAs($owner)->get($this->dashUrl('/customers/outreach/'.$campaign->id))->assertOk();
+        // the send list lives in Campaigns: that is the page the navigation marks
+        $this->assertMatchesRegularExpression('#href="[^"]*/campaigns"[^>]*aria-current="page"#', $page->getContent());
         $text = rawurlencode('أهلاً Mona كودك '.$rows[0]->coupon->code.' واطلب من ');
         $page->assertSee('wa.me/201011111111?text='.$text, false)->assertSee('ref%3D'.$rows[0]->ref, false);
 

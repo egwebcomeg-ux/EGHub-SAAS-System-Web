@@ -63,6 +63,7 @@ final class DashboardApps
         'dash.kitchen' => ['dash.stations', 'dash.stations.*'],
         'dash.coupons' => ['dash.vouchers', 'dash.vouchers.*'],
         'dash.loyalty.desk' => ['dash.rewards'],
+        'dash.campaigns' => ['dash.outreach', 'dash.outreach.*'],
         'dash.devices' => ['dash.tv', 'dash.tv.*', 'dash.kiosks', 'dash.kiosks.*'],
         'dash.reports' => ['dash.feedback', 'dash.feedback.*'],
         'dash.corporate' => ['dash.redeem', 'dash.redeem.*'],

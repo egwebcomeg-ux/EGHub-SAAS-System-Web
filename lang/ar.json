@@ -7033,5 +7033,7 @@
     "Settings → Messages → Reports to the managers: the daily report is on by default.": "الإعدادات ← الرسايل ← تقارير للمديرين: التقرير اليومي شغال من الأول.",
     "Every morning: sales by payment method, cancellations and refunds with reasons, discounts, shift cash, open orders, company visits waiting and low stock.": "كل يوم الصبح: المبيعات بطرق الدفع، الإلغاءات والمرتجعات بأسبابها، الخصومات، درج الورديات، الطلبات المفتوحة، زيارات الشركات، والخامات اللي قربت تخلص.",
     "By email and a phone notification; optionally last week's numbers every Monday.": "على الإيميل وإشعار على الموبايل، ولو حابب أرقام الأسبوع كل اتنين.",
-    "Each manager chooses it in Phone notifications.": "كل مدير يختاره من «إشعارات الموبايل»."
+    "Each manager chooses it in Phone notifications.": "كل مدير يختاره من «إشعارات الموبايل».",
+    "That did not go through. Check the connection and try again.": "العملية ما تمتش. اتأكد من النت وجرب تاني.",
+    "The rest, :amount, paid by :method.": "الباقي :amount اتدفع :method."
 }
