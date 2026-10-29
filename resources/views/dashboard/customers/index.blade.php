@@ -5,7 +5,7 @@
 <x-dash.page-header :title="__('Customers')">
     <x-slot:actions>
         @can('customers.import')<a href="{{ route('dash.customers.import') }}" class="btn-ghost" data-customers-import>⬆ {{ __('Import customers') }}</a>@endcan
-        @can('marketing.manage')<a href="{{ route('dash.outreach') }}" class="btn-ghost" data-outreach-link>💬 {{ __('Free WhatsApp campaign') }}</a>@endcan
+        @can('marketing.manage')<a href="{{ route('dash.campaigns', array_filter(['segment' => $segment])) }}" class="btn-ghost" data-campaigns-link>💬 {{ __('Campaigns') }}</a>@endcan
         <a href="{{ route('dash.customers.export', array_filter(['q' => $q, 'segment' => $segment])) }}" class="btn-ghost">⬇ {{ __('Export to Excel (CSV)') }}</a>
     </x-slot:actions>
 </x-dash.page-header>
@@ -41,31 +41,44 @@
     </section>
 @endif
 
-{{-- the groups worth acting on (App\Services\Customers\Audiences): how many, what they spent, and what to do --}}
-<section class="mb-4" data-audiences aria-label="{{ __('Groups of guests') }}">
+@php
+    $segmentStyles = [
+        'new' => 'bg-sky-100 text-sky-800', 'regular' => 'bg-emerald-100 text-emerald-800', 'vip' => 'bg-amber-100 text-amber-800',
+        'at_risk' => 'bg-orange-100 text-orange-800', 'lost' => 'bg-navy-100 text-navy-500',
+    ];
+@endphp
+{{-- the guest groups (App\Services\Customers\Segments): how many, what they spent, and what to do; a tap filters the list --}}
+<section class="mb-4" data-segments aria-label="{{ __('Groups of guests') }}">
     <div class="m-noscroll -mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2">
-        @foreach ($audiences as $a)
-            <a href="{{ route('dash.customers', array_filter(['audience' => $audience === $a['key'] ? null : $a['key'], 'q' => $q, 'sort' => $sort])) }}" data-audience="{{ $a['key'] }}"
-               @class(['min-w-40 shrink-0 snap-start rounded-2xl border p-3 transition', 'border-navy-900 bg-navy-900 text-white' => $audience === $a['key'], 'border-navy-100 bg-white hover:border-brand-500' => $audience !== $a['key']])
-               @if ($audience === $a['key']) aria-current="true" @endif>
-                <span class="block text-sm font-bold">{{ $a['label'] }}</span>
-                <span class="mt-1 block text-2xl font-black" data-audience-count>{{ number_format($a['count']) }}</span>
-                <span @class(['block text-xs', 'text-white/70' => $audience === $a['key'], 'text-navy-500' => $audience !== $a['key']])>{{ __('Spent :amount', ['amount' => money($a['revenue'])]) }}</span>
+        <a href="{{ route('dash.customers', array_filter(['q' => $q, 'sort' => $sort])) }}" data-segment=""
+           @class(['min-w-32 shrink-0 snap-start rounded-2xl border p-3 transition', 'border-navy-900 bg-navy-900 text-white' => $segment === '', 'border-navy-100 bg-white hover:border-brand-500' => $segment !== ''])
+           @if ($segment === '') aria-current="true" @endif>
+            <span class="block text-sm font-bold">{{ __('All customers') }}</span>
+            <span class="mt-1 block text-2xl font-black">{{ number_format($stats['total']) }}</span>
+        </a>
+        @foreach ($groups as $g)
+            <a href="{{ route('dash.customers', array_filter(['segment' => $segment === $g['key'] ? null : $g['key'], 'q' => $q, 'sort' => $sort])) }}" data-segment="{{ $g['key'] }}" title="{{ $g['rule'] }}"
+               @class(['min-w-40 shrink-0 snap-start rounded-2xl border p-3 transition', 'border-navy-900 bg-navy-900 text-white' => $segment === $g['key'], 'border-navy-100 bg-white hover:border-brand-500' => $segment !== $g['key']])
+               @if ($segment === $g['key']) aria-current="true" @endif>
+                <span class="block text-sm font-bold">{{ $g['label'] }}</span>
+                <span class="mt-1 block text-2xl font-black" data-segment-count>{{ number_format($g['count']) }}</span>
+                <span @class(['block text-xs', 'text-white/70' => $segment === $g['key'], 'text-navy-500' => $segment !== $g['key']])>{{ __('Spent :amount', ['amount' => money($g['revenue'])]) }}</span>
             </a>
         @endforeach
     </div>
-    @if ($audience !== '')
-        <script>document.querySelector('[data-audience][aria-current]')?.scrollIntoView({ inline: 'center', block: 'nearest' });</script>
+    @if ($segment !== '')
+        <script>document.querySelector('[data-segment][aria-current]')?.scrollIntoView({ inline: 'center', block: 'nearest' });</script>
     @endif
-    @if ($audience !== '' && ($current = collect($audiences)->firstWhere('key', $audience)))
-        <div class="mt-2 rounded-2xl border border-brand-200 bg-brand-50 p-4" data-audience-action>
-            <p class="font-bold">💡 {{ $current['action'] }}</p>
+    @if ($segment !== '' && ($current = collect($groups)->firstWhere('key', $segment)))
+        <div class="mt-2 rounded-2xl border border-brand-200 bg-brand-50 p-4" data-segment-action>
+            <p class="text-sm text-navy-600" data-segment-rule>{{ $current['rule'] }}.</p>
+            <p class="mt-1 font-bold">💡 {{ $current['action'] }}</p>
             <div class="mt-3 flex flex-wrap gap-2">
                 @can('marketing.manage')
-                    <a href="{{ route('dash.outreach', ['audience' => $audience]) }}" class="btn-primary min-h-11" data-audience-campaign>💬 {{ __('Free WhatsApp campaign to them') }}</a>
+                    <a href="{{ route('dash.campaigns', ['segment' => $segment]) }}" class="btn-primary min-h-11" data-segment-campaign>💬 {{ __('Send them a campaign') }}</a>
                 @endcan
                 @can('customers.import')
-                    <a href="{{ route('dash.customers.audience-export', ['audience' => $audience]) }}" class="btn-ghost min-h-11 border" data-audience-meta>⬇ {{ __('Export for Facebook / Instagram ads') }}</a>
+                    <a href="{{ route('dash.customers.audience-export', ['segment' => $segment]) }}" class="btn-ghost min-h-11 border" data-segment-meta>⬇ {{ __('Export for Facebook / Instagram ads') }}</a>
                 @endcan
             </div>
             @can('customers.import')
@@ -84,36 +97,8 @@
     @endif
 </section>
 
-@php
-    $segmentStyles = [
-        'new' => 'bg-sky-100 text-sky-800', 'regular' => 'bg-emerald-100 text-emerald-800', 'vip' => 'bg-amber-100 text-amber-800',
-        'at_risk' => 'bg-orange-100 text-orange-800', 'lost' => 'bg-navy-100 text-navy-500',
-    ];
-    $segmentHints = [
-        'new' => __('First visit in the last 30 days'), 'regular' => __('3 or more orders in 90 days'), 'vip' => __('Top 10% by spend, or the highest membership tier'),
-        'at_risk' => __('Regulars who have not visited for 30 to 60 days'), 'lost' => __('Visited twice or more, nothing for over 60 days'),
-    ];
-@endphp
-<div class="mb-4 flex flex-wrap gap-2" data-segments aria-label="{{ __('Segments') }}">
-    <a href="{{ route('dash.customers', array_filter(['q' => $q, 'sort' => $sort])) }}" @class(['badge min-h-9 px-3', 'bg-navy-900 text-white' => $segment === '', 'bg-white text-navy-700 ring-1 ring-navy-100' => $segment !== ''])>{{ __('All customers') }} · {{ number_format($stats['total']) }}</a>
-    @foreach (\App\Services\Customers\Segments::keys() as $key)
-        <a href="{{ route('dash.customers', array_filter(['q' => $q, 'sort' => $sort, 'segment' => $key])) }}" title="{{ $segmentHints[$key] }}" data-segment="{{ $key }}"
-           @class(['badge min-h-9 px-3', $segmentStyles[$key], 'ring-2 ring-navy-900' => $segment === $key])>{{ \App\Services\Customers\Segments::label($key) }} · {{ number_format($segmentCounts[$key]) }}</a>
-    @endforeach
-</div>
-@if ($segment !== '')
-    <p class="mb-3 text-sm text-navy-500">{{ $segmentHints[$segment] }}.
-        @can('marketing.manage')
-            @if (\App\Services\Entitlements::current()->allows('campaigns'))
-                <a href="{{ route('dash.campaigns', ['segment' => $segment]) }}" class="font-semibold text-brand-700 underline">{{ __('Send them a campaign') }}</a>
-            @endif
-        @endcan
-    </p>
-@endif
-
 <form class="mb-4 flex flex-wrap gap-2">
     @if ($segment !== '')<input type="hidden" name="segment" value="{{ $segment }}">@endif
-    @if ($audience !== '')<input type="hidden" name="audience" value="{{ $audience }}">@endif
     <input class="field max-w-xs" name="q" value="{{ $q }}" placeholder="{{ __('Search name or mobile') }}">
     <select class="field max-w-52" name="sort" onchange="this.form.submit()">
         <option value="last_visit_at" @selected($sort === 'last_visit_at')>{{ __('Last visit') }}</option>
@@ -131,7 +116,7 @@
             @php($badge = $segments->of($c))
             <tr>
                 <td class="font-semibold">{{ $c->name ?: '—' }}</td>
-                <td>@if ($badge)<span class="badge {{ $segmentStyles[$badge] }}" data-row-segment="{{ $badge }}">{{ \App\Services\Customers\Segments::label($badge) }}</span>@else<span class="text-navy-400">—</span>@endif</td>
+                <td>@if ($badge)<span class="badge {{ $segmentStyles[$badge] }}" data-row-segment="{{ $badge }}">{{ \App\Services\Customers\Segments::badge($badge) }}</span>@else<span class="text-navy-400">—</span>@endif</td>
                 <td dir="ltr" class="text-start">{{ $c->phone }}</td>
                 <td>{{ $c->visits_count }}</td>
                 <td>{{ money($c->total_spent) }}</td>
@@ -144,7 +129,7 @@
                 </td>
             </tr>
         @empty
-            <tr><td colspan="7" class="py-10 text-center text-navy-500">{{ $segment !== '' || $audience !== '' ? __('No guests in this segment yet.') : __('Guests appear here when they order with their mobile number or join the loyalty card.') }}</td></tr>
+            <tr><td colspan="7" class="py-10 text-center text-navy-500">{{ $segment !== '' ? __('No guests in this segment yet.') : __('Guests appear here when they order with their mobile number or join the loyalty card.') }}</td></tr>
         @endforelse
         </tbody>
     </table>

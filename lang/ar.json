@@ -6780,5 +6780,11 @@
     "Make the company's private link and send it: it asks for visits and sees its account.": "اعمل لينك الشركة الخاص وابعتهولها: منه بتطلب زياراتها وتشوف حسابها.",
     "Confirm each visit with the meal price per guest: the meals go on a code for the visit day, the rest on a voucher for the company.": "أكد كل زيارة بسعر الوجبة للفرد: الوجبات بتبقى كود ليوم الزيارة، والباقي فاوتشر للشركة.",
     "Send the code to the rep on WhatsApp; after the visit what the meals did not use moves to the company's voucher.": "ابعت الكود للمندوب على واتساب؛ وبعد الزيارة اللي ما اتصرفش من الوجبات بيتحول على فاوتشر الشركة.",
-    "Video tutorial": "شرح بالفيديو"
+    "Video tutorial": "شرح بالفيديو",
+    "Send a message to a group of your guests: free from your own phone, or from EgHub WhatsApp with credits. Add a coupon if you like, and see who came back.": "ابعت رسالة لمجموعة من عملائك: ببلاش من موبايلك، أو من واتساب EgHub بالرصيد. ضيف كوبون لو حابب، وشوف مين رجع.",
+    "Free: a list of your guests, you tap «Send» on each one and WhatsApp opens on your phone with their message.": "ببلاش: قايمة بعملائك، تدوس «ابعت» قدام كل واحد والواتساب يفتح على موبايلك برسالته.",
+    "An SMS to each guest, all sent at once.": "رسالة SMS لكل عميل، وبتتبعت كلها مرة واحدة.",
+    "EgHub sends it from its WhatsApp number, now or at a time you pick. One credit a message.": "EgHub يبعتها من رقم الواتساب بتاعه، دلوقتي أو في المعاد اللي تختاره. كل رسالة بتتخصم من رصيدك.",
+    "Send via": "هتبعتها إزاي",
+    "Open the send list": "افتح قايمة الإرسال"
 }

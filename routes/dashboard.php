@@ -328,11 +328,14 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
             ->where('any', '.*')->name('popups.moved');
     });
 
-    // ---- Marketing: WhatsApp campaigns with coupons ----
-    Route::middleware(['feature:campaigns', 'permission:marketing.manage'])->group(function () {
+    // ---- Marketing: one campaigns page, sent from the staff's own phone or by SMS (free, with the customer list) or
+    // from EgHub WhatsApp with credits (feature campaigns, checked again when one is sent) ----
+    Route::middleware(['feature:customers|campaigns', 'permission:marketing.manage'])->group(function () {
         Route::get('/campaigns', [CampaignsController::class, 'index'])->name('campaigns');
         Route::get('/campaigns/preview', [CampaignsController::class, 'preview'])->name('campaigns.preview');
         Route::post('/campaigns', [CampaignsController::class, 'store'])->middleware('throttle:20,1')->name('campaigns.store');
+    });
+    Route::middleware(['feature:campaigns', 'permission:marketing.manage'])->group(function () {
         Route::post('/campaigns/{campaign}/cancel', [CampaignsController::class, 'cancel'])->name('campaigns.cancel');
         Route::post('/campaigns/{campaign}/resume', [CampaignsController::class, 'resume'])->name('campaigns.resume');
     });
@@ -353,10 +356,10 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         // a group of guests for Meta Ads (customer list format), owner and manager only, in the audit log
         Route::get('/customers/audience-export', [CustomersController::class, 'audienceExport'])
             ->middleware(['permission:customers.import', 'support.blocked', 'throttle:10,1'])->name('customers.audience-export');
-        // «حملة واتساب مجانية»: the manual campaign sent row by row from the staff's own WhatsApp (no Meta, no credits)
+        // «حملة واتساب مجانية»: the send list of a campaign sent row by row from the staff's own WhatsApp (no Meta, no
+        // credits); it is made on the campaigns page, where the old address of its form now leads
         Route::middleware('permission:marketing.manage')->prefix('/customers/outreach')->name('outreach')->group(function () {
             Route::get('/', [OutreachController::class, 'index'])->name('');
-            Route::post('/', [OutreachController::class, 'store'])->middleware('throttle:10,1')->name('.store');
             Route::get('/{campaign}', [OutreachController::class, 'show'])->whereNumber('campaign')->name('.show');
             Route::post('/{campaign}/rows/{recipient}/sent', [OutreachController::class, 'sent'])->whereNumber(['campaign', 'recipient'])
                 ->middleware('throttle:120,1')->name('.sent');

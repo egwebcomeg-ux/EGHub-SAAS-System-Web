@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;
 use Tests\TenantTestCase;
 
-/** WhatsApp campaigns: segments, cost preview, batched sending with opt-outs, and coupons on orders. */
+/** The campaigns page: who gets it, cost preview, EgHub WhatsApp sending with opt-outs, one list of every channel, and coupons on orders. */
 class CampaignsTest extends TenantTestCase
 {
     private function customer(Tenant $t, string $phone, array $attrs = []): Customer
@@ -143,14 +143,51 @@ class CampaignsTest extends TenantTestCase
         $this->assertSame(4, app(Credits::class)->balance($a));
     }
 
-    public function test_campaigns_need_the_feature_and_the_permission(): void
+    public function test_without_the_campaigns_feature_the_page_sends_from_the_own_phone_only(): void
     {
         $pro = $this->restaurant('cafe-a', 'pro');
-        $this->actingAs($this->owner($pro))->get($this->dashUrl('/campaigns'))->assertForbidden();
+        $this->customer($pro, '01000000001');
+        $owner = $this->owner($pro);
+        $page = $this->actingAs($owner)->get($this->dashUrl('/campaigns'))->assertOk()->assertSee('data-via-locked', false)->getContent();
+        $this->assertMatchesRegularExpression('/value="whatsapp"[^>]*disabled/', $page);
+        $this->assertMatchesRegularExpression('/value="manual"[^>]*checked/', $page);
+
+        // EgHub WhatsApp (also the old form, which sent no channel) and its automations stay locked
+        $send = ['name' => 'Hi', 'segment' => 'all', 'message' => 'Hi {name}', 'when' => 'now'];
+        $this->actingAs($owner)->post($this->dashUrl('/campaigns'), $send + ['channel' => 'whatsapp'])->assertForbidden();
+        $this->actingAs($owner)->post($this->dashUrl('/campaigns'), $send)->assertForbidden();
+        $this->actingAs($owner)->get($this->dashUrl('/campaigns?tab=automations'))->assertForbidden();
+        // from the own phone is free
+        $this->actingAs($owner)->post($this->dashUrl('/campaigns'), $send + ['channel' => 'manual'])->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertSame(['manual'], $this->as($pro, fn () => Campaign::query()->pluck('channel')->all()));
 
         $biz = $this->restaurant('cafe-b', 'business');
         $cashier = $this->staff($biz, 'cashier', 'cashier@cafe-b.test');
         $this->actingAs($cashier)->get($this->dashUrl('/campaigns'))->assertForbidden();
+        // neither the customer list nor campaigns in the plan
+        $this->actingAs($this->owner($this->restaurant('cafe-c', 'starter')))->get($this->dashUrl('/campaigns'))->assertForbidden();
+    }
+
+    public function test_one_list_shows_every_campaign_with_how_it_went_out(): void
+    {
+        $a = $this->restaurant('cafe-a', 'business');
+        $this->customer($a, '01000000001', ['source' => 'import']);
+        app(Credits::class)->add($a, 5, 'adjustment');
+        $owner = $this->owner($a);
+
+        $this->actingAs($owner)->post($this->dashUrl('/campaigns'), ['name' => 'By phone', 'channel' => 'manual', 'segment' => 'imported', 'message' => 'Hi {name}'])
+            ->assertSessionHasNoErrors();
+        $this->actingAs($owner)->post($this->dashUrl('/campaigns'), ['name' => 'By EgHub', 'channel' => 'whatsapp', 'segment' => 'imported', 'message' => 'Hi {name} {code}',
+            'when' => 'now', 'coupon_code' => 'HI10', 'coupon_type' => 'percent', 'coupon_value' => 10])->assertSessionHasNoErrors();
+
+        $manual = $this->as($a, fn () => Campaign::query()->where('channel', 'manual')->sole());
+        $this->actingAs($owner)->get($this->dashUrl('/campaigns'))->assertOk()
+            ->assertSeeInOrder(['data-campaign-via="whatsapp"', 'By EgHub', 'واتساب EgHub', 'data-campaign-via="manual"', 'By phone', 'من موبايلي'], false)
+            ->assertSee($this->dashUrl('/customers/outreach/'.$manual->id), false);
+        // the suggested messages write {code}: EgHub WhatsApp fills it in too
+        $this->assertStringStartsWith('Hi Guest 001 HI10', $this->as($a, fn () => WhatsAppMessage::query()->sole()->body));
+        $this->assertSame(['audience' => 1, 'opted_out' => 0, 'recipients' => 1, 'cost' => 0, 'balance' => 4],
+            $this->actingAs($owner)->getJson($this->dashUrl('/campaigns/preview?segment=imported&channel=manual'))->assertOk()->json());
     }
 
     public function test_a_coupon_applies_once_per_guest_and_respects_its_limits(): void

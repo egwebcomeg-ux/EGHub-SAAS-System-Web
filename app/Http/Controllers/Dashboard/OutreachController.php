@@ -6,66 +6,27 @@ use App\Http\Controllers\Controller;
 use App\Models\Campaign;
 use App\Models\CampaignRecipient;
 use App\Services\Audit;
-use App\Services\Customers\Audiences;
-use App\Services\Customers\ClaimLinks;
 use App\Services\Customers\Outreach;
+use App\Services\Customers\Segments;
 use App\Services\Sms\Sms;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * «حملة واتساب مجانية»: the manual campaign (App\Services\Customers\Outreach) for every restaurant with the customer
- * list, no Meta account or credits needed: pick a group, write the message, then send it row by row from the staff's
- * own WhatsApp. Results come from the guests' personal coupons and links. With an SMS provider configured
- * (config/sms.php) the same list can also go out as SMS.
+ * «حملة واتساب مجانية»: the send list of a manual campaign (App\Services\Customers\Outreach), for every restaurant with
+ * the customer list, no Meta account or credits needed. The campaign is made on the campaigns page (sent via «from my
+ * own phone»); here the staff send it row by row from their own WhatsApp. Results come from the guests' personal
+ * coupons and links. With an SMS provider configured (config/sms.php) the same list can also go out as SMS.
  */
 class OutreachController extends Controller
 {
-    public function index(Request $request, Audiences $audiences, Outreach $outreach): View
+    /** The old address of the free campaign's form: the campaigns page, sent from my own phone, to the same group. */
+    public function index(Request $request): RedirectResponse
     {
-        $campaigns = Campaign::query()->where('channel', Outreach::CHANNEL)->latest('id')->limit(20)->get();
-        $pick = Audiences::is((string) $request->query('audience')) ? (string) $request->query('audience') : 'imported';
-
-        return view('dashboard.customers.outreach', [
-            'audiences' => $audiences->summary(),
-            'pick' => $pick,
-            'messages' => collect(Audiences::KEYS)->mapWithKeys(fn (string $k) => [$k => Audiences::message($k)]),
-            'campaigns' => $campaigns,
-            'stats' => $campaigns->mapWithKeys(fn (Campaign $c) => [$c->id => $outreach->stats($c)]),
-        ]);
-    }
-
-    public function store(Request $request, Outreach $outreach): RedirectResponse
-    {
-        $data = $request->validate([
-            'name' => 'required|string|max:100',
-            'audience' => ['required', Rule::in(Audiences::KEYS)],
-            'message' => 'required|string|max:1000',
-            'with_coupon' => 'nullable|boolean',
-            'coupon_type' => ['nullable', 'required_if:with_coupon,1', Rule::in(['percent', 'amount'])],
-            'coupon_value' => ['nullable', 'required_if:with_coupon,1', 'numeric', 'min:1', $request->input('coupon_type') === 'percent' ? 'max:100' : 'max:100000'],
-            'coupon_days' => 'nullable|required_if:with_coupon,1|integer|min:1|max:90',
-            'coupon_min_order' => 'nullable|numeric|min:0|max:100000',
-            'with_claim' => 'nullable|boolean',
-        ]);
-        $options = [
-            'coupon' => $request->boolean('with_coupon') ? ['type' => $data['coupon_type'], 'value' => (float) $data['coupon_value'],
-                'days' => (int) $data['coupon_days'], 'min_order' => (float) ($data['coupon_min_order'] ?? 0)] : null,
-            'claim' => $request->boolean('with_claim'),
-            'claim_days' => ClaimLinks::DAYS,
-        ];
-        $count = app(Audiences::class)->query($data['audience'])->where('whatsapp_opt_out', false)->whereNotNull('phone')->where('phone', '!=', '')->count();
-        if ($count === 0) {
-            return back()->withInput()->withErrors(['audience' => __('No guests with a mobile in this group (or all of them asked for no messages).')]);
-        }
-        $campaign = $outreach->create($data['name'], $data['audience'], $data['message'], $options, $request->user());
-        Audit::record('campaign.manual_created', $campaign->name, ['audience' => $data['audience'], 'recipients' => $campaign->cursor]);
-
-        return redirect()->route('dash.outreach.show', $campaign)->with('ok', __('The send list is ready: tap «Send» on each guest.'));
+        return redirect()->route('dash.campaigns', array_filter(['channel' => Outreach::CHANNEL, 'segment' => Segments::fromRequest($request->query('audience'))]));
     }
 
     public function show(Request $request, Campaign $campaign, Outreach $outreach): View

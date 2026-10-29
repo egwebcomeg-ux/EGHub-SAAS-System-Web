@@ -14,10 +14,10 @@ use App\Services\Notify\GuestNotifier;
 use App\Services\WhatsApp\OwnNumber;
 use App\Services\WhatsApp\WhatsApp;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 
 /**
- * WhatsApp campaigns (plan feature campaigns): who is in a segment, what it will cost, and the sending itself —
+ * Who a campaign goes to (a guest group of App\Services\Customers\Segments, or a filter of Campaign::FILTERS), for
+ * every channel; and the EgHub WhatsApp campaigns (plan feature campaigns): what one will cost, and the sending itself —
  * a queued job handles 50 guests at a time and queues the next batch. Guests who opted out are skipped (no
  * message, no credit). When the credits run out the campaign stops where it was and can be resumed after a top-up.
  * Runs inside the restaurant's tenant context.
@@ -29,7 +29,7 @@ final class Campaigns
     public function __construct(private WhatsApp $whatsapp, private Credits $credits) {}
 
     /**
-     * Guests of a segment, opted-out ones included (they are counted, then skipped).
+     * Guests of a group or filter, opted-out ones included (they are counted, then skipped).
      *
      * @return Builder<Customer>
      */
@@ -46,20 +46,23 @@ final class Campaigns
             'visits' => $q->where('visits_count', '>=', (int) max(1, $n)),
             'spent' => $q->where('total_spent', '>=', $n),
             'loyalty' => $q->whereHas('loyaltyCards'),
-            'birthday' => $q->whereNotNull('birthday')->whereIn(DB::raw($this->monthDay('birthday')), $this->nextSevenDays()),
             default => Segments::is($segment) ? app(Segments::class)->apply($q, $segment) : $q,
         };
     }
 
-    /** @return array{audience: int, opted_out: int, recipients: int, cost: int, balance: int} */
-    public function preview(string $segment, ?float $value = null): array
+    /**
+     * Guests, opted-out ones, and the credits a send takes (none from the staff's own phone or by SMS).
+     *
+     * @return array{audience: int, opted_out: int, recipients: int, cost: int, balance: int}
+     */
+    public function preview(string $segment, ?float $value = null, string $via = 'whatsapp'): array
     {
         $audience = $this->audience($segment, $value)->count();
         $optedOut = $this->audience($segment, $value)->where('whatsapp_opt_out', true)->count();
         $recipients = $audience - $optedOut;
 
         // from the restaurant's own number Meta bills its own account: no EgHub credit
-        return ['audience' => $audience, 'opted_out' => $optedOut, 'recipients' => $recipients, 'cost' => OwnNumber::covers('campaign') ? 0 : $recipients,
+        return ['audience' => $audience, 'opted_out' => $optedOut, 'recipients' => $recipients, 'cost' => $via !== 'whatsapp' || OwnNumber::covers('campaign') ? 0 : $recipients,
             'balance' => $this->credits->balance(tenant())];
     }
 
@@ -113,7 +116,7 @@ final class Campaigns
         return ! $stopped && $customers->count() === self::BATCH;
     }
 
-    /** The message one guest reads: {name}, {restaurant}, {link} (the menu, with the coupon) and {coupon}. */
+    /** The message one guest reads: {name}, {restaurant}, {link} (the menu, with the coupon) and {coupon} (or {code}). */
     public function render(Campaign $campaign, ?Customer $customer = null): string
     {
         $code = $campaign->coupon?->code;
@@ -124,6 +127,7 @@ final class Campaigns
             '{restaurant}' => GuestNotifier::senderName(),
             '{link}' => tenant()->url($code ? '?coupon='.rawurlencode($code) : ''),
             '{coupon}' => (string) $code,
+            '{code}' => (string) $code,
         ]));
     }
 
@@ -145,21 +149,5 @@ final class Campaigns
         }
 
         return $due->count();
-    }
-
-    /** SQL for "MM-DD" of a date column on the current database. */
-    private function monthDay(string $column): string
-    {
-        return match (DB::connection()->getDriverName()) {
-            'sqlite' => "strftime('%m-%d', $column)",
-            'pgsql' => "to_char($column, 'MM-DD')",
-            default => "DATE_FORMAT($column, '%m-%d')",
-        };
-    }
-
-    /** @return list<string> "MM-DD" of today and the next 6 days */
-    private function nextSevenDays(): array
-    {
-        return array_map(fn (int $d) => now()->addDays($d)->format('m-d'), range(0, 6));
     }
 }

@@ -9,18 +9,21 @@ use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\Marketing\Campaigns;
 use App\Services\Notify\GuestNotifier;
 use App\Services\Sms\Sms;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
  * The free, manual WhatsApp campaign (channel "manual", no Meta account, no credits): the restaurant picks a group of
- * guests (Audiences), writes a message with {name}, {link} and {code}, optionally a personal one-time coupon per guest
- * and a personal account-claim link («ادعي عملاءك»); the staff then go down the send list and tap «ابعت» on each row,
- * which opens WhatsApp on their own phone with that guest's message ready. Orders that use a guest's coupon or come
- * from their link (?ref=, orders.campaign_recipient_id) count for the campaign. A guest who answered «وقف» is marked
- * opted out and is never in a list again. With an SMS provider configured the same list can go out as SMS.
+ * guests (Segments, or a filter of Campaign::FILTERS), writes a message with {name}, {link} and {coupon} (or {code}),
+ * optionally a personal one-time coupon per guest and a personal account-claim link («ادعي عملاءك»); the staff then
+ * go down the send list and tap «ابعت» on each row, which opens WhatsApp on their own phone with that guest's message
+ * ready. Orders that use a guest's coupon or come from their link (?ref=, orders.campaign_recipient_id) count for the
+ * campaign. A guest who answered «وقف» is marked opted out and is never in a list again. With an SMS provider
+ * configured the same list can go out as SMS (sent via "sms" on the campaigns page: the list is made and sent at once).
  */
 final class Outreach
 {
@@ -31,16 +34,25 @@ final class Outreach
     public const PER_PAGE = 50;
 
     /**
-     * @param  array{coupon?:array{type:string, value:float, days:int, min_order?:float}|null, claim?:bool, claim_days?:int}  $options
+     * Guests of a group or filter who can get a message: with a mobile, and not opted out.
+     *
+     * @return Builder<Customer>
      */
-    public function create(string $name, string $audience, string $message, array $options, User $by): Campaign
+    public function reachable(string $segment, ?float $value = null): Builder
     {
-        $guests = app(Audiences::class)->query($audience)->where('whatsapp_opt_out', false)->whereNotNull('phone')->where('phone', '!=', '')
-            ->orderBy('id')->limit(self::MAX_RECIPIENTS)->get(['id', 'name', 'phone']);
+        return app(Campaigns::class)->audience($segment, $value)->where('whatsapp_opt_out', false)->whereNotNull('phone')->where('phone', '!=', '');
+    }
 
-        return DB::transaction(function () use ($name, $audience, $message, $options, $by, $guests) {
+    /**
+     * @param  array{coupon?:array{type:string, value:float, days:int, min_order?:float}|null, claim?:bool, claim_days?:int, via?:string}  $options
+     */
+    public function create(string $name, string $segment, ?float $value, string $message, array $options, User $by): Campaign
+    {
+        $guests = $this->reachable($segment, $value)->orderBy('id')->limit(self::MAX_RECIPIENTS)->get(['id', 'name', 'phone']);
+
+        return DB::transaction(function () use ($name, $segment, $value, $message, $options, $by, $guests) {
             $campaign = Campaign::query()->create([
-                'name' => $name, 'channel' => self::CHANNEL, 'segment' => $audience, 'message' => $message, 'status' => 'sending',
+                'name' => $name, 'channel' => self::CHANNEL, 'segment' => $segment, 'segment_value' => $value, 'message' => $message, 'status' => 'sending',
                 'scheduled_at' => now(), 'started_at' => now(), 'created_by' => $by->id, 'options' => $options,
             ]);
             $template = $options['coupon'] ?? null;
