@@ -160,6 +160,7 @@ git status                       # a git clone already? If "not a git repository
 git init && git remote add origin https://github.com/egwebcomeg-ux/EGHub-SAAS-System-Web.git
 git fetch origin production
 git diff --stat origin/production -- app routes resources config database   # changes made on the server, if any: keep a copy first, the first run replaces them
+git show origin/production:deploy.sh > deploy.sh                              # the old code has no deploy.sh yet; the first run tracks it
 ```
 
 Then cPanel > Cron Jobs, every minute, next to the `schedule:run` line:
