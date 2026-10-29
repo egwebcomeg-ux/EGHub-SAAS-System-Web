@@ -138,6 +138,48 @@ php artisan egmenu:doctor
 
 Never run `key:generate` or `migrate:fresh` here. Take a backup first for risky releases: `php artisan egmenu:backup`.
 
+## 6b. Automatic deploys (the server pulls from GitHub)
+
+Once this is set up, section 6 runs by itself: a merge to `master` is live within a few minutes, and nothing is
+uploaded by hand any more.
+
+1. GitHub Actions (`.github/workflows/tests.yml`) runs Pint and the tests. Only when they pass, it builds the assets
+   and pushes code + `public/build` to the **`production`** branch (a pull request from this repository goes to
+   **`staging`** instead; pull requests from forks never do).
+2. Every minute, cron on the server runs `deploy.sh`. When that branch has a new commit, the script goes down for
+   maintenance, resets the code to it, runs `composer install`, takes a backup **only if there are new migrations**,
+   migrates, `optimize` (which purges the page cache) and comes back up. `.env`, `storage/` and `vendor/` are not
+   tracked, so they are never touched. If any step fails, it rolls the code back to the previous commit, comes back
+   up and does not retry that build. Everything goes to `storage/logs/deploy.log`.
+
+One-time setup in cPanel > Terminal (adjust `USER` and the PHP path):
+
+```bash
+cd /home/USER/egmenu
+git status                       # a git clone already? If "not a git repository", run the next two lines
+git init && git remote add origin https://github.com/egwebcomeg-ux/EGHub-SAAS-System-Web.git
+git fetch origin production
+git diff --stat origin/production -- app routes resources config database   # changes made on the server, if any: keep a copy first, the first run replaces them
+```
+
+Then cPanel > Cron Jobs, every minute, next to the `schedule:run` line:
+
+```
+* * * * * cd /home/USER/egmenu && PHP=/opt/cpanel/ea-php84/root/usr/bin/php COMPOSER="/opt/cpanel/ea-php84/root/usr/bin/php /opt/cpanel/composer/bin/composer" sh deploy.sh production
+```
+
+Check after the next merge: `tail -20 storage/logs/deploy.log`. While the repository is public the fetch needs no
+password; if it is made private, add a read-only deploy key (GitHub > Settings > Deploy keys) and switch the remote
+to `git@github.com:egwebcomeg-ux/EGHub-SAAS-System-Web.git`.
+
+**Test site (optional).** The same script serves a second copy for trying a pull request before merging it: a folder
+`/home/USER/eghub-staging` (a `git clone` of this repository) with its own database and `.env`
+(`CENTRAL_DOMAINS=staging.eghub.app`, `APP_URL=https://staging.eghub.app`, `PAGE_CACHE=false`, the WhatsApp/SMS
+drivers on `log`), the hosts `staging.eghub.app`, `app.staging.eghub.app` and `admin.staging.eghub.app` pointing at
+its `public/` (Cloudflare: DNS only, grey cloud, since the free certificate does not cover two levels; cPanel AutoSSL
+issues them), seeded with `PlanSeeder` and `RoleSeeder`, and the cron line above with `eghub-staging` and
+`sh deploy.sh staging`. Never point it at the production database.
+
 ## 6a. LiteSpeed page cache
 
 The marketing pages (home, features, pricing, blog, apps, QR generator, supported screens, legal pages, the directory)

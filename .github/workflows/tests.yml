@@ -50,3 +50,44 @@ jobs:
 
       - name: Tests
         run: vendor/bin/phpunit
+
+  # Ready-to-install builds for the server's deploy.sh (docs/DEPLOY.md section 6b): master -> `production`, a pull
+  # request from this repository -> `staging`. Only after the tests pass; never for pull requests from forks, which
+  # must not get code onto the server.
+  publish:
+    needs: tests
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/master') ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    concurrency:
+      group: publish-${{ github.event_name == 'push' && 'production' || 'staging' }}
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # the server has no Node, so the build ships inside the branch
+      - run: npm ci && npm run build
+
+      - name: Push the build
+        env:
+          TARGET: ${{ github.event_name == 'push' && 'production' || 'staging' }}
+          SOURCE: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$TARGET"
+          git add -f public/build
+          git commit -q -m "Build of ${SOURCE}"
+          git push -f origin "$TARGET"
