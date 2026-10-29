@@ -43,6 +43,8 @@ class VoucherRedeemController extends Controller
             'canApprove' => $user->can('vouchers.exception'),
             'approvers' => $service->approvers()->reject(fn ($u) => $u->id === $user->id)->map(fn ($u) => ['id' => $u->id, 'name' => $u->name])->values(),
             'settings' => Settings::all(),
+            // opened from the guest desk: that guest's mobile is looked up as the screen opens
+            'lookup' => normalize_phone((string) $request->query('phone', '')),
         ]);
     }
 

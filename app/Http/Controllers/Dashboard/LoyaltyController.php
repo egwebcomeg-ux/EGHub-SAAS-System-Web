@@ -3,58 +3,44 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
-use App\Models\Category;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\LoyaltyCard;
 use App\Models\LoyaltyProgram;
 use App\Models\LoyaltyReward;
-use App\Models\MenuItem;
 use App\Models\PrepaidPackage;
 use App\Services\Audit;
+use App\Services\Corporate\CorporateVouchers;
 use App\Services\Customers\GuestAccount;
 use App\Services\Entitlements;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Loyalty\Membership;
 use App\Services\Loyalty\Packages;
 use App\Services\Marketing\WelcomeReward;
+use App\Services\Orders\ShiftService;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
-use App\Support\BusinessType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
-/** Loyalty program setup (owner/manager) and the counter desk: find a card, stamp it, redeem rewards (cashier). */
+/**
+ * Loyalty program setup (owner/manager; the form is a section of the rewards page, RewardsController) and the guest
+ * desk: find the guest once by mobile or scanned card, then stamp, redeem rewards, sell packages, top up the wallet,
+ * sell a gift card and see their company vouchers (cashier), each panel with its own feature and permission.
+ */
 class LoyaltyController extends Controller
 {
     public const STAMP_ICONS = ['cup', 'bean', 'star', 'heart', 'burger', 'pizza', 'logo'];
 
-    public function edit(): View
-    {
-        // the type's defaults (a shop starts on points) win, unless the plan has no points programs
-        $defaults = BusinessType::loyaltyDefaults();
-        if (($defaults['type'] ?? 'visits') === 'points' && ! Entitlements::current()->allows('loyalty_points')) {
-            unset($defaults['type']);
-        }
-        $program = LoyaltyProgram::query()->latest('id')->first() ?? new LoyaltyProgram($defaults + [
-            'type' => 'visits', 'title' => __('Loyalty card'), 'reward_type' => 'free_item', 'is_active' => true,
-        ]);
+    /** The plan features any of which opens the guest desk (each panel on it still checks its own). */
+    public const DESK_FEATURES = 'loyalty_stamps|prepaid_packages|membership|cashback|wallet|corporate_vouchers';
 
-        return view('dashboard.loyalty.setup', [
-            'program' => $program,
-            'locked' => $program->isLocked(),
-            'points' => Entitlements::current()->allows('loyalty_points'),
-            'categories' => Category::query()->orderBy('sort_order')->get(),
-            'items' => MenuItem::query()->orderBy('name')->get(['id', 'name', 'category_id']),
-            'icons' => self::STAMP_ICONS,
-            'stats' => $program->exists ? [
-                'cards' => $program->cards()->count(),
-                'rewards' => LoyaltyReward::query()->whereIn('loyalty_card_id', $program->cards()->select('id'))->count(),
-                'redeemed' => LoyaltyReward::query()->whereIn('loyalty_card_id', $program->cards()->select('id'))->where('status', 'redeemed')->count(),
-            ] : null,
-        ]);
+    /** The program's settings live on the rewards page: the old link opens its section there. */
+    public function edit(): RedirectResponse
+    {
+        return redirect()->to(route('dash.rewards').'#program');
     }
 
     /** «سجّل وخد …»: on/off, the kind of gift and its value; the hidden welcome coupon follows (WelcomeReward::sync). */
@@ -76,7 +62,7 @@ class LoyaltyController extends Controller
         WelcomeReward::sync();
         Audit::record('loyalty.welcome_reward', $data['type'], ['value' => (float) $data['value'], 'enabled' => $request->boolean('enabled')]);
 
-        return redirect()->to(route('dash.loyalty.setup').'#welcome-reward')->with('ok', __('Saved.'));
+        return redirect()->to(route('dash.rewards').'#welcome')->with('ok', __('Saved.'));
     }
 
     public function update(Request $request): RedirectResponse
@@ -140,10 +126,15 @@ class LoyaltyController extends Controller
         return back()->with('ok', __('A new program started. Old cards keep their rewards.'));
     }
 
-    // ---- counter desk ----
+    // ---- guest desk ----
 
-    /** Finds the guest (mobile or scanned card) and shows everything the counter can do: stamps, packages, tier, balance. */
-    public function desk(Request $request, LoyaltyService $loyalty, Membership $membership, Packages $packages): View
+    /**
+     * The guest desk: finds the guest once (mobile or scanned card) and shows everything the counter can do for them —
+     * stamps and rewards, packages, tier, the wallet (balance, top-up, gift card sale) and their company vouchers. The
+     * actions post to their usual endpoints (stamps here, packages CardsController, wallet WalletController, vouchers
+     * the redeem screen), so their rules, shift checks and audit stay the same.
+     */
+    public function desk(Request $request, LoyaltyService $loyalty, Membership $membership, Packages $packages, ShiftService $shifts, CorporateVouchers $corporate): View
     {
         $q = trim((string) $request->query('q', ''));
         $program = $loyalty->program();
@@ -154,6 +145,10 @@ class LoyaltyController extends Controller
             $card = $customer && $program ? $loyalty->card($program, $customer)->load(['customer', 'availableRewards', 'transactions' => fn ($t) => $t->limit(10)]) : null;
         }
         $rights = Entitlements::current();
+        $user = $request->user();
+        // top-up and gift card sale: the wallet's own permission, through the cashier's shift like at the POS
+        $walletDesk = WalletService::enabled() && $user->can('wallet.manage');
+        $corporateDesk = CorporateVouchers::enabled() && $user->can('vouchers.redeem');
 
         return view('dashboard.loyalty.desk', [
             'program' => $program, 'q' => $q, 'card' => $card, 'customer' => $customer,
@@ -163,9 +158,14 @@ class LoyaltyController extends Controller
             'packages' => $customer && $rights->allows('prepaid_packages') ? $packages->activeFor($customer) : collect(),
             'onSale' => $rights->allows('prepaid_packages') ? PrepaidPackage::query()->where('is_active', true)->orderBy('sort_order')->get() : collect(),
             'methods' => WalletService::TOPUP_METHODS,
+            'walletDesk' => $walletDesk,
+            'needsShift' => $walletDesk && $rights->allows('shifts') && ! $shifts->current($user),
             // discount vouchers held by this guest (loyalty card feature); the counter can give one more
             'vouchersOn' => $rights->allows('loyalty_stamps'),
             'vouchers' => $customer && $rights->allows('loyalty_stamps') ? Coupon::heldBy($customer) : collect(),
+            // company vouchers linked to the guest's mobile; they are taken on the redeem screen
+            'corporateDesk' => $corporateDesk,
+            'corporate' => $customer && $corporateDesk ? $corporate->heldBy($customer) : collect(),
         ]);
     }
 

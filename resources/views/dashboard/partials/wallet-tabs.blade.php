@@ -1,9 +1,9 @@
-{{-- The wallet area in one place: the balance and gift cards (/wallet), and the packages, cashback and tiers (/loyalty/cards). --}}
+{{-- The wallet area in one place: the balance and gift cards (/wallet), and the reward settings (/rewards: packages, cashback, tiers…). --}}
 @php
     $walletRights = \App\Services\Entitlements::current();
     $walletTabs = array_filter([
         'dash.wallet' => $walletRights->allows('wallet') && auth()->user()->can('wallet.manage') ? __('Balance and gift cards') : null,
-        'dash.cards' => $walletRights->allows('cashback|prepaid_packages|membership') && auth()->user()->can('loyalty.manage') ? __('Packages and cashback') : null,
+        'dash.rewards' => \App\Http\Controllers\Dashboard\RewardsController::managesRewards(auth()->user()) ? __('Rewards settings') : null,
     ]);
 @endphp
 @if (count($walletTabs) > 1)

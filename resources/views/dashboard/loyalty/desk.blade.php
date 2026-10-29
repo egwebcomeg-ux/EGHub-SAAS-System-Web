@@ -1,25 +1,30 @@
 @extends('layouts.dashboard')
-@section('title', __('Loyalty card'))
+@section('title', __('Guest desk'))
 
 @section('content')
-@php($extras = $onSale->isNotEmpty() || $tier || $wallet !== null || $packages->isNotEmpty())
+{{-- The guest desk (LoyaltyController::desk): one lookup, then every counter action on that guest, panel by panel. --}}
+@php
+    $methodLabels = ['cash' => __('Cash'), 'card' => __('Card'), 'instapay' => 'InstaPay', 'wallet' => __('Mobile wallet')];
+    $rewardSections = \App\Http\Controllers\Dashboard\RewardsController::sections(auth()->user());
+@endphp
 <div class="dash-head">
-    <h1 class="page-title">{{ __('Loyalty card') }} · {{ __('Counter') }}</h1>
+    <div>
+        <h1 class="page-title">{{ __('Guest desk') }}</h1>
+        <p class="dash-help">{{ __('Find the guest once by mobile or card, then stamp, sell, top up and check their vouchers from here.') }}</p>
+    </div>
     <div class="dash-head-actions">
-        @can('loyalty.manage')
-            @if (\App\Services\Entitlements::current()->allows('membership'))<a href="{{ route('dash.cards') }}#tiers" class="btn-ghost" data-tiers-link>{{ __('Membership tiers') }}</a>@endif
-            @if (\App\Services\Entitlements::current()->allows('cashback|prepaid_packages'))<a href="{{ route('dash.cards') }}" class="btn-ghost">{{ __('Packages and cashback') }}</a>@endif
-            @if (\App\Services\Entitlements::current()->allows('loyalty_stamps'))<a href="{{ route('dash.loyalty.setup') }}" class="btn-ghost">{{ __('Program settings') }}</a>@endif
-        @endcan
+        @if (\App\Http\Controllers\Dashboard\RewardsController::managesRewards(auth()->user()))
+            <a href="{{ route('dash.rewards') }}" class="btn-ghost" data-rewards-link>{{ __('Rewards settings') }}</a>
+        @endif
     </div>
 </div>
 
 @if ($errors->has('package'))<div class="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ $errors->first('package') }}</div>@endif
 
-@if (!$program && $onSale->isEmpty() && ! $vouchersOn && ! \App\Services\Entitlements::current()->allows('membership|cashback'))
+@if (!$program && $onSale->isEmpty() && ! $vouchersOn && ! \App\Services\Entitlements::current()->allows('membership|cashback|wallet|corporate_vouchers'))
     <div class="card max-w-lg">
         <p class="text-navy-700">{{ __('No active loyalty program yet.') }}</p>
-        @can('loyalty.manage')<a href="{{ route('dash.loyalty.setup') }}" class="btn-primary mt-3">{{ __('Set up the loyalty card') }}</a>@endcan
+        @if ($rewardSections['program'])<a href="{{ route('dash.rewards') }}#program" class="btn-primary mt-3">{{ __('Set up the loyalty card') }}</a>@endif
     </div>
 @else
     <div class="grid gap-4 lg:grid-cols-5">
@@ -54,12 +59,62 @@
                     <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
                         @foreach ($methods as $m)
                             <label class="flex min-h-11 cursor-pointer items-center justify-center gap-1 rounded-xl border border-navy-200 text-sm font-semibold has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
-                                <input type="radio" name="method" value="{{ $m }}" class="sr-only" @checked($loop->first)>{{ ['cash' => __('Cash'), 'card' => __('Card'), 'instapay' => 'InstaPay', 'wallet' => __('Mobile wallet')][$m] }}
+                                <input type="radio" name="method" value="{{ $m }}" class="sr-only" @checked($loop->first)>{{ $methodLabels[$m] }}
                             </label>
                         @endforeach
                     </div>
                     <button class="btn-primary w-full" onclick="return confirm(@js(__('Took the money? Sell the package.')))">{{ __('Sell') }}</button>
                 </form>
+            @endif
+
+            @if ($customer && $walletDesk)
+                {{-- the wallet: the same endpoints and rules as the POS and the wallet page (shift, payment method, audit) --}}
+                <section class="card space-y-3" data-wallet-desk>
+                    <div class="flex items-center justify-between gap-2">
+                        <h2 class="section-title">{{ __('Wallet') }}</h2>
+                        <span class="badge bg-brand-50 text-brand-800">{{ __('Balance') }}: <b data-wallet-balance>{{ money($wallet) }}</b></span>
+                    </div>
+                    @if ($needsShift)
+                        <p class="rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800" data-needs-shift>
+                            {{ __('Open a shift first to take payments.') }} @can('shifts.manage')<a href="{{ route('dash.shifts') }}" class="underline">{{ __('Open shift') }}</a>@endcan
+                        </p>
+                    @endif
+                    <form method="post" action="{{ route('dash.wallet.topup') }}" class="space-y-2" data-wallet-form="topup"
+                          data-confirm="{{ __('Took the money? Add it to the guest’s balance.') }}">
+                        @csrf
+                        <input type="hidden" name="phone" value="{{ $customer->phone }}">
+                        <label class="field-label" for="topup-amount">{{ __('Wallet top-up') }}</label>
+                        <input class="field" id="topup-amount" name="amount" type="number" min="1" max="{{ \App\Services\Wallet\WalletService::MAX_AMOUNT }}" step="1" required dir="ltr" placeholder="{{ __('Amount') }}">
+                        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                            @foreach ($methods as $m)
+                                <label class="flex min-h-11 cursor-pointer items-center justify-center gap-1 rounded-xl border border-navy-200 text-sm font-semibold has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
+                                    <input type="radio" name="method" value="{{ $m }}" class="sr-only" @checked($loop->first)>{{ $methodLabels[$m] }}
+                                </label>
+                            @endforeach
+                        </div>
+                        <button class="btn-primary w-full">{{ __('Top up') }}</button>
+                    </form>
+                    <details class="border-t border-navy-100 pt-3" data-gift-sale>
+                        <summary class="cursor-pointer font-semibold">🎁 {{ __('Sell a gift card') }}</summary>
+                        <form method="post" action="{{ route('dash.wallet.gift.sell') }}" class="mt-3 space-y-2" data-wallet-form="gift"
+                              data-confirm="{{ __('Took the money? Sell the gift card.') }}">
+                            @csrf
+                            <input type="hidden" name="buyer_phone" value="{{ $customer->phone }}">
+                            <input class="field" name="amount" type="number" min="1" max="{{ \App\Services\Wallet\WalletService::MAX_AMOUNT }}" step="1" required dir="ltr" placeholder="{{ __('Amount') }}" aria-label="{{ __('Amount') }}">
+                            <input class="field" name="recipient_phone" maxlength="20" dir="ltr" placeholder="{{ __('Recipient mobile (optional)') }}" aria-label="{{ __('Recipient mobile (optional)') }}">
+                            <input class="field" name="message" maxlength="200" placeholder="{{ __('Message on the card (optional)') }}" aria-label="{{ __('Message on the card (optional)') }}">
+                            <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                @foreach ($methods as $m)
+                                    <label class="flex min-h-11 cursor-pointer items-center justify-center gap-1 rounded-xl border border-navy-200 text-sm font-semibold has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
+                                        <input type="radio" name="method" value="{{ $m }}" class="sr-only" @checked($loop->first)>{{ $methodLabels[$m] }}
+                                    </label>
+                                @endforeach
+                            </div>
+                            <button class="btn-primary w-full">{{ __('Sell') }}</button>
+                        </form>
+                    </details>
+                    <div class="hidden rounded-xl p-3 text-sm font-semibold" data-wallet-result role="status"></div>
+                </section>
             @endif
         </div>
 
@@ -157,6 +212,27 @@
                     </section>
                 @endif
 
+                @if ($corporateDesk)
+                    <section class="card" data-corporate-desk>
+                        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                            <h2 class="section-title">🏢 {{ __('Company vouchers') }}</h2>
+                            @if ($customer->phone)<a href="{{ route('dash.redeem', ['phone' => $customer->phone]) }}" class="btn-ghost min-h-9 px-3" data-redeem-link>{{ __('Redeem vouchers') }}</a>@endif
+                        </div>
+                        @forelse ($corporate as $cv)
+                            @php($cvState = $cv->statusKey())
+                            <div @class(['mb-2 flex flex-wrap items-center justify-between gap-2 rounded-xl p-3', 'bg-sky-50' => $cvState === 'active', 'bg-navy-50 opacity-70' => $cvState !== 'active']) data-corporate-voucher="{{ $cv->serial }}">
+                                <div>
+                                    <div class="font-bold">{{ $cv->contract->name }} · <span dir="ltr">{{ $cv->serial }}</span></div>
+                                    <div class="text-xs text-navy-600">{{ $cv->statusLabel() }} · {{ __('Valid until :date', ['date' => local_time($cv->expires_on, 'Y/m/d')]) }}</div>
+                                </div>
+                                <div class="text-end font-extrabold">{{ money($cv->balance) }}@if ($cv->balance != $cv->value)<div class="text-xs font-normal text-navy-500">{{ __('of :value', ['value' => money($cv->value)]) }}</div>@endif</div>
+                            </div>
+                        @empty
+                            <p class="muted">{{ __('No company vouchers linked to this mobile.') }}</p>
+                        @endforelse
+                    </section>
+                @endif
+
                 @if ($card)
                     <section class="card">
                         <h2 class="section-title mb-3">{{ __('Rewards to use') }}</h2>
@@ -198,6 +274,42 @@
 @endif
 
 <script>
+    // Wallet top-up and gift card sale: the POS's JSON endpoints, answered in place (new balance, slip or card to print).
+    (() => {
+        const result = document.querySelector('[data-wallet-result]');
+        const balance = document.querySelector('[data-wallet-balance]');
+        const show = (html, ok) => {
+            result.innerHTML = html;
+            result.className = `rounded-xl p-3 text-sm font-semibold ${ok ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-700'}`;
+        };
+        const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+        const T = @js(['topped' => __('Added. New balance: :balance', ['balance' => '__B__']), 'sold' => __('Gift card sold: :code', ['code' => '__C__']),
+            'slip' => __('Print a receipt'), 'print' => __('Print the gift card')]);
+        document.querySelectorAll('[data-wallet-form]').forEach((form) => form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!confirm(form.dataset.confirm)) return;
+            const button = form.querySelector('button');
+            button.disabled = true;
+            try {
+                const res = await fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.message || (data.errors ? Object.values(data.errors)[0][0] : res.status));
+                if (form.dataset.walletForm === 'topup') {
+                    const amount = Number(data.balance).toLocaleString('en', { maximumFractionDigits: 2 });
+                    balance.textContent = amount;
+                    show(`${esc(T.topped.replace('__B__', amount))} · <a href="${esc(data.receipt)}" target="_blank" class="underline">${esc(T.slip)}</a>`, true);
+                } else {
+                    show(`${esc(T.sold.replace('__C__', data.code))} · <a href="${esc(data.print)}" target="_blank" class="underline">${esc(T.print)}</a>`, true);
+                }
+                form.reset();
+            } catch (err) {
+                show(esc(err.message), false);
+            } finally {
+                button.disabled = false;
+            }
+        }));
+    })();
+
     // Camera scan where the browser supports it (Chrome on Android, most POS tablets); typing the phone always works.
     (() => {
         if (!('BarcodeDetector' in window)) return;

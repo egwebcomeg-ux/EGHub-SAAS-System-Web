@@ -3,16 +3,12 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
-use App\Models\Category;
 use App\Models\Customer;
 use App\Models\CustomerPackage;
 use App\Models\MembershipTier;
-use App\Models\MenuItem;
 use App\Models\PrepaidPackage;
-use App\Models\WalletTransaction;
 use App\Services\Audit;
 use App\Services\Entitlements;
-use App\Services\Loyalty\Membership;
 use App\Services\Loyalty\Packages;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\ShiftService;
@@ -21,31 +17,18 @@ use App\Services\Wallet\WalletService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use Illuminate\View\View;
 
 /**
- * "Advanced cards" (owner / manager): the cashback share, the membership tiers and the prepaid packages on sale —
- * plus the counter actions on a guest's packages (sell one, take a use) for the cashier.
+ * "Advanced cards" (owner / manager): saves the cashback share, the membership tiers and the prepaid packages on sale
+ * (their forms are sections of the rewards page, RewardsController) — plus the counter actions on a guest's packages
+ * (sell one, take a use) for the cashier.
  */
 class CardsController extends Controller
 {
-    public function index(): View
+    /** The settings live on the rewards page: the old link opens the first of cashback, tiers and packages shown there. */
+    public function index(Request $request): RedirectResponse
     {
-        $rights = Entitlements::current();
-        $tenant = tenant()->getTenantKey();
-
-        return view('dashboard.loyalty.cards', [
-            'can' => ['cashback' => $rights->allows('cashback'), 'packages' => $rights->allows('prepaid_packages'), 'membership' => $rights->allows('membership')],
-            'wallet' => WalletService::enabled(),
-            'cashback' => ['percent' => Settings::get('cashback_percent'), 'min_order' => Settings::get('cashback_min_order'), 'expire_days' => Settings::get('cashback_expire_days'),
-                'month' => round((float) WalletTransaction::query()->where('kind', 'cashback')->where('created_at', '>=', now()->startOfMonth())->sum('delta'), 2)],
-            'tiers' => MembershipTier::query()->orderBy('min_spent')->orderBy('min_visits')->orderBy('sort_order')->get(),
-            'members' => $rights->allows('membership') ? $this->memberCounts() : [],
-            'packages' => PrepaidPackage::query()->withCount(['sold', 'sold as active_count' => fn ($q) => $q->where('status', 'active')])->orderBy('sort_order')->orderBy('id')->get(),
-            'categories' => Category::query()->orderBy('sort_order')->get(['id', 'name', 'name_en']),
-            'items' => MenuItem::query()->orderBy('name')->get(['id', 'name', 'name_en', 'category_id']),
-            'recent' => CustomerPackage::query()->with(['customer', 'seller'])->latest('id')->limit(15)->get(),
-        ]);
+        return redirect()->to(route('dash.rewards').'#'.RewardsController::anchorFor($request->user(), 'cashback', 'tiers', 'packages'));
     }
 
     public function cashback(Request $request): RedirectResponse
@@ -172,22 +155,5 @@ class CardsController extends Controller
         Audit::record('cards.package_void', $copy->customer?->phone ?? '', ['package' => $copy->name, 'amount' => $copy->price_paid]);
 
         return back()->with('ok', __('Package voided.'));
-    }
-
-    /** @return array<int, int> tier id => how many guests are on it today */
-    private function memberCounts(): array
-    {
-        $membership = app(Membership::class);
-        $counts = [];
-        Customer::query()->where(fn ($q) => $q->where('visits_count', '>', 0)->orWhere('total_spent', '>', 0))
-            ->select(['id', 'visits_count', 'total_spent'])->chunk(500, function ($customers) use ($membership, &$counts) {
-                foreach ($customers as $c) {
-                    if ($tier = $membership->tierFor($c)) {
-                        $counts[$tier->id] = ($counts[$tier->id] ?? 0) + 1;
-                    }
-                }
-            });
-
-        return $counts;
     }
 }

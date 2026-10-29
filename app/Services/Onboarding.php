@@ -81,7 +81,7 @@ final class Onboarding
         ];
         if ($rights->allows('loyalty_stamps')) {
             $steps[] = self::step('loyalty', __('Set up the loyalty card'), __('Stamps or points that bring guests back.'),
-                LoyaltyProgram::query()->where('is_active', true)->exists(), $link('loyalty.manage', route('dash.loyalty.setup')));
+                LoyaltyProgram::query()->where('is_active', true)->exists(), $link('loyalty.manage', route('dash.rewards').'#program'));
         }
         if (self::follows('reservations') && $rights->allows('reservations')) {
             $steps[] = self::step('reservations', __('Open table reservations'), __('Set your hours and seats, then turn bookings on.'),

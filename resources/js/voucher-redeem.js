@@ -97,6 +97,8 @@ if (dataEl) {
 
     $('[data-check]').addEventListener('click', () => lookup());
     $('[data-query]').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); lookup(); } });
+    // opened from the guest desk with the guest's mobile: their vouchers come up at once
+    if (D.lookup) lookup(D.lookup);
     $('[data-results]').addEventListener('click', async (e) => {
         const useBtn = e.target.closest('[data-use]');
         if (useBtn) return use(Number(useBtn.dataset.use));

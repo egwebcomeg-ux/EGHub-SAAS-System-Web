@@ -22,7 +22,8 @@ class ModulesSoldSeparatelyTest extends TenantTestCase
         $this->assertTrue($rights->allows('loyalty_stamps') && $rights->allows('loyalty_points') && $rights->allows('customers') && $rights->allows('feedback'));
         $this->assertFalse($rights->allows('qr_ordering'));
         $this->actingAs($owner)->get($this->dashUrl('/loyalty'))->assertOk();
-        $this->actingAs($owner)->get($this->dashUrl('/loyalty/setup'))->assertOk();
+        $this->actingAs($owner)->get($this->dashUrl('/loyalty/setup'))->assertRedirect($this->dashUrl('/rewards#program'));
+        $this->actingAs($owner)->get($this->dashUrl('/rewards'))->assertOk();
     }
 
     public function test_table_ordering_offers_branding_and_tv_each_unlock_on_their_own(): void

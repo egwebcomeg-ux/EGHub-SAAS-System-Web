@@ -51,7 +51,7 @@
     $modules = array_values(array_filter([
         $rights->allows('qr_ordering|order_board|online_ordering') ? ['🧾', __('Orders board'), route('dash.orders')] : null,
         $rights->allows('pos') ? ['💳', __('POS cashier'), route('dash.pos')] : null,
-        $rights->allows('loyalty_stamps|loyalty_points') ? ['⭐', __('Loyalty card'), route('dash.loyalty.setup')] : null,
+        $rights->allows('loyalty_stamps|loyalty_points') ? ['⭐', __('Loyalty card'), route('dash.rewards').'#program'] : null,
         $rights->allows('daily_reports|advanced_reports') ? ['📊', __('Reports'), route('dash.reports')] : null,
         $rights->allows('customers') ? ['👥', __('Customers'), route('dash.customers')] : null,
         $rights->allows('reservations') ? ['📅', __('Reservations'), route('dash.reservations')] : null,

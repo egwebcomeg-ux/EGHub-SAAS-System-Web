@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Http\Controllers\Dashboard\CouponsController;
 use App\Http\Controllers\Dashboard\DevicesController;
+use App\Http\Controllers\Dashboard\LoyaltyController;
 use App\Models\User;
 use App\Services\Entitlements;
 use App\Services\ModuleChoice;
@@ -50,7 +51,8 @@ final class DashboardApps
 
     /**
      * Pages that live inside another app: shifts, terminals and the Z report in the POS, stations under the kitchen
-     * display, items in the menu, vouchers with the coupons, the TV and kiosks with the screens.
+     * display, items in the menu, vouchers with the coupons, the TV and kiosks with the screens, the rewards settings
+     * with the guest desk.
      *
      * @var array<string, list<string>>
      */
@@ -59,6 +61,7 @@ final class DashboardApps
         'dash.pos' => ['dash.shifts', 'dash.shifts.*', 'dash.terminals', 'dash.terminals.*', 'dash.zreport', 'dash.zreport.*'],
         'dash.kitchen' => ['dash.stations', 'dash.stations.*'],
         'dash.coupons' => ['dash.vouchers', 'dash.vouchers.*'],
+        'dash.loyalty.desk' => ['dash.rewards'],
         'dash.devices' => ['dash.tv', 'dash.tv.*', 'dash.kiosks', 'dash.kiosks.*'],
     ];
 
@@ -134,7 +137,7 @@ final class DashboardApps
             $app('menu', 'dash.tables', __('Tables & QR'), 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2z', 'tables.manage', null),
 
             $app('customers', 'dash.customers', __('Customers'), 'M17 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2M10 10a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM21 20v-2a4 4 0 0 0-3-3.9M16 2.1a4 4 0 0 1 0 7.8', 'customers.view', 'customers'),
-            $app('customers', 'dash.loyalty.desk', __('Loyalty card'), 'M3 6h18v12H3zM7 10h.01M11 10h.01M15 10h.01M7 14h.01M11 14h.01', 'loyalty.stamp', 'loyalty_stamps|prepaid_packages|membership|cashback'),
+            $app('customers', 'dash.loyalty.desk', __('Guest desk'), 'M3 6h18v12H3zM7 10h.01M11 10h.01M15 10h.01M7 14h.01M11 14h.01', 'loyalty.stamp', LoyaltyController::DESK_FEATURES),
             $app('customers', 'dash.marketing', __('Offers & popups'), 'M7 7h.01M3 11V3h8l10 10-8 8L3 11z', 'marketing.manage', 'offers'),
             $app('customers', 'dash.coupons', __('Coupons & vouchers'), 'M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4zM9 9h.01M15 15h.01M15 9l-6 6', CouponsController::visibleFor($user), null),
             $app('customers', 'dash.feedback', __('Ratings'), 'M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z', 'customers.view', 'feedback'),

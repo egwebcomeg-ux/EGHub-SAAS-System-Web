@@ -36,15 +36,15 @@ class MergedModulesTest extends TenantTestCase
         $this->assertSame(['qr-menu', 'wallet'], json_decode($this->as($tenant, fn () => Settings::get('modules')), true));
     }
 
-    public function test_the_dashboard_has_one_wallet_entry_with_the_packages_tab_and_tiers_from_the_loyalty_card(): void
+    public function test_the_dashboard_has_one_wallet_entry_with_the_rewards_tab_and_the_rewards_from_the_guest_desk(): void
     {
         $tenant = $this->restaurant('cafe-a', 'full');
         $owner = $this->owner($tenant);
 
         $this->actingAs($owner)->get($this->dashUrl('/wallet'))->assertOk()
-            ->assertSee('data-wallet-tab="dash.cards"', false);
-        $this->actingAs($owner)->get($this->dashUrl('/loyalty/cards'))->assertOk()->assertSee('data-wallet-tab="dash.wallet"', false);
-        $this->actingAs($owner)->get($this->dashUrl('/loyalty'))->assertOk()->assertSee('data-tiers-link', false);
+            ->assertSee('data-wallet-tab="dash.rewards"', false);
+        $this->actingAs($owner)->get($this->dashUrl('/loyalty/cards'))->assertRedirect($this->dashUrl('/rewards#cashback'));
+        $this->actingAs($owner)->get($this->dashUrl('/loyalty'))->assertOk()->assertSee('data-rewards-link', false);
     }
 
     public function test_an_operations_pick_points_to_enterprise_on_the_summary(): void

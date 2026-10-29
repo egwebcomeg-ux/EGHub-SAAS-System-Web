@@ -42,7 +42,7 @@ final class ModuleChoice
         'dash.reservations' => ['reservations'],
         'dash.tv' => ['tv-screens'],
         'dash.customers' => ['loyalty', 'campaigns', 'wallet', 'whatsapp', 'call-center', 'online-ordering', 'reservations'],
-        'dash.loyalty.desk' => ['loyalty', 'wallet'],
+        'dash.loyalty.desk' => ['loyalty', 'wallet', 'corporate-vouchers'],
         'dash.cards' => ['wallet', 'loyalty'],
         'dash.marketing' => ['offers'],
         'dash.feedback' => ['reports', 'loyalty'],
