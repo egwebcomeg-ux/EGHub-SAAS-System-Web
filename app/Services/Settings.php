@@ -199,6 +199,8 @@ final class Settings
         'demo_content' => '',
         // the owner's welcome page (App\Services\WelcomeKit): json {user, nonce, expires_at}; a new kit changes the nonce
         'welcome_kit' => '',
+        // inventory pack: menu items whose ingredient cost is above this % of their price are flagged (Recipes & cost)
+        'food_cost_target' => '35',
     ];
 
     /** @var array<string,array<string,string>> */

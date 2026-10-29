@@ -50,6 +50,7 @@ use App\Http\Controllers\Dashboard\PhoneVerificationController;
 use App\Http\Controllers\Dashboard\PosController;
 use App\Http\Controllers\Dashboard\PrintController;
 use App\Http\Controllers\Dashboard\PrintMenuController;
+use App\Http\Controllers\Dashboard\PurchasesController;
 use App\Http\Controllers\Dashboard\PushController;
 use App\Http\Controllers\Dashboard\PwaController;
 use App\Http\Controllers\Dashboard\RefundsController;
@@ -61,6 +62,8 @@ use App\Http\Controllers\Dashboard\SettingsController;
 use App\Http\Controllers\Dashboard\ShiftsController;
 use App\Http\Controllers\Dashboard\SocialLoginController;
 use App\Http\Controllers\Dashboard\StationsController;
+use App\Http\Controllers\Dashboard\StockCountsController;
+use App\Http\Controllers\Dashboard\SuppliersController;
 use App\Http\Controllers\Dashboard\SupportAccessController;
 use App\Http\Controllers\Dashboard\TablesController;
 use App\Http\Controllers\Dashboard\TableSessionsController;
@@ -571,7 +574,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/call-center/geo/suggest', [CallCenterGeoController::class, 'suggest'])->middleware('throttle:staff-geo-search')->name('callcenter.geo.suggest');
     });
 
-    // Inventory pack: ingredients, stock per branch, recipes and food cost
+    // Inventory pack: ingredients and packaging, stock per branch, counts, suppliers and purchases, recipes and food cost
     Route::middleware(['feature:inventory', 'permission:inventory.manage'])->group(function () {
         Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory');
         Route::post('/inventory/ingredients', [InventoryController::class, 'store'])->name('inventory.store');
@@ -581,6 +584,30 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/inventory/recipes', [InventoryController::class, 'recipes'])->name('inventory.recipes');
         Route::get('/inventory/recipes/{item}', [InventoryController::class, 'recipe'])->name('inventory.recipe');
         Route::post('/inventory/recipes/{item}', [InventoryController::class, 'saveRecipe'])->name('inventory.recipe.save');
+        Route::post('/inventory/food-cost-target', [InventoryController::class, 'foodCostTarget'])->name('inventory.food-cost-target');
+        Route::post('/inventory/packaging-rules', [InventoryController::class, 'storePackagingRule'])->name('inventory.packaging.store');
+        Route::post('/inventory/packaging-rules/{rule}/delete', [InventoryController::class, 'destroyPackagingRule'])->whereNumber('rule')->name('inventory.packaging.destroy');
+        Route::get('/inventory/variance', [InventoryController::class, 'variance'])->name('inventory.variance');
+        // stock counts: staff fill a sheet in; a manager posts it (checked in the controller)
+        Route::get('/inventory/counts', [StockCountsController::class, 'index'])->name('inventory.counts');
+        Route::post('/inventory/counts', [StockCountsController::class, 'store'])->name('inventory.counts.store');
+        Route::get('/inventory/counts/{count}', [StockCountsController::class, 'show'])->whereNumber('count')->name('inventory.counts.show');
+        Route::post('/inventory/counts/{count}', [StockCountsController::class, 'save'])->whereNumber('count')->name('inventory.counts.save');
+        Route::post('/inventory/counts/{count}/post', [StockCountsController::class, 'post'])->whereNumber('count')->name('inventory.counts.post');
+        Route::post('/inventory/counts/{count}/delete', [StockCountsController::class, 'destroy'])->whereNumber('count')->name('inventory.counts.destroy');
+        // suppliers and purchase invoices: posting adds stock; cancelling a posted one is a manager's call
+        Route::get('/inventory/suppliers', [SuppliersController::class, 'index'])->name('inventory.suppliers');
+        Route::post('/inventory/suppliers', [SuppliersController::class, 'store'])->name('inventory.suppliers.store');
+        Route::post('/inventory/suppliers/{supplier}', [SuppliersController::class, 'update'])->whereNumber('supplier')->name('inventory.suppliers.update');
+        Route::get('/inventory/suppliers/{supplier}', [SuppliersController::class, 'statement'])->whereNumber('supplier')->name('inventory.suppliers.statement');
+        Route::get('/inventory/purchases', [PurchasesController::class, 'index'])->name('inventory.purchases');
+        Route::get('/inventory/purchases/create', [PurchasesController::class, 'create'])->name('inventory.purchases.create');
+        Route::post('/inventory/purchases', [PurchasesController::class, 'store'])->name('inventory.purchases.store');
+        Route::get('/inventory/purchases/{purchase}', [PurchasesController::class, 'show'])->whereNumber('purchase')->name('inventory.purchases.show');
+        Route::post('/inventory/purchases/{purchase}', [PurchasesController::class, 'update'])->whereNumber('purchase')->name('inventory.purchases.update');
+        Route::post('/inventory/purchases/{purchase}/post', [PurchasesController::class, 'post'])->whereNumber('purchase')->name('inventory.purchases.post');
+        Route::post('/inventory/purchases/{purchase}/cancel', [PurchasesController::class, 'cancel'])->whereNumber('purchase')->name('inventory.purchases.cancel');
+        Route::post('/inventory/purchases/{purchase}/delete', [PurchasesController::class, 'destroy'])->whereNumber('purchase')->name('inventory.purchases.destroy');
     });
 
     // Kitchen pack: kitchen display and stations
