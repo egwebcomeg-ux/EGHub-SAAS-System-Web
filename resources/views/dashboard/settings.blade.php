@@ -468,10 +468,13 @@
             @endif
         </section>
 
-        @if ($advancedReports)
+        @if (\App\Services\Entitlements::current()->allows('daily_reports'))
             <section class="card" id="weekly-report">
-                <h2 class="text-lg font-bold">{{ __('Weekly report') }}</h2>
-                <label class="mt-2 flex items-center gap-2 text-sm font-semibold"><input type="hidden" name="weekly_report_email" value="0"><input type="checkbox" name="weekly_report_email" value="1" @checked($s['weekly_report_email'] === '1') class="size-4 accent-brand-600"> {{ __('Email the owners last week\'s numbers every Monday at 8 AM') }}</label>
+                <h2 class="text-lg font-bold">{{ __('Reports to the managers') }}</h2>
+                <label class="mt-2 flex items-center gap-2 text-sm font-semibold" data-daily-digest><input type="hidden" name="daily_digest" value="0"><input type="checkbox" name="daily_digest" value="1" @checked(($s['daily_digest'] ?? '1') === '1') class="size-4 accent-brand-600"> {{ __('Every morning send the owners and managers yesterday\'s report: cancellations, refunds, cash, open orders') }}</label>
+                @if ($advancedReports)
+                    <label class="mt-2 flex items-center gap-2 text-sm font-semibold"><input type="hidden" name="weekly_report_email" value="0"><input type="checkbox" name="weekly_report_email" value="1" @checked($s['weekly_report_email'] === '1') class="size-4 accent-brand-600"> {{ __('Email the owners last week\'s numbers every Monday at 8 AM') }}</label>
+                @endif
             </section>
         @endif
     </div>

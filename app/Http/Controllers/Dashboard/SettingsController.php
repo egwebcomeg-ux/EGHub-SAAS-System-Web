@@ -253,6 +253,9 @@ class SettingsController extends Controller
         if (Entitlements::current()->allows('extra_languages') && $request->boolean('menu_locales_sent')) {
             $values['menu_locales'] = json_encode(array_values(array_intersect(MenuLocales::codes(), $data['menu_locales'] ?? [])));
         }
+        if ($request->has('daily_digest')) {
+            $values['daily_digest'] = $request->boolean('daily_digest') ? '1' : '0';
+        }
         if (Entitlements::current()->allows('advanced_reports') && $request->has('weekly_report_email')) {
             $values['weekly_report_email'] = $request->boolean('weekly_report_email') ? '1' : '0';
         }

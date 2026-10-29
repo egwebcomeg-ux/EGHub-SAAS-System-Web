@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Services\Orders\OrderConfirmation;
+use App\Services\Reports\DailyDigest;
 use Illuminate\Support\Collection;
 
 /**
@@ -26,6 +27,7 @@ final class StaffPush
         'order_confirm' => ['orders.view', ['owner', 'manager', 'cashier'], 'رد العميل على تأكيد الطلب على واتساب', 'The guest answered the WhatsApp confirmation'],
         'reservation_new' => ['reservations.manage', ['owner', 'manager'], 'حجز ترابيزة جديد', 'New table reservation'],
         'corporate_booking' => ['contracts.manage', ['owner', 'manager'], 'زيارة شركة مستنية موافقة', 'A company visit waiting for approval'],
+        'daily_digest' => ['reports.view', ['owner', 'manager'], 'تقرير المدير اليومي', 'Manager daily report'],
         'order_ready' => ['orders.view', ['waiter'], 'الطلب جاهز (طلبات الصالة)', 'Order ready (dine-in orders)'],
     ];
 
@@ -115,6 +117,19 @@ final class StaffPush
         $this->notify('corporate_booking', $booking->branch_id, __('Company visit: :name', ['name' => $booking->contract->name]),
             __(':name · :n guests · :at', ['name' => $booking->rep_name, 'n' => $booking->party_size, 'at' => local_time($booking->visit_at, 'd/m h:i A')]),
             ['url' => platform_url('app', '/corporate/bookings'), 'booking' => (string) $booking->id]);
+    }
+
+    /** The morning digest of yesterday (App\Services\Reports\DailyDigest), in one line. @param array<string,mixed> $digest */
+    public function dailyDigest(array $digest): void
+    {
+        $flags = array_filter([
+            $digest['cancelled'] ? __(':n cancelled', ['n' => count($digest['cancelled'])]) : null,
+            $digest['refunds'] ? __(':n refunds', ['n' => count($digest['refunds'])]) : null,
+            DailyDigest::cashOff($digest) ? __('cash off in :n shifts', ['n' => count(DailyDigest::cashOff($digest))]) : null,
+            $digest['visits_waiting'] ? __(':n company visits waiting', ['n' => $digest['visits_waiting']]) : null,
+        ]);
+        $this->notify('daily_digest', null, __('Yesterday: :n orders · :amount', ['n' => $digest['orders'], 'amount' => money($digest['revenue'])]),
+            $flags ? implode(' · ', $flags) : __('Nothing needs your attention.'), ['url' => platform_url('app', '/reports')]);
     }
 
     /** A dine-in order is ready: the waiters take it to the table. */

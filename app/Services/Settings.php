@@ -173,6 +173,9 @@ final class Settings
         'menu_translation_status' => '',
         // owners get the week's numbers by email on Monday morning (feature advanced_reports)
         'weekly_report_email' => '0',
+        // the manager's morning digest of yesterday (App\Services\Reports\DailyDigest): on unless turned off
+        'daily_digest' => '1',
+        'daily_digest_sent_for' => '',
         'weekly_report_sent_for' => '', // Monday of the last week emailed, so a second run the same day sends nothing
         // table reservations (plan feature reservations, App\Services\Reservations\ReservationService)
         'reservations_enabled' => '0',

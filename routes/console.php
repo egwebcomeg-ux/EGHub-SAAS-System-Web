@@ -14,6 +14,7 @@ use App\Services\Marketing\Campaigns;
 use App\Services\Orders\AutoCancel;
 use App\Services\Orders\OrderFlow;
 use App\Services\Orders\OrderService;
+use App\Services\Reports\DailyDigest;
 use App\Services\Reports\WeeklyReportMailer;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
@@ -88,6 +89,10 @@ Artisan::command('egmenu:loyalty-expire', function (LoyaltyService $loyalty, Pac
 Artisan::command('egmenu:campaigns', function (Campaigns $campaigns) {
     $this->info('campaigns started: '.$campaigns->startDue());
 })->purpose('Start the WhatsApp campaigns scheduled until now');
+Artisan::command('egmenu:daily-digest', function (DailyDigest $digest) {
+    $this->info('daily digests sent: '.$digest->run());
+})->purpose('Send owners and managers yesterday\'s digest: sales, cancellations, refunds, cash, open orders, visits, low stock');
+
 Artisan::command('egmenu:weekly-report', function (WeeklyReportMailer $mailer) {
     $this->info('weekly reports sent: '.$mailer->run());
 })->purpose('Email last week\'s numbers to the owners who turned the weekly report on (advanced reports)');
@@ -115,6 +120,7 @@ Schedule::command('egmenu:backup')->dailyAt('02:30')->withoutOverlapping(120)->r
 Schedule::command('egmenu:tenant-backups')->weeklyOn(0, '03:30')->withoutOverlapping(180)->runInBackground();
 Schedule::command('egmenu:campaigns')->everyMinute()->withoutOverlapping(10);
 Schedule::command('egmenu:auto-cancel')->everyMinute()->withoutOverlapping(10);
+Schedule::command('egmenu:daily-digest')->dailyAt('07:40')->withoutOverlapping(60);
 Schedule::command('egmenu:weekly-report')->weeklyOn(1, '08:00')->withoutOverlapping(60);
 // background jobs (AI menu import) without a separate worker process: drained every minute by the same cron, in the
 // background so the minute's other entries (and the heartbeat) are not held up; a failed job is retried twice, 30 s apart
