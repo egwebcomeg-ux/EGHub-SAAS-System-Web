@@ -626,6 +626,10 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/corporate/{contract}/print', [CorporateContractsController::class, 'print'])->whereNumber('contract')->name('corporate.print');
         Route::get('/corporate/{contract}/export', [CorporateContractsController::class, 'export'])->whereNumber('contract')->name('corporate.export');
         Route::get('/corporate/{contract}/statement', [CorporateContractsController::class, 'statement'])->whereNumber('contract')->name('corporate.statement');
+        Route::post('/corporate/{contract}/payments', [CorporateContractsController::class, 'storePayment'])->whereNumber('contract')
+            ->middleware('throttle:30,1')->name('corporate.payments.store');
+        Route::post('/corporate/payments/{payment}/cancel', [CorporateContractsController::class, 'cancelPayment'])->whereNumber('payment')
+            ->name('corporate.payments.cancel');
         Route::get('/corporate/vouchers/{voucher}/receipt', [CorporateContractsController::class, 'receipt'])->whereNumber('voucher')->name('corporate.voucher.receipt');
         Route::post('/corporate/vouchers/{voucher}/extend', [CorporateContractsController::class, 'extendVoucher'])->whereNumber('voucher')->name('corporate.voucher.extend');
         Route::post('/corporate/vouchers/{voucher}/void', [CorporateContractsController::class, 'voidVoucher'])->whereNumber('voucher')->name('corporate.voucher.void');

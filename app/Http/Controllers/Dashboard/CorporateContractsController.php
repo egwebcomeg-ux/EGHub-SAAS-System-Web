@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\CorporateContract;
+use App\Models\CorporatePayment;
 use App\Models\CorporateVoucher;
 use App\Models\CorporateVoucherRedemption;
 use App\Models\Customer;
+use App\Services\Corporate\CorporateAccount;
 use App\Services\Corporate\CorporateVouchers;
 use App\Services\Import\XlsxWriter;
 use App\Services\Orders\OrderException;
@@ -200,8 +202,43 @@ class CorporateContractsController extends Controller
         return $this->download($rows, 'vouchers-'.$contract->prefix.'-'.now()->format('Y-m-d'), (string) $request->query('format'), __('Vouchers'));
     }
 
-    /** The company statement: every use with its date, branch, order and amount (refunded uses are shown, not counted). */
-    public function statement(Request $request, CorporateContract $contract): View|Response
+    /** A payment the company made (cash, transfer, cheque…): a credit line of its statement. */
+    public function storePayment(Request $request, CorporateContract $contract, CorporateAccount $account): RedirectResponse
+    {
+        $data = $request->validate([
+            'amount' => 'required|numeric|min:0.01|max:'.CorporateAccount::MAX_PAYMENT,
+            'method' => ['required', Rule::in(array_keys(CorporatePayment::METHODS))],
+            'paid_on' => 'nullable|date|before_or_equal:today',
+            'reference' => 'nullable|string|max:60',
+            'note' => 'nullable|string|max:200',
+        ]);
+        try {
+            $account->recordPayment($contract, $data, $request->user());
+        } catch (OrderException $e) {
+            return back()->withInput()->withErrors(['amount' => $e->getMessage()]);
+        }
+
+        return redirect()->route('dash.corporate.statement', $contract)->with('ok', __('Payment recorded.'));
+    }
+
+    /** A payment entered by mistake: crossed out on the statement, no longer counted. */
+    public function cancelPayment(Request $request, CorporatePayment $payment, CorporateAccount $account): RedirectResponse
+    {
+        $data = $request->validate(['reason' => 'required|string|max:200']);
+        try {
+            $account->cancelPayment($payment, $request->user(), $data['reason']);
+        } catch (OrderException $e) {
+            return back()->withErrors(['reason' => $e->getMessage()]);
+        }
+
+        return redirect()->route('dash.corporate.statement', $payment->corporate_contract_id)->with('ok', __('Payment cancelled.'));
+    }
+
+    /**
+     * The company statement: the account (charged, paid, owed, drawn, left on the vouchers), the ledger of charges and
+     * payments with the balance after each, and every use of the vouchers (refunded uses are shown, not counted).
+     */
+    public function statement(Request $request, CorporateContract $contract, CorporateAccount $account): View|Response
     {
         $from = $request->date('from')?->startOfDay();
         $to = $request->date('to')?->endOfDay();
@@ -223,6 +260,7 @@ class CorporateContractsController extends Controller
 
         return view('dashboard.corporate.statement', [
             'contract' => $contract, 'rows' => $rows, 'from' => $from, 'to' => $to,
+            'account' => $account->summary($contract), 'ledger' => $account->ledger($contract),
             'total' => round($rows->whereNull('refunded_at')->sum('amount'), 2), 'forfeited' => round($rows->whereNull('refunded_at')->sum('forfeited'), 2),
         ]);
     }
@@ -308,11 +346,15 @@ class CorporateContractsController extends Controller
             'hours_from' => 'nullable|date_format:H:i|required_with:hours_to',
             'hours_to' => 'nullable|date_format:H:i|required_with:hours_from',
             'min_order' => 'nullable|numeric|min:0|max:'.CorporateVouchers::MAX_VALUE,
-            'paid_amount' => 'nullable|numeric|min:0|max:100000000',
+            'billing' => ['nullable', Rule::in(array_keys(CorporateContract::BILLING))],
+            'credit_limit' => 'nullable|numeric|min:0|max:'.CorporateAccount::MAX_PAYMENT,
             'notes' => 'nullable|string|max:2000',
         ];
         if (! $contract) {
+            // later payments are recorded one by one on the company statement
             $rules += [
+                'paid_amount' => 'nullable|numeric|min:0|max:'.CorporateAccount::MAX_PAYMENT,
+                'paid_method' => ['nullable', Rule::in(array_keys(CorporatePayment::METHODS))],
                 'prefix' => ['nullable', 'regex:/^[A-Za-z0-9]{1,6}$/'],
                 'voucher_value' => 'required|numeric|min:1|max:'.CorporateVouchers::MAX_VALUE,
                 'expires_on' => 'required|date|after_or_equal:today',

@@ -27,14 +27,37 @@
         </div>
         <label class="block"><span class="field-label">{{ __('Contract / invoice number') }}</span>
             <input class="field" name="reference" value="{{ old('reference', $contract->reference) }}" maxlength="60" dir="auto"></label>
+        @php $billing = old('billing', $contract->billing ?? 'prepaid'); @endphp
         <div class="grid gap-3 sm:grid-cols-2">
-            <label class="block"><span class="field-label">{{ __('Paid by the company so far') }}</span>
-                <input class="field" name="paid_amount" type="number" min="0" step="0.01" value="{{ old('paid_amount', $contract->paid_amount ?? 0) }}" dir="ltr"></label>
+            <label class="block"><span class="field-label">{{ __('How the company pays') }}</span>
+                <select class="field" name="billing" data-billing>
+                    @foreach (\App\Models\CorporateContract::BILLING as $key => $labels)
+                        <option value="{{ $key }}" @selected($billing === $key)>{{ \App\Models\CorporateContract::pick(\App\Models\CorporateContract::BILLING, $key) }}</option>
+                    @endforeach
+                </select></label>
+            <label class="block"><span class="field-label">{{ __('Most the company may owe (empty = no limit)') }}</span>
+                <input class="field" name="credit_limit" type="number" min="0" step="0.01" value="{{ old('credit_limit', $contract->credit_limit) }}" dir="ltr"></label>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2">
             @if ($editing)
                 <div class="rounded-xl bg-navy-50 p-3 text-sm">
                     <div class="text-navy-500">{{ __('Contract total') }}</div>
                     <div class="text-lg font-extrabold">{{ money($contract->totalValue()) }}</div>
                 </div>
+                <div class="rounded-xl bg-navy-50 p-3 text-sm">
+                    <div class="text-navy-500">{{ __('Paid by the company so far') }}</div>
+                    <div class="text-lg font-extrabold">{{ money($contract->paid_amount) }}</div>
+                    <a class="text-xs font-bold text-brand-700" href="{{ route('dash.corporate.statement', $contract) }}">{{ __('Record payments on the company statement') }}</a>
+                </div>
+            @else
+                <label class="block"><span class="field-label">{{ __('Paid when signing') }}</span>
+                    <input class="field" name="paid_amount" type="number" min="0" step="0.01" value="{{ old('paid_amount', 0) }}" dir="ltr"></label>
+                <label class="block"><span class="field-label">{{ __('Paid by') }}</span>
+                    <select class="field" name="paid_method">
+                        @foreach (\App\Models\CorporatePayment::METHODS as $key => $labels)
+                            <option value="{{ $key }}" @selected(old('paid_method', 'transfer') === $key)>{{ \App\Models\CorporateContract::pick(\App\Models\CorporatePayment::METHODS, $key) }}</option>
+                        @endforeach
+                    </select></label>
             @endif
         </div>
         <label class="block"><span class="field-label">{{ __('Notes') }}</span>

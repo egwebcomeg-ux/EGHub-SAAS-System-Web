@@ -12,6 +12,7 @@
     <div class="mt-2 flex flex-wrap gap-2">
         <span class="badge {{ $statusStyles[$contract->status] ?? '' }}" data-contract-status="{{ $contract->status }}">{{ $contract->statusLabel() }}</span>
         <span class="badge {{ $paidStyles[$contract->paid_status] ?? '' }}">{{ $contract->paidLabel() }} · {{ money($contract->paid_amount) }} / {{ money($contract->totalValue()) }}</span>
+        <span class="badge bg-navy-100 text-navy-700" data-contract-billing>{{ $contract->billingLabel() }}</span>
     </div>
     <x-slot:actions>
         @if ($live)

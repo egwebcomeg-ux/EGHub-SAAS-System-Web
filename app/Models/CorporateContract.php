@@ -33,12 +33,28 @@ class CorporateContract extends TenantModel
         'paid' => ['مدفوع', 'Paid'],
     ];
 
+    /** billing => [arabic, english]: the company pays first and draws, or draws and pays later (credit_limit caps it) */
+    public const BILLING = [
+        'prepaid' => ['مدفوع مقدماً', 'Prepaid'],
+        'account' => ['على الحساب (يسدد على دفعات)', 'On account (pays in instalments)'],
+    ];
+
     protected function casts(): array
     {
         return [
             'voucher_value' => 'float', 'quantity' => 'integer', 'expires_on' => 'date', 'branch_ids' => 'array', 'days' => 'array',
-            'min_order' => 'float', 'paid_amount' => 'float',
+            'min_order' => 'float', 'paid_amount' => 'float', 'credit_limit' => 'float',
         ];
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(CorporatePayment::class);
+    }
+
+    public function billingLabel(): string
+    {
+        return self::pick(self::BILLING, $this->billing);
     }
 
     public function vouchers(): HasMany

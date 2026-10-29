@@ -55,7 +55,8 @@ final class CorporateVouchers
     /**
      * @param  array{name:string, contact_name?:?string, contact_phone?:?string, reference?:?string, prefix?:?string, voucher_value:float|string,
      *              quantity:int|string, expires_on:string, mode:string, branch_ids?:?array, days?:?array, hours_from?:?string, hours_to?:?string,
-     *              min_order?:float|string|null, paid_amount?:float|string|null, notes?:?string}  $data
+     *              min_order?:float|string|null, paid_amount?:float|string|null, paid_method?:?string, billing?:?string,
+     *              credit_limit?:float|string|null, notes?:?string}  $data
      */
     public function createContract(array $data, User $by): CorporateContract
     {
@@ -66,9 +67,13 @@ final class CorporateVouchers
                 'quantity' => (int) $data['quantity'], 'voucher_value' => round((float) $data['voucher_value'], 2),
                 'status' => 'active', 'created_by' => $by->id,
             ]);
-            $contract->update(['paid_status' => CorporateContract::paidStatusFor($contract->paid_amount, $contract->totalValue())]);
             $this->issue($contract, $contract->quantity);
             Audit::record('corporate.created', $contract->name, ['quantity' => $contract->quantity, 'value' => $contract->voucher_value]);
+            // what the company paid when signing is its first payment on the statement
+            $paid = round(max(0, (float) ($data['paid_amount'] ?? 0)), 2);
+            if ($paid > 0) {
+                app(CorporateAccount::class)->recordPayment($contract, ['amount' => $paid, 'method' => $data['paid_method'] ?? 'other', 'reference' => $data['reference'] ?? null], $by);
+            }
 
             return $contract;
         });
@@ -651,7 +656,7 @@ final class CorporateVouchers
     /** @return array<string,mixed> the editable columns, cleaned */
     private function attributes(array $data): array
     {
-        $paid = round(max(0, (float) ($data['paid_amount'] ?? 0)), 2);
+        $billing = ($data['billing'] ?? 'prepaid') === 'account' ? 'account' : 'prepaid';
         $branches = array_values(array_unique(array_map('intval', array_filter((array) ($data['branch_ids'] ?? [])))));
         $days = array_values(array_unique(array_map('intval', array_filter((array) ($data['days'] ?? []), fn ($d) => $d !== null && $d !== ''))));
         $from = $data['hours_from'] ?? null;
@@ -666,7 +671,8 @@ final class CorporateVouchers
             'days' => $days && count($days) < 7 ? $days : null,
             'hours_from' => $from && $to ? $from : null, 'hours_to' => $from && $to ? $to : null,
             'min_order' => ($m = (float) ($data['min_order'] ?? 0)) > 0 ? round($m, 2) : null,
-            'paid_amount' => $paid,
+            'billing' => $billing,
+            'credit_limit' => $billing === 'account' && ($l = (float) ($data['credit_limit'] ?? 0)) > 0 ? round($l, 2) : null,
             'notes' => ($v = trim((string) ($data['notes'] ?? ''))) !== '' ? mb_substr($v, 0, 2000) : null,
         ];
         if (isset($data['expires_on'])) {
