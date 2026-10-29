@@ -37,8 +37,8 @@ final class WhatsAppSignIn
     /** Codes one restaurant hands out per 10 minutes, all guests together. */
     public const TENANT_STARTS = 120;
 
-    /** Codes one mobile may confirm per hour, all restaurants together. */
-    public const PHONE_CONFIRMS = 6;
+    /** Messages carrying a code one mobile may send per hour, all restaurants together; wrong codes count too. */
+    public const PHONE_TRIES = 6;
 
     /**
      * Offered only with the platform's own WhatsApp Cloud API number in WHATSAPP_NUMBER (not the support fallback,
@@ -133,26 +133,29 @@ final class WhatsAppSignIn
     }
 
     /**
-     * One inbound text on the EgHub number (signed webhook): a pending, unexpired code in it is confirmed for the
+     * One inbound text on the EgHub number (signed webhook): the pending, unexpired code in it is confirmed for the
      * sender's mobile. Returns the confirmed sign-in, or null when the text carries none.
+     *
+     * Only one code per message is tried, and every try counts against the sender's hourly limit, so a message
+     * stuffed with numbers cannot guess another guest's code.
      */
     public function confirm(string $from, string $text): ?GuestSignIn
     {
         $phone = normalize_phone($from);
-        $codes = self::extractCodes($text);
-        if ($phone === null || $codes === []) {
+        $code = self::extractCode($text);
+        if ($phone === null || $code === null) {
             return null;
         }
         $limitKey = 'guest-wa-confirm:'.hash('sha256', $phone);
-        if (RateLimiter::tooManyAttempts($limitKey, self::PHONE_CONFIRMS)) {
+        if (RateLimiter::tooManyAttempts($limitKey, self::PHONE_TRIES)) {
             return null;
         }
-        $row = GuestSignIn::query()->where('kind', GuestSignIn::KIND_WHATSAPP)->whereIn('code', $codes)
+        RateLimiter::hit($limitKey, 3600);
+        $row = GuestSignIn::query()->where('kind', GuestSignIn::KIND_WHATSAPP)->where('code', $code)
             ->whereNull('verified_at')->whereNull('used_at')->where('expires_at', '>', now())->latest('id')->first();
         if (! $row) {
             return null;
         }
-        RateLimiter::hit($limitKey, 3600);
         $claimed = DB::table('guest_sign_ins')->where('id', $row->id)->whereNull('verified_at')
             ->update(['phone' => $phone, 'verified_at' => now(), 'updated_at' => now()]);
         if ($claimed !== 1) {
@@ -165,15 +168,14 @@ final class WhatsAppSignIn
     }
 
     /**
-     * The 6-digit numbers in an inbound text (Arabic digits accepted, extra words ignored).
-     *
-     * @return list<string>
+     * The code in an inbound text: its last 6-digit number, where the prepared message puts it (Arabic digits
+     * accepted, extra words and a place name with digits ignored).
      */
-    public static function extractCodes(string $text): array
+    public static function extractCode(string $text): ?string
     {
         preg_match_all('/(?<!\d)(\d{'.self::CODE_LENGTH.'})(?!\d)/', latin_digits($text), $m);
 
-        return array_values(array_unique($m[1]));
+        return $m[1] === [] ? null : end($m[1]);
     }
 
     /** A code no other pending sign-in holds right now. */

@@ -141,7 +141,31 @@ class GuestWhatsAppSignInTest extends TenantTestCase
         foreach ($codes as $code) {
             $this->message('201012345678', $code)->assertOk();
         }
-        $this->assertSame(WhatsAppSignIn::PHONE_CONFIRMS, GuestSignIn::query()->whereNotNull('verified_at')->count());
+        $this->assertSame(WhatsAppSignIn::PHONE_TRIES, GuestSignIn::query()->whereNotNull('verified_at')->count());
+    }
+
+    public function test_a_message_full_of_numbers_or_a_run_of_wrong_codes_cannot_guess_a_guests_code(): void
+    {
+        $this->restaurant('cafe-a');
+        $started = $this->start('cafe-a');
+        $code = $started->json('code');
+        $secret = $this->secret($started, 'cafe-a');
+        $wrong = fn (int $i): string => (string) ((((int) $code) + $i) % 900000 + 100000);
+
+        // only the last number in a message is tried, so a list of guesses holding the right one gets nowhere
+        $this->message('201012345678', $code.' '.implode(' ', array_map($wrong, range(1, 50))))->assertOk();
+        $this->poll('cafe-a', $secret)->assertExactJson(['status' => 'pending']);
+
+        // wrong codes use up the mobile's tries, after which even the right code is refused
+        for ($i = 1; $i < WhatsAppSignIn::PHONE_TRIES; $i++) {
+            $this->message('201012345678', $wrong(100 + $i))->assertOk();
+        }
+        $this->message('201012345678', $code)->assertOk();
+        $this->poll('cafe-a', $secret)->assertExactJson(['status' => 'pending']);
+
+        // another mobile still can, and digits in the place's name before the code are ignored
+        $this->message('201099999999', 'كود دخولي على Cafe 123456 هو '.$code)->assertOk();
+        $this->poll('cafe-a', $secret)->assertJson(['status' => 'ok']);
     }
 
     public function test_the_button_shows_only_with_the_platform_number_and_a_verifiable_webhook(): void
