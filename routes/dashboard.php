@@ -12,6 +12,7 @@ use App\Http\Controllers\Dashboard\CallCenterGeoController;
 use App\Http\Controllers\Dashboard\CampaignsController;
 use App\Http\Controllers\Dashboard\CardsController;
 use App\Http\Controllers\Dashboard\CategoriesController;
+use App\Http\Controllers\Dashboard\CorporateBookingsController;
 use App\Http\Controllers\Dashboard\CorporateContractsController;
 use App\Http\Controllers\Dashboard\CorporateRedeemController;
 use App\Http\Controllers\Dashboard\CorporateReportController;
@@ -633,6 +634,11 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/corporate/vouchers/{voucher}/receipt', [CorporateContractsController::class, 'receipt'])->whereNumber('voucher')->name('corporate.voucher.receipt');
         Route::post('/corporate/vouchers/{voucher}/extend', [CorporateContractsController::class, 'extendVoucher'])->whereNumber('voucher')->name('corporate.voucher.extend');
         Route::post('/corporate/vouchers/{voucher}/void', [CorporateContractsController::class, 'voidVoucher'])->whereNumber('voucher')->name('corporate.voucher.void');
+        Route::post('/corporate/{contract}/portal', [CorporateBookingsController::class, 'portal'])->whereNumber('contract')->name('corporate.portal');
+        Route::post('/corporate/bookings/{booking}/approve', [CorporateBookingsController::class, 'approve'])->whereNumber('booking')->name('corporate.bookings.approve');
+        Route::post('/corporate/bookings/{booking}/decline', [CorporateBookingsController::class, 'decline'])->whereNumber('booking')->name('corporate.bookings.decline');
+        Route::post('/corporate/bookings/{booking}/cancel', [CorporateBookingsController::class, 'cancel'])->whereNumber('booking')->name('corporate.bookings.cancel');
+        Route::post('/corporate/bookings/{booking}/close', [CorporateBookingsController::class, 'close'])->whereNumber('booking')->name('corporate.bookings.close');
     });
     // ... and at the POS: look up by code / QR / mobile, exceptions after expiry (manager), link to the guest's mobile
     Route::middleware(['feature:corporate_vouchers', 'feature:pos', 'permission:pos.use', 'permission:vouchers.redeem'])->group(function () {
@@ -658,6 +664,12 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/vouchers/redeem/batches/{batch}/receipt', [VoucherRedeemController::class, 'receipt'])->where('batch', '[a-f0-9]{8,24}')->name('redeem.receipt');
     });
     // the vouchers report: issued, redeemed, outstanding, lost, expired; by contract, branch, cashier and day
+    // company visits: staff enter what a company asks by phone, a manager decides (routes above)
+    Route::middleware(['feature:corporate_vouchers', 'permission:contracts.manage|reservations.manage'])->group(function () {
+        Route::get('/corporate/bookings', [CorporateBookingsController::class, 'index'])->name('corporate.bookings');
+        Route::post('/corporate/bookings', [CorporateBookingsController::class, 'store'])->middleware('throttle:30,1')->name('corporate.bookings.store');
+    });
+
     Route::middleware(['feature:corporate_vouchers', 'permission:contracts.manage|reports.view'])->group(function () {
         Route::get('/corporate/report', [CorporateReportController::class, 'index'])->name('corporate.report');
         Route::get('/corporate/report/export', [CorporateReportController::class, 'export'])->name('corporate.report.export');

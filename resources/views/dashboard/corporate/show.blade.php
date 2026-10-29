@@ -76,6 +76,22 @@
             <a href="{{ route('dash.corporate.export', ['contract' => $contract, 'format' => 'xlsx']) }}" class="btn-ghost">Excel</a>
         </div>
         <p class="text-xs text-navy-500">{{ __('A voucher printed before comes out marked “copy”. Every print is in the audit log.') }}</p>
+        <div class="space-y-2 border-t border-navy-100 pt-3" data-company-portal>
+            <h3 class="font-bold">{{ __('Company visits') }}</h3>
+            <p class="text-xs text-navy-500">{{ __('The company asks for visits from its private link, at least :n hours ahead; a manager confirms each one.', ['n' => $contract->booking_notice_hours]) }}</p>
+            @if ($contract->portalUrl())
+                <input class="field text-xs" value="{{ $contract->portalUrl() }}" readonly dir="ltr" onclick="this.select()" data-portal-url>
+            @endif
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('dash.corporate.bookings', ['contract' => $contract->id, 'filter' => 'all']) }}" class="btn-ghost" data-contract-visits>{{ __('Visits') }}@if ($visitsWaiting > 0) <span class="badge bg-red-100 text-red-700">{{ $visitsWaiting }}</span>@endif</a>
+                @if ($live)
+                    <form method="post" action="{{ route('dash.corporate.portal', $contract) }}" @if ($contract->portalUrl()) onsubmit="return confirm(@js(__('Make a new link? The old one stops working.')))" @endif>
+                        @csrf
+                        <button class="btn-ghost" data-portal-make>{{ $contract->portalUrl() ? __('New link') : __('Make the company link') }}</button>
+                    </form>
+                @endif
+            </div>
+        </div>
     </section>
 </div>
 

@@ -38,6 +38,8 @@
             <label class="block"><span class="field-label">{{ __('Most the company may owe (empty = no limit)') }}</span>
                 <input class="field" name="credit_limit" type="number" min="0" step="0.01" value="{{ old('credit_limit', $contract->credit_limit) }}" dir="ltr"></label>
         </div>
+        <label class="block"><span class="field-label">{{ __('Company visits are booked at least (hours ahead)') }}</span>
+            <input class="field" name="booking_notice_hours" type="number" min="0" max="720" value="{{ old('booking_notice_hours', $contract->booking_notice_hours ?? 24) }}" dir="ltr" data-notice-hours></label>
         <div class="grid gap-3 sm:grid-cols-2">
             @if ($editing)
                 <div class="rounded-xl bg-navy-50 p-3 text-sm">
@@ -81,13 +83,13 @@
                 <label class="block"><span class="field-label">{{ __('Value of one voucher') }} *</span>
                     <input class="field text-lg" name="voucher_value" type="number" min="1" step="0.01" value="{{ old('voucher_value', 200) }}" required dir="ltr"></label>
                 <label class="block"><span class="field-label">{{ __('How many vouchers') }} *</span>
-                    <input class="field text-lg" name="quantity" type="number" min="1" max="{{ \App\Services\Corporate\CorporateVouchers::MAX_QUANTITY }}" value="{{ old('quantity', 50) }}" required dir="ltr"></label>
+                    <input class="field text-lg" name="quantity" type="number" min="0" max="{{ \App\Services\Corporate\CorporateVouchers::MAX_QUANTITY }}" value="{{ old('quantity', 50) }}" required dir="ltr"></label>
                 <label class="block"><span class="field-label">{{ __('Valid until (inclusive)') }} *</span>
                     <input class="field" name="expires_on" type="date" min="{{ now()->format('Y-m-d') }}" value="{{ old('expires_on', $contract->expires_on?->format('Y-m-d')) }}" required></label>
                 <label class="block"><span class="field-label">{{ __('Serial prefix') }}</span>
                     <input class="field uppercase" name="prefix" value="{{ old('prefix') }}" maxlength="6" pattern="[A-Za-z0-9]{1,6}" dir="ltr" placeholder="EVA"></label>
             </div>
-            <p class="-mt-1 text-xs text-navy-500">{{ __('Serials look like EVA-0001. Empty = taken from the company name.') }}</p>
+            <p class="-mt-1 text-xs text-navy-500">{{ __('Serials look like EVA-0001. Empty = taken from the company name.') }} {{ __('0 vouchers = a contract for company visits only.') }}</p>
             <fieldset class="space-y-2">
                 <legend class="field-label">{{ __('How it is used') }}</legend>
                 @foreach (['single' => __('The whole value in one order. If the order is smaller, the rest is lost (the cashier is warned).'), 'balance' => __('Like a balance: what is left stays on the voucher for the next order.')] as $mode => $help)

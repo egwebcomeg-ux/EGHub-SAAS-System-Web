@@ -3,6 +3,7 @@
 namespace App\Services\Push;
 
 use App\Jobs\SendPushNotification;
+use App\Models\CorporateBooking;
 use App\Models\Order;
 use App\Models\Reservation;
 use App\Models\User;
@@ -23,6 +24,7 @@ final class StaffPush
         'order_new' => ['orders.view', ['owner', 'manager', 'cashier'], 'طلب أونلاين أو كول سنتر جديد', 'New online or call-center order'],
         'order_confirm' => ['orders.view', ['owner', 'manager', 'cashier'], 'رد العميل على تأكيد الطلب على واتساب', 'The guest answered the WhatsApp confirmation'],
         'reservation_new' => ['reservations.manage', ['owner', 'manager'], 'حجز ترابيزة جديد', 'New table reservation'],
+        'corporate_booking' => ['contracts.manage', ['owner', 'manager'], 'زيارة شركة مستنية موافقة', 'A company visit waiting for approval'],
         'order_ready' => ['orders.view', ['waiter'], 'الطلب جاهز (طلبات الصالة)', 'Order ready (dine-in orders)'],
     ];
 
@@ -94,6 +96,13 @@ final class StaffPush
         $this->notify('reservation_new', $reservation->branch_id, __('New reservation'),
             __(':name · :n guests · :at', ['name' => $reservation->name, 'n' => $reservation->party_size, 'at' => local_time($reservation->starts_at, 'd/m h:i A')]),
             ['url' => platform_url('app', '/reservations'), 'reservation' => (string) $reservation->id]);
+    }
+
+    public function corporateBookingRequested(CorporateBooking $booking): void
+    {
+        $this->notify('corporate_booking', $booking->branch_id, __('Company visit: :name', ['name' => $booking->contract->name]),
+            __(':name · :n guests · :at', ['name' => $booking->rep_name, 'n' => $booking->party_size, 'at' => local_time($booking->visit_at, 'd/m h:i A')]),
+            ['url' => platform_url('app', '/corporate/bookings'), 'booking' => (string) $booking->id]);
     }
 
     /** A dine-in order is ready: the waiters take it to the table. */

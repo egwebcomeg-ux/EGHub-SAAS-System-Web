@@ -2,6 +2,7 @@
 
 namespace App\Services\Corporate;
 
+use App\Models\CorporateBooking;
 use App\Models\CorporateContract;
 use App\Models\CorporatePayment;
 use App\Models\CorporateVoucher;
@@ -45,7 +46,7 @@ final class CorporateAccount
                 'note' => ($v = trim((string) ($data['note'] ?? ''))) !== '' ? mb_substr($v, 0, 200) : null,
                 'received_by' => $by->id,
             ]);
-            $this->syncPaid($locked);
+            $this->refreshPaid($locked);
             $contract->setRawAttributes($locked->getAttributes(), true);
             Audit::record('corporate.payment', $locked->name, ['amount' => $amount, 'method' => $payment->method, 'reference' => $payment->reference]);
 
@@ -67,7 +68,7 @@ final class CorporateAccount
             }
             $locked->update(['cancelled_at' => now(), 'cancelled_by' => $by->id, 'cancel_reason' => mb_substr($reason, 0, 200)]);
             $contract = CorporateContract::query()->lockForUpdate()->findOrFail($locked->corporate_contract_id);
-            $this->syncPaid($contract);
+            $this->refreshPaid($contract);
             Audit::record('corporate.payment_cancelled', $contract->name, ['amount' => $locked->amount, 'reason' => $reason]);
         });
     }
@@ -99,14 +100,14 @@ final class CorporateAccount
     }
 
     /**
-     * The ledger, oldest first: each issue of vouchers (a charge) and each payment (a credit, a cancelled one shown
-     * but not counted), with the balance after it.
+     * The ledger, oldest first: each issue of vouchers and each confirmed visit (charges) and each payment (a credit,
+     * a cancelled one shown but not counted), with the balance after it.
      *
      * @return Collection<int, array{at:CarbonImmutable, kind:string, label:string, charge:float, credit:float, balance:float, payment:?CorporatePayment}>
      */
     public function ledger(CorporateContract $contract): Collection
     {
-        $issues = CorporateVoucher::query()->where('corporate_contract_id', $contract->id)
+        $issues = CorporateVoucher::query()->where('corporate_contract_id', $contract->id)->whereNull('corporate_booking_id')
             ->selectRaw('created_at, COUNT(*) as n')->groupBy('created_at')->orderBy('created_at')->get()
             ->map(fn ($row) => [
                 'at' => CarbonImmutable::parse($row->created_at), 'kind' => 'issue',
@@ -120,9 +121,16 @@ final class CorporateAccount
                 'charge' => 0.0, 'credit' => $p->cancelled_at ? 0.0 : $p->amount, 'payment' => $p,
             ]);
 
+        // a confirmed visit charges its whole budget (a cancelled one is taken back, so it is not listed)
+        $visits = CorporateBooking::query()->where('corporate_contract_id', $contract->id)->whereIn('status', ['confirmed', 'closed'])->get()
+            ->map(fn (CorporateBooking $b) => [
+                'at' => CarbonImmutable::parse($b->decided_at), 'kind' => 'visit',
+                'label' => __('Visit of :name on :date · :n guests', ['name' => $b->rep_name, 'date' => local_time($b->visit_at, 'Y/m/d'), 'n' => $b->party_size]),
+                'charge' => $b->budget, 'credit' => 0.0, 'payment' => null,
+            ]);
         $balance = 0.0;
 
-        return $issues->concat($payments)->sortBy(fn ($line) => [$line['at']->getTimestamp(), $line['kind'] === 'issue' ? 0 : 1])->values()
+        return $issues->concat($visits)->concat($payments)->sortBy(fn ($line) => [$line['at']->getTimestamp(), $line['kind'] === 'payment' ? 1 : 0])->values()
             ->map(function (array $line) use (&$balance) {
                 $balance = round($balance + $line['charge'] - $line['credit'], 2);
 
@@ -135,8 +143,8 @@ final class CorporateAccount
         return round((float) CorporatePayment::query()->where('corporate_contract_id', $contract->id)->whereNull('cancelled_at')->sum('amount'), 2);
     }
 
-    /** paid_amount / paid_status follow the payments that stand. */
-    private function syncPaid(CorporateContract $contract): void
+    /** paid_amount / paid_status follow the payments that stand and what the company is charged. */
+    public function refreshPaid(CorporateContract $contract): void
     {
         $paid = $this->paidTotal($contract);
         $contract->update(['paid_amount' => $paid, 'paid_status' => CorporateContract::paidStatusFor($paid, $contract->totalValue())]);

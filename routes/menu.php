@@ -4,6 +4,7 @@ use App\Http\Controllers\Menu\AccountController;
 use App\Http\Controllers\Menu\BoardController;
 use App\Http\Controllers\Menu\BrandAssetController;
 use App\Http\Controllers\Menu\CardAppController;
+use App\Http\Controllers\Menu\CompanyPortalController;
 use App\Http\Controllers\Menu\CorporateVoucherController;
 use App\Http\Controllers\Menu\FeedbackController;
 use App\Http\Controllers\Menu\GeoController;
@@ -83,6 +84,9 @@ Route::post('/card', [LoyaltyCardController::class, 'store'])->middleware('throt
 Route::get('/card/{token}', [LoyaltyCardController::class, 'show'])->where('token', '[a-f0-9]{24}')->name('card');
 // what the card's QR opens: the code for the cashier, nothing of the guest's (the card link above is their key)
 Route::get('/c/{code}', [LoyaltyCardController::class, 'scan'])->where('code', '[a-f0-9]{20}')->middleware('throttle:30,1')->name('card.scan');
+// a contracted company's private page: ask for visits, see its account (the link is its key)
+Route::get('/company/{token}', [CompanyPortalController::class, 'show'])->where('token', '[a-f0-9]{24}')->middleware('throttle:30,1')->name('company');
+Route::post('/company/{token}/bookings', [CompanyPortalController::class, 'book'])->where('token', '[a-f0-9]{24}')->middleware('throttle:10,1')->name('company.book');
 // the card as its own small app on the guest's phone (App\Services\Pwa::cardManifest), its live state, a picture, wallet passes
 Route::prefix('/card/{token}')->where(['token' => '[a-f0-9]{24}'])->name('card.')->group(function () {
     Route::get('/manifest.webmanifest', [CardAppController::class, 'manifest'])->middleware('throttle:30,1')->name('manifest');

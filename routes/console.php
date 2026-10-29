@@ -1,8 +1,11 @@
 <?php
 
 use App\Billing\Lifecycle;
+use App\Models\CorporateBooking;
 use App\Models\Tenant;
 use App\Models\TenantSetting;
+use App\Services\Corporate\CorporateBookings;
+use App\Services\Corporate\CorporateVouchers;
 use App\Services\Entitlements;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Loyalty\Packages;
@@ -48,6 +51,17 @@ Artisan::command('egmenu:billing', function (Lifecycle $lifecycle) {
     $this->info("past_due: {$r['past_due']} · downgraded to free: {$r['downgraded']} · reminded: {$r['reminded']} · launch offer reminders: {$r['offer_reminded']}");
 })->purpose('Daily subscription lifecycle: trial/period end → grace → suspension, reminders');
 
+Artisan::command('egmenu:corporate-visits', function (CorporateBookings $bookings) use ($forEachTenant) {
+    $n = 0;
+    $failed = $forEachTenant('egmenu:corporate-visits', Tenant::query()->where('status', 'active')->whereIn('id', CorporateBooking::query()->withoutGlobalScopes()
+        ->where('status', 'confirmed')->select('tenant_id'))->orderBy('id')->get(), function () use ($bookings, &$n) {
+            if (CorporateVouchers::enabled()) {
+                $n += $bookings->closePast();
+            }
+        });
+    $this->info("closed company visits: $n · failed restaurants: $failed");
+})->purpose('Close the company visits of past days: what the meals did not use goes onto the company\'s voucher');
+
 Artisan::command('egmenu:loyalty-expire', function (LoyaltyService $loyalty, Packages $packages, WalletService $wallet) use ($forEachTenant) {
     // runs per restaurant so the tenant scope and plan rights apply
     $n = $p = $c = 0;
@@ -81,6 +95,7 @@ Artisan::command('egmenu:auto-cancel', function (AutoCancel $autoCancel) use ($f
 // withoutOverlapping(N): the lock expires after N minutes, so a run killed half-way (deploy, OOM) never blocks the
 // command for the default 24 hours. Daily/weekly jobs get a lock as long as they can reasonably take.
 Schedule::command('egmenu:billing')->dailyAt('03:00')->withoutOverlapping(60);
+Schedule::command('egmenu:corporate-visits')->dailyAt('04:00')->withoutOverlapping(60);
 Schedule::command('egmenu:loyalty-expire')->dailyAt('03:30')->withoutOverlapping(60);
 Schedule::command('egmenu:backup')->dailyAt('02:30')->withoutOverlapping(120)->runInBackground();
 // per-restaurant backup zips the owners download (plans with the `backups` feature), Sunday night after the platform backup

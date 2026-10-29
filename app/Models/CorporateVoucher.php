@@ -31,8 +31,30 @@ class CorporateVoucher extends TenantModel
     {
         return [
             'value' => 'float', 'balance' => 'float', 'expires_on' => 'date', 'linked_at' => 'datetime', 'pending_at' => 'datetime',
-            'printed_at' => 'datetime', 'print_count' => 'integer',
+            'printed_at' => 'datetime', 'print_count' => 'integer', 'valid_from' => 'date',
         ];
+    }
+
+    /** single (one use, the rest is lost) or balance: the voucher's own (a visit's vouchers) or its contract's. */
+    public function modeName(): string
+    {
+        return $this->mode ?? $this->contract->mode;
+    }
+
+    public function modeLabel(): string
+    {
+        return CorporateContract::pick(CorporateContract::MODES, $this->modeName());
+    }
+
+    /** A visit's meals voucher works from the visit day on (and until its expiry, the same day). */
+    public function isNotYetValid(): bool
+    {
+        return $this->valid_from !== null && $this->valid_from->copy()->startOfDay()->isFuture();
+    }
+
+    public function booking(): BelongsTo
+    {
+        return $this->belongsTo(CorporateBooking::class, 'corporate_booking_id');
     }
 
     public static function newCode(): string

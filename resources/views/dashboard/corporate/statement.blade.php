@@ -37,7 +37,7 @@
                 <tr @class(['line-through opacity-60' => $payment?->cancelled_at]) data-ledger-row="{{ $line['kind'] }}">
                     <td class="whitespace-nowrap">{{ $line['at']->format('Y/m/d') }}</td>
                     <td>
-                        {{ $line['kind'] === 'issue' ? __('Vouchers issued') : __('Payment') }} · {{ $line['label'] }}
+                        {{ ['issue' => __('Vouchers issued'), 'visit' => __('Company visit'), 'payment' => __('Payment')][$line['kind']] }} · {{ $line['label'] }}
                         @if ($payment?->note)<div class="text-xs text-navy-500">{{ $payment->note }}</div>@endif
                         @if ($payment?->cancelled_at)<div class="text-xs text-red-600">{{ __('Cancelled by :name: :reason', ['name' => $payment->canceller?->name ?? '—', 'reason' => $payment->cancel_reason]) }}</div>@endif
                     </td>

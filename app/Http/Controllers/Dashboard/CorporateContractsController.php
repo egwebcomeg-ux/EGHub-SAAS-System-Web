@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use App\Models\CorporateBooking;
 use App\Models\CorporateContract;
 use App\Models\CorporatePayment;
 use App\Models\CorporateVoucher;
@@ -51,6 +52,7 @@ class CorporateContractsController extends Controller
                     ->whereHas('contract', fn ($c) => $c->where('status', '!=', 'void'))->sum('balance'), 2),
                 'month' => round((float) CorporateVoucherRedemption::query()->whereNull('refunded_at')->where('created_at', '>=', now()->startOfMonth())->sum('amount'), 2),
                 'unpaid' => CorporateContract::query()->where('status', '!=', 'void')->where('paid_status', '!=', 'paid')->count(),
+                'visits' => CorporateBooking::query()->where('status', 'requested')->count(),
             ],
         ]);
     }
@@ -86,6 +88,7 @@ class CorporateContractsController extends Controller
 
         return view('dashboard.corporate.show', [
             'contract' => $contract, 'stats' => $service->stats($contract), 'vouchers' => $vouchers, 'filter' => $filter,
+            'visitsWaiting' => $contract->bookings()->where('status', 'requested')->count(),
             'branchNames' => Branch::query()->pluck('name', 'id'),
         ]);
     }
@@ -338,7 +341,9 @@ class CorporateContractsController extends Controller
             'contact_name' => 'nullable|string|max:100',
             'contact_phone' => 'nullable|string|max:20',
             'reference' => 'nullable|string|max:60',
-            'quantity' => ['required', 'integer', 'min:'.($contract?->quantity ?? 1), 'max:'.CorporateVouchers::MAX_QUANTITY],
+            // 0 = a contract for company visits only (their vouchers are made when a visit is confirmed)
+            'quantity' => ['required', 'integer', 'min:'.($contract?->quantity ?? 0), 'max:'.CorporateVouchers::MAX_QUANTITY],
+            'booking_notice_hours' => 'nullable|integer|min:0|max:720',
             'branch_ids' => 'nullable|array|max:100',
             'branch_ids.*' => 'integer',
             'days' => 'nullable|array|max:7',

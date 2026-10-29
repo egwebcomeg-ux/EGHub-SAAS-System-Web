@@ -56,7 +56,7 @@ final class CorporateVouchers
      * @param  array{name:string, contact_name?:?string, contact_phone?:?string, reference?:?string, prefix?:?string, voucher_value:float|string,
      *              quantity:int|string, expires_on:string, mode:string, branch_ids?:?array, days?:?array, hours_from?:?string, hours_to?:?string,
      *              min_order?:float|string|null, paid_amount?:float|string|null, paid_method?:?string, billing?:?string,
-     *              credit_limit?:float|string|null, notes?:?string}  $data
+     *              credit_limit?:float|string|null, booking_notice_hours?:int|string|null, notes?:?string}  $data
      */
     public function createContract(array $data, User $by): CorporateContract
     {
@@ -67,7 +67,9 @@ final class CorporateVouchers
                 'quantity' => (int) $data['quantity'], 'voucher_value' => round((float) $data['voucher_value'], 2),
                 'status' => 'active', 'created_by' => $by->id,
             ]);
-            $this->issue($contract, $contract->quantity);
+            if ($contract->quantity > 0) {
+                $this->issue($contract, $contract->quantity);
+            }
             Audit::record('corporate.created', $contract->name, ['quantity' => $contract->quantity, 'value' => $contract->voucher_value]);
             // what the company paid when signing is its first payment on the statement
             $paid = round(max(0, (float) ($data['paid_amount'] ?? 0)), 2);
@@ -126,6 +128,27 @@ final class CorporateVouchers
         }
     }
 
+    /**
+     * One voucher of its own value, outside the printed batch (a company visit's meals or the rest of its budget):
+     * the next serial of the contract's prefix, its own mode and dates, linked to a guest when given.
+     */
+    public function issueOne(CorporateContract $contract, float $value, string $expiresOn, ?string $validFrom, string $mode, ?int $bookingId = null, ?int $customerId = null): CorporateVoucher
+    {
+        $value = round($value, 2);
+        if ($value <= 0 || $value > self::MAX_VALUE * self::MAX_QUANTITY) {
+            throw new OrderException(__('The voucher value is not valid.'));
+        }
+        $code = $this->uniqueCodes(1)[0];
+
+        return CorporateVoucher::query()->create([
+            'corporate_contract_id' => $contract->id,
+            'serial' => $contract->prefix.'-'.str_pad((string) ($this->lastSerialNumber($contract->prefix) + 1), 4, '0', STR_PAD_LEFT),
+            'code' => $code, 'value' => $value, 'balance' => $value, 'status' => 'active', 'expires_on' => $expiresOn,
+            'valid_from' => $validFrom, 'mode' => $mode, 'corporate_booking_id' => $bookingId, 'print_count' => 0,
+            'customer_id' => $customerId, 'linked_at' => $customerId ? now() : null,
+        ]);
+    }
+
     /** Pause, resume or void a contract. Void is final. */
     public function setStatus(CorporateContract $contract, string $status): void
     {
@@ -146,7 +169,8 @@ final class CorporateVouchers
         DB::transaction(function () use ($contract, $day) {
             $from = $contract->expires_on?->format('Y-m-d');
             $contract->update(['expires_on' => $day]);
-            $contract->vouchers()->where('expires_on', '<', $day)->update(['expires_on' => $day, 'updated_at' => now()]);
+            // a visit's meals voucher stays on its day
+            $contract->vouchers()->whereNull('valid_from')->where('expires_on', '<', $day)->update(['expires_on' => $day, 'updated_at' => now()]);
             Audit::record('corporate.extended', $contract->name, ['from' => $from, 'to' => $day]);
         });
     }
@@ -257,6 +281,9 @@ final class CorporateVouchers
         if ($contract->min_order && $total > 0 && $total + 0.004 < $contract->min_order) {
             return $refuse(__('The order must be at least :amount to use this voucher.', ['amount' => money($contract->min_order)]));
         }
+        if ($voucher->isNotYetValid()) {
+            return $refuse(__('This voucher works from :date.', ['date' => local_time($voucher->valid_from, 'Y/m/d')]));
+        }
         if ($voucher->isExpired()) {
             return $refuse(__('Expired on :date.', ['date' => local_time($voucher->expires_on, 'Y/m/d')]), true);
         }
@@ -276,7 +303,7 @@ final class CorporateVouchers
 
         return [
             'id' => $v->id, 'code' => $byCode ? $v->code : null, 'serial' => $v->serial, 'company' => $v->contract->name,
-            'value' => $v->value, 'balance' => $v->balance, 'mode' => $v->contract->mode, 'modeLabel' => $v->contract->modeLabel(),
+            'value' => $v->value, 'balance' => $v->balance, 'mode' => $v->modeName(), 'modeLabel' => $v->modeLabel(),
             'expires' => local_time($v->expires_on, 'Y/m/d'), 'expiresSort' => $v->expires_on->format('Y-m-d'),
             'ok' => $check['ok'], 'reason' => $check['reason'], 'expired' => $check['expired'],
             'linked' => $v->customer_id ? CorporateVoucher::maskPhone($v->customer?->phone) : null,
@@ -396,7 +423,7 @@ final class CorporateVouchers
             'cancelled' => $rows->every(fn ($r) => $r->refunded_at !== null), 'at' => $first->created_at, 'branch' => $first->branch, 'cashier' => $first->cashier,
             'lines' => $rows->map(fn (CorporateVoucherRedemption $r) => [
                 'serial' => $r->voucher?->serial, 'company' => $r->voucher?->contract?->name, 'amount' => $r->amount, 'lost' => $r->forfeited,
-                'balance' => (float) ($r->voucher?->balance ?? 0), 'mode' => $r->voucher?->contract?->mode,
+                'balance' => (float) ($r->voucher?->balance ?? 0), 'mode' => $r->voucher?->modeName(),
                 'expires' => $r->voucher ? local_time($r->voucher->expires_on, 'Y/m/d') : '', 'exception' => $r->exception_reason !== null,
             ])->values()->all(),
         ];
@@ -459,7 +486,7 @@ final class CorporateVouchers
                 break;
             }
             $applied = round(min($v->balance, $due), 2);
-            $forfeited = $v->contract->mode === 'single' ? round($v->balance - $applied, 2) : 0.0;
+            $forfeited = $v->modeName() === 'single' ? round($v->balance - $applied, 2) : 0.0;
             $balance = round($v->balance - $applied - $forfeited, 2);
             // the balance read under the lock must still be there: a second payment of the same voucher finds 0 rows
             $updated = CorporateVoucher::query()->whereKey($v->id)->where('balance', $v->balance)->where('status', 'active')
@@ -672,6 +699,7 @@ final class CorporateVouchers
             'hours_from' => $from && $to ? $from : null, 'hours_to' => $from && $to ? $to : null,
             'min_order' => ($m = (float) ($data['min_order'] ?? 0)) > 0 ? round($m, 2) : null,
             'billing' => $billing,
+            'booking_notice_hours' => max(0, min(720, (int) ($data['booking_notice_hours'] ?? 24))),
             'credit_limit' => $billing === 'account' && ($l = (float) ($data['credit_limit'] ?? 0)) > 0 ? round($l, 2) : null,
             'notes' => ($v = trim((string) ($data['notes'] ?? ''))) !== '' ? mb_substr($v, 0, 2000) : null,
         ];

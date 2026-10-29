@@ -43,7 +43,8 @@ class CorporateContract extends TenantModel
     {
         return [
             'voucher_value' => 'float', 'quantity' => 'integer', 'expires_on' => 'date', 'branch_ids' => 'array', 'days' => 'array',
-            'min_order' => 'float', 'paid_amount' => 'float', 'credit_limit' => 'float',
+            'min_order' => 'float', 'paid_amount' => 'float', 'credit_limit' => 'float', 'extra_value' => 'float',
+            'booking_notice_hours' => 'integer',
         ];
     }
 
@@ -72,10 +73,21 @@ class CorporateContract extends TenantModel
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    /** What the company owes for the whole contract. */
+    /** What the company is charged for the whole contract: the printed vouchers and the confirmed visits. */
     public function totalValue(): float
     {
-        return round($this->voucher_value * $this->quantity, 2);
+        return round($this->voucher_value * $this->quantity + (float) $this->extra_value, 2);
+    }
+
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(CorporateBooking::class);
+    }
+
+    /** The company's private page (book a visit, see its account), or null until a manager makes one. */
+    public function portalUrl(): ?string
+    {
+        return $this->portal_token ? tenant()->url('company/'.$this->portal_token) : null;
     }
 
     public static function paidStatusFor(float $paid, float $total): string

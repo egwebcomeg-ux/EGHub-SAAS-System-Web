@@ -141,6 +141,7 @@ final class DashboardApps
             $app('customers', 'dash.campaigns', __('Campaigns'), 'M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13', 'marketing.manage', 'campaigns'),
             $app('customers', 'dash.wallet', __('Wallet'), 'M20 12V8H6a2 2 0 0 1 0-4h12v4M4 6v12a2 2 0 0 0 2 2h14v-4M18 12a2 2 0 0 0 0 4h4v-4z', 'wallet.manage', 'wallet'),
             $app('customers', 'dash.corporate', __('Corporate contracts'), 'M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M2 21h20M8 7h4M8 11h4M8 15h4', 'contracts.manage', 'corporate_vouchers'),
+            $app('customers', 'dash.corporate.bookings', __('Company visits'), 'M8 2v4M16 2v4M3 9h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM8 14h3M8 17h6', 'contracts.manage|reservations.manage', 'corporate_vouchers'),
             $app('customers', 'dash.redeem', __('Redeem vouchers'), 'M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4zM8 12l2.5 2.5L16 9', 'vouchers.redeem', 'corporate_vouchers'),
             $app('customers', 'dash.kb', __('Knowledge base'), 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5M9.5 8.5a2.5 2.5 0 1 1 3 2.4c-.6.2-1 .7-1 1.3M11.5 14.5h.01', 'kb.manage', 'knowledge_base'),
 
