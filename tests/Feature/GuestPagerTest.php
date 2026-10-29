@@ -167,6 +167,9 @@ class GuestPagerTest extends TenantTestCase
 
     public function test_open_tickets_expire_after_the_hours_set(): void
     {
+        // a fixed afternoon: four hours on from a late evening could cross Cairo's daylight-saving change, where the
+        // local times stored repeat an hour
+        $this->travelTo(now()->setDate(2026, 6, 10)->setTime(12, 0));
         $a = $this->restaurant('cafe-a', 'full');
         $owner = $this->owner($a);
         $ticket = $this->actingAs($owner)->postJson($this->dashUrl('/pager/tickets'))->json('ticket');
