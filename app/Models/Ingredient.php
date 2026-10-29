@@ -5,9 +5,18 @@ namespace App\Models;
 use App\Models\Concerns\TenantModel;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-/** A raw material counted in one unit; its cost is the weighted average of what was bought. */
+/**
+ * A raw material or a packaging material (cups, lids, bags …) counted in one unit; its cost is the weighted average of
+ * what was bought.
+ */
 class Ingredient extends TenantModel
 {
+    /** kind => [arabic, english] */
+    public const KINDS = [
+        'ingredient' => ['خامة', 'Ingredient'],
+        'packaging' => ['تعبئة وتغليف', 'Packaging'],
+    ];
+
     public const UNITS = [
         'g' => ['جرام', 'g'],
         'kg' => ['كيلو', 'kg'],
@@ -24,6 +33,13 @@ class Ingredient extends TenantModel
     public function stocks(): HasMany
     {
         return $this->hasMany(IngredientStock::class);
+    }
+
+    public function kindLabel(): string
+    {
+        $k = self::KINDS[$this->kind] ?? [$this->kind, $this->kind];
+
+        return app()->getLocale() === 'en' ? $k[1] : $k[0];
     }
 
     public function unitLabel(): string

@@ -2,8 +2,15 @@
 @section('title', __('Inventory'))
 
 @section('content')
-<x-dash.page-header :title="__('Inventory')" :help="__('Each order takes its recipe out of the branch stock, and a cancelled order puts it back. Receive goods, record waste and enter your counts here.')" />
+<x-dash.page-header :title="__('Inventory')" :help="__('Each order takes its recipe and packaging out of the branch stock, and a cancelled order puts it back. Receive goods, record waste and enter your counts here.')" />
 @include('dashboard.inventory.tabs')
+
+<div class="mb-3 flex flex-wrap gap-2" data-kind-filter>
+    <a href="{{ route('dash.inventory') }}" @class(['btn min-h-9 rounded-full px-4', 'bg-navy-800 text-white' => ! $kind, 'bg-white text-navy-700 border border-navy-100' => $kind])>{{ __('All') }}</a>
+    @foreach (\App\Models\Ingredient::KINDS as $key => $label)
+        <a href="{{ route('dash.inventory', ['kind' => $key]) }}" @class(['btn min-h-9 rounded-full px-4', 'bg-navy-800 text-white' => $kind === $key, 'bg-white text-navy-700 border border-navy-100' => $kind !== $key])>{{ app()->getLocale() === 'en' ? $label[1] : $label[0] }}</a>
+    @endforeach
+</div>
 
 @php
     $low = $ingredients->where('is_low', true);
@@ -17,11 +24,12 @@
 <div class="grid gap-4 xl:grid-cols-3">
     <section class="card overflow-x-auto xl:col-span-2">
         <table class="table-base">
-            <thead><tr><th>{{ __('Ingredient') }}</th><th>{{ __('In stock') }}</th><th>{{ __('Alert under') }}</th><th>{{ __('Unit cost') }}</th><th></th></tr></thead>
+            <thead><tr><th>{{ __('Ingredient') }}</th><th>{{ __('Kind') }}</th><th>{{ __('In stock') }}</th><th>{{ __('Alert under') }}</th><th>{{ __('Unit cost') }}</th><th></th></tr></thead>
             <tbody>
             @forelse ($ingredients as $i)
                 <tr @class(['opacity-50' => !$i->is_active])>
                     <td class="font-semibold">{{ $i->name }}</td>
+                    <td><span @class(['badge', 'bg-sky-100 text-sky-800' => $i->kind === 'packaging', 'bg-navy-50 text-navy-600' => $i->kind !== 'packaging'])>{{ $i->kindLabel() }}</span></td>
                     <td>
                         <span @class(['font-bold', 'text-amber-700' => $i->is_low])>{{ rtrim(rtrim(number_format($i->on_hand, 3, '.', ''), '0'), '.') }}</span>
                         <span class="text-xs text-navy-500">{{ $i->unitLabel() }}</span>
@@ -42,7 +50,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="5" class="py-6 text-center text-navy-500">{{ __('Add your first ingredient, e.g. coffee beans in grams or milk in ml.') }}</td></tr>
+                <tr><td colspan="6" class="py-6 text-center text-navy-500">{{ __('Add your first ingredient, e.g. coffee beans in grams or milk in ml.') }}</td></tr>
             @endforelse
             </tbody>
         </table>
@@ -57,7 +65,7 @@
                 <select class="field" name="type" required onchange="this.form.querySelector('[data-cost]').classList.toggle('hidden', this.value !== 'purchase'); this.form.querySelector('[data-qty-label]').textContent = this.value === 'count' ? @js(__('Quantity counted on the shelf')) : @js(__('Quantity'))">
                     <option value="purchase">{{ __('Receive goods (purchase)') }}</option>
                     <option value="waste">{{ __('Waste / spoiled') }}</option>
-                    <option value="count">{{ __('Stock count') }}</option>
+                    @if ($isManager)<option value="count">{{ __('Stock count') }}</option>@endif
                 </select>
                 <select class="field" name="ingredient_id" required>
                     @foreach ($ingredients->where('is_active', true) as $i)<option value="{{ $i->id }}">{{ $i->name }} ({{ $i->unitLabel() }})</option>@endforeach
@@ -70,6 +78,7 @@
                 </div>
                 <input class="field" name="note" maxlength="200" placeholder="{{ __('Note (supplier, reason…)') }}">
                 <button class="btn-primary w-full">{{ __('Save movement') }}</button>
+                <p class="text-xs text-navy-500">{{ __('Counting many items? Use a full count sheet.') }} <a href="{{ route('dash.inventory.counts') }}" class="text-brand-700 underline">{{ __('Stock counts') }}</a></p>
             </form>
         @endif
         <form method="post" action="{{ route('dash.inventory.store') }}" class="card space-y-2">

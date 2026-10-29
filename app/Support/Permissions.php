@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Models\User;
+
 /**
  * Dashboard permissions and the default permission set of each staff role. With the `staff_roles` plan feature the
  * owner may add permissions to one staff member on top of their role (spatie direct permissions, see
@@ -132,6 +134,17 @@ final class Permissions
             'hint' => ['شاشة الطيار على الموبايل: طلباته للتوصيل بس', 'The driver screen on the phone: their own deliveries only'],
         ],
     ];
+
+    /**
+     * Roles that approve what changes stock or money after the fact (posting a stock count, cancelling a posted
+     * purchase). A staff member given a permission on top of their role does the daily work, not these.
+     */
+    public const MANAGER_ROLES = ['owner', 'manager'];
+
+    public static function isManager(User $user): bool
+    {
+        return $user->hasAnyRole(self::MANAGER_ROLES);
+    }
 
     public static function label(string $permission): string
     {

@@ -1,4 +1,9 @@
-<input class="field" name="name" value="{{ $i?->name }}" required maxlength="80" placeholder="{{ __('Name, e.g. Coffee beans') }}">
+<input class="field" name="name" value="{{ $i?->name }}" required maxlength="80" placeholder="{{ __('Name, e.g. Coffee beans or Takeaway cup 12oz') }}">
+<select class="field" name="kind" aria-label="{{ __('Kind') }}">
+    @foreach (\App\Models\Ingredient::KINDS as $key => $label)
+        <option value="{{ $key }}" @selected(($i?->kind ?? request('kind', 'ingredient')) === $key)>{{ app()->getLocale() === 'en' ? $label[1] : $label[0] }}</option>
+    @endforeach
+</select>
 <select class="field" name="unit" required>
     @foreach (\App\Models\Ingredient::UNITS as $key => $label)
         <option value="{{ $key }}" @selected($i?->unit === $key)>{{ app()->getLocale() === 'en' ? $label[1] : $label[0] }}</option>

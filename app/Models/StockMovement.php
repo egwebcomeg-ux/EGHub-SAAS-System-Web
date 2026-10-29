@@ -5,7 +5,10 @@ namespace App\Models;
 use App\Models\Concerns\TenantModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-/** One change of stock: purchase, sale (order), return (cancelled order), waste or a count correction. */
+/**
+ * One change of stock: purchase (negative when a posted purchase is cancelled), sale (order), return (cancelled order),
+ * waste or a count correction. Movements of a purchase invoice or a count sheet point at it.
+ */
 class StockMovement extends TenantModel
 {
     public const TYPES = [
@@ -39,6 +42,16 @@ class StockMovement extends TenantModel
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    public function purchase(): BelongsTo
+    {
+        return $this->belongsTo(Purchase::class);
+    }
+
+    public function stockCount(): BelongsTo
+    {
+        return $this->belongsTo(StockCount::class);
     }
 
     public function typeLabel(): string

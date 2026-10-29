@@ -5,7 +5,7 @@
 <div class="dash-head">
     <div>
         <h1 class="page-title">{{ __('Recipe') }}: {{ $item->name }}</h1>
-        <p class="dash-help">{{ __('What one portion uses. Lines tied to an option (e.g. Large) are taken only when the guest picks it.') }}</p>
+        <p class="dash-help">{{ __('What one portion uses. Lines tied to an option (e.g. Large) are taken only when the guest picks it.') }} {{ __('Mark packaging (the takeaway cup and lid) as takeaway only: dine-in orders do not use it.') }}</p>
     </div>
     <a href="{{ route('dash.inventory.recipes') }}" class="btn-ghost">{{ __('Back') }}</a>
 </div>
@@ -15,8 +15,8 @@
 @else
     @php
         $options = $item->optionGroups->flatMap(fn ($g) => $g->options->map(fn ($o) => ['id' => $o->id, 'label' => $g->name . ': ' . $o->name]));
-        $rows = $lines->map(fn ($l) => ['ingredient_id' => $l->ingredient_id, 'quantity' => (float) $l->quantity, 'option_id' => $l->item_option_id])->all();
-        $rows = array_merge($rows, array_fill(0, max(0, min($max - count($rows), 5)), ['ingredient_id' => null, 'quantity' => '', 'option_id' => null]));
+        $rows = $lines->map(fn ($l) => ['ingredient_id' => $l->ingredient_id, 'quantity' => (float) $l->quantity, 'option_id' => $l->item_option_id, 'takeaway_only' => $l->takeaway_only])->all();
+        $rows = array_merge($rows, array_fill(0, max(0, min($max - count($rows), 5)), ['ingredient_id' => null, 'quantity' => '', 'option_id' => null, 'takeaway_only' => false]));
     @endphp
     <form method="post" action="{{ route('dash.inventory.recipe.save', $item) }}" class="card space-y-3">
         @csrf
@@ -24,16 +24,21 @@
             <span>{{ __('Price') }}: <b>{{ money($item->price) }}</b></span>
             <span>{{ __('Ingredient cost') }}: <b>{{ money($cost) }}</b></span>
             @if ($item->price > 0 && $cost > 0)<span>{{ __('Food cost') }}: <b dir="ltr">{{ round($cost / $item->price * 100) }}%</b></span>@endif
+            @if ($takeawayCost != $cost)<span data-takeaway-cost>{{ __('With takeaway packaging') }}: <b>{{ money($takeawayCost) }}</b>@if ($item->price > 0) <b dir="ltr">({{ round($takeawayCost / $item->price * 100) }}%)</b>@endif</span>@endif
         </div>
         <table class="table-base">
-            <thead><tr><th>{{ __('Ingredient') }}</th><th class="w-36">{{ __('Quantity') }}</th>@if ($options->isNotEmpty())<th>{{ __('Only with option') }}</th>@endif</tr></thead>
+            <thead><tr><th>{{ __('Ingredient') }}</th><th class="w-36">{{ __('Quantity') }}</th>@if ($options->isNotEmpty())<th>{{ __('Only with option') }}</th>@endif<th>{{ __('Takeaway / delivery only') }}</th></tr></thead>
             <tbody>
             @foreach ($rows as $n => $row)
                 <tr>
                     <td>
                         <select class="field min-h-9" name="lines[{{ $n }}][ingredient_id]">
                             <option value="">—</option>
-                            @foreach ($ingredients as $i)<option value="{{ $i->id }}" @selected($row['ingredient_id'] === $i->id)>{{ $i->name }} ({{ $i->unitLabel() }})</option>@endforeach
+                            @foreach ($ingredients->groupBy('kind') as $group)
+                                <optgroup label="{{ $group->first()->kindLabel() }}">
+                                    @foreach ($group as $i)<option value="{{ $i->id }}" @selected($row['ingredient_id'] === $i->id)>{{ $i->name }} ({{ $i->unitLabel() }})</option>@endforeach
+                                </optgroup>
+                            @endforeach
                         </select>
                     </td>
                     <td><input class="field min-h-9" name="lines[{{ $n }}][quantity]" type="number" step="0.001" min="0" value="{{ $row['quantity'] }}"></td>
@@ -45,6 +50,7 @@
                             </select>
                         </td>
                     @endif
+                    <td><input type="checkbox" name="lines[{{ $n }}][takeaway_only]" value="1" @checked($row['takeaway_only']) class="size-4 accent-brand-600" aria-label="{{ __('Takeaway / delivery only') }}"></td>
                 </tr>
             @endforeach
             </tbody>
