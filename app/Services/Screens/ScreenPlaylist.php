@@ -62,8 +62,8 @@ final class ScreenPlaylist
     }
 
     /**
-     * Order numbers ready for pickup (and still being prepared) in the screen's branch: numbers only, no names,
-     * no items. Orders that turned ready in the last READY_MINUTES, and pager tickets called today.
+     * Order numbers ready for pickup (and still being prepared) in the screen's branch (numbers()), when the plan has
+     * the pager or the customer display.
      *
      * @return array{ready: list<int|string>, preparing: list<int|string>}
      */
@@ -72,7 +72,19 @@ final class ScreenPlaylist
         if (! Entitlements::current()->allows(TvSlide::READY_FEATURE)) {
             return ['ready' => [], 'preparing' => []];
         }
-        $branch = $this->branchFor($branchId);
+
+        return self::numbers($this->branchFor($branchId));
+    }
+
+    /**
+     * The numbers of one branch, for the TV "ready numbers" slide and the order-number board (/board): numbers only,
+     * no names, no items. Orders of the last 12 hours being prepared or that turned ready in the last READY_MINUTES,
+     * and pager tickets called today.
+     *
+     * @return array{ready: list<int|string>, preparing: list<int|string>}
+     */
+    public static function numbers(Branch $branch): array
+    {
         $orders = Order::query()->where('branch_id', $branch->id)
             ->where(fn ($q) => $q->whereIn('status', ['new', 'preparing'])
                 ->orWhere(fn ($q) => $q->where('status', 'ready')->where('ready_at', '>=', now()->subMinutes(self::READY_MINUTES))))
