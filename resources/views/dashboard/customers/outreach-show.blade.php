@@ -4,7 +4,7 @@
 @section('content')
 <x-dash.page-header :title="$campaign->name" :help="__('Tap «Send» on each guest: WhatsApp opens on your phone with their message ready, you press send there. The row is marked at once.')">
     <x-slot:actions>
-        <a href="{{ route('dash.outreach') }}" class="btn-ghost">{{ __('All campaigns') }}</a>
+        <a href="{{ route('dash.campaigns') }}" class="btn-ghost">{{ __('All campaigns') }}</a>
         @can('customers.import')<a href="{{ route('dash.outreach.export', $campaign) }}" class="btn-ghost" data-outreach-export>⬇ {{ __('Links as CSV (for SMS)') }}</a>@endcan
     </x-slot:actions>
 </x-dash.page-header>

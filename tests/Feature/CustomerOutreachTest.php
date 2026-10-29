@@ -13,7 +13,7 @@ use App\Models\LoyaltyProgram;
 use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\Tenant;
-use App\Services\Customers\Audiences;
+use App\Services\Customers\Segments;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Settings;
 use Illuminate\Support\Facades\Log;
@@ -21,8 +21,8 @@ use Illuminate\Support\Str;
 use Tests\TenantTestCase;
 
 /**
- * What the restaurant does with its guest list: the groups on the customers page, the free manual WhatsApp campaign
- * (send list, «وقف», results), the Meta Ads export, bulk SMS when a provider is set, and the welcome gift.
+ * What the restaurant does with its guest list: the groups on the customers page, the free campaign sent from the
+ * staff's own phone (send list, «وقف», results), the Meta Ads export, SMS when a provider is set, and the welcome gift.
  */
 class CustomerOutreachTest extends TenantTestCase
 {
@@ -45,13 +45,14 @@ class CustomerOutreachTest extends TenantTestCase
     /** One guest per group at cafe-a, and lookalikes at cafe-b that must never count there. */
     private function guestList(Tenant $a): array
     {
+        $recent = [['created_at' => now()->subDays(2)], ['created_at' => now()->subDays(20)], ['created_at' => now()->subDays(50)]];
         $g = [
             'new' => $this->customer($a, '01000000001', ['visits_count' => 1, 'last_visit_at' => now()->subDays(3), 'total_spent' => 100], [['created_at' => now()->subDays(3)]]),
-            'loyal' => $this->customer($a, '01000000002', ['visits_count' => 5, 'last_visit_at' => now()->subDays(2), 'total_spent' => 500], [['created_at' => now()->subDays(60)]]),
-            'away' => $this->customer($a, '01000000003', ['visits_count' => 2, 'last_visit_at' => now()->subDays(45), 'total_spent' => 200], [['created_at' => now()->subDays(45)]]),
-            'top' => $this->customer($a, '01000000004', ['visits_count' => 2, 'last_visit_at' => now()->subDays(10), 'total_spent' => 9000], [['created_at' => now()->subDays(40)]]),
+            'regular' => $this->customer($a, '01000000002', ['visits_count' => 5, 'last_visit_at' => now()->subDays(2), 'total_spent' => 500], $recent),
+            'lost' => $this->customer($a, '01000000003', ['visits_count' => 2, 'last_visit_at' => now()->subDays(75), 'total_spent' => 200], [['created_at' => now()->subDays(75)]]),
+            'vip' => $this->customer($a, '01000000004', ['visits_count' => 2, 'last_visit_at' => now()->subDays(10), 'total_spent' => 9000], [['created_at' => now()->subDays(40)]]),
             'imported' => $this->customer($a, '01000000005', ['source' => 'import', 'total_spent' => 300]),
-            'birthday' => $this->customer($a, '01000000006', ['birthday' => now()->subYears(30)->startOfMonth()->addDays(2)]),
+            'birthday' => $this->customer($a, '01000000006', ['birthday' => now()->subYears(30)->addDays(2)]),
         ];
         // an imported guest who already ordered online is not "never ordered online"
         $this->customer($a, '01000000007', ['source' => 'import'], [['source' => 'online', 'created_at' => now()->subDays(50)]]);
@@ -69,21 +70,21 @@ class CustomerOutreachTest extends TenantTestCase
     {
         $a = $this->restaurant('cafe-a');
         $g = $this->guestList($a);
-        $summary = collect($this->as($a, fn () => app(Audiences::class)->summary()))->keyBy('key');
+        $summary = collect($this->as($a, fn () => app(Segments::class)->summary()))->keyBy('key');
 
-        foreach (['new', 'loyal', 'away', 'top', 'imported', 'birthday'] as $key) {
-            $ids = $this->as($a, fn () => app(Audiences::class)->query($key)->pluck('id')->all());
-            $this->assertContains($g[$key]->id, $ids, $key);
+        foreach (['new', 'regular', 'lost', 'vip', 'imported', 'birthday'] as $key) {
+            $this->assertSame([$g[$key]->id], $this->as($a, fn () => app(Segments::class)->query($key)->pluck('id')->all()), $key);
         }
         $this->assertSame(1, $summary['imported']['count']);
         $this->assertSame(300.0, $summary['imported']['revenue']);
-        $this->assertSame(1, $summary['loyal']['count']);
-        $this->assertSame(1, $summary['new']['count']);
-        $this->assertSame([$g['top']->id], $this->as($a, fn () => app(Audiences::class)->query('top')->pluck('id')->all()));
+        $this->assertSame(1, $summary['regular']['count']);
+        $this->assertSame(0, $summary['at_risk']['count']);
+        // each group says what to do about it
+        $this->assertStringContainsString('أونلاين', $summary['imported']['action']);
 
-        $this->actingAs($this->owner($a))->get($this->dashUrl('/customers?audience=imported'))->assertOk()
-            ->assertSee('data-audience="imported"', false)->assertSee('data-audience-action', false)->assertSee('data-meta-guide', false)
-            ->assertSee('01000000005')->assertDontSee('01000000002');
+        $this->actingAs($this->owner($a))->get($this->dashUrl('/customers?segment=imported'))->assertOk()
+            ->assertSee('data-segment="imported"', false)->assertSee('data-segment-action', false)->assertSee('data-meta-guide', false)
+            ->assertSee('عرّفهم إن محلك بقى أونلاين')->assertSee('01000000005')->assertDontSee('01000000002');
     }
 
     public function test_the_manual_campaign_builds_a_send_list_without_opted_out_guests_and_counts_results(): void
@@ -95,9 +96,9 @@ class CustomerOutreachTest extends TenantTestCase
         $sara = $this->customer($a, '01033333333', ['source' => 'import', 'name' => 'Sara']);
         $owner = $this->owner($a);
 
-        $this->actingAs($owner)->post($this->dashUrl('/customers/outreach'), [
-            'name' => 'We are online', 'audience' => 'imported', 'message' => 'أهلاً {name} كودك {code} واطلب من {link}',
-            'with_coupon' => '1', 'coupon_type' => 'percent', 'coupon_value' => 15, 'coupon_days' => 7,
+        $this->actingAs($owner)->post($this->dashUrl('/campaigns'), [
+            'name' => 'We are online', 'channel' => 'manual', 'segment' => 'imported', 'message' => 'أهلاً {name} كودك {code} واطلب من {link}',
+            'personal_coupon' => '1', 'personal_type' => 'percent', 'personal_value' => 15, 'personal_days' => 7,
         ])->assertRedirect();
         $campaign = $this->as($a, fn () => Campaign::query()->where('channel', 'manual')->sole());
         $rows = $this->as($a, fn () => CampaignRecipient::query()->with('coupon')->orderBy('id')->get());
@@ -126,9 +127,8 @@ class CustomerOutreachTest extends TenantTestCase
 
         // a later campaign leaves Sara out («وقف») and Mona too: she has ordered online now
         $this->customer($a, '01044444444', ['source' => 'import', 'name' => 'Omar']);
-        $this->actingAs($owner)->post($this->dashUrl('/customers/outreach'), ['name' => 'Again', 'audience' => 'imported', 'message' => 'Hi {name}']);
+        $this->actingAs($owner)->post($this->dashUrl('/campaigns'), ['name' => 'Again', 'channel' => 'manual', 'segment' => 'imported', 'message' => 'Hi {name}']);
         $this->assertSame(['01044444444'], $this->as($a, fn () => CampaignRecipient::query()->where('campaign_id', '!=', $campaign->id)->pluck('phone')->all()));
-        // and the paid WhatsApp campaigns page does not list the manual ones
         $this->assertSame(0, $this->as($a, fn () => Campaign::query()->where('channel', 'whatsapp')->count()));
     }
 
@@ -137,7 +137,7 @@ class CustomerOutreachTest extends TenantTestCase
         $a = $this->restaurant('cafe-a');
         $b = $this->restaurant('cafe-b');
         $this->customer($b, '01011111111', ['source' => 'import']);
-        $this->actingAs($this->owner($b))->post($this->dashUrl('/customers/outreach'), ['name' => 'B', 'audience' => 'imported', 'message' => 'Hi']);
+        $this->actingAs($this->owner($b))->post($this->dashUrl('/campaigns'), ['name' => 'B', 'channel' => 'manual', 'segment' => 'imported', 'message' => 'Hi']);
         $campaign = $this->as($b, fn () => Campaign::query()->sole());
         $row = $this->as($b, fn () => CampaignRecipient::query()->sole());
 
@@ -151,7 +151,7 @@ class CustomerOutreachTest extends TenantTestCase
         $a = $this->restaurant('cafe-a');
         $mona = $this->customer($a, '01011111111', ['source' => 'import', 'name' => 'Mona', 'addresses' => [['label' => '', 'zone_id' => null, 'text' => 'Road 9']]]);
         $owner = $this->owner($a);
-        $this->actingAs($owner)->post($this->dashUrl('/customers/outreach'), ['name' => 'Invite', 'audience' => 'imported', 'message' => 'Hi {name}: {link}', 'with_claim' => '1']);
+        $this->actingAs($owner)->post($this->dashUrl('/campaigns'), ['name' => 'Invite', 'channel' => 'manual', 'segment' => 'imported', 'message' => 'Hi {name}: {link}', 'with_claim' => '1']);
         $campaign = $this->as($a, fn () => Campaign::query()->sole());
         $row = $this->as($a, fn () => CampaignRecipient::query()->sole());
         $this->assertStringStartsWith('http://egmenu.test/cafe-a/me/claim/', $row->claim_link); // the restaurant's own address
@@ -165,6 +165,8 @@ class CustomerOutreachTest extends TenantTestCase
         $this->get($row->claim_link)->assertOk()->assertSee('Road 9');
         // a cashier can neither build campaigns nor export
         $cashier = $this->staff($a, 'cashier', 'cash@cafe-a.test');
+        $this->actingAs($cashier)->get($this->dashUrl('/campaigns'))->assertForbidden();
+        $this->actingAs($cashier)->post($this->dashUrl('/campaigns'), ['name' => 'X', 'channel' => 'manual', 'segment' => 'imported', 'message' => 'Hi'])->assertForbidden();
         $this->actingAs($cashier)->get($this->dashUrl('/customers/outreach'))->assertForbidden();
         $this->actingAs($cashier)->get($this->dashUrl("/customers/outreach/{$campaign->id}/links.csv"))->assertForbidden();
     }
@@ -176,7 +178,7 @@ class CustomerOutreachTest extends TenantTestCase
         $this->customer($a, '01022222222', ['source' => 'import', 'whatsapp_opt_out' => true]);
         $this->customer($this->restaurant('cafe-b'), '01033333333', ['source' => 'import']);
 
-        $csv = $this->actingAs($this->owner($a))->get($this->dashUrl('/customers/audience-export?audience=imported'))->assertOk()->streamedContent();
+        $csv = $this->actingAs($this->owner($a))->get($this->dashUrl('/customers/audience-export?segment=imported'))->assertOk()->streamedContent();
         $lines = array_values(array_filter(explode("\n", trim($csv))));
         $this->assertSame('phone,fn,ln,email,country', $lines[0]);
         $this->assertSame('+201011111111,mona,"adel hassan",mona@example.com,eg', $lines[1]);
@@ -195,7 +197,7 @@ class CustomerOutreachTest extends TenantTestCase
         $this->customer($a, '01011111111', ['source' => 'import', 'name' => 'Mona']);
         $this->customer($a, '01022222222', ['source' => 'import', 'name' => 'Sara']);
         $owner = $this->owner($a);
-        $this->actingAs($owner)->post($this->dashUrl('/customers/outreach'), ['name' => 'SMS', 'audience' => 'imported', 'message' => 'Hi {name}']);
+        $this->actingAs($owner)->post($this->dashUrl('/campaigns'), ['name' => 'SMS', 'channel' => 'manual', 'segment' => 'imported', 'message' => 'Hi {name}']);
         $campaign = $this->as($a, fn () => Campaign::query()->sole());
 
         config(['sms.driver' => null]);
@@ -211,6 +213,27 @@ class CustomerOutreachTest extends TenantTestCase
         Log::shouldHaveReceived('info')->with('SMS', ['to' => '01011111111', 'text' => 'Hi Mona'])->once();
         Log::shouldNotHaveReceived('info', ['SMS', ['to' => '01022222222', 'text' => 'Hi Sara']]);
         $this->assertSame(['sent', 'skipped'], $this->as($a, fn () => CampaignRecipient::query()->orderBy('id')->pluck('sms_status')->all()));
+    }
+
+    public function test_sent_via_sms_the_list_goes_out_at_once_only_with_a_provider(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $this->customer($a, '01011111111', ['source' => 'import', 'name' => 'Mona']);
+        $owner = $this->owner($a);
+        $send = ['name' => 'By SMS', 'channel' => 'sms', 'segment' => 'imported', 'message' => 'Hi {name}'];
+
+        config(['sms.driver' => null]);
+        $this->actingAs($owner)->get($this->dashUrl('/campaigns'))->assertOk()->assertSee('data-via="manual"', false)->assertDontSee('data-via="sms"', false);
+        $this->actingAs($owner)->post($this->dashUrl('/campaigns'), $send)->assertSessionHasErrors('channel');
+
+        config(['sms.driver' => 'log']);
+        $this->actingAs($owner)->get($this->dashUrl('/campaigns'))->assertOk()->assertSee('data-via="sms"', false);
+        Log::spy();
+        $this->actingAs($owner)->post($this->dashUrl('/campaigns'), $send)->assertSessionHasNoErrors()->assertRedirect();
+        Log::shouldHaveReceived('info')->with('SMS', ['to' => '01011111111', 'text' => 'Hi Mona'])->once();
+        $campaign = $this->as($a, fn () => Campaign::query()->sole());
+        $this->assertSame(['manual', 'sms', 'done'], [$campaign->channel, $campaign->via(), $campaign->options['sms']]);
+        $this->actingAs($owner)->get($this->dashUrl('/campaigns'))->assertOk()->assertSee('data-campaign-via="sms"', false);
     }
 
     public function test_the_welcome_gift_comes_off_the_first_online_order_once_per_mobile(): void

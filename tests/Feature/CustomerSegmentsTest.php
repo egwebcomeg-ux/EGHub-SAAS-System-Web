@@ -12,9 +12,10 @@ use App\Models\Tenant;
 use App\Models\WhatsAppMessage;
 use App\Services\Customers\Segments;
 use App\Services\Marketing\Campaigns;
+use Illuminate\Support\Facades\Artisan;
 use Tests\TenantTestCase;
 
-/** Computed guest segments (new / regular / VIP / at risk / lost) on the customers page, the export and campaigns. */
+/** The one set of guest groups (new / regular / VIP / at risk / lost / imported / birthday) on the customers page, the exports and campaigns. */
 class CustomerSegmentsTest extends TenantTestCase
 {
     private function customer(Tenant $t, string $phone, array $attrs = [], int $recentOrders = 0, int $daysAgo = 5): Customer
@@ -61,8 +62,9 @@ class CustomerSegmentsTest extends TenantTestCase
 
         $this->as($a, function () use ($g) {
             $segments = app(Segments::class);
-            // 11 spenders → the top 10% is the single top spender
-            $this->assertSame(['new' => 1, 'regular' => 1, 'vip' => 1, 'at_risk' => 1, 'lost' => 1], $segments->counts());
+            // 11 spenders → the top 10% is the single top spender; nobody has a birthday, so that group is not shown
+            $this->assertSame(['new' => 1, 'regular' => 1, 'vip' => 1, 'at_risk' => 1, 'lost' => 1, 'imported' => 0],
+                collect($segments->summary())->pluck('count', 'key')->all());
             foreach (['new', 'regular', 'vip', 'at_risk', 'lost'] as $key) {
                 $this->assertSame([$g[$key]->id], $segments->apply(Customer::query(), $key)->pluck('id')->all(), $key);
                 $this->assertSame($key, $segments->of($g[$key]->fresh()), "badge of $key");
@@ -92,7 +94,10 @@ class CustomerSegmentsTest extends TenantTestCase
         $owner = $this->owner($a);
 
         $html = $this->actingAs($owner)->get($this->dashUrl('/customers'))->assertOk()
-            ->assertSee('data-segment="lost"', false)->assertSee('راح · 1')->assertSee('VIP · 1')->assertSee('data-row-segment="vip"', false)->getContent();
+            ->assertSeeInOrder(['data-segment="lost"', 'راحوا', 'data-segment-count>1<'], false)->assertSee('data-row-segment="vip"', false)
+            ->assertSee('>راح</span>', false)->getContent();
+        // one row of group cards: the old second row of chips is gone
+        $this->assertSame(1, substr_count($html, 'data-segment="lost"'));
         $this->assertSame(5, preg_match_all('/data-row-segment="/', $html));
 
         $this->actingAs($owner)->get($this->dashUrl('/customers?segment=lost'))->assertOk()
@@ -115,7 +120,8 @@ class CustomerSegmentsTest extends TenantTestCase
         app(Credits::class)->add($a, 20, 'adjustment');
 
         $this->assertSame(1, $this->as($a, fn () => app(Campaigns::class)->preview('lost')['audience']));
-        $this->actingAs($this->owner($a))->get($this->dashUrl('/campaigns?segment=lost'))->assertOk()->assertSee('راحوا (مزاروش من أكتر من 60 يوم)');
+        $page = $this->actingAs($this->owner($a))->get($this->dashUrl('/campaigns?segment=lost'))->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('/name="segment" value="lost"[^>]*checked/', $page);
         $this->actingAs($this->owner($a))->post($this->dashUrl('/campaigns'), ['name' => 'Come back', 'segment' => 'lost', 'message' => 'Hi {name}', 'when' => 'now'])
             ->assertSessionHasNoErrors();
 
@@ -123,5 +129,45 @@ class CustomerSegmentsTest extends TenantTestCase
         $this->assertSame(['sent', 1, 'lost'], [$campaign->status, $campaign->sent_count, $campaign->segment]);
         $this->assertSame([$g['lost']->id], $this->as($a, fn () => WhatsAppMessage::query()->pluck('customer_id')->all()));
         $this->assertStringContainsString('راحوا', $campaign->audienceLabel());
+    }
+
+    public function test_old_group_names_lead_to_the_same_group(): void
+    {
+        $a = $this->restaurant('cafe-a', 'business');
+        $this->guests($a);
+        $owner = $this->owner($a);
+
+        $this->actingAs($owner)->get($this->dashUrl('/customers?audience=top&q=0100'))->assertRedirect($this->dashUrl('/customers?segment=vip&q=0100'));
+        $csv = $this->actingAs($owner)->get($this->dashUrl('/customers/audience-export?audience=top'))->assertOk()->streamedContent();
+        $this->assertStringContainsString('+201000000005', $csv);
+        $this->assertSame(2, substr_count(trim($csv), "\n") + 1); // header + the one VIP
+        $this->actingAs($owner)->get($this->dashUrl('/customers/outreach?audience=loyal'))->assertRedirect($this->dashUrl('/campaigns?channel=manual&segment=regular'));
+    }
+
+    public function test_saved_campaigns_keep_working_with_the_new_group_names(): void
+    {
+        $a = $this->restaurant('cafe-a', 'business');
+        $g = $this->guests($a);
+        app(Credits::class)->add($a, 20, 'adjustment');
+        $this->as($a, function () {
+            foreach (['loyal', 'top', 'away', 'imported'] as $key) {
+                Campaign::query()->create(['name' => $key, 'channel' => 'manual', 'segment' => $key, 'message' => 'Hi', 'status' => 'sending']);
+            }
+        });
+        // an EgHub WhatsApp campaign scheduled before the change: same key, same guests
+        $scheduled = $this->as($a, fn () => Campaign::query()->create(['name' => 'Later', 'channel' => 'whatsapp', 'segment' => 'at_risk', 'message' => 'Hi',
+            'status' => 'scheduled', 'scheduled_at' => now()->subMinute()]));
+
+        (require database_path('migrations/2026_11_15_000100_manual_campaigns_use_the_guest_groups.php'))->up();
+
+        $saved = $this->as($a, fn () => Campaign::query()->where('channel', 'manual')->get()->keyBy('name'));
+        $this->assertSame(['loyal' => 'regular', 'top' => 'vip', 'away' => 'inactive', 'imported' => 'imported'], $saved->map->segment->all());
+        $this->assertSame('مزاروش من 30 يوم', $saved['away']->audienceLabel());
+        $this->assertSame('دايمين', $saved['loyal']->audienceLabel());
+        $this->actingAs($this->owner($a))->get($this->dashUrl('/campaigns'))->assertOk()->assertSee('مزاروش من 30 يوم');
+
+        Artisan::call('egmenu:campaigns');
+        $this->assertSame('sent', $this->as($a, fn () => $scheduled->fresh()->status));
+        $this->assertSame([$g['at_risk']->id], $this->as($a, fn () => WhatsAppMessage::query()->where('campaign_id', $scheduled->id)->pluck('customer_id')->all()));
     }
 }

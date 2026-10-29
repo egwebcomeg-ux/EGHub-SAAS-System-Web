@@ -7,25 +7,79 @@ use App\Models\MembershipTier;
 use App\Models\Order;
 use App\Services\Loyalty\Membership;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 /**
- * Computed guest segments of the current restaurant (nothing is stored; each one is a query scope):
- *  new      first visit, in the last 30 days
- *  regular  3 or more orders in the last 90 days and a visit in the last 30 days
- *  vip      top 10% by spend, or the highest membership tier (feature membership)
- *  at_risk  was regular (3+ orders in 90 days) but no visit for 30 to 60 days
- *  lost     visited at least twice, nothing for more than 60 days
+ * The one way of grouping the current restaurant's guests (nothing is stored; each group is a query scope). The
+ * customers page, its CSV export and the Meta Ads export, and every campaign (from the staff's own phone, SMS or EgHub
+ * WhatsApp) pick guests by these groups:
+ *  new       first visit, in the last 30 days
+ *  regular   3 or more orders in the last 90 days and a visit in the last 30 days
+ *  vip       top 10% by spend, or the highest membership tier (feature membership)
+ *  at_risk   was regular (3+ orders in 90 days) but no visit for 30 to 60 days
+ *  lost      visited at least twice, nothing for more than 60 days
+ *  imported  came from an imported list and never ordered online
+ *  birthday  birthday in the next 7 days (shown on the customers page only when some guest has a birthday)
+ * Each comes with what to do about it and a suggested message, in the restaurant's words. The first five are also the
+ * badge of a guest (of()).
  */
 final class Segments
 {
-    /** key => [arabic, english] */
-    public const LABELS = [
-        'new' => ['جديد', 'New'],
-        'regular' => ['دايم', 'Regular'],
-        'vip' => ['VIP', 'VIP'],
-        'at_risk' => ['بيبعد', 'At risk'],
-        'lost' => ['راح', 'Lost'],
+    /**
+     * key => [arabic, english] of: the group's name, one guest's badge, the rule, what to do, a suggested message.
+     *
+     * @var array<string, array{label: array{string, string}, badge: array{string, string}, rule: array{string, string}, action: array{string, string}, message: array{string, string}}>
+     */
+    private const GROUPS = [
+        'new' => [
+            'label' => ['جداد', 'New'], 'badge' => ['جديد', 'New'],
+            'rule' => ['أول زيارة في آخر 30 يوم', 'First visit in the last 30 days'],
+            'action' => ['ابعتلهم شكر على أول طلب وكود خصم على الطلب التاني عشان يرجعوا.', 'Thank them for the first order and send a code for the second one.'],
+            'message' => ['أهلاً {name} 👋 شكراً إنك جربت أكلنا! ده كود خصم ليك على طلبك الجاي: {coupon}. اطلب من هنا: {link}', 'Hi {name} 👋 thanks for trying us! Here is a code for your next order: {coupon}. Order here: {link}'],
+        ],
+        'regular' => [
+            'label' => ['دايمين', 'Regulars'], 'badge' => ['دايم', 'Regular'],
+            'rule' => ['3 طلبات أو أكتر في 90 يوم، وزيارة في آخر 30 يوم', '3 or more orders in 90 days, and a visit in the last 30 days'],
+            'action' => ['دول أحسن ناسك: كافئهم بهدية أو خصم خاص من غير ما يطلبوا.', 'Your best people: reward them with a gift or a private discount.'],
+            'message' => ['أهلاً {name} ❤️ إنت من أكتر الناس اللي بتطلب مننا، فده كود هدية ليك: {coupon}. {link}', 'Hi {name} ❤️ you are one of our regulars, so here is a gift code: {coupon}. {link}'],
+        ],
+        'vip' => [
+            'label' => ['VIP', 'VIP'], 'badge' => ['VIP', 'VIP'],
+            'rule' => ['أعلى 10% في الصرف، أو أعلى مستوى عضوية', 'Top 10% by spend, or the highest membership tier'],
+            'action' => ['عاملهم VIP: جربهم في الصنف الجديد الأول، أو عرض مخصوص ليهم.', 'Treat them as VIPs: let them try new dishes first, or a private offer.'],
+            'message' => ['أهلاً {name} ✨ عندنا حاجة جديدة وحبينا تبقى أول واحد يجربها. اطلب من هنا: {link}', 'Hi {name} ✨ we have something new and want you to try it first: {link}'],
+        ],
+        'at_risk' => [
+            'label' => ['بيبعدوا', 'At risk'], 'badge' => ['بيبعد', 'At risk'],
+            'rule' => ['عملاء دايمين مزاروش من 30 لـ 60 يوم', 'Regulars who have not visited for 30 to 60 days'],
+            'action' => ['كانوا دايمين وبقالهم شهر ما جوش: «وحشتنا» مع كود لمدة أسبوع قبل ما يروحوا.', 'They were regulars and have been away a month: a “we miss you” with a one-week code before they go.'],
+            'message' => ['وحشتنا يا {name}! 😊 ده كود خصم ليك لمدة أسبوع: {coupon}. المنيو هنا: {link}', 'We miss you {name}! 😊 Here is a code for this week: {coupon}. The menu: {link}'],
+        ],
+        'lost' => [
+            'label' => ['راحوا', 'Lost'], 'badge' => ['راح', 'Lost'],
+            'rule' => ['زاروا مرتين أو أكتر، ومزاروش من أكتر من 60 يوم', 'Visited twice or more, nothing for over 60 days'],
+            'action' => ['بقالهم أكتر من شهرين: عرض قوي يرجعهم، وقولهم إيه الجديد عندك.', 'Gone for over two months: a strong offer to bring them back, and what is new at your place.'],
+            'message' => ['وحشتنا يا {name}! 😊 عندنا حاجات جديدة، وده كود خصم ليك: {coupon}. المنيو هنا: {link}', 'We miss you {name}! 😊 We have new things, and here is a code for you: {coupon}. The menu: {link}'],
+        ],
+        'imported' => [
+            'label' => ['اتنقلوا ولسه ما طلبوش أونلاين', 'Imported, never ordered online'], 'badge' => ['اتنقل', 'Imported'],
+            'rule' => ['من قايمة عملاء اتنقلت، ولسه ما طلبوش أونلاين', 'From an imported list, no online order yet'],
+            'action' => ['عرّفهم إن محلك بقى أونلاين: لينك المنيو، ولينك حسابهم بعنوانهم المحفوظ.', 'Tell them you are online now: the menu link, and their account link with their saved address.'],
+            'message' => ['أهلاً {name} 👋 بقينا أونلاين! تقدر تطلب من موبايلك وعنوانك محفوظ عندنا: {link}', 'Hi {name} 👋 we are online now! Order from your phone, your address is saved: {link}'],
+        ],
+        'birthday' => [
+            'label' => ['عيد ميلادهم الأسبوع ده', 'Birthday this week'], 'badge' => ['عيد ميلاده', 'Birthday'],
+            'rule' => ['عيد ميلادهم النهارده أو في الـ 6 أيام الجايين', 'Birthday today or in the next 6 days'],
+            'action' => ['هدية عيد الميلاد بتفرق: كود خصم أو حلو هدية مع الطلب.', 'A birthday gift goes a long way: a code or a free dessert with the order.'],
+            'message' => ['كل سنة وإنت طيب يا {name} 🎂 ده كود هدية عيد ميلادك: {coupon}. {link}', 'Happy birthday {name} 🎂 here is your birthday gift code: {coupon}. {link}'],
+        ],
     ];
+
+    /**
+     * Old names of the customers page's groups, still in old links: old key => the closest group. (Saved campaigns were
+     * moved by a migration; "away" became the filter inactive 30 days there.)
+     */
+    public const RENAMED = ['loyal' => 'regular', 'top' => 'vip', 'away' => 'at_risk'];
 
     /** Which badge wins when a guest is in more than one segment. */
     public const PRIORITY = ['vip', 'at_risk', 'lost', 'regular', 'new'];
@@ -39,19 +93,54 @@ final class Segments
     /** @return list<string> */
     public static function keys(): array
     {
-        return array_keys(self::LABELS);
+        return array_keys(self::GROUPS);
     }
 
     public static function is(string $segment): bool
     {
-        return array_key_exists($segment, self::LABELS);
+        return array_key_exists($segment, self::GROUPS);
+    }
+
+    /** A group key from a request, old names included; '' when it is none. */
+    public static function fromRequest(mixed $segment): string
+    {
+        $segment = is_string($segment) ? (self::RENAMED[$segment] ?? $segment) : '';
+
+        return self::is($segment) ? $segment : '';
     }
 
     public static function label(string $segment): string
     {
-        $l = self::LABELS[$segment] ?? [$segment, $segment];
+        return self::text($segment, 'label');
+    }
 
-        return app()->getLocale() === 'en' ? $l[1] : $l[0];
+    /** The word on one guest's row ("جديد" where the group is "جداد"). */
+    public static function badge(string $segment): string
+    {
+        return self::text($segment, 'badge');
+    }
+
+    public static function rule(string $segment): string
+    {
+        return self::text($segment, 'rule');
+    }
+
+    public static function action(string $segment): string
+    {
+        return self::text($segment, 'action');
+    }
+
+    /** A message to start from, with {name}, {link} and {coupon}. */
+    public static function message(string $segment): string
+    {
+        return self::text($segment, 'message');
+    }
+
+    private static function text(string $segment, string $part): string
+    {
+        $t = self::GROUPS[$segment][$part] ?? null;
+
+        return $t ? (app()->getLocale() === 'en' ? $t[1] : $t[0]) : $segment;
     }
 
     /**
@@ -68,19 +157,41 @@ final class Segments
             'at_risk' => $this->frequent($q)->whereBetween('last_visit_at', [now()->subDays(60), now()->subDays(30)]),
             'lost' => $q->where('visits_count', '>=', 2)->where('last_visit_at', '<', now()->subDays(60)),
             'vip' => $this->vip($q),
+            'imported' => $q->where('source', 'import')->whereDoesntHave('orders', fn ($o) => $o->whereIn('source', Order::GUEST_SOURCES)),
+            'birthday' => $q->whereNotNull('birthday')->whereIn(DB::raw($this->monthDay('birthday')), $this->nextSevenDays()),
             default => $q,
         };
     }
 
-    /** @return array<string, int> guests per segment */
-    public function counts(): array
+    /**
+     * Guests of one group, opted-out ones included (callers that message leave them out).
+     *
+     * @return Builder<Customer>
+     */
+    public function query(string $segment): Builder
     {
-        $counts = [];
+        return self::is($segment) ? $this->apply(Customer::query(), $segment) : Customer::query()->whereRaw('1 = 0');
+    }
+
+    /**
+     * Every group with its guests, what they spent, and what to do: the cards of the customers page and the
+     * "who gets it" of a new campaign.
+     *
+     * @return list<array{key:string, label:string, rule:string, action:string, count:int, revenue:float}>
+     */
+    public function summary(): array
+    {
+        $out = [];
         foreach (self::keys() as $key) {
-            $counts[$key] = $this->apply(Customer::query(), $key)->count();
+            if ($key === 'birthday' && ! Customer::query()->whereNotNull('birthday')->exists()) {
+                continue;
+            }
+            $q = $this->query($key);
+            $out[] = ['key' => $key, 'label' => self::label($key), 'rule' => self::rule($key), 'action' => self::action($key),
+                'count' => $q->clone()->count(), 'revenue' => round((float) $q->clone()->sum('total_spent'), 2)];
         }
 
-        return $counts;
+        return $out;
     }
 
     /**
@@ -207,5 +318,21 @@ final class Segments
     private function recentOrders($orders)
     {
         return $orders->where('status', '!=', 'cancelled')->where('created_at', '>=', now()->subDays(90));
+    }
+
+    /** SQL for "MM-DD" of a date column on the current database. */
+    private function monthDay(string $column): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'sqlite' => "strftime('%m-%d', $column)",
+            'pgsql' => "to_char($column, 'MM-DD')",
+            default => "DATE_FORMAT($column, '%m-%d')",
+        };
+    }
+
+    /** @return list<string> "MM-DD" of today and the next 6 days */
+    private function nextSevenDays(): array
+    {
+        return array_map(fn (int $d) => now()->addDays($d)->format('m-d'), range(0, 6));
     }
 }
