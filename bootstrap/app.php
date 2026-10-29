@@ -12,6 +12,7 @@ use App\Http\Middleware\InitializeTenancyFromUser;
 use App\Http\Middleware\LiteSpeedCacheHeaders;
 use App\Http\Middleware\RequireFeature;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\ThrottlePerRoute;
 use App\Services\PageCache;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -55,6 +56,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.idle' => AdminIdleTimeout::class,
             'support.blocked' => BlockDuringSupportAccess::class,
             'page.cache' => CachePublicPage::class,
+            // one budget per route, not one for every guest page of the domain (App\Http\Middleware\ThrottlePerRoute)
+            'throttle' => ThrottlePerRoute::class,
         ]);
         // Tenancy must be initialised before route-model binding, or {model} ids would resolve outside the
         // tenant scope (another restaurant's rows). Authenticate already runs before SubstituteBindings.

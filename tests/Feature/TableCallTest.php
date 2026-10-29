@@ -31,6 +31,31 @@ class TableCallTest extends TenantTestCase
         $this->assertCount(1, $this->actingAs($owner)->getJson($this->dashUrl('/orders/feed'))->json('calls'));
     }
 
+    public function test_a_busy_cafe_on_one_wifi_address_keeps_calling_the_waiter(): void
+    {
+        $a = $this->restaurant('cafe-a', 'basic');
+        $tables = $this->as($a, fn () => DiningTable::query()->orderBy('id')->get());
+
+        // other guest pages of the same address use up their own budgets, never the waiter call's
+        for ($i = 0; $i < 30; $i++) {
+            $this->get($this->subUrl('cafe-a', 'visit'));
+        }
+        $this->get($this->subUrl('cafe-a', 'visit'))->assertStatus(429);
+
+        // one guest's browser (its session cookie, as a phone keeps it): 6 calls a minute
+        $this->withCredentials()->withCookie(config('session.cookie'), str_repeat('a', 40));
+        $this->get($this->subUrl('cafe-a', "t/{$tables[0]->qr_token}"));
+        for ($i = 0; $i < 6; $i++) {
+            $this->postJson($this->subUrl('cafe-a', 'call'), ['kind' => $i % 2 ? 'bill' : 'waiter'])->assertOk();
+        }
+        $this->postJson($this->subUrl('cafe-a', 'call'), ['kind' => 'waiter'])->assertStatus(429);
+
+        // the next table's guest, same café Wi-Fi, another browser: still heard
+        $this->withCookie(config('session.cookie'), str_repeat('b', 40));
+        $this->get($this->subUrl('cafe-a', "t/{$tables[1]->qr_token}"));
+        $this->postJson($this->subUrl('cafe-a', 'call'), ['kind' => 'waiter'])->assertOk();
+    }
+
     public function test_calls_are_private_to_each_restaurant(): void
     {
         $a = $this->restaurant('cafe-a', 'basic');

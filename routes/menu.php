@@ -153,7 +153,7 @@ Route::get('/voucher/{code}', [CorporateVoucherController::class, 'show'])->wher
 Route::post('/voucher/{code}', [CorporateVoucherController::class, 'link'])->where('code', '[A-Za-z0-9-]{10,14}')
     ->middleware('throttle:10,1')->name('voucher.link');
 
-Route::post('/call', [TableCallController::class, 'store'])->middleware('throttle:6,1')->name('call');
+Route::post('/call', [TableCallController::class, 'store'])->middleware('throttle:table-calls')->name('call');
 Route::post('/feedback', [FeedbackController::class, 'store'])->middleware('throttle:10,1')->name('feedback');
 
 // popup impressions / clicks (counters only, no personal data)

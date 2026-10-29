@@ -75,8 +75,14 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
         RateLimiter::for('signup', fn (Request $r) => Limit::perHour(5)->by($r->ip()));
-        // Guests placing orders from a menu: generous for a table of friends, tight for scripts.
-        RateLimiter::for('menu-orders', fn (Request $r) => Limit::perMinute(6)->by($r->ip().'|'.$r->path()));
+        // Guests placing orders from a menu, and calling the waiter / asking for the bill: per guest's browser, since a
+        // whole café shares one Wi-Fi address, with a per-address ceiling for scripts that drop their cookies.
+        $perGuest = fn (string $name, int $perGuest, int $perAddress) => fn (Request $r) => [
+            Limit::perMinute($perGuest)->by($name.':'.($r->hasSession() ? $r->session()->getId() : $r->ip()).'|'.$r->path()),
+            Limit::perMinute($perAddress)->by($name.'-ip:'.$r->ip().'|'.$r->path()),
+        ];
+        RateLimiter::for('menu-orders', $perGuest('mo', 6, 60));
+        RateLimiter::for('table-calls', $perGuest('tc', 6, 60));
         // The checkout map asks the street of the pin (debounced while dragging) and searches places: per visitor
         RateLimiter::for('geo-reverse', fn (Request $r) => Limit::perMinute(30)->by('geor:'.$r->ip()));
         RateLimiter::for('geo-search', fn (Request $r) => Limit::perMinute(20)->by('geos:'.$r->ip()));
