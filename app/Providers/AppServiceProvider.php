@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Billing\Gateways\KashierGateway;
 use App\Billing\Gateways\PaymentGateway;
+use App\Http\Middleware\ThrottlePerRoute;
 use App\Models\Domain;
 use App\Models\Plan;
 use App\Models\Subscription;
@@ -23,6 +24,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
@@ -37,6 +39,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // `throttle`: one budget per route, not one for every guest page of the domain (ThrottlePerRoute). Bound in the
+        // framework class's place, so withoutMiddleware(ThrottleRequests::class) still switches it off.
+        $this->app->bind(ThrottleRequests::class, ThrottlePerRoute::class);
         // WhatsApp provider from WHATSAPP_DRIVER: log (default, nothing leaves the server) | meta | webhook
         $this->app->bind(WhatsAppGateway::class, fn () => match (config('whatsapp.driver')) {
             'meta' => new MetaCloudDriver,
