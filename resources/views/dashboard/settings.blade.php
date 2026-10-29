@@ -339,6 +339,21 @@
                 <label class="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" name="order_type_prompt" value="1" @checked($s['order_type_prompt'] === '1') class="size-4 accent-brand-600"> {{ __('Ask "how will you order?" when the guest adds their first item (when you offer the hall and takeaway or delivery). Otherwise they choose it in the cart.') }}</label>
                 <p class="mt-1 text-xs text-navy-500">{{ __('A table QR always means the hall. On the menu link, sending from the hall needs the table QR, so there it works as a list for the waiter.') }}</p>
             </div>
+            <div class="rounded-xl bg-navy-50 p-3 sm:col-span-2 lg:col-span-4" data-order-flow>
+                <div class="mb-2 font-semibold">{{ __('How orders move') }}</div>
+                <label class="flex flex-wrap items-center gap-2 text-sm">{{ __('A paid cashier sale (takeaway)') }}
+                    <select class="field min-h-9 w-auto" name="order_flow">
+                        @foreach (['auto' => __('Automatic (recommended)'), 'counter' => __('Is done once paid (no kitchen screen)'), 'kitchen' => __('Goes to the kitchen until it is ready')] as $key => $label)
+                            <option value="{{ $key }}" @selected(($s['order_flow'] ?? 'auto') === $key)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <p class="mt-1 text-xs text-navy-500">{{ __('Automatic: through the kitchen while you use the kitchen screen or move cashier orders on the board; otherwise done once paid, so no sale stays "new" on the screens.') }}</p>
+                <label class="mt-3 flex flex-wrap items-center gap-2 text-sm">{{ __('Close a paid order left "ready" after') }}
+                    <input class="field min-h-9 w-20" name="order_auto_serve_minutes" type="number" min="0" max="{{ \App\Services\Orders\OrderFlow::MAX_SERVE_MINUTES }}" value="{{ $s['order_auto_serve_minutes'] ?? 60 }}"> {{ __('minutes') }}
+                    <span class="text-xs text-navy-500">{{ __('0 = never. Not table orders (they close with the table) or deliveries (the driver closes them).') }}</span>
+                </label>
+            </div>
             @if (\App\Services\Entitlements::current()->allows('online_ordering'))
                 <div class="rounded-xl bg-navy-50 p-3 sm:col-span-2 lg:col-span-4">
                     <div class="mb-2 font-semibold">{{ __('Online ordering from your menu link (no table)') }}</div>

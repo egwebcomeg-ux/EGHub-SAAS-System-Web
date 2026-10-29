@@ -22,6 +22,10 @@
         'pager' => \App\Services\Orders\Pager::staffTexts(),
         'confirmPhone' => __('Confirmed by phone'), 'confirmPhoneSure' => __('You called the guest and the order is fine?'),
         'noApprover' => __('Cancelling needs a manager: no manager has set a PIN yet, so a manager cancels it from their own account.'),
+        'markPaid' => __('Paid'), 'paySure' => __('The guest paid :total by :method?', ['total' => '__T__', 'method' => '__M__']),
+        'payMethods' => ['cash' => __('Cash'), 'card' => __('Card'), 'instapay' => __('InstaPay')],
+        'notPaidYet' => __('Not paid'),
+        'stale' => __(':n open orders are older than :h hours: close or cancel them so the screens stay clear.', ['n' => '__N__', 'h' => \App\Http\Controllers\Dashboard\KitchenController::STALE_HOURS]),
     ];
     $canManage = auth()->user()->can('orders.manage');
     // quick filters: [key, label]; the counts come live from the feed
@@ -83,6 +87,7 @@
     @endif
 </section>
 
+<p class="mb-4 hidden rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800" data-stale></p>
 <div class="mb-4 hidden flex-wrap gap-2" data-calls></div>
 <div class="mb-4 hidden flex-wrap gap-2" data-reservations></div>
 
@@ -106,6 +111,7 @@
      data-part-url="{{ url('/orders/__ID__/part-ready') }}"
      data-driver-url="{{ url('/orders/__ID__/driver') }}"
      data-confirm-url="{{ url('/orders/__ID__/confirm-phone') }}"
+     data-pay-url="{{ url('/orders/__ID__/pay') }}"
      data-call-url="{{ url('/orders/calls/__ID__') }}"
      data-reservation-url="{{ url('/reservations/__ID__/status') }}"
      data-poll="{{ $poll }}"

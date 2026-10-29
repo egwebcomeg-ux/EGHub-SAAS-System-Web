@@ -297,6 +297,8 @@ final class OrderService
             }
             $order->update(['payment_status' => 'paid', 'payment_method' => $method, 'shift_id' => $shift?->id, 'corporate_amount' => $covered, 'payments' => $parts ?: null]);
             app(LoyaltyService::class)->orderCompleted($order);
+            // a counter sale with no kitchen in use is done once paid (OrderFlow)
+            app(OrderFlow::class)->finishCounterSale($order, $by);
 
             return $order;
         });
@@ -581,7 +583,7 @@ final class OrderService
                 $this->transition($order, 'preparing', $by);
             }
             $order->items()->whereNull('ready_at')
-                ->when($stationId, fn ($q) => $q->where('kitchen_station_id', $stationId))
+                ->when($stationId, fn ($q) => $q->where(fn ($w) => $w->where('kitchen_station_id', $stationId)->orWhereNull('kitchen_station_id')))
                 ->when($kind, fn ($q) => $q->where('prep_kind', $kind))
                 ->update(['ready_at' => now()]);
             if ($order->items()->whereNull('ready_at')->doesntExist()) {

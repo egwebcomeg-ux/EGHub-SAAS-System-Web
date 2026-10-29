@@ -22,6 +22,7 @@ final class StaffPush
     /** event => [right needed, roles on by default, Arabic label, English label] */
     public const EVENTS = [
         'order_new' => ['orders.view', ['owner', 'manager', 'cashier'], 'طلب أونلاين أو كول سنتر جديد', 'New online or call-center order'],
+        'hall_order_new' => ['orders.view', ['owner', 'manager', 'waiter'], 'طلب جديد من ترابيزة أو الكشك', 'New table or kiosk order'],
         'order_confirm' => ['orders.view', ['owner', 'manager', 'cashier'], 'رد العميل على تأكيد الطلب على واتساب', 'The guest answered the WhatsApp confirmation'],
         'reservation_new' => ['reservations.manage', ['owner', 'manager'], 'حجز ترابيزة جديد', 'New table reservation'],
         'corporate_booking' => ['contracts.manage', ['owner', 'manager'], 'زيارة شركة مستنية موافقة', 'A company visit waiting for approval'],
@@ -30,6 +31,9 @@ final class StaffPush
 
     /** Sources whose new orders ring the phones: the guest's own online / WhatsApp orders and the call center's. */
     public const NEW_ORDER_SOURCES = ['online', 'whatsapp', 'callcenter'];
+
+    /** Orders guests send from a table QR or the kiosk: the hall's own event, so waiters can have it and not the rest. */
+    public const HALL_SOURCES = ['qr', 'kiosk'];
 
     public function __construct(private FcmClient $fcm) {}
 
@@ -66,6 +70,14 @@ final class StaffPush
 
     public function orderPlaced(Order $order): void
     {
+        if (in_array($order->source, self::HALL_SOURCES, true)) {
+            $order->loadMissing('table');
+            $this->notify('hall_order_new', $order->branch_id, __('New order #:n', ['n' => $order->number]),
+                trim(($order->table ? __('Table :name', ['name' => $order->table->name]).' · ' : '').money($order->total), ' ·'),
+                ['url' => platform_url('app', '/orders'), 'order' => (string) $order->id]);
+
+            return;
+        }
         if (! in_array($order->source, self::NEW_ORDER_SOURCES, true)) {
             return;
         }

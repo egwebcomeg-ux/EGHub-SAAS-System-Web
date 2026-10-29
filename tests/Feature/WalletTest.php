@@ -14,6 +14,7 @@ use App\Models\WalletTransaction;
 use App\Services\Entitlements;
 use App\Services\Orders\OrderService;
 use App\Services\Orders\ShiftService;
+use App\Services\Settings;
 use App\Services\Wallet\WalletService;
 use Illuminate\Support\Str;
 use Tests\TenantTestCase;
@@ -27,6 +28,8 @@ class WalletTest extends TenantTestCase
     private function shop(string $slug = 'cafe-a'): array
     {
         $tenant = $this->restaurant($slug, 'pro');
+        // these sales go through the kitchen (they are moved and cancelled below), not done once paid (OrderFlow)
+        $this->as($tenant, fn () => Settings::put(['order_flow' => 'kitchen']));
         app(Billing::class)->setAddon($tenant, 'pos_pack', 1);
         app(Billing::class)->setAddon($tenant, 'wallet_pack', 1);
         $item = $this->item($tenant, 'Latte', 60);

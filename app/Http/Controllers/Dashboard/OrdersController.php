@@ -35,6 +35,9 @@ class OrdersController extends Controller
     /** Cancelling an order is a manager's call: the same right that approves refunds, or that manager's PIN. */
     public const CANCEL_PERMISSION = 'pos.refund';
 
+    /** How an order is paid on the board (no cashier screen): no balance, vouchers or credit without the POS. */
+    public const BOARD_PAY_METHODS = ['cash', 'card', 'instapay'];
+
     public function board(Request $request, ManagerApproval $approvals): View
     {
         return view('dashboard.orders.board', [
@@ -50,7 +53,8 @@ class OrdersController extends Controller
         $orders = $this->scoped($request)
             ->where(fn ($q) => $q->whereIn('status', ['new', 'preparing', 'ready', 'on_way'])
                 ->orWhere(fn ($q) => $q->whereIn('status', ['served', 'cancelled'])->where('updated_at', '>=', now()->subHours(3))))
-            ->with(['items', 'table', 'branch', 'driver'])->orderBy('id')->limit(200)->get();
+            // the newest 200, oldest first: orders nobody closed never push the new ones off the board
+            ->with(['items', 'table', 'branch', 'driver'])->orderByDesc('id')->limit(200)->get()->sortBy('id')->values();
 
         $branch = $request->user()->branch_id;
         $calls = TableCall::query()->whereNull('handled_at')->when($branch, fn ($q) => $q->where('branch_id', $branch))
@@ -66,6 +70,9 @@ class OrdersController extends Controller
             ])->values(),
             'reservations' => $this->pendingReservations($request),
             'counts' => self::counts($orders),
+            // open orders older than KitchenController::STALE_HOURS: forgotten, waiting for someone to close or cancel them
+            'stale' => $this->scoped($request)->whereIn('status', ['new', 'preparing', 'ready', 'on_way'])
+                ->where('created_at', '<', now()->subHours(KitchenController::STALE_HOURS))->whereNull('scheduled_for')->count(),
             'drivers' => self::assignableDrivers($request),
         ]);
     }
@@ -122,6 +129,34 @@ class OrdersController extends Controller
         }
 
         return response()->json(['ok' => true, 'order' => $this->present($order->fresh()->load(['items', 'table', 'branch', 'driver']))]);
+    }
+
+    /**
+     * «اتدفع»: a takeaway, call-center or kiosk order paid at the counter of a restaurant without the cashier screen
+     * (with it, payments go through the POS, its drawer and shift). Table orders are paid with the table's bill.
+     */
+    public function pay(Request $request, Order $order, OrderService $service): JsonResponse
+    {
+        abort_unless($this->visible($request, $order), 404);
+        abort_unless(self::paysOnBoard(), 404);
+        $data = $request->validate(['method' => ['required', Rule::in(self::BOARD_PAY_METHODS)]]);
+        if ($order->dining_table_id) {
+            return response()->json(['message' => __('A table order is paid with the table\'s bill (the Tables tab).')], 422);
+        }
+        try {
+            $service->pay($order, $data['method'], $request->user(), null);
+        } catch (OrderException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+        Audit::record('order.paid_on_board', '#'.$order->number, ['method' => $data['method'], 'total' => $order->total]);
+
+        return response()->json(['ok' => true, 'order' => $this->present($order->fresh()->load(['items', 'table', 'branch', 'driver']))]);
+    }
+
+    /** Without the cashier screen the board takes the payment of orders off a table. */
+    public static function paysOnBoard(): bool
+    {
+        return ! Entitlements::current()->allows('pos');
     }
 
     /** "Food ready" / "drinks ready" on the board: marks that part; the order turns ready when every part is. */
@@ -286,6 +321,8 @@ class OrdersController extends Controller
             'pager' => PagerController::orderView($o, request()),
             'confirm' => OrderConfirmation::view($o),
             'kinds' => $o->kinds(),
+            'paid' => $o->payment_status === 'paid',
+            'can_pay' => $o->payment_status !== 'paid' && $o->status !== 'cancelled' && ! $o->dining_table_id && self::paysOnBoard(),
             'parts' => collect($o->parts())->map(fn (bool $ready, string $kind) => ['kind' => $kind, 'label' => PrepKind::label($kind), 'ready' => $ready])->values(),
             'items' => $o->items->map(fn ($i) => [
                 'name' => $i->name, 'qty' => $i->quantity, 'notes' => $i->notes, 'kind' => $i->prep_kind ?: PrepKind::FOOD,

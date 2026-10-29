@@ -9,6 +9,7 @@ use App\Models\OrderItem;
 use App\Services\Entitlements;
 use App\Services\Orders\OrderConfirmation;
 use App\Services\Orders\OrderException;
+use App\Services\Orders\OrderFlow;
 use App\Services\Orders\OrderService;
 use App\Support\PrepKind;
 use Illuminate\Http\JsonResponse;
@@ -24,6 +25,9 @@ use Illuminate\View\View;
 class KitchenController extends Controller
 {
     public const SCHEDULE_LEAD_MINUTES = 45;
+
+    /** Tickets older than this leave the screen (closed by the board, or left for the manager). */
+    public const STALE_HOURS = 12;
 
     public function screen(Request $request): View
     {
@@ -41,12 +45,16 @@ class KitchenController extends Controller
         $branch = PosController::branch($request);
         $station = $this->station($request);
 
+        OrderFlow::kitchenSeen();
+        // the last STALE_HOURS: an order forgotten since yesterday never pushes today's off the screen
         $orders = Order::query()->where('branch_id', $branch->id)->whereIn('status', ['new', 'preparing'])
-            ->where(fn ($q) => $q->whereNull('scheduled_for')->orWhere('scheduled_for', '<=', now()->addMinutes(self::SCHEDULE_LEAD_MINUTES)))
+            ->where(fn ($q) => $q->whereNull('scheduled_for')->where('created_at', '>=', now()->subHours(self::STALE_HOURS))
+                ->orWhere(fn ($q) => $q->whereNotNull('scheduled_for')->where('scheduled_for', '<=', now()->addMinutes(self::SCHEDULE_LEAD_MINUTES))))
             ->with(['items', 'table'])->orderBy('id')->limit(60)->get();
 
         $tickets = $orders->map(function (Order $o) use ($station, $request) {
-            $lines = $station ? $o->items->where('kitchen_station_id', $station->id) : $o->items;
+            // a station's lines, and the lines of categories left on "all screens" (no station), so nothing is lost
+            $lines = $station ? $o->items->filter(fn (OrderItem $i) => $i->kitchen_station_id === null || (int) $i->kitchen_station_id === $station->id) : $o->items;
             // nothing (left) for this screen: its lines are all bumped while another station still works
             if ($lines->isEmpty() || ($station && $lines->every(fn (OrderItem $i) => $i->ready_at !== null))) {
                 return null;

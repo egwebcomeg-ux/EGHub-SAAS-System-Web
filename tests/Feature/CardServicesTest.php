@@ -31,6 +31,8 @@ class CardServicesTest extends TenantTestCase
     private function shop(string $slug = 'cafe-a'): array
     {
         $tenant = $this->restaurant($slug, 'pro');
+        // these sales go through the kitchen (they are moved and cancelled below), not done once paid (OrderFlow)
+        $this->as($tenant, fn () => Settings::put(['order_flow' => 'kitchen']));
         app(Billing::class)->setAddon($tenant, 'pos_pack', 1);
         app(Billing::class)->setAddon($tenant, 'cards_pack', 1);
         $item = $this->item($tenant, 'Latte', 60);

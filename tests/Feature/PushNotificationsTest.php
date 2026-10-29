@@ -138,7 +138,7 @@ class PushNotificationsTest extends TenantTestCase
         $this->actingAs($waiter)->post($this->dashUrl('/notifications/push'), ['events' => ['reservation_new']])->assertSessionHasErrors('events.0');
         $this->actingAs($waiter)->post($this->dashUrl('/notifications/push'), ['events' => ['order_new']])->assertSessionHasNoErrors();
 
-        $this->assertSame(['order_new' => true, 'order_confirm' => false, 'order_ready' => false], $this->as($a, fn () => $waiter->fresh()->push_preferences));
+        $this->assertSame(['order_new' => true, 'hall_order_new' => false, 'order_confirm' => false, 'order_ready' => false], $this->as($a, fn () => $waiter->fresh()->push_preferences));
     }
 
     public function test_a_new_online_order_reaches_the_phones_that_want_it_and_a_dead_token_is_removed(): void
@@ -207,14 +207,17 @@ class PushNotificationsTest extends TenantTestCase
         $waiter = $this->staff($a, 'waiter', 'w@cafe-a.test');
         $this->register($waiter, $this->token('waiter'), 'waiter');
         $order = $this->onlineOrder($a, 'qr', 'dine_in');
-        Http::assertNothingSent(); // a table order from the QR menu: no "new order" push, and the waiter has none
+        // a table order from the QR menu: the hall's own "new order" push, so the waiter hears it without the board open
+        $new = Http::recorded(fn (Request $r) => $r->url() === self::SEND_URL)->sole()[0];
+        $this->assertSame($this->token('waiter'), $new['message']['token']);
+        $this->assertSame('ترابيزة 5 · '.money($order->total), $new['message']['notification']['body']);
 
         $this->as($a, function () use ($order) {
             app(OrderService::class)->transition($order, 'preparing');
             app(OrderService::class)->transition($order->fresh(), 'ready');
         });
 
-        $push = Http::recorded(fn (Request $r) => $r->url() === self::SEND_URL)->sole()[0];
+        $push = Http::recorded(fn (Request $r) => $r->url() === self::SEND_URL)->last()[0];
         $this->assertSame($this->token('waiter'), $push['message']['token']);
         $this->assertSame('طلب #'.$order->number.' جاهز', $push['message']['notification']['title']);
         $this->assertSame('ترابيزة 5', $push['message']['notification']['body']);

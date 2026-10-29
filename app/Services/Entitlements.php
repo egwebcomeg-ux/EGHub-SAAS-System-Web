@@ -77,6 +77,11 @@ final class Entitlements
             }
         }
 
+        // online orders are taken, made ready and paid on the order board: whoever may take them has the board
+        if (($e['features']['online_ordering'] ?? false) && array_key_exists('order_board', $e['features'])) {
+            $e['features']['order_board'] = true;
+        }
+
         // the launch offer's free second branch counts at once inside its window (trial included); once it is claimed
         // as the first branch add-on, that add-on carries it (and is billed after the 12 months)
         $boughtBranches = (int) ($sub?->addons->firstWhere('key', LaunchOffer::ADDON)?->quantity ?? 0);

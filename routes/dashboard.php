@@ -267,6 +267,9 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         // «اتأكد بالتليفون»: staff called the guest of a cash-on-delivery order and it is fine
         Route::post('/orders/{order}/confirm-phone', [OrdersController::class, 'confirmByPhone'])->whereNumber('order')
             ->middleware(['permission:orders.manage', 'throttle:30,1'])->name('orders.confirm-phone');
+        // «اتدفع» on the board, for restaurants without the cashier screen
+        Route::post('/orders/{order}/pay', [OrdersController::class, 'pay'])->whereNumber('order')
+            ->middleware(['permission:orders.manage', 'throttle:60,1'])->name('orders.pay');
 
         // the "Tables" tab: tables free / busy, one bill per table, pay and close (taking money needs the POS right)
         Route::middleware('permission:orders.manage')->group(function () {

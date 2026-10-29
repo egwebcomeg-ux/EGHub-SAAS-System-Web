@@ -18,6 +18,7 @@ use App\Services\Entitlements;
 use App\Services\Orders\OrderService;
 use App\Services\Orders\ShiftService;
 use App\Services\Reports\SalesReport;
+use App\Services\Settings;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -45,6 +46,8 @@ class CorporateVouchersTest extends TenantTestCase
     private function shop(string $slug = 'cafe-a'): void
     {
         $this->tenant = $this->restaurant($slug, 'enterprise');
+        // these sales go through the kitchen (they are moved and cancelled below), not done once paid (OrderFlow)
+        $this->as($this->tenant, fn () => Settings::put(['order_flow' => 'kitchen']));
         $this->latte = $this->item($this->tenant, 'Latte', 60);
         $this->cashier = $this->staff($this->tenant, 'cashier', "cashier@$slug.test");
         $this->manager = $this->staff($this->tenant, 'manager', "manager@$slug.test");

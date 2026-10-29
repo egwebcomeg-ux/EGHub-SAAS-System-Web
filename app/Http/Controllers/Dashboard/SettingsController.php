@@ -14,6 +14,7 @@ use App\Services\Marketing\TrackingPixels;
 use App\Services\Notify\GuestNotifier;
 use App\Services\Orders\AutoCancel;
 use App\Services\Orders\OrderConfirmation;
+use App\Services\Orders\OrderFlow;
 use App\Services\Settings;
 use App\Support\BusinessType;
 use App\Support\Cities;
@@ -105,6 +106,8 @@ class SettingsController extends Controller
             'online_prep_minutes' => 'nullable|integer|min:5|max:240',
             'online_auto_cancel_minutes' => 'nullable|integer|min:0|max:'.AutoCancel::MAX_MINUTES,
             'online_verify_phone' => ['nullable', Rule::in(['off', 'delivery', 'all'])],
+            'order_flow' => ['nullable', Rule::in(OrderFlow::MODES)],
+            'order_auto_serve_minutes' => 'nullable|integer|min:0|max:'.OrderFlow::MAX_SERVE_MINUTES,
             'tax_percent' => 'nullable|numeric|min:0|max:30',
             'ai_provider' => ['nullable', Rule::in(array_keys(AiProviders::PROVIDERS))],
             'ai_model' => ['nullable', 'string', 'max:80', 'regex:/^[A-Za-z0-9._:\/-]+$/'],
@@ -215,6 +218,13 @@ class SettingsController extends Controller
         // the category row (chips or circles): not sent = keep it
         if (($values['menu_category_style'] ?? '') === '') {
             unset($values['menu_category_style']);
+        }
+        // how orders move with the screens in use: not sent (another tab) = keep what is saved
+        if ($request->has('order_flow')) {
+            $values['order_flow'] = ($data['order_flow'] ?? '') !== '' ? $data['order_flow'] : 'auto';
+            $values['order_auto_serve_minutes'] = (string) (int) ($data['order_auto_serve_minutes'] ?? 0);
+        } else {
+            unset($values['order_flow'], $values['order_auto_serve_minutes']);
         }
         if (Entitlements::current()->allows('online_ordering')) {
             $values['online_takeaway'] = $request->boolean('online_takeaway') ? '1' : '0';

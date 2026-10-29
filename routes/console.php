@@ -2,6 +2,7 @@
 
 use App\Billing\Lifecycle;
 use App\Models\CorporateBooking;
+use App\Models\Order;
 use App\Models\Tenant;
 use App\Models\TenantSetting;
 use App\Services\Corporate\CorporateBookings;
@@ -11,6 +12,8 @@ use App\Services\Loyalty\Packages;
 use App\Services\Marketing\Automations;
 use App\Services\Marketing\Campaigns;
 use App\Services\Orders\AutoCancel;
+use App\Services\Orders\OrderFlow;
+use App\Services\Orders\OrderService;
 use App\Services\Reports\WeeklyReportMailer;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
@@ -49,6 +52,17 @@ Artisan::command('egmenu:billing', function (Lifecycle $lifecycle) {
     $r = $lifecycle->run();
     $this->info("past_due: {$r['past_due']} · downgraded to free: {$r['downgraded']} · reminded: {$r['reminded']} · launch offer reminders: {$r['offer_reminded']}");
 })->purpose('Daily subscription lifecycle: trial/period end → grace → suspension, reminders');
+
+Artisan::command('egmenu:auto-serve', function (OrderFlow $flow, OrderService $orders) use ($forEachTenant) {
+    // only restaurants with a paid order left ready (no table, not a delivery): the rest have nothing to close
+    $tenants = Tenant::query()->where('status', 'active')->whereIn('id', Order::query()->withoutGlobalScopes()->where('status', 'ready')
+        ->where('payment_status', 'paid')->whereNull('dining_table_id')->where('type', '!=', 'delivery')->select('tenant_id'))->orderBy('id')->get();
+    $n = 0;
+    $failed = $forEachTenant('egmenu:auto-serve', $tenants, function () use ($flow, $orders, &$n) {
+        $n += $flow->autoServe($orders);
+    });
+    $this->info("closed ready orders: $n · failed restaurants: $failed");
+})->purpose('Close paid orders left ready past each restaurant\'s order_auto_serve_minutes');
 
 Artisan::command('egmenu:corporate-visits', function (CorporateBookings $bookings) use ($forEachTenant) {
     $n = 0;
@@ -93,6 +107,7 @@ Artisan::command('egmenu:auto-cancel', function (AutoCancel $autoCancel) use ($f
 // withoutOverlapping(N): the lock expires after N minutes, so a run killed half-way (deploy, OOM) never blocks the
 // command for the default 24 hours. Daily/weekly jobs get a lock as long as they can reasonably take.
 Schedule::command('egmenu:billing')->dailyAt('03:00')->withoutOverlapping(60);
+Schedule::command('egmenu:auto-serve')->everyFiveMinutes()->withoutOverlapping(10);
 Schedule::command('egmenu:corporate-visits')->dailyAt('04:00')->withoutOverlapping(60);
 Schedule::command('egmenu:loyalty-expire')->dailyAt('03:30')->withoutOverlapping(60);
 Schedule::command('egmenu:backup')->dailyAt('02:30')->withoutOverlapping(120)->runInBackground();

@@ -151,7 +151,11 @@ if (board) {
                     <button type="button" class="mt-1 text-xs font-bold text-brand-700 underline" data-confirm-phone="${o.id}">📞 ${esc(t.confirmPhone)}</button>` : ''}</div>` : ''}
                 ${driverInfo}${driverPick}
                 ${o.pager && open && (o.pager.seen || o.status === 'ready') ? pagerStatus(o.pager, t.pager) + (o.status === 'ready' ? pagerButtons(o.pager, t.pager, o.id) : '') : ''}
-                <div class="mt-2 text-sm font-bold">${esc(o.total)} ${esc(t.currency)}</div>
+                <div class="mt-2 text-sm font-bold">${esc(o.total)} ${esc(t.currency)}${o.can_pay ? ` · <span class="text-brand-700" data-not-paid>${esc(t.notPaidYet)}</span>` : ''}</div>
+                ${canManage && o.can_pay ? `<div class="mt-2 flex gap-2" data-pay-box>
+                    <select class="field min-h-10 flex-1 py-0 text-sm" data-pay-method="${o.id}" aria-label="${esc(t.markPaid)}">${Object.entries(t.payMethods).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('')}</select>
+                    <button type="button" class="btn-ghost min-h-10 px-3 font-bold text-emerald-700" data-pay="${o.id}" data-total="${esc(o.total)}">💵 ${esc(t.markPaid)}</button>
+                </div>` : ''}
                 ${buttons ? `<div class="mt-3 flex flex-wrap gap-2">${buttons}</div>` : ''}
                 ${['served', 'cancelled'].includes(o.status) ? `<div class="mt-2 text-xs font-bold text-navy-500">${esc(o.status_label)}${o.reason ? ` · <span class="font-normal">${esc(o.reason)}</span>` : ''}</div>` : ''}
             </article>`;
@@ -224,6 +228,14 @@ if (board) {
 
     // ---- busy mode (pauses online / takeaway / delivery ordering) ----
     const busyBox = document.querySelector('[data-busy-box]');
+    // open orders nobody closed for hours: a reminder, so they never fill the screens
+    function renderStale(n) {
+        const box = document.querySelector('[data-stale]');
+        if (!box) return;
+        box.textContent = n ? t.stale.replace('__N__', n) : '';
+        box.classList.toggle('hidden', !n);
+    }
+
     function renderBusy(busy) {
         if (!busyBox) return;
         busyBox.querySelector('[data-busy-icon]').textContent = busy ? '🟠' : '🟢';
@@ -335,6 +347,7 @@ if (board) {
             lastMaxId = data.max_id;
             drivers = data.drivers || [];
             render(data.orders, data.counts);
+            renderStale(data.stale || 0);
             renderBusy(data.busy || null);
             renderCalls(data.calls || []);
             renderReservations(data.reservations || []);
@@ -433,6 +446,22 @@ if (board) {
         const res = await fetch(board.dataset.confirmUrl.replace('__ID__', btn.dataset.confirmPhone), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
+        });
+        if (!res.ok) alert((await res.json().catch(() => ({}))).message || res.status);
+        await refresh();
+    });
+
+    // «اتدفع» (no cashier screen): the guest paid a takeaway / call-center / kiosk order at the counter
+    board.parentElement.addEventListener('click', async (e) => {
+        const btn = e.target.closest('[data-pay]');
+        if (!btn) return;
+        const method = board.querySelector(`[data-pay-method="${btn.dataset.pay}"]`)?.value || 'cash';
+        if (!confirm(t.paySure.replace('__T__', btn.dataset.total).replace('__M__', t.payMethods[method] || method))) return;
+        btn.disabled = true;
+        const res = await fetch(board.dataset.payUrl.replace('__ID__', btn.dataset.pay), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrf },
+            body: JSON.stringify({ method }),
         });
         if (!res.ok) alert((await res.json().catch(() => ({}))).message || res.status);
         await refresh();

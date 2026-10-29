@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\Corporate\CorporateVouchers;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Orders\OrderService;
+use App\Services\Settings;
 use Tests\TenantTestCase;
 
 /**
@@ -62,6 +63,8 @@ class CorporateReportTest extends TenantTestCase
     private function scenario(): void
     {
         $this->tenant = $this->restaurant('cafe-r', 'full');
+        // these sales go through the kitchen (they are moved and cancelled below), not done once paid (OrderFlow)
+        $this->as($this->tenant, fn () => Settings::put(['order_flow' => 'kitchen']));
         $this->latte = $this->item($this->tenant, 'Latte', 60);
         $this->cashier = $this->staff($this->tenant, 'cashier', 'cashier@cafe-r.test');
         $this->manager = $this->staff($this->tenant, 'manager', 'manager@cafe-r.test');
@@ -162,6 +165,8 @@ class CorporateReportTest extends TenantTestCase
     {
         $this->scenario();
         $b = $this->restaurant('cafe-s', 'full');
+        // these sales go through the kitchen (they are moved and cancelled below), not done once paid (OrderFlow)
+        $this->as($b, fn () => Settings::put(['order_flow' => 'kitchen']));
         $theirs = $this->contract(['name' => 'Their Co', 'voucher_value' => 900, 'quantity' => 2], $b);
         $code = $this->as($b, fn () => CorporateVoucher::query()->where('corporate_contract_id', $theirs->id)->value('code'));
         $this->actingAs($this->owner($b))->postJson($this->dashUrl('/vouchers/redeem/manual'), ['amount' => 900, 'vouchers' => [['code' => $code]]])->assertOk();

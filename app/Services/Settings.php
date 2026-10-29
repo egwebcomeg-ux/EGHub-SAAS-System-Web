@@ -66,6 +66,11 @@ final class Settings
         'online_auto_cancel_minutes' => '0',  // 0 = off; else online orders nobody accepted in N minutes are cancelled (egmenu:auto-cancel)
         // off | delivery | all: online orders (no table) only from a guest signed in with a mobile they proved (a code)
         'online_verify_phone' => 'off',
+        // how orders move with the screens in use (App\Services\Orders\OrderFlow): a paid counter sale is done at once
+        // or goes through the kitchen (auto | counter | kitchen); paid "ready" orders close after N minutes (0 = never)
+        'order_flow' => 'auto',
+        'order_auto_serve_minutes' => '60',
+        'kitchen_seen_at' => '',
         // the guest pager (plan feature pager, App\Services\Orders\Pager): call the guest's phone by itself when the order
         // turns ready, and close the pager station's tickets nobody closed after this many hours
         'pager_auto_call' => '1',

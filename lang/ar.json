@@ -6749,5 +6749,17 @@
     "Stops orders with a wrong or someone else's number. The guest signs in once with a code; the next orders go straight.": "بيمنع الطلبات برقم غلط أو رقم حد تاني. العميل بيدخل مرة واحدة بكود، والطلبات اللي بعدها بتمشي على طول.",
     "No way to send a code yet: connect your WhatsApp number (or SMS). Until then orders are not held.": "لسه مفيش طريقة لإرسال الكود: اربط رقم الواتساب بتاعك (أو SMS). لحد ما يتربط الطلبات مش هتتوقف.",
     "The contract works on :window only.": "التعاقد بيشتغل :window بس.",
-    "This voucher belongs to a company visit: cancel or close the visit instead.": "الفاوتشر ده تبع زيارة شركة: الغي الزيارة أو اقفلها بدل كده."
+    "This voucher belongs to a company visit: cancel or close the visit instead.": "الفاوتشر ده تبع زيارة شركة: الغي الزيارة أو اقفلها بدل كده.",
+    "A table order is paid with the table's bill (the Tables tab).": "طلب الترابيزة بيتدفع مع حساب الترابيزة (تاب الترابيزات).",
+    "The guest paid :total by :method?": "العميل دفع :total :method؟",
+    "Not paid": "مش مدفوع",
+    ":n open orders are older than :h hours: close or cancel them so the screens stay clear.": "فيه :n طلبات مفتوحة من أكتر من :h ساعة: اقفلها أو الغيها عشان الشاشات تفضل نضيفة.",
+    "How orders move": "سير الطلبات",
+    "A paid cashier sale (takeaway)": "أوردر الكاشير المدفوع (تيك أواي)",
+    "Automatic (recommended)": "أوتوماتيك (مقترح)",
+    "Is done once paid (no kitchen screen)": "بيخلص أول ما يتدفع (من غير شاشة مطبخ)",
+    "Goes to the kitchen until it is ready": "بيروح المطبخ لحد ما يجهز",
+    "Automatic: through the kitchen while you use the kitchen screen or move cashier orders on the board; otherwise done once paid, so no sale stays \"new\" on the screens.": "أوتوماتيك: بيروح المطبخ طول ما بتستخدم شاشة المطبخ أو بتحرك أوردرات الكاشير على لوحة الطلبات؛ غير كده بيخلص أول ما يتدفع، عشان مفيش أوردر يفضل \"جديد\" على الشاشات.",
+    "Close a paid order left \"ready\" after": "اقفل الطلب المدفوع اللي فاضل \"جاهز\" بعد",
+    "0 = never. Not table orders (they close with the table) or deliveries (the driver closes them).": "0 = أبداً. ما عدا طلبات الترابيزات (بتتقفل مع الترابيزة) والدليفري (الطيار بيقفلها)."
 }

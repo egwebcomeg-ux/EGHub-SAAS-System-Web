@@ -131,6 +131,8 @@ class LoyaltyTest extends TenantTestCase
     public function test_paid_then_served_counts_once(): void
     {
         $a = $this->restaurant('cafe-a');
+        // these sales go through the kitchen (they are moved and cancelled below), not done once paid (OrderFlow)
+        $this->as($a, fn () => Settings::put(['order_flow' => 'kitchen']));
         app(Billing::class)->setAddon($a, 'pos_pack', 1);
         $this->program($a);
         $item = $this->item($a, 'Latte', 60);
