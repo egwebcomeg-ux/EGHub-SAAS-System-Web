@@ -39,6 +39,7 @@ final class Campaigns
         $n = max(0, (float) $value);
 
         return match ($segment) {
+            'all' => $q,
             'inactive' => $q->where(function ($w) use ($n) {
                 $cutoff = now()->subDays((int) max(1, $n));
                 $w->where('last_visit_at', '<', $cutoff)->orWhere(fn ($w) => $w->whereNull('last_visit_at')->where('created_at', '<', $cutoff));
@@ -46,7 +47,7 @@ final class Campaigns
             'visits' => $q->where('visits_count', '>=', (int) max(1, $n)),
             'spent' => $q->where('total_spent', '>=', $n),
             'loyalty' => $q->whereHas('loyaltyCards'),
-            default => Segments::is($segment) ? app(Segments::class)->apply($q, $segment) : $q,
+            default => Segments::is($segment) ? app(Segments::class)->apply($q, $segment) : $q->whereRaw('1 = 0'), // an unknown group reaches nobody
         };
     }
 

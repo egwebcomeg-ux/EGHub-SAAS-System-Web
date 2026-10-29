@@ -129,10 +129,10 @@ class StockCountsController extends Controller
     public function destroy(Request $request, StockCount $count): RedirectResponse
     {
         $this->authorizeBranch($request, $count);
-        if (! $count->isDraft()) {
+        $deleted = DB::transaction(fn () => StockCount::query()->lockForUpdate()->find($count->id)?->isDraft() && $count->delete());
+        if (! $deleted) {
             return back()->withErrors(['count' => __('This count is posted and can no longer change.')]);
         }
-        $count->delete();
 
         return redirect()->route('dash.inventory.counts')->with('ok', __('Draft count deleted.'));
     }

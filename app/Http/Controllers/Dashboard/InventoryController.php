@@ -123,8 +123,8 @@ class InventoryController extends Controller
     {
         $sums = RecipeLine::query()->whereNull('item_option_id')->join('ingredients', 'ingredients.id', '=', 'recipe_lines.ingredient_id')
             ->groupBy('recipe_lines.menu_item_id')
-            ->selectRaw('recipe_lines.menu_item_id, SUM(CASE WHEN recipe_lines.takeaway_only = 1 THEN 0 ELSE recipe_lines.quantity * ingredients.cost_per_unit END) as cost,
-                SUM(recipe_lines.quantity * ingredients.cost_per_unit) as takeaway_cost')
+            ->selectRaw('recipe_lines.menu_item_id, SUM(CASE WHEN recipe_lines.takeaway_only = ? THEN 0 ELSE recipe_lines.quantity * ingredients.cost_per_unit END) as cost,
+                SUM(recipe_lines.quantity * ingredients.cost_per_unit) as takeaway_cost', [true])
             ->get()->keyBy('menu_item_id');
         $costs = $sums->map(fn ($row) => (float) $row->cost);
         $takeawayCosts = $sums->map(fn ($row) => (float) $row->takeaway_cost);

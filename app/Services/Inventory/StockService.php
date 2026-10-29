@@ -117,7 +117,8 @@ class StockService
             }
             $branch = Branch::query()->findOrFail($locked->branch_id);
             $note = trim($locked->supplier?->name.' '.$locked->reference);
-            foreach ($locked->lines()->orderBy('id')->get() as $line) {
+            // ingredients locked in id order, like every purchase: two posted at once never deadlock
+            foreach ($locked->lines()->orderBy('ingredient_id')->orderBy('id')->get() as $line) {
                 $ingredient = Ingredient::query()->lockForUpdate()->findOrFail($line->ingredient_id);
                 $this->purchase($ingredient, $branch, $line->quantity, $line->quantity * $line->unit_cost, $by, $note, $locked);
             }
@@ -141,7 +142,7 @@ class StockService
                 return false;
             }
             $note = trim(__('Cancelled').': '.$locked->supplier?->name.' '.$locked->reference);
-            foreach ($locked->lines()->orderBy('id')->get() as $line) {
+            foreach ($locked->lines()->orderBy('ingredient_id')->orderBy('id')->get() as $line) {
                 $ingredient = Ingredient::query()->lockForUpdate()->findOrFail($line->ingredient_id);
                 $onHand = max(0.0, (float) IngredientStock::query()->where('ingredient_id', $ingredient->id)->sum('quantity'));
                 $paid = $line->quantity * $line->unit_cost;
@@ -183,9 +184,19 @@ class StockService
      */
     public function saveCount(StockCount $count, array $counted): int
     {
-        if (! $count->isDraft()) {
-            return 0;
-        }
+        return DB::transaction(function () use ($count, $counted) {
+            // locked: a sheet posted meanwhile (another manager) is never rewritten
+            if (! StockCount::query()->lockForUpdate()->find($count->id)?->isDraft()) {
+                return 0;
+            }
+
+            return $this->saveCountLines($count, $counted);
+        });
+    }
+
+    /** @param  array<int|string, mixed>  $counted */
+    private function saveCountLines(StockCount $count, array $counted): int
+    {
         $stock = IngredientStock::query()->where('branch_id', $count->branch_id)->pluck('quantity', 'ingredient_id');
         $changed = 0;
         foreach ($count->lines()->get() as $line) {
@@ -210,7 +221,8 @@ class StockService
     /**
      * Posts a draft count sheet (a manager's call): each counted line moves the branch stock by counted − expected,
      * the system quantity when it was counted, so what was sold or returned between counting and posting stays
-     * counted. Blank lines are skipped. Returns false (and changes nothing) unless the sheet is still a draft.
+     * counted; a count posted on the same ingredient since (another sheet, the quick count) is taken off, so the shelf
+     * is never corrected twice. Blank lines are skipped. Returns false (and changes nothing) unless the sheet is still a draft.
      */
     public function postCount(StockCount $count, User $by): bool
     {
@@ -221,7 +233,10 @@ class StockService
             }
             $costs = Ingredient::query()->whereIn('id', $locked->lines()->select('ingredient_id'))->pluck('cost_per_unit', 'id');
             $locked->lines()->whereNotNull('counted')->orderBy('id')->get()->each(function (StockCountLine $line) use ($locked, $by, $costs) {
-                $delta = round($line->counted - (float) $line->expected, 3);
+                // a count moved after this line was counted (another sheet, the quick count) already brought the stock there
+                $recounted = $line->counted_at ? (float) StockMovement::query()->where('ingredient_id', $line->ingredient_id)
+                    ->where('branch_id', $locked->branch_id)->where('type', 'count')->where('created_at', '>', $line->counted_at)->sum('quantity') : 0.0;
+                $delta = round($line->counted - ((float) $line->expected + $recounted), 3);
                 if (abs($delta) >= 0.0005) {
                     $this->move($line->ingredient_id, $locked->branch_id, 'count', $delta, $by, null, $locked->note, null, ['stock_count_id' => $locked->id]);
                 }

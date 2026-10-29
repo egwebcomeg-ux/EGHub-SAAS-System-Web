@@ -70,13 +70,19 @@ class PurchasesController extends Controller
     public function update(Request $request, Purchase $purchase, StockService $stock): RedirectResponse
     {
         $this->authorizeBranch($request, $purchase);
-        if (! $purchase->isDraft()) {
-            return back()->withErrors(['purchase' => __('A posted purchase can no longer change.')]);
-        }
-        DB::transaction(function () use ($request, $purchase) {
+        // locked and re-read: a draft posted meanwhile keeps the lines its stock moved by
+        $saved = DB::transaction(function () use ($request, $purchase) {
+            if (! Purchase::query()->lockForUpdate()->find($purchase->id)?->isDraft()) {
+                return false;
+            }
             $purchase->update($this->header($request));
             $this->saveLines($purchase, $request);
+
+            return true;
         });
+        if (! $saved) {
+            return back()->withErrors(['purchase' => __('A posted purchase can no longer change.')]);
+        }
 
         return $request->boolean('post') ? $this->doPost($request, $purchase, $stock) : back()->with('ok', __('Purchase saved as a draft.'));
     }
@@ -107,10 +113,10 @@ class PurchasesController extends Controller
     public function destroy(Request $request, Purchase $purchase): RedirectResponse
     {
         $this->authorizeBranch($request, $purchase);
-        if (! $purchase->isDraft()) {
+        $deleted = DB::transaction(fn () => Purchase::query()->lockForUpdate()->find($purchase->id)?->isDraft() && $purchase->delete());
+        if (! $deleted) {
             return back()->withErrors(['purchase' => __('A posted purchase can no longer change.')]);
         }
-        $purchase->delete();
 
         return redirect()->route('dash.inventory.purchases')->with('ok', __('Draft purchase deleted.'));
     }

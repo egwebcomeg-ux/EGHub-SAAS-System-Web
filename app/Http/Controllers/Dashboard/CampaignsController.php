@@ -22,6 +22,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -33,6 +34,9 @@ use Illuminate\View\View;
  */
 class CampaignsController extends Controller
 {
+    /** SMS campaigns one staff member may start per minute (the old SMS button's limit). */
+    public const SMS_PER_MINUTE = 6;
+
     /** Two tabs: the campaigns themselves and the automations (welcome / winback / birthday). */
     public function index(Request $request, Campaigns $campaigns, Automations $automations, Segments $segments, Outreach $outreach): View|Response
     {
@@ -86,7 +90,15 @@ class CampaignsController extends Controller
     /** A new campaign, sent via the channel picked (EgHub WhatsApp when none is sent: the old form). */
     public function store(Request $request, Campaigns $campaigns, Outreach $outreach): RedirectResponse
     {
-        $via = (string) $request->input('channel', 'whatsapp');
+        $via = (string) ($request->input('channel') ?: 'whatsapp'); // empty = the old form: EgHub WhatsApp, with its checks
+        if ($via === 'sms') {
+            // SMS goes through the platform's provider: as tight as the old SMS button
+            $key = 'campaign-sms:'.tenant()->getTenantKey().':'.$request->user()->id;
+            if (RateLimiter::tooManyAttempts($key, self::SMS_PER_MINUTE)) {
+                return back()->withInput()->withErrors(['channel' => __('Too many SMS campaigns at once. Try again in a minute.')]);
+            }
+            RateLimiter::hit($key, 60);
+        }
         abort_if($via === 'whatsapp' && ! Entitlements::current()->allows('campaigns'), 403);
         $request->validate(['channel' => ['nullable', Rule::in(self::vias($request->user()))]], [], ['channel' => __('Send via')]);
 

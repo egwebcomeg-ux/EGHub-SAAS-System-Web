@@ -155,6 +155,8 @@ class CampaignsTest extends TenantTestCase
         // EgHub WhatsApp (also the old form, which sent no channel) and its automations stay locked
         $send = ['name' => 'Hi', 'segment' => 'all', 'message' => 'Hi {name}', 'when' => 'now'];
         $this->actingAs($owner)->post($this->dashUrl('/campaigns'), $send + ['channel' => 'whatsapp'])->assertForbidden();
+        // an empty channel is the old EgHub WhatsApp form, never a way around its lock
+        $this->actingAs($owner)->post($this->dashUrl('/campaigns'), $send + ['channel' => ''])->assertForbidden();
         $this->actingAs($owner)->post($this->dashUrl('/campaigns'), $send)->assertForbidden();
         $this->actingAs($owner)->get($this->dashUrl('/campaigns?tab=automations'))->assertForbidden();
         // from the own phone is free

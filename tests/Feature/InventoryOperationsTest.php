@@ -117,6 +117,27 @@ class InventoryOperationsTest extends TenantTestCase
         $this->assertSame(1, $this->as($this->tenant, fn () => StockMovement::query()->where('type', 'count')->count()));
     }
 
+    public function test_two_sheets_counting_the_same_shelf_correct_it_once(): void
+    {
+        $milk = $this->ingredient('Milk', 0.05);
+        $this->receive($milk, 1000);
+        foreach ([1, 2] as $n) {
+            $this->actingAs($this->owner)->post($this->dashUrl('/inventory/counts'), ['scope' => 'some', 'ingredient_ids' => [$milk->id]])->assertRedirect();
+        }
+        $sheets = $this->as($this->tenant, fn () => StockCount::query()->with('lines')->orderBy('id')->get());
+        // both find 950 on the shelf (the system says 1000)
+        foreach ($sheets as $sheet) {
+            $this->actingAs($this->owner)->post($this->dashUrl("/inventory/counts/{$sheet->id}"), ['counted' => [$sheet->lines->sole()->id => 950]])->assertSessionHasNoErrors();
+        }
+        $this->travel(1)->minutes();
+
+        foreach ($sheets as $sheet) {
+            $this->actingAs($this->owner)->post($this->dashUrl("/inventory/counts/{$sheet->id}/post"))->assertSessionHasNoErrors();
+        }
+        // the second sheet sees the first one's correction: the stock is the shelf, not 50 less
+        $this->assertSame(950.0, $this->stock($milk));
+    }
+
     public function test_a_count_sheet_needs_an_ingredient_and_a_counted_quantity_to_post(): void
     {
         $this->ingredient('Milk', 0.05);
