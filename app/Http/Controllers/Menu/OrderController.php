@@ -84,8 +84,10 @@ class OrderController extends Controller
         $phone = normalize_phone((string) ($data['customer_phone'] ?? ''));
         $newGuest = $phone !== null && ! Customer::query()->where('phone', $phone)->exists();
         try {
+            // at a scanned table the order is always dine-in: a type sent by the page never drops the service charge
+            // or takes the order out of the table's bill
             $order = $table
-                ? $orders->place($data + ['source' => 'qr', 'type' => 'dine_in'], $table->branch, $table)
+                ? $orders->place(['source' => 'qr', 'type' => 'dine_in'] + $data, $table->branch, $table)
                 : $this->placeOnline($data, $orders);
         } catch (OrderException $e) {
             return response()->json(['message' => $e->getMessage()], 422);

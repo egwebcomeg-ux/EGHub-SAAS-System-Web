@@ -76,6 +76,20 @@ class OrderFlowTest extends TenantTestCase
         $this->get($res->json('url'))->assertOk()->assertSee('طلب رقم 1')->assertSee('Latte');
     }
 
+    public function test_a_table_order_stays_dine_in_with_its_service_charge_whatever_type_the_page_sends(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $this->as($a, fn () => Settings::put(['service_percent' => '12']));
+        $latte = $this->latte($a);
+        $table = $this->scanTable($a, '3');
+
+        $this->order($a, [['item_id' => $latte->id, 'qty' => 1, 'option_ids' => [$this->option($latte, 'Small')]]], ['type' => 'takeaway'])->assertOk();
+
+        $order = $this->as($a, fn () => Order::query()->firstOrFail());
+        $this->assertSame(['dine_in', $table->id, 7.8], [$order->type, $order->dining_table_id, $order->service]);
+        $this->assertNotNull($order->table_session_id);
+    }
+
     public function test_ordering_needs_a_scanned_table(): void
     {
         $a = $this->restaurant('cafe-a');
