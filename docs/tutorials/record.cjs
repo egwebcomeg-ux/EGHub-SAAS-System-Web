@@ -63,7 +63,9 @@ function spoken(line) {
     fs.mkdirSync(CACHE, { recursive: true });
     const file = path.join(CACHE, require('crypto').createHash('sha1').update(`${VOICE}|${RATE}|${line}`).digest('hex') + '.mp3');
     if (!fs.existsSync(file)) {
-        execFileSync(TTS, ['--voice', VOICE, `--rate=${RATE}`, '--text', line, '--write-media', file], { stdio: 'pipe' });
+        // edge-tts ignores the proxy variables, so a machine behind a proxy hands it over itself
+        const proxy = process.env.HTTPS_PROXY || process.env.https_proxy;
+        execFileSync(TTS, ['--voice', VOICE, `--rate=${RATE}`, ...(proxy ? ['--proxy', proxy] : []), '--text', line, '--write-media', file], { stdio: 'pipe' });
     }
     const seconds = parseFloat(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file], { encoding: 'utf8' }));
 
