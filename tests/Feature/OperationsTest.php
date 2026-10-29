@@ -11,6 +11,7 @@ use App\Models\Invoice;
 use App\Models\KitchenStation;
 use App\Models\MenuItem;
 use App\Models\Order;
+use App\Models\PagerTicket;
 use App\Models\Plan;
 use App\Models\PlatformAdmin;
 use App\Models\Shift;
@@ -174,6 +175,22 @@ class OperationsTest extends TenantTestCase
         $this->assertSame([1], $feed->json('preparing'));
         $this->assertStringNotContainsString('Mona', $feed->getContent());
         $this->assertStringNotContainsString('Secret', $feed->getContent());
+    }
+
+    public function test_board_shows_the_numbers_of_the_tv_ready_slide_called_tickets_in_and_old_orders_out(): void
+    {
+        $a = $this->withPacks('cafe-a', ['pos_pack']);
+        $this->as($a, function () {
+            $branch = Branch::query()->value('id');
+            Order::query()->create(['branch_id' => $branch, 'number' => 7, 'status' => 'preparing', 'total' => 50]);
+            // an order left "preparing" since yesterday is no longer on the board
+            Order::query()->create(['branch_id' => $branch, 'number' => 8, 'status' => 'preparing', 'total' => 50])
+                ->forceFill(['created_at' => now()->subHours(13)])->save();
+            PagerTicket::query()->create(['branch_id' => $branch, 'number' => 42, 'service_date' => today(), 'token' => random_token(12), 'status' => 'called', 'called_at' => now()]);
+            PagerTicket::query()->create(['branch_id' => $branch, 'number' => 43, 'service_date' => today(), 'token' => random_token(12), 'status' => 'waiting']);
+        });
+
+        $this->getJson($this->subUrl('cafe-a', 'board/feed'))->assertOk()->assertExactJson(['ready' => [42], 'preparing' => [7]]);
     }
 
     public function test_restaurant_buys_an_add_on_and_it_renews_with_the_plan(): void

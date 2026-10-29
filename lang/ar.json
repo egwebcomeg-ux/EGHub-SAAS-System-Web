@@ -6934,5 +6934,10 @@
     "Post this count? The stock of every counted item becomes what you counted.": "ترحّل الجرد ده؟ مخزون كل حاجة اتجردت هيبقى زي اللي اتعدّ.",
     "Save and post (manager)": "حفظ وترحيل (للمدير)",
     "A manager posts the count when it is done.": "المدير بيرحّل الجرد لما يخلص.",
-    "Delete this draft count?": "تمسح مسودة الجرد دي؟"
+    "Delete this draft count?": "تمسح مسودة الجرد دي؟",
+    "Corporate": "الشركات",
+    "Contracts": "التعاقدات",
+    "Redeem company vouchers": "صرف فاوتشرات الشركات",
+    "Company vouchers report": "تقرير فاوتشرات الشركات",
+    "Redeem company vouchers at the counter": "اصرف فاوتشرات الشركات على الكاونتر"
 }

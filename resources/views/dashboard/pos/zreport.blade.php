@@ -7,8 +7,9 @@
     $label = fn (string $m) => \App\Billing\PaymentMethods::label($m);
     $query = ['date' => $day->format('Y-m-d'), 'branch' => $branch->id, 'terminal' => $terminal?->id];
     $methods = array_unique(array_merge(array_keys($z['by_method']), array_keys($z['refunds']['by_method'])));
+    $fromReports = \App\Support\AreaTabs::fromReports();
 @endphp
-<x-dash.page-header :title="__('POS')" :help="__('The day of one branch (or one terminal): sales by payment method, refunds, cancels, cash in and out, and each shift\'s counted cash.')">
+<x-dash.page-header :title="$fromReports ? __('Reports') : __('POS')" :help="__('The day of one branch (or one terminal): sales by payment method, refunds, cancels, cash in and out, and each shift\'s counted cash.')">
     <x-slot:actions>
         <a href="{{ route('dash.zreport', $query + ['format' => '80mm']) }}" target="_blank" class="btn-ghost" data-z-print="80mm">🧾 {{ __('Print 80mm') }}</a>
         {{-- only inside the EgHub cashier app (resources/js/native-print.js): straight to the till's printer --}}
@@ -19,9 +20,15 @@
         <a href="{{ route('dash.zreport', $query + ['format' => 'xlsx']) }}" class="btn-ghost">Excel</a>
     </x-slot:actions>
 </x-dash.page-header>
-@include('dashboard.pos.tabs', ['current' => 'zreport'])
+{{-- a tab of the POS, and of the reports when opened from there --}}
+@if ($fromReports)
+    @include('dashboard.partials.area-tabs', ['area' => 'reports', 'current' => 'zreport'])
+@else
+    @include('dashboard.pos.tabs', ['current' => 'zreport'])
+@endif
 
 <form class="card mb-4 flex flex-wrap items-end gap-3" data-z-filters>
+    @if ($fromReports)<input type="hidden" name="in" value="{{ \App\Support\AreaTabs::IN_REPORTS }}">@endif
     <label class="block"><span class="field-label">{{ __('Day') }}</span>
         <input class="field" type="date" name="date" value="{{ $day->format('Y-m-d') }}" max="{{ now()->format('Y-m-d') }}"></label>
     @if ($branches->count() > 1)

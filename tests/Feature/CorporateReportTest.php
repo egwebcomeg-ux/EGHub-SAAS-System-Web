@@ -123,7 +123,7 @@ class CorporateReportTest extends TenantTestCase
         $this->assertSame('Staff came on the last day', $r['exceptions'][0]['reason']);
         $this->assertSame([['Cashier', 210.0], ['Manager', 200.0]], array_map(fn ($c) => [$c['name'], $c['amount']], $r['cashiers']));
 
-        $this->actingAs($this->manager)->get($this->dashUrl('/corporate/report'))->assertOk()->assertSee('تقرير الفاوتشرات')
+        $this->actingAs($this->manager)->get($this->dashUrl('/corporate/report'))->assertOk()->assertSee('تقرير فاوتشرات الشركات')
             ->assertSee('data-report-contract="'.$this->eva->id.'"', false)->assertSee('data-chart', false)->assertSee('Staff came on the last day');
     }
 
@@ -153,10 +153,12 @@ class CorporateReportTest extends TenantTestCase
         $this->assertStringContainsString('فاتورة ورقية', $uses);
         $this->actingAs($this->manager)->get($this->dashUrl('/corporate/report/export?what=uses&format=xlsx'))->assertOk()->assertDownload();
 
-        // contracts.manage or reports.view; the cashier has neither; the links are on the contracts list and the reports
+        // contracts.manage or reports.view; the cashier has neither; a tab of the Corporate app and of the reports
         $this->actingAs($this->cashier)->get($this->dashUrl('/corporate/report'))->assertForbidden();
-        $this->actingAs($this->owner($this->tenant))->get($this->dashUrl('/corporate'))->assertOk()->assertSee('data-vouchers-report-link', false);
-        $this->actingAs($this->owner($this->tenant))->get($this->dashUrl('/reports'))->assertOk()->assertSee('data-report-vouchers-link', false);
+        $this->actingAs($this->owner($this->tenant))->get($this->dashUrl('/corporate'))->assertOk()
+            ->assertSee(route('dash.corporate.report', [], false).'" data-tab="report"', false);
+        $this->actingAs($this->owner($this->tenant))->get($this->dashUrl('/reports'))->assertOk()
+            ->assertSee(route('dash.corporate.report', ['in' => 'reports'], false).'" data-tab="corporate"', false);
         $pro = $this->restaurant('cafe-pro', 'pro');
         $this->actingAs($this->owner($pro))->get($this->dashUrl('/corporate/report'))->assertForbidden();
     }

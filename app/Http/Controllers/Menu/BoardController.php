@@ -4,15 +4,18 @@ namespace App\Http\Controllers\Menu;
 
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
-use App\Models\Order;
 use App\Services\Entitlements;
 use App\Services\Menu\MenuCatalog;
+use App\Services\Screens\ScreenPlaylist;
 use App\Services\Settings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-/** Public order-number board for a screen in the hall: numbers only (preparing / ready), no names or items. */
+/**
+ * Public order-number board for a screen in the hall: numbers only (preparing / ready), no names or items. The same
+ * numbers as the TV "ready numbers" slide (ScreenPlaylist::numbers), called pager tickets included.
+ */
 class BoardController extends Controller
 {
     public function show(Request $request): View
@@ -25,15 +28,8 @@ class BoardController extends Controller
     public function feed(Request $request): JsonResponse
     {
         abort_unless(Entitlements::current()->allows('customer_display'), 404);
-        $orders = Order::query()->where('branch_id', $this->branch($request)->id)
-            ->where(fn ($q) => $q->whereIn('status', ['new', 'preparing'])
-                ->orWhere(fn ($q) => $q->where('status', 'ready')->where('ready_at', '>=', now()->subMinutes(30))))
-            ->orderBy('id')->get(['number', 'status']);
 
-        return response()->json([
-            'preparing' => $orders->whereIn('status', ['new', 'preparing'])->pluck('number')->values(),
-            'ready' => $orders->where('status', 'ready')->pluck('number')->values(),
-        ]);
+        return response()->json(ScreenPlaylist::numbers($this->branch($request)));
     }
 
     private function branch(Request $request): Branch

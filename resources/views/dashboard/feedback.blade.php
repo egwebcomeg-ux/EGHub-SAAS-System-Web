@@ -3,6 +3,7 @@
 
 @section('content')
 <x-dash.page-header :title="__('Ratings')" />
+@include('dashboard.partials.area-tabs', ['area' => 'reports', 'current' => 'feedback'])
 
 <div class="mb-4 grid gap-4 md:grid-cols-3">
     <div class="card text-center">

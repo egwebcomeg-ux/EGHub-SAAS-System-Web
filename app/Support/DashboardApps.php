@@ -17,6 +17,9 @@ use App\Services\ModuleChoice;
  * picked their modules (App\Services\ModuleChoice) the apps of the picked modules stay in their groups and the rest
  * wait under "more"; every link keeps working either way.
  *
+ * An app with a `fallback` (the route of the app it is a tab of) shows only to whoever cannot open that app: shifts
+ * for someone who manages shifts without the POS, the ratings for someone who sees the customers but not the reports.
+ *
  * @phpstan-type App array{route: string, label: string, icon: string, group: string, permission: string|bool|null, feature: ?string, fallback?: string}
  * @phpstan-type Group array{key: string, title: ?string, apps: list<App>}
  */
@@ -24,9 +27,6 @@ final class DashboardApps
 {
     /** The ungrouped entry at the top of the sidebar: the apps screen itself. */
     public const GROUP_HOME = 'home';
-
-    /** The pin that keeps the shifts entry only for someone who manages shifts without the POS (shifts are a POS tab). */
-    private const POS_FALLBACK = 'pos-fallback';
 
     /** The grid icon of the apps screen. */
     public const APPS_ICON = 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z';
@@ -52,7 +52,8 @@ final class DashboardApps
     /**
      * Pages that live inside another app: shifts, terminals and the Z report in the POS, stations under the kitchen
      * display, items in the menu, vouchers with the coupons, the TV and kiosks with the screens, the rewards settings
-     * with the guest desk.
+     * with the guest desk, the ratings in the reports, and the corporate pages in the Corporate app, whichever of its
+     * tabs it opens for this user (App\Support\AreaTabs::corporate).
      *
      * @var array<string, list<string>>
      */
@@ -63,11 +64,23 @@ final class DashboardApps
         'dash.coupons' => ['dash.vouchers', 'dash.vouchers.*'],
         'dash.loyalty.desk' => ['dash.rewards'],
         'dash.devices' => ['dash.tv', 'dash.tv.*', 'dash.kiosks', 'dash.kiosks.*'],
+        'dash.reports' => ['dash.feedback', 'dash.feedback.*'],
+        'dash.corporate' => ['dash.redeem', 'dash.redeem.*'],
+        'dash.corporate.bookings' => ['dash.corporate', 'dash.corporate.*', 'dash.redeem', 'dash.redeem.*'],
+        'dash.redeem' => ['dash.corporate', 'dash.corporate.*'],
     ];
 
-    /** Whether the current page is this app's page, one of its sub-pages, or a page that lives inside it (WITHIN). */
+    /**
+     * Whether the current page is this app's page, one of its sub-pages, or a page that lives inside it (WITHIN).
+     * The Z report and the vouchers report opened from the reports tabs (AreaTabs::fromReports) belong to Reports, or
+     * to the ratings for whoever has them as an app of their own instead of Reports.
+     */
     public static function isActive(string $route): bool
     {
+        if (AreaTabs::fromReports()) {
+            return in_array($route, ['dash.reports', 'dash.feedback'], true);
+        }
+
         return request()->routeIs($route)
             || ($route !== 'dash.home' && request()->routeIs($route.'.*'))
             || request()->routeIs(...(self::WITHIN[$route] ?? ['-']));
@@ -118,6 +131,8 @@ final class DashboardApps
         $app = fn (string $group, string $route, string $label, string $icon, string|bool|null $permission, ?string $feature) => [
             'route' => $route, 'label' => $label, 'icon' => $icon, 'group' => $group, 'permission' => $permission, 'feature' => $feature,
         ];
+        // one Corporate app: it opens the first of its tabs this user may use, and is named after it when it is the only one
+        $corporate = AreaTabs::corporate($user);
 
         return [
             $app(self::GROUP_HOME, 'dash.home', __('Apps'), self::APPS_ICON, null, null),
@@ -130,7 +145,7 @@ final class DashboardApps
             $app('orders', 'dash.driver', __('My deliveries'), 'M5.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM18.5 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM8 18.5h8M3 13h9l3-5h3l3 5v5h-2', $user->hasRole('driver'), 'delivery_zones|online_ordering'),
             $app('orders', 'dash.kitchen', BusinessType::prepScreen(), 'M6 13.9A4 4 0 0 1 7 6a5 5 0 0 1 10 0 4 4 0 0 1 1 7.9V20H6zM6 17h12', 'kitchen.view', 'kitchen_display'),
             $app('orders', 'dash.pager', __('Guest pager'), 'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0M2 8a10 10 0 0 1 2-5M22 8a10 10 0 0 0-2-5', 'pager.use', 'pager'),
-            $app('orders', 'dash.shifts', __('Shifts'), 'M12 8v4l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z', 'shifts.manage', 'shifts') + ['fallback' => self::POS_FALLBACK],
+            $app('orders', 'dash.shifts', __('Shifts'), 'M12 8v4l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z', 'shifts.manage', 'shifts') + ['fallback' => 'dash.pos'],
             $app('orders', 'dash.reservations', __('Reservations'), 'M8 2v4M16 2v4M3 9h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM9 15l2 2 4-4', 'reservations.manage', 'reservations'),
 
             $app('menu', 'dash.menu', __('Menu'), 'M4 4h16v16H4zM4 9h16M9 9v11', 'menu.manage', null),
@@ -140,12 +155,10 @@ final class DashboardApps
             $app('customers', 'dash.loyalty.desk', __('Guest desk'), 'M3 6h18v12H3zM7 10h.01M11 10h.01M15 10h.01M7 14h.01M11 14h.01', 'loyalty.stamp', LoyaltyController::DESK_FEATURES),
             $app('customers', 'dash.marketing', __('Offers & popups'), 'M7 7h.01M3 11V3h8l10 10-8 8L3 11z', 'marketing.manage', 'offers'),
             $app('customers', 'dash.coupons', __('Coupons & vouchers'), 'M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4zM9 9h.01M15 15h.01M15 9l-6 6', CouponsController::visibleFor($user), null),
-            $app('customers', 'dash.feedback', __('Ratings'), 'M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z', 'customers.view', 'feedback'),
+            $app('customers', 'dash.feedback', __('Ratings'), 'M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z', 'customers.view', 'feedback') + ['fallback' => 'dash.reports'],
             $app('customers', 'dash.campaigns', __('Campaigns'), 'M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13', 'marketing.manage', 'customers|campaigns'),
             $app('customers', 'dash.wallet', __('Wallet'), 'M20 12V8H6a2 2 0 0 1 0-4h12v4M4 6v12a2 2 0 0 0 2 2h14v-4M18 12a2 2 0 0 0 0 4h4v-4z', 'wallet.manage', 'wallet'),
-            $app('customers', 'dash.corporate', __('Corporate contracts'), 'M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M2 21h20M8 7h4M8 11h4M8 15h4', 'contracts.manage', 'corporate_vouchers'),
-            $app('customers', 'dash.corporate.bookings', __('Company visits'), 'M8 2v4M16 2v4M3 9h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM8 14h3M8 17h6', 'contracts.manage|reservations.manage', 'corporate_vouchers'),
-            $app('customers', 'dash.redeem', __('Redeem vouchers'), 'M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4zM8 12l2.5 2.5L16 9', 'vouchers.redeem', 'corporate_vouchers'),
+            $app('customers', $corporate[0]['route'] ?? 'dash.corporate', count($corporate) === 1 ? $corporate[0]['name'] : __('Corporate'), 'M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M2 21h20M8 7h4M8 11h4M8 15h4', $corporate !== [], 'corporate_vouchers'),
             $app('customers', 'dash.kb', __('Knowledge base'), 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5M9.5 8.5a2.5 2.5 0 1 1 3 2.4c-.6.2-1 .7-1 1.3M11.5 14.5h.01', 'kb.manage', 'knowledge_base'),
 
             $app('operations', 'dash.inventory', __('Inventory'), 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8', 'inventory.manage', 'inventory'),
@@ -174,8 +187,8 @@ final class DashboardApps
         $allowed = fn (array $app) => (is_bool($app['permission']) ? $app['permission'] : (! $app['permission'] || $user->canAny(explode('|', $app['permission']))))
             && (! $app['feature'] || $rights->allows($app['feature']));
         $all = self::all($user);
-        $posOpen = $allowed(collect($all)->firstWhere('route', 'dash.pos'));
-        $apps = array_filter($all, fn (array $app) => $allowed($app) && (($app['fallback'] ?? null) !== self::POS_FALLBACK || ! $posOpen));
+        $hostOpen = fn (string $route) => $allowed(collect($all)->firstWhere('route', $route));
+        $apps = array_filter($all, fn (array $app) => $allowed($app) && (! isset($app['fallback']) || ! $hostOpen($app['fallback'])));
 
         $hasChoice = ModuleChoice::hasChoice();
         $groups = [];

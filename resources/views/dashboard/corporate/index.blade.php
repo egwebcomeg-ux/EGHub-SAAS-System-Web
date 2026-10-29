@@ -10,11 +10,9 @@
 <x-dash.page-header :title="__('Corporate contracts')" :help="__('A company buys prepaid vouchers for its staff: you print them, the cashier takes them at the POS, and the statement shows every use for settlement.')">
     <x-slot:actions>
         <a href="{{ route('dash.corporate.create') }}" class="btn-primary" data-new-contract>＋ {{ __('New contract') }}</a>
-        <a href="{{ route('dash.corporate.bookings') }}" class="btn-ghost" data-visits-link>🗓 {{ __('Company visits') }}@if ($totals['visits'] > 0) <span class="badge bg-red-100 text-red-700">{{ $totals['visits'] }}</span>@endif</a>
-        <a href="{{ route('dash.corporate.report') }}" class="btn-ghost" data-vouchers-report-link>📊 {{ __('Vouchers report') }}</a>
-        @can('vouchers.redeem')<a href="{{ route('dash.redeem') }}" class="btn-ghost" data-redeem-link>{{ __('Redeem vouchers') }}</a>@endcan
     </x-slot:actions>
 </x-dash.page-header>
+@include('dashboard.partials.area-tabs', ['area' => 'corporate', 'current' => 'contracts', 'tabCounts' => ['visits' => $totals['visits']]])
 
 <div class="mb-4 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
     <div class="stat-card"><div class="stat-label">{{ __('Running contracts') }}</div><div class="stat-value">{{ number_format($totals['contracts']) }}</div></div>

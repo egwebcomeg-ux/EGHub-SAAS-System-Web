@@ -79,7 +79,7 @@ class VoucherRedeemTest extends TenantTestCase
         $this->assertFalse(Entitlements::for($this->tenant)->allows('pos'));
         [$voucher] = $this->vouchers($this->contract());
 
-        $this->actingAs($this->cashier)->get($this->dashUrl('/vouchers/redeem'))->assertOk()->assertSee('صرف الفاوتشرات')->assertSee('data-redeem', false)
+        $this->actingAs($this->cashier)->get($this->dashUrl('/vouchers/redeem'))->assertOk()->assertSee('صرف فاوتشرات الشركات')->assertSee('data-redeem', false)
             ->assertSee(route('dash.redeem', [], false));
         $this->actingAs($this->cashier)->postJson($this->dashUrl('/vouchers/redeem/check'), ['query' => $voucher->code])->assertOk()
             ->assertJsonPath('vouchers.0.serial', 'EVA-0001')->assertJsonPath('vouchers.0.ok', true);

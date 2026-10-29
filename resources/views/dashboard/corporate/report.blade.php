@@ -1,5 +1,5 @@
 @extends('layouts.dashboard')
-@section('title', __('Vouchers report'))
+@section('title', __('Company vouchers report'))
 
 @section('content')
 @php
@@ -9,18 +9,21 @@
     $query = array_filter(request()->only(['range', 'from', 'to', 'contract', 'branch', 'cashier', 'mode']));
     $paidStyles = ['paid' => 'bg-emerald-100 text-emerald-800', 'partial' => 'bg-amber-100 text-amber-800', 'unpaid' => 'bg-red-100 text-red-700'];
     $maxDay = max(1, max($r['days'] ?: [0]));
+    $fromReports = \App\Support\AreaTabs::fromReports();
 @endphp
-<x-dash.page-header :title="__('Vouchers report')" :help="__('What the companies\' vouchers brought in and what you still owe their staff. Cancelled orders and cancelled paper bills are left out.')">
+<x-dash.page-header :title="__('Company vouchers report')" :help="__('What the companies\' vouchers brought in and what you still owe their staff. Cancelled orders and cancelled paper bills are left out.')">
     <x-slot:actions>
         <a href="{{ route('dash.corporate.report.export', $query + ['what' => 'summary', 'format' => 'xlsx']) }}" class="btn-primary" data-report-export>Excel</a>
         <a href="{{ route('dash.corporate.report.export', $query + ['what' => 'summary', 'format' => 'csv']) }}" class="btn-ghost">CSV</a>
         <a href="{{ route('dash.corporate.report.export', $query + ['what' => 'uses', 'format' => 'xlsx']) }}" class="btn-ghost" data-report-uses>{{ __('Every use') }} · Excel</a>
         <a href="{{ route('dash.corporate.report.export', $query + ['what' => 'uses', 'format' => 'csv']) }}" class="btn-ghost">{{ __('Every use') }} · CSV</a>
-        @can('contracts.manage')<a href="{{ route('dash.corporate') }}" class="btn-ghost">{{ __('Corporate contracts') }}</a>@endcan
     </x-slot:actions>
 </x-dash.page-header>
+{{-- a tab of the Corporate app, and of the reports when opened from there --}}
+@include('dashboard.partials.area-tabs', $fromReports ? ['area' => 'reports', 'current' => 'corporate'] : ['area' => 'corporate', 'current' => 'report'])
 
 <form class="card mb-4 space-y-3" data-report-filters>
+    @if ($fromReports)<input type="hidden" name="in" value="{{ \App\Support\AreaTabs::IN_REPORTS }}">@endif
     <div class="flex flex-wrap gap-2">
         @foreach ($presets as $key => $label)
             <label class="flex min-h-11 cursor-pointer items-center rounded-xl border border-navy-200 px-4 text-sm font-semibold has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-800">

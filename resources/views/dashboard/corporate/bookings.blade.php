@@ -7,11 +7,8 @@
         'declined' => 'bg-red-100 text-red-700', 'cancelled' => 'bg-navy-100 text-navy-500'];
     $brand = tr(\App\Services\Settings::get('brand_name'), \App\Services\Settings::get('brand_name_en')) ?: tenant()->name;
 @endphp
-<x-dash.page-header :title="__('Company visits')" :help="__('A company sends its rep with a budget: the meals part goes on a voucher for the visit day on the rep\'s mobile, the rest on a voucher for the company. Every visit waits for a manager.')">
-    <x-slot:actions>
-        @can('contracts.manage')<a href="{{ route('dash.corporate') }}" class="btn-ghost">{{ __('Corporate contracts') }}</a>@endcan
-    </x-slot:actions>
-</x-dash.page-header>
+<x-dash.page-header :title="__('Company visits')" :help="__('A company sends its rep with a budget: the meals part goes on a voucher for the visit day on the rep\'s mobile, the rest on a voucher for the company. Every visit waits for a manager.')" />
+@include('dashboard.partials.area-tabs', ['area' => 'corporate', 'current' => 'visits', 'tabCounts' => ['visits' => $waiting]])
 
 @if ($errors->has('booking'))<p class="mb-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700" data-booking-error>{{ $errors->first('booking') }}</p>@endif
 
