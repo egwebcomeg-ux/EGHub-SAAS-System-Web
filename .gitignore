@@ -31,3 +31,6 @@ Thumbs.db
 
 # hidden beta downloads of the Android apps, uploaded to the server only
 /public/b-*/
+
+# the tutorials' voice-over clips (made again from the scripts)
+/docs/tutorials/.voice/

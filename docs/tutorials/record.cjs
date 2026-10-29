@@ -48,15 +48,51 @@ const OVERLAY = () => {
     document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', add) : add();
 };
 
-function tutor(page) {
+/**
+ * The voice-over (env VOICE, e.g. ar-EG-SalmaNeural; none = a silent video): each caption is spoken, from the
+ * scenario's `voice` map (caption => what is said; '' = said nothing) or the caption itself. The audio of a line is
+ * made once by the TTS command (env TTS, default edge-tts; cached in VOICE_CACHE) and the video waits as long as it
+ * lasts, so the voice and the screen never drift; the clips are mixed in at the times they were shown.
+ */
+const VOICE = process.env.VOICE || '';
+const TTS = process.env.TTS || 'edge-tts';
+const RATE = process.env.VOICE_RATE || '+0%';
+const CACHE = path.resolve(process.env.VOICE_CACHE || path.join(__dirname, '.voice'));
+
+function spoken(line) {
+    fs.mkdirSync(CACHE, { recursive: true });
+    const file = path.join(CACHE, require('crypto').createHash('sha1').update(`${VOICE}|${RATE}|${line}`).digest('hex') + '.mp3');
+    if (!fs.existsSync(file)) {
+        execFileSync(TTS, ['--voice', VOICE, `--rate=${RATE}`, '--text', line, '--write-media', file], { stdio: 'pipe' });
+    }
+    const seconds = parseFloat(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file], { encoding: 'utf8' }));
+
+    return { file, ms: Math.round(seconds * 1000) };
+}
+
+function tutor(page, voice = {}, clips = [], startedAt = Date.now()) {
     const wait = (ms) => page.waitForTimeout(ms);
+    /** Says a line (when the voice is on): its clip is placed now; returns how long it lasts in ms. */
+    const speak = (text) => {
+        const line = VOICE && text ? (Object.prototype.hasOwnProperty.call(voice, text) ? voice[text] : text) : '';
+        if (!line) return 0;
+        const clip = spoken(line);
+        clips.push({ file: clip.file, at: Date.now() - startedAt });
+
+        return clip.ms;
+    };
+    /** Shows a caption and says it; returns how long the voice takes (0 without voice). */
     const caption = async (text) => {
         await page.evaluate((t) => {
             sessionStorage.setItem('tut-caption', t);
             const bar = document.getElementById('tut-bar');
             if (bar) bar.textContent = t;
         }, text);
+
+        return speak(text);
     };
+    /** At least `ms`, and never before the voice has finished. */
+    const hold = (ms, voiceMs) => wait(Math.max(ms, voiceMs ? voiceMs + 250 : 0));
     const ring = async (locator) => {
         const box = await locator.boundingBox();
         if (!box) return;
@@ -83,27 +119,26 @@ function tutor(page) {
                 c.innerHTML = `<div>${t}${s ? `<small>${s}</small>` : ''}</div>`;
                 document.body.appendChild(c);
             }, [title, subtitle]);
-            await wait(2800);
+            await hold(2800, speak(title));
             await page.evaluate(() => document.getElementById('tut-card')?.remove());
         },
         async say(text, ms = 2600) {
-            await caption(text);
-            await wait(ms);
+            await hold(ms, await caption(text));
         },
         async go(url, text) {
             if (text) await page.evaluate((t) => sessionStorage.setItem('tut-caption', t), text).catch(() => {});
             await page.goto(url.startsWith('http') ? url : BASE.replace('://', `://${url.startsWith('app:') ? 'app.' : ''}`) + url.replace(/^app:/, ''));
             // the caption saved above stays with the old site: a page on another host (menu ↔ dashboard) gets it here
-            if (text) await caption(text);
-            await wait(text ? 2400 : 900);
+            const voiceMs = text ? await caption(text) : 0;
+            await hold(text ? 2400 : 900, voiceMs);
         },
         /** Shows the caption, rings the element, then taps it. */
         async click(target, text, after = 1400) {
             const el = find(target);
             await el.scrollIntoViewIfNeeded();
-            if (text) await caption(text);
+            const voiceMs = text ? await caption(text) : 0;
             await ring(el);
-            await wait(text ? 1700 : 700);
+            await hold(text ? 1700 : 700, voiceMs);
             await el.click();
             await unring();
             await wait(after);
@@ -111,9 +146,9 @@ function tutor(page) {
         async fill(target, value, text, after = 900) {
             const el = find(target);
             await el.scrollIntoViewIfNeeded();
-            if (text) await caption(text);
+            const voiceMs = text ? await caption(text) : 0;
             await ring(el);
-            await wait(text ? 1200 : 500);
+            await hold(text ? 1200 : 500, voiceMs);
             // date and time boxes are typed per segment in the page's locale: set them whole
             if (['date', 'time', 'datetime-local'].includes(await el.getAttribute('type'))) {
                 await el.fill(String(value));
@@ -126,9 +161,9 @@ function tutor(page) {
         },
         async select(target, value, text, after = 900) {
             const el = find(target);
-            if (text) await caption(text);
+            const voiceMs = text ? await caption(text) : 0;
             await ring(el);
-            await wait(1200);
+            await hold(1200, voiceMs);
             await el.selectOption(value);
             await unring();
             await wait(after);
@@ -137,9 +172,9 @@ function tutor(page) {
         async point(target, text, ms = 2600) {
             const el = find(target);
             await el.scrollIntoViewIfNeeded();
-            await caption(text);
+            const voiceMs = await caption(text);
             await ring(el);
-            await wait(ms);
+            await hold(ms, voiceMs);
             await unring();
         },
         /**
@@ -189,8 +224,10 @@ async function login(browser, who) {
         const context = await browser.newContext({ viewport: SIZE, locale: 'ar-EG', storageState: state, recordVideo: { dir: path.join(OUT, 'raw'), size: SIZE } });
         await context.addInitScript(OVERLAY);
         const page = await context.newPage();
+        const startedAt = Date.now(); // the recording starts with the page: clip times count from here
+        const clips = [];
         page.on('dialog', (d) => setTimeout(() => d.accept(scenario.promptAnswer || undefined).catch(() => {}), 1200));
-        const t = tutor(page);
+        const t = tutor(page, scenario.voice || {}, clips, startedAt);
         try {
             await page.goto(BASE.replace('://', `://${scenario.start?.startsWith('app:') ? 'app.' : ''}`) + (scenario.start || 'app:/').replace(/^app:/, ''));
             await t.card(scenario.title, scenario.subtitle || 'شرح EgHub');
@@ -207,7 +244,11 @@ async function login(browser, who) {
         await context.close();
         const raw = await video.path();
         const mp4 = path.join(OUT, `${scenario.id}.mp4`);
-        execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', raw, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '28', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', mp4]);
+        // the voice clips laid at their times over the picture (none: a silent video as before)
+        const inputs = clips.flatMap((c) => ['-i', c.file]);
+        const audio = clips.length ? ['-filter_complex', clips.map((c, i) => `[${i + 1}:a]adelay=${c.at}|${c.at}[a${i}]`).join(';')
+            + ';' + clips.map((c, i) => `[a${i}]`).join('') + `amix=inputs=${clips.length}:normalize=0[voice]`, '-map', '0:v', '-map', '[voice]', '-c:a', 'aac', '-b:a', '128k'] : [];
+        execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', raw, ...inputs, ...audio, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '28', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', mp4]);
         fs.rmSync(raw);
         console.log(`✓ ${scenario.id} → ${mp4} (${(fs.statSync(mp4).size / 1e6).toFixed(1)} MB)`);
     }
