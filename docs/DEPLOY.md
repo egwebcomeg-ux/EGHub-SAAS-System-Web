@@ -1,10 +1,10 @@
-# EgMenu deployment (cPanel shared hosting)
+# EgHub deployment (cPanel shared hosting)
 
-Stack: Laravel 13, PHP 8.3+, MySQL, LiteSpeed, behind Cloudflare. No Node, no queue daemon and no Redis on the server.
+Stack: Laravel 13, PHP 8.4+, MySQL, LiteSpeed, behind Cloudflare. No Node, no queue daemon and no Redis on the server.
 
 ## 1. Server requirements
 
-- PHP 8.3 or newer (cPanel > Select PHP Version / MultiPHP Manager).
+- PHP 8.4 or newer (cPanel > Select PHP Version / MultiPHP Manager). The locked packages need 8.4.1+; 8.3 fails at `composer install`.
 - PHP extensions: `pdo_mysql`, `mbstring`, `gd` (menu image resizing), `zip` (backups + XLSX import/export), `openssl`, `curl`, `fileinfo`, `xml`/`dom`, `tokenizer`, `ctype`, `json`, `bcmath` (recommended). `intl` is not required.
 - `exec`/`proc_open` must not be disabled and `mysqldump` must exist (used by `egmenu:backup`). Check with `which mysqldump`.
 - Composer 2 (or run `composer install` locally and upload `vendor/`).
@@ -14,13 +14,13 @@ Stack: Laravel 13, PHP 8.3+, MySQL, LiteSpeed, behind Cloudflare. No Node, no qu
 
 1. Upload or `git clone` the project **outside** the web root, e.g. `/home/USER/egmenu` (not `public_html`).
 2. Domains: the **document root of every host must be `/home/USER/egmenu/public`**.
-   - `egmenu.app` (addon/primary domain) -> docroot `egmenu/public`
-   - Subdomains `app.egmenu.app` and `admin.egmenu.app` -> same docroot `egmenu/public`
-   - Wildcard subdomain: cPanel > Domains (or Subdomains) > create `*.egmenu.app`, docroot `egmenu/public`. If the host will not create a wildcard, ask support or add it in the vhost.
+   - `eghub.app` (addon/primary domain) -> docroot `egmenu/public`
+   - Subdomains `app.eghub.app` and `admin.eghub.app` -> same docroot `egmenu/public`
+   - Wildcard subdomain: cPanel > Domains (or Subdomains) > create `*.eghub.app`, docroot `egmenu/public`. If the host will not create a wildcard, ask support or add it in the vhost.
    - If `public_html` must stay the docroot, symlink instead: `rm -rf public_html && ln -s /home/USER/egmenu/public public_html`.
-3. DNS (Cloudflare): `A egmenu.app`, `A app`, `A admin`, `A *` all -> server IP, **proxied (orange cloud)**.
+3. DNS (Cloudflare): `A eghub.app`, `A app`, `A admin`, `A *` all -> server IP, **proxied (orange cloud)**. The old `egmenu.app` keeps the same records (same docroot): it only redirects to eghub.app, see `CENTRAL_DOMAINS`.
 4. MySQL: cPanel > MySQL Databases: create database `USER_egmenu`, user `USER_egmenu` with a long random password, add the user to the database with ALL PRIVILEGES. Charset utf8mb4 is used by the app.
-5. Select PHP 8.3+ for all the domains above (including the wildcard).
+5. Select PHP 8.4+ for all the domains above (including the wildcard).
 
 ## 3. First deploy
 
@@ -55,7 +55,7 @@ Upload the whole `public/build` folder to `/home/USER/egmenu/public/build` (the 
 
 ### Cron
 
-cPanel > Cron Jobs, every minute (adjust the PHP path, e.g. `/usr/local/bin/ea-php83` or `/opt/cpanel/ea-php83/root/usr/bin/php`):
+cPanel > Cron Jobs, every minute (adjust the PHP path, e.g. `/usr/local/bin/ea-php84` or `/opt/cpanel/ea-php84/root/usr/bin/php`):
 
 ```
 * * * * * cd /home/USER/egmenu && php artisan schedule:run >> /dev/null 2>&1
@@ -69,14 +69,14 @@ Keys marked **REQUIRED** have no safe default.
 
 | Key | Value |
 | --- | --- |
-| `APP_NAME` | `EgMenu` |
+| `APP_NAME` | `EgHub` |
 | `APP_ENV` | `production` **REQUIRED** |
 | `APP_DEBUG` | `false` **REQUIRED** |
 | `APP_KEY` | from `key:generate` **REQUIRED** |
-| `APP_URL` | `https://egmenu.app` **REQUIRED** |
+| `APP_URL` | `https://eghub.app` **REQUIRED** |
 | `APP_TIMEZONE` | `Africa/Cairo` |
 | `APP_LOCALE` / `APP_FALLBACK_LOCALE` | `ar` / `en` |
-| `CENTRAL_DOMAINS` | `egmenu.app` **REQUIRED** (first entry is the main domain; `app.` and `admin.` hosts derive from it). Default `localhost` is wrong in production |
+| `CENTRAL_DOMAINS` | `eghub.app,egmenu.app` **REQUIRED** (first entry is the main domain; `app.` and `admin.` hosts derive from it; later entries are earlier domains that redirect to it, and the first of them hosts the restaurant directory). Default `localhost` is wrong in production |
 | `DB_CONNECTION` | `mysql` **REQUIRED** (default is sqlite) |
 | `DB_HOST` / `DB_PORT` | `127.0.0.1` / `3306` |
 | `DB_DATABASE` / `DB_USERNAME` / `DB_PASSWORD` | from step 2.4 **REQUIRED** |
@@ -88,7 +88,7 @@ Keys marked **REQUIRED** have no safe default.
 | `LOG_CHANNEL` / `LOG_STACK` / `LOG_LEVEL` | `stack` / `daily` / `warning` |
 | `MAIL_MAILER` | `smtp` **REQUIRED** (`log` silently drops all email, e.g. password resets) |
 | `MAIL_HOST` / `MAIL_PORT` / `MAIL_USERNAME` / `MAIL_PASSWORD` / `MAIL_SCHEME` | your SMTP provider **REQUIRED** |
-| `MAIL_FROM_ADDRESS` / `MAIL_FROM_NAME` | e.g. `no-reply@egmenu.app` / `EgMenu` **REQUIRED** (default is `hello@example.com`) |
+| `MAIL_FROM_ADDRESS` / `MAIL_FROM_NAME` | e.g. `no-reply@eghub.app` / `EgHub` **REQUIRED** (default is `hello@example.com`) |
 | `BACKUP_KEEP_DAYS` | `7` |
 | `BACKUP_DISK` | `s3` to also copy backups off-server (optional but strongly recommended) |
 | `BACKUP_REMOTE_DIR` / `BACKUP_MYSQLDUMP` | defaults `egmenu-backups` / `mysqldump` |
@@ -103,9 +103,9 @@ After editing `.env` always run `php artisan config:clear && php artisan optimiz
 
 ## 5. Cloudflare
 
-- DNS records proxied (orange cloud) for `@`, `app`, `admin` and `*`. Note the free plan covers wildcard DNS proxying, but the free Universal certificate covers only `egmenu.app` and `*.egmenu.app` (one level), which is exactly what is needed.
+- DNS records proxied (orange cloud) for `@`, `app`, `admin` and `*`. Note the free plan covers wildcard DNS proxying, but the free Universal certificate covers only `eghub.app` and `*.eghub.app` (one level), which is exactly what is needed.
 - SSL/TLS mode: **Full (strict)**.
-- Create an **Origin Certificate** (SSL/TLS > Origin Server) for `egmenu.app` and `*.egmenu.app`, install it in cPanel > SSL/TLS (or ask the host to install it). Without a valid origin certificate Full (strict) returns 526.
+- Create an **Origin Certificate** (SSL/TLS > Origin Server) for `eghub.app` and `*.eghub.app` (and the same pair for `egmenu.app` while it redirects), install it in cPanel > SSL/TLS (or ask the host to install it). Without a valid origin certificate Full (strict) returns 526.
 - Turn on Always Use HTTPS and Automatic HTTPS Rewrites.
 - Do not cache HTML. If you add a "Cache Everything" rule, bypass it for `app.` and `admin.` hosts and for any path with a session cookie.
 - Real visitor IPs arrive in `CF-Connecting-IP`; if rate limiting or logs show Cloudflare IPs, configure trusted proxies in `bootstrap/app.php`.
@@ -116,7 +116,7 @@ After editing `.env` always run `php artisan config:clear && php artisan optimiz
 Owners confirm their mobile by sending one prepared message (`EGMENU <code>`) to the platform's WhatsApp number; the webhook matches sender + code and stamps `users.phone_verified_at`. Nothing blocks the dashboard if this is not set up.
 
 1. `.env`: `WHATSAPP_NUMBER=2010xxxxxxxx` (the number owners write to; empty falls back to the admin setting "support WhatsApp"), `WHATSAPP_VERIFY_TOKEN=<any long random string>`, `WHATSAPP_APP_SECRET=<Meta App → Settings → Basic → App secret>`. Then `php artisan config:clear && php artisan optimize`.
-2. Meta for Developers → your app → WhatsApp → Configuration → Webhook: callback URL `https://egmenu.app/webhooks/whatsapp`, verify token = `WHATSAPP_VERIFY_TOKEN`, click Verify (Meta sends `GET` with `hub.challenge`; the app answers it when the token matches). Subscribe to the **messages** field. The admin Settings page shows the URL and token ready to copy.
+2. Meta for Developers → your app → WhatsApp → Configuration → Webhook: callback URL `https://eghub.app/webhooks/whatsapp`, verify token = `WHATSAPP_VERIFY_TOKEN`, click Verify (Meta sends `GET` with `hub.challenge`; the app answers it when the token matches). Subscribe to the **messages** field. The admin Settings page shows the URL and token ready to copy.
 3. Every `POST` must carry a valid `X-Hub-Signature-256` (HMAC of the raw body with the app secret). Without `WHATSAPP_APP_SECRET` every payload is refused with 403 (logged once a day). Message status updates (sent/delivered/read/failed) in the same payloads update `whatsapp_messages.status` by `provider_id`.
 4. Another provider instead of Meta: have it `POST {"from": "2010xxxxxxxx", "text": "..."}` to the same URL with header `X-EgMenu-Secret: <WHATSAPP_WEBHOOK_SECRET>`.
 5. The route is on the main domain only and excluded from CSRF; Cloudflare must not cache or challenge `/webhooks/*` (add a WAF skip rule if bot protection is on).
@@ -126,7 +126,7 @@ Owners confirm their mobile by sending one prepared message (`EGMENU <code>`) to
 ```bash
 cd /home/USER/egmenu
 php artisan down --render="errors.503" --retry=60
-git pull origin main
+git pull origin master
 composer install --no-dev --optimize-autoloader
 # upload public/build from your machine if the frontend changed
 php artisan migrate --force
@@ -149,7 +149,7 @@ Turn it on in `.env`, then `php artisan config:clear && php artisan optimize`:
 
 ```
 PAGE_CACHE=true
-PAGE_CACHE_ORIGIN_IP=54.36.13.152   # purge calls go straight to the server, not through Cloudflare
+PAGE_CACHE_ORIGIN_IP=<server IP>   # purge calls go straight to the server, not through Cloudflare
 ```
 
 - Ages: marketing pages 1 hour (never past the next scheduled blog article), menus 5 minutes (never past the next
@@ -202,13 +202,13 @@ Test a restore on a scratch database at least once. Keep `APP_KEY` backed up sep
 ## 9. Post-deploy smoke checklist
 
 - [ ] `php artisan egmenu:doctor` prints no FAIL (WARN for "Scheduler" is normal in the first minute; "Backup" until the first backup).
-- [ ] `https://egmenu.app/up` returns 200.
+- [ ] `https://eghub.app/up` returns 200.
 - [ ] Landing page loads with styles (proves `public/build` is uploaded) over HTTPS with no certificate warning.
-- [ ] `https://admin.egmenu.app` login works with the admin created by `egmenu:admin`.
-- [ ] `https://app.egmenu.app` signup/login works; a password-reset email arrives.
-- [ ] Create a test restaurant: its menu opens at `https://egmenu.app/{slug}` (and its subdomain, once enabled).
+- [ ] `https://admin.eghub.app` login works with the admin created by `egmenu:admin`.
+- [ ] `https://app.eghub.app` signup/login works; a password-reset email arrives.
+- [ ] Create a test restaurant: its menu opens at `https://eghub.app/{slug}` (and its subdomain, once enabled).
 - [ ] Upload a menu image: it displays (checks `storage:link` and `gd`).
 - [ ] Import an XLSX/export a template (checks `zip`).
 - [ ] Wait two minutes, re-run `egmenu:doctor`: scheduler check is OK.
 - [ ] Run `php artisan egmenu:backup` once and confirm the zip (and the copy in the bucket if configured).
-- [ ] `APP_DEBUG=false`: a random 404 URL shows the EgMenu 404 page, not a stack trace.
+- [ ] `APP_DEBUG=false`: a random 404 URL shows the EgHub 404 page, not a stack trace.
