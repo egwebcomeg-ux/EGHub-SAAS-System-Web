@@ -252,6 +252,7 @@
             @include('dashboard.partials.phone-banner')
             <x-flash :toast="true" />
             @yield('content')
+            @include('dashboard.partials.tutorials')
         </main>
     </div>
 </div>

@@ -476,6 +476,7 @@
                     <dt><kbd class="inline-grid min-w-10 place-items-center rounded-lg border border-navy-200 bg-navy-50 px-2 py-1 font-mono font-bold" dir="ltr">{{ $key }}</kbd></dt><dd>{{ $what }}</dd>
                 @endforeach
             </dl>
+            <div class="mt-4 flex flex-wrap gap-2 empty:hidden">@include('dashboard.partials.tutorials', ['inline' => true])</div>
             <button value="ok" class="btn-primary mt-4 w-full">{{ __('Got it') }}</button>
         </form>
     </dialog>

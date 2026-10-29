@@ -35,6 +35,15 @@
     <a href="{{ route('dash.home') }}" class="btn-ghost">{{ __('Back to home') }}</a>
 </div>
 
+@php($videos = \App\Support\Tutorials::visibleTo($user))
+@if ($videos)
+    <section class="card mb-4 max-w-5xl" data-help-videos>
+        <h2 class="section-title mb-1">▶ {{ __('Video tutorials') }}</h2>
+        <p class="mb-3 text-sm text-navy-500">{{ __('Short videos of each screen, step by step. The page of each one also has its own button.') }}</p>
+        <div class="flex flex-wrap gap-2">@include('dashboard.partials.tutorials', ['tutorials' => $videos, 'inline' => true])</div>
+    </section>
+@endif
+
 <ol class="grid max-w-5xl gap-4 lg:grid-cols-2" data-help-steps data-help-count="{{ count($steps) }}">
     @foreach ($steps as $i => [$title, $text, $image, $route, $permission, $feature])
         <li class="card flex flex-col" data-help-step="{{ $route }}">
