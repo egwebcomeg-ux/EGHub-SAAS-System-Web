@@ -52,7 +52,7 @@ class BlogCalendarTest extends TenantTestCase
     public function test_every_calendar_article_carries_a_block_and_keeps_the_house_style(): void
     {
         $schedule = (new BlogSeeder)->schedule();
-        $this->assertCount(15, $schedule);
+        $this->assertCount(21, $schedule);
         foreach ($schedule as $slug => $at) {
             $post = Post::query()->where('slug', $slug)->firstOrFail();
             $this->assertSame($at, $post->published_at->timezone('Africa/Cairo')->format('Y-m-d H:i'));
@@ -146,6 +146,47 @@ class BlogCalendarTest extends TenantTestCase
         }
     }
 
+    public function test_the_january_articles_are_scheduled_ahead_with_their_covers_and_each_appears_at_its_own_time(): void
+    {
+        $blocks = [
+            'ramadan-menu-planning' => ['data-bcalc="food-cost"', 'data-bcalc="season-stock"', 'data-bchecklist', 'data-bquiz'],
+            'supplier-invoices-price-creep' => ['data-bcalc="food-cost"', 'data-bchecklist', 'data-bquiz'],
+            'staff-permissions-cash-control' => ['data-bchecklist', 'data-bquiz'],
+            'corporate-contracts-2027' => ['data-bchecklist', 'data-bquiz'],
+            'group-iftar-bookings' => ['data-bcalc="food-cost"', 'data-bchecklist', 'data-bquiz'],
+            'monthly-stock-count-variance' => ['data-bcalc="stock-count"', 'data-bchecklist', 'data-bquiz'],
+        ];
+        $schedule = (new BlogSeeder)->schedule();
+        $covers = (new BlogSeeder)->coverCards();
+        $this->assertSame(array_keys($blocks), array_slice(array_keys($schedule), -6));
+        $this->assertSame(['navy', 'white', 'navy', 'white', 'navy', 'white'], array_column(array_slice($covers, -6), 'theme'));
+
+        foreach ($blocks as $slug => $markers) {
+            $post = Post::query()->where('slug', $slug)->firstOrFail();
+            $at = Carbon::parse($schedule[$slug], 'Africa/Cairo');
+            $this->assertSame('2027-01', $at->format('Y-m'));
+            $this->assertTrue($post->is_published, "$slug is scheduled, not a draft");
+            $this->assertTrue($post->published_at->isFuture(), "$slug waits for its time");
+            $this->assertFalse($post->isLive());
+            $this->assertNotSame('', $post->title_en);
+            $this->assertNotSame('', $post->excerpt_en);
+            $this->assertFileExists(database_path("seeders/blog-covers/$slug.webp"));
+            $this->assertFileExists(resource_path("views/share-cards/blog-art/{$covers[$slug]['art']}.blade.php"));
+            Storage::disk('public')->assertExists($post->cover);
+
+            $this->travelTo($at->copy()->subMinute());
+            $this->get($this->menuUrl("blog/$slug"))->assertNotFound();
+
+            $this->travelTo($at->copy()->addMinute());
+            $page = $this->get($this->menuUrl("blog/$slug"))->assertOk()->assertSee('<h2', false);
+            foreach ($markers as $marker) {
+                $page->assertSee($marker, false);
+            }
+            $page->assertSee('property="og:image" content="'.url('/storage/'.$post->cover), false);
+            $this->assertStringContainsString(route('blog.show', $slug), $this->get($this->menuUrl('rss.xml'))->getContent());
+        }
+    }
+
     public function test_a_december_outline_left_as_a_draft_is_filled_in_once_and_an_edited_article_is_left_alone(): void
     {
         // production has the six as outlines (drafts), seeded before the articles were written
@@ -190,7 +231,7 @@ class BlogCalendarTest extends TenantTestCase
 
     public function test_every_seeded_article_gets_a_cover_and_apply_swaps_in_redrawn_ones_but_keeps_uploaded_covers(): void
     {
-        $this->assertCount(28, (new BlogSeeder)->coverCards());
+        $this->assertCount(34, (new BlogSeeder)->coverCards());
         $this->assertSame(0, Post::query()->whereNull('cover')->count());
 
         // production: an article from before the covers, one with the first drawing, one the owner gave a cover
