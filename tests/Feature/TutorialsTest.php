@@ -47,6 +47,7 @@ class TutorialsTest extends TenantTestCase
         foreach (['inventory-recipes', 'inventory-count', 'purchases'] as $key) {
             $this->assertStringContainsString('data-feature-video="'.$key.'"', $inventory);
         }
-        $this->get($this->menuUrl('features/tv-screens'))->assertOk()->assertDontSee('data-feature-videos', false);
+        $this->get($this->menuUrl('features/pager'))->assertOk()->assertSee('data-feature-video="pager"', false);
+        $this->get($this->menuUrl('features/featured-listing'))->assertOk()->assertDontSee('data-feature-videos', false);
     }
 }

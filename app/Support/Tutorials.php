@@ -161,6 +161,72 @@ final class Tutorials
                 __('By email and a phone notification; optionally last week\'s numbers every Monday.'),
                 __('Each manager chooses it in Phone notifications.'),
             ]),
+            'menu-import' => $t('dash.import', 'menu.manage', null, __('Importing the menu'), [
+                __('Menu → More → Import the menu, and download the template.'),
+                __('One row per item: section, name, price, sizes and extras; upload the file.'),
+                __('Check every row and fix a price before it goes in; add as new items or update prices.'),
+                __('From a menu photo or PDF, AI reads the items, logo and colours with your key from Settings.'),
+            ]),
+            'menu-languages' => $t('dash.settings', 'settings.manage', 'extra_languages', __('Menu languages'), [
+                __('Settings → Languages: pick extra languages, e.g. French.'),
+                __('Each item gets a name and description box per language.'),
+                __('Or translate the whole menu at once with AI from the menu page.'),
+                __('Guests pick their language on the menu; an item without a translation shows in English.'),
+            ]),
+            'printed-menu' => $t('dash.menu', 'menu.manage', 'printed_menu', __('The printed menu'), [
+                __('Menu → More → Printed menu: made from your items and prices.'),
+                __('Pick the template (text or photos) and the number of pages.'),
+                __('Pick the language: Arabic, English or both.'),
+                __('Print or save a PDF; print it again after a price change.'),
+            ]),
+            'pager' => $t('dash.pager', 'pager.use', 'pager', __('The pager screen'), [
+                __('Type the order number and tap "Show the QR".'),
+                __('The guest scans it and keeps the page open: their number joins the queue.'),
+                __('Order ready? Tap "Call": the guest\'s phone rings.'),
+                __('Tap "Picked up" when they collect it.'),
+            ]),
+            'kiosk' => $t('dash.devices', 'kiosk.manage', 'kiosk', __('The self-order kiosk'), [
+                __('Screens & devices → Ordering kiosk: name it and choose eat-in, takeaway or both.'),
+                __('Open the kiosk link on a tablet at the counter (or scan its QR).'),
+                __('The guest picks items and choices, types their name and places the order.'),
+                __('They get their order number; the order lands on the board and in the kitchen.'),
+            ]),
+            'tv-screens' => $t('dash.devices', 'menu.manage', 'tv_screens', __('Menu TV screens'), [
+                __('Screens & devices → TV screens: name the screen, pick the look and the sections.'),
+                __('Each screen has a playlist: the menu, photos and videos.'),
+                __('On the TV open eghub.app/tv and pair it with the code it shows.'),
+                __('An urgent message shows on every screen at once for the minutes you choose.'),
+            ]),
+            'knowledge-base' => $t('dash.kb', 'kb.manage', 'knowledge_base', __('Questions & answers'), [
+                __('Start fast with "Add suggested questions", or tap "New answer".'),
+                __('The question as guests ask it, the answer and other search words.'),
+                __('Show it on the menu for guests, or to the team only (cashier and call center).'),
+                __('Guests find the answer on the menu instead of calling.'),
+            ]),
+            'delivery-zones' => $t('dash.zones', 'delivery.manage', 'delivery_zones|online_ordering', __('Delivery zones & fees'), [
+                __('Price delivery by your zones or by the distance from the restaurant.'),
+                __('Add a zone with its fee, minimum order and delivery minutes.'),
+                __('Add the streets under a zone, with their own fee if it differs.'),
+                __('Guests and the call center pick the zone; the fee and minimum follow.'),
+            ]),
+            'custom-domain' => $t('dash.domain', 'settings.manage', 'custom_domain', __('Your own domain'), [
+                __('No domain yet? Type the name and book it from EgWeb; they connect it.'),
+                __('Have one? Type it and tap "Connect my domain".'),
+                __('Add the DNS records shown at your domain company.'),
+                __('Check the DNS; once live every QR uses it and printed ones keep working.'),
+            ]),
+            'whatsapp' => $t('dash.settings', 'settings.manage', 'whatsapp_notifications', __('WhatsApp messages to guests'), [
+                __('Settings → Messages: turn on the automatic messages you need.'),
+                __('Order received, ready and on the way, a confirmed booking and a loyalty reward.'),
+                __('New orders to the branch WhatsApp and delivery orders to the driver\'s number.'),
+                __('Send from your restaurant\'s own number with the step-by-step guide; each message uses a credit.'),
+            ]),
+            'shifts-cash' => $t('dash.shifts', 'shifts.manage', 'shifts', __('Shifts & the cash drawer'), [
+                __('Type the cash in the drawer and tap "Open shift".'),
+                __('Record any cash taken out of the drawer with its reason.'),
+                __('At the end count the cash, type it and tap "Close shift".'),
+                __('The difference shows: short or over, and who was on the shift.'),
+            ]),
         ];
     }
 
@@ -206,21 +272,30 @@ final class Tutorials
      */
     public const FOR_MODULE = [
         'qr-menu' => ['menu-items', 'tables-qr'],
-        'menu-import' => ['menu-items'],
+        'languages' => ['menu-languages'],
+        'printed-menu' => ['printed-menu'],
+        'tv-screens' => ['tv-screens'],
+        'menu-import' => ['menu-import', 'menu-items'],
         'table-ordering' => ['guest-qr-order', 'order-board'],
-        'online-ordering' => ['order-board', 'order-flow-settings'],
+        'online-ordering' => ['order-board', 'delivery-zones', 'order-flow-settings'],
         'reservations' => ['reservations'],
+        'pager' => ['pager'],
         'loyalty' => ['rewards', 'guest-desk'],
         'offers' => ['offers', 'coupons'],
+        'whatsapp' => ['whatsapp'],
         'campaigns' => ['campaigns'],
         'wallet' => ['guest-desk'],
         'corporate-vouchers' => ['corporate-contract', 'company-visits', 'redeem-voucher'],
-        'pos' => ['pos-sale'],
+        'knowledge-base' => ['knowledge-base'],
+        'pos' => ['pos-sale', 'shifts-cash'],
+        'kiosk' => ['kiosk'],
         'kitchen-display' => ['kitchen-display'],
         'call-center' => ['callcenter-order'],
+        'delivery-drivers' => ['delivery-zones'],
         'inventory' => ['inventory-recipes', 'inventory-count', 'purchases'],
         'reports' => ['reports', 'daily-digest'],
         'multi-branch' => ['users-roles'],
+        'custom-domain' => ['custom-domain'],
     ];
 
     /** The recordings a public feature page shows. @return list<array<string,mixed>> */
