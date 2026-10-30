@@ -138,7 +138,7 @@ class FcmClient
         if ($account === null) {
             throw new \RuntimeException('FCM is not configured.');
         }
-        $now ??= time();
+        $now ??= now()->getTimestamp();
         $segments = [
             self::base64url((string) json_encode(['alg' => 'RS256', 'typ' => 'JWT'])),
             self::base64url((string) json_encode([
