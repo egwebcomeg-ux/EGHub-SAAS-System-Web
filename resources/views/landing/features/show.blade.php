@@ -63,6 +63,31 @@
     </section>
 @endif
 
+{{-- ============ VIDEO TUTORIALS: the real screens, recorded on the demo restaurant (App\Support\Tutorials) ============ --}}
+@if ($tutorials = \App\Support\Tutorials::forModule($module['slug']))
+    <section id="videos" class="pb-16 lg:pb-20" data-feature-videos>
+        <div class="mx-auto max-w-5xl px-4 sm:px-6">
+            <div class="text-center" data-reveal>
+                <p class="lp-eyebrow">{{ __('Watch it work') }}</p>
+                <h2 class="lp-h2 mt-3">{{ __('The real screens, in a minute') }}</h2>
+            </div>
+            <div @class(['mt-10 grid gap-6', 'lg:grid-cols-2' => count($tutorials) > 1])>
+                @foreach ($tutorials as $tutorial)
+                    <figure class="overflow-hidden rounded-[24px] border border-navy-100 bg-white" data-feature-video="{{ $tutorial['key'] }}">
+                        <video class="aspect-video w-full bg-navy-900" src="{{ $tutorial['video'] }}" controls playsinline preload="metadata"></video>
+                        <figcaption class="p-4">
+                            <div class="font-extrabold text-navy-900">▶ {{ $tutorial['title'] }}</div>
+                            <ol class="mt-2 list-decimal space-y-1 ps-5 text-sm text-navy-600">
+                                @foreach ($tutorial['steps'] as $step)<li>{{ $step }}</li>@endforeach
+                            </ol>
+                        </figcaption>
+                    </figure>
+                @endforeach
+            </div>
+        </div>
+    </section>
+@endif
+
 {{-- ============ BENEFITS ============ --}}
 <section @class(['pb-20 lg:pb-28', 'pt-20 lg:pt-28' => !$hasScene])>
     <div class="mx-auto max-w-7xl px-4 sm:px-6">

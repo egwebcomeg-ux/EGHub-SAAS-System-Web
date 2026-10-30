@@ -38,4 +38,15 @@ class TutorialsTest extends TenantTestCase
         app(Billing::class)->setAddon($a, 'pos_pack', 1);
         $this->actingAs($owner)->get($this->dashUrl('/help'))->assertSee('data-tutorial="pos-sale"', false);
     }
+
+    public function test_public_feature_pages_play_their_recordings(): void
+    {
+        $this->get($this->menuUrl('features/pos'))->assertOk()
+            ->assertSee('data-feature-video="pos-sale"', false)->assertSee('tutorials/pos-sale.mp4', false);
+        $inventory = $this->get($this->menuUrl('features/inventory'))->assertOk()->getContent();
+        foreach (['inventory-recipes', 'inventory-count', 'purchases'] as $key) {
+            $this->assertStringContainsString('data-feature-video="'.$key.'"', $inventory);
+        }
+        $this->get($this->menuUrl('features/tv-screens'))->assertOk()->assertDontSee('data-feature-videos', false);
+    }
 }

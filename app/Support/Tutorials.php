@@ -199,4 +199,33 @@ final class Tutorials
 
         return $out;
     }
+
+    /**
+     * Which recordings each public feature page (eghub.app/features/{slug}) plays, so a visitor sees the real screens
+     * before signing up. Slugs are App\Support\SiteModules keys; a recording without its file is left out.
+     */
+    public const FOR_MODULE = [
+        'qr-menu' => ['menu-items', 'tables-qr'],
+        'menu-import' => ['menu-items'],
+        'table-ordering' => ['guest-qr-order', 'order-board'],
+        'online-ordering' => ['order-board', 'order-flow-settings'],
+        'reservations' => ['reservations'],
+        'loyalty' => ['rewards', 'guest-desk'],
+        'offers' => ['offers', 'coupons'],
+        'campaigns' => ['campaigns'],
+        'wallet' => ['guest-desk'],
+        'corporate-vouchers' => ['corporate-contract', 'company-visits', 'redeem-voucher'],
+        'pos' => ['pos-sale'],
+        'kitchen-display' => ['kitchen-display'],
+        'call-center' => ['callcenter-order'],
+        'inventory' => ['inventory-recipes', 'inventory-count', 'purchases'],
+        'reports' => ['reports', 'daily-digest'],
+        'multi-branch' => ['users-roles'],
+    ];
+
+    /** The recordings a public feature page shows. @return list<array<string,mixed>> */
+    public static function forModule(string $slug): array
+    {
+        return array_values(array_filter(array_map(fn (string $key) => self::find($key), self::FOR_MODULE[$slug] ?? [])));
+    }
 }
