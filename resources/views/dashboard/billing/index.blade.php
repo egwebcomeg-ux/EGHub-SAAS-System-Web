@@ -104,6 +104,32 @@
     @endforeach
 </div>
 
+{{-- «صمم باقتك»: a plan from the modules this place uses (App\Billing\CustomPlan) --}}
+@if ($custom)
+    <section class="mt-8" id="custom-plan" data-billing-custom>
+        <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
+            <div>
+                <h2 class="text-lg font-bold">{{ __('Design your plan') }} @if ($custom['on'])<span class="badge bg-navy-800 text-white">{{ __('Current') }}</span>@endif</h2>
+                <p class="muted">{{ __('Tick only the modules you work with and pay for those. At least :min EGP a month.', ['min' => money(\App\Billing\CustomPlan::MINIMUM_MONTHLY)]) }}</p>
+            </div>
+            @if ($custom['on'])
+                {{-- renewing keeps the modules it has now --}}
+                <form method="post" action="{{ route('dash.billing.checkout') }}" class="flex items-center gap-2" data-custom-renew>
+                    @csrf
+                    <input type="hidden" name="plan_id" value="{{ $custom['plan']->id }}">
+                    <label class="sr-only" for="custom-renew-months">{{ __('Pay for') }}</label>
+                    <select id="custom-renew-months" name="months" class="field min-h-10 w-auto">
+                        @foreach (\App\Models\Plan::CYCLES as $m)<option value="{{ $m }}">{{ cycle_label($m) }}</option>@endforeach
+                    </select>
+                    <button class="btn-navy min-h-10">{{ $subscription?->status === 'trialing' ? __('Subscribe') : __('Renew') }}</button>
+                </form>
+            @endif
+        </div>
+        @include('partials.custom-plan-builder', ['catalog' => $custom['catalog'], 'quote' => $custom['quote'], 'selected' => $custom['selected'],
+            'endpoint' => route('dash.billing.custom.quote'), 'mode' => 'dashboard', 'current' => $custom['current']])
+    </section>
+@endif
+
 @if ($addons->isNotEmpty())
     <h2 class="mt-8 mb-1 text-lg font-bold">{{ __('Add-ons') }}</h2>
     <p class="mb-3 muted">{{ __('For bigger restaurants: add only what you need, on top of any plan.') }}</p>

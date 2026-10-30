@@ -51,6 +51,20 @@
     </div>
 </section>
 
+{{-- «صمم باقتك»: a plan from the modules the place uses (App\Billing\CustomPlan) --}}
+@if ($custom)
+    <section id="custom-plan" class="lp-band py-12 lg:py-16" data-custom-plan-section>
+        <div class="mx-auto max-w-7xl px-4 sm:px-6">
+            <div class="mx-auto mb-8 max-w-2xl text-center" data-reveal>
+                <p class="lp-eyebrow">{{ __('Design your plan') }}</p>
+                <h2 class="lp-h2 mt-3">{{ __('Pay only for the modules you use') }}</h2>
+                <p class="lp-lead mt-3">{{ __('Tick what you work with and see the price as you go. At least :min EGP a month; paying 6 or 12 months at once takes the same discount as the Complete plan.', ['min' => money(\App\Billing\CustomPlan::MINIMUM_MONTHLY)]) }}</p>
+            </div>
+            @include('partials.custom-plan-builder', ['catalog' => $custom['catalog'], 'quote' => $custom['quote'], 'selected' => [], 'endpoint' => route('pricing.custom'), 'mode' => 'public'])
+        </div>
+    </section>
+@endif
+
 {{-- full comparison --}}
 <section id="compare" class="py-12 lg:py-16">
     <div class="mx-auto max-w-7xl px-4 sm:px-6">

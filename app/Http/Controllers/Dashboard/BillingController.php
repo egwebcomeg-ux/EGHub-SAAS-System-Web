@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Billing\Billing;
 use App\Billing\Credits;
+use App\Billing\CustomPlan;
 use App\Billing\LaunchOffer;
 use App\Billing\OnlinePayments;
 use App\Billing\PaymentMethods;
@@ -12,6 +13,8 @@ use App\Models\AddonPrice;
 use App\Models\Invoice;
 use App\Models\Plan;
 use App\Services\Entitlements;
+use App\Services\ModuleChoice;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -33,10 +36,15 @@ class BillingController extends Controller
     public function index(Credits $credits, OnlinePayments $online): View
     {
         $subscription = tenant()->subscription()->with('plan')->first();
-        // the public line-up, plus an older plan the restaurant is still on so it can renew it (never an archived one)
+        // the public line-up, plus an older plan the restaurant is still on so it can renew it (never an archived one);
+        // the custom plan has its own builder below instead of a card
         $plans = Plan::query()->offered()->where(fn ($q) => $q->where('is_public', true)->orWhere('id', $subscription?->plan_id))
-            ->with('features')->orderBy('sort_order')->get();
+            ->where('code', '!=', CustomPlan::CODE)->with('features')->orderBy('sort_order')->get();
         $myAddons = $subscription?->addons()->pluck('quantity', 'key')->all() ?? [];
+        $custom = CustomPlan::plan();
+        $onCustom = $custom && $subscription?->plan_id === $custom->id;
+        // ticked: the modules of the custom plan it is on, else what it told us it works with (signup, settings)
+        $selected = $custom ? ($onCustom ? CustomPlan::modulesOf(array_keys(array_filter($myAddons)), $custom) : (ModuleChoice::chosen() ?? [])) : [];
 
         return view('dashboard.billing.index', [
             'subscription' => $subscription,
@@ -56,7 +64,74 @@ class BillingController extends Controller
             'myAddons' => $myAddons,
             'onlineEnabled' => $online->payNowMethods() !== [] || $online->installmentMethods() !== [],
             'installmentsPromise' => $online->installmentsPromise(),
+            'custom' => $custom ? [
+                'plan' => $custom, 'catalog' => CustomPlan::catalog($custom, tenant()), 'selected' => $selected,
+                'quote' => CustomPlan::quote($selected, $custom, tenant()), 'on' => $onCustom,
+                // paid and running: changes are billed until the period ends instead of starting a new one
+                'current' => $onCustom && $subscription->status === 'active' && $subscription->current_period_end?->isFuture(),
+            ] : null,
         ]);
+    }
+
+    /** «صمم باقتك»: the total of the ticked modules for this restaurant (its branches), rendered for the builder. */
+    public function customQuote(Request $request): JsonResponse
+    {
+        $plan = CustomPlan::plan() ?? abort(404);
+        $data = $request->validate(['modules' => 'array|max:40', 'modules.*' => 'string|max:40']);
+        $quote = CustomPlan::quote($data['modules'] ?? [], $plan, tenant());
+
+        return response()->json([
+            'html' => view('partials.custom-plan-summary', ['quote' => $quote, 'mode' => 'dashboard'])->render(),
+            'slugs' => $quote['slugs'],
+            'monthly' => $quote['monthly'],
+        ]);
+    }
+
+    /**
+     * Subscribes to a custom plan with the ticked modules, or changes the modules of the one it pays for now: added
+     * modules are billed until the period ends (one invoice), removed ones stop at once and leave the next renewal.
+     * From a trial, the free plan or another plan it is a new plan invoice (with the unused balance of a paid one).
+     */
+    public function custom(Request $request, Billing $billing): RedirectResponse
+    {
+        $plan = CustomPlan::plan() ?? abort(404);
+        $data = $request->validate([
+            'modules' => 'array|max:40', 'modules.*' => 'string|max:40',
+            'months' => ['required', Rule::in(Plan::CYCLES)],
+        ]);
+        $quote = CustomPlan::quote($data['modules'] ?? [], $plan, tenant());
+        if ($quote['packs']->isEmpty()) {
+            return back()->withErrors(['custom' => __('Tick at least one module for your plan.')]);
+        }
+        $keys = $quote['packs']->pluck('key')->all();
+        $sub = tenant()->subscription()->with('addons')->first();
+        $running = $sub && $sub->plan_id === $plan->id && $sub->status === 'active' && $sub->current_period_end?->isFuture();
+        if (! $running) {
+            return redirect()->route('dash.billing.invoice', $billing->invoiceForPlan(tenant(), $plan, (int) $data['months'], $keys)->number);
+        }
+
+        $now = $sub->addons->pluck('key')->all();
+        $add = $quote['packs']->reject(fn (AddonPrice $p) => in_array($p->key, $now, true))->values();
+        $remove = array_values(array_diff($now, $keys));
+        if ($add->isEmpty() && $remove === []) {
+            return back()->with('ok', __('Your plan already has these modules.'));
+        }
+        if ($add->isEmpty()) {
+            foreach ($remove as $key) {
+                $billing->setAddon(tenant(), $key, 0);
+            }
+
+            return redirect()->route('dash.billing')->with('ok', __('Done: those modules are off. Your next renewal is priced without them.'));
+        }
+        $invoice = $billing->invoiceForCustomPacks(tenant(), $add, $remove);
+        if ((float) $invoice->total === 0.0) {
+            // the plan's minimum, or what leaves, already pays for it: switched on at once
+            $billing->markPaid($invoice, 'balance', null, 0, 'balance-'.$invoice->number);
+
+            return redirect()->route('dash.billing')->with('ok', __('Done: your new modules are on.'));
+        }
+
+        return redirect()->route('dash.billing.invoice', $invoice->number);
     }
 
     public function addon(Request $request, string $key, Billing $billing): RedirectResponse

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Billing\CustomPlan;
 use App\Models\AddonPrice;
 use App\Models\Plan;
 use Illuminate\Database\Seeder;
@@ -69,6 +70,15 @@ class PlanSeeder extends Seeder
                 'tagline_en' => 'For chains and busy places: POS, kitchen, kiosk, call center, inventory and more branches, priced for you',
                 'features' => $enterprise,
                 'limits' => ['branches' => null, 'menu_items' => null, 'staff' => null, 'tables' => null, 'ai_imports_per_month' => null, 'screens' => null]],
+            // «صمم باقتك» (App\Billing\CustomPlan): the free plan's base plus the module packs the restaurant ticks, priced
+            // by them (at least CustomPlan::MINIMUM_MONTHLY); not a card of its own on the pricing page, so not public.
+            // Limits fit a paying place with one branch; its cycle discounts are always the Complete plan's.
+            ['code' => CustomPlan::CODE, 'name' => 'صمم باقتك', 'name_en' => 'Your own plan', 'monthly_price' => 0, 'sort_order' => 5,
+                'cycles' => [],
+                'tagline' => 'اختار الموديولات اللي بتشتغل بيها بس، وادفع تمنها',
+                'tagline_en' => 'Pick only the modules you work with, and pay for those',
+                'features' => ['excel_import'],
+                'limits' => ['branches' => 1, 'menu_items' => null, 'staff' => 5, 'tables' => null, 'ai_imports_per_month' => 5, 'screens' => 0]],
             ['code' => 'starter', 'name' => 'مبتدئ', 'name_en' => 'Starter', 'monthly_price' => 99, 'sort_order' => 0,
                 'tagline' => 'منيو QR بشكل محترم لكافيه صغير: العميل يشوف المنيو والأسعار',
                 'tagline_en' => 'A good-looking QR menu for a small cafe: guests browse the menu and prices',
@@ -113,6 +123,8 @@ class PlanSeeder extends Seeder
 
         // the older plans leave the pricing page (their subscribers keep them exactly as they are)
         Plan::query()->whereIn('code', self::LEGACY)->update(['is_public' => false, 'is_featured' => false]);
+        // the custom plan is built on its own section of the pricing and billing pages, never listed as a plan card
+        Plan::query()->where('code', CustomPlan::CODE)->update(['is_public' => false, 'is_featured' => false]);
         // the free plan's first name was «مجاني»; the line-up calls it «مجانية» (a name edited by hand is kept)
         Plan::query()->where('code', 'free')->where('name', 'مجاني')->update(['name' => 'مجانية']);
 

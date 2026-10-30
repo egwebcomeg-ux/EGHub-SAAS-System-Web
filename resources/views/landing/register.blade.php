@@ -34,6 +34,12 @@
         @endif
         <form method="post" action="{{ route('register') }}" class="grid gap-4 sm:grid-cols-2" data-signup>
             @csrf
+            {{-- the modules picked in «صمم باقتك» on the pricing page: the dashboard starts focused on them --}}
+            @php($pickedModules = array_values(array_filter(array_map(fn ($s) => \App\Support\SiteModules::find(trim($s)), explode(',', (string) old('modules', request()->query('modules', '')))))))
+            @if ($pickedModules)
+                <input type="hidden" name="modules" value="{{ implode(',', array_column($pickedModules, 'slug')) }}">
+                <p class="rounded-xl bg-brand-50 px-4 py-3 text-sm text-navy-800 sm:col-span-2" data-signup-modules>{{ __('Your plan: :modules. The trial has everything; you choose your modules when you subscribe.', ['modules' => implode('، ', array_column($pickedModules, 'name'))]) }}</p>
+            @endif
             <div class="sm:col-span-2">
                 <label class="field-label" for="name">{{ __('Restaurant / cafe name') }}</label>
                 <input class="field" id="name" name="name" value="{{ old('name') }}" required maxlength="80">

@@ -123,7 +123,7 @@ class ArchivedPlansTest extends TenantTestCase
 
         $this->artisan('egmenu:archive-legacy-plans')->assertSuccessful();
         $this->assertEqualsCanonicalizing(PlanSeeder::LEGACY, Plan::query()->whereNotNull('archived_at')->pluck('code')->all());
-        $this->assertSame(['free', 'full', 'enterprise'], Plan::query()->offered()->orderBy('sort_order')->pluck('code')->all());
+        $this->assertSame(['free', 'custom', 'full', 'enterprise'], Plan::query()->offered()->orderBy('sort_order')->pluck('code')->all());
 
         $this->artisan('egmenu:archive-legacy-plans')->expectsOutputToContain('already archived')->assertSuccessful();
     }
@@ -135,7 +135,7 @@ class ArchivedPlansTest extends TenantTestCase
         $this->seed(PlanSeeder::class);
 
         $this->assertSame(4, Plan::query()->whereIn('code', PlanSeeder::LEGACY)->whereNotNull('archived_at')->count());
-        $this->assertSame(7, Plan::query()->count());
+        $this->assertSame(8, Plan::query()->count());
     }
 
     public function test_the_seeder_never_recreates_the_legacy_plans_in_production(): void
@@ -151,6 +151,6 @@ class ArchivedPlansTest extends TenantTestCase
         }
 
         $this->assertSame([], Plan::query()->whereIn('code', PlanSeeder::LEGACY)->pluck('code')->all());
-        $this->assertEqualsCanonicalizing(['free', 'full', 'enterprise'], Plan::query()->pluck('code')->all());
+        $this->assertEqualsCanonicalizing(['free', 'custom', 'full', 'enterprise'], Plan::query()->pluck('code')->all());
     }
 }

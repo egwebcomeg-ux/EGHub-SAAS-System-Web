@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Billing\CustomPlan;
 use App\Billing\Lifecycle;
 use App\Services\Assistant;
 use App\Services\Entitlements;
 use App\Services\TenantProvisioner;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
@@ -132,6 +134,27 @@ class Plan extends Model
     public function displayName(): string
     {
         return app()->getLocale() === 'en' && $this->name_en !== '' ? $this->name_en : $this->name;
+    }
+
+    /**
+     * The cycle discounts. The custom plan ("صمم باقتك") has none of its own: it always gives the Complete plan's, so
+     * paying 6 or 12 months at once takes the same share off whichever plan the restaurant builds.
+     */
+    protected function cycleDiscounts(): Attribute
+    {
+        return Attribute::get(function (?string $value): array {
+            if ($this->code === CustomPlan::CODE) {
+                return CustomPlan::cycleDiscounts();
+            }
+
+            return $value ? (array) json_decode($value, true) : [];
+        });
+    }
+
+    /** The plan a restaurant builds from modules (App\Billing\CustomPlan): priced by what it ticks, not by a monthly price. */
+    public function isCustom(): bool
+    {
+        return $this->code === CustomPlan::CODE;
     }
 
     /** Sold by talking to sales (Enterprise): no public price, no self-subscribe, no dashboard invoice. */

@@ -60,6 +60,8 @@ Route::domain($domain)->group(function () use ($slug) {
     Route::middleware('admin.locale')->group(function () {
         Route::get('/', [LandingController::class, 'home'])->middleware('page.cache:landing')->name('landing');
         Route::get('/pricing', [LandingController::class, 'pricing'])->middleware('page.cache:landing')->name('pricing');
+        // «صمم باقتك»: the live total of the ticked modules (App\Billing\CustomPlan)
+        Route::get('/pricing/custom-plan', [LandingController::class, 'customPlan'])->middleware('throttle:60,1')->name('pricing.custom');
         Route::get('/services', [ServicesController::class, 'index'])->name('services');
         Route::post('/services', [ServicesController::class, 'store'])->middleware('throttle:5,1')->name('services.request');
         Route::get('/features', [FeaturesController::class, 'index'])->middleware('page.cache:landing')->name('features');
