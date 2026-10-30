@@ -76,7 +76,7 @@ final class LeadSearch
         match ($f['due']) {
             'today' => $query->dueToday(),
             'overdue' => $query->overdue(),
-            'due' => $query->open()->where('crm_leads.next_follow_up_at', '<', Lead::todayStart()->addDay()),
+            'due' => $query->open()->where('crm_leads.next_follow_up_at', '<', Lead::tomorrowStart()),
             default => null,
         };
         if ($f['recent'] === '1') {
@@ -112,7 +112,7 @@ final class LeadSearch
     public function queue(PlatformAdmin $admin, int $limit = 12): Collection
     {
         $mineOrFree = fn (Builder $q) => $q->where(fn (Builder $w) => $w->whereNull('crm_leads.assigned_admin_id')->orWhere('crm_leads.assigned_admin_id', $admin->id));
-        $due = $mineOrFree($this->base()->open()->where('crm_leads.next_follow_up_at', '<', Lead::todayStart()->addDay()))
+        $due = $mineOrFree($this->base()->open()->where('crm_leads.next_follow_up_at', '<', Lead::tomorrowStart()))
             ->orderBy('crm_leads.next_follow_up_at')->limit($limit)->get();
         $fresh = $due->count() < $limit
             ? $mineOrFree($this->base()->uncontacted()->whereNull('crm_leads.next_follow_up_at'))->orderBy('tenants.created_at')->limit($limit - $due->count())->get()

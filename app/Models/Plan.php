@@ -269,7 +269,7 @@ class Plan extends Model
         }
         $ends = self::launchOfferEndsAt();
 
-        return $ends === null || ! today()->greaterThan($ends);
+        return $ends === null || local_today() <= $ends->toDateString();
     }
 
     public function features(): HasMany

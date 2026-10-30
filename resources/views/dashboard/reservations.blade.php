@@ -8,7 +8,7 @@
     ];
     $actions = ['confirmed' => __('Confirm'), 'seated' => __('Seated'), 'no_show' => __('No-show'), 'cancelled' => __('Cancel')];
     $query = fn (array $extra) => array_filter(['branch' => $branch?->id, 'date' => $date->format('Y-m-d')] + $extra);
-    $byTime = $day->groupBy(fn ($r) => $r->starts_at->format('H:i'));
+    $byTime = $day->groupBy(fn ($r) => local_time($r->starts_at, 'H:i'));
     $weekdays = [__('Sunday'), __('Monday'), __('Tuesday'), __('Wednesday'), __('Thursday'), __('Friday'), __('Saturday')];
 @endphp
 

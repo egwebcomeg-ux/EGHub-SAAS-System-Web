@@ -53,7 +53,7 @@ class VoucherRedeemController extends Controller
     {
         $branch = PosController::branch($request);
         $orders = Order::query()->where('branch_id', $branch->id)->where('payment_status', 'unpaid')->where('status', '!=', 'cancelled')
-            ->where('created_at', '>=', now()->startOfDay())->with('table')->latest('id')->limit(60)->get();
+            ->where('created_at', '>=', local_day_start())->with('table')->latest('id')->limit(60)->get();
 
         return response()->json(['orders' => $orders->map(fn (Order $o) => [
             'id' => $o->id, 'number' => $o->number, 'table' => $o->table?->name, 'type' => $o->type, 'typeLabel' => self::typeLabel($o->type),
@@ -142,7 +142,7 @@ class VoucherRedeemController extends Controller
     private function recent(Branch $branch): Collection
     {
         return CorporateVoucherRedemption::query()->with(['voucher:id,serial,corporate_contract_id', 'voucher.contract:id,name', 'order:id,number', 'cashier:id,name', 'refunder:id,name'])
-            ->where('branch_id', $branch->id)->where('created_at', '>=', now()->startOfDay())->whereNotNull('batch')
+            ->where('branch_id', $branch->id)->where('created_at', '>=', local_day_start())->whereNotNull('batch')
             ->latest('id')->limit(200)->get()->groupBy('batch')->take(30)
             ->map(fn (Collection $rows, string $batch) => [
                 'batch' => $batch, 'at' => $rows->first()->created_at, 'order' => $rows->first()->order?->number,

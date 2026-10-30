@@ -36,7 +36,7 @@ class WalletController extends Controller
                 'liability' => round((float) Customer::query()->sum('credit_balance'), 2),
                 'customers' => Customer::query()->where('credit_balance', '>', 0)->count(),
                 'gifts' => round((float) GiftCard::query()->where('status', 'active')->where(fn ($w) => $w->whereNull('expires_at')->orWhere('expires_at', '>', now()))->sum('balance'), 2),
-                'month_topups' => round((float) WalletTransaction::query()->where('kind', 'topup')->where('created_at', '>=', now()->startOfMonth())->sum('delta'), 2),
+                'month_topups' => round((float) WalletTransaction::query()->where('kind', 'topup')->where('created_at', '>=', local_at()->startOfMonth()->utc())->sum('delta'), 2),
             ],
             'balances' => $tab === 'balances' ? Customer::query()->where('credit_balance', '!=', 0)
                 ->when($q !== '', fn ($w) => $w->where(fn ($s) => $s->where('phone', 'like', '%'.(normalize_phone($q) ?? $q).'%')->orWhere('name', 'like', "%$q%")))

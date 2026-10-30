@@ -76,7 +76,7 @@ final class Directory
             ->whereIn('id', DB::table('subscription_addons')->select('subscription_id')->whereIn('key', $packs ?: ['']))
             ->orWhereIn('plan_id', DB::table('plan_features')->select('plan_id')->where('key', 'featured_listing')->where('value', 1)));
 
-        $day = today()->toDateString();
+        $day = local_today();
 
         return self::query($city, $cuisine, $search)->whereIn('id', $subscriptions)->pluck('id')
             ->sortBy(fn (string $id) => crc32($day.'|'.$id))->take(self::FEATURED_PER_PAGE)->values()->all();

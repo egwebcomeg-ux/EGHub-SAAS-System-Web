@@ -178,7 +178,7 @@ class InventoryController extends Controller
     public function variance(Request $request): View|Response
     {
         $branch = self::currentBranch($request);
-        $today = CarbonImmutable::today();
+        $today = CarbonImmutable::parse(local_today());
         $from = $request->filled('from') ? rescue(fn () => CarbonImmutable::parse((string) $request->query('from')), $today->startOfMonth(), false) : $today->startOfMonth();
         $to = $request->filled('to') ? rescue(fn () => CarbonImmutable::parse((string) $request->query('to')), $today, false) : $today;
         if ($to->lt($from)) {

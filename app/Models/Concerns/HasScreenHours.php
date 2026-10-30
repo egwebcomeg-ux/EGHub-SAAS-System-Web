@@ -5,7 +5,7 @@ namespace App\Models\Concerns;
 use Carbon\CarbonInterface;
 
 /**
- * Days and hours a TV screen or one of its slides shows (Cairo time): `days` [0..6] Sunday=0 (null or empty = every
+ * Days and hours a TV screen or one of its slides shows (restaurant time): `days` [0..6] Sunday=0 (null or empty = every
  * day), `starts_at` / `ends_at` (both null = all day). A window may cross midnight (22:00 → 02:00): after midnight it
  * still belongs to the day it started, like App\Models\Offer. The player checks the same rules on the device, so a
  * breakfast slide still switches at 12:00 while the network is down.
@@ -14,7 +14,7 @@ trait HasScreenHours
 {
     public function isOnAt(CarbonInterface $at): bool
     {
-        $at = $at->copy()->timezone(config('app.timezone'));
+        $at = local_at($at);
         $from = $this->starts_at ? substr((string) $this->starts_at, 0, 5) : null;
         $to = $this->ends_at ? substr((string) $this->ends_at, 0, 5) : null;
         if (! $from || ! $to || $from === $to) {

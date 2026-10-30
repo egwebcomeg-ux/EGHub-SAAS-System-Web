@@ -280,7 +280,8 @@ class TenantsController extends Controller
 
         $sub = Subscription::query()->updateOrCreate(['tenant_id' => $tenant->id], [
             'plan_id' => $data['plan_id'], 'status' => $data['status'], 'cycle_months' => $data['cycle_months'],
-            'current_period_end' => $data['current_period_end'] ?? null, 'trial_ends_at' => $data['trial_ends_at'] ?? null,
+            'current_period_end' => isset($data['current_period_end']) ? local_day_start($data['current_period_end']) : null,
+            'trial_ends_at' => isset($data['trial_ends_at']) ? local_day_start($data['trial_ends_at']) : null,
         ]);
         if ($sub->status === 'active') {
             // a Complete subscription set by hand while the launch offer runs gets it too

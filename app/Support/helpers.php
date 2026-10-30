@@ -112,14 +112,80 @@ function is_hex_color(?string $c): bool
     return (bool) preg_match('/^#[0-9a-fA-F]{6}$/', (string) $c);
 }
 
-/** Date in Cairo time; Arabic AM/PM when the locale is Arabic. */
+/*
+ * Restaurant time. Every time is stored and compared in UTC (app.timezone); the restaurants live in
+ * app.local_timezone (Cairo, with daylight saving). Wall-clock questions (what day is it, which hour, which weekday,
+ * what to show) go through these helpers. What they return as Carbon is either a local wall clock (local_at) or a
+ * UTC instant (local_day_start/end, local_input), so a value meant for a query or a model is never a local one.
+ */
+
+/** Timezone of the restaurants: business days, opening hours, schedules and every time shown or typed. */
+function local_timezone(): string
+{
+    return (string) config('app.local_timezone');
+}
+
+/**
+ * A moment on the restaurant's wall clock (now when null) for its hour, weekday, date or text. Not for queries
+ * or model attributes: those take UTC (->utc()).
+ */
+function local_at(DateTimeInterface|string|null $at = null): Carbon
+{
+    $d = match (true) {
+        $at === null => now(),
+        $at instanceof DateTimeInterface => Carbon::instance($at),
+        default => Carbon::parse($at),
+    };
+
+    return $d->setTimezone(local_timezone());
+}
+
+/** The restaurant's business date now (or of the moment given), "Y-m-d": the value for date columns and day keys. */
+function local_today(DateTimeInterface|string|null $at = null): string
+{
+    return local_at($at)->toDateString();
+}
+
+/**
+ * 00:00 restaurant time of a business day, as the UTC instant to compare timestamps with: today when null, a
+ * "Y-m-d" date, or the day a moment falls in.
+ */
+function local_day_start(DateTimeInterface|string|null $day = null): Carbon
+{
+    $date = is_string($day) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $day) ? $day : local_today($day);
+
+    return Carbon::parse($date, local_timezone())->startOfDay()->utc();
+}
+
+/**
+ * The last moment of that business day (just before the next one starts), as a UTC instant. Not 23:59:59 on the
+ * wall clock: when summer time ends that hour happens twice and the day ends after the second one.
+ */
+function local_day_end(DateTimeInterface|string|null $day = null): Carbon
+{
+    $date = is_string($day) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $day) ? $day : local_today($day);
+
+    return local_day_start(Carbon::parse($date)->addDay()->toDateString())->subMicrosecond();
+}
+
+/**
+ * A date / date-time the restaurant typed or kept in its settings ("2026-10-29 21:30", "2026-10-29T21:30"), read on
+ * its wall clock, as the UTC instant to store or compare. With $format, parsed with that format.
+ */
+function local_input(string $value, ?string $format = null): Carbon
+{
+    $d = $format !== null ? Carbon::createFromFormat($format, $value, local_timezone()) : Carbon::parse($value, local_timezone());
+
+    return $d->utc();
+}
+
+/** Date in restaurant time; Arabic AM/PM when the locale is Arabic. */
 function local_time(DateTimeInterface|string|null $at, string $format = 'Y/m/d h:i A'): string
 {
     if (! $at) {
         return '—';
     }
-    $d = $at instanceof DateTimeInterface ? Carbon::instance($at) : Carbon::parse($at);
-    $s = $d->timezone(config('app.timezone'))->format($format);
+    $s = local_at($at)->format($format);
 
     return app()->getLocale() === 'ar' ? str_replace(['AM', 'PM'], ['ص', 'م'], $s) : $s;
 }

@@ -14,7 +14,6 @@ use App\Services\Reports\AdvancedReport;
 use App\Services\Settings;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Scheduling\Schedule;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Tests\TenantTestCase;
 
@@ -29,7 +28,7 @@ class AdvancedReportsTest extends TenantTestCase
                 'branch_id' => Branch::query()->value('id'), 'number' => ++$this->n, 'status' => 'served', 'type' => 'dine_in',
                 'source' => 'qr', 'subtotal' => $total, 'total' => $total, 'payment_status' => 'paid', 'payment_method' => 'cash',
             ]);
-            $order->forceFill(['created_at' => Carbon::parse($at)])->save();
+            $order->forceFill(['created_at' => local_input($at)])->save(); // $at is restaurant time
             $order->items()->create(['menu_item_id' => $item?->id, 'name' => $item->name ?? 'Latte', 'unit_price' => $total / $qty,
                 'quantity' => $qty, 'line_total' => $total]);
 
@@ -54,7 +53,7 @@ class AdvancedReportsTest extends TenantTestCase
         $rows = MenuItemView::query()->withoutGlobalScopes()->get();
         $this->assertCount(1, $rows);
         $this->assertSame([$latte->id, 2, 'cafe-a'], [$rows[0]->menu_item_id, $rows[0]->views, $rows[0]->tenant_id]);
-        $this->assertTrue($rows[0]->day->isToday());
+        $this->assertSame(local_today(), $rows[0]->day->toDateString());
 
         // the menu page tells the script where to send it
         $this->get($this->pathUrl('cafe-a'))->assertOk()->assertSee('i\/0\/view', false);
@@ -79,7 +78,7 @@ class AdvancedReportsTest extends TenantTestCase
         $a = $this->restaurant('cafe-a', 'business');
         $latte = $this->item($a, 'Latte');
         $cake = $this->item($a, 'Cake', 40);
-        $now = now()->setTime(13, 0);
+        $now = local_at()->setTime(13, 0);
         // this week (last 7 days): 3 sales = 600; the 7 days before: 2 sales = 200; one cancelled is ignored
         $this->sale($a, 100, $now->toDateTimeString(), [], $latte);
         $this->sale($a, 200, $now->copy()->subDays(1)->toDateTimeString(), ['source' => 'pos', 'type' => 'takeaway'], $latte, 2);
@@ -89,9 +88,9 @@ class AdvancedReportsTest extends TenantTestCase
         $this->sale($a, 80, $now->copy()->subDays(13)->toDateTimeString());
         $this->sale($a, 5000, $now->copy()->subDays(14)->toDateTimeString()); // outside both periods
         $this->as($a, function () use ($latte, $cake) {
-            MenuItemView::query()->create(['menu_item_id' => $latte->id, 'day' => today(), 'views' => 4]);
-            MenuItemView::query()->create(['menu_item_id' => $cake->id, 'day' => today()->subDay(), 'views' => 20]);
-            MenuItemView::query()->create(['menu_item_id' => $cake->id, 'day' => today()->subDays(30), 'views' => 500]); // outside
+            MenuItemView::query()->create(['menu_item_id' => $latte->id, 'day' => local_today(), 'views' => 4]);
+            MenuItemView::query()->create(['menu_item_id' => $cake->id, 'day' => local_at()->subDay()->toDateString(), 'views' => 20]);
+            MenuItemView::query()->create(['menu_item_id' => $cake->id, 'day' => local_at()->subDays(30)->toDateString(), 'views' => 500]); // outside
         });
 
         $x = $this->actingAs($this->owner($a))->get($this->dashUrl('/reports?range=7d'))->assertOk()->viewData('extra');
@@ -134,7 +133,7 @@ class AdvancedReportsTest extends TenantTestCase
                 Customer::query()->create(['phone' => '01000000001', 'name' => 'Old']),
                 Customer::query()->create(['phone' => '01000000002', 'name' => 'New'])];
         });
-        $now = now()->setTime(12, 0);
+        $now = local_at()->setTime(12, 0);
         $this->sale($a, 50, $now->copy()->subDays(40)->toDateTimeString(), ['customer_id' => $old->id]); // first visit long ago
         $this->sale($a, 100, $now->toDateTimeString(), ['customer_id' => $old->id, 'branch_id' => $main->id]);
         $this->sale($a, 300, $now->toDateTimeString(), ['customer_id' => $fresh->id, 'branch_id' => $second->id]);
@@ -156,8 +155,8 @@ class AdvancedReportsTest extends TenantTestCase
         $a = $this->restaurant('cafe-a', 'business');
         $b = $this->restaurant('cafe-b', 'business');
         $bLatte = $this->item($b, 'B Latte');
-        $this->sale($b, 777, now()->toDateTimeString(), [], $bLatte);
-        $this->as($b, fn () => MenuItemView::query()->create(['menu_item_id' => $bLatte->id, 'day' => today(), 'views' => 50]));
+        $this->sale($b, 777, local_at()->toDateTimeString(), [], $bLatte);
+        $this->as($b, fn () => MenuItemView::query()->create(['menu_item_id' => $bLatte->id, 'day' => local_today(), 'views' => 50]));
 
         $x = $this->actingAs($this->owner($a))->get($this->dashUrl('/reports'))->assertOk()->assertDontSee('B Latte')->viewData('extra');
         $this->assertSame(0.0, $x['comparison']['revenue']['current']);

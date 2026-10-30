@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\Subscription;
 use App\Models\Tenant;
 use App\Support\BusinessType;
-use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\Request;
@@ -189,15 +188,13 @@ final class AdminTenantSearch
      */
     private function period(array $f): array
     {
-        $now = CarbonImmutable::now();
-
         return match ($f['created']) {
-            // the Egyptian week starts on Saturday
-            'week' => [Carbon::instance($now->startOfWeek(Carbon::SATURDAY)), null],
-            'month' => [Carbon::instance($now->startOfMonth()), null],
+            // the Egyptian week starts on Saturday; days begin at midnight restaurant time
+            'week' => [local_at()->startOfWeek(Carbon::SATURDAY)->utc(), null],
+            'month' => [local_at()->startOfMonth()->utc(), null],
             'custom' => [
-                $f['from'] !== '' ? Carbon::parse($f['from'])->startOfDay() : null,
-                $f['to'] !== '' ? Carbon::parse($f['to'])->addDay()->startOfDay() : null,
+                $f['from'] !== '' ? local_day_start($f['from']) : null,
+                $f['to'] !== '' ? local_day_start(Carbon::parse($f['to'])->addDay()->toDateString()) : null,
             ],
             default => [null, null],
         };

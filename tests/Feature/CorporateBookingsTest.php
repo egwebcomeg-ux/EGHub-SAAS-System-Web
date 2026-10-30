@@ -59,7 +59,7 @@ class CorporateBookingsTest extends TenantTestCase
     private function ask(CorporateContract $contract, array $data = [])
     {
         return $this->post($this->pathUrl('cafe-a', "company/{$contract->portal_token}/bookings"), $data + [
-            'date' => now()->addDays(2)->format('Y-m-d'), 'time' => '13:00', 'party_size' => 4, 'budget' => 1000,
+            'date' => local_at()->addDays(2)->format('Y-m-d'), 'time' => '13:00', 'party_size' => 4, 'budget' => 1000,
             'rep_name' => 'Mona', 'rep_phone' => self::REP,
         ]);
     }
@@ -93,7 +93,7 @@ class CorporateBookingsTest extends TenantTestCase
         $this->get($this->pathUrl('cafe-a', "company/{$contract->portal_token}"))->assertOk()->assertSee('Eva Pharma');
         $this->get($this->pathUrl('cafe-a', 'company/'.str_repeat('a', 24)))->assertNotFound();
 
-        $this->ask($contract, ['date' => now()->format('Y-m-d'), 'time' => now()->addHours(3)->format('H:i')])->assertSessionHasErrors('date');
+        $this->ask($contract, ['date' => local_at()->addHours(3)->format('Y-m-d'), 'time' => local_at()->addHours(3)->format('H:i')])->assertSessionHasErrors('date');
         $this->assertSame(0, $this->as($this->tenant, fn () => CorporateBooking::query()->count()));
 
         $this->ask($contract)->assertRedirect()->assertSessionHasNoErrors();
@@ -149,7 +149,7 @@ class CorporateBookingsTest extends TenantTestCase
         $this->actingAs($this->cashier)->post($this->dashUrl('/shifts/open'), ['opening_cash' => 100])->assertSessionHasNoErrors();
         $this->payAtPos($meals, self::REP)->assertStatus(422);
 
-        $this->travelTo($booking->visit_at->copy()->setTime(13, 30));
+        $this->travelTo(local_at($booking->visit_at)->setTime(13, 30));
         $this->actingAs($this->cashier)->post($this->dashUrl('/shifts/open'), ['opening_cash' => 100]);
         $this->payAtPos($meals, '01099999999')->assertStatus(422);
         $this->payAtPos($meals, self::REP)->assertOk();
@@ -181,7 +181,7 @@ class CorporateBookingsTest extends TenantTestCase
 
     public function test_a_visit_must_fall_in_the_contract_days_and_hours(): void
     {
-        $visit = now()->addDays(2)->setTime(13, 0);
+        $visit = local_at()->addDays(2)->setTime(13, 0);
         $contract = $this->contract(['days' => [($visit->dayOfWeek + 1) % 7]]);
         $this->ask($contract)->assertSessionHasErrors('date');
         $this->assertSame(0, $this->as($this->tenant, fn () => CorporateBooking::query()->count()));
@@ -211,7 +211,7 @@ class CorporateBookingsTest extends TenantTestCase
 
         // a visit asked by phone: staff enter it (no notice), a manager still confirms
         $this->actingAs($this->manager)->post($this->dashUrl('/corporate/bookings'), [
-            'corporate_contract_id' => $contract->id, 'date' => now()->format('Y-m-d'), 'time' => now()->addHour()->format('H:i'),
+            'corporate_contract_id' => $contract->id, 'date' => local_at()->addHour()->format('Y-m-d'), 'time' => local_at()->addHour()->format('H:i'),
             'party_size' => 2, 'budget' => 300, 'rep_name' => 'Ali', 'rep_phone' => '01111111111',
         ])->assertSessionHasNoErrors();
         $this->assertSame(['requested', 'staff'], [$this->booking()->status, $this->booking()->source]);
@@ -226,7 +226,7 @@ class CorporateBookingsTest extends TenantTestCase
         $booking = $this->booking();
         $this->actingAs($this->manager)->post($this->dashUrl("/corporate/bookings/{$booking->id}/approve"), ['meal_price' => 250])->assertSessionHasNoErrors();
 
-        $this->travelTo($booking->visit_at->copy()->addDay()->setTime(4, 0));
+        $this->travelTo(local_at($booking->visit_at)->addDay()->setTime(4, 0));
         $this->artisan('egmenu:corporate-visits')->assertSuccessful();
         $booking = $this->booking();
         [, $rest] = $this->vouchers($booking);

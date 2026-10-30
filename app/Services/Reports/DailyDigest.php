@@ -32,7 +32,7 @@ final class DailyDigest
     /** @return int restaurants sent */
     public function run(?CarbonImmutable $today = null): int
     {
-        $today ??= CarbonImmutable::today();
+        $today ??= CarbonImmutable::parse(local_today());
         $day = $today->subDay();
         $sent = 0;
         foreach (Tenant::query()->where('status', 'active')->orderBy('id')->get() as $tenant) {
@@ -83,8 +83,8 @@ final class DailyDigest
      */
     public function build(CarbonImmutable $day): array
     {
-        $from = $day->startOfDay();
-        $to = $day->endOfDay();
+        $from = local_day_start($day->toDateString());
+        $to = local_day_end($day->toDateString());
         $sold = Order::query()->whereBetween('created_at', [$from, $to])->where('status', '!=', 'cancelled');
         $paid = (clone $sold)->where('payment_status', 'paid');
         $methods = (clone $paid)->selectRaw('payment_method, SUM(total) as total')->groupBy('payment_method')->pluck('total', 'payment_method')

@@ -333,6 +333,6 @@ final class Segments
     /** @return list<string> "MM-DD" of today and the next 6 days */
     private function nextSevenDays(): array
     {
-        return array_map(fn (int $d) => now()->addDays($d)->format('m-d'), range(0, 6));
+        return array_map(fn (int $d) => local_at()->addDays($d)->format('m-d'), range(0, 6));
     }
 }

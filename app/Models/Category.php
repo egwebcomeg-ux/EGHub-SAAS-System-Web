@@ -40,9 +40,10 @@ class Category extends TenantModel
         return ($this->visible_from && $this->visible_until) || ($this->visible_days !== null && $this->visible_days !== []);
     }
 
-    /** Is the category on the menu at $at (restaurant local time)? Same overnight rule as timed offers. */
+    /** Is the category on the menu at $at (read on the restaurant's clock)? Same overnight rule as timed offers. */
     public function isVisibleAt(CarbonInterface $at): bool
     {
+        $at = local_at($at);
         if (! $this->visible_from || ! $this->visible_until) {
             return $this->dayMatches($at);
         }

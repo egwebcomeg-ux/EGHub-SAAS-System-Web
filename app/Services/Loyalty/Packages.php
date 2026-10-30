@@ -49,7 +49,7 @@ final class Packages
             $copy = CustomerPackage::query()->create([
                 'customer_id' => $customer->id, 'prepaid_package_id' => $package->id, 'name' => $package->displayName(),
                 'price_paid' => $package->price, 'uses_total' => $package->uses, 'uses_left' => $package->uses,
-                'expires_at' => now()->addDays($package->valid_days)->endOfDay(), 'status' => 'active',
+                'expires_at' => local_day_end(local_at()->addDays($package->valid_days)), 'status' => 'active',
                 'payment_method' => $method, 'shift_id' => $shift?->id, 'sold_by' => $by->id,
             ]);
             $shift?->movements()->create([

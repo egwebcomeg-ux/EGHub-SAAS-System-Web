@@ -18,7 +18,7 @@ class MenuExportController extends Controller
     public function download(string $format): BinaryFileResponse|StreamedResponse
     {
         $rows = MenuSheet::rows();
-        $name = 'egmenu-'.Str::slug((string) tenant()->getTenantKey()).'-'.now()->format('Ymd');
+        $name = 'egmenu-'.Str::slug((string) tenant()->getTenantKey()).'-'.local_at()->format('Ymd');
 
         if ($format === 'csv') {
             return response()->streamDownload(function () use ($rows) {

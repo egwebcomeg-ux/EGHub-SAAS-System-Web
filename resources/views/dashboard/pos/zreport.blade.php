@@ -30,7 +30,7 @@
 <form class="card mb-4 flex flex-wrap items-end gap-3" data-z-filters>
     @if ($fromReports)<input type="hidden" name="in" value="{{ \App\Support\AreaTabs::IN_REPORTS }}">@endif
     <label class="block"><span class="field-label">{{ __('Day') }}</span>
-        <input class="field" type="date" name="date" value="{{ $day->format('Y-m-d') }}" max="{{ now()->format('Y-m-d') }}"></label>
+        <input class="field" type="date" name="date" value="{{ $day->format('Y-m-d') }}" max="{{ local_today() }}"></label>
     @if ($branches->count() > 1)
         <label class="block"><span class="field-label">{{ __('Branch') }}</span>
             <select class="field" name="branch">@foreach ($branches as $b)<option value="{{ $b->id }}" @selected($b->id === $branch->id)>{{ tr($b->name, $b->name_en) }}</option>@endforeach</select></label>

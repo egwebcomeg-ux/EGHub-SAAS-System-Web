@@ -329,8 +329,8 @@ class MenuController extends Controller
     private static function countVisit(Request $request): void
     {
         $visitKey = 'visit.'.tenant()->getTenantKey();
-        if ($request->session()->get($visitKey) !== today()->toDateString()) {
-            $request->session()->put($visitKey, today()->toDateString());
+        if ($request->session()->get($visitKey) !== local_today()) {
+            $request->session()->put($visitKey, local_today());
             MenuVisit::bump('views');
         }
     }
@@ -349,7 +349,7 @@ class MenuController extends Controller
     /** The line over the search bar, by the hour of the restaurant: morning, day or evening. */
     private static function greeting(): string
     {
-        $hour = now()->hour;
+        $hour = local_at()->hour;
 
         return match (true) {
             $hour >= 5 && $hour < 12 => __('Good morning ☀️'),

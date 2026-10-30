@@ -28,7 +28,7 @@ class TimedSoldOutTest extends TenantTestCase
 
     public function test_item_is_back_once_its_time_passes(): void
     {
-        $this->travelTo(Carbon::parse('2026-10-20 15:00', config('app.timezone')));
+        $this->travelTo(Carbon::parse('2026-10-20 15:00', local_timezone()));
         $a = $this->restaurant('cafe-a');
         $item = $this->item($a, 'Latte', 60);
         $this->as($a, fn () => $item->update(['is_sold_out' => true, 'available_from' => now()->addHours(2)]));
@@ -47,7 +47,7 @@ class TimedSoldOutTest extends TenantTestCase
 
     public function test_quick_toggle_takes_a_preset_and_the_form_keeps_a_running_end(): void
     {
-        $this->travelTo(Carbon::parse('2026-10-20 15:00', config('app.timezone')));
+        $this->travelTo(Carbon::parse('2026-10-20 15:00', local_timezone()));
         $a = $this->restaurant('cafe-a');
         $owner = $this->owner($a);
         $item = $this->item($a, 'Latte', 60);
@@ -56,7 +56,7 @@ class TimedSoldOutTest extends TenantTestCase
         $this->actingAs($owner)->postJson($this->dashUrl("/menu/items/{$item->id}/toggle"), ['field' => 'sold_out', 'until' => 'hours_2'])
             ->assertOk()->assertJsonPath('value', true)->assertJsonPath('until', fn ($u) => str_contains((string) $u, '05:00'));
         $this->assertTrue($fresh()->is_sold_out);
-        $this->assertSame('2026-10-20 17:00', $fresh()->available_from->timezone(config('app.timezone'))->format('Y-m-d H:i'));
+        $this->assertSame('2026-10-20 17:00', $fresh()->available_from->timezone(local_timezone())->format('Y-m-d H:i'));
 
         // the list shows the end; toggling again brings the item back and clears the end
         $this->actingAs($owner)->get($this->dashUrl('/menu'))->assertOk()->assertSee('05:00');
@@ -66,14 +66,14 @@ class TimedSoldOutTest extends TenantTestCase
 
         // end of day / custom presets
         $this->actingAs($owner)->postJson($this->dashUrl("/menu/items/{$item->id}/toggle"), ['field' => 'sold_out', 'until' => 'end_of_day'])->assertOk();
-        $this->assertSame('2026-10-20 23:59', $fresh()->available_from->timezone(config('app.timezone'))->format('Y-m-d H:i'));
+        $this->assertSame('2026-10-20 23:59', $fresh()->available_from->timezone(local_timezone())->format('Y-m-d H:i'));
         $this->actingAs($owner)->postJson($this->dashUrl("/menu/items/{$item->id}/toggle"), ['field' => 'sold_out'])->assertOk(); // back
         $this->actingAs($owner)->postJson($this->dashUrl("/menu/items/{$item->id}/toggle"), ['field' => 'sold_out', 'until' => 'custom', 'until_at' => '2026-10-22T10:30'])->assertOk();
-        $this->assertSame('2026-10-22 10:30', $fresh()->available_from->timezone(config('app.timezone'))->format('Y-m-d H:i'));
+        $this->assertSame('2026-10-22 10:30', $fresh()->available_from->timezone(local_timezone())->format('Y-m-d H:i'));
         $this->actingAs($owner)->postJson($this->dashUrl("/menu/items/{$item->id}/toggle"), ['field' => 'sold_out', 'until' => 'nonsense'])->assertStatus(422);
 
         // an ended timed sold-out counts as available: the toggle marks it sold out again instead of "bringing it back"
-        $this->travelTo(Carbon::parse('2026-10-23 09:00', config('app.timezone')));
+        $this->travelTo(Carbon::parse('2026-10-23 09:00', local_timezone()));
         $this->actingAs($owner)->postJson($this->dashUrl("/menu/items/{$item->id}/toggle"), ['field' => 'sold_out'])->assertOk()->assertJsonPath('value', true);
         $this->assertNull($fresh()->available_from);
 
@@ -82,7 +82,7 @@ class TimedSoldOutTest extends TenantTestCase
             'category_id' => $item->category_id, 'name' => 'Latte', 'price' => 60, 'is_active' => 1,
         ]);
         $post(['is_sold_out' => 1, 'sold_out_until' => 'tomorrow'])->assertRedirect();
-        $this->assertSame('2026-10-24 06:00', $fresh()->available_from->timezone(config('app.timezone'))->format('Y-m-d H:i'));
+        $this->assertSame('2026-10-24 06:00', $fresh()->available_from->timezone(local_timezone())->format('Y-m-d H:i'));
         $post([])->assertRedirect();
         $this->assertFalse($fresh()->is_sold_out);
         $this->assertNull($fresh()->available_from);

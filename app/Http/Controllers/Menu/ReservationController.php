@@ -28,10 +28,10 @@ class ReservationController extends Controller
         $branches = Branch::query()->where('is_active', true)->orderBy('sort_order')->get();
         $branch = $branches->firstWhere('id', (int) $request->query('branch')) ?? MenuCatalog::defaultBranch();
         $party = max(1, min($c['max_party'], (int) ($request->query('party') ?: 2)));
-        $first = now()->addHours($c['lead_hours'])->startOfDay();
-        $last = now()->addDays($c['horizon_days'])->startOfDay();
+        $first = local_at()->addHours($c['lead_hours'])->startOfDay();
+        $last = local_at()->addDays($c['horizon_days'])->startOfDay();
         try {
-            $date = Carbon::createFromFormat('Y-m-d', (string) $request->query('date'), config('app.timezone'))->startOfDay();
+            $date = Carbon::createFromFormat('Y-m-d', (string) $request->query('date'), local_timezone())->startOfDay();
         } catch (\Throwable) {
             $date = $first->copy();
         }

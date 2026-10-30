@@ -119,7 +119,7 @@ class Lead extends Model
     public function isDueToday(): bool
     {
         return $this->isOpen() && $this->next_follow_up_at !== null
-            && $this->next_follow_up_at->betweenIncluded(self::todayStart(), self::todayStart()->addDay()->subSecond());
+            && $this->next_follow_up_at->betweenIncluded(self::todayStart(), self::tomorrowStart()->subSecond());
     }
 
     public function stageLabel(): string
@@ -158,7 +158,7 @@ class Lead extends Model
     public function scopeDueToday(Builder $query): void
     {
         $query->open()->where('crm_leads.next_follow_up_at', '>=', self::todayStart())
-            ->where('crm_leads.next_follow_up_at', '<', self::todayStart()->addDay());
+            ->where('crm_leads.next_follow_up_at', '<', self::tomorrowStart());
     }
 
     /** New leads nobody called or messaged yet. @param Builder<Lead> $query */
@@ -167,10 +167,16 @@ class Lead extends Model
         $query->where('crm_leads.stage', 'new')->whereNull('crm_leads.first_contact_at');
     }
 
-    /** Midnight today in the platform's time zone (Cairo), the zone dates are stored in. */
+    /** Midnight today in restaurant time (Cairo), as the UTC instant follow-ups are compared with. */
     public static function todayStart(): Carbon
     {
-        return now(config('app.timezone'))->startOfDay();
+        return local_day_start();
+    }
+
+    /** Midnight tomorrow in restaurant time, as a UTC instant (a daylight-saving day is 23 or 25 hours long). */
+    public static function tomorrowStart(): Carbon
+    {
+        return local_day_start(local_at()->addDay()->toDateString());
     }
 
     /** @param array{0: string, 1: string} $pair */

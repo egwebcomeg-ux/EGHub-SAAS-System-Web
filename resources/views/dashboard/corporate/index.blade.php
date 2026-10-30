@@ -51,7 +51,7 @@
                                 @if ($v->status === 'active')
                                     <form method="post" action="{{ route('dash.corporate.voucher.extend', $v) }}" class="flex gap-1">
                                         @csrf
-                                        <input type="date" name="expires_on" class="field min-h-11 w-40" value="{{ now()->addMonth()->format('Y-m-d') }}" min="{{ now()->format('Y-m-d') }}" aria-label="{{ __('New expiry date') }}">
+                                        <input type="date" name="expires_on" class="field min-h-11 w-40" value="{{ local_at()->addMonth()->format('Y-m-d') }}" min="{{ local_today() }}" aria-label="{{ __('New expiry date') }}">
                                         <button class="btn-ghost min-h-11 px-3">{{ __('Extend') }}</button>
                                     </form>
                                 @endif

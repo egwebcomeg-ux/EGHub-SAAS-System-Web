@@ -32,10 +32,10 @@ final class TenantDiscounts
                 'note' => $note, 'granted_by' => $admin->id,
             ]);
             Lead::for($tenant)->events()->create(['type' => 'discount', 'admin_id' => $admin->id, 'notes' => $note, 'meta' => [
-                'percent' => $percent, 'invoices' => $invoices, 'expires_at' => $expiresAt->toDateString(), 'replaced' => $replaced->pluck('id')->all(),
+                'percent' => $percent, 'invoices' => $invoices, 'expires_at' => local_today($expiresAt), 'replaced' => $replaced->pluck('id')->all(),
             ]]);
             PlatformAuditLog::record($admin, 'crm.discount_granted', $tenant->id, [
-                'discount' => $discount->id, 'percent' => $percent, 'invoices' => $invoices, 'expires_at' => $expiresAt->toDateString(),
+                'discount' => $discount->id, 'percent' => $percent, 'invoices' => $invoices, 'expires_at' => local_today($expiresAt),
                 'note' => $note, 'limit' => $admin->discountLimit(), 'replaced' => $replaced->pluck('id')->all(),
             ]);
 

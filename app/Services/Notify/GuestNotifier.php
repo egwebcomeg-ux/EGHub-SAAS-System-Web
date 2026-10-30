@@ -10,7 +10,6 @@ use App\Services\Orders\DeliveryService;
 use App\Services\Orders\OrderConfirmation;
 use App\Services\Settings;
 use App\Services\WhatsApp\WhatsApp;
-use Illuminate\Support\Carbon;
 
 /**
  * Transactional WhatsApp messages to guests (plan feature whatsapp_notifications, or the WhatsApp add-on).
@@ -176,7 +175,7 @@ final class GuestNotifier
 
             return [
                 'name' => $reservation['name'] ?? '', 'restaurant' => self::senderName(), 'guests' => (string) ($reservation['guests'] ?? ''),
-                'date' => $at ? Carbon::parse($at)->locale(WhatsApp::locale())->translatedFormat('l j F · h:i A') : '',
+                'date' => $at ? local_at($at)->locale(WhatsApp::locale())->translatedFormat('l j F · h:i A') : '',
             ];
         }, isset($reservation['customer_id']) ? (int) $reservation['customer_id'] : null);
     }

@@ -24,7 +24,6 @@ use App\Support\DeliveryAddress;
 use App\Support\OrderTracking;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -198,7 +197,7 @@ class OrderController extends Controller
             if (! $online['scheduled']) {
                 throw new OrderException(__('Ordering for later is not available.'));
             }
-            $scheduled = Carbon::parse($data['scheduled_for'], config('app.timezone'));
+            $scheduled = local_input($data['scheduled_for']);
             if ($scheduled->lt(now()->addMinutes($online['prep'])) || $scheduled->gt(now()->addDays(7))) {
                 throw new OrderException(__('Choose a time between :min minutes and 7 days from now.', ['min' => $online['prep']]));
             }

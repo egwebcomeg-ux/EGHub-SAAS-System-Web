@@ -11,6 +11,8 @@ use App\Models\Tenant;
 use App\Services\Orders\OrderService;
 use App\Services\Orders\Pager;
 use App\Services\Settings;
+use Illuminate\Support\Carbon;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TenantTestCase;
 
 /** The guest pager: the guest's phone rings when staff call (orders with the receipt QR, and the pager station). */
@@ -165,21 +167,51 @@ class GuestPagerTest extends TenantTestCase
         $this->actingAs($owner)->postJson($ticket['call'])->assertStatus(422);
     }
 
-    public function test_open_tickets_expire_after_the_hours_set(): void
+    /** @return array<string, array{0: ?string}> */
+    public static function expiryStarts(): array
     {
-        // a fixed afternoon: four hours on from a late evening could cross Cairo's daylight-saving change, where the
-        // local times stored repeat an hour
-        $this->travelTo(now()->setDate(2026, 6, 10)->setTime(12, 0));
+        return [
+            'now' => [null],
+            // expires in the hour Cairo repeats when summer time ends (21:05 UTC = 23:05 the second time)
+            'summer time ends on the way' => ['2026-10-29 20:04'],
+            'summer time starts on the way' => ['2026-04-23 22:30'],
+        ];
+    }
+
+    #[DataProvider('expiryStarts')]
+    public function test_open_tickets_expire_after_the_hours_set(?string $cairoStart): void
+    {
+        if ($cairoStart !== null) {
+            $this->travelTo(Carbon::parse($cairoStart, 'Africa/Cairo'));
+        }
         $a = $this->restaurant('cafe-a', 'full');
         $owner = $this->owner($a);
         $ticket = $this->actingAs($owner)->postJson($this->dashUrl('/pager/tickets'))->json('ticket');
         $token = PagerTicket::query()->findOrFail($ticket['id'])->token;
+        $feedStatus = fn () => collect($this->actingAs($owner)->getJson($this->dashUrl('/pager/feed'))->json('tickets'))->firstWhere('id', $ticket['id'])['status'] ?? null;
 
-        $this->travel(4)->hours();
-        $this->travel(1)->minutes();
-        $this->assertSame('expired', collect($this->actingAs($owner)->getJson($this->dashUrl('/pager/feed'))->json('tickets'))->firstWhere('id', $ticket['id'])['status']);
+        $this->travel(3)->hours();
+        $this->travel(59)->minutes();
+        $this->assertSame('waiting', $feedStatus());
+
+        $this->travel(2)->minutes();
+        $this->assertSame('expired', $feedStatus());
         $this->assertSame(['expired', true], [$this->state('cafe-a', $token)['phase'], $this->state('cafe-a', $token)['done']]);
         $this->actingAs($owner)->postJson($ticket['call'])->assertStatus(422);
+    }
+
+    public function test_the_ticket_numbers_start_again_at_midnight_in_cairo(): void
+    {
+        $a = $this->restaurant('cafe-a', 'full');
+        $owner = $this->owner($a);
+        $this->travelTo(Carbon::parse('2026-07-01 23:50', 'Africa/Cairo'));
+        $this->actingAs($owner)->postJson($this->dashUrl('/pager/tickets'))->assertJsonPath('ticket.number', 1);
+        $this->actingAs($owner)->postJson($this->dashUrl('/pager/tickets'))->assertJsonPath('ticket.number', 2);
+
+        // 00:10 in Cairo is still 21:10 UTC of the same date: a new business day all the same
+        $this->travel(20)->minutes();
+        $this->actingAs($owner)->postJson($this->dashUrl('/pager/tickets'))->assertJsonPath('ticket.number', 1);
+        $this->assertSame(['2026-07-01', '2026-07-01', '2026-07-02'], PagerTicket::query()->orderBy('id')->get()->map(fn ($t) => $t->service_date->toDateString())->all());
     }
 
     public function test_staff_need_the_pager_permission(): void

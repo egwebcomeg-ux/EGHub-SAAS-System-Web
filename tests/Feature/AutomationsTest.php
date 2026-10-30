@@ -24,7 +24,7 @@ class AutomationsTest extends TenantTestCase
     {
         parent::setUp();
         // noon, inside every default send window
-        $this->travelTo(now()->setTime(12, 0));
+        $this->travelTo(local_at()->setTime(12, 0));
     }
 
     private function customer(Tenant $t, string $phone, array $attrs = []): Customer
@@ -148,7 +148,7 @@ class AutomationsTest extends TenantTestCase
 
     public function test_birthday_greetings_go_out_on_the_day_inside_the_morning_window_once_a_year(): void
     {
-        $this->travelTo(now()->setDate(2026, 6, 15)->setTime(10, 0));
+        $this->travelTo(local_at()->setDate(2026, 6, 15)->setTime(10, 0));
         $a = $this->restaurant('cafe-a', 'business');
         $today = $this->customer($a, '01000000001', ['birthday' => '1990-06-15']);
         $this->customer($a, '01000000002', ['birthday' => '1992-06-16']);
@@ -156,11 +156,11 @@ class AutomationsTest extends TenantTestCase
         app(Credits::class)->add($a, 10, 'adjustment');
         $this->enable($a, 'birthday'); // 9:00 – 13:00 by default
 
-        $this->travelTo(now()->setTime(15, 0));
+        $this->travelTo(local_at()->setTime(15, 0));
         Artisan::call('egmenu:automations');
         $this->assertCount(0, $this->messages($a));
 
-        $this->travelTo(now()->setTime(10, 30));
+        $this->travelTo(local_at()->setTime(10, 30));
         Artisan::call('egmenu:automations');
         Artisan::call('egmenu:automations');
         $this->assertSame([$today->id], $this->messages($a)->pluck('customer_id')->all());

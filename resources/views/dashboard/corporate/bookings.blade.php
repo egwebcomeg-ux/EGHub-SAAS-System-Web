@@ -35,7 +35,7 @@
                 @endforeach
             </select></label>
         <label class="block"><span class="field-label">{{ __('Day') }} *</span>
-            <input class="field" type="date" name="date" min="{{ now()->toDateString() }}" value="{{ old('date', now()->toDateString()) }}" required></label>
+            <input class="field" type="date" name="date" min="{{ local_today() }}" value="{{ old('date', local_today()) }}" required></label>
         <label class="block"><span class="field-label">{{ __('Time') }} *</span>
             <input class="field" type="time" name="time" value="{{ old('time', '13:00') }}" required dir="ltr"></label>
         <label class="block"><span class="field-label">{{ __('Guests') }} *</span>
@@ -122,7 +122,7 @@
                         @endphp
                         <a class="btn-primary" target="_blank" rel="noopener" href="https://wa.me/{{ whatsapp_number($b->rep_phone) }}?text={{ rawurlencode($message) }}" data-send-rep>WhatsApp · {{ __('Send the code to :name', ['name' => $b->rep_name]) }}</a>
                     @endif
-                    @if (! $b->visit_at->copy()->startOfDay()->isFuture())
+                    @if (! local_day_start($b->visit_at)->isFuture())
                         <form method="post" action="{{ route('dash.corporate.bookings.close', $b) }}" onsubmit="return confirm(@js(__('Close the visit? What the meals did not use moves to the company\'s voucher.')))" data-booking-close>
                             @csrf <button class="btn-ghost">{{ __('Close the visit') }}</button>
                         </form>

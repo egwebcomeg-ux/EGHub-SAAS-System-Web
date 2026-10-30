@@ -103,6 +103,7 @@ class CorporateContract extends TenantModel
     /** Inside the allowed days and hours (an overnight window like 20:00–02:00 works too). */
     public function allowsTime(CarbonInterface $at): bool
     {
+        $at = local_at($at);
         if (! empty($this->days) && ! in_array($at->dayOfWeek, array_map('intval', $this->days), true)) {
             return false;
         }

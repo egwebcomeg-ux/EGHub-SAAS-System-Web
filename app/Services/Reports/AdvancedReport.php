@@ -12,6 +12,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Services\Entitlements;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -106,7 +107,7 @@ final class AdvancedReport
      */
     public function items(): array
     {
-        $views = MenuItemView::query()->whereBetween('day', [$this->from->startOfDay(), $this->to->endOfDay()])
+        $views = MenuItemView::query()->whereBetween('day', [$this->from->toDateString(), $this->to->toDateString().' 23:59:59'])
             ->selectRaw('menu_item_id, SUM(views) as views')->groupBy('menu_item_id')->pluck('views', 'menu_item_id')
             ->map(fn ($v) => (int) $v);
         $orderIds = $this->sold()->pluck('id');
@@ -143,7 +144,7 @@ final class AdvancedReport
         $days = [6, 0, 1, 2, 3, 4, 5]; // Carbon dayOfWeek: 0 = Sunday … 6 = Saturday
         $cells = array_fill_keys($days, array_fill(0, 24, 0));
         foreach ($this->sold() as $o) {
-            $at = $o->created_at->timezone(config('app.timezone'));
+            $at = local_at($o->created_at);
             $cells[$at->dayOfWeek][(int) $at->format('G')]++;
         }
 
@@ -199,7 +200,7 @@ final class AdvancedReport
     /** @return array{cards:int, new_cards:int, stamps:int, points:int, rewards_redeemed:int} */
     public function loyalty(): array
     {
-        $range = [$this->from->startOfDay(), $this->to->endOfDay()];
+        $range = $this->range();
         $tx = fn (string $type) => (int) LoyaltyTransaction::query()->where('type', $type)->whereBetween('created_at', $range)
             ->when($this->branchId, fn ($q) => $q->where('branch_id', $this->branchId))->sum('amount');
 
@@ -265,15 +266,22 @@ final class AdvancedReport
     /** @return Collection<int, Order> */
     private function sold(): Collection
     {
-        return $this->sold ??= Order::query()->whereBetween('created_at', [$this->from->startOfDay(), $this->to->endOfDay()])
+        return $this->sold ??= Order::query()->whereBetween('created_at', $this->range())
             ->when($this->branchId, fn ($q) => $q->where('branch_id', $this->branchId))
             ->where('status', '!=', 'cancelled')
             ->get(['id', 'branch_id', 'customer_id', 'type', 'source', 'total', 'created_at']);
     }
 
+    /** @return array{0: Carbon, 1: Carbon} the period's first and last instant (UTC) */
+    private function range(): array
+    {
+        return [local_day_start($this->from->toDateString()), local_day_end($this->to->toDateString())];
+    }
+
+    /** Saturday of the week (restaurant time) a moment falls in, or of a calendar date. */
     private function weekStart(\DateTimeInterface $at): CarbonImmutable
     {
-        $day = CarbonImmutable::instance($at)->timezone(config('app.timezone'))->startOfDay();
+        $day = CarbonImmutable::parse(local_today($at));
 
         return $day->subDays(($day->dayOfWeek + 1) % 7); // back to Saturday
     }

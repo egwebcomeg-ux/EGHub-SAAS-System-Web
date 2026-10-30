@@ -305,10 +305,10 @@ class CorporateVouchersTest extends TenantTestCase
         [$branchOnly] = $this->vouchers($this->contract(['branch_ids' => [$second->id]]));
         $this->assertSame('الفاوتشر ده مش صالح في الفرع ده.', $reason($branchOnly->code));
 
-        $this->travelTo(now()->setTime(10, 0)); // a Monday-to-Sunday window of 12:00–16:00, now 10:00
+        $this->travelTo(local_at()->setTime(10, 0)); // a Monday-to-Sunday window of 12:00–16:00, now 10:00
         [$lunch] = $this->vouchers($this->contract(['hours_from' => '12:00', 'hours_to' => '16:00']));
         $this->assertStringStartsWith('الفاوتشر ده بيشتغل بس', $reason($lunch->code));
-        $this->travelTo(now()->setTime(13, 0));
+        $this->travelTo(local_at()->setTime(13, 0));
         $this->assertNull($reason($lunch->code));
 
         [$minimum] = $this->vouchers($this->contract(['min_order' => 300]));

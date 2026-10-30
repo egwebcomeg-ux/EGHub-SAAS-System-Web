@@ -36,7 +36,7 @@ final class LaunchOffer
         }
         $ends = trim((string) PlatformSetting::get(self::ENDS_KEY, ''));
 
-        return $ends === '' || ! today()->greaterThan(Carbon::parse($ends));
+        return $ends === '' || local_today() <= Carbon::parse($ends)->toDateString();
     }
 
     /**

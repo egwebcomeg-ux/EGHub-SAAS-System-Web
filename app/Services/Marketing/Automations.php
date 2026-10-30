@@ -76,7 +76,7 @@ final class Automations
         return match ($automation->kind) {
             'welcome' => $q->where('visits_count', 1)->where('last_visit_at', '>=', now()->subDays(self::WELCOME_WITHIN_DAYS)),
             'winback' => $q->where('visits_count', '>=', 1)->where('last_visit_at', '<', now()->subDays(max(1, $automation->days))),
-            'birthday' => $q->whereNotNull('birthday')->whereRaw($this->monthDay('birthday').' = ?', [now()->format('m-d')]),
+            'birthday' => $q->whereNotNull('birthday')->whereRaw($this->monthDay('birthday').' = ?', [local_at()->format('m-d')]),
             default => $q->whereRaw('1 = 0'),
         };
     }

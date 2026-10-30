@@ -363,7 +363,7 @@ final class OrderService
         if ($existing = Order::query()->where('client_uuid', $data['client_uuid'])->first()) {
             return ['order' => $existing, 'duplicate' => true];
         }
-        $soldAt = rescue(fn () => Carbon::parse($data['created_offline_at']), null, false);
+        $soldAt = rescue(fn () => Carbon::parse($data['created_offline_at'])->utc(), null, false);
         if (! $soldAt) {
             throw new OrderException(__('The time of the sale is missing.'));
         }

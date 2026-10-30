@@ -125,7 +125,7 @@ final class WalletService
         $days = (int) Settings::get('cashback_expire_days');
 
         return DB::transaction(fn () => $this->move($customer, $amount, 'cashback', [
-            'order_id' => $order->id, 'note' => '#'.$order->number, 'expires_at' => $days > 0 ? now()->addDays($days)->endOfDay() : null,
+            'order_id' => $order->id, 'note' => '#'.$order->number, 'expires_at' => $days > 0 ? local_day_end(local_at()->addDays($days)) : null,
         ]));
     }
 
@@ -204,7 +204,7 @@ final class WalletService
                         'code' => GiftCard::newCode(), 'amount' => $amount, 'balance' => $amount, 'status' => 'active',
                         'buyer_customer_id' => $buyer?->id, 'recipient_phone' => $phone,
                         'message' => $message !== null && trim($message) !== '' ? mb_substr(trim($message), 0, 200) : null,
-                        'expires_at' => now()->addMonths(GiftCard::VALID_MONTHS)->endOfDay(),
+                        'expires_at' => local_day_end(local_at()->addMonths(GiftCard::VALID_MONTHS)),
                         'payment_method' => $method, 'shift_id' => $shift?->id, 'sold_by' => $by->id,
                     ]);
                     $shift?->movements()->create([

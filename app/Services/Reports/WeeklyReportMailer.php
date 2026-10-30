@@ -18,7 +18,7 @@ final class WeeklyReportMailer
     /** @return int restaurants emailed */
     public function run(?CarbonImmutable $today = null): int
     {
-        $today ??= CarbonImmutable::today();
+        $today ??= CarbonImmutable::parse(local_today());
         $sent = 0;
         foreach (Tenant::query()->where('status', 'active')->get() as $tenant) {
             tenancy()->initialize($tenant);

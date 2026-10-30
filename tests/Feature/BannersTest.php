@@ -6,6 +6,7 @@ use App\Models\Banner;
 use App\Models\Category;
 use App\Models\Tenant;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Tests\TenantTestCase;
 
@@ -80,6 +81,15 @@ class BannersTest extends TenantTestCase
         $this->actingAs($owner)->post($this->dashUrl('/marketing/banners'), [
             'image' => UploadedFile::fake()->image('b.jpg', 1600, 700), 'link_type' => 'url',
         ])->assertSessionHasErrors('link_url');
+    }
+
+    public function test_its_dates_are_the_restaurants_days(): void
+    {
+        $banner = new Banner(['is_active' => true, 'ends_on' => '2026-10-16']);
+        $this->travelTo(Carbon::parse('2026-10-16 23:30', 'Africa/Cairo'));
+        $this->assertTrue($banner->isLive());
+        $this->travelTo(Carbon::parse('2026-10-17 00:30', 'Africa/Cairo')); // still the 16th in UTC
+        $this->assertFalse($banner->isLive());
     }
 
     public function test_isolation_and_feature_gate(): void

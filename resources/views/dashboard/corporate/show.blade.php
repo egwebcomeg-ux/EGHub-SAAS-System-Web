@@ -53,7 +53,7 @@
             <form method="post" action="{{ route('dash.corporate.extend', $contract) }}" class="flex flex-wrap items-end gap-2" data-extend-contract>
                 @csrf
                 <label class="block flex-1"><span class="field-label">{{ __('Extend every voucher until') }}</span>
-                    <input type="date" name="expires_on" class="field" min="{{ now()->format('Y-m-d') }}" value="{{ $contract->expires_on->copy()->addMonth()->format('Y-m-d') }}" required></label>
+                    <input type="date" name="expires_on" class="field" min="{{ local_today() }}" value="{{ $contract->expires_on->copy()->addMonth()->format('Y-m-d') }}" required></label>
                 <button class="btn-ghost">{{ __('Extend') }}</button>
             </form>
             <div class="flex flex-wrap gap-2 border-t border-navy-100 pt-3">
@@ -120,7 +120,7 @@
                         @if ($live && $v->status === 'active')
                             <form method="post" action="{{ route('dash.corporate.voucher.extend', $v) }}" class="flex gap-1">
                                 @csrf
-                                <input type="date" name="expires_on" class="field min-h-11 w-40" min="{{ now()->format('Y-m-d') }}" value="{{ $v->expires_on->copy()->max(now())->addMonth()->format('Y-m-d') }}" aria-label="{{ __('New expiry date') }}">
+                                <input type="date" name="expires_on" class="field min-h-11 w-40" min="{{ local_today() }}" value="{{ $v->expires_on->copy()->max(local_today())->addMonth()->format('Y-m-d') }}" aria-label="{{ __('New expiry date') }}">
                                 <button class="btn-ghost min-h-11 px-3">{{ __('Extend') }}</button>
                             </form>
                             <form method="post" action="{{ route('dash.corporate.voucher.void', $v) }}" onsubmit="return confirm(@js(__('Void this voucher? It stops working for good.')))">

@@ -33,6 +33,13 @@ class MarketingTest extends TenantTestCase
         $this->assertFalse($offer->runsAt($fri->copy()->addHours(3), null));  // 02:30 over
         $this->assertFalse($offer->runsAt($fri->copy()->subDay(), null));     // Thursday
 
+        // callers pass now() in UTC: hours, weekdays and dates are read on the restaurant's clock
+        $this->assertTrue($offer->runsAt($fri->copy()->utc(), null));
+        $this->assertFalse($offer->runsAt($fri->copy()->addHours(3)->utc(), null));
+        $saturday = new Offer(['is_active' => true, 'starts_on' => '2026-10-17', 'ends_on' => '2026-10-17']);
+        $this->assertFalse($saturday->runsAt($fri->copy()->utc(), null));
+        $this->assertTrue($saturday->runsAt($fri->copy()->addHour()->utc(), null)); // 00:30 Saturday in Cairo, Friday in UTC
+
         $branchOnly = new Offer(['is_active' => true, 'branch_id' => 7]);
         $this->assertFalse($branchOnly->runsAt($fri, 8));
         $this->assertTrue($branchOnly->runsAt($fri, 7));

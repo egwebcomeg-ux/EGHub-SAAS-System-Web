@@ -23,7 +23,7 @@ class AssistantController extends Controller
                 ->when($q !== '', fn ($w) => $w->where(fn ($x) => $x->where('question', 'like', "%$q%")->orWhere('answer', 'like', "%$q%")))
                 ->latest('id')->paginate(50)->withQueryString(),
             'stats' => [
-                'today' => AssistantMessage::query()->where('created_at', '>=', now()->startOfDay())->count(),
+                'today' => AssistantMessage::query()->where('created_at', '>=', local_day_start())->count(),
                 'month' => AssistantMessage::query()->where('created_at', '>=', $since)->count(),
                 'chats' => AssistantMessage::query()->where('created_at', '>=', $since)->distinct('conversation')->count('conversation'),
                 'handoff' => AssistantMessage::query()->where('created_at', '>=', $since)->where('handoff', true)->count(),

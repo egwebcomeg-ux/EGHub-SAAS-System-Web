@@ -69,7 +69,7 @@ class HomeController extends Controller
             'subscription' => tenant()->subscription()->with('plan')->first(),
             'limits' => $limits,
             'stats' => [
-                'orders_today' => Order::query()->where('created_at', '>=', today())->count(),
+                'orders_today' => Order::query()->where('created_at', '>=', local_day_start())->count(),
                 'customers' => Customer::query()->count(),
                 'items' => $items,
             ],

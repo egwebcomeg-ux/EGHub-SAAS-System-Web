@@ -92,7 +92,7 @@ class OrderTrackingTest extends TenantTestCase
     {
         $a = $this->restaurant('cafe-a');
         $this->as($a, fn () => Settings::put(['online_prep_minutes' => '30']));
-        $this->travelTo(Carbon::parse('2026-10-19 20:00:00'));
+        $this->travelTo(Carbon::parse('2026-10-19 20:00:00', local_timezone()));
 
         // takeaway: ready = placed + the restaurant's preparation minutes, then accepted + those minutes
         $takeaway = $this->place($a, 'takeaway');

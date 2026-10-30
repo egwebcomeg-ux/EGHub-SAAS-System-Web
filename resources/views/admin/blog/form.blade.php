@@ -54,7 +54,7 @@
         <div class="card space-y-3">
             <label class="flex items-center gap-2 font-semibold"><input type="checkbox" name="is_published" value="1" class="size-4 accent-brand-600" @checked(old('is_published', $post->is_published))> {{ __('Published') }}</label>
             <label class="block"><span class="field-label">{{ __('Publish date (optional)') }}</span>
-                <input class="field" type="datetime-local" name="published_at" value="{{ old('published_at', $post->published_at?->format('Y-m-d\TH:i')) }}" dir="ltr"></label>
+                <input class="field" type="datetime-local" name="published_at" value="{{ old('published_at', $post->published_at ? local_time($post->published_at, 'Y-m-d\TH:i') : '') }}" dir="ltr"></label>
             <label class="block"><span class="field-label">{{ __('Slug (Latin letters, optional)') }}</span>
                 <input class="field" name="slug" value="{{ old('slug', $post->slug) }}" maxlength="120" dir="ltr" placeholder="qr-menu-mistakes"></label>
             <p class="text-xs text-navy-500">{{ __('Leave the slug empty to make one from the title (Arabic titles get post-N).') }}</p>

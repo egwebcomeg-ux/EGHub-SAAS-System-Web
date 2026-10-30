@@ -42,9 +42,9 @@ class Banner extends TenantModel
     /** On, and inside its dates (if any). */
     public function isLive(): bool
     {
-        $today = now()->startOfDay();
+        $today = local_today();
 
-        return $this->is_active && (! $this->starts_on || $this->starts_on->lte($today)) && (! $this->ends_on || $this->ends_on->gte($today));
+        return $this->is_active && (! $this->starts_on || $this->starts_on->toDateString() <= $today) && (! $this->ends_on || $this->ends_on->toDateString() >= $today);
     }
 
     /** item | category | url | none */

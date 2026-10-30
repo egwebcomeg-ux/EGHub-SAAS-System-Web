@@ -31,7 +31,7 @@ class ReportsTest extends TenantTestCase
     public function test_daily_report_numbers(): void
     {
         $a = $this->restaurant('cafe-a');
-        $today = now()->setTime(13, 15)->toDateTimeString();
+        $today = local_at()->setTime(13, 15)->utc()->toDateTimeString();
         $this->sale($a, 100, $today, [], 'Latte', 2);
         $this->sale($a, 60, $today, ['payment_method' => 'card', 'source' => 'pos'], 'Tea', 3);
         $this->sale($a, 500, $today, ['status' => 'cancelled']);
@@ -50,6 +50,20 @@ class ReportsTest extends TenantTestCase
         $week = $this->actingAs($this->owner($a))->get($this->dashUrl('/reports?range=7d'))->viewData('report');
         $this->assertSame(1159.0, $week['revenue']);
         $this->assertCount(7, $week['days']);
+    }
+
+    public function test_a_late_evening_sale_counts_on_its_cairo_day_and_hour(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        // 23:30 in Cairo is 20:30 or 21:30 UTC: still yesterday there, at the 23:00 hour
+        $yesterday = local_at()->subDay()->setTime(23, 30);
+        $this->sale($a, 40, $yesterday->copy()->utc()->toDateTimeString());
+
+        $report = $this->actingAs($this->owner($a))->get($this->dashUrl('/reports?range=yesterday'))->assertOk()->viewData('report');
+        $this->assertSame(40.0, $report['revenue']);
+        $this->assertSame(1, $report['hours'][23]);
+        $this->assertSame(1, $report['days'][$yesterday->toDateString()]['orders']);
+        $this->assertSame(0.0, $this->actingAs($this->owner($a))->get($this->dashUrl('/reports'))->viewData('report')['revenue']);
     }
 
     public function test_custom_range_and_export_are_business_only(): void

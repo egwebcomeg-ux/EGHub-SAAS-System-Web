@@ -15,7 +15,7 @@ class OvernightHoursTest extends TenantTestCase
 {
     public function test_open_now_follows_an_overnight_window(): void
     {
-        $tz = config('app.timezone');
+        $tz = local_timezone();
         $this->assertSame(['20:00', '03:00'], OpeningHours::window('8 PM – 3 AM'));
         $this->assertSame(['20:00', '03:00'], OpeningHours::window('٨ م - ٣ ص'));
         $this->assertNull(OpeningHours::window('whenever we feel like it'));
@@ -36,11 +36,11 @@ class OvernightHoursTest extends TenantTestCase
         $this->item($a);
         $this->as($a, fn () => Branch::query()->firstOrFail()->update(['working_hours' => '8 PM – 3 AM']));
 
-        $this->travelTo(Carbon::parse('2026-10-21 01:30', config('app.timezone')));
+        $this->travelTo(Carbon::parse('2026-10-21 01:30', local_timezone()));
         $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('data-open-now', false)->assertSee(__('Open now'))->assertDontSee(__('Closed now'));
         $this->get($this->subUrl('cafe-a', 'about'))->assertOk()->assertSee(__('Open now'));
 
-        $this->travelTo(Carbon::parse('2026-10-21 12:00', config('app.timezone')));
+        $this->travelTo(Carbon::parse('2026-10-21 12:00', local_timezone()));
         $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee(__('Closed now'));
 
         // no readable hours: no badge at all
@@ -53,7 +53,7 @@ class OvernightHoursTest extends TenantTestCase
         $this->withoutMiddleware(ThrottleRequests::class);
         $a = $this->restaurant('cafe-a', 'pro');
         $owner = $this->owner($a);
-        $this->travelTo(Carbon::parse('2026-10-20 10:00', config('app.timezone'))); // Tuesday
+        $this->travelTo(Carbon::parse('2026-10-20 10:00', local_timezone())); // Tuesday
 
         // custom reservation hours 20:00–03:00 every day are accepted by the settings form
         $hours = array_fill(0, 7, ['open' => '20:00', 'close' => '03:00']);
@@ -70,7 +70,7 @@ class OvernightHoursTest extends TenantTestCase
             'branch_id' => $branch->id, 'date' => '2026-10-21', 'time' => '01:00', 'party_size' => 2, 'name' => 'Mona', 'phone' => '01001234567',
         ])->assertRedirect()->assertSessionHasNoErrors();
         $r = $this->as($a, fn () => Reservation::query()->firstOrFail());
-        $this->assertSame('2026-10-21 01:00', $r->starts_at->timezone(config('app.timezone'))->format('Y-m-d H:i'));
+        $this->assertSame('2026-10-21 01:00', $r->starts_at->timezone(local_timezone())->format('Y-m-d H:i'));
 
         // noon is outside the window
         $this->post($this->pathUrl('cafe-a', 'reserve'), [

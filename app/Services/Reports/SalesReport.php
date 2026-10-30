@@ -11,6 +11,7 @@ use App\Models\OrderRefund;
 use App\Services\Orders\ShiftService;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonPeriod;
+use Illuminate\Support\Carbon;
 
 /**
  * Sales figures for a date range (restaurant local time). Aggregated in PHP rather than with SQL date
@@ -40,17 +41,18 @@ final class SalesReport
         }
         $hours = array_fill(0, 24, 0);
         foreach ($sold as $o) {
-            $key = $o->created_at->format('Y-m-d');
+            $at = local_at($o->created_at);
+            $key = $at->format('Y-m-d');
             if (isset($days[$key])) {
                 $days[$key]['orders']++;
                 $days[$key]['revenue'] = round($days[$key]['revenue'] + $o->total, 2);
             }
-            $hours[(int) $o->created_at->format('G')]++;
+            $hours[(int) $at->format('G')]++;
         }
 
         $customerIds = $sold->pluck('customer_id')->filter()->unique();
         $newCustomers = $customerIds->isEmpty() ? 0 : Customer::query()->whereIn('id', $customerIds)
-            ->where('created_at', '>=', $this->from->startOfDay())->count();
+            ->where('created_at', '>=', $this->range()[0])->count();
 
         return [
             'orders' => $sold->count(),
@@ -81,7 +83,7 @@ final class SalesReport
     private function paperVouchers(): array
     {
         $rows = CorporateVoucherRedemption::query()->whereNull('order_id')->whereNotNull('bill_amount')->whereNull('refunded_at')
-            ->whereBetween('created_at', [$this->from->startOfDay(), $this->to->endOfDay()])
+            ->whereBetween('created_at', $this->range())
             ->when($this->branchId, fn ($q) => $q->where('branch_id', $this->branchId))
             ->get(['batch', 'amount']);
 
@@ -91,7 +93,7 @@ final class SalesReport
     /** @return array{count:int, total:float, by_method:array<string,float>} refunds given in the period */
     private function refunds(): array
     {
-        $rows = OrderRefund::query()->whereBetween('created_at', [$this->from->startOfDay(), $this->to->endOfDay()])
+        $rows = OrderRefund::query()->whereBetween('created_at', $this->range())
             ->when($this->branchId, fn ($q) => $q->where('branch_id', $this->branchId))->get(['amount', 'methods']);
         $byMethod = [];
         foreach ($rows as $r) {
@@ -112,9 +114,15 @@ final class SalesReport
         }
     }
 
+    /** @return array{0: Carbon, 1: Carbon} the period's first and last instant (UTC) */
+    private function range(): array
+    {
+        return [local_day_start($this->from->toDateString()), local_day_end($this->to->toDateString())];
+    }
+
     private function orders()
     {
-        return Order::query()->whereBetween('created_at', [$this->from->startOfDay(), $this->to->endOfDay()])
+        return Order::query()->whereBetween('created_at', $this->range())
             ->when($this->branchId, fn ($q) => $q->where('branch_id', $this->branchId));
     }
 
