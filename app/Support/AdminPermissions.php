@@ -24,6 +24,9 @@ final class AdminPermissions
         'crm.view' => ['متابعة العملاء: عرض العملاء الجداد والمكالمات', 'Customer follow-up: see leads and calls'],
         'crm.manage' => ['متابعة العملاء: تسجيل المكالمات وتغيير المرحلة والتعيين', 'Customer follow-up: log calls, change stages, assign'],
         'crm.discount' => ['متابعة العملاء: إعطاء خصم على الفاتورة الجاية (في حدود النسبة المسموحة)', 'Customer follow-up: give a discount on the next invoice (within the allowed %)'],
+        'crm.visits' => ['الزيارات الميدانية: زياراته وتقاريرها والأماكن اللي معاه بس', 'Field visits: own visits, reports and assigned places only'],
+        'crm.import' => ['استيراد أماكن من الخريطة أو ملف', 'Import places from the map or a file'],
+        'crm.team' => ['فريق المبيعات: الأداء والتارجت والعمولات وخطة الفريق', 'Sales team: performance, targets, commissions and the pay plan'],
     ];
 
     /** Default most % each role may give on a call when the admin has no own limit (the owner: TenantDiscount::CAP). */
@@ -38,7 +41,7 @@ final class AdminPermissions
         ],
         'manager' => [
             'label' => ['مدير', 'Manager'],
-            'permissions' => ['tenants.view', 'tenants.manage', 'billing.manage', 'plans.manage', 'services.manage', 'content.manage', 'assistant.view', 'crm.view', 'crm.manage', 'crm.discount'],
+            'permissions' => ['tenants.view', 'tenants.manage', 'billing.manage', 'plans.manage', 'services.manage', 'content.manage', 'assistant.view', 'crm.view', 'crm.manage', 'crm.discount', 'crm.import', 'crm.team'],
             'hint' => ['كل الشغل اليومي من غير إعدادات المنصة وفريق الإدارة', 'Day-to-day work, without platform settings and the team'],
         ],
         'support' => [
@@ -48,8 +51,13 @@ final class AdminPermissions
         ],
         'sales' => [
             'label' => ['مبيعات', 'Sales'],
-            'permissions' => ['tenants.view', 'crm.view', 'crm.manage', 'crm.discount'],
-            'hint' => ['يكلم العملاء الجداد ويتابعهم، ويدي خصم في حدود نسبته', 'Calls and follows up new sign-ups, gives discounts within their limit'],
+            'permissions' => ['tenants.view', 'crm.view', 'crm.manage', 'crm.discount', 'crm.import'],
+            'hint' => ['يكلم العملاء الجداد والأماكن اللي على الخريطة، ويحجز زيارات للمندوب، ويدي خصم في حدود نسبته', 'Calls new sign-ups and mapped places, books visits for the field rep, gives discounts within their limit'],
+        ],
+        'field_sales' => [
+            'label' => ['مندوب ميداني', 'Field rep'],
+            'permissions' => ['crm.view', 'crm.visits'],
+            'hint' => ['بيزور الأماكن ويكتب تقرير الزيارة ويضيف أماكن جديدة، وبيشوف بس اللي معاه', 'Visits places, reports each visit and adds new places; sees only his own'],
         ],
         'finance' => [
             'label' => ['حسابات', 'Finance'],

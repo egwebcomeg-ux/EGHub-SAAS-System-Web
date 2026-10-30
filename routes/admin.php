@@ -13,6 +13,9 @@ use App\Http\Controllers\Admin\InvoicesController;
 use App\Http\Controllers\Admin\LeadsController;
 use App\Http\Controllers\Admin\PasswordResetController;
 use App\Http\Controllers\Admin\PlansController;
+use App\Http\Controllers\Admin\ProspectImportController;
+use App\Http\Controllers\Admin\ProspectsController;
+use App\Http\Controllers\Admin\SalesTeamController;
 use App\Http\Controllers\Admin\SecurityController;
 use App\Http\Controllers\Admin\ServicesController;
 use App\Http\Controllers\Admin\SettingsController;
@@ -22,6 +25,7 @@ use App\Http\Controllers\Admin\TenantsController;
 use App\Http\Controllers\Admin\TenantUsersController;
 use App\Http\Controllers\Admin\TestimonialsController;
 use App\Http\Controllers\Admin\TwoFactorController;
+use App\Http\Controllers\Admin\VisitsController;
 use Illuminate\Support\Facades\Route;
 
 // admin.<domain> — EgWeb super admin. Guard "admin" = platform_admins table, never restaurant staff.
@@ -89,6 +93,39 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         Route::post('/crm/script/{item}', [CallScriptController::class, 'update'])->whereNumber('item')->name('crm.script.update');
         Route::post('/crm/script/{item}/move', [CallScriptController::class, 'move'])->whereNumber('item')->name('crm.script.move');
         Route::post('/crm/script/{item}/delete', [CallScriptController::class, 'destroy'])->whereNumber('item')->name('crm.script.delete');
+    });
+    // the field sales team: places without an account yet (a field rep sees only his), visits, the map import, the
+    // team's targets and pay, and the printed playbook
+    Route::middleware('admin.access:crm.view')->group(function () {
+        Route::get('/crm/prospects', [ProspectsController::class, 'index'])->name('crm.prospects');
+        Route::post('/crm/prospects', [ProspectsController::class, 'store'])->name('crm.prospects.store');
+        Route::get('/crm/prospects/{prospect}', [ProspectsController::class, 'show'])->whereNumber('prospect')->name('crm.prospects.show');
+        Route::post('/crm/prospects/{prospect}', [ProspectsController::class, 'update'])->whereNumber('prospect')->name('crm.prospects.update');
+        Route::post('/crm/appointments/{appointment}', [ProspectsController::class, 'appointment'])->whereNumber('appointment')->name('crm.appointments.update');
+        Route::get('/crm/appointments/{appointment}/photos/{index}', [VisitsController::class, 'photo'])->whereNumber(['appointment', 'index'])->name('crm.appointments.photo');
+        Route::get('/crm/playbook', [SalesTeamController::class, 'playbook'])->name('crm.playbook');
+    });
+    Route::middleware('admin.access:crm.manage')->group(function () {
+        Route::post('/crm/prospects/assign', [ProspectsController::class, 'bulkAssign'])->name('crm.prospects.bulk');
+        Route::post('/crm/prospects/{prospect}/calls', [ProspectsController::class, 'call'])->whereNumber('prospect')->name('crm.prospects.call');
+        Route::post('/crm/prospects/{prospect}/assign', [ProspectsController::class, 'assign'])->whereNumber('prospect')->name('crm.prospects.assign');
+        Route::post('/crm/prospects/{prospect}/book', [ProspectsController::class, 'book'])->whereNumber('prospect')->name('crm.prospects.book');
+    });
+    Route::middleware('admin.access:crm.visits')->group(function () {
+        Route::get('/crm/visits', [VisitsController::class, 'index'])->name('crm.visits');
+        Route::post('/crm/visits/{appointment}/check-in', [VisitsController::class, 'checkIn'])->whereNumber('appointment')->name('crm.visits.checkin');
+        Route::post('/crm/visits/{appointment}/report', [VisitsController::class, 'report'])->whereNumber('appointment')->name('crm.visits.report');
+        Route::post('/crm/prospects/{prospect}/walk-in', [VisitsController::class, 'walkIn'])->whereNumber('prospect')->name('crm.visits.walkin');
+    });
+    Route::middleware('admin.access:crm.import')->group(function () {
+        Route::get('/crm/import', [ProspectImportController::class, 'show'])->name('crm.import');
+        Route::post('/crm/import/map', [ProspectImportController::class, 'map'])->middleware('throttle:10,1')->name('crm.import.map');
+        Route::post('/crm/import/csv', [ProspectImportController::class, 'csv'])->name('crm.import.csv');
+    });
+    Route::middleware('admin.access:crm.team')->group(function () {
+        Route::get('/crm/team', [SalesTeamController::class, 'index'])->name('crm.team');
+        Route::post('/crm/team/plan', [SalesTeamController::class, 'plan'])->name('crm.team.plan');
+        Route::post('/crm/team/{member}/targets', [SalesTeamController::class, 'targets'])->whereNumber('member')->name('crm.team.targets');
     });
     Route::middleware('admin.access:crm.discount')->group(function () {
         Route::post('/crm/leads/{lead}/discount', [TenantDiscountsController::class, 'store'])->whereNumber('lead')->name('crm.discount');

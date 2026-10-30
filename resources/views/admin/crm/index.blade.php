@@ -31,6 +31,7 @@
         return $end->isPast() ? 0 : (int) ceil(now()->diffInHours($end) / 24);
     };
 @endphp
+@include('admin.crm.partials.tabs')
 
 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
     <div>
@@ -41,6 +42,10 @@
         <a href="{{ route('admin.crm.script') }}" class="btn-ghost" data-script-link>{{ __('Edit the call script') }}</a>
     @endif
 </div>
+
+@if ($card)
+    @include('admin.crm.partials.progress', ['card' => $card])
+@endif
 
 {{-- the three numbers that matter in the morning --}}
 <div class="mb-4 grid grid-cols-3 gap-2 sm:gap-3" data-crm-counts>

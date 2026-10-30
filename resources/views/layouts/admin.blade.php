@@ -10,7 +10,10 @@
         ]],
         [__('Restaurants & billing'), [
             ['admin.tenants', __('Restaurants'), 'M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6M9 11h.01M15 11h.01', 'tenants.view', ['admin.tenants*'], null],
-            ['admin.crm', __('Customer follow-up'), 'M3 18v-6a9 9 0 0 1 18 0v6M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z', 'crm.view', ['admin.crm*'], 'crm'],
+            ['admin.crm', __('Customer follow-up'), 'M3 18v-6a9 9 0 0 1 18 0v6M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z', 'crm.manage', ['admin.crm', 'admin.crm.show', 'admin.crm.offer', 'admin.crm.script*'], 'crm'],
+            ['admin.crm.prospects', __('Places & field sales'), 'M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21zM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z', 'crm.view', ['admin.crm.prospects*', 'admin.crm.import*'], null],
+            ['admin.crm.visits', __('My visits'), 'M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15', 'crm.visits', ['admin.crm.visits*'], 'visits'],
+            ['admin.crm.team', __('Sales team'), 'M3 3v18h18M7 15l4-4 3 3 5-6', 'crm.team', ['admin.crm.team*'], null],
             ['admin.invoices', __('Invoices'), 'M6 2h9l5 5v15H6zM14 2v6h6M9 13h6M9 17h6', 'billing.manage', ['admin.invoices*'], 'invoices'],
             ['admin.plans', __('Plans & add-ons'), 'M21 8l-9-5-9 5 9 5 9-5zM3 13l9 5 9-5M3 18l9 5 9-5', 'plans.manage', ['admin.plans*', 'admin.addons*'], null],
         ]],
@@ -34,7 +37,10 @@
         'invoices' => $admin->allows('billing.manage') ? \App\Models\Invoice::query()->where('status', 'open')->count() : 0,
         'services' => $admin->allows('services.manage') ? \App\Models\ServiceRequest::query()->where('status', 'new')->count() : 0,
         // follow-up calls due today or overdue
-        'crm' => $admin->allows('crm.view') ? \App\Models\Lead::query()->open()->where('crm_leads.next_follow_up_at', '<', \App\Models\Lead::todayStart()->addDay())->count() : 0,
+        'crm' => $admin->allows('crm.manage') ? \App\Models\Lead::query()->open()->where('crm_leads.next_follow_up_at', '<', \App\Models\Lead::todayStart()->addDay())->count() : 0,
+        // the field rep's visits still booked for today
+        'visits' => $admin->allows('crm.visits') ? \App\Models\Appointment::query()->where('field_id', $admin->id)->where('status', 'scheduled')
+            ->where('scheduled_at', '<', local_day_start(local_at()->addDay()->toDateString()))->count() : 0,
     ];
     $pageTitle = trim(\Illuminate\Support\Str::before(trim($__env->yieldContent('title')), ' · ')) ?: __('Overview');
     $initials = collect(preg_split('/\s+/u', trim($admin->name)))->filter()->take(2)->map(fn ($w) => mb_substr($w, 0, 1))->implode('');

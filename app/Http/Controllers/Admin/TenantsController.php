@@ -18,6 +18,7 @@ use App\Models\TenantDiscount;
 use App\Models\User;
 use App\Services\AdminTenantSearch;
 use App\Services\Audit;
+use App\Services\Crm\ProspectLinker;
 use App\Services\DemoContent;
 use App\Services\Entitlements;
 use App\Services\Seo\SocialProof;
@@ -99,6 +100,7 @@ class TenantsController extends Controller
         Lead::for($tenant)->update(['source' => 'manual', 'assigned_admin_id' => $request->user('admin')->allows('crm.manage') ? $request->user('admin')->id : null]);
         $owner = $kit->owner($tenant) ?? User::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->firstOrFail();
         $kit->issue($tenant, $owner);
+        app(ProspectLinker::class)->link($tenant, $phone);
         // the sample rows are a nicety: the restaurant and its kit stand even when they fail (all or nothing inside)
         $seeded = null;
         if ($request->boolean('demo')) {

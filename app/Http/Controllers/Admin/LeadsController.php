@@ -12,7 +12,9 @@ use App\Services\Crm\CallScript;
 use App\Services\Crm\LeadSearch;
 use App\Services\Crm\LeadSignals;
 use App\Services\Crm\OfferAdvisor;
+use App\Services\Crm\TeamStats;
 use App\Services\TenantProvisioner;
+use App\Support\SalesPlan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -27,9 +29,12 @@ use Illuminate\View\View;
  */
 class LeadsController extends Controller
 {
-    public function index(Request $request, LeadSearch $search): View
+    public function index(Request $request, LeadSearch $search): View|RedirectResponse
     {
         $admin = $request->user('admin');
+        if (self::fieldOnly($admin)) {
+            return redirect()->route('admin.crm.visits');
+        }
         $filters = LeadSearch::filters($request);
 
         return view('admin.crm.index', [
@@ -40,12 +45,15 @@ class LeadsController extends Controller
             'counts' => $search->counts(),
             'plans' => Plan::query()->orderBy('sort_order')->get(['id', 'code', 'name', 'name_en']),
             'admin' => $admin,
+            // the caller's own month against her targets
+            'card' => SalesPlan::seat($admin) !== null ? app(TeamStats::class)->card($admin, local_at()->format('Y-m')) : null,
         ]);
     }
 
     public function show(Request $request, Lead $lead, LeadSignals $signals, CallScript $script, OfferAdvisor $advisor): View
     {
         $admin = $request->user('admin');
+        abort_if(self::fieldOnly($admin), 404);
         $tenant = $lead->tenant()->with('subscription.plan')->first();
         abort_unless($tenant, 404);
         $activity = $signals->read($tenant);
@@ -76,6 +84,7 @@ class LeadsController extends Controller
     /** The offer advice for the answers tapped so far (the call screen asks while the caller taps, nothing is saved). */
     public function offer(Request $request, Lead $lead, LeadSignals $signals, CallScript $script, OfferAdvisor $advisor): View
     {
+        abort_if(self::fieldOnly($request->user('admin')), 404);
         $tenant = $lead->tenant;
         abort_unless($tenant, 404);
         $questions = $script->sections()['question'];
@@ -176,6 +185,12 @@ class LeadsController extends Controller
         $lead->update($changes);
 
         return back()->with('ok', __('Saved.'));
+    }
+
+    /** A field rep (visits, no follow-up of sign-ups): his places and visits only, never the restaurants' leads. */
+    public static function fieldOnly(PlatformAdmin $admin): bool
+    {
+        return $admin->allows('crm.visits') && ! $admin->allows('crm.manage');
     }
 
     /**
