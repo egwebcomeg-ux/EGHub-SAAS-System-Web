@@ -8,6 +8,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Notifications\NewSignup;
 use App\Services\Auth\SocialProviders;
+use App\Services\Crm\ProspectLinker;
 use App\Services\MenuSetupRequest;
 use App\Services\ModuleChoice;
 use App\Services\TenantProvisioner;
@@ -107,6 +108,8 @@ class SignupController extends Controller
         if ($modules !== []) {
             $tenant->run(fn () => ModuleChoice::save($modules));
         }
+        // a place the sales team already worked (same mobile) is now this restaurant
+        app(ProspectLinker::class)->link($tenant, $owner->phone);
         // the lead is already in the admin's customer follow-up (Tenant::created): tell whoever calls new sign-ups
         Notification::send(NewSignup::recipients(), new NewSignup($tenant, $owner, $data['business_type'] ?? BusinessType::DEFAULT));
 

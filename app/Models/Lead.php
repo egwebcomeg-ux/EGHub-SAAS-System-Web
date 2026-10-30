@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Crm\ProspectLinker;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -104,6 +105,8 @@ class Lead extends Model
         $from = $lead->stage;
         $lead->update(['stage' => 'won', 'won_at' => now(), 'next_follow_up_at' => null]);
         $lead->events()->create(['type' => 'won', 'meta' => ['from' => $from, 'invoice' => $invoice->number, 'total' => $invoice->total]]);
+        // and the field sales prospect it came from, with who closed it (the commission)
+        app(ProspectLinker::class)->won($tenant, $invoice);
     }
 
     public function isOpen(): bool
