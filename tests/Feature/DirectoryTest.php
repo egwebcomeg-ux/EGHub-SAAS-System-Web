@@ -116,7 +116,7 @@ class DirectoryTest extends TenantTestCase
             'http://egmenu.test/listed-cafe/about', 'http://egmenu.test/listed-cafe'] as $url) {
             $this->assertContains($url, $locs);
         }
-        $this->assertSame(today()->toDateString(), $lastmod['http://egmenu.test/listed-cafe']);
+        $this->assertSame(local_today(), $lastmod['http://egmenu.test/listed-cafe']);
         $this->assertEmpty(array_filter($locs, fn ($l) => str_contains($l, 'opted-out') || str_contains($l, 'custom-cafe')));
 
         // not served as a sitemap on other hosts

@@ -40,7 +40,7 @@ class CorporateAccountTest extends TenantTestCase
     private function signContract(float $paid, array $extra = []): CorporateContract
     {
         $this->actingAs($this->manager)->post($this->dashUrl('/corporate'), $extra + [
-            'name' => 'Eva Pharma', 'voucher_value' => 200, 'quantity' => 10, 'expires_on' => now()->addMonths(3)->format('Y-m-d'),
+            'name' => 'Eva Pharma', 'voucher_value' => 200, 'quantity' => 10, 'expires_on' => local_at()->addMonths(3)->format('Y-m-d'),
             'mode' => 'balance', 'paid_amount' => $paid, 'paid_method' => 'transfer', 'reference' => 'C-77',
         ])->assertRedirect()->assertSessionHasNoErrors();
 
@@ -65,7 +65,7 @@ class CorporateAccountTest extends TenantTestCase
         $this->assertSame([500.0, 'partial'], [$this->fresh($contract)->paid_amount, $this->fresh($contract)->paid_status]);
 
         $this->actingAs($this->manager)->post($this->dashUrl("/corporate/{$contract->id}/payments"), [
-            'amount' => 1500, 'method' => 'cheque', 'reference' => 'CHQ-9', 'paid_on' => now()->subDay()->toDateString(),
+            'amount' => 1500, 'method' => 'cheque', 'reference' => 'CHQ-9', 'paid_on' => local_at()->subDay()->toDateString(),
         ])->assertRedirect()->assertSessionHasNoErrors();
         $this->assertSame([2000.0, 'paid'], [$this->fresh($contract)->paid_amount, $this->fresh($contract)->paid_status]);
 

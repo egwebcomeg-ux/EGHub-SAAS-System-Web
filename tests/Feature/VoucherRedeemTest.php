@@ -45,7 +45,7 @@ class VoucherRedeemTest extends TenantTestCase
     private function contract(array $overrides = []): CorporateContract
     {
         return $this->as($this->tenant, fn () => app(CorporateVouchers::class)->createContract($overrides + [
-            'name' => 'Eva Pharma', 'voucher_value' => 200, 'quantity' => 3, 'expires_on' => now()->addMonth()->format('Y-m-d'), 'mode' => 'single',
+            'name' => 'Eva Pharma', 'voucher_value' => 200, 'quantity' => 3, 'expires_on' => local_at()->addMonth()->format('Y-m-d'), 'mode' => 'single',
         ], $this->owner($this->tenant)));
     }
 
@@ -159,7 +159,7 @@ class VoucherRedeemTest extends TenantTestCase
         $csv = $this->actingAs($this->manager)->get($this->dashUrl("/corporate/{$contract->id}/statement?format=csv"))->assertOk()->streamedContent();
         $this->assertStringContainsString('فاتورة ورقية B-77', $csv);
         $this->assertStringContainsString('350', $csv);
-        $report = $this->as($this->tenant, fn () => (new SalesReport(CarbonImmutable::now(), CarbonImmutable::now()))->build());
+        $report = $this->as($this->tenant, fn () => (new SalesReport(CarbonImmutable::parse(local_today()), CarbonImmutable::parse(local_today())))->build());
         $this->assertSame(['count' => 2, 'total' => 350.0], $report['paper_vouchers']);
         $this->actingAs($this->owner($this->tenant))->get($this->dashUrl('/reports'))->assertOk()->assertSee('data-report-paper-vouchers', false);
 
@@ -206,10 +206,10 @@ class VoucherRedeemTest extends TenantTestCase
     public function test_several_vouchers_earliest_first_and_an_expired_one_needs_a_manager(): void
     {
         $this->shop();
-        [$late] = $this->vouchers($this->contract(['name' => 'Late Co', 'voucher_value' => 100, 'mode' => 'balance', 'expires_on' => now()->addMonths(2)->format('Y-m-d')]));
-        [$early] = $this->vouchers($this->contract(['name' => 'Early Co', 'voucher_value' => 100, 'mode' => 'balance', 'expires_on' => now()->addDays(3)->format('Y-m-d')]));
+        [$late] = $this->vouchers($this->contract(['name' => 'Late Co', 'voucher_value' => 100, 'mode' => 'balance', 'expires_on' => local_at()->addMonths(2)->format('Y-m-d')]));
+        [$early] = $this->vouchers($this->contract(['name' => 'Early Co', 'voucher_value' => 100, 'mode' => 'balance', 'expires_on' => local_at()->addDays(3)->format('Y-m-d')]));
         [$expired] = $this->vouchers($this->contract(['name' => 'Old Co', 'voucher_value' => 50, 'mode' => 'balance']));
-        $this->as($this->tenant, fn () => CorporateVoucher::query()->whereKey($expired->id)->update(['expires_on' => now()->subDays(2)->format('Y-m-d')]));
+        $this->as($this->tenant, fn () => CorporateVoucher::query()->whereKey($expired->id)->update(['expires_on' => local_at()->subDays(2)->format('Y-m-d')]));
 
         $this->manual([['code' => $late->code], ['code' => $early->code]], 150)->assertOk()
             ->assertJsonPath('lines.0.serial', $early->serial)->assertJsonPath('lines.0.amount', 100)->assertJsonPath('lines.1.amount', 50);
@@ -236,7 +236,7 @@ class VoucherRedeemTest extends TenantTestCase
 
         $b = $this->restaurant('cafe-d', 'full');
         $theirs = $this->as($b, fn () => app(CorporateVouchers::class)->createContract([
-            'name' => 'Other Co', 'voucher_value' => 500, 'quantity' => 1, 'expires_on' => now()->addMonth()->format('Y-m-d'), 'mode' => 'single',
+            'name' => 'Other Co', 'voucher_value' => 500, 'quantity' => 1, 'expires_on' => local_at()->addMonth()->format('Y-m-d'), 'mode' => 'single',
         ], $this->owner($b)));
         $code = $this->as($b, fn () => CorporateVoucher::query()->where('corporate_contract_id', $theirs->id)->value('code'));
         $theirItem = $this->item($b, 'Tea', 30);

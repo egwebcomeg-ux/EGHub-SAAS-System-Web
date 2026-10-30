@@ -79,7 +79,7 @@ class AdminTenantFiltersTest extends TenantTestCase
         $this->assertSame(['hidden-a'], $this->listed(['hidden' => '1']));
         $this->assertNotContains('hidden-a', $this->listed(['hidden' => '0']));
         $this->assertNotContains('old-a', $this->listed(['created' => 'month']));
-        $this->assertSame(['old-a'], $this->listed(['from' => now()->subMonths(4)->toDateString(), 'to' => now()->subMonths(2)->toDateString()]));
+        $this->assertSame(['old-a'], $this->listed(['from' => local_at()->subMonths(4)->toDateString(), 'to' => local_at()->subMonths(2)->toDateString()]));
         // combined, and anything unknown is ignored
         $this->assertSame(['old-a'], $this->listed(['plan' => 'basic', 'hidden' => '0', 'paid' => 'paid']));
         $this->assertCount(5, $this->listed(['status' => 'nope', 'paid' => 'maybe', 'type' => 'boat', 'sort' => 'drop table']));

@@ -98,7 +98,7 @@ class PricingLineupTest extends TenantTestCase
 
         $this->actingAs($admin, 'admin')->get($this->adminUrl('/plans'))->assertOk()->assertSee('data-plan-contact', false);
         $this->actingAs($admin, 'admin')->post($this->adminUrl('/tenants/chain/subscription'), [
-            'plan_id' => $enterprise->id, 'status' => 'active', 'cycle_months' => 12, 'current_period_end' => now()->addMonths(18)->toDateString(),
+            'plan_id' => $enterprise->id, 'status' => 'active', 'cycle_months' => 12, 'current_period_end' => local_at()->addMonths(18)->toDateString(),
         ])->assertSessionHasNoErrors();
 
         $sub = Subscription::query()->where('tenant_id', 'chain')->firstOrFail();

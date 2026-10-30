@@ -94,7 +94,7 @@ class PosZReportTest extends TenantTestCase
     {
         $this->day();
         $branch = $this->as($this->tenant, fn () => Branch::query()->firstOrFail());
-        $z = $this->as($this->tenant, fn () => (new ZReport(CarbonImmutable::today(), $branch->id))->build());
+        $z = $this->as($this->tenant, fn () => (new ZReport(CarbonImmutable::parse(local_today()), $branch->id))->build());
 
         $this->assertSame([4, 360.0], [$z['orders'], $z['gross']]);
         $this->assertSame(['cash' => 270.0, 'card' => 60.0, 'instapay' => 30.0], $z['by_method']);
@@ -111,7 +111,7 @@ class PosZReportTest extends TenantTestCase
         $this->assertSame([['name' => 'Cashier 1 · K1', 'orders' => 4, 'total' => 360.0]], $z['terminals']);
 
         // the terminal alone: its sales, not the manager's refund
-        $k1 = $this->as($this->tenant, fn () => (new ZReport(CarbonImmutable::today(), $branch->id, $this->device['id']))->build());
+        $k1 = $this->as($this->tenant, fn () => (new ZReport(CarbonImmutable::parse(local_today()), $branch->id, $this->device['id']))->build());
         $this->assertSame([360.0, 0.0, 360.0, 1], [$k1['gross'], $k1['refunds']['total'], $k1['net'], count($k1['shifts'])]);
         // another day is empty
         $this->assertSame(0, $this->as($this->tenant, fn () => (new ZReport(CarbonImmutable::yesterday(), $branch->id))->build())['orders']);

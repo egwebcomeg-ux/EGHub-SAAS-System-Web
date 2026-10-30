@@ -129,7 +129,7 @@ class InventoryPackagingTest extends TenantTestCase
         $supplier = $this->as($this->tenant, fn () => Supplier::query()->create(['name' => 'Pack Shop']));
 
         $this->actingAs($this->owner)->post($this->dashUrl('/inventory/purchases'), [
-            'supplier_id' => $supplier->id, 'purchased_on' => now()->toDateString(), 'post' => 1,
+            'supplier_id' => $supplier->id, 'purchased_on' => local_today(), 'post' => 1,
             'lines' => [['ingredient_id' => $cup->id, 'quantity' => 100, 'unit_cost' => 2]],
         ])->assertSessionHasNoErrors();
         $this->assertSame('posted', $this->as($this->tenant, fn () => Purchase::query()->sole()->status));

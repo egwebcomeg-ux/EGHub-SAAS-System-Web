@@ -186,8 +186,8 @@ class OperationsTest extends TenantTestCase
             // an order left "preparing" since yesterday is no longer on the board
             Order::query()->create(['branch_id' => $branch, 'number' => 8, 'status' => 'preparing', 'total' => 50])
                 ->forceFill(['created_at' => now()->subHours(13)])->save();
-            PagerTicket::query()->create(['branch_id' => $branch, 'number' => 42, 'service_date' => today(), 'token' => random_token(12), 'status' => 'called', 'called_at' => now()]);
-            PagerTicket::query()->create(['branch_id' => $branch, 'number' => 43, 'service_date' => today(), 'token' => random_token(12), 'status' => 'waiting']);
+            PagerTicket::query()->create(['branch_id' => $branch, 'number' => 42, 'service_date' => local_today(), 'token' => random_token(12), 'status' => 'called', 'called_at' => now()]);
+            PagerTicket::query()->create(['branch_id' => $branch, 'number' => 43, 'service_date' => local_today(), 'token' => random_token(12), 'status' => 'waiting']);
         });
 
         $this->getJson($this->subUrl('cafe-a', 'board/feed'))->assertOk()->assertExactJson(['ready' => [42], 'preparing' => [7]]);

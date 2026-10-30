@@ -171,7 +171,7 @@ class InventoryOperationsTest extends TenantTestCase
         $supplier = $this->as($this->tenant, fn () => Supplier::query()->sole());
 
         $this->actingAs($this->storekeeper)->post($this->dashUrl('/inventory/purchases'), [
-            'supplier_id' => $supplier->id, 'purchased_on' => now()->toDateString(), 'reference' => 'INV-77',
+            'supplier_id' => $supplier->id, 'purchased_on' => local_today(), 'reference' => 'INV-77',
             'lines' => [
                 ['ingredient_id' => $milk->id, 'quantity' => 1000, 'unit_cost' => 0.06],
                 ['ingredient_id' => $coffee->id, 'quantity' => 500, 'unit_cost' => 0.8],
@@ -192,7 +192,7 @@ class InventoryOperationsTest extends TenantTestCase
 
         // posted: the lines cannot change and only a manager cancels
         $this->actingAs($this->storekeeper)->post($this->dashUrl("/inventory/purchases/{$purchase->id}"), [
-            'supplier_id' => $supplier->id, 'purchased_on' => now()->toDateString(), 'lines' => [['ingredient_id' => $milk->id, 'quantity' => 1, 'unit_cost' => 1]],
+            'supplier_id' => $supplier->id, 'purchased_on' => local_today(), 'lines' => [['ingredient_id' => $milk->id, 'quantity' => 1, 'unit_cost' => 1]],
         ])->assertSessionHasErrors('purchase');
         $this->assertSame(460.0, $this->as($this->tenant, fn () => $purchase->fresh()->total));
         $this->actingAs($this->storekeeper)->post($this->dashUrl("/inventory/purchases/{$purchase->id}/cancel"), ['reason' => 'Typed twice'])->assertForbidden();
@@ -216,7 +216,7 @@ class InventoryOperationsTest extends TenantTestCase
         [$supplier, $other] = $this->as($this->tenant, fn () => [Supplier::query()->create(['name' => 'Dairy Co']), Supplier::query()->create(['name' => 'Other'])]);
         $make = function (Supplier $s, string $ref, float $qty) use ($milk) {
             $this->actingAs($this->owner)->post($this->dashUrl('/inventory/purchases'), [
-                'supplier_id' => $s->id, 'purchased_on' => now()->toDateString(), 'reference' => $ref, 'post' => 1,
+                'supplier_id' => $s->id, 'purchased_on' => local_today(), 'reference' => $ref, 'post' => 1,
                 'lines' => [['ingredient_id' => $milk->id, 'quantity' => $qty, 'unit_cost' => 0.05]],
             ])->assertSessionHasNoErrors();
 
@@ -238,11 +238,11 @@ class InventoryOperationsTest extends TenantTestCase
     {
         $milk = $this->ingredient('Milk', 0.05);
         $saffron = $this->ingredient('Saffron', 10);
-        $this->travelTo(now()->setDate(2026, 10, 1));
+        $this->travelTo(local_at()->setDate(2026, 10, 1));
         $this->receive($milk, 1000);
         $this->receive($saffron, 10);
 
-        $this->travelTo(now()->setDate(2026, 10, 5));
+        $this->travelTo(local_at()->setDate(2026, 10, 5));
         $this->sellLattes($milk, 100, 2);                        // 200 ml by the recipes
         $this->as($this->tenant, function () use ($milk, $saffron) {
             $stock = app(StockService::class);
@@ -251,7 +251,7 @@ class InventoryOperationsTest extends TenantTestCase
             $stock->count($saffron->fresh(), $this->branch, 8, null);    // 2 g of saffron (20.00) gone
         });
 
-        $this->travelTo(now()->setDate(2026, 10, 20));         // after the period: not in it
+        $this->travelTo(local_at()->setDate(2026, 10, 20));         // after the period: not in it
         $this->receive($milk, 500);
 
         $response = $this->actingAs($this->owner)->get($this->dashUrl('/inventory/variance?from=2026-10-02&to=2026-10-10'))->assertOk();
@@ -298,9 +298,9 @@ class InventoryOperationsTest extends TenantTestCase
         $this->actingAs($this->owner)->get($this->dashUrl("/inventory/suppliers/{$foreignSupplier->id}"))->assertNotFound();
         $supplier = $this->as($this->tenant, fn () => Supplier::query()->create(['name' => 'Dairy Co']));
         $this->actingAs($this->owner)->post($this->dashUrl('/inventory/purchases'), [
-            'supplier_id' => $supplier->id, 'purchased_on' => now()->toDateString(), 'lines' => [['ingredient_id' => $foreignMilk->id, 'quantity' => 5, 'unit_cost' => 1]],
+            'supplier_id' => $supplier->id, 'purchased_on' => local_today(), 'lines' => [['ingredient_id' => $foreignMilk->id, 'quantity' => 5, 'unit_cost' => 1]],
         ])->assertSessionHasErrors('lines.0.ingredient_id');
-        $this->actingAs($this->owner)->post($this->dashUrl('/inventory/purchases'), ['supplier_id' => $foreignSupplier->id, 'purchased_on' => now()->toDateString()])
+        $this->actingAs($this->owner)->post($this->dashUrl('/inventory/purchases'), ['supplier_id' => $foreignSupplier->id, 'purchased_on' => local_today()])
             ->assertSessionHasErrors('supplier_id');
 
         // staff tied to one branch do not see another branch's count sheet

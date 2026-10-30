@@ -111,7 +111,7 @@ class CrmLeadsTest extends TenantTestCase
         $this->actingAs($admin, 'admin')->post($this->adminUrl('/crm/leads/'.$lead->id.'/calls'), [
             'channel' => 'call', 'outcome' => 'answered', 'notes' => 'Wants delivery',
             'answers' => ['q_why' => 'delivery', 'q_menu' => 'not-an-option'], 'objections' => ['obj_price'],
-            'next_follow_up_at' => now()->addDays(2)->format('Y-m-d\TH:i'),
+            'next_follow_up_at' => local_at()->addDays(2)->format('Y-m-d\TH:i'),
         ])->assertRedirect();
 
         $lead->refresh();
@@ -149,7 +149,7 @@ class CrmLeadsTest extends TenantTestCase
     {
         $admin = $this->admin();
         $due = Lead::for($this->restaurant('due-cafe'));
-        $due->update(['stage' => 'callback', 'next_follow_up_at' => now()->subDay()]);
+        $due->update(['stage' => 'callback', 'next_follow_up_at' => now()->subDays(2)]);
         $later = Lead::for($this->restaurant('later-cafe'));
         $later->update(['stage' => 'callback', 'next_follow_up_at' => now()->addDays(3)]);
         $this->owner(Tenant::query()->find('later-cafe'))->update(['phone' => '01099998888']);

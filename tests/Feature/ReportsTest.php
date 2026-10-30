@@ -70,7 +70,7 @@ class ReportsTest extends TenantTestCase
     {
         $pro = $this->restaurant('cafe-pro', 'pro');
         $this->sale($pro, 50, now()->subDays(20)->toDateTimeString());
-        $q = '?range=custom&from='.now()->subDays(25)->toDateString().'&to='.now()->toDateString();
+        $q = '?range=custom&from='.local_at()->subDays(25)->toDateString().'&to='.local_today();
         $this->assertSame(0.0, $this->actingAs($this->owner($pro))->get($this->dashUrl('/reports'.$q))->viewData('report')['revenue']); // falls back to today
         $this->actingAs($this->owner($pro))->get($this->dashUrl('/reports/export'))->assertForbidden();
 

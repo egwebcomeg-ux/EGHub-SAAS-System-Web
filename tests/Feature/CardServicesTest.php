@@ -196,7 +196,7 @@ class CardServicesTest extends TenantTestCase
             ->assertSessionHasNoErrors();
         $copy = $this->as($tenant, fn () => CustomerPackage::query()->firstOrFail());
         $this->assertSame([10, 10, 'active', 150.0], [$copy->uses_total, $copy->uses_left, $copy->status, (float) $copy->price_paid]);
-        $this->assertTrue($copy->expires_at->isSameDay(now()->addDays(30)));
+        $this->assertSame(local_at()->addDays(30)->toDateString(), local_today($copy->expires_at));
 
         // the money is in the shift as prepaid cash, not as a sale
         $summary = $this->as($tenant, fn () => app(ShiftService::class)->summary(Shift::query()->firstOrFail()));

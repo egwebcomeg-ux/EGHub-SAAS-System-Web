@@ -59,7 +59,7 @@ class CorporateVouchersTest extends TenantTestCase
         $tenant ??= $this->tenant;
 
         return $this->as($tenant, fn () => app(CorporateVouchers::class)->createContract($overrides + [
-            'name' => 'Eva Pharma', 'voucher_value' => 200, 'quantity' => 3, 'expires_on' => now()->addMonth()->format('Y-m-d'), 'mode' => 'single',
+            'name' => 'Eva Pharma', 'voucher_value' => 200, 'quantity' => 3, 'expires_on' => local_at()->addMonth()->format('Y-m-d'), 'mode' => 'single',
         ], $this->owner($tenant)));
     }
 
@@ -92,7 +92,7 @@ class CorporateVouchersTest extends TenantTestCase
     {
         $this->shop();
         $this->actingAs($this->manager)->post($this->dashUrl('/corporate'), [
-            'name' => 'Eva Pharma', 'voucher_value' => 200, 'quantity' => 40, 'expires_on' => now()->addMonths(3)->format('Y-m-d'), 'mode' => 'single',
+            'name' => 'Eva Pharma', 'voucher_value' => 200, 'quantity' => 40, 'expires_on' => local_at()->addMonths(3)->format('Y-m-d'), 'mode' => 'single',
             'paid_amount' => 3000,
         ])->assertRedirect()->assertSessionHasNoErrors();
 
@@ -145,7 +145,7 @@ class CorporateVouchersTest extends TenantTestCase
         $this->actingAs($this->owner($this->tenant))->get($this->dashUrl('/corporate'))->assertOk();
         $this->actingAs($this->manager)->get($this->dashUrl("/corporate/{$contract->id}"))->assertOk()->assertSee('EVA-0001');
         $this->actingAs($this->cashier)->get($this->dashUrl('/corporate'))->assertForbidden();
-        $this->actingAs($this->cashier)->post($this->dashUrl('/corporate'), ['name' => 'X', 'voucher_value' => 50, 'quantity' => 1, 'expires_on' => now()->addDay()->format('Y-m-d'), 'mode' => 'single'])->assertForbidden();
+        $this->actingAs($this->cashier)->post($this->dashUrl('/corporate'), ['name' => 'X', 'voucher_value' => 50, 'quantity' => 1, 'expires_on' => local_at()->addDay()->format('Y-m-d'), 'mode' => 'single'])->assertForbidden();
         $this->assertSame(1, $this->as($this->tenant, fn () => CorporateContract::query()->count()));
 
         // redeeming: any cashier; a waiter can't
@@ -196,7 +196,7 @@ class CorporateVouchersTest extends TenantTestCase
         $this->actingAs($this->cashier)->get($this->dashUrl('/shifts'))->assertOk()->assertSee('data-shift-corporate', false)->assertSee('مش كاش في الدرج');
 
         // the reports: the same split
-        $report = $this->as($this->tenant, fn () => (new SalesReport(CarbonImmutable::now(), CarbonImmutable::now()))->build());
+        $report = $this->as($this->tenant, fn () => (new SalesReport(CarbonImmutable::parse(local_today()), CarbonImmutable::parse(local_today())))->build());
         $byMethod = collect($report['by_method'])->keyBy('key');
         $this->assertSame(320.0, $byMethod['corporate']['total']);
         $this->assertSame(100.0, $byMethod['cash']['total']);
@@ -207,9 +207,9 @@ class CorporateVouchersTest extends TenantTestCase
     public function test_several_vouchers_on_one_order_go_earliest_expiry_first(): void
     {
         $this->shop();
-        [$late] = $this->vouchers($this->contract(['name' => 'Late Co', 'voucher_value' => 100, 'mode' => 'balance', 'expires_on' => now()->addMonths(2)->format('Y-m-d')]));
-        [$early] = $this->vouchers($this->contract(['name' => 'Early Co', 'voucher_value' => 100, 'mode' => 'balance', 'expires_on' => now()->addDays(5)->format('Y-m-d')]));
-        [$unneeded] = $this->vouchers($this->contract(['name' => 'Spare Co', 'voucher_value' => 100, 'mode' => 'single', 'expires_on' => now()->addMonths(3)->format('Y-m-d')]));
+        [$late] = $this->vouchers($this->contract(['name' => 'Late Co', 'voucher_value' => 100, 'mode' => 'balance', 'expires_on' => local_at()->addMonths(2)->format('Y-m-d')]));
+        [$early] = $this->vouchers($this->contract(['name' => 'Early Co', 'voucher_value' => 100, 'mode' => 'balance', 'expires_on' => local_at()->addDays(5)->format('Y-m-d')]));
+        [$unneeded] = $this->vouchers($this->contract(['name' => 'Spare Co', 'voucher_value' => 100, 'mode' => 'single', 'expires_on' => local_at()->addMonths(3)->format('Y-m-d')]));
 
         // 3 lattes = 180: the early one first (100), then 80 of the late one; the third isn't needed and is untouched
         $this->sell(3, [['code' => $late->code], ['code' => $unneeded->code], ['code' => $early->code]], 'cash')->assertOk();
@@ -230,10 +230,10 @@ class CorporateVouchersTest extends TenantTestCase
     {
         $this->shop();
         [$voucher] = $this->vouchers($this->contract());
-        $this->as($this->tenant, fn () => CorporateVoucher::query()->whereKey($voucher->id)->update(['expires_on' => now()->subDays(3)->format('Y-m-d')]));
+        $this->as($this->tenant, fn () => CorporateVoucher::query()->whereKey($voucher->id)->update(['expires_on' => local_at()->subDays(3)->format('Y-m-d')]));
 
         $this->check($voucher->code)->assertOk()->assertJsonPath('vouchers.0.ok', false)->assertJsonPath('vouchers.0.expired', true)
-            ->assertJsonPath('vouchers.0.reason', 'خلص يوم '.now()->subDays(3)->format('Y/m/d').'.');
+            ->assertJsonPath('vouchers.0.reason', 'خلص يوم '.local_at()->subDays(3)->format('Y/m/d').'.');
         $this->sell(2, [['code' => $voucher->code]], 'corporate')->assertStatus(422);
         $this->assertSame(0, $this->as($this->tenant, fn () => Order::query()->count())); // a refused voucher leaves no order behind
 
@@ -262,7 +262,7 @@ class CorporateVouchersTest extends TenantTestCase
 
         // a manager signed in on the POS approves without a PIN
         [, $second] = $this->vouchers($this->as($this->tenant, fn () => CorporateContract::query()->firstOrFail()));
-        $this->as($this->tenant, fn () => CorporateVoucher::query()->whereKey($second->id)->update(['expires_on' => now()->subDay()->format('Y-m-d')]));
+        $this->as($this->tenant, fn () => CorporateVoucher::query()->whereKey($second->id)->update(['expires_on' => local_at()->subDay()->format('Y-m-d')]));
         $this->actingAs($this->manager)->post($this->dashUrl('/shifts/open'), ['opening_cash' => 0]);
         $this->actingAs($this->manager)->postJson($this->dashUrl("/pos/vouchers/{$second->id}/exception"), ['reason' => 'Company asked to extend'])->assertOk();
         // a voucher that has not expired needs no exception
@@ -285,7 +285,7 @@ class CorporateVouchersTest extends TenantTestCase
         $this->actingAs($this->cashier)->get($this->dashUrl('/pos'))->assertOk()->assertSee('data-exc-manager', false);
 
         [$voucher] = $this->vouchers($this->contract());
-        $this->as($this->tenant, fn () => CorporateVoucher::query()->whereKey($voucher->id)->update(['expires_on' => now()->subDay()->format('Y-m-d')]));
+        $this->as($this->tenant, fn () => CorporateVoucher::query()->whereKey($voucher->id)->update(['expires_on' => local_at()->subDay()->format('Y-m-d')]));
         $url = $this->dashUrl("/pos/vouchers/{$voucher->id}/exception");
         for ($i = 0; $i < CorporateVouchers::PIN_ATTEMPTS; $i++) {
             $this->actingAs($this->cashier)->postJson($url, ['reason' => 'Late staff', 'approver_id' => $this->manager->id, 'pin' => '0000'])->assertStatus(422);
@@ -437,9 +437,9 @@ class CorporateVouchersTest extends TenantTestCase
         $this->actingAs($owner)->get($this->dashUrl("/corporate/{$contract->id}/export?format=xlsx"))->assertOk()->assertDownload();
 
         // extend the whole contract, then one voucher
-        $this->actingAs($this->manager)->post($this->dashUrl("/corporate/{$contract->id}/extend"), ['expires_on' => now()->addMonths(6)->format('Y-m-d')])->assertSessionHasNoErrors();
-        $this->assertSame(now()->addMonths(6)->format('Y-m-d'), $this->fresh($first)->expires_on->format('Y-m-d'));
-        $this->actingAs($this->manager)->post($this->dashUrl("/corporate/vouchers/{$first->id}/extend"), ['expires_on' => now()->subDay()->format('Y-m-d')])->assertSessionHasErrors('expires_on');
+        $this->actingAs($this->manager)->post($this->dashUrl("/corporate/{$contract->id}/extend"), ['expires_on' => local_at()->addMonths(6)->format('Y-m-d')])->assertSessionHasNoErrors();
+        $this->assertSame(local_at()->addMonths(6)->format('Y-m-d'), $this->fresh($first)->expires_on->format('Y-m-d'));
+        $this->actingAs($this->manager)->post($this->dashUrl("/corporate/vouchers/{$first->id}/extend"), ['expires_on' => local_at()->subDay()->format('Y-m-d')])->assertSessionHasErrors('expires_on');
         $this->actingAs($this->manager)->get($this->dashUrl('/corporate?q=EVA-0002'))->assertOk()->assertSee('data-found="EVA-0002"', false);
     }
 
@@ -449,7 +449,7 @@ class CorporateVouchersTest extends TenantTestCase
         $this->contract();
         $b = $this->restaurant('cafe-b', 'enterprise');
         $theirs = $this->as($b, fn () => app(CorporateVouchers::class)->createContract([
-            'name' => 'Other Co', 'voucher_value' => 500, 'quantity' => 1, 'expires_on' => now()->addMonth()->format('Y-m-d'), 'mode' => 'single',
+            'name' => 'Other Co', 'voucher_value' => 500, 'quantity' => 1, 'expires_on' => local_at()->addMonth()->format('Y-m-d'), 'mode' => 'single',
         ], $this->owner($b)));
         $code = $this->as($b, fn () => CorporateVoucher::query()->firstOrFail());
 

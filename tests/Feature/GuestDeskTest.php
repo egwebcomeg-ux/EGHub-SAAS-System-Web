@@ -26,7 +26,7 @@ class GuestDeskTest extends TenantTestCase
             $customer = Customer::query()->create(['phone' => self::PHONE, 'name' => 'Mona', 'source' => 'pos']);
             $service = app(CorporateVouchers::class);
             $contract = $service->createContract(['name' => 'Eva Pharma', 'voucher_value' => 200, 'quantity' => 1,
-                'expires_on' => now()->addMonth()->format('Y-m-d'), 'mode' => 'single'], $this->owner($tenant));
+                'expires_on' => local_at()->addMonth()->format('Y-m-d'), 'mode' => 'single'], $this->owner($tenant));
             $voucher = CorporateVoucher::query()->where('corporate_contract_id', $contract->id)->firstOrFail();
             $service->link($voucher, $customer);
 

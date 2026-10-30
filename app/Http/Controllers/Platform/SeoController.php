@@ -34,9 +34,9 @@ class SeoController extends Controller
             // blog: the index and every published article (lastmod = last edit)
             $posts = Post::query()->published()->get(['slug', 'updated_at', 'published_at']);
             if ($posts->isNotEmpty()) {
-                $urls[] = [route('blog'), $posts->max('updated_at')?->toDateString()];
+                $urls[] = [route('blog'), ($edited = $posts->max('updated_at')) ? local_today($edited) : null];
                 foreach ($posts as $post) {
-                    $urls[] = [route('blog.show', $post->slug), max($post->updated_at, $post->published_at)->toDateString()];
+                    $urls[] = [route('blog.show', $post->slug), local_today(max($post->updated_at, $post->published_at))];
                 }
             }
             if (directory_domain() === central_domain()) {
@@ -49,7 +49,7 @@ class SeoController extends Controller
                     continue;
                 }
                 $at = max((string) ($lastmod[$tenant->id] ?? ''), (string) $tenant->updated_at);
-                $date = $at !== '' ? Carbon::parse($at)->toDateString() : null;
+                $date = $at !== '' ? local_today($at) : null;
                 $urls[] = [$tenant->url('about'), $date];
                 $urls[] = [$tenant->url(), $date];
             }

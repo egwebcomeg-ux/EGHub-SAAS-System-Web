@@ -31,7 +31,7 @@ class CrmDiscountTest extends TenantTestCase
     private function give(PlatformAdmin $admin, Tenant $tenant, array $data = []): TestResponse
     {
         return $this->actingAs($admin, 'admin')->post($this->adminUrl('/crm/leads/'.Lead::for($tenant)->id.'/discount'), $data + [
-            'percent' => 10, 'invoices' => 1, 'expires_at' => now()->addDays(7)->toDateString(), 'note' => 'Subscribes this week',
+            'percent' => 10, 'invoices' => 1, 'expires_at' => local_at()->addDays(7)->toDateString(), 'note' => 'Subscribes this week',
         ]);
     }
 

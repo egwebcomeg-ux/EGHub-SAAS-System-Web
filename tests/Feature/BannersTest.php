@@ -59,8 +59,8 @@ class BannersTest extends TenantTestCase
         $this->banner($a, ['title' => 'Category link', 'category_id' => $category->id]);
         $this->banner($a, ['title' => 'Hidden category', 'category_id' => $hidden->id]);
         $this->banner($a, ['title' => 'Web link', 'link_url' => 'https://example.com/promo']);
-        $this->banner($a, ['title' => 'Future', 'starts_on' => now()->addDays(3)->toDateString()]);
-        $this->banner($a, ['title' => 'Expired', 'ends_on' => now()->subDay()->toDateString()]);
+        $this->banner($a, ['title' => 'Future', 'starts_on' => local_at()->addDays(3)->toDateString()]);
+        $this->banner($a, ['title' => 'Expired', 'ends_on' => local_at()->subDay()->toDateString()]);
 
         $res = $this->get($this->subUrl('cafe-a'))->assertOk();
         $res->assertSee('href="#cat-'.$category->id.'"', false)->assertSee('Category link');

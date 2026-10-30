@@ -92,8 +92,8 @@ class OnlineOrderingTest extends TenantTestCase
         $this->order($a, ['type' => 'takeaway', 'customer_phone' => ''])->assertStatus(422);
         $this->order($a, ['type' => 'delivery', 'address' => 'x'])->assertStatus(422);                         // no zone
         $this->order($a, ['type' => 'delivery', 'zone_id' => $zone->id, 'address' => 'x'])->assertStatus(422);  // under the minimum
-        $this->order($a, ['type' => 'takeaway', 'scheduled_for' => now()->addMinutes(5)->format('Y-m-d\TH:i')])->assertStatus(422);
-        $this->order($a, ['type' => 'takeaway', 'scheduled_for' => now()->addHours(3)->format('Y-m-d\TH:i')])->assertOk();
+        $this->order($a, ['type' => 'takeaway', 'scheduled_for' => local_at()->addMinutes(5)->format('Y-m-d\TH:i')])->assertStatus(422);
+        $this->order($a, ['type' => 'takeaway', 'scheduled_for' => local_at()->addHours(3)->format('Y-m-d\TH:i')])->assertOk();
         $this->assertNotNull($this->as($a, fn () => Order::query()->first()->scheduled_for));
     }
 

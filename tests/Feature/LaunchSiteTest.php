@@ -60,12 +60,12 @@ class LaunchSiteTest extends TenantTestCase
     {
         $this->get($this->menuUrl('pricing'))->assertOk()->assertSee('data-orig', false)->assertDontSee('data-offer-ends', false);
 
-        PlatformSetting::put('launch_offer_ends_at', today()->addDays(10)->toDateString());
+        PlatformSetting::put('launch_offer_ends_at', local_at()->addDays(10)->toDateString());
         $this->get($this->menuUrl('pricing'))->assertOk()->assertSee('data-orig', false)
             ->assertSee('العرض ساري لحد '.today()->addDays(10)->format('d/m/Y'));
         $this->get($this->menuUrl('/'))->assertOk()->assertSee('data-offer-ends', false);
 
-        PlatformSetting::put('launch_offer_ends_at', today()->subDay()->toDateString());
+        PlatformSetting::put('launch_offer_ends_at', local_at()->subDay()->toDateString());
         $this->get($this->menuUrl('pricing'))->assertOk()->assertDontSee('data-orig', false)->assertDontSee('data-offer-ends', false);
         $this->get($this->menuUrl('/'))->assertOk()->assertDontSee('line-through" dir="ltr"', false);
     }

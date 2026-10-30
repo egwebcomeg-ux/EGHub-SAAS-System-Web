@@ -232,9 +232,9 @@ class LaunchOfferAndBranchAddonsTest extends TenantTestCase
 
     public function test_an_offer_end_date_in_the_past_stops_it(): void
     {
-        PlatformSetting::put(LaunchOffer::ENDS_KEY, now()->subDay()->toDateString());
+        PlatformSetting::put(LaunchOffer::ENDS_KEY, local_at()->subDay()->toDateString());
         $this->assertFalse(LaunchOffer::isRunning());
-        PlatformSetting::put(LaunchOffer::ENDS_KEY, now()->addDay()->toDateString());
+        PlatformSetting::put(LaunchOffer::ENDS_KEY, local_at()->addDay()->toDateString());
         $this->assertTrue(LaunchOffer::isRunning());
     }
 

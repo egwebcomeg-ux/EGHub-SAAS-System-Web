@@ -64,8 +64,8 @@ class MarketingTest extends TenantTestCase
     {
         $a = $this->restaurant('cafe-a');
         $item = $this->item($a, 'Tea', 40);
-        $later = now()->addHours(3)->format('H:i');
-        $muchLater = now()->addHours(4)->format('H:i');
+        $later = local_at()->addHours(3)->format('H:i');
+        $muchLater = local_at()->addHours(4)->format('H:i');
         $this->as($a, fn () => Offer::query()->create(['title' => 'Later', 'discount_percent' => 50, 'starts_at' => $later, 'ends_at' => $muchLater]));
         $this->orderAtTable($a, [['item_id' => $item->id, 'qty' => 1]])->assertOk();
         $this->assertSame(40.0, $this->as($a, fn () => Order::query()->first()->total));

@@ -105,7 +105,7 @@ class PosRefundTest extends TenantTestCase
 
         $summary = $this->summary();
         $this->assertSame([120.0, ['cash' => 60.0], 220.0], [$summary['by_method']['cash'], $summary['refunds'], $summary['expected_cash']]);
-        $report = $this->as($this->tenant, fn () => (new SalesReport(CarbonImmutable::today(), CarbonImmutable::today()))->build());
+        $report = $this->as($this->tenant, fn () => (new SalesReport(CarbonImmutable::parse(local_today()), CarbonImmutable::parse(local_today())))->build());
         $this->assertSame([120.0, 60.0], [$report['revenue'], $report['refunds']['total']]);
 
         // no more than what is left of a line; the slip prints

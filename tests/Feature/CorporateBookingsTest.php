@@ -42,7 +42,7 @@ class CorporateBookingsTest extends TenantTestCase
     private function contract(array $extra = []): CorporateContract
     {
         $this->actingAs($this->manager)->post($this->dashUrl('/corporate'), $extra + [
-            'name' => 'Eva Pharma', 'voucher_value' => 1, 'quantity' => 0, 'expires_on' => now()->addMonths(3)->format('Y-m-d'),
+            'name' => 'Eva Pharma', 'voucher_value' => 1, 'quantity' => 0, 'expires_on' => local_at()->addMonths(3)->format('Y-m-d'),
             'mode' => 'balance', 'booking_notice_hours' => 24,
         ])->assertRedirect()->assertSessionHasNoErrors();
         $contract = $this->as($this->tenant, fn () => CorporateContract::query()->latest('id')->firstOrFail());

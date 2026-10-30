@@ -70,7 +70,7 @@ class BusyModeTest extends TenantTestCase
         $this->assertEqualsWithDelta(now()->addHour()->timestamp, $until->timestamp, 5);
 
         // a clock time: today when still ahead, otherwise tomorrow
-        $this->actingAs($owner)->postJson($this->dashUrl('/orders/busy'), ['mode' => 'time', 'time' => now()->subHour()->format('H:i')])->assertOk();
+        $this->actingAs($owner)->postJson($this->dashUrl('/orders/busy'), ['mode' => 'time', 'time' => local_at()->subHour()->format('H:i')])->assertOk();
         $this->assertTrue($this->as($a, fn () => BusyMode::until())->isTomorrow());
 
         // the board feed carries the state for every open screen

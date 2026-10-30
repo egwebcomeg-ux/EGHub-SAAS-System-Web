@@ -53,8 +53,8 @@ class SocialProofTest extends TenantTestCase
 
         // real traffic: 1430 menu views and 205 orders (one cancelled, not counted)
         DB::table('menu_visits')->insert([
-            ['tenant_id' => 'place-1', 'day' => today()->toDateString(), 'views' => 1000, 'scans' => 0],
-            ['tenant_id' => 'place-2', 'day' => today()->toDateString(), 'views' => 430, 'scans' => 0],
+            ['tenant_id' => 'place-1', 'day' => local_today(), 'views' => 1000, 'scans' => 0],
+            ['tenant_id' => 'place-2', 'day' => local_today(), 'views' => 430, 'scans' => 0],
         ]);
         $branch = DB::table('branches')->where('tenant_id', 'place-1')->value('id');
         $orders = [];
@@ -86,7 +86,7 @@ class SocialProofTest extends TenantTestCase
         for ($i = 1; $i <= 10; $i++) {
             $this->restaurant("t-$i");
         }
-        DB::table('menu_visits')->insert(['tenant_id' => 't-1', 'day' => today()->toDateString(), 'views' => 5000, 'scans' => 0]);
+        DB::table('menu_visits')->insert(['tenant_id' => 't-1', 'day' => local_today(), 'views' => 5000, 'scans' => 0]);
         $branch = DB::table('branches')->where('tenant_id', 't-1')->value('id');
         DB::table('orders')->insert(array_map(fn (int $n) => ['tenant_id' => 't-1', 'branch_id' => $branch, 'number' => $n, 'status' => 'served',
             'created_at' => now(), 'updated_at' => now()], range(1, 200)));

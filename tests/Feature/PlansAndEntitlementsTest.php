@@ -135,7 +135,7 @@ class PlansAndEntitlementsTest extends TenantTestCase
 
         $business = Plan::query()->where('code', 'business')->first();
         $this->actingAs($admin, 'admin')->post($this->adminUrl('/tenants/koshary/subscription'), [
-            'plan_id' => $business->id, 'status' => 'active', 'cycle_months' => 12, 'current_period_end' => now()->addYear()->toDateString(),
+            'plan_id' => $business->id, 'status' => 'active', 'cycle_months' => 12, 'current_period_end' => local_at()->addYear()->toDateString(),
         ])->assertSessionHasNoErrors();
 
         $sub = Subscription::query()->where('tenant_id', 'koshary')->first();
