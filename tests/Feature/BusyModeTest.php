@@ -60,7 +60,7 @@ class BusyModeTest extends TenantTestCase
     {
         $a = $this->restaurant('cafe-a', 'pro');
         $owner = $this->owner($a);
-        $this->travelTo(Carbon::parse('2026-10-20 15:00', config('app.timezone')));
+        $this->travelTo(Carbon::parse('2026-10-20 15:00', local_timezone()));
 
         $this->actingAs($owner)->get($this->dashUrl('/orders'))->assertOk()->assertSee('data-busy-box', false)->assertSee('data-alarm-mute', false);
 

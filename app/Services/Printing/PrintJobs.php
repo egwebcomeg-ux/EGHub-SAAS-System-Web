@@ -296,7 +296,7 @@ final class PrintJobs
         }
         $since = now()->subHours(self::KITCHEN_WINDOW_HOURS);
         $on = Settings::get('pos_print_kitchen_since');
-        if ($on !== '' && ($onAt = rescue(fn () => Carbon::parse($on), null, false)) && $onAt->gt($since)) {
+        if ($on !== '' && ($onAt = rescue(fn () => Carbon::parse($on)->utc(), null, false)) && $onAt->gt($since)) {
             $since = $onAt;
         }
         $orders = Order::query()->where('branch_id', $branch->id)->whereIn('status', ['new', 'preparing'])

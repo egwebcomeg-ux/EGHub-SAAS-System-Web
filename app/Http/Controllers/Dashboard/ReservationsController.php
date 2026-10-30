@@ -30,21 +30,21 @@ class ReservationsController extends Controller
             ->orderBy('sort_order')->get();
         $branch = $branches->firstWhere('id', (int) $request->query('branch')) ?? $branches->first();
         try {
-            $date = Carbon::createFromFormat('Y-m-d', (string) $request->query('date'), config('app.timezone'))->startOfDay();
+            $date = Carbon::createFromFormat('Y-m-d', (string) $request->query('date'), local_timezone())->startOfDay();
         } catch (\Throwable) {
-            $date = today();
+            $date = local_at()->startOfDay();
         }
         $scoped = fn () => Reservation::query()->when($branch, fn ($q) => $q->where('branch_id', $branch->id));
 
-        $day = $scoped()->whereBetween('starts_at', [$date, $date->copy()->endOfDay()])->with('branch')->orderBy('starts_at')->get();
+        $day = $scoped()->whereBetween('starts_at', [local_day_start($date), local_day_end($date)])->with('branch')->orderBy('starts_at')->get();
 
         return view('dashboard.reservations', [
             'date' => $date, 'branch' => $branch, 'branches' => $branches,
             'day' => $day,
             'covers' => $day->whereIn('status', Reservation::ACTIVE)->sum('party_size'),
             'pending' => $scoped()->where('status', 'pending')->where('starts_at', '>=', now()->subHours(2))->with('branch')->orderBy('starts_at')->limit(50)->get(),
-            'upcoming' => $scoped()->whereIn('status', ['pending', 'confirmed'])->where('starts_at', '>', $date->copy()->endOfDay())
-                ->where('starts_at', '<=', now()->addDays(14)->endOfDay())->with('branch')->orderBy('starts_at')->limit(50)->get(),
+            'upcoming' => $scoped()->whereIn('status', ['pending', 'confirmed'])->where('starts_at', '>', local_day_end($date))
+                ->where('starts_at', '<=', local_day_end(local_at()->addDays(14)))->with('branch')->orderBy('starts_at')->limit(50)->get(),
             'slots' => $branch ? $service->slots($branch, $date, 1, true) : [],
             'config' => ReservationService::config(),
             'settings' => Settings::all(),

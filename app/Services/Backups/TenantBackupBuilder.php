@@ -14,7 +14,6 @@ use App\Services\Import\XlsxWriter;
 use App\Services\Settings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -220,18 +219,26 @@ class TenantBackupBuilder
     }
 
     /**
-     * Orders before the cutoff, one line per month: how many, how many cancelled, the sales total.
+     * Orders before the cutoff, one line per month (restaurant time): how many, how many cancelled, the sales total.
      *
      * @return list<array{month: string, orders: int, cancelled: int, total: float}>
      */
     private function ordersArchive(\DateTimeInterface $cutoff): array
     {
-        $month = DB::connection()->getDriverName() === 'sqlite' ? "strftime('%Y-%m', created_at)" : "DATE_FORMAT(created_at, '%Y-%m')";
-        $rows = Order::query()->where('created_at', '<', $cutoff)
-            ->selectRaw("$month as month, COUNT(*) as orders, SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled, SUM(CASE WHEN status = 'cancelled' THEN 0 ELSE total END) as total")
-            ->groupByRaw($month)->orderByRaw($month)->get();
+        $months = [];
+        foreach (Order::query()->where('created_at', '<', $cutoff)->orderBy('id')->select(['id', 'status', 'total', 'created_at'])->cursor() as $o) {
+            $key = local_at($o->created_at)->format('Y-m');
+            $months[$key] ??= ['month' => $key, 'orders' => 0, 'cancelled' => 0, 'total' => 0.0];
+            $months[$key]['orders']++;
+            if ($o->status === 'cancelled') {
+                $months[$key]['cancelled']++;
+            } else {
+                $months[$key]['total'] = round($months[$key]['total'] + (float) $o->total, 2);
+            }
+        }
+        ksort($months);
 
-        return $rows->map(fn ($r) => ['month' => (string) $r->month, 'orders' => (int) $r->orders, 'cancelled' => (int) $r->cancelled, 'total' => round((float) $r->total, 2)])->values()->all();
+        return array_values($months);
     }
 
     /** The human-readable sheets: menu (import layout), customers, recent orders, corporate vouchers. */
@@ -245,8 +252,8 @@ class TenantBackupBuilder
                 if (count($customers) > self::SHEET_MAX_ROWS) {
                     return false;
                 }
-                $customers[] = [$c->name, $c->phone, (int) $c->visits_count, (float) $c->total_spent, $c->last_visit_at?->format('Y-m-d'),
-                    $c->birthday?->format('Y-m-d'), $c->marketing_opt_in ? 'نعم' : 'لا', (int) $c->points_balance, $c->created_at?->format('Y-m-d')];
+                $customers[] = [$c->name, $c->phone, (int) $c->visits_count, (float) $c->total_spent, ($c->last_visit_at ? local_today($c->last_visit_at) : null),
+                    $c->birthday?->format('Y-m-d'), $c->marketing_opt_in ? 'نعم' : 'لا', (int) $c->points_balance, ($c->created_at ? local_today($c->created_at) : null)];
             }
         });
         $this->addSheet($zip, 'excel/customers.xlsx', 'Customers', $customers);
@@ -274,7 +281,7 @@ class TenantBackupBuilder
                     return false;
                 }
                 $vouchers[] = [(string) $v->contract?->name, (string) $v->serial, $v->formattedCode(), (float) $v->value, (float) $v->balance,
-                    (string) $v->status, $v->expires_on?->format('Y-m-d'), (string) ($v->customer?->phone ?? ''), $v->created_at?->format('Y-m-d')];
+                    (string) $v->status, $v->expires_on?->format('Y-m-d'), (string) ($v->customer?->phone ?? ''), ($v->created_at ? local_today($v->created_at) : null)];
             }
         });
         $this->addSheet($zip, 'excel/corporate-vouchers.xlsx', 'Vouchers', $vouchers);

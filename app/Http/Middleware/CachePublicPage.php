@@ -159,7 +159,7 @@ class CachePublicPage
         }
 
         $age = (int) config('page_cache.menu_max_age', 300);
-        $greeting = collect([5, 12, 17, 29])->map(fn (int $h) => $now->copy()->startOfDay()->addHours($h))->first(fn (Carbon $at) => $at->greaterThan($now));
+        $greeting = collect([5, 12, 17, 29])->map(fn (int $h) => local_at($now)->startOfDay()->addHours($h))->first(fn (Carbon $at) => $at->greaterThan($now));
         $age = $this->until($age, $greeting, $now);
         $busy = BusyMode::until();
         $age = $this->until($age, $busy?->isFuture() ? $busy : null, $now);

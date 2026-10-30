@@ -42,7 +42,7 @@ class DriversController extends Controller
             'center' => $center ? [(float) $center->lat, (float) $center->lng] : null,
             'canAssign' => $request->user()->can('delivery.assign'),
             'canSettle' => $request->user()->can('delivery.drivers'),
-            'week' => (new DriverStats(today()->subDays(6), now(), $branch))->perDriver($drivers),
+            'week' => (new DriverStats(local_day_start(local_at()->subDays(6)), now(), $branch))->perDriver($drivers),
         ]);
     }
 
@@ -56,7 +56,7 @@ class DriversController extends Controller
             ->orderBy('driver_assigned_at')->get()->groupBy('driver_id');
         $locations = DriverLocation::query()->whereIn('user_id', $drivers->modelKeys())->get()->keyBy('user_id');
         $canSettle = $user->can('delivery.drivers');
-        $today = collect((new DriverStats(today(), now(), $branch))->perDriver($drivers))->keyBy('id');
+        $today = collect((new DriverStats(local_day_start(), now(), $branch))->perDriver($drivers))->keyBy('id');
         $holding = Order::query()->whereIn('driver_id', $drivers->modelKeys())->where('delivery_status', 'delivered')->where('status', 'served')
             ->where('cash_collected', '>', 0)->whereNull('cash_settled_at')->when($branch, fn ($q) => $q->where('branch_id', $branch))
             ->selectRaw('driver_id, count(*) as orders, sum(cash_collected) as amount')->groupBy('driver_id')->get()->keyBy('driver_id');
@@ -67,7 +67,7 @@ class DriversController extends Controller
             ->with('driver')->orderBy('id')->limit(100)->get();
         // today's delivered orders, latest first: the manager picks one to see its trail on the map
         $recent = Order::query()->whereIn('driver_id', $drivers->modelKeys())->where('delivery_status', 'delivered')
-            ->where('delivered_at', '>=', today())->when($branch, fn ($q) => $q->where('branch_id', $branch))
+            ->where('delivered_at', '>=', local_day_start())->when($branch, fn ($q) => $q->where('branch_id', $branch))
             ->with('driver')->orderByDesc('delivered_at')->limit(self::RECENT_TRAILS)->get();
 
         return response()->json([

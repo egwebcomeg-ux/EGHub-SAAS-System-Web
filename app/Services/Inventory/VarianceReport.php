@@ -26,8 +26,8 @@ final class VarianceReport
     /** @return list<Row> sorted by money lost, the biggest loss first */
     public function rows(): array
     {
-        $start = $this->from->startOfDay();
-        $end = $this->to->endOfDay();
+        $start = local_day_start($this->from->toDateString());
+        $end = local_day_end($this->to->toDateString());
         $period = StockMovement::query()->where('branch_id', $this->branch->id)->whereBetween('created_at', [$start, $end])
             ->groupBy('ingredient_id', 'type')->selectRaw('ingredient_id, type, SUM(quantity) as qty, SUM(quantity * unit_cost) as value')
             ->get()->groupBy('ingredient_id');

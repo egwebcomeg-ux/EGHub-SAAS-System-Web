@@ -50,7 +50,7 @@ class CorporateContractsController extends Controller
                 'contracts' => CorporateContract::query()->where('status', '!=', 'void')->count(),
                 'remaining' => round((float) CorporateVoucher::query()->where('status', 'active')
                     ->whereHas('contract', fn ($c) => $c->where('status', '!=', 'void'))->sum('balance'), 2),
-                'month' => round((float) CorporateVoucherRedemption::query()->whereNull('refunded_at')->where('created_at', '>=', now()->startOfMonth())->sum('amount'), 2),
+                'month' => round((float) CorporateVoucherRedemption::query()->whereNull('refunded_at')->where('created_at', '>=', local_at()->startOfMonth()->utc())->sum('amount'), 2),
                 'unpaid' => CorporateContract::query()->where('status', '!=', 'void')->where('paid_status', '!=', 'paid')->count(),
                 'visits' => CorporateBooking::query()->where('status', 'requested')->count(),
             ],
@@ -59,7 +59,7 @@ class CorporateContractsController extends Controller
 
     public function create(): View
     {
-        return view('dashboard.corporate.form', ['contract' => new CorporateContract(['mode' => 'single', 'expires_on' => now()->addMonths(3)->endOfMonth()]), 'branches' => $this->branches()]);
+        return view('dashboard.corporate.form', ['contract' => new CorporateContract(['mode' => 'single', 'expires_on' => local_at()->addMonths(3)->endOfMonth()->toDateString()]), 'branches' => $this->branches()]);
     }
 
     public function store(Request $request, CorporateVouchers $service): RedirectResponse
@@ -79,8 +79,8 @@ class CorporateContractsController extends Controller
     {
         $filter = in_array($request->query('filter'), ['active', 'used', 'void', 'expired', 'unprinted', 'linked'], true) ? (string) $request->query('filter') : 'all';
         $vouchers = $contract->vouchers()->with('customer')
-            ->when($filter === 'active', fn ($q) => $q->where('status', 'active')->where('expires_on', '>=', now()->toDateString()))
-            ->when($filter === 'expired', fn ($q) => $q->where('status', 'active')->where('expires_on', '<', now()->toDateString()))
+            ->when($filter === 'active', fn ($q) => $q->where('status', 'active')->where('expires_on', '>=', local_today()))
+            ->when($filter === 'expired', fn ($q) => $q->where('status', 'active')->where('expires_on', '<', local_today()))
             ->when(in_array($filter, ['used', 'void'], true), fn ($q) => $q->where('status', $filter))
             ->when($filter === 'unprinted', fn ($q) => $q->where('print_count', 0))
             ->when($filter === 'linked', fn ($q) => $q->whereNotNull('customer_id'))
@@ -202,7 +202,7 @@ class CorporateContractsController extends Controller
                 $v->customer?->phone ?? '', $v->print_count, $v->publicUrl()];
         }
 
-        return $this->download($rows, 'vouchers-'.$contract->prefix.'-'.now()->format('Y-m-d'), (string) $request->query('format'), __('Vouchers'));
+        return $this->download($rows, 'vouchers-'.$contract->prefix.'-'.local_today(), (string) $request->query('format'), __('Vouchers'));
     }
 
     /** A payment the company made (cash, transfer, cheque…): a credit line of its statement. */
@@ -211,7 +211,7 @@ class CorporateContractsController extends Controller
         $data = $request->validate([
             'amount' => 'required|numeric|min:0.01|max:'.CorporateAccount::MAX_PAYMENT,
             'method' => ['required', Rule::in(array_keys(CorporatePayment::METHODS))],
-            'paid_on' => 'nullable|date|before_or_equal:today',
+            'paid_on' => 'nullable|date|before_or_equal:'.local_today(),
             'reference' => 'nullable|string|max:60',
             'note' => 'nullable|string|max:200',
         ]);
@@ -243,11 +243,11 @@ class CorporateContractsController extends Controller
      */
     public function statement(Request $request, CorporateContract $contract, CorporateAccount $account): View|Response
     {
-        $from = $request->date('from')?->startOfDay();
-        $to = $request->date('to')?->endOfDay();
+        $from = $request->date('from');
+        $to = $request->date('to');
         $rows = CorporateVoucherRedemption::query()->where('corporate_contract_id', $contract->id)
             ->with(['voucher.customer', 'order:id,number,total', 'branch:id,name,name_en', 'cashier:id,name', 'approver:id,name', 'refunder:id,name'])
-            ->when($from, fn ($q) => $q->where('created_at', '>=', $from))->when($to, fn ($q) => $q->where('created_at', '<=', $to))
+            ->when($from, fn ($q) => $q->where('created_at', '>=', local_day_start($from)))->when($to, fn ($q) => $q->where('created_at', '<=', local_day_end($to)))
             ->orderBy('id')->get();
 
         if (in_array($request->query('format'), ['csv', 'xlsx'], true)) {
@@ -258,7 +258,7 @@ class CorporateContractsController extends Controller
             }
             $out[] = [__('Total'), '', '', '', round($rows->whereNull('refunded_at')->sum('amount'), 2), round($rows->whereNull('refunded_at')->sum('forfeited'), 2), '', ''];
 
-            return $this->download($out, 'statement-'.$contract->prefix.'-'.now()->format('Y-m-d'), (string) $request->query('format'), __('Statement'));
+            return $this->download($out, 'statement-'.$contract->prefix.'-'.local_today(), (string) $request->query('format'), __('Statement'));
         }
 
         return view('dashboard.corporate.statement', [
@@ -362,7 +362,7 @@ class CorporateContractsController extends Controller
                 'paid_method' => ['nullable', Rule::in(array_keys(CorporatePayment::METHODS))],
                 'prefix' => ['nullable', 'regex:/^[A-Za-z0-9]{1,6}$/'],
                 'voucher_value' => 'required|numeric|min:1|max:'.CorporateVouchers::MAX_VALUE,
-                'expires_on' => 'required|date|after_or_equal:today',
+                'expires_on' => 'required|date|after_or_equal:'.local_today(),
                 'mode' => ['required', Rule::in(array_keys(CorporateContract::MODES))],
             ];
         }

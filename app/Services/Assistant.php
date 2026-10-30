@@ -211,7 +211,7 @@ TXT;
             .'|'.self::paymentFact();
 
         return Cache::remember("assistant:kb:v2:$lang:".md5($stamp), 3600, function () use ($lang) {
-            return self::onlyEgHub('REFERENCE (current as of '.now()->format('Y-m-d').")\n\n"
+            return self::onlyEgHub('REFERENCE (current as of '.local_today().")\n\n"
                 .self::plansText()."\n\n"
                 .self::addonsText()."\n\n"
                 .self::modulesText()."\n\n"

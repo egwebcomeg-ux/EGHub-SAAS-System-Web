@@ -63,13 +63,20 @@ return [
     | Application Timezone
     |--------------------------------------------------------------------------
     |
-    | Here you may specify the default timezone for your application, which
-    | will be used by the PHP date and date-time functions. The timezone
-    | is set to "UTC" by default as it is suitable for most use cases.
+    | Every time is stored and compared in UTC: now(), the timestamps Eloquent
+    | writes and every SQL comparison. Not configurable, the stored data is
+    | UTC. Restaurant time (Cairo, with its daylight saving) is applied only
+    | at the edges: what people see and type, business days and hours, and
+    | the schedule (the local_* helpers in app/Support/helpers.php).
     |
     */
 
-    'timezone' => env('APP_TIMEZONE', 'Africa/Cairo'),
+    'timezone' => 'UTC',
+
+    'local_timezone' => env('APP_LOCAL_TIMEZONE', 'Africa/Cairo'),
+
+    // dailyAt('03:00') in routes/console.php is 03:00 restaurant time
+    'schedule_timezone' => env('APP_LOCAL_TIMEZONE', 'Africa/Cairo'),
 
     /*
     |--------------------------------------------------------------------------

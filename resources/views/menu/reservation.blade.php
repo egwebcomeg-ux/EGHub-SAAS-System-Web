@@ -34,7 +34,7 @@
         <span class="inline-block rounded-full px-4 py-1.5 text-sm font-extrabold {{ $tone }}">{{ $r->statusLabel() }}</span>
         <div>
             <div class="m-primary-text text-4xl font-black" dir="ltr">{{ local_time($r->starts_at, 'h:i A') }}</div>
-            <div class="mt-1 text-lg font-bold">{{ $r->starts_at->locale(app()->getLocale())->translatedFormat('l j/n/Y') }}</div>
+            <div class="mt-1 text-lg font-bold">{{ local_at($r->starts_at)->locale(app()->getLocale())->translatedFormat('l j/n/Y') }}</div>
         </div>
         <dl class="grid grid-cols-2 gap-3 text-start text-sm">
             <div class="rounded-xl m-surface-2 p-3"><dt class="m-muted">{{ __('Guests') }}</dt><dd class="text-lg font-extrabold">{{ $r->party_size }}</dd></div>

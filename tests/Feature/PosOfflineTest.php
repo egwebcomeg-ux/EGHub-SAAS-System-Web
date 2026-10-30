@@ -247,7 +247,7 @@ class PosOfflineTest extends TenantTestCase
         $this->assertSame(120.0, $summary['by_method']['cash']);
         $this->assertSame(60.0, $summary['by_method']['card']);
         $this->assertSame(220.0, $summary['expected_cash']);
-        $report = $this->as($this->tenant, fn () => (new SalesReport(CarbonImmutable::today(), CarbonImmutable::today()))->build());
+        $report = $this->as($this->tenant, fn () => (new SalesReport(CarbonImmutable::parse(local_today()), CarbonImmutable::parse(local_today())))->build());
         $this->assertSame(2, $report['orders']);
         $this->assertSame(180.0, $report['revenue']);
 
@@ -261,16 +261,17 @@ class PosOfflineTest extends TenantTestCase
     {
         $this->shop();
         $device = $this->claim($this->terminal(), $this->cashier);
-        $this->travelTo(now()->subDay()->setTime(22, 0));
+        $this->travelTo(local_at()->subDay()->setTime(22, 0)); // 22:00 in the restaurant: 19:00/20:00 UTC
         $this->openShift($this->cashier, $device, 0)->assertSessionHasNoErrors();
         $shift = $this->shift($this->cashier);
         $soldAt = now()->addMinutes(30);
-        $this->travelTo(now()->addDay()->setTime(15, 0)); // the next afternoon, not the real clock
+        $this->travelTo(local_at()->addDay()->setTime(15, 0)); // the next afternoon, not the real clock
         $this->sync($this->sale($shift, $device, 1, ['at' => $soldAt->toIso8601String(), 'offline_since' => $soldAt->copy()->subMinutes(10)->toIso8601String()]), $device)->assertOk();
 
-        $day = CarbonImmutable::parse($soldAt)->startOfDay();
+        $day = CarbonImmutable::parse(local_today($soldAt));
+        $today = CarbonImmutable::parse(local_today());
         $this->assertSame(120.0, $this->as($this->tenant, fn () => (new SalesReport($day, $day))->build())['revenue']);
-        $this->assertSame(0.0, $this->as($this->tenant, fn () => (new SalesReport(CarbonImmutable::today(), CarbonImmutable::today()))->build())['revenue']);
+        $this->assertSame(0.0, $this->as($this->tenant, fn () => (new SalesReport($today, $today))->build())['revenue']);
     }
 
     public function test_the_price_as_sold_is_kept_and_a_changed_menu_flags_the_order_for_review(): void

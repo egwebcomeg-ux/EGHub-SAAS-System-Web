@@ -136,7 +136,7 @@ class MarketingController extends Controller
     private function liveBanners(): int
     {
         return Banner::query()->where('is_active', true)->where('is_popup', false)
-            ->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', today()))->count();
+            ->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', local_today()))->count();
     }
 
     /** One popup at a time: the one being switched on replaces the one that was on. */

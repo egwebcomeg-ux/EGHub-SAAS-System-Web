@@ -39,7 +39,7 @@ class RefundsController extends Controller
             'total' => $o->total, 'refunded' => $o->refunded_amount, 'refund_status' => $o->refund_status,
             'method' => PaymentMethods::label($o->payment_method ?? 'cash'), 'paid_by' => $o->payment_method,
             'corporate' => $o->corporate_amount, 'customer' => (bool) $o->customer_id, 'factor' => $o->subtotal > 0 ? $o->total / $o->subtotal : 0,
-            'time' => local_time($o->created_at, $o->created_at->isToday() ? 'h:i A' : 'd/m h:i A'),
+            'time' => local_time($o->created_at, local_at($o->created_at)->isToday() ? 'h:i A' : 'd/m h:i A'),
             'receipt' => route('dash.orders.receipt', $o), 'share' => $o->receiptUrl(), 'phone' => $o->customer_phone,
             // the guest pager: "Call" on an order still open at the counter (null without the pager or for a table / delivery)
             'pager' => in_array($o->status, ['served', 'cancelled'], true) ? null : PagerController::orderView($o, $request),

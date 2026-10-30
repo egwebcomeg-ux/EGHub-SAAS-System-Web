@@ -80,13 +80,14 @@ final class ReservationService
     }
 
     /**
-     * When the branch takes guests on $day: [open, close] (close may be after midnight), or null when closed.
+     * When the branch takes guests on $day (its date in restaurant time): [open, close] as UTC instants (close may be
+     * after midnight), or null when closed.
      *
      * @return array{0:Carbon, 1:Carbon}|null
      */
     public function hours(Branch $branch, CarbonInterface $day): ?array
     {
-        $date = Carbon::parse($day->format('Y-m-d'), config('app.timezone'))->startOfDay();
+        $date = Carbon::parse(local_today($day), local_timezone())->startOfDay();
         $valid = fn ($t) => is_string($t) && preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $t);
         if ($custom = self::customHours()) {
             $h = $custom[$date->dayOfWeek] ?? $custom[(string) $date->dayOfWeek] ?? null;
@@ -105,7 +106,7 @@ final class ReservationService
             $to->addDay();
         }
 
-        return [$from, $to];
+        return [$from->utc(), $to->utc()];
     }
 
     /**
@@ -123,7 +124,7 @@ final class ReservationService
         [$from, $to] = $hours;
         $c = self::config();
         $earliest = $staff ? now()->subMinutes($c['slot']) : now()->addHours($c['lead_hours']);
-        $latest = $staff ? null : now()->addDays($c['horizon_days'])->endOfDay();
+        $latest = $staff ? null : local_day_end(local_at()->addDays($c['horizon_days']));
         $seats = self::seats($branch);
         $bookings = $this->holding($branch, $from, $to->copy()->addMinutes($c['duration']));
 
@@ -133,7 +134,7 @@ final class ReservationService
                 continue;
             }
             $left = max(0, $seats - $this->peak($bookings, $t, $t->copy()->addMinutes($c['duration'])));
-            $out[] = ['time' => $t->format('H:i'), 'at' => $t->copy(), 'left' => $left, 'fits' => $left >= $party];
+            $out[] = ['time' => local_time($t, 'H:i'), 'at' => $t->copy(), 'left' => $left, 'fits' => $left >= $party];
         }
 
         return $out;
@@ -174,14 +175,14 @@ final class ReservationService
             throw new ReservationException(__('Write your name.'));
         }
         try {
-            $at = Carbon::createFromFormat('Y-m-d H:i', $data['date'].' '.$data['time'], config('app.timezone'))->startOfMinute();
+            $at = local_input($data['date'].' '.$data['time'], 'Y-m-d H:i')->startOfMinute();
         } catch (\Throwable) {
             throw new ReservationException(__('Choose a time.'));
         }
         if (! $staff && $at->lt(now()->addHours($c['lead_hours']))) {
             throw new ReservationException(__('Please book at least :n hours ahead.', ['n' => $c['lead_hours']]));
         }
-        if (! $staff && $at->gt(now()->addDays($c['horizon_days'])->endOfDay())) {
+        if (! $staff && $at->gt(local_day_end(local_at()->addDays($c['horizon_days'])))) {
             throw new ReservationException(__('You can book up to :n days ahead.', ['n' => $c['horizon_days']]));
         }
         // the slot must be one the restaurant offers that day (or, after midnight, the day before)

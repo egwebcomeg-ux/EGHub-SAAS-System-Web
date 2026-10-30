@@ -779,7 +779,7 @@ final class CorporateVouchers
         } catch (\Throwable) {
             throw new OrderException(__('Choose a date.'));
         }
-        if ($day->lt(now()->startOfDay())) {
+        if ($day->format('Y-m-d') < local_today()) {
             throw new OrderException(__('The new date can\'t be in the past.'));
         }
 

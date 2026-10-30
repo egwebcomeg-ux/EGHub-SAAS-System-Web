@@ -25,9 +25,10 @@ class ZReportController extends Controller
             'date' => 'nullable|date_format:Y-m-d', 'branch' => 'nullable|integer', 'terminal' => 'nullable|integer',
             'format' => ['nullable', Rule::in(['80mm', 'a4', 'csv', 'xlsx', 'job'])],
         ]);
-        $day = $request->filled('date') ? CarbonImmutable::createFromFormat('Y-m-d', (string) $request->query('date'))->startOfDay() : CarbonImmutable::today();
-        if ($day->isFuture()) {
-            $day = CarbonImmutable::today();
+        $today = CarbonImmutable::parse(local_today());
+        $day = $request->filled('date') ? CarbonImmutable::createFromFormat('Y-m-d', (string) $request->query('date'))->startOfDay() : $today;
+        if ($day->gt($today)) {
+            $day = $today;
         }
         $branch = $request->user()->branch_id
             ? Branch::query()->findOrFail($request->user()->branch_id)

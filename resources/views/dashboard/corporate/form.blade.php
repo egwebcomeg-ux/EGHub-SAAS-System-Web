@@ -85,7 +85,7 @@
                 <label class="block"><span class="field-label">{{ __('How many vouchers') }} *</span>
                     <input class="field text-lg" name="quantity" type="number" min="0" max="{{ \App\Services\Corporate\CorporateVouchers::MAX_QUANTITY }}" value="{{ old('quantity', 50) }}" required dir="ltr"></label>
                 <label class="block"><span class="field-label">{{ __('Valid until (inclusive)') }} *</span>
-                    <input class="field" name="expires_on" type="date" min="{{ now()->format('Y-m-d') }}" value="{{ old('expires_on', $contract->expires_on?->format('Y-m-d')) }}" required></label>
+                    <input class="field" name="expires_on" type="date" min="{{ local_today() }}" value="{{ old('expires_on', $contract->expires_on?->format('Y-m-d')) }}" required></label>
                 <label class="block"><span class="field-label">{{ __('Serial prefix') }}</span>
                     <input class="field uppercase" name="prefix" value="{{ old('prefix') }}" maxlength="6" pattern="[A-Za-z0-9]{1,6}" dir="ltr" placeholder="EVA"></label>
             </div>

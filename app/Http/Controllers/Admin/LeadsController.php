@@ -15,7 +15,6 @@ use App\Services\Crm\OfferAdvisor;
 use App\Services\TenantProvisioner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -108,7 +107,7 @@ class LeadsController extends Controller
             return back()->withInput()->withErrors(['next_follow_up_at' => __('Pick when to call back.')]);
         }
         $answers = $this->answers($request, $sections['question']);
-        $followUp = ! empty($data['next_follow_up_at']) ? Carbon::parse($data['next_follow_up_at'], config('app.timezone')) : null;
+        $followUp = ! empty($data['next_follow_up_at']) ? local_input($data['next_follow_up_at']) : null;
         $from = $lead->stage;
         $stage = $data['stage'] ?? null;
         if ($stage === null && $from === 'new' && in_array($data['outcome'], ['answered', 'sent'], true)) {
@@ -158,7 +157,7 @@ class LeadsController extends Controller
         if ($assignee && (! $assignee->is_active || ! $assignee->allows('crm.manage'))) {
             return back()->withInput()->withErrors(['assigned_admin_id' => __('Assign the lead to someone who can follow up customers.')]);
         }
-        $followUp = ! empty($data['next_follow_up_at']) ? Carbon::parse($data['next_follow_up_at'], config('app.timezone')) : null;
+        $followUp = ! empty($data['next_follow_up_at']) ? local_input($data['next_follow_up_at']) : null;
         $changes = [
             'stage' => $data['stage'],
             'lost_reason' => $data['stage'] === 'lost' ? $data['lost_reason'] : null,

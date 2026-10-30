@@ -69,7 +69,7 @@ final class MenuTicker
         foreach ($offers as $offer) {
             $text = '-'.$offer->discount_percent.'% · '.tr($offer->title, $offer->title_en);
             if ($offer->ends_at) {
-                $text .= ' · '.__('until :time', ['time' => local_time(today()->setTimeFromTimeString($offer->ends_at), 'h:i A')]);
+                $text .= ' · '.__('until :time', ['time' => local_time(local_at()->setTimeFromTimeString($offer->ends_at), 'h:i A')]);
             }
             $lines[] = ['kind' => 'offer', 'icon' => '🔥', 'text' => $text] + $link(null, $offer->category_id);
         }

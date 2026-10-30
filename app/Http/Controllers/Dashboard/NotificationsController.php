@@ -98,7 +98,7 @@ class NotificationsController extends Controller
                 ->where('status', 'pending')->where('created_at', '>=', $since)->latest('id')->limit(self::LIMIT)->get();
             foreach ($bookings as $r) {
                 $items[] = ['key' => "booking-{$r->id}", 'kind' => 'booking', 'icon' => '📅', 'title' => __('Booking request'),
-                    'detail' => $r->name.' · '.__(':n guests', ['n' => $r->party_size]).' · '.local_time($r->starts_at, $r->starts_at->isToday() ? 'h:i A' : 'd/m h:i A'),
+                    'detail' => $r->name.' · '.__(':n guests', ['n' => $r->party_size]).' · '.local_time($r->starts_at, local_at($r->starts_at)->isToday() ? 'h:i A' : 'd/m h:i A'),
                     'at' => $r->created_at, 'url' => route('dash.reservations')];
             }
         }

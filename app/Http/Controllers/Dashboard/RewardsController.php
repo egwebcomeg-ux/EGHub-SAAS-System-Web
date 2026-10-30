@@ -161,7 +161,7 @@ class RewardsController extends Controller
         return [
             'wallet' => WalletService::enabled(),
             'cashback' => ['percent' => Settings::get('cashback_percent'), 'min_order' => Settings::get('cashback_min_order'), 'expire_days' => Settings::get('cashback_expire_days'),
-                'month' => round((float) WalletTransaction::query()->where('kind', 'cashback')->where('created_at', '>=', now()->startOfMonth())->sum('delta'), 2)],
+                'month' => round((float) WalletTransaction::query()->where('kind', 'cashback')->where('created_at', '>=', local_at()->startOfMonth()->utc())->sum('delta'), 2)],
         ];
     }
 

@@ -49,7 +49,7 @@ class CorporateVoucher extends TenantModel
     /** A visit's meals voucher works from the visit day on (and until its expiry, the same day). */
     public function isNotYetValid(): bool
     {
-        return $this->valid_from !== null && $this->valid_from->copy()->startOfDay()->isFuture();
+        return $this->valid_from !== null && $this->valid_from->toDateString() > local_today();
     }
 
     public function booking(): BelongsTo
@@ -124,7 +124,7 @@ class CorporateVoucher extends TenantModel
     /** Past its last day (the expiry date itself is still good). */
     public function isExpired(): bool
     {
-        return $this->expires_on !== null && $this->expires_on->copy()->endOfDay()->isPast();
+        return $this->expires_on !== null && $this->expires_on->toDateString() < local_today();
     }
 
     public function statusKey(): string

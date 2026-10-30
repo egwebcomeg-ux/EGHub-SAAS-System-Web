@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Models\Concerns\TenantModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * A WhatsApp message the restaurant sends by itself when something happens to a guest: the first counted order
@@ -64,7 +63,7 @@ class CampaignAutomation extends TenantModel
     /** Whether the local hour of $at falls inside the send window. */
     public function inWindow(\DateTimeInterface $at): bool
     {
-        $hour = (int) Carbon::instance($at)->setTimezone(config('app.timezone'))->format('G');
+        $hour = (int) local_at($at)->format('G');
 
         return $hour >= $this->send_from && $hour < $this->send_to;
     }

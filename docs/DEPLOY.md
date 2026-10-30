@@ -74,7 +74,7 @@ Keys marked **REQUIRED** have no safe default.
 | `APP_DEBUG` | `false` **REQUIRED** |
 | `APP_KEY` | from `key:generate` **REQUIRED** |
 | `APP_URL` | `https://eghub.app` **REQUIRED** |
-| `APP_TIMEZONE` | `Africa/Cairo` |
+| `APP_LOCAL_TIMEZONE` | `Africa/Cairo` (restaurant time: display, business days, the schedule). Times are always stored in UTC; an old `APP_TIMEZONE` line is ignored |
 | `APP_LOCALE` / `APP_FALLBACK_LOCALE` | `ar` / `en` |
 | `CENTRAL_DOMAINS` | `eghub.app,egmenu.app` **REQUIRED** (first entry is the main domain; `app.` and `admin.` hosts derive from it; later entries are earlier domains that redirect to it, and the first of them hosts the restaurant directory). Default `localhost` is wrong in production |
 | `DB_CONNECTION` | `mysql` **REQUIRED** (default is sqlite) |

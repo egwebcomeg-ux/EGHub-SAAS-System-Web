@@ -38,14 +38,14 @@ class ReportsController extends Controller
             'advanced' => $advanced,
             'extra' => $advanced ? (new AdvancedReport($from, $to, $branchId))->build() : null,
             'weeklyEmail' => Settings::get('weekly_report_email') === '1',
-            'visits' => MenuVisit::query()->whereBetween('day', [$from->startOfDay(), $to->endOfDay()])
+            'visits' => MenuVisit::query()->whereBetween('day', [$from->toDateString(), $to->toDateString().' 23:59:59'])
                 ->selectRaw('COALESCE(SUM(views), 0) as views, COALESCE(SUM(scans), 0) as scans')->first(),
             'topTables' => DiningTable::query()->where('scans_count', '>', 0)->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                 ->orderByDesc('scans_count')->limit(5)->get(['name', 'scans_count', 'last_scanned_at']),
             'branches' => $request->user()->branch_id ? collect() : Branch::query()->orderBy('sort_order')->get(),
             // delivery drivers in the range (plan feature of delivery): only the drivers who delivered or failed something
             'delivery' => Entitlements::current()->allows('delivery_zones|online_ordering')
-                ? (new DriverStats($from->startOfDay(), $to->endOfDay(), $branchId))->active(DeliveryService::driverQuery()->orderBy('name')->get())
+                ? (new DriverStats(local_day_start($from->toDateString()), local_day_end($to->toDateString()), $branchId))->active(DeliveryService::driverQuery()->orderBy('name')->get())
                 : [],
             // the guest pager (plan feature pager): waits and calls of the paged orders and station tickets
             'pager' => Pager::enabled() ? Pager::report($from, $to, $branchId) : null,
@@ -118,7 +118,7 @@ class ReportsController extends Controller
         if (! $advanced && ! in_array($preset, ['today', 'yesterday', '7d'], true)) {
             $preset = 'today';
         }
-        $today = CarbonImmutable::today();
+        $today = CarbonImmutable::parse(local_today());
 
         return match ($preset) {
             'yesterday' => [$today->subDay(), $today->subDay(), $preset],

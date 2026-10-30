@@ -86,7 +86,7 @@ class ScreenPlayerController extends Controller
 
         return response()->json([
             'v' => (new ScreenPlaylist($screen))->version(), 'reload' => $screen->reload_requested_at?->timestamp,
-            'now' => (int) floor(microtime(true) * 1000), 'tz' => now()->utcOffset(),
+            'now' => (int) floor(microtime(true) * 1000), 'tz' => local_at()->utcOffset(),
         ], 200, self::NO_STORE);
     }
 

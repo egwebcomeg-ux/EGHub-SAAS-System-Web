@@ -26,7 +26,7 @@ class CompanyPortalController extends Controller
     {
         $contract = $this->contract($token);
         $vouchers = CorporateVoucher::query()->where('corporate_contract_id', $contract->id)->whereNotNull('corporate_booking_id')
-            ->where('status', 'active')->where('balance', '>', 0)->where('expires_on', '>=', now()->toDateString())
+            ->where('status', 'active')->where('balance', '>', 0)->where('expires_on', '>=', local_today())
             ->orderBy('expires_on')->limit(50)->get();
 
         return response(view('menu.company', [
@@ -34,7 +34,7 @@ class CompanyPortalController extends Controller
             'account' => $account->summary($contract), 'available' => $bookings->available($contract),
             'bookings' => $contract->bookings()->with('branch')->latest('visit_at')->limit(30)->get(),
             'vouchers' => $vouchers, 'branches' => $this->branches($contract),
-            'earliest' => now()->addHours($contract->booking_notice_hours),
+            'earliest' => local_at()->addHours($contract->booking_notice_hours),
         ]), 200, CardAppController::PRIVATE_HEADERS);
     }
 

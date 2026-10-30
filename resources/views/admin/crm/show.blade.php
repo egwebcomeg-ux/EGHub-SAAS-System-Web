@@ -271,7 +271,7 @@
                         </div>
                         <div>
                             <label class="field-label" for="d-expires">{{ __('Valid until') }}</label>
-                            <input id="d-expires" type="date" name="expires_at" class="field" dir="ltr" value="{{ old('expires_at', now()->addDays(7)->toDateString()) }}" min="{{ now()->addDay()->toDateString() }}" max="{{ now()->addDays(180)->toDateString() }}" required>
+                            <input id="d-expires" type="date" name="expires_at" class="field" dir="ltr" value="{{ old('expires_at', local_at()->addDays(7)->toDateString()) }}" min="{{ local_at()->addDay()->toDateString() }}" max="{{ local_at()->addDays(180)->toDateString() }}" required>
                         </div>
                         <div>
                             <label class="field-label" for="d-note">{{ __('Why (for the team)') }}</label>
@@ -322,7 +322,7 @@
                 </div>
                 <div>
                     <label class="field-label" for="l-follow">{{ __('Next follow-up') }}</label>
-                    <input id="l-follow" type="datetime-local" name="next_follow_up_at" class="field" dir="ltr" value="{{ old('next_follow_up_at', $lead->next_follow_up_at?->format('Y-m-d\TH:i')) }}">
+                    <input id="l-follow" type="datetime-local" name="next_follow_up_at" class="field" dir="ltr" value="{{ old('next_follow_up_at', $lead->next_follow_up_at ? local_time($lead->next_follow_up_at, 'Y-m-d\TH:i') : '') }}">
                 </div>
                 <div>
                     <label class="field-label" for="l-notes">{{ __('Notes about this customer') }}</label>

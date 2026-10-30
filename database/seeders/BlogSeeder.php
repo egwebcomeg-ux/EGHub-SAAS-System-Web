@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Post;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -42,7 +41,7 @@ class BlogSeeder extends Seeder
             }
             $attributes = array_diff_key($post, array_flip(['at', 'draft', 'cover_card'])) + [
                 'is_published' => ! ($post['draft'] ?? false),
-                'published_at' => Carbon::parse($post['at'], config('app.timezone')),
+                'published_at' => local_input($post['at']),
             ];
             if ($existing === null) {
                 Post::query()->create($attributes + ['cover' => $this->cover($post['slug'])]);

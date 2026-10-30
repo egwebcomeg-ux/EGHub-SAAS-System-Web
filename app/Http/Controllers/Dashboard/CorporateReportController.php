@@ -88,7 +88,7 @@ class CorporateReportController extends Controller
     /** @return array{0:CarbonImmutable, 1:CarbonImmutable} */
     private function range(Request $request): array
     {
-        $today = CarbonImmutable::today();
+        $today = CarbonImmutable::parse(local_today());
 
         return match ($this->preset($request)) {
             'today' => [$today, $today],

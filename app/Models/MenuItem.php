@@ -182,10 +182,10 @@ class MenuItem extends TenantModel
     public static function availableFromPreset(string $preset, ?string $custom = null): ?Carbon
     {
         return match ($preset) {
-            'end_of_day' => now()->endOfDay(),
-            'tomorrow' => now()->addDay()->startOfDay()->addHours(6), // back on the morning menu, not at midnight
+            'end_of_day' => local_day_end(),
+            'tomorrow' => local_at()->addDay()->setTime(6, 0)->utc(), // back on the morning menu, not at midnight
             'hours_2' => now()->addHours(2),
-            'custom' => $custom ? Carbon::parse($custom, config('app.timezone')) : null,
+            'custom' => $custom ? local_input($custom) : null,
             default => null,
         };
     }

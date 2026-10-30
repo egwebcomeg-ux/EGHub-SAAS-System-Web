@@ -55,7 +55,7 @@ final class LeadSignals
             $qrPrinted = trim((string) $s['qr_printed_at']);
             $views = (int) MenuVisit::query()->sum('views');
             $scans = (int) MenuVisit::query()->sum('scans');
-            $weekViews = (int) MenuVisit::query()->where('day', '>=', today()->subDays(6))->sum('views');
+            $weekViews = (int) MenuVisit::query()->where('day', '>=', local_at()->subDays(6)->toDateString())->sum('views');
             $orders = Order::query()->count();
             $lastOrder = $orders > 0 ? Order::query()->max('created_at') : null;
             $tables = DiningTable::query()->count();

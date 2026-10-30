@@ -17,7 +17,6 @@ use App\Services\Settings;
 use App\Support\MenuLocales;
 use App\Support\ScreenDesigns;
 use App\Support\ScreenShape;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -52,7 +51,7 @@ final class ScreenPlaylist
     {
         $content = $this->content();
 
-        return ['v' => $this->hash($content), 'now' => (int) floor(microtime(true) * 1000), 'tz' => now()->utcOffset(),
+        return ['v' => $this->hash($content), 'now' => (int) floor(microtime(true) * 1000), 'tz' => local_at()->utcOffset(),
             'poll' => self::POLL_SECONDS, 'reload' => $this->screen->reload_requested_at?->timestamp] + $content;
     }
 
@@ -91,7 +90,7 @@ final class ScreenPlaylist
             ->where('created_at', '>=', now()->subHours(12))
             ->orderBy('id')->get(['number', 'status']);
         $called = PagerTicket::query()->where('branch_id', $branch->id)->where('status', 'called')
-            ->whereDate('service_date', today())->orderBy('called_at')->pluck('number');
+            ->whereDate('service_date', local_today())->orderBy('called_at')->pluck('number');
 
         return [
             'ready' => $orders->where('status', 'ready')->pluck('number')->merge($called)->unique()->values()->all(),
@@ -328,7 +327,7 @@ final class ScreenPlaylist
         $ends = null;
         if ($option('ends_at') !== '') {
             try {
-                $ends = Carbon::parse($option('ends_at'), config('app.timezone'));
+                $ends = local_input($option('ends_at'));
             } catch (\Throwable) {
                 $ends = null;
             }

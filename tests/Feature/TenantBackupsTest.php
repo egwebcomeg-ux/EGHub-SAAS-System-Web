@@ -126,7 +126,7 @@ class TenantBackupsTest extends TenantTestCase
         $this->assertSame(['Recent Latte'], array_column($orderItems, 'name'));
         $archive = json_decode($zip->getFromName('data/orders-archive.json'), true);
         $this->assertCount(1, $archive);
-        $this->assertSame(now()->subMonths(14)->format('Y-m'), $archive[0]['month']);
+        $this->assertSame(local_at(now()->subMonths(14))->format('Y-m'), $archive[0]['month']);
         $this->assertSame(1, $archive[0]['orders']);
         $this->assertEquals(80, $archive[0]['total']);
 

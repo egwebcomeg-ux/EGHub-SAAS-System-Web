@@ -198,7 +198,7 @@
                     </div>
                     <div>
                         <label class="field-label" for="c-cexp">{{ __('Valid until') }}</label>
-                        <input class="field" id="c-cexp" name="coupon_expires_at" type="date" value="{{ old('coupon_expires_at', now()->addDays(14)->format('Y-m-d')) }}" dir="ltr">
+                        <input class="field" id="c-cexp" name="coupon_expires_at" type="date" value="{{ old('coupon_expires_at', local_at()->addDays(14)->format('Y-m-d')) }}" dir="ltr">
                         @error('coupon_expires_at')<div class="field-error">{{ $message }}</div>@enderror
                     </div>
                     <div>

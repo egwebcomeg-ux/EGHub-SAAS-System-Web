@@ -32,7 +32,7 @@ final class ZReport
      */
     public function build(): array
     {
-        [$from, $to] = [$this->day->startOfDay(), $this->day->endOfDay()];
+        [$from, $to] = [local_day_start($this->day->toDateString()), local_day_end($this->day->toDateString())];
         $orders = Order::query()->where('branch_id', $this->branchId)->whereBetween('created_at', [$from, $to])
             ->when($this->terminalId, fn ($q) => $q->where('terminal_id', $this->terminalId))
             ->get(['id', 'status', 'payment_status', 'payment_method', 'payments', 'corporate_amount', 'subtotal', 'discount', 'service', 'tax', 'total', 'offline_ref', 'needs_review', 'terminal_id']);

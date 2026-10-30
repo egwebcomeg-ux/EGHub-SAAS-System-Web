@@ -250,8 +250,8 @@ class PageCacheTest extends TenantTestCase
         $a = $this->restaurant('cafe-a');
         $latte = $this->item($a);
 
-        // the greeting changes at 17:00
-        $this->travelTo(now()->setTime(16, 58, 0));
+        // the greeting changes at 17:00 restaurant time
+        $this->travelTo(local_at()->setTime(16, 58, 0));
         $this->get($this->pathUrl('cafe-a'))->assertHeader('X-LiteSpeed-Cache-Control', 'public,max-age=121');
 
         // busy mode ends in 90 seconds

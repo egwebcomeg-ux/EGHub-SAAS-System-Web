@@ -100,12 +100,12 @@ final class DemoContent
                         'title' => trim('خصم 10% على '.($category->name ?? 'المنيو').' '.self::MARK),
                         'title_en' => '10% off '.(($category?->name_en ?: null) ?? 'the menu').' (demo)', 'discount_percent' => 10,
                         'category_id' => $category?->id, 'is_active' => true,
-                        'starts_on' => now()->toDateString(), 'ends_on' => now()->addDays(7)->toDateString(),
+                        'starts_on' => local_today(), 'ends_on' => local_at()->addDays(7)->toDateString(),
                     ])->id;
                 }
                 $this->tables($ids, $branch);
                 if ($rights->allows('reservations')) {
-                    $at = now()->addDay()->setTime(20, 0);
+                    $at = local_at()->addDay()->setTime(20, 0)->utc();
                     $ids['reservations'][] = Reservation::query()->create([
                         'branch_id' => $branch->id, 'customer_id' => $customers[0]->id ?? null, 'name' => $customers[0]->name ?? 'ضيف '.self::MARK,
                         'phone' => $customers[0]->phone ?? '01000000001', 'party_size' => 4, 'starts_at' => $at, 'ends_at' => $at->copy()->addMinutes(90),
@@ -132,7 +132,7 @@ final class DemoContent
                 if ($rights->allows('corporate_vouchers') && $owner) {
                     $contract = $this->corporate->createContract([
                         'name' => 'إيجي ويب للبرمجيات '.self::MARK, 'contact_name' => 'أ. سارة', 'contact_phone' => '01000000005',
-                        'prefix' => 'DEMO', 'voucher_value' => 150, 'quantity' => 5, 'expires_on' => now()->addMonths(3)->toDateString(),
+                        'prefix' => 'DEMO', 'voucher_value' => 150, 'quantity' => 5, 'expires_on' => local_at()->addMonths(3)->toDateString(),
                         'mode' => 'single', 'paid_amount' => 750,
                     ], $owner);
                     $ids['corporate_contracts'][] = $contract->id;
@@ -278,7 +278,7 @@ final class DemoContent
         ];
         $number = (int) Order::query()->max('number');
         foreach ($plan as $i => [$daysAgo, $hour, $status, $type, $source]) {
-            $at = $daysAgo === 0 ? now()->subMinutes(45 - $i * 3) : now()->subDays($daysAgo)->setTime($hour, ($i * 7) % 60);
+            $at = $daysAgo === 0 ? now()->subMinutes(45 - $i * 3) : local_at()->subDays($daysAgo)->setTime($hour, ($i * 7) % 60)->utc();
             $customer = $customers[$i % count($customers)] ?? null;
             $lines = [];
             foreach ([$i % $items->count(), ($i * 3 + 1) % $items->count()] as $n => $index) {

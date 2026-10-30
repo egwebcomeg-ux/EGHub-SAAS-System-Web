@@ -66,7 +66,7 @@ class SuppliersController extends Controller
             }
             $rows[] = [__('Total'), '', '', '', round($running, 2), ''];
 
-            return CorporateContractsController::download($rows, 'supplier-'.$supplier->id.'-'.now()->format('Y-m-d'), (string) $request->query('format'), __('Statement'));
+            return CorporateContractsController::download($rows, 'supplier-'.$supplier->id.'-'.local_today(), (string) $request->query('format'), __('Statement'));
         }
 
         return view('dashboard.inventory.supplier', [

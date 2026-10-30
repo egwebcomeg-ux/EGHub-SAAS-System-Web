@@ -189,7 +189,7 @@ final class LoyaltyService
     private function earned(LoyaltyProgram $program, LoyaltyCard $card, Order $order): int
     {
         return match ($program->type) {
-            'visits' => $order->subtotal >= $program->min_order && ! ($card->last_stamp_at?->isToday()) ? 1 : 0,
+            'visits' => $order->subtotal >= $program->min_order && ! ($card->last_stamp_at && local_at($card->last_stamp_at)->isToday()) ? 1 : 0,
             'items' => (int) $order->items->filter(function ($line) use ($program) {
                 $q = $program->qualifying_items ?? [];
 

@@ -109,6 +109,7 @@ Artisan::command('egmenu:auto-cancel', function (AutoCancel $autoCancel) use ($f
 })->purpose('Cancel the online orders nobody accepted within the restaurant\'s time limit (wallet money goes back)');
 
 // One cron line on the server runs everything: * * * * * php artisan schedule:run
+// Times of day are restaurant time (app.schedule_timezone, Cairo): 03:00 stays 03:00 through daylight saving.
 // withoutOverlapping(N): the lock expires after N minutes, so a run killed half-way (deploy, OOM) never blocks the
 // command for the default 24 hours. Daily/weekly jobs get a lock as long as they can reasonably take.
 Schedule::command('egmenu:billing')->dailyAt('03:00')->withoutOverlapping(60);

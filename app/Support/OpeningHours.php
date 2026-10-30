@@ -43,7 +43,7 @@ final class OpeningHours
     }
 
     /**
-     * Open at $at (restaurant local time)? An overnight window (20:00–03:00) is open after midnight too.
+     * Open at $at (read on the restaurant's clock)? An overnight window (20:00–03:00) is open after midnight too.
      * Null when the working hours are not set or not readable, so nothing wrong is shown.
      */
     public static function isOpenAt(?string $text, CarbonInterface $at): ?bool
@@ -56,7 +56,7 @@ final class OpeningHours
         if ($close === '23:59' && $open === '00:00') {
             return true;
         }
-        $now = $at->format('H:i');
+        $now = local_at($at)->format('H:i');
         if ($open <= $close) {
             return $now >= $open && $now < $close;
         }

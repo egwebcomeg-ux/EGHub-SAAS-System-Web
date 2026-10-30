@@ -10,6 +10,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -36,10 +37,10 @@ final class CorporateReport
     public function build(): array
     {
         $uses = $this->uses()->with(['voucher:id,serial,corporate_contract_id', 'approver:id,name', 'cashier:id,name'])->get();
-        $today = CarbonImmutable::today()->format('Y-m-d');
+        $today = local_today();
         $vouchers = $this->vouchers();
         $live = $vouchers->filter(fn ($v) => $v->status !== 'void');
-        $issued = $live->filter(fn ($v) => $v->created_at->between($this->from->startOfDay(), $this->to->endOfDay()));
+        $issued = $live->filter(fn ($v) => $v->created_at->between(...$this->range()));
         $outstanding = $live->filter(fn ($v) => $v->status === 'active' && $v->balance > 0 && $v->expires_on->format('Y-m-d') >= $today);
         $expired = $this->expiredUnused($live);
         $exceptions = $uses->whereNotNull('approved_by');
@@ -80,11 +81,17 @@ final class CorporateReport
         }
     }
 
+    /** @return array{0: Carbon, 1: Carbon} the period's first and last instant (UTC) */
+    private function range(): array
+    {
+        return [local_day_start($this->from->toDateString()), local_day_end($this->to->toDateString())];
+    }
+
     /** Uses in the range that still count (not given back), with every filter. */
     private function uses(): Builder
     {
         return CorporateVoucherRedemption::query()->whereNull('refunded_at')
-            ->whereBetween('created_at', [$this->from->startOfDay(), $this->to->endOfDay()])
+            ->whereBetween('created_at', $this->range())
             ->when($this->branchId, fn ($q) => $q->where('branch_id', $this->branchId))
             ->when($this->cashierId, fn ($q) => $q->where('user_id', $this->cashierId))
             ->when($this->contractId, fn ($q) => $q->where('corporate_contract_id', $this->contractId))
@@ -110,7 +117,7 @@ final class CorporateReport
     /** Active vouchers whose last day fell inside the range (and is over) with value left on them: breakage. */
     private function expiredUnused(Collection $vouchers): Collection
     {
-        $today = CarbonImmutable::today()->format('Y-m-d');
+        $today = local_today();
         $from = $this->from->format('Y-m-d');
         $to = $this->to->format('Y-m-d');
 
@@ -128,7 +135,7 @@ final class CorporateReport
             ->when($this->contractId, fn ($q) => $q->whereKey($this->contractId))
             ->when($this->mode, fn ($q) => $q->where('mode', $this->mode))
             ->orderByDesc('id')->get();
-        $today = CarbonImmutable::today()->format('Y-m-d');
+        $today = local_today();
         // all-time consumption for the usage share (value + what single mode lost), uses given back left out
         $consumed = CorporateVoucherRedemption::query()->whereNull('refunded_at')->whereIn('corporate_contract_id', $contracts->pluck('id'))
             ->get(['corporate_contract_id', 'amount', 'forfeited'])->groupBy('corporate_contract_id');
@@ -167,7 +174,7 @@ final class CorporateReport
             $days[$day->format('Y-m-d')] = 0.0;
         }
         foreach ($uses as $r) {
-            $key = $r->created_at->timezone(config('app.timezone'))->format('Y-m-d');
+            $key = local_today($r->created_at);
             if (isset($days[$key])) {
                 $days[$key] = round($days[$key] + $r->amount, 2);
             }
@@ -179,7 +186,7 @@ final class CorporateReport
     /** @return list<array{contract:CorporateContract, count:int, value:float, first:string}> contracts with vouchers ending in the next 30 days */
     private function expiring(Collection $vouchers): array
     {
-        $today = CarbonImmutable::today();
+        $today = CarbonImmutable::parse(local_today());
         $soon = $vouchers->filter(fn ($v) => $v->status === 'active' && $v->balance > 0
             && $v->expires_on->format('Y-m-d') >= $today->format('Y-m-d') && $v->expires_on->format('Y-m-d') <= $today->addDays(self::EXPIRING_DAYS)->format('Y-m-d'));
         $contracts = CorporateContract::query()->whereIn('id', $soon->pluck('corporate_contract_id')->unique())->get()->keyBy('id');

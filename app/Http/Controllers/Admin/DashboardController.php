@@ -22,7 +22,7 @@ class DashboardController extends Controller
     {
         $admin = $request->user('admin');
         $subs = Subscription::query()->with('plan')->get();
-        $since = now(config('app.timezone'))->subDays(self::DAYS - 1)->startOfDay();
+        $since = local_day_start(local_at()->subDays(self::DAYS - 1));
         $openInvoices = Invoice::query()->where('status', 'open');
 
         return view('admin.home', [
@@ -32,7 +32,7 @@ class DashboardController extends Controller
                 'active' => $subs->where('status', 'active')->count(),
                 'past_due' => $subs->where('status', 'past_due')->count(),
                 'suspended' => Tenant::query()->where('status', 'suspended')->count(),
-                'new_this_month' => Tenant::query()->where('created_at', '>=', now(config('app.timezone'))->startOfMonth())->count(),
+                'new_this_month' => Tenant::query()->where('created_at', '>=', local_at()->startOfMonth()->utc())->count(),
                 'services_new' => ServiceRequest::query()->where('status', 'new')->count(),
                 'unpaid_count' => (clone $openInvoices)->count(),
             ],
@@ -71,7 +71,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * One bucket per day of the last 30 days (Cairo time): a count of $rows, or the sum of $sumField.
+     * One bucket per day of the last 30 days (restaurant time) from $since (a UTC instant): a count of $rows, or the sum of $sumField.
      *
      * @param  Collection<int, mixed>  $rows
      * @return list<array{date: Carbon, value: float}>
@@ -80,11 +80,11 @@ class DashboardController extends Controller
     {
         $buckets = [];
         for ($i = 0; $i < self::DAYS; $i++) {
-            $buckets[$since->copy()->addDays($i)->format('Y-m-d')] = 0.0;
+            $buckets[local_at($since)->addDays($i)->format('Y-m-d')] = 0.0;
         }
         foreach ($rows as $row) {
             $at = $dateField ? $row->{$dateField} : $row;
-            $key = Carbon::parse($at)->timezone(config('app.timezone'))->format('Y-m-d');
+            $key = local_today($at);
             if (array_key_exists($key, $buckets)) {
                 $buckets[$key] += $sumField ? (float) $row->{$sumField} : 1;
             }

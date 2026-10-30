@@ -265,11 +265,11 @@
                 </div>
                 <div>
                     <label class="field-label">{{ __('Paid until') }}</label>
-                    <input class="field" type="date" name="current_period_end" value="{{ $sub?->current_period_end?->format('Y-m-d') }}">
+                    <input class="field" type="date" name="current_period_end" value="{{ $sub?->current_period_end ? local_today($sub->current_period_end) : '' }}">
                 </div>
                 <div>
                     <label class="field-label">{{ __('Trial ends') }}</label>
-                    <input class="field" type="date" name="trial_ends_at" value="{{ $sub?->trial_ends_at?->format('Y-m-d') }}">
+                    <input class="field" type="date" name="trial_ends_at" value="{{ $sub?->trial_ends_at ? local_today($sub->trial_ends_at) : '' }}">
                 </div>
             </div>
             <button class="btn-primary">{{ __('Save subscription') }}</button>

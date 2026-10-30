@@ -21,7 +21,7 @@ class ReservationsTest extends TenantTestCase
     {
         parent::setUp();
         // Tuesday 20 Oct 2026, 10:00 in Cairo; with no readable working hours the branch takes bookings 12:00–23:00
-        $this->travelTo(Carbon::parse('2026-10-20 10:00', config('app.timezone')));
+        $this->travelTo(Carbon::parse('2026-10-20 10:00', local_timezone()));
         $this->withoutMiddleware(ThrottleRequests::class); // these tests post more bookings a minute than a guest may
     }
 
@@ -58,7 +58,7 @@ class ReservationsTest extends TenantTestCase
         $this->assertSame('pending', $r->status);
         $this->assertSame('guest', $r->source);
         $this->assertSame('01001234567', $r->phone);
-        $this->assertSame('2026-10-20 20:30:00', $r->ends_at->format('Y-m-d H:i:s'));
+        $this->assertSame('2026-10-20 20:30:00', local_time($r->ends_at, 'Y-m-d H:i:s'));
         // the guest becomes a customer (Pro has the customer database)
         $this->assertSame($r->customer_id, $this->as($a, fn () => Customer::query()->where('phone', '01001234567')->value('id')));
 
@@ -121,7 +121,7 @@ class ReservationsTest extends TenantTestCase
         $this->assertMatchesRegularExpression('/value="19:30"[^>]*disabled/', $page);
 
         // a cancelled booking gives its seats back; staff are held to the seats too
-        $this->as($a, fn () => Reservation::query()->where('party_size', 3)->whereTime('starts_at', '19:00:00')->update(['status' => 'cancelled']));
+        $this->as($a, fn () => Reservation::query()->where('party_size', 3)->where('starts_at', local_input('2026-10-20 19:00'))->update(['status' => 'cancelled']));
         $this->actingAs($this->owner($a))->post($this->dashUrl('/reservations'), [
             'branch_id' => $branch, 'date' => '2026-10-20', 'time' => '19:00', 'party_size' => 5, 'name' => 'Big', 'phone' => '01066666666',
         ])->assertSessionHasErrors('time');
@@ -191,6 +191,24 @@ class ReservationsTest extends TenantTestCase
         // cashiers can't manage bookings, managers can
         $this->actingAs($this->staff($a, 'cashier', 'cashier@a.test'))->get($this->dashUrl('/reservations'))->assertForbidden();
         $this->actingAs($this->staff($a, 'manager', 'manager@a.test'))->get($this->dashUrl('/reservations'))->assertOk();
+    }
+
+    public function test_a_booking_after_midnight_is_stored_in_utc_and_listed_on_its_restaurant_day(): void
+    {
+        // Tuesdays 18:00–02:00: 00:30 on Wednesday is 21:30 UTC on Tuesday
+        $a = $this->bookable('cafe-a', ['reservation_hours' => json_encode([2 => ['open' => '18:00', 'close' => '02:00']])]);
+        $owner = $this->owner($a);
+        $this->actingAs($owner)->post($this->dashUrl('/reservations'), [
+            'branch_id' => $this->branchId($a), 'date' => '2026-10-21', 'time' => '00:30', 'party_size' => 2, 'name' => 'Late guest', 'phone' => '01012345678',
+        ])->assertSessionHasNoErrors();
+
+        $r = $this->as($a, fn () => Reservation::query()->firstOrFail());
+        $this->assertSame('2026-10-20 21:30:00', $r->getRawOriginal('starts_at'));
+        $this->assertSame('2026-10-21 00:30', local_time($r->starts_at, 'Y-m-d H:i'));
+        $this->actingAs($owner)->get($this->dashUrl('/reservations?date=2026-10-21'))->assertOk()
+            ->assertViewHas('day', fn ($day) => $day->pluck('name')->all() === ['Late guest']);
+        $this->actingAs($owner)->get($this->dashUrl('/reservations?date=2026-10-20'))->assertOk()
+            ->assertViewHas('day', fn ($day) => $day->isEmpty());
     }
 
     public function test_reservations_are_isolated_per_restaurant(): void

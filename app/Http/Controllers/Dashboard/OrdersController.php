@@ -185,7 +185,7 @@ class OrdersController extends Controller
             ->when($branch, fn ($q) => $q->where('branch_id', $branch))->orderBy('starts_at')->limit(20)->get()
             ->map(fn (Reservation $r) => [
                 'id' => $r->id, 'name' => $r->name, 'phone' => $r->phone, 'party' => $r->party_size, 'notes' => $r->notes,
-                'when' => local_time($r->starts_at, $r->starts_at->isToday() ? 'h:i A' : 'd/m h:i A'),
+                'when' => local_time($r->starts_at, local_at($r->starts_at)->isToday() ? 'h:i A' : 'd/m h:i A'),
             ])->values()->all();
     }
 
@@ -207,10 +207,11 @@ class OrdersController extends Controller
         } else {
             $until = $data['mode'] === 'minutes'
                 ? now()->addMinutes((int) $data['minutes'])
-                : now()->setTimeFromTimeString($data['time'].':00');
+                : local_at()->setTimeFromTimeString($data['time'].':00');
             if ($until->lte(now())) {
                 $until->addDay();
             }
+            $until = $until->utc();
             BusyMode::start($until, (string) ($data['message'] ?? ''));
             Audit::record('busy.on', local_time($until), ['until' => $until->toIso8601String()]);
         }

@@ -171,7 +171,7 @@ class ItemsController extends Controller
         }
         $item->update(['is_sold_out' => $soldOut, 'available_from' => $from]);
 
-        return response()->json(['ok' => true, 'value' => $soldOut, 'until' => $from ? local_time($from, $from->isToday() ? 'h:i A' : 'd/m h:i A') : null]);
+        return response()->json(['ok' => true, 'value' => $soldOut, 'until' => $from ? local_time($from, local_at($from)->isToday() ? 'h:i A' : 'd/m h:i A') : null]);
     }
 
     /** {ids: [...]} in the new order, inside one category. */

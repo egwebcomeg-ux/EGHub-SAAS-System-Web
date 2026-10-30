@@ -29,7 +29,7 @@ class DaypartsTest extends TenantTestCase
 
     private function at(string $time): void
     {
-        $this->travelTo(Carbon::parse($time, config('app.timezone')));
+        $this->travelTo(Carbon::parse($time, local_timezone()));
     }
 
     public function test_windows_weekdays_and_overnight(): void

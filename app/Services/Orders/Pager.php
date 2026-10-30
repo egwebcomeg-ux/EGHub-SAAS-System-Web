@@ -296,7 +296,7 @@ final class Pager
     /** The next free number of the branch today (the station's "+1"). */
     public static function nextNumber(Branch $branch): int
     {
-        return (int) PagerTicket::query()->where('branch_id', $branch->id)->whereDate('service_date', today())->max('number') + 1;
+        return (int) PagerTicket::query()->where('branch_id', $branch->id)->whereDate('service_date', local_today())->max('number') + 1;
     }
 
     /**
@@ -309,12 +309,12 @@ final class Pager
     {
         for ($attempt = 0; $attempt < 3; $attempt++) {
             $n = $number ?? self::nextNumber($branch);
-            if ($number !== null && PagerTicket::query()->where('branch_id', $branch->id)->whereDate('service_date', today())->where('number', $n)->exists()) {
+            if ($number !== null && PagerTicket::query()->where('branch_id', $branch->id)->whereDate('service_date', local_today())->where('number', $n)->exists()) {
                 throw new OrderException(__('Number :n is already in today’s queue.', ['n' => $n]));
             }
             try {
                 return PagerTicket::query()->create([
-                    'branch_id' => $branch->id, 'number' => $n, 'service_date' => today()->toDateString(),
+                    'branch_id' => $branch->id, 'number' => $n, 'service_date' => local_today(),
                     'token' => bin2hex(random_bytes(12)), 'status' => 'waiting', 'created_by' => $by?->id,
                 ]);
             } catch (QueryException $e) {
@@ -338,8 +338,8 @@ final class Pager
      */
     public static function report(CarbonImmutable $from, CarbonImmutable $to, ?int $branchId): array
     {
-        $start = $from->startOfDay();
-        $end = $to->endOfDay();
+        $start = local_day_start($from);
+        $end = local_day_end($to);
         $rows = [];
 
         $orders = Order::query()->whereBetween('created_at', [$start, $end])->where('status', '!=', 'cancelled')

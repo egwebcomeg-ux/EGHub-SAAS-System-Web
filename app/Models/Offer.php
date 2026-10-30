@@ -24,13 +24,15 @@ class Offer extends TenantModel
         return $this->belongsTo(Branch::class);
     }
 
-    /** Is the offer running at $at (restaurant local time) in $branchId? */
+    /** Is the offer running at $at (read on the restaurant's clock) in $branchId? */
     public function runsAt(CarbonInterface $at, ?int $branchId): bool
     {
         if (! $this->is_active || ($this->branch_id && $this->branch_id !== $branchId)) {
             return false;
         }
-        if (($this->starts_on && $at->lt($this->starts_on->startOfDay())) || ($this->ends_on && $at->gt($this->ends_on->endOfDay()))) {
+        $at = local_at($at);
+        $day = $at->toDateString();
+        if (($this->starts_on && $day < $this->starts_on->toDateString()) || ($this->ends_on && $day > $this->ends_on->toDateString())) {
             return false;
         }
         if (! $this->starts_at || ! $this->ends_at) {

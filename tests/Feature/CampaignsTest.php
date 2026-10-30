@@ -131,7 +131,7 @@ class CampaignsTest extends TenantTestCase
         $this->customer($a, '01000000001');
         app(Credits::class)->add($a, 5, 'adjustment');
         $this->actingAs($this->owner($a))->post($this->dashUrl('/campaigns'), [
-            'name' => 'Friday', 'segment' => 'all', 'message' => 'Hi', 'when' => 'later', 'scheduled_at' => now()->addHour()->format('Y-m-d H:i'),
+            'name' => 'Friday', 'segment' => 'all', 'message' => 'Hi', 'when' => 'later', 'scheduled_at' => local_at()->addHour()->format('Y-m-d H:i'),
         ])->assertSessionHasNoErrors();
         $this->assertSame('scheduled', $this->as($a, fn () => Campaign::query()->sole()->status));
 

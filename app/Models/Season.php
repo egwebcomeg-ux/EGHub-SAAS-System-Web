@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Models\Concerns\TenantModel;
 use App\Services\Entitlements;
-use Illuminate\Support\Carbon;
 
 /**
  * A seasonal look of the public menu (feature offers): between two local dates the menu shows a greeting strip,
@@ -62,7 +61,7 @@ class Season extends TenantModel
     /** Today's date where the restaurant is. */
     public static function today(): string
     {
-        return Carbon::now(config('app.timezone'))->toDateString();
+        return local_today();
     }
 
     public function runsOn(string $date): bool

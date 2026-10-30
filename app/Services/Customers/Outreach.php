@@ -13,7 +13,6 @@ use App\Services\Marketing\Campaigns;
 use App\Services\Notify\GuestNotifier;
 use App\Services\Sms\Sms;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -63,7 +62,7 @@ final class Outreach
                     'code' => Coupon::generateCode($prefix), 'type' => $template['type'], 'value' => $template['value'],
                     'min_order' => $template['min_order'] ?? 0, 'max_uses' => 1, 'once_per_customer' => true, 'customer_id' => $guest->id,
                     'source' => 'campaign', 'note' => mb_substr($name, 0, 200), 'is_active' => true,
-                    'expires_at' => Carbon::now()->addDays(max(1, (int) $template['days']))->endOfDay(),
+                    'expires_at' => local_day_end(local_at()->addDays(max(1, (int) $template['days']))),
                 ]) : null;
                 $ref = CampaignRecipient::newRef();
                 CampaignRecipient::query()->create([

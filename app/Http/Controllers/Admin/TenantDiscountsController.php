@@ -8,7 +8,6 @@ use App\Models\TenantDiscount;
 use App\Services\Crm\TenantDiscounts;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 
 /**
  * A discount on the restaurant's next subscription invoice(s), given from the call screen (crm.discount): never above
@@ -26,12 +25,12 @@ class TenantDiscountsController extends Controller
         $data = $request->validate([
             'percent' => ['required', 'numeric', 'min:1', 'max:'.$limit],
             'invoices' => ['required', 'integer', 'min:1', 'max:'.TenantDiscount::MAX_INVOICES],
-            'expires_at' => ['required', 'date', 'after:today', 'before_or_equal:'.now()->addDays(180)->toDateString()],
+            'expires_at' => ['required', 'date', 'after:'.local_today(), 'before_or_equal:'.local_at()->addDays(180)->toDateString()],
             'note' => 'required|string|max:255',
         ], [
             'percent.max' => __('Your limit is :max%. Ask the platform owner for a bigger discount.', ['max' => $limit]),
         ]);
-        $expires = Carbon::parse($data['expires_at'], config('app.timezone'))->endOfDay();
+        $expires = local_day_end($data['expires_at']);
         $discount = $discounts->grant($tenant, $admin, round((float) $data['percent'], 2), (int) $data['invoices'], $expires, trim($data['note']));
 
         return redirect()->route('admin.crm.show', $lead)->with('ok', __(':pct% off the next invoice is saved until :date.', [

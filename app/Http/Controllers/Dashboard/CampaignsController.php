@@ -20,7 +20,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\Rule;
@@ -182,14 +181,14 @@ class CampaignsController extends Controller
         $request->merge(['coupon_code' => Coupon::normalize((string) $request->input('coupon_code', ''))]);
         $data = $request->validate($this->audienceRules($request) + [
             'when' => ['required', Rule::in(['now', 'later'])],
-            'scheduled_at' => 'nullable|required_if:when,later|date|after:now',
+            'scheduled_at' => 'nullable|required_if:when,later|date|after:'.local_at()->format('Y-m-d H:i:s'),
             'coupon_code' => ['nullable', 'string', 'max:30', 'regex:/^[A-Z0-9_-]{3,30}$/',
                 Rule::unique('coupons', 'code')->where('tenant_id', tenant()->getTenantKey())],
             'coupon_type' => ['nullable', 'required_with:coupon_code', Rule::in(['percent', 'amount'])],
             'coupon_value' => ['nullable', 'required_with:coupon_code', 'numeric', 'min:1', $request->input('coupon_type') === 'percent' ? 'max:100' : 'max:100000'],
             'coupon_max_discount' => 'nullable|numeric|min:1|max:100000',
             'coupon_min_order' => 'nullable|numeric|min:0|max:100000',
-            'coupon_expires_at' => 'nullable|date|after:today',
+            'coupon_expires_at' => 'nullable|date|after:'.local_today(),
             'coupon_max_uses' => 'nullable|integer|min:1|max:1000000',
             'coupon_id' => ['nullable', 'integer', function (string $attribute, mixed $value, \Closure $fail) {
                 if (! self::pickable()->whereKey((int) $value)->exists()) {
@@ -214,7 +213,7 @@ class CampaignsController extends Controller
                     'code' => $data['coupon_code'], 'type' => $data['coupon_type'], 'value' => $data['coupon_value'],
                     'max_discount' => $data['coupon_type'] === 'percent' ? ($data['coupon_max_discount'] ?? null) : null,
                     'min_order' => $data['coupon_min_order'] ?? 0, 'max_uses' => $data['coupon_max_uses'] ?? null,
-                    'expires_at' => isset($data['coupon_expires_at']) ? Carbon::parse($data['coupon_expires_at'])->endOfDay() : null,
+                    'expires_at' => isset($data['coupon_expires_at']) ? local_day_end($data['coupon_expires_at']) : null,
                 ]);
             }
 
@@ -222,7 +221,7 @@ class CampaignsController extends Controller
                 'name' => $data['name'], 'channel' => 'whatsapp', 'segment' => $data['segment'],
                 'segment_value' => Campaign::valueUnit($data['segment']) !== null ? $data['segment_value'] : null,
                 'message' => $data['message'], 'coupon_id' => $coupon?->id, 'status' => 'scheduled',
-                'scheduled_at' => $data['when'] === 'later' ? Carbon::parse($data['scheduled_at'], config('app.timezone')) : now(),
+                'scheduled_at' => $data['when'] === 'later' ? local_input($data['scheduled_at']) : now(),
                 'created_by' => $request->user()->id,
             ]);
         });

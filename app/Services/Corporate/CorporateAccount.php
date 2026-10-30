@@ -41,7 +41,7 @@ final class CorporateAccount
             $locked = CorporateContract::query()->lockForUpdate()->findOrFail($contract->id);
             $payment = CorporatePayment::query()->create([
                 'corporate_contract_id' => $locked->id, 'amount' => $amount, 'method' => $data['method'],
-                'paid_on' => $data['paid_on'] ?? now()->toDateString(),
+                'paid_on' => $data['paid_on'] ?? local_today(),
                 'reference' => ($v = trim((string) ($data['reference'] ?? ''))) !== '' ? mb_substr($v, 0, 60) : null,
                 'note' => ($v = trim((string) ($data['note'] ?? ''))) !== '' ? mb_substr($v, 0, 200) : null,
                 'received_by' => $by->id,
@@ -88,7 +88,7 @@ final class CorporateAccount
         // a void contract's vouchers can no longer be used: nothing is left on them
         $vouchers = CorporateVoucher::query()->where('corporate_contract_id', $contract->id)->where('status', 'active')
             ->when($contract->status === 'void', fn ($q) => $q->whereRaw('1 = 0'));
-        $today = now()->toDateString();
+        $today = local_today();
         $owed = round($charged - $paid, 2);
 
         return [
@@ -117,7 +117,7 @@ final class CorporateAccount
             ]);
         $payments = CorporatePayment::query()->where('corporate_contract_id', $contract->id)->with(['receiver:id,name', 'canceller:id,name'])->get()
             ->map(fn (CorporatePayment $p) => [
-                'at' => CarbonImmutable::parse($p->paid_on->toDateString().' '.$p->created_at->format('H:i:s')), 'kind' => 'payment',
+                'at' => CarbonImmutable::parse($p->paid_on->toDateString().' '.local_at($p->created_at)->format('H:i:s'), local_timezone())->utc(), 'kind' => 'payment',
                 'label' => trim($p->methodLabel().' '.($p->reference ? '· '.$p->reference : '')),
                 'charge' => 0.0, 'credit' => $p->cancelled_at ? 0.0 : $p->amount, 'payment' => $p,
             ]);

@@ -40,7 +40,7 @@ class CustomersController extends Controller
             'stats' => [
                 'total' => Customer::query()->count(),
                 'returning' => Customer::query()->where('visits_count', '>', 1)->count(),
-                'new_month' => Customer::query()->where('created_at', '>=', now()->startOfMonth())->count(),
+                'new_month' => Customer::query()->where('created_at', '>=', local_at()->startOfMonth()->utc())->count(),
             ],
         ]);
     }
@@ -72,7 +72,7 @@ class CustomersController extends Controller
     public function update(Request $request, Customer $customer): RedirectResponse
     {
         $data = $request->validate([
-            'name' => 'nullable|string|max:100', 'phone_2' => 'nullable|string|max:20', 'birthday' => 'nullable|date|before:today',
+            'name' => 'nullable|string|max:100', 'phone_2' => 'nullable|string|max:20', 'birthday' => 'nullable|date|before:'.local_today(),
             'notes' => 'nullable|string|max:1000',
         ]);
         $customer->update($data + ['marketing_opt_in' => $request->boolean('marketing_opt_in'), 'whatsapp_opt_out' => $request->boolean('whatsapp_opt_out')]);
@@ -100,12 +100,12 @@ class CustomersController extends Controller
             $rows->chunk(500, function ($chunk) use ($out, $segments, $tier) {
                 foreach ($chunk as $c) {
                     $badge = $segments->ofExported($c, $tier);
-                    fputcsv($out, csv_row([$c->name, $c->phone, $c->visits_count, $c->total_spent, $c->last_visit_at?->format('Y-m-d'), $c->birthday?->format('Y-m-d'), $c->marketing_opt_in ? 1 : 0,
+                    fputcsv($out, csv_row([$c->name, $c->phone, $c->visits_count, $c->total_spent, ($c->last_visit_at ? local_today($c->last_visit_at) : null), $c->birthday?->format('Y-m-d'), $c->marketing_opt_in ? 1 : 0,
                         $badge ? Segments::badge($badge) : '']));
                 }
             });
             fclose($out);
-        }, 'customers-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }, 'customers-'.local_today().'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     /**
@@ -132,7 +132,7 @@ class CustomersController extends Controller
                 }
             });
             fclose($out);
-        }, 'meta-audience-'.$audience.'-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }, 'meta-audience-'.$audience.'-'.local_today().'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     private function search(string $q, string $segment = '')

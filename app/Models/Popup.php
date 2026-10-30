@@ -22,9 +22,9 @@ class Popup extends TenantModel
 
     public function isLive(?int $branchId): bool
     {
-        $today = now()->startOfDay();
+        $today = local_today();
 
         return $this->is_active && (! $this->branch_id || $this->branch_id === $branchId)
-            && (! $this->starts_on || $this->starts_on->lte($today)) && (! $this->ends_on || $this->ends_on->gte($today));
+            && (! $this->starts_on || $this->starts_on->toDateString() <= $today) && (! $this->ends_on || $this->ends_on->toDateString() >= $today);
     }
 }

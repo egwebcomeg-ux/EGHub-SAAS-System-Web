@@ -101,7 +101,7 @@ class BlogController extends Controller
         ]);
         $post->slug = Post::slugFor($data['title'], $data['slug'] ?? ($post->exists ? $post->slug : null), $post->id);
         if (! empty($data['published_at'])) {
-            $post->published_at = $data['published_at'];
+            $post->published_at = local_input($data['published_at']);
         } elseif ($post->is_published && ! $post->published_at) {
             $post->published_at = now();
         }

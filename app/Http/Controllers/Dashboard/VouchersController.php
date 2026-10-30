@@ -12,7 +12,6 @@ use App\Services\Settings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -73,7 +72,7 @@ class VouchersController extends Controller
             'batch' => 'nullable|string|max:40',
             'prefix' => ['nullable', 'string', 'regex:/^[A-Z0-9]{2,8}$/'],
         ]);
-        $name = trim((string) ($data['batch'] ?? '')) ?: __('Batch').' '.now()->format('Y-m-d H:i');
+        $name = trim((string) ($data['batch'] ?? '')) ?: __('Batch').' '.local_at()->format('Y-m-d H:i');
         if (Coupon::query()->where('batch', $name)->exists()) {
             return back()->withInput()->withErrors(['batch' => __('A batch with this name already exists.')]);
         }
@@ -117,7 +116,7 @@ class VouchersController extends Controller
         abort_if($batch === '' || $vouchers->isEmpty(), 404);
         $names = $vouchers->first()->qualifyingNames();
         $rows = $vouchers->map(fn (Coupon $v) => [
-            $v->code, $v->headline(), $v->conditions($names), $v->starts_at?->format('Y-m-d'), $v->expires_at?->format('Y-m-d'),
+            $v->code, $v->headline(), $v->conditions($names), $v->starts_at ? local_today($v->starts_at) : null, $v->expires_at ? local_today($v->expires_at) : null,
             $v->uses, $this->stateLabel($v->state()), $v->menuUrl(),
         ]);
 
@@ -129,7 +128,7 @@ class VouchersController extends Controller
                 fputcsv($out, csv_row($row));
             }
             fclose($out);
-        }, 'vouchers-'.$vouchers->first()->id.'-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }, 'vouchers-'.$vouchers->first()->id.'-'.local_today().'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     /** Printable vouchers (A6 one per page, or 8 per A4): one voucher, a batch, or the listed ids. */
@@ -189,7 +188,7 @@ class VouchersController extends Controller
         $voucher = Coupon::query()->create([
             'code' => Coupon::generateCode(), 'source' => 'voucher', 'customer_id' => $customer->id,
             'type' => $data['type'], 'value' => $data['value'], 'min_order' => $data['min_order'] ?? 0,
-            'expires_at' => now()->addDays((int) $data['days'])->endOfDay(), 'max_uses' => 1, 'once_per_customer' => true,
+            'expires_at' => local_day_end(local_at()->addDays((int) $data['days'])), 'max_uses' => 1, 'once_per_customer' => true,
             'note' => __('Given at the counter by :name', ['name' => mb_substr((string) $by->name, 0, 60)]),
         ]);
         Audit::record('voucher.given', $voucher->code, ['customer' => $customer->id, 'type' => $voucher->type, 'value' => $voucher->value]);
@@ -208,7 +207,7 @@ class VouchersController extends Controller
             'max_discount' => 'nullable|numeric|min:1|max:100000',
             'min_order' => 'nullable|numeric|min:0|max:100000',
             'starts_at' => 'nullable|date',
-            'expires_at' => ['nullable', 'date', 'after_or_equal:today', function (string $attribute, mixed $value, \Closure $fail) {
+            'expires_at' => ['nullable', 'date', 'after_or_equal:'.local_today(), function (string $attribute, mixed $value, \Closure $fail) {
                 if (request()->filled('starts_at') && strtotime((string) $value) < strtotime((string) request()->input('starts_at'))) {
                     $fail(__('The end date must be after the start date.'));
                 }
@@ -236,8 +235,8 @@ class VouchersController extends Controller
             'type' => $data['type'], 'value' => $data['value'],
             'max_discount' => $data['type'] === 'percent' ? ($data['max_discount'] ?? null) : null,
             'min_order' => $data['min_order'] ?? 0,
-            'starts_at' => isset($data['starts_at']) ? Carbon::parse($data['starts_at'])->startOfDay() : null,
-            'expires_at' => isset($data['expires_at']) ? Carbon::parse($data['expires_at'])->endOfDay() : null,
+            'starts_at' => isset($data['starts_at']) ? local_day_start($data['starts_at']) : null,
+            'expires_at' => isset($data['expires_at']) ? local_day_end($data['expires_at']) : null,
             'once_per_customer' => $request->boolean('once_per_customer'),
             'note' => ($data['note'] ?? '') !== '' ? $data['note'] : null,
             'qualifying' => $categories || $items ? ['categories' => $categories, 'items' => $items] : null,

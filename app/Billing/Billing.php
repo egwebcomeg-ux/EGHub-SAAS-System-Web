@@ -158,7 +158,7 @@ final class Billing
                 'discount' => $q['discount'], 'total' => $q['total'], 'status' => 'open', 'due_at' => now()->addDays(3),
                 'meta' => array_filter(['renewal' => $q['renewal'], 'tenant_discount_id' => $q['tenant_discount_id'], 'packs' => $packKeys], fn ($v) => $v !== null),
             ]);
-            $invoice->update(['number' => 'EGM-'.now()->format('Ym').'-'.str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT)]);
+            $invoice->update(['number' => 'EGM-'.local_at()->format('Ym').'-'.str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT)]);
 
             return $invoice->fresh();
         });
@@ -203,7 +203,7 @@ final class Billing
                 'lines' => [['label' => $label, 'amount' => $amount]], 'subtotal' => $amount, 'discount' => 0, 'total' => $amount,
                 'status' => 'open', 'due_at' => now()->addDays(3), 'meta' => ['addon' => $addon->key, 'quantity' => $quantity],
             ]);
-            $invoice->update(['number' => 'EGM-'.now()->format('Ym').'-'.str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT)]);
+            $invoice->update(['number' => 'EGM-'.local_at()->format('Ym').'-'.str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT)]);
 
             return $invoice->fresh();
         });
@@ -247,7 +247,7 @@ final class Billing
                 'lines' => $lines, 'subtotal' => $total, 'discount' => 0, 'total' => $total, 'status' => 'open', 'due_at' => now()->addDays(3),
                 'meta' => ['custom_add' => $add->pluck('key')->values()->all(), 'custom_remove' => array_values($remove)],
             ]);
-            $invoice->update(['number' => 'EGM-'.now()->format('Ym').'-'.str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT)]);
+            $invoice->update(['number' => 'EGM-'.local_at()->format('Ym').'-'.str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT)]);
 
             return $invoice->fresh();
         });
@@ -284,7 +284,7 @@ final class Billing
         }
         $this->setAddon($tenant, LaunchOffer::ADDON, $covered);
         $tenant->run(fn () => Audit::record('billing.launch_offer_branch_added', LaunchOffer::ADDON, [
-            'quantity' => $covered, 'branches' => $active, 'free_until' => $sub->branch_offer_until->toDateString(),
+            'quantity' => $covered, 'branches' => $active, 'free_until' => local_today($sub->branch_offer_until),
         ]));
 
         return true;

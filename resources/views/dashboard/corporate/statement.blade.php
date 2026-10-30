@@ -35,7 +35,7 @@
             @forelse ($ledger as $line)
                 @php $payment = $line['payment']; @endphp
                 <tr @class(['line-through opacity-60' => $payment?->cancelled_at]) data-ledger-row="{{ $line['kind'] }}">
-                    <td class="whitespace-nowrap">{{ $line['at']->format('Y/m/d') }}</td>
+                    <td class="whitespace-nowrap">{{ local_time($line['at'], 'Y/m/d') }}</td>
                     <td>
                         {{ ['issue' => __('Vouchers issued'), 'visit' => __('Company visit'), 'payment' => __('Payment')][$line['kind']] }} · {{ $line['label'] }}
                         @if ($payment?->note)<div class="text-xs text-navy-500">{{ $payment->note }}</div>@endif
@@ -74,7 +74,7 @@
                     @endforeach
                 </select></label>
             <label class="block"><span class="field-label">{{ __('Date') }}</span>
-                <input class="field" name="paid_on" type="date" max="{{ now()->toDateString() }}" value="{{ old('paid_on', now()->toDateString()) }}"></label>
+                <input class="field" name="paid_on" type="date" max="{{ local_today() }}" value="{{ old('paid_on', local_today()) }}"></label>
             <label class="block"><span class="field-label">{{ __('Transfer / cheque / receipt number') }}</span>
                 <input class="field" name="reference" maxlength="60" dir="auto" value="{{ old('reference') }}"></label>
             <label class="block"><span class="field-label">{{ __('Note') }}</span>

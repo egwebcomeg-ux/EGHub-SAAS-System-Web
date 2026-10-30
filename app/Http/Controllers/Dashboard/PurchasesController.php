@@ -42,7 +42,7 @@ class PurchasesController extends Controller
 
     public function create(Request $request): View
     {
-        return $this->form($request, new Purchase(['purchased_on' => now(), 'branch_id' => InventoryController::currentBranch($request)->id,
+        return $this->form($request, new Purchase(['purchased_on' => local_today(), 'branch_id' => InventoryController::currentBranch($request)->id,
             'supplier_id' => $request->integer('supplier') ?: null]));
     }
 
@@ -154,7 +154,7 @@ class PurchasesController extends Controller
         $data = $request->validate([
             'supplier_id' => ['required', Rule::exists('suppliers', 'id')->where('tenant_id', $tenant)],
             'branch_id' => ['nullable', Rule::exists('branches', 'id')->where('tenant_id', $tenant)],
-            'purchased_on' => 'required|date|before_or_equal:tomorrow',
+            'purchased_on' => 'required|date|before_or_equal:'.local_at()->addDay()->toDateString(),
             'reference' => 'nullable|string|max:60',
             'note' => 'nullable|string|max:200',
             'lines' => 'array|max:'.self::MAX_LINES,

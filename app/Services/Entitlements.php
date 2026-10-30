@@ -141,7 +141,7 @@ final class Entitlements
             'tables' => DiningTable::query()->count(),
             'screens' => TvScreen::query()->count(),
             'ai_imports_per_month' => MenuImport::query()->whereIn('source', ['image', 'pdf'])
-                ->where('created_at', '>=', now()->startOfMonth())->count(),
+                ->where('created_at', '>=', local_at()->startOfMonth()->utc())->count(),
             default => 0,
         });
     }

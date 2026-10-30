@@ -53,17 +53,17 @@ final class CorporateBookings
         }
         $branch = $this->branchFor($contract, $data['branch_id'] ?? null);
         try {
-            $at = Carbon::createFromFormat('Y-m-d H:i', $data['date'].' '.$data['time'], config('app.timezone'))->startOfMinute();
+            $at = local_input($data['date'].' '.$data['time'], 'Y-m-d H:i')->startOfMinute();
         } catch (\Throwable) {
             throw new OrderException(__('Choose the day and time of the visit.'));
         }
         if ($source === 'portal' && $at->lt(now()->addHours($contract->booking_notice_hours))) {
             throw new OrderException(__('Visits are booked at least :n hours ahead. For a sooner visit, call the restaurant.', ['n' => $contract->booking_notice_hours]));
         }
-        if ($at->lt(now()->startOfDay())) {
+        if ($at->lt(local_day_start())) {
             throw new OrderException(__('The visit can\'t be in the past.'));
         }
-        if ($contract->expires_on && $at->copy()->startOfDay()->gt($contract->expires_on)) {
+        if ($contract->expires_on && local_today($at) > $contract->expires_on->toDateString()) {
             throw new OrderException(__('The contract ends on :date.', ['date' => local_time($contract->expires_on, 'Y/m/d')]));
         }
         $this->checkWindow($contract, $at);
@@ -90,7 +90,7 @@ final class CorporateBookings
             'notes' => ($v = trim((string) ($data['notes'] ?? ''))) !== '' ? mb_substr($v, 0, 500) : null,
             'source' => $source === 'portal' ? 'portal' : 'staff', 'status' => 'requested', 'created_by' => $by?->id,
         ]);
-        Audit::record('corporate.booking_requested', $contract->name, ['booking' => $booking->id, 'budget' => $budget, 'at' => $at->format('Y-m-d H:i')], $by?->id);
+        Audit::record('corporate.booking_requested', $contract->name, ['booking' => $booking->id, 'budget' => $budget, 'at' => local_time($at, 'Y-m-d H:i')], $by?->id);
         app(StaffPush::class)->corporateBookingRequested($booking->setRelation('contract', $contract));
 
         return $booking;
@@ -130,7 +130,7 @@ final class CorporateBookings
             if ($contract->status !== 'active') {
                 throw new OrderException(__('This contract is not active.'));
             }
-            if ($locked->visit_at->copy()->endOfDay()->isPast()) {
+            if (local_day_end($locked->visit_at)->isPast()) {
                 throw new OrderException(__('The day of this visit has passed.'));
             }
             $this->checkWindow($contract, $locked->visit_at);
@@ -142,7 +142,7 @@ final class CorporateBookings
             }
             $meals = round(min($locked->budget, $mealPrice * $locked->party_size), 2);
             $rest = round($locked->budget - $meals, 2);
-            $day = $locked->visit_at->format('Y-m-d');
+            $day = local_today($locked->visit_at);
 
             if ($meals > 0) {
                 $rep = Customer::query()->firstOrCreate(['phone' => $locked->rep_phone], ['name' => $locked->rep_name, 'source' => 'pos']);
@@ -228,7 +228,7 @@ final class CorporateBookings
             if ($locked->status !== 'confirmed') {
                 throw new OrderException(__('Only a confirmed visit can be closed.'));
             }
-            if ($locked->visit_at->copy()->startOfDay()->isFuture()) {
+            if (local_day_start($locked->visit_at)->isFuture()) {
                 throw new OrderException(__('The visit is closed on its day or after it.'));
             }
             $meals = CorporateVoucher::query()->where('corporate_booking_id', $locked->id)->whereNotNull('valid_from')->lockForUpdate()->first();
@@ -262,7 +262,7 @@ final class CorporateBookings
             $company->update(['value' => round($company->value + $amount, 2), 'balance' => round($company->balance + $amount, 2)]);
         } else {
             $contract = CorporateContract::query()->findOrFail($booking->corporate_contract_id);
-            $this->vouchers->issueOne($contract, $amount, $this->companyExpiry($contract, $booking->visit_at->format('Y-m-d')), null, 'balance', $booking->id);
+            $this->vouchers->issueOne($contract, $amount, $this->companyExpiry($contract, local_today($booking->visit_at)), null, 'balance', $booking->id);
         }
         $booking->update([
             'meals_amount' => round((float) $booking->meals_amount - $amount, 2), 'voucher_amount' => round((float) $booking->voucher_amount + $amount, 2),
@@ -273,7 +273,7 @@ final class CorporateBookings
     public function closePast(): int
     {
         $n = 0;
-        $ids = CorporateBooking::query()->where('status', 'confirmed')->where('visit_at', '<', now()->startOfDay())->orderBy('id')->pluck('id');
+        $ids = CorporateBooking::query()->where('status', 'confirmed')->where('visit_at', '<', local_day_start())->orderBy('id')->pluck('id');
         foreach ($ids as $id) {
             try {
                 $this->close(CorporateBooking::query()->findOrFail($id));
@@ -332,7 +332,7 @@ final class CorporateBookings
         }
         try {
             $reservation = app(ReservationService::class)->book([
-                'date' => $booking->visit_at->format('Y-m-d'), 'time' => $booking->visit_at->format('H:i'),
+                'date' => local_today($booking->visit_at), 'time' => local_time($booking->visit_at, 'H:i'),
                 'party_size' => $booking->party_size, 'name' => $booking->rep_name, 'phone' => $booking->rep_phone,
                 'notes' => trim($booking->contract->name.' · '.($booking->notes ?? ''), ' ·'),
             ], $booking->branch, $by);

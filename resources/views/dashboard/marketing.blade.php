@@ -4,7 +4,7 @@
 @section('content')
 @php
     $days = [__('Sun'), __('Mon'), __('Tue'), __('Wed'), __('Thu'), __('Fri'), __('Sat')];
-    $liveBanners = $banners->filter(fn ($b) => ! $b->is_popup && $b->is_active && (! $b->ends_on || $b->ends_on->gte(today())))->count();
+    $liveBanners = $banners->filter(fn ($b) => ! $b->is_popup && $b->is_active && (! $b->ends_on || $b->ends_on->toDateString() >= local_today()))->count();
 @endphp
 <x-dash.page-header :title="__('Offers & popups')" :help="__('Offers lower prices automatically on the menu and at the cashier during their hours.')" />
 
