@@ -12,7 +12,7 @@
             <p class="lp-block-intro" data-bchecklist-progress aria-live="polite">{{ count($items) }} بند</p>
         </div>
     </div>
-    <div class="lp-progress" data-bchecklist-bar hidden><span></span></div>
+    <div class="lp-checklist-bar" data-bchecklist-bar hidden><span></span></div>
     <ul class="lp-checklist">
         @foreach ($items as $item)
             <li>

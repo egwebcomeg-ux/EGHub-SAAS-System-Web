@@ -301,7 +301,7 @@ body.lp-locked { overflow: hidden; }
 /* ---------- reading progress: a thin line under the header pill ---------- */
 .lp-header-row { position: relative; }
 .lp-progress { position: absolute; bottom: 0; inset-inline: 28px; height: 2px; border-radius: 2px; overflow: hidden; pointer-events: none; }
-.lp-progress i { display: block; height: 100%; background: linear-gradient(90deg, #F37623, #FF8A3D); transform: scaleX(var(--lp-read, 0)); transform-origin: left; will-change: transform; }
+.lp-progress i { display: block; height: 100%; background: #F37623; transform: scaleX(var(--lp-read, 0)); transform-origin: left; will-change: transform; }
 [dir="rtl"] .lp-progress i { transform-origin: right; }
 
 /*
@@ -522,8 +522,8 @@ body.lp-locked { overflow: hidden; }
 .lp-calc-out dd { margin: .1rem 0 0; font-size: 1.35rem; font-weight: 900; font-variant-numeric: tabular-nums; }
 .lp-calc-out dd small { font-size: .8rem; font-weight: 700; opacity: .75; }
 
-.lp-progress { height: .5rem; border-radius: 99px; background: var(--color-navy-100); overflow: hidden; }
-.lp-progress span { display: block; height: 100%; width: var(--p, 0%); background: var(--eg-orange); border-radius: inherit; transition: width .25s ease-out; }
+.lp-checklist-bar { height: .5rem; border-radius: 99px; background: var(--color-navy-100); overflow: hidden; }
+.lp-checklist-bar span { display: block; height: 100%; width: var(--p, 0%); background: var(--eg-orange); border-radius: inherit; transition: width .25s ease-out; }
 .lp-checklist li + li { margin-top: .35rem; }
 .lp-checklist label { display: flex; gap: .75rem; align-items: flex-start; padding: .55rem .7rem; border-radius: .8rem; cursor: pointer; }
 .lp-checklist label:hover { background: var(--lp-paper); }
