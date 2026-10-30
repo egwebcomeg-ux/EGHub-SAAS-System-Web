@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Billing\Gateways\KashierGateway;
 use App\Billing\Gateways\PaymentGateway;
+use App\Billing\PricingRules;
 use App\Http\Middleware\ThrottlePerRoute;
 use App\Models\Domain;
 use App\Models\Plan;
@@ -60,6 +61,8 @@ class AppServiceProvider extends ServiceProvider
         });
         // one list of purges per request or command (App\Services\PageCache); a queue worker flushes it after each job
         $this->app->singleton(PageCache::class);
+        // the pricing rules read in this request or job (App\Billing\PricingRules)
+        $this->app->scoped(PricingRules::CACHE, fn () => new \ArrayObject);
     }
 
     /**

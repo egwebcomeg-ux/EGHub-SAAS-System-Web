@@ -8,7 +8,7 @@
 @php
     $groups = \App\Support\SiteModules::groups();
     $byGroup = collect($catalog)->groupBy(fn (array $row) => $row['module']['group']);
-    $markupPct = (int) round(\App\Billing\CustomPlan::OPERATIONS_MARKUP * 100);
+    $markupPct = (int) round(\App\Billing\PricingRules::operationsMarkup() * 100);
     $dashboard = $mode === 'dashboard';
 @endphp
 <div class="grid gap-6 lg:grid-cols-3" data-custom-plan data-endpoint="{{ $endpoint }}">

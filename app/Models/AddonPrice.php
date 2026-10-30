@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Billing\CustomPlan;
+use App\Billing\PricingRules;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -15,7 +16,7 @@ class AddonPrice extends Model
 {
     protected $guarded = ['id'];
 
-    /** Each branch after the first pays this share of a per-branch pack (40% off). */
+    /** Each branch after the first pays this share of a per-branch pack (40% off) until the owner sets it (PricingRules). */
     public const EXTRA_BRANCH_SHARE = 0.6;
 
     /** Staff accounts every extra branch (limit add-on `branches`) adds on top of the plan's. */
@@ -31,14 +32,14 @@ class AddonPrice extends Model
 
     /**
      * Monthly price for this restaurant: per-branch packs grow with its active branches. On the custom plan a pack
-     * that otherwise needs a bigger plan costs its markup more (CustomPlan::OPERATIONS_MARKUP).
+     * that otherwise needs a bigger plan costs its markup more (PricingRules::operationsMarkup()).
      */
     public function priceFor(Tenant $tenant, ?Plan $plan = null): float
     {
         $price = (float) $this->monthly_price;
         if ($this->per_branch) {
             $branches = max(1, Branch::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->where('is_active', true)->count());
-            $price = round($this->monthly_price * (1 + ($branches - 1) * self::EXTRA_BRANCH_SHARE));
+            $price = round($this->monthly_price * (1 + ($branches - 1) * PricingRules::extraBranchShare()));
         }
 
         return $plan && CustomPlan::marksUp($this, $plan) ? CustomPlan::markedUp($price) : $price;

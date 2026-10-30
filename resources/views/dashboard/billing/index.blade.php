@@ -110,7 +110,7 @@
         <div class="mb-3 flex flex-wrap items-end justify-between gap-3">
             <div>
                 <h2 class="text-lg font-bold">{{ __('Design your plan') }} @if ($custom['on'])<span class="badge bg-navy-800 text-white">{{ __('Current') }}</span>@endif</h2>
-                <p class="muted">{{ __('Tick only the modules you work with and pay for those. At least :min EGP a month.', ['min' => money(\App\Billing\CustomPlan::MINIMUM_MONTHLY)]) }}</p>
+                <p class="muted">{{ __('Tick only the modules you work with and pay for those. At least :min EGP a month.', ['min' => money(\App\Billing\PricingRules::customMinimum())]) }}</p>
             </div>
             @if ($custom['on'])
                 {{-- renewing keeps the modules it has now --}}

@@ -99,6 +99,8 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
     Route::middleware('admin.access:plans.manage')->group(function () {
         Route::get('/plans', [PlansController::class, 'index'])->name('plans');
         Route::get('/addons', [PlansController::class, 'addonsIndex'])->name('addons');
+        Route::get('/prices', [PlansController::class, 'prices'])->name('prices');
+        Route::post('/prices', [PlansController::class, 'updatePrices'])->name('prices.update');
         Route::get('/addons/{addon}/edit', [PlansController::class, 'editAddon'])->whereNumber('addon')->name('addons.edit');
         Route::post('/addons', [PlansController::class, 'addons'])->name('addons.update');
         Route::post('/addons/{addon}/toggle', [PlansController::class, 'toggleAddon'])->whereNumber('addon')->name('addons.toggle');

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Billing\PricingRules;
 use App\Http\Controllers\Controller;
 use App\Models\AddonPrice;
 use App\Models\Plan;
@@ -42,6 +43,65 @@ class PlansController extends Controller
             'plans' => Plan::query()->orderBy('sort_order')->get()->keyBy('code'),
             'buyers' => SubscriptionAddon::query()->where('quantity', '>', 0)->select('key')->selectRaw('count(*) as total')->groupBy('key')->pluck('total', 'key'),
         ]);
+    }
+
+    /**
+     * Prices tab: every price on one page for a pricing meeting — the plans, each module and add-on, and the pricing
+     * rules (the custom plan's minimum, the operations markup, the extra-branch discount) — saved together.
+     */
+    public function prices(): View
+    {
+        return view('admin.plans.prices', [
+            'plans' => Plan::query()->offered()->orderBy('sort_order')->get(),
+            'addons' => AddonPrice::query()->orderBy('type')->orderBy('sort_order')->get(),
+            'rules' => [
+                'custom_minimum' => PricingRules::customMinimum(),
+                'operations_markup_pct' => round(PricingRules::operationsMarkup() * 100, 2),
+                'extra_branch_off_pct' => round((1 - PricingRules::extraBranchShare()) * 100, 2),
+            ],
+        ]);
+    }
+
+    public function updatePrices(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'plans' => 'array',
+            'plans.*.monthly_price' => 'required|numeric|min:0|max:100000',
+            'plans.*.original_price' => 'nullable|numeric|min:0|max:100000',
+            'addons' => 'array',
+            'addons.*.monthly_price' => 'required|numeric|min:0|max:100000',
+            'rules.custom_minimum' => 'required|numeric|min:0|max:100000',
+            'rules.operations_markup_pct' => 'required|numeric|min:0|max:300',
+            'rules.extra_branch_off_pct' => 'required|numeric|min:0|max:100',
+        ]);
+        $changed = [];
+        foreach ($data['plans'] ?? [] as $id => $p) {
+            $plan = Plan::query()->find((int) $id);
+            if (! $plan) {
+                continue;
+            }
+            $plan->fill(['monthly_price' => $p['monthly_price'], 'original_price' => ($p['original_price'] ?? null) ?: null]);
+            if ($plan->isDirty()) {
+                $changed['plan:'.$plan->code] = [(float) $plan->getOriginal('monthly_price'), (float) $plan->monthly_price];
+                $plan->save();
+            }
+        }
+        foreach ($data['addons'] ?? [] as $id => $a) {
+            $addon = AddonPrice::query()->find((int) $id);
+            if (! $addon) {
+                continue;
+            }
+            $addon->fill(['monthly_price' => $a['monthly_price'], 'is_active' => $request->boolean("addons.$id.is_active")]);
+            if ($addon->isDirty()) {
+                $changed['addon:'.$addon->key] = [(float) $addon->getOriginal('monthly_price'), (float) $addon->monthly_price];
+                $addon->save();
+            }
+        }
+        PricingRules::save($data['rules']);
+        Entitlements::flush();
+        PlatformAuditLog::record($request->user('admin'), 'pricing.updated', '', ['changed' => $changed, 'rules' => $data['rules']]);
+
+        return redirect()->route('admin.prices')->with('ok', __('Prices saved.'));
     }
 
     public function editAddon(AddonPrice $addon): View

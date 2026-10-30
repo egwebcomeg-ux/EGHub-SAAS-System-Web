@@ -8,7 +8,7 @@
     $pricing = ['plans' => $plans, 'addons' => $addons, 'matrix' => $matrix];
     $where = \App\Support\SiteModules::where($module, $pricing);
     $planByCode = $plans->keyBy('code');
-    $extraBranchOff = (int) round((1 - \App\Models\AddonPrice::EXTRA_BRANCH_SHARE) * 100);
+    $extraBranchOff = (int) round((1 - \App\Billing\PricingRules::extraBranchShare()) * 100);
     $hasScene = view()->exists('landing.scenes.' . $module['slug']);
     $isAddon = $availability['plans']->isEmpty() && $availability['addons']->isNotEmpty();
 @endphp

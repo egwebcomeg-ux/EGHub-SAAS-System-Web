@@ -95,10 +95,10 @@ final class Billing
             }
         }
         // a custom plan costs at least its minimum a month, whatever is ticked
-        if ($plan->isCustom() && $modulesMonthly < CustomPlan::MINIMUM_MONTHLY) {
-            $topUp = (CustomPlan::MINIMUM_MONTHLY - $modulesMonthly) * $months;
+        if ($plan->isCustom() && $modulesMonthly < PricingRules::customMinimum()) {
+            $topUp = (PricingRules::customMinimum() - $modulesMonthly) * $months;
             $full += round($topUp, 2);
-            $lines[] = ['label' => __('Up to your plan\'s minimum of :amount EGP a month', ['amount' => money(CustomPlan::MINIMUM_MONTHLY)]).' — '.cycle_label($months)
+            $lines[] = ['label' => __('Up to your plan\'s minimum of :amount EGP a month', ['amount' => money(PricingRules::customMinimum())]).' — '.cycle_label($months)
                 .($pct > 0 ? ' ('.__(':pct% off', ['pct' => money($pct)]).')' : ''), 'amount' => round($topUp * (1 - $pct / 100), 2)];
         }
         // a discount given on a sales call (admin › متابعة العملاء) takes its % off what this invoice bills
@@ -232,7 +232,7 @@ final class Billing
         $before = $sub->addons->sum(fn (SubscriptionAddon $a) => $this->monthlyOf($tenant, $sub->plan, $a));
         $staying = $sub->addons->reject(fn (SubscriptionAddon $a) => in_array($a->key, $remove, true))->sum(fn (SubscriptionAddon $a) => $this->monthlyOf($tenant, $sub->plan, $a));
         $after = $staying + $add->sum(fn (AddonPrice $p) => $p->priceFor($tenant, $sub->plan));
-        $due = round(max(0, max(CustomPlan::MINIMUM_MONTHLY, $after) - max(CustomPlan::MINIMUM_MONTHLY, $before)) * $months * (1 - $pct / 100));
+        $due = round(max(0, max(PricingRules::customMinimum(), $after) - max(PricingRules::customMinimum(), $before)) * $months * (1 - $pct / 100));
         $sum = array_sum(array_column($lines, 'amount'));
         if ($sum - $due > 0) {
             $lines[] = ['label' => __('Already paid in your plan (its minimum, or the modules that leave)'), 'amount' => -round($sum - $due, 2)];
@@ -495,6 +495,6 @@ final class Billing
     {
         $before = $sub->addons()->get()->sum(fn (SubscriptionAddon $a) => $this->monthlyOf($tenant, $sub->plan, $a));
 
-        return min($monthly, max(0, CustomPlan::MINIMUM_MONTHLY - $before));
+        return min($monthly, max(0, PricingRules::customMinimum() - $before));
     }
 }

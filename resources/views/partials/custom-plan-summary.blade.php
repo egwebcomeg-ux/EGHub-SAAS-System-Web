@@ -17,7 +17,7 @@
     @endif
     @if ($quote['topUp'] > 0)
         <p class="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900" data-custom-minimum>
-            {{ __('A plan of your own costs at least :min EGP a month; your modules come to :sum EGP.', ['min' => money(\App\Billing\CustomPlan::MINIMUM_MONTHLY), 'sum' => money($quote['modules'])]) }}
+            {{ __('A plan of your own costs at least :min EGP a month; your modules come to :sum EGP.', ['min' => money(\App\Billing\PricingRules::customMinimum()), 'sum' => money($quote['modules'])]) }}
         </p>
     @endif
 

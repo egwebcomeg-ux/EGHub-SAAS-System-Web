@@ -27,7 +27,7 @@
         </div>
         <div class="flex flex-col justify-end gap-2 text-sm sm:col-span-1 lg:col-span-2">
             <label class="flex min-h-11 items-center gap-2"><input type="checkbox" name="{{ $field('is_active') }}" value="1" @checked($addon->is_active) class="size-5 accent-brand-600"> {{ __('On sale') }}</label>
-            <label class="flex min-h-11 items-center gap-2"><input type="checkbox" name="{{ $field('per_branch') }}" value="1" @checked($addon->per_branch) class="size-5 accent-brand-600"> {{ __('Priced per branch (40% off each extra branch)') }}</label>
+            <label class="flex min-h-11 items-center gap-2"><input type="checkbox" name="{{ $field('per_branch') }}" value="1" @checked($addon->per_branch) class="size-5 accent-brand-600"> {{ __('Priced per branch (:off% off each extra branch)', ['off' => (int) round((1 - \App\Billing\PricingRules::extraBranchShare()) * 100)]) }}</label>
         </div>
     </section>
 

@@ -10,7 +10,7 @@
     $payOnline = $onlinePayments->payNowMethods() !== [];
     $installmentsPromise = $onlinePayments->installmentsPromise();
     $planByCode = $plans->keyBy('code');
-    $extraBranchOff = (int) round((1 - \App\Models\AddonPrice::EXTRA_BRANCH_SHARE) * 100);
+    $extraBranchOff = (int) round((1 - \App\Billing\PricingRules::extraBranchShare()) * 100);
     $limitPacks = $addons->where('type', 'limit')->values();
     // add-ons in three groups: packs that unlock an operations feature, the other feature packs, one-off credits
     $opsFeatures = \App\Models\Plan::addonFeatures();
@@ -58,7 +58,7 @@
             <div class="mx-auto mb-8 max-w-2xl text-center" data-reveal>
                 <p class="lp-eyebrow">{{ __('Design your plan') }}</p>
                 <h2 class="lp-h2 mt-3">{{ __('Pay only for the modules you use') }}</h2>
-                <p class="lp-lead mt-3">{{ __('Tick what you work with and see the price as you go. At least :min EGP a month; paying 6 or 12 months at once takes the same discount as the Complete plan.', ['min' => money(\App\Billing\CustomPlan::MINIMUM_MONTHLY)]) }}</p>
+                <p class="lp-lead mt-3">{{ __('Tick what you work with and see the price as you go. At least :min EGP a month; paying 6 or 12 months at once takes the same discount as the Complete plan.', ['min' => money(\App\Billing\PricingRules::customMinimum())]) }}</p>
             </div>
             @include('partials.custom-plan-builder', ['catalog' => $custom['catalog'], 'quote' => $custom['quote'], 'selected' => [], 'endpoint' => route('pricing.custom'), 'mode' => 'public'])
         </div>

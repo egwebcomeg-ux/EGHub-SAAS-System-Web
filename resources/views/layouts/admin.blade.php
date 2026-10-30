@@ -12,7 +12,7 @@
             ['admin.tenants', __('Restaurants'), 'M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6M9 11h.01M15 11h.01', 'tenants.view', ['admin.tenants*'], null],
             ['admin.crm', __('Customer follow-up'), 'M3 18v-6a9 9 0 0 1 18 0v6M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z', 'crm.view', ['admin.crm*'], 'crm'],
             ['admin.invoices', __('Invoices'), 'M6 2h9l5 5v15H6zM14 2v6h6M9 13h6M9 17h6', 'billing.manage', ['admin.invoices*'], 'invoices'],
-            ['admin.plans', __('Plans & add-ons'), 'M21 8l-9-5-9 5 9 5 9-5zM3 13l9 5 9-5M3 18l9 5 9-5', 'plans.manage', ['admin.plans*', 'admin.addons*'], null],
+            ['admin.plans', __('Plans & add-ons'), 'M21 8l-9-5-9 5 9 5 9-5zM3 13l9 5 9-5M3 18l9 5 9-5', 'plans.manage', ['admin.plans*', 'admin.addons*', 'admin.prices*'], null],
         ]],
         [__('Growth & content'), [
             ['admin.services', __('Service requests'), 'M4 4h16v12H5.2L4 17.2zM8 9h8M8 12h5', 'services.manage', ['admin.services*'], 'services'],

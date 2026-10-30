@@ -276,15 +276,16 @@ class PlanSeeder extends Seeder
 
         // with Complete and Enterprise, feature packs are no longer sold to new customers (holders keep theirs)
         AddonPrice::query()->whereNotIn('key', self::STILL_SOLD)->where('type', 'feature')->update(['is_active' => false]);
-        // an extra branch on the Complete plan: 600 a month, with its own staff accounts and per-branch prices
-        AddonPrice::query()->where('key', 'branches')->update([
+        // an extra branch on the Complete plan: 600 a month, with its own staff accounts and per-branch prices; only the
+        // launch row (99) is moved, so a price set on admin › Prices survives the next deploy
+        AddonPrice::query()->where('key', 'branches')->where('monthly_price', 99)->update([
             'monthly_price' => 600, 'credits' => 1, 'is_active' => true, 'min_plan' => 'full', 'features' => ['branch_pricing'],
             'name' => 'فرع إضافي', 'name_en' => 'Extra branch',
             'description' => 'فرع زيادة بنفس المنيو وأسعاره الخاصة، ومعاه 8 مستخدمين. لحد 5 فروع، وأكتر من كده باقة Enterprise',
             'description_en' => 'One more branch with the same menu and its own prices, with 8 more users. Up to 5 branches; more is the Enterprise plan',
         ]);
-        // extra users come five at a time
-        AddonPrice::query()->where('key', 'staff')->update([
+        // extra users come five at a time (only the launch row, 25 for one user: an edited price is kept)
+        AddonPrice::query()->where('key', 'staff')->where('monthly_price', 25)->update([
             'monthly_price' => 100, 'credits' => 5, 'is_active' => true,
             'name' => '5 مستخدمين', 'name_en' => '5 users',
             'description' => '5 حسابات موظفين زيادة على باقتك', 'description_en' => '5 more staff accounts on top of your plan',

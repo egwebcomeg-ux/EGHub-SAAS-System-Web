@@ -15,8 +15,8 @@ use Illuminate\Support\Collection;
  * Entitlements, invoices, renewals and the move to the free plan when it is not paid (Lifecycle) work as for any
  * plan with add-ons. Nothing is created per restaurant.
  *  - each module costs its pack's monthly price; a pack that otherwise needs the Complete plan (the cashier, the
- *    kitchen screen, the call center...) costs OPERATIONS_MARKUP more;
- *  - the plan costs at least MINIMUM_MONTHLY a month;
+ *    kitchen screen, the call center...) costs the operations markup more (PricingRules, OPERATIONS_MARKUP until the owner sets it);
+ *  - the plan costs at least its monthly minimum (PricingRules, MINIMUM_MONTHLY until the owner sets it);
  *  - a module that needs another brings it (NEEDS), and says why;
  *  - paying 6 or 12 months takes the Complete plan's discount off the whole plan (Plan::cycleDiscounts);
  *  - when the pick costs about as much as the Complete plan (COMPLETE_NUDGE_RATIO) and Complete covers it, the page
@@ -69,7 +69,7 @@ final class CustomPlan
 
     public static function markedUp(float $price): float
     {
-        return round($price * (1 + self::OPERATIONS_MARKUP));
+        return round($price * (1 + PricingRules::operationsMarkup()));
     }
 
     /** A pack's monthly price on the custom plan: for this restaurant (its branches), or the list price. */
@@ -153,7 +153,7 @@ final class CustomPlan
         $packs = ModuleChoice::packsFor($needed, self::packs($plan), $priceOf) ?? collect();
 
         $sum = (float) $packs->sum($priceOf);
-        $monthly = max((float) self::MINIMUM_MONTHLY, $sum);
+        $monthly = max(PricingRules::customMinimum(), $sum);
         $discounts = $plan->cycle_discounts;
         $cycles = [];
         foreach (Plan::CYCLES as $months) {
