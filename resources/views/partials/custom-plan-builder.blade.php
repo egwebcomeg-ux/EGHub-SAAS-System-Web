@@ -15,6 +15,11 @@
     {{-- the pricing page is cached, so its builder never posts (no CSRF token): its button is a link --}}
     <form @if ($dashboard) method="post" action="{{ route('dash.billing.custom') }}" @else onsubmit="return false" @endif id="custom-plan-form" data-custom-form class="space-y-5 lg:col-span-2">
         @if ($dashboard)@csrf @endif
+        {{-- on a phone the total sits below the long list: keep it in sight while ticking --}}
+        <a href="#custom-plan-summary" class="sticky top-20 z-10 flex items-center justify-between rounded-xl border border-brand-200 bg-white/95 px-4 py-2 text-sm shadow-sm backdrop-blur lg:hidden" data-custom-mobile-total>
+            <span class="font-bold text-navy-800">{{ __('Your plan') }}: <bdi dir="ltr" class="font-extrabold text-navy-900" data-custom-mobile-amount>{{ money($quote['monthly']) }}</bdi> {{ __('EGP / month') }}</span>
+            <span class="text-brand-700">{{ __('Details') }} ↓</span>
+        </a>
         @foreach ($groups as $group => [$groupLabel])
             @continue(! $byGroup->has($group))
             <fieldset>
@@ -40,7 +45,7 @@
                                 @elseif (! $sold)
                                     <span class="block text-xs">{{ __('In the Complete plan only') }}</span>
                                 @else
-                                    <span class="block text-xs text-navy-500"><bdi dir="ltr">+{{ money($row['price']) }}</bdi> {{ __('EGP / month') }}@if ($row['markup']) · {{ __('Operations, :pct% more than with Complete', ['pct' => $markupPct]) }}@endif</span>
+                                    <span class="block text-xs text-navy-500"><bdi dir="ltr">+{{ money($row['price']) }}</bdi> {{ __('EGP / month') }}@if ($row['markup']) · {{ __(':pct% more on a custom plan', ['pct' => $markupPct]) }}@endif</span>
                                 @endif
                             </span>
                         </label>
@@ -53,7 +58,7 @@
         @endif
     </form>
 
-    <aside class="lg:sticky lg:top-4 lg:self-start">
+    <aside class="scroll-mt-24 lg:sticky lg:top-4 lg:self-start" id="custom-plan-summary">
         <div class="rounded-[24px] border border-navy-100 bg-white p-5 shadow-sm">
             <div data-custom-summary-box>@include('partials.custom-plan-summary', ['quote' => $quote, 'mode' => $mode])</div>
             @if ($dashboard)
@@ -85,6 +90,7 @@
     var form = root.querySelector('[data-custom-form]');
     var box = root.querySelector('[data-custom-summary-box]');
     var cta = root.querySelector('[data-custom-register]');
+    var amount = root.querySelector('[data-custom-mobile-amount]');
     var timer = null;
     var seq = 0;
     var picked = function () {
@@ -98,6 +104,7 @@
             .then(function (d) {
                 if (!d || mine !== seq) return;
                 box.innerHTML = d.html;
+                if (amount && d.monthly != null) amount.textContent = Number(d.monthly).toLocaleString('en-US', { maximumFractionDigits: 2 });
                 (d.slugs || []).forEach(function (s) {
                     var input = form.querySelector('input[name="modules[]"][value="' + s + '"]');
                     if (input) input.checked = true;

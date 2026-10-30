@@ -7052,7 +7052,6 @@
     "Start free with :plan": "ابدأ مجاناً بـ :plan",
     "Always in your plan": "موجود في باقتك دايماً",
     "In the Complete plan only": "في الباقة الكاملة بس",
-    "Operations, :pct% more than with Complete": "موديول تشغيل، أغلى :pct% من سعره مع الكاملة",
     "Pay for": "مدة الدفع",
     "Save my modules": "احفظ الموديولات",
     "Subscribe to my plan": "اشترك في باقتي",
@@ -7062,5 +7061,6 @@
     "Pay only for the modules you use": "ادفع بس تمن الموديولات اللي بتستخدمها",
     "Tick what you work with and see the price as you go. At least :min EGP a month; paying 6 or 12 months at once takes the same discount as the Complete plan.": "اختار اللي بتشتغل بيه وشوف السعر وإنت بتختار. أقل سعر :min ج.م في الشهر، ولما تدفع 6 أو 12 شهر مرة واحدة بتاخد نفس خصم الباقة الكاملة.",
     "Tick only the modules you work with and pay for those. At least :min EGP a month.": "اختار الموديولات اللي بتشتغل بيها بس وادفع تمنها. أقل سعر :min ج.م في الشهر.",
-    "Your plan: :modules. The trial has everything; you choose your modules when you subscribe.": "باقتك: :modules. التجربة فيها كل حاجة، وبتختار موديولاتك وإنت بتشترك."
+    "Your plan: :modules. The trial has everything; you choose your modules when you subscribe.": "باقتك: :modules. التجربة فيها كل حاجة، وبتختار موديولاتك وإنت بتشترك.",
+    ":pct% more on a custom plan": "عليه زيادة :pct% في الباقة المخصصة"
 }
