@@ -10,12 +10,14 @@ use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\PlatformAdmin;
 use App\Models\Subscription;
+use App\Models\SubscriptionAddon;
 use App\Models\Tenant;
 use App\Models\TenantDiscount;
 use App\Notifications\PaymentClaimed;
 use App\Notifications\PaymentConfirmed;
 use App\Services\Audit;
 use App\Services\Entitlements;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
@@ -43,12 +45,23 @@ final class Billing
         return round((float) $sub->period_value * min(1, $left / $total), 2);
     }
 
-    /** @return array{lines: list<array{label:string, amount:float}>, subtotal: float, discount: float, total: float, renewal: bool, tenant_discount_id: ?int} */
-    public function quote(Tenant $tenant, Plan $plan, int $months): array
+    /**
+     * What a plan invoice bills. $packKeys is the set of module packs a custom plan is bought with (CustomPlan): they
+     * replace the add-ons on the subscription. Moving to another plan leaves out the packs whose features the new
+     * plan already has, and prices the rest for it.
+     *
+     * @param  list<string>|null  $packKeys
+     * @return array{lines: list<array{label:string, amount:float}>, subtotal: float, discount: float, total: float, renewal: bool, tenant_discount_id: ?int}
+     */
+    public function quote(Tenant $tenant, Plan $plan, int $months, ?array $packKeys = null): array
     {
         $months = in_array($months, Plan::CYCLES, true) ? $months : 1;
-        $sub = $tenant->subscription()->with('plan')->first();
-        $renewal = $sub && $sub->status === 'active' && $sub->plan_id === $plan->id && $sub->cycle_months === $months;
+        $sub = $tenant->subscription()->with('plan', 'addons')->first();
+        $switching = $sub && $sub->plan_id !== $plan->id;
+        $addons = $packKeys !== null ? $this->packsAsAddons($packKeys) : $this->keptAddons($sub, $plan);
+        // the same custom plan bought again with other modules is a new period, not a renewal
+        $samePacks = $packKeys === null || ($sub && collect($packKeys)->sort()->values()->all() === $sub->addons->pluck('key')->sort()->values()->all());
+        $renewal = $sub && $sub->status === 'active' && $sub->plan_id === $plan->id && $sub->cycle_months === $months && $samePacks;
 
         $full = round($plan->monthly_price * $months, 2);
         $price = $plan->priceFor($months);
@@ -60,10 +73,12 @@ final class Billing
         $pct = (float) ($plan->cycle_discounts[(string) $months] ?? 0);
         $from = $renewal && $sub->current_period_end?->isFuture() ? $sub->current_period_end : now();
         $offerUntil = LaunchOffer::until($sub, $plan);
-        foreach ($sub?->addons ?? [] as $addon) {
+        $modulesMonthly = 0.0;
+        foreach ($addons as $addon) {
             $price = AddonPrice::query()->where('key', $addon->key)->first();
-            // per-branch packs follow the current number of branches
-            $unit = $price?->per_branch ? $price->priceFor($tenant) : $addon->unit_price;
+            // per-branch packs follow the current number of branches; a new plan or a new pick is priced for that plan
+            $unit = $price && ($price->per_branch || $switching || $packKeys !== null) ? $price->priceFor($tenant, $plan) : $addon->unit_price;
+            $modulesMonthly += $unit * $addon->quantity;
             $free = $addon->key === LaunchOffer::ADDON ? LaunchOffer::freeMonths($offerUntil, $from, $months) : 0;
             $charged = $addon->quantity * $months - $free;
             $full += round($unit * $addon->quantity * $months, 2);
@@ -78,6 +93,13 @@ final class Billing
             if ($free > 0) {
                 $lines[] = ['label' => __('Extra branch: launch offer, free until :date', ['date' => local_time($offerUntil, 'Y/m/d')]), 'amount' => 0.0];
             }
+        }
+        // a custom plan costs at least its minimum a month, whatever is ticked
+        if ($plan->isCustom() && $modulesMonthly < CustomPlan::MINIMUM_MONTHLY) {
+            $topUp = (CustomPlan::MINIMUM_MONTHLY - $modulesMonthly) * $months;
+            $full += round($topUp, 2);
+            $lines[] = ['label' => __('Up to your plan\'s minimum of :amount EGP a month', ['amount' => money(CustomPlan::MINIMUM_MONTHLY)]).' — '.cycle_label($months)
+                .($pct > 0 ? ' ('.__(':pct% off', ['pct' => money($pct)]).')' : ''), 'amount' => round($topUp * (1 - $pct / 100), 2)];
         }
         // a discount given on a sales call (admin › متابعة العملاء) takes its % off what this invoice bills
         $teamDiscount = TenantDiscount::usableFor($tenant);
@@ -99,9 +121,19 @@ final class Billing
             'tenant_discount_id' => $teamDiscountId];
     }
 
-    /** Open invoice for a plan/cycle; an identical open one is reused, other open plan invoices are voided. */
-    public function invoiceForPlan(Tenant $tenant, Plan $plan, int $months): Invoice
+    /**
+     * Open invoice for a plan/cycle; an identical open one is reused, other open plan invoices are voided. A custom
+     * plan comes with the module packs it is bought with ($packKeys, kept on the invoice and switched on when paid).
+     *
+     * @param  list<string>|null  $packKeys
+     */
+    public function invoiceForPlan(Tenant $tenant, Plan $plan, int $months, ?array $packKeys = null): Invoice
     {
+        if ($plan->isCustom() && $packKeys === null) {
+            // renewing a custom plan: the modules it has now
+            $packKeys = $tenant->subscription()->first()?->addons()->pluck('key')->all() ?? [];
+        }
+        $packKeys = $packKeys === null ? null : collect($packKeys)->unique()->sort()->values()->all();
         if ($plan->isArchived()) {
             throw new \DomainException('The '.$plan->code.' plan is archived and no longer sold.');
         }
@@ -109,11 +141,12 @@ final class Billing
             // Enterprise is agreed with sales and set by EgWeb from the super admin, never invoiced from the dashboard
             throw new \DomainException('The '.$plan->code.' plan is sold through sales only.');
         }
-        $q = $this->quote($tenant, $plan, $months);
+        $q = $this->quote($tenant, $plan, $months, $packKeys);
 
-        return DB::transaction(function () use ($tenant, $plan, $months, $q) {
+        return DB::transaction(function () use ($tenant, $plan, $months, $q, $packKeys) {
             $open = Invoice::query()->where('tenant_id', $tenant->id)->where('status', 'open')->where('kind', 'subscription')->get();
-            $same = $open->first(fn (Invoice $i) => $i->plan_id === $plan->id && $i->cycle_months === $months && abs($i->total - $q['total']) < 0.01);
+            $same = $open->first(fn (Invoice $i) => $i->plan_id === $plan->id && $i->cycle_months === $months && abs($i->total - $q['total']) < 0.01
+                && ($i->meta['packs'] ?? null) === $packKeys);
             if ($same) {
                 return $same;
             }
@@ -123,7 +156,7 @@ final class Billing
                 'tenant_id' => $tenant->id, 'number' => 'TMP-'.random_token(6), 'kind' => 'subscription',
                 'plan_id' => $plan->id, 'cycle_months' => $months, 'lines' => $q['lines'], 'subtotal' => $q['subtotal'],
                 'discount' => $q['discount'], 'total' => $q['total'], 'status' => 'open', 'due_at' => now()->addDays(3),
-                'meta' => array_filter(['renewal' => $q['renewal'], 'tenant_discount_id' => $q['tenant_discount_id']], fn ($v) => $v !== null),
+                'meta' => array_filter(['renewal' => $q['renewal'], 'tenant_discount_id' => $q['tenant_discount_id'], 'packs' => $packKeys], fn ($v) => $v !== null),
             ]);
             $invoice->update(['number' => 'EGM-'.now()->format('Ym').'-'.str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT)]);
 
@@ -142,10 +175,14 @@ final class Billing
         $months = $paidPeriod ? max(0.1, round(now()->diffInDays($sub->current_period_end) / 30, 2)) : 1;
         // a paid 6 or 12 months cycle gives its discount to what is added during it
         $pct = $paidPeriod ? (float) ($sub->plan?->cycle_discounts[(string) $sub->cycle_months] ?? 0) : 0.0;
-        $amount = round($addon->priceFor($tenant) * $quantity * $months * (1 - $pct / 100));
+        $monthly = $addon->priceFor($tenant, $sub?->plan) * $quantity;
+        // on a custom plan below its minimum, what the minimum already pays for is not billed again
+        $covered = $sub?->plan?->isCustom() && $addon->isFeaturePack() ? $this->coveredByMinimum($tenant, $sub, $monthly) : 0.0;
+        $amount = round(($monthly - $covered) * $months * (1 - $pct / 100));
         $label = $addon->displayName().($quantity > 1 ? " × $quantity" : '').' — '
             .($paidPeriod ? __('until :date', ['date' => local_time($sub->current_period_end, 'Y/m/d')]) : cycle_label(1))
-            .($pct > 0 ? ' ('.__(':pct% off', ['pct' => money($pct)]).')' : '');
+            .($pct > 0 ? ' ('.__(':pct% off', ['pct' => money($pct)]).')' : '')
+            .($covered > 0 ? ' — '.__(':amount EGP of it is in your plan\'s minimum', ['amount' => money($covered)]) : '');
         if ($addon->isCreditPack()) {
             // message credits are bought once, whatever the subscription period
             $amount = round((float) $addon->monthly_price * $quantity);
@@ -165,6 +202,50 @@ final class Billing
                 'tenant_id' => $tenant->id, 'number' => 'TMP-'.random_token(6), 'kind' => 'addon',
                 'lines' => [['label' => $label, 'amount' => $amount]], 'subtotal' => $amount, 'discount' => 0, 'total' => $amount,
                 'status' => 'open', 'due_at' => now()->addDays(3), 'meta' => ['addon' => $addon->key, 'quantity' => $quantity],
+            ]);
+            $invoice->update(['number' => 'EGM-'.now()->format('Ym').'-'.str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT)]);
+
+            return $invoice->fresh();
+        });
+    }
+
+    /**
+     * Modules added to a custom plan during its paid period (the builder on the billing page) in one invoice,
+     * prorated to the period end like invoiceForAddon. $remove are packs that leave when it is paid (a module swapped
+     * for a bundle that covers it), so nothing stops before what replaces it is on. What the plan's minimum, or the
+     * packs that leave, already paid for is taken off.
+     *
+     * @param  Collection<int, AddonPrice>  $add
+     * @param  list<string>  $remove
+     */
+    public function invoiceForCustomPacks(Tenant $tenant, Collection $add, array $remove = []): Invoice
+    {
+        $sub = $tenant->subscription()->with('plan', 'addons')->firstOrFail();
+        $months = max(0.1, round(now()->diffInDays($sub->current_period_end) / 30, 2));
+        $pct = (float) ($sub->plan->cycle_discounts[(string) $sub->cycle_months] ?? 0);
+        $until = __('until :date', ['date' => local_time($sub->current_period_end, 'Y/m/d')]).($pct > 0 ? ' ('.__(':pct% off', ['pct' => money($pct)]).')' : '');
+        $lines = [];
+        foreach ($add as $pack) {
+            $lines[] = ['label' => $pack->displayName().' — '.$until, 'amount' => round($pack->priceFor($tenant, $sub->plan) * $months * (1 - $pct / 100))];
+        }
+        // the monthly price after the change against before it, both at least the minimum
+        $before = $sub->addons->sum(fn (SubscriptionAddon $a) => $this->monthlyOf($tenant, $sub->plan, $a));
+        $staying = $sub->addons->reject(fn (SubscriptionAddon $a) => in_array($a->key, $remove, true))->sum(fn (SubscriptionAddon $a) => $this->monthlyOf($tenant, $sub->plan, $a));
+        $after = $staying + $add->sum(fn (AddonPrice $p) => $p->priceFor($tenant, $sub->plan));
+        $due = round(max(0, max(CustomPlan::MINIMUM_MONTHLY, $after) - max(CustomPlan::MINIMUM_MONTHLY, $before)) * $months * (1 - $pct / 100));
+        $sum = array_sum(array_column($lines, 'amount'));
+        if ($sum - $due > 0) {
+            $lines[] = ['label' => __('Already paid in your plan (its minimum, or the modules that leave)'), 'amount' => -round($sum - $due, 2)];
+        }
+        $total = round(max(0, array_sum(array_column($lines, 'amount'))), 2);
+
+        return DB::transaction(function () use ($tenant, $add, $remove, $lines, $total) {
+            Invoice::query()->where('tenant_id', $tenant->id)->where('status', 'open')->where('kind', 'addon')
+                ->whereNotNull('meta->custom_add')->update(['status' => 'void']);
+            $invoice = Invoice::query()->create([
+                'tenant_id' => $tenant->id, 'number' => 'TMP-'.random_token(6), 'kind' => 'addon',
+                'lines' => $lines, 'subtotal' => $total, 'discount' => 0, 'total' => $total, 'status' => 'open', 'due_at' => now()->addDays(3),
+                'meta' => ['custom_add' => $add->pluck('key')->values()->all(), 'custom_remove' => array_values($remove)],
             ]);
             $invoice->update(['number' => 'EGM-'.now()->format('Ym').'-'.str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT)]);
 
@@ -217,7 +298,7 @@ final class Billing
             $sub->addons()->where('key', $key)->delete();
         } else {
             $price = AddonPrice::query()->where('key', $key)->firstOrFail();
-            $sub->addons()->updateOrCreate(['key' => $key], ['quantity' => $quantity, 'unit_price' => $price->priceFor($tenant)]);
+            $sub->addons()->updateOrCreate(['key' => $key], ['quantity' => $quantity, 'unit_price' => $price->priceFor($tenant, $sub->plan)]);
             // a pack that covers smaller packs replaces them (e.g. the full operations bundle)
             if ($price->isFeaturePack() && $price->features) {
                 $covered = AddonPrice::query()->where('type', 'feature')->where('key', '!=', $key)->get()
@@ -308,6 +389,16 @@ final class Billing
 
             return;
         }
+        if ($invoice->kind === 'addon' && isset($invoice->meta['custom_add'])) {
+            foreach ($invoice->meta['custom_remove'] ?? [] as $key) {
+                $this->setAddon($tenant, $key, 0);
+            }
+            foreach ($invoice->meta['custom_add'] as $key) {
+                $this->setAddon($tenant, $key, 1);
+            }
+
+            return;
+        }
         if ($invoice->kind === 'addon') {
             $current = (int) $tenant->subscription()->first()?->addons()->where('key', $invoice->meta['addon'])->value('quantity');
             $price = AddonPrice::query()->where('key', $invoice->meta['addon'])->first();
@@ -322,16 +413,88 @@ final class Billing
         $start = $renewal ? $sub->current_period_start : now();
         $end = ($renewal ? $sub->current_period_end->copy() : now())->addMonthsNoOverflow($months);
 
+        // moving to another plan: the packs it already includes go, the others are priced for it (decided before the move)
+        $kept = $sub && $sub->plan_id !== $invoice->plan_id && ! isset($invoice->meta['packs'])
+            ? $this->keptAddons($sub->load('addons'), $invoice->plan)->pluck('quantity', 'key')->all() : null;
         Subscription::query()->updateOrCreate(['tenant_id' => $tenant->id], [
             'plan_id' => $invoice->plan_id, 'status' => 'active', 'cycle_months' => $months, 'trial_ends_at' => null,
             'current_period_start' => $start, 'current_period_end' => $end, 'grace_ends_at' => null, 'reminded_at' => null,
             'period_value' => $invoice->total,
         ]);
+        if (isset($invoice->meta['packs'])) {
+            // a custom plan: exactly the module packs it was bought with
+            $this->syncPacks($tenant, array_fill_keys($invoice->meta['packs'], 1));
+        } elseif ($kept !== null) {
+            $this->syncPacks($tenant, $kept);
+        }
         LaunchOffer::grant($tenant->subscription()->first(), $start);
         $this->claimLaunchOfferBranch($tenant);
         if ($tenant->isSuspended()) {
             $tenant->update(['status' => 'active', 'suspended_at' => null]);
         }
         Entitlements::flush();
+    }
+
+    /**
+     * The add-ons a subscription keeps on $plan: all of them on its own plan; on another plan, not the feature packs
+     * whose features that plan already has.
+     *
+     * @return Collection<int, SubscriptionAddon>
+     */
+    private function keptAddons(?Subscription $sub, Plan $plan): Collection
+    {
+        $addons = collect($sub?->addons ?? []);
+        if (! $sub || $sub->plan_id === $plan->id) {
+            return $addons;
+        }
+        $features = $plan->entitlements()['features'];
+        $packs = AddonPrice::query()->whereIn('key', $addons->pluck('key'))->get()->keyBy('key');
+
+        return $addons->reject(function (SubscriptionAddon $addon) use ($packs, $features) {
+            $pack = $packs->get($addon->key);
+
+            return $pack && $pack->isFeaturePack() && $pack->features && collect($pack->features)->every(fn (string $f) => ! empty($features[$f]));
+        })->values();
+    }
+
+    /**
+     * @param  list<string>  $keys
+     * @return Collection<int, SubscriptionAddon> unsaved add-on rows, one of each pack
+     */
+    private function packsAsAddons(array $keys): Collection
+    {
+        return collect($keys)->unique()->values()->map(fn (string $key) => new SubscriptionAddon(['key' => $key, 'quantity' => 1, 'unit_price' => 0]));
+    }
+
+    /**
+     * Makes the subscription's add-ons exactly these (key => quantity), each priced for its plan now.
+     *
+     * @param  array<string, int>  $packs
+     */
+    private function syncPacks(Tenant $tenant, array $packs): void
+    {
+        $sub = $tenant->subscription()->firstOrFail();
+        $sub->addons()->whereNotIn('key', array_keys($packs))->delete();
+        foreach ($packs as $key => $quantity) {
+            if (AddonPrice::query()->where('key', $key)->exists()) {
+                $this->setAddon($tenant, (string) $key, (int) $quantity);
+            }
+        }
+    }
+
+    /** What one add-on of the subscription costs a month on its plan now. */
+    private function monthlyOf(Tenant $tenant, Plan $plan, SubscriptionAddon $addon): float
+    {
+        $price = AddonPrice::query()->where('key', $addon->key)->first();
+
+        return ($price && $price->per_branch ? $price->priceFor($tenant, $plan) : (float) $addon->unit_price) * $addon->quantity;
+    }
+
+    /** The part of a pack added to a custom plan that the plan's minimum already pays for. */
+    private function coveredByMinimum(Tenant $tenant, Subscription $sub, float $monthly): float
+    {
+        $before = $sub->addons()->get()->sum(fn (SubscriptionAddon $a) => $this->monthlyOf($tenant, $sub->plan, $a));
+
+        return min($monthly, max(0, CustomPlan::MINIMUM_MONTHLY - $before));
     }
 }

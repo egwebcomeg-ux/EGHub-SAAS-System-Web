@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Notifications\NewSignup;
 use App\Services\Auth\SocialProviders;
 use App\Services\MenuSetupRequest;
+use App\Services\ModuleChoice;
 use App\Services\TenantProvisioner;
 use App\Support\BusinessType;
 use Illuminate\Http\JsonResponse;
@@ -77,6 +78,7 @@ class SignupController extends Controller
             'password' => $social ? 'nullable' : 'required|string|min:8|max:200|confirmed',
             'terms' => 'accepted',
             'business_type' => ['nullable', Rule::in(array_keys(BusinessType::TYPES))],
+            'modules' => 'nullable|string|max:600',
         ], [
             'phone.regex' => __('Enter a valid Egyptian mobile number.'),
         ]);
@@ -100,6 +102,11 @@ class SignupController extends Controller
             $request->session()->forget(self::SOCIAL_SESSION);
         }
         app(MenuSetupRequest::class)->fromSignup($request, $tenant, $owner);
+        // «صمم باقتك» picked on the pricing page: the dashboard focuses on those modules and the billing page ticks them
+        $modules = array_values(array_filter(array_map('trim', explode(',', (string) ($data['modules'] ?? '')))));
+        if ($modules !== []) {
+            $tenant->run(fn () => ModuleChoice::save($modules));
+        }
         // the lead is already in the admin's customer follow-up (Tenant::created): tell whoever calls new sign-ups
         Notification::send(NewSignup::recipients(), new NewSignup($tenant, $owner, $data['business_type'] ?? BusinessType::DEFAULT));
 

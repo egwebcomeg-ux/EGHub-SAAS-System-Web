@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Billing\CustomPlan;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -28,20 +29,30 @@ class AddonPrice extends Model
         return ['monthly_price' => 'float', 'is_active' => 'boolean', 'features' => 'array', 'per_branch' => 'boolean', 'credits' => 'integer'];
     }
 
-    /** Monthly price for this restaurant: per-branch packs grow with its active branches. */
-    public function priceFor(Tenant $tenant): float
+    /**
+     * Monthly price for this restaurant: per-branch packs grow with its active branches. On the custom plan a pack
+     * that otherwise needs a bigger plan costs its markup more (CustomPlan::OPERATIONS_MARKUP).
+     */
+    public function priceFor(Tenant $tenant, ?Plan $plan = null): float
     {
-        if (! $this->per_branch) {
-            return (float) $this->monthly_price;
+        $price = (float) $this->monthly_price;
+        if ($this->per_branch) {
+            $branches = max(1, Branch::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->where('is_active', true)->count());
+            $price = round($this->monthly_price * (1 + ($branches - 1) * self::EXTRA_BRANCH_SHARE));
         }
-        $branches = max(1, Branch::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->where('is_active', true)->count());
 
-        return round($this->monthly_price * (1 + ($branches - 1) * self::EXTRA_BRANCH_SHARE));
+        return $plan && CustomPlan::marksUp($this, $plan) ? CustomPlan::markedUp($price) : $price;
     }
 
-    /** Whether the restaurant's plan may buy it (min_plan compares the plans' order). */
+    /**
+     * Whether the restaurant's plan may buy it (min_plan compares the plans' order). The custom plan may take every
+     * module pack, the ones that need a bigger plan at a markup; limit packs (an extra branch) keep their min_plan.
+     */
     public function availableFor(?Plan $plan): bool
     {
+        if ($plan?->isCustom() && $this->isFeaturePack()) {
+            return true;
+        }
         if (! $this->min_plan || ! $plan) {
             return true;
         }

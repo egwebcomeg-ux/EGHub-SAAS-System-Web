@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Platform;
 
+use App\Billing\CustomPlan;
 use App\Http\Controllers\Controller;
 use App\Models\PlatformSetting;
 use App\Models\Testimonial;
@@ -9,6 +10,8 @@ use App\Services\Seo\EgwebClients;
 use App\Services\Seo\SiteShowcase;
 use App\Services\Seo\SocialProof;
 use App\Support\SiteModules;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /** Marketing site: home, pricing, terms, privacy and the refund policy. Plans, add-ons and prices come from the database. */
@@ -46,7 +49,26 @@ class LandingController extends Controller
     /** All plans side by side, with the add-ons. */
     public function pricing(): View
     {
-        return view('landing.pricing', SiteModules::pricing());
+        $custom = CustomPlan::plan();
+
+        return view('landing.pricing', SiteModules::pricing() + [
+            'custom' => $custom ? ['catalog' => CustomPlan::catalog($custom), 'quote' => CustomPlan::quote([], $custom)] : null,
+        ]);
+    }
+
+    /** «صمم باقتك» on the pricing page: the total of the ticked modules, rendered, and the sign-up link carrying them. */
+    public function customPlan(Request $request): JsonResponse
+    {
+        $plan = CustomPlan::plan() ?? abort(404);
+        $data = $request->validate(['modules' => 'array|max:40', 'modules.*' => 'string|max:40']);
+        $quote = CustomPlan::quote($data['modules'] ?? [], $plan);
+
+        return response()->json([
+            'html' => view('partials.custom-plan-summary', ['quote' => $quote, 'mode' => 'public'])->render(),
+            'slugs' => $quote['slugs'],
+            'monthly' => $quote['monthly'],
+            'register' => route('register', array_filter(['modules' => implode(',', $quote['slugs'])])),
+        ]);
     }
 
     public function terms(): View

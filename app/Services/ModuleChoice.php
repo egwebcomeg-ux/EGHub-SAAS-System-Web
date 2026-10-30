@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\AddonPrice;
 use App\Models\Plan;
-use App\Models\Tenant;
 use App\Models\User;
 use App\Support\BusinessType;
 use App\Support\SiteModules;
@@ -265,7 +264,7 @@ final class ModuleChoice
             }
             $features = $pricing['matrix'][$plan->id]['features'] ?? [];
             $needed = array_values(array_filter($modules, fn (array $m) => ! SiteModules::enabled($features, $m['feature'])));
-            $addons = self::packsFor($needed, $packs->filter(fn (AddonPrice $a) => $a->availableFor($plan))->values(), $tenant);
+            $addons = self::packsFor($needed, $packs->filter(fn (AddonPrice $a) => $a->availableFor($plan))->values(), fn (AddonPrice $a) => $a->priceFor($tenant));
             if ($addons === null) {
                 continue;
             }
@@ -288,18 +287,20 @@ final class ModuleChoice
     /**
      * The cheapest set of feature packs that switches on every needed module: each module's cheapest pack, or one
      * bundle that covers several of them and the cheapest packs for the rest. Null when one of them is not sold.
+     * $priceOf prices a pack (for a restaurant, or the list price on the public pricing page).
      *
      * @param  list<array>  $needed
      * @param  Collection<int, AddonPrice>  $packs
+     * @param  \Closure(AddonPrice): float  $priceOf
      * @return Collection<int, AddonPrice>|null
      */
-    private static function packsFor(array $needed, Collection $packs, Tenant $tenant): ?Collection
+    public static function packsFor(array $needed, Collection $packs, \Closure $priceOf): ?Collection
     {
         if ($needed === []) {
             return collect();
         }
         $sells = fn (AddonPrice $a, array $m) => in_array($a->key, $m['addons'], true) && SiteModules::sells($a->features, $m['feature']);
-        $cheapestFor = fn (array $m) => $packs->filter(fn (AddonPrice $a) => $sells($a, $m))->sortBy(fn (AddonPrice $a) => $a->priceFor($tenant))->first();
+        $cheapestFor = fn (array $m) => $packs->filter(fn (AddonPrice $a) => $sells($a, $m))->sortBy($priceOf)->first();
 
         $fill = function (array $rest, Collection $start) use ($cheapestFor, $sells): ?Collection {
             $set = $start;
@@ -327,7 +328,7 @@ final class ModuleChoice
         if ($options === []) {
             return null;
         }
-        usort($options, fn (Collection $a, Collection $b) => $a->sum(fn ($x) => $x->priceFor($tenant)) <=> $b->sum(fn ($x) => $x->priceFor($tenant)) ?: $a->count() <=> $b->count());
+        usort($options, fn (Collection $a, Collection $b) => $a->sum($priceOf) <=> $b->sum($priceOf) ?: $a->count() <=> $b->count());
 
         return $options[0];
     }

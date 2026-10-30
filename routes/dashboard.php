@@ -160,6 +160,9 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/billing', [BillingController::class, 'index'])->name('billing');
         Route::post('/billing/checkout', [BillingController::class, 'checkout'])->middleware('support.blocked')->name('billing.checkout');
         Route::post('/billing/addons/{key}', [BillingController::class, 'addon'])->where('key', '[a-z0-9_]+')->middleware('support.blocked')->name('billing.addon');
+        // «صمم باقتك»: the live total of the ticked modules, and subscribing to them or changing them
+        Route::get('/billing/custom-plan', [BillingController::class, 'customQuote'])->middleware('throttle:60,1')->name('billing.custom.quote');
+        Route::post('/billing/custom-plan', [BillingController::class, 'custom'])->middleware('support.blocked')->name('billing.custom');
         Route::get('/billing/invoices/{number}', [BillingController::class, 'invoice'])->name('billing.invoice');
         Route::post('/billing/invoices/{number}/claim', [BillingController::class, 'claim'])->middleware(['support.blocked', 'throttle:10,1'])->name('billing.claim');
         Route::post('/billing/invoices/{number}/pay', [BillingController::class, 'pay'])->middleware(['support.blocked', 'throttle:10,1'])->name('billing.pay');
