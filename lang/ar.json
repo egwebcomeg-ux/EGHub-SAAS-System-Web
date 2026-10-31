@@ -7301,5 +7301,6 @@
     "Pick the driver on the delivery order's card on the order board.": "اختار الطيار من كارت أوردر التوصيل على لوحة الطلبات.",
     "The driver sees only their orders and taps \"Picked up\"; their position is sent on the way.": "الطيار بيشوف أوردراته بس ويدوس «استلمت»، ومكانه بيتبعت طول المشوار.",
     "The guest follows the driver on the map from their order page.": "الزبون بيتابع الطيار على الخريطة من صفحة طلبه.",
-    "The Drivers page shows each driver on the map, their orders and the cash they hold.": "صفحة الطيارين: كل طيار على الخريطة، وأوردراته والكاش اللي معاه."
+    "The Drivers page shows each driver on the map, their orders and the cash they hold.": "صفحة الطيارين: كل طيار على الخريطة، وأوردراته والكاش اللي معاه.",
+    "Your number": "رقم طلبك"
 }

@@ -165,6 +165,7 @@ final class PrintJobs
         if (Pager::enabled() && Pager::forOrder($order) && ! Pager::isDone($order)) {
             $lines[] = ['t' => 'divider'];
             $lines[] = self::text(__('Scan so we can call you when your order is ready'), 'center', true);
+            $lines[] = self::text(__('Your number').' #'.$order->number, 'center', true, 2);
             $lines[] = ['t' => 'qr', 'data' => $order->pagerUrl(), 'size' => 6];
         }
         $lines[] = ['t' => 'divider'];

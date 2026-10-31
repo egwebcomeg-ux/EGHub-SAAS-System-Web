@@ -10,6 +10,7 @@ use App\Models\PagerTicket;
 use App\Models\Tenant;
 use App\Services\Orders\OrderService;
 use App\Services\Orders\Pager;
+use App\Services\Printing\PrintJobs;
 use App\Services\Settings;
 use Illuminate\Support\Carbon;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -250,7 +251,12 @@ class GuestPagerTest extends TenantTestCase
         $order = $this->order($a);
         $owner = $this->owner($a);
 
-        $this->actingAs($owner)->get($this->dashUrl("/orders/{$order->id}/receipt"))->assertOk()->assertSee('data-receipt-pager', false);
+        $this->actingAs($owner)->get($this->dashUrl("/orders/{$order->id}/receipt"))->assertOk()->assertSee('data-receipt-pager', false)
+            ->assertSeeText('رقم طلبك #'.$order->number);
+        // the cashier app's printed receipt (ESC/POS) carries the same number and QR
+        $lines = collect($this->as($a, fn () => PrintJobs::receipt($order->fresh()))['lines']);
+        $this->assertTrue($lines->contains(fn ($l) => ($l['text'] ?? null) === 'رقم طلبك #'.$order->number && $l['size'] === 2));
+        $this->assertTrue($lines->contains(fn ($l) => $l['t'] === 'qr' && $l['data'] === $this->as($a, fn () => $order->fresh()->pagerUrl())));
         $this->actingAs($owner)->get($this->dashUrl("/orders/{$order->id}/receipt?copy=kitchen"))->assertOk()->assertDontSee('data-receipt-pager', false);
         $this->move($a, $order, 'preparing', 'ready', 'served');
         $this->actingAs($owner)->get($this->dashUrl("/orders/{$order->id}/receipt"))->assertOk()->assertDontSee('data-receipt-pager', false);

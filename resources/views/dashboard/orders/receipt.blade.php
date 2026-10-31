@@ -87,6 +87,7 @@
             <hr>
             <div class="c" data-receipt-pager>
                 <div style="font-weight:800;font-size:14px">📣 {{ __('Scan so we can call you when your order is ready') }}</div>
+                <div style="font-weight:900;font-size:26px;margin-top:2px" data-receipt-pager-number>{{ __('Your number') }} #{{ $order->number }}</div>
                 <div style="margin-top:4px">{!! \App\Services\Qr::svg($pagerUrl, 170) !!}</div>
                 <div class="muted">{{ __('Keep the page open on your phone. No app needed.') }}</div>
             </div>
