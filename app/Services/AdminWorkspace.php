@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Appointment;
 use App\Models\AssistantMessage;
+use App\Models\Domain;
 use App\Models\Invoice;
 use App\Models\Lead;
 use App\Models\Payment;
@@ -55,6 +56,10 @@ final class AdminWorkspace
                 route('admin.tenants', ['status' => 'trialing']), 'text-brand-700'];
             $items[] = ['past_due', __('Past due subscriptions'), Subscription::query()->where('status', 'past_due')->count(),
                 route('admin.tenants', ['status' => 'past_due']), 'text-amber-700'];
+        }
+        if ($admin->allows('tenants.manage')) {
+            $items[] = ['domains', __('Domain requests waiting'), Domain::query()->waiting()->count(),
+                route('admin.domains', ['status' => 'waiting']), 'text-brand-700'];
         }
         if ($admin->allows('services.manage')) {
             $items[] = ['services', __('New service requests'), ServiceRequest::query()->where('status', 'new')->count(),

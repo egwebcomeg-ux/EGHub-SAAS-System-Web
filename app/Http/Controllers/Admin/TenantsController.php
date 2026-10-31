@@ -13,6 +13,7 @@ use App\Models\Lead;
 use App\Models\Plan;
 use App\Models\PlatformAuditLog;
 use App\Models\Subscription;
+use App\Models\SubscriptionChange;
 use App\Models\Tenant;
 use App\Models\TenantDiscount;
 use App\Models\User;
@@ -309,11 +310,11 @@ class TenantsController extends Controller
             'trial_ends_at' => 'nullable|date',
         ]);
 
-        $sub = Subscription::query()->updateOrCreate(['tenant_id' => $tenant->id], [
+        $sub = SubscriptionChange::because('admin', fn () => Subscription::query()->updateOrCreate(['tenant_id' => $tenant->id], [
             'plan_id' => $data['plan_id'], 'status' => $data['status'], 'cycle_months' => $data['cycle_months'],
             'current_period_end' => isset($data['current_period_end']) ? local_day_start($data['current_period_end']) : null,
             'trial_ends_at' => isset($data['trial_ends_at']) ? local_day_start($data['trial_ends_at']) : null,
-        ]);
+        ]));
         if ($sub->status === 'active') {
             // a Complete subscription set by hand while the launch offer runs gets it too
             LaunchOffer::grant($sub->fresh(), $sub->current_period_start ?? now());

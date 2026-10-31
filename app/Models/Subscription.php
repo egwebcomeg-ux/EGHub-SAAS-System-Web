@@ -22,9 +22,12 @@ class Subscription extends Model
     /**
      * No subscription is ever moved onto an archived plan (admin plan change, a new restaurant, a paid invoice):
      * the change is refused with a validation error. One already on it before archiving is left alone.
+     * Every new subscription and every change of its status or plan goes into its history (SubscriptionChange).
      */
     protected static function booted(): void
     {
+        static::created(fn (Subscription $subscription) => SubscriptionChange::recordFor($subscription, true));
+        static::updated(fn (Subscription $subscription) => SubscriptionChange::recordFor($subscription, false));
         static::saving(function (Subscription $subscription) {
             if ($subscription->isDirty('plan_id') && Plan::query()->whereKey($subscription->plan_id)->whereNotNull('archived_at')->exists()) {
                 throw ValidationException::withMessages(['plan_id' => __('This plan is archived and can no longer be assigned.')]);
@@ -59,6 +62,12 @@ class Subscription extends Model
     public function addons(): HasMany
     {
         return $this->hasMany(SubscriptionAddon::class);
+    }
+
+    /** Its status and plan changes (SubscriptionChange), oldest first by id. */
+    public function history(): HasMany
+    {
+        return $this->hasMany(SubscriptionChange::class);
     }
 
     public function statusLabel(): string

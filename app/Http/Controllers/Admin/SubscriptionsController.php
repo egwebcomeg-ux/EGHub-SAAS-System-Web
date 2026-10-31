@@ -26,6 +26,7 @@ class SubscriptionsController extends Controller
             'mrr' => $report->mrr(),
             'byPlan' => $report->byPlan(),
             'movement' => $report->movement($filters['month']),
+            'historySince' => $report->historySince(),
             'revenue' => $report->revenueByMonth(),
             'expiring' => $report->expiring($filters['plan']),
             'subscriptions' => $report->listing($filters)->paginate(50)->withQueryString(),

@@ -18,6 +18,7 @@ use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\Plan;
 use App\Models\Subscription;
+use App\Models\SubscriptionChange;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Audit;
@@ -287,10 +288,10 @@ final class FilettoImporter
     private function subscription(Tenant $tenant): void
     {
         $plan = Plan::query()->where('code', self::PLAN)->firstOrFail();
-        Subscription::query()->updateOrCreate(['tenant_id' => $tenant->id], [
+        SubscriptionChange::because('import', fn () => Subscription::query()->updateOrCreate(['tenant_id' => $tenant->id], [
             'plan_id' => $plan->id, 'status' => 'active', 'cycle_months' => 12,
             'trial_ends_at' => null, 'current_period_end' => null, 'grace_ends_at' => null,
-        ]);
+        ]));
         Entitlements::flush();
         $tenant->unsetRelation('subscription');
 

@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Appointment;
+use App\Models\Domain;
 use App\Models\Invoice;
 use App\Models\Lead;
 use App\Models\PlatformAdmin;
@@ -31,10 +32,12 @@ final class AdminMenu
                 ['admin.tenants', __('Restaurants'), 'M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6M9 11h.01M15 11h.01', 'tenants.view', ['admin.tenants*'], null],
                 ['admin.invoices', __('Invoices & payments'), 'M6 2h9l5 5v15H6zM14 2v6h6M9 13h6M9 17h6', 'billing.manage', ['admin.invoices*'], 'invoices'],
                 ['admin.subscriptions', __('Subscriptions & revenue'), 'M3 3v18h18M7 16v-4M12 16V8M17 16v-7', 'billing.manage', ['admin.subscriptions*'], null],
+                ['admin.domains', __('Domain requests'), 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3.6 9h16.8M3.6 15h16.8M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18', 'tenants.manage', ['admin.domains*'], 'domains'],
                 ['admin.announcements', __('Announcements'), 'M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13', 'tenants.manage', ['admin.announcements*'], null],
             ]],
             [__('Sales'), [
-                ['admin.crm.visits', __('My visits'), 'M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15', 'crm.visits', ['admin.crm.visits*'], 'visits'],
+                // the field reps' page: not shown to the platform owner, who does no visits (PlatformAdmin::doesFieldVisits)
+                $admin->doesFieldVisits() ? ['admin.crm.visits', __('My visits'), 'M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15', 'crm.visits', ['admin.crm.visits*'], 'visits'] : null,
                 ['admin.crm', __('Customer follow-up'), 'M3 18v-6a9 9 0 0 1 18 0v6M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z', 'crm.manage', ['admin.crm', 'admin.crm.show', 'admin.crm.offer', 'admin.crm.script*'], 'crm'],
                 ['admin.crm.prospects', __('Places & field sales'), 'M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21zM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z', 'crm.view', ['admin.crm.prospects*', 'admin.crm.import*'], null],
                 ['admin.crm.team', __('Sales team'), 'M3 3v18h18M7 15l4-4 3 3 5-6', 'crm.team', ['admin.crm.team*'], null],
@@ -61,7 +64,7 @@ final class AdminMenu
         ];
 
         return array_values(array_filter(array_map(
-            fn (array $group) => [$group[0], array_values(array_filter($group[1], fn (array $item) => $item[3] === null || $admin->allows($item[3])))],
+            fn (array $group) => [$group[0], array_values(array_filter($group[1], fn (?array $item) => $item !== null && ($item[3] === null || $admin->allows($item[3]))))],
             $groups), fn (array $group) => $group[1] !== []));
     }
 
@@ -74,11 +77,13 @@ final class AdminMenu
     {
         return [
             'invoices' => $admin->allows('billing.manage') ? Invoice::query()->where('status', 'open')->count() : 0,
+            // custom domains waiting to be connected or rejected
+            'domains' => $admin->allows('tenants.manage') ? Domain::query()->waiting()->count() : 0,
             'services' => $admin->allows('services.manage') ? ServiceRequest::query()->where('status', 'new')->count() : 0,
             // follow-up calls due today or overdue
             'crm' => $admin->allows('crm.manage') ? Lead::query()->open()->where('crm_leads.next_follow_up_at', '<', Lead::todayStart()->addDay())->count() : 0,
             // the field rep's visits still booked for today
-            'visits' => $admin->allows('crm.visits') ? Appointment::query()->where('field_id', $admin->id)->where('status', 'scheduled')
+            'visits' => $admin->doesFieldVisits() ? Appointment::query()->where('field_id', $admin->id)->where('status', 'scheduled')
                 ->where('scheduled_at', '<', local_day_start(local_at()->addDay()->toDateString()))->count() : 0,
             // failed background jobs (a sent email, a push, a backup) nobody looked at
             'system' => $admin->allows('settings.manage') ? self::failedJobs() : 0,

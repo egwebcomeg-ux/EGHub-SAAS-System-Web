@@ -44,6 +44,18 @@ class AdminWorkspaceTest extends TenantTestCase
             ->assertDontSee(__('Customers'));
     }
 
+    public function test_my_visits_is_promoted_to_field_reps_only_not_to_the_owner(): void
+    {
+        $tab = 'href="'.route('admin.crm.visits').'"';
+        $this->actingAs($this->admin('owner', 'Omar Owner'), 'admin');
+        $this->get($this->adminUrl('/'))->assertOk()->assertDontSee('data-nav="admin.crm.visits"', false);
+        $this->get($this->adminUrl('/crm/prospects'))->assertOk()->assertDontSee($tab, false);
+        $this->get($this->adminUrl('/crm/visits'))->assertOk(); // may still look
+
+        $this->actingAs($this->admin('field_sales', 'Hany Field'), 'admin');
+        $this->get($this->adminUrl('/crm/prospects'))->assertOk()->assertSee($tab, false);
+    }
+
     public function test_a_field_rep_starts_on_todays_visits_and_the_month_against_the_targets(): void
     {
         $rep = $this->admin('field_sales', 'Hany Field');

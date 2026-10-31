@@ -108,7 +108,11 @@
                 </div>
             @endforeach
         </div>
-        <p class="mt-2 text-xs text-navy-500">{{ __('Started paying: the first paid plan invoice was paid this month. Stopped paying: paid before, and the paid access ended this month without a renewal (past due, moved to the Free plan or canceled).') }}</p>
+        @if ($movement['source'] === 'history')
+            <p class="mt-2 text-xs text-navy-500" data-movement-source="history">{{ __('From the recorded subscription changes. Started paying: became active on a paid plan this month. Stopped paying: was paying and became past due, moved to the Free plan or was canceled this month.') }}</p>
+        @else
+            <p class="mt-2 text-xs text-navy-500" data-movement-source="invoices">{{ __('Started paying: the first paid plan invoice was paid this month. Stopped paying: paid before, and the paid access ended this month without a renewal (past due, moved to the Free plan or canceled).') }} {{ $historySince ? __('Estimated from the invoices: subscription changes are recorded only since :date.', ['date' => local_today($historySince)]) : __('Estimated from the invoices: no subscription change is recorded yet.') }}</p>
+        @endif
         <div class="mt-3 grid gap-3 sm:grid-cols-2 text-sm">
             @foreach (['new' => __('Started paying'), 'churned' => __('Stopped paying')] as $key => $label)
                 <div data-movement-list="{{ $key }}">

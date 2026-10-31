@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Stancl\Tenancy\Database\Models\Domain as BaseDomain;
 
 /**
@@ -20,6 +21,12 @@ class Domain extends BaseDomain
     protected function casts(): array
     {
         return ['verified_at' => 'datetime'];
+    }
+
+    /** Requests EgWeb still has to connect or reject (of a restaurant that still exists). */
+    public function scopeWaiting(Builder $query): void
+    {
+        $query->whereHas('tenant')->whereIn('status', ['requested', 'pending']);
     }
 
     public function isActive(): bool

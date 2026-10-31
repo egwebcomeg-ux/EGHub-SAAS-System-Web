@@ -11,6 +11,7 @@ use App\Models\Plan;
 use App\Models\PlatformAdmin;
 use App\Models\Subscription;
 use App\Models\SubscriptionAddon;
+use App\Models\SubscriptionChange;
 use App\Models\Tenant;
 use App\Models\TenantDiscount;
 use App\Notifications\PaymentClaimed;
@@ -416,11 +417,11 @@ final class Billing
         // moving to another plan: the packs it already includes go, the others are priced for it (decided before the move)
         $kept = $sub && $sub->plan_id !== $invoice->plan_id && ! isset($invoice->meta['packs'])
             ? $this->keptAddons($sub->load('addons'), $invoice->plan)->pluck('quantity', 'key')->all() : null;
-        Subscription::query()->updateOrCreate(['tenant_id' => $tenant->id], [
+        SubscriptionChange::because('payment', fn () => Subscription::query()->updateOrCreate(['tenant_id' => $tenant->id], [
             'plan_id' => $invoice->plan_id, 'status' => 'active', 'cycle_months' => $months, 'trial_ends_at' => null,
             'current_period_start' => $start, 'current_period_end' => $end, 'grace_ends_at' => null, 'reminded_at' => null,
             'period_value' => $invoice->total,
-        ]);
+        ]));
         if (isset($invoice->meta['packs'])) {
             // a custom plan: exactly the module packs it was bought with
             $this->syncPacks($tenant, array_fill_keys($invoice->meta['packs'], 1));

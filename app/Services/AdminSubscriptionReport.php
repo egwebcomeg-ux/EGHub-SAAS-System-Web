@@ -6,6 +6,7 @@ use App\Billing\Lifecycle;
 use App\Models\Invoice;
 use App\Models\Plan;
 use App\Models\Subscription;
+use App\Models\SubscriptionChange;
 use App\Models\Tenant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -110,12 +111,29 @@ final class AdminSubscriptionReport
      * the end of the period; moved to Free: the day of the move; canceled: the day it was canceled). Sign-ups:
      * restaurants created that month.
      *
-     * @return array{from: Carbon, new: Collection<int, Tenant>, churned: Collection<int, Tenant>, signups: int}
+     * A month the subscription history fully covers (it began on or before the month's first moment) is read from
+     * the history instead: see movementFromHistory(). `source` says which one was used.
+     *
+     * @return array{from: Carbon, new: Collection<int, Tenant>, churned: Collection<int, Tenant>, signups: int, source: string}
      */
     public function movement(string $month): array
     {
         $from = local_day_start($month.'-01');
         $to = local_day_start(Carbon::parse($month.'-01')->addMonthNoOverflow()->toDateString());
+        $signups = Tenant::query()->where('created_at', '>=', $from)->where('created_at', '<', $to)->count();
+
+        $historySince = $this->historySince();
+        if ($historySince !== null && $historySince->lte($from)) {
+            [$newIds, $churnedIds] = $this->movementFromHistory($from, $to);
+
+            return [
+                'from' => $from,
+                'new' => Tenant::query()->whereIn('id', $newIds)->orderBy('name')->get(['id', 'name']),
+                'churned' => Tenant::query()->whereIn('id', $churnedIds)->orderBy('name')->get(['id', 'name']),
+                'signups' => $signups,
+                'source' => 'history',
+            ];
+        }
 
         $firstPaid = $this->paidPlanInvoices()->groupBy('tenant_id')->selectRaw('tenant_id, min(paid_at) as first_paid_at');
         $newIds = DB::query()->fromSub($firstPaid, 'f')->where('first_paid_at', '>=', $from)->where('first_paid_at', '<', $to)->pluck('tenant_id');
@@ -133,8 +151,48 @@ final class AdminSubscriptionReport
             'from' => $from,
             'new' => Tenant::query()->whereIn('id', $newIds)->orderBy('name')->get(['id', 'name']),
             'churned' => Tenant::query()->whereIn('id', $churnedIds)->orderBy('name')->get(['id', 'name']),
-            'signups' => Tenant::query()->where('created_at', '>=', $from)->where('created_at', '<', $to)->count(),
+            'signups' => $signups,
+            'source' => 'invoices',
         ];
+    }
+
+    /** When the subscription history began (its first row), null while it is empty. */
+    public function historySince(): ?Carbon
+    {
+        $first = SubscriptionChange::query()->min('changed_at');
+
+        return $first ? Carbon::parse($first) : null;
+    }
+
+    /**
+     * The month from the recorded changes, per restaurant: its state before its first change of the month against
+     * its state after its last one. Paying = active on a plan other than Free. New: not paying before, paying after.
+     * Churned: paying before, not paying after (past due, moved to Free, canceled). Back and forth within the month
+     * counts as neither.
+     *
+     * @return array{0: list<string>, 1: list<string>}
+     */
+    private function movementFromHistory(Carbon $from, Carbon $to): array
+    {
+        $free = Plan::query()->where('code', Lifecycle::FREE_PLAN)->value('id');
+        $paying = fn (?string $status, ?int $planId) => $status === 'active' && $planId !== null && $planId !== $free;
+        $new = [];
+        $churned = [];
+        SubscriptionChange::query()->where('changed_at', '>=', $from)->where('changed_at', '<', $to)
+            ->orderBy('changed_at')->orderBy('id')->get(['id', 'tenant_id', 'from_status', 'to_status', 'from_plan_id', 'to_plan_id', 'changed_at'])
+            ->groupBy('tenant_id')->each(function (Collection $changes, string $tenantId) use ($paying, &$new, &$churned) {
+                $first = $changes->first();
+                $last = $changes->last();
+                $before = $paying($first->from_status, $first->from_plan_id === null ? null : (int) $first->from_plan_id);
+                $after = $paying($last->to_status, $last->to_plan_id === null ? null : (int) $last->to_plan_id);
+                if (! $before && $after) {
+                    $new[] = $tenantId;
+                } elseif ($before && ! $after) {
+                    $churned[] = $tenantId;
+                }
+            });
+
+        return [$new, $churned];
     }
 
     /**

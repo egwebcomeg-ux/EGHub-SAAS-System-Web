@@ -5,6 +5,7 @@ namespace App\Billing;
 use App\Models\AddonPrice;
 use App\Models\Plan;
 use App\Models\Subscription;
+use App\Models\SubscriptionChange;
 use App\Notifications\LaunchOfferEnding;
 use App\Notifications\MovedToFreePlan;
 use App\Notifications\SubscriptionEndingSoon;
@@ -43,7 +44,7 @@ final class Lifecycle
                         $this->moveToFree($sub, 'trial');
                         $out['downgraded']++;
                     } else {
-                        $sub->update(['status' => 'past_due', 'grace_ends_at' => now()->addDays(Billing::GRACE_DAYS)]);
+                        SubscriptionChange::because('period_ended', fn () => $sub->update(['status' => 'past_due', 'grace_ends_at' => now()->addDays(Billing::GRACE_DAYS)]));
                         Notification::send($sub->tenant?->owners() ?? [], new SubscriptionPastDue($sub));
                         $out['past_due']++;
                     }
@@ -84,11 +85,11 @@ final class Lifecycle
             return; // plans not seeded yet: leave the subscription as it is rather than guess
         }
         $previous = $sub->plan;
-        $sub->update([
+        SubscriptionChange::because($reason === 'trial' ? 'trial_ended' : 'grace_ended', fn () => $sub->update([
             'plan_id' => $free->id, 'status' => 'active', 'cycle_months' => 1, 'trial_ends_at' => null,
             'current_period_start' => now(), 'current_period_end' => null, 'grace_ends_at' => null,
             'reminded_at' => null, 'period_value' => 0,
-        ]);
+        ]));
         $sub->addons()->delete();
         if ($sub->tenant) {
             Notification::send($sub->tenant->owners(), new MovedToFreePlan($sub->tenant, $previous, $reason));

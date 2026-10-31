@@ -4,7 +4,7 @@
     $tabs = array_filter([
         $me->allows('crm.manage') ? ['admin.crm', __('Sign-ups'), ['admin.crm', 'admin.crm.show']] : null,
         ['admin.crm.prospects', __('Places'), ['admin.crm.prospects*']],
-        $me->allows('crm.visits') ? ['admin.crm.visits', __('My visits'), ['admin.crm.visits*']] : null,
+        $me->doesFieldVisits() ? ['admin.crm.visits', __('My visits'), ['admin.crm.visits*']] : null,
         $me->allows('crm.import') ? ['admin.crm.import', __('Import places'), ['admin.crm.import*']] : null,
         $me->allows('crm.team') ? ['admin.crm.team', __('Sales team'), ['admin.crm.team*']] : null,
         ['admin.crm.playbook', __('Team plan'), ['admin.crm.playbook']],

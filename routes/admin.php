@@ -72,6 +72,11 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         Route::post('/tenants/{tenant}/users/{user}/reset-link', [TenantUsersController::class, 'sendResetLink'])->whereNumber('user')->middleware('throttle:10,1')->name('tenants.users.reset-link');
         Route::post('/tenants/{tenant}/users/{user}/password', [TenantUsersController::class, 'setPassword'])->whereNumber('user')->middleware('throttle:10,1')->name('tenants.users.password');
         Route::post('/tenants/{tenant}/users/{user}/sign-out', [TenantUsersController::class, 'signOut'])->whereNumber('user')->name('tenants.users.sign-out');
+        // «طلبات الدومين»: every restaurant's own domain, waiting ones first; approve, reject with a reason, check the DNS
+        Route::get('/domains', [DomainsController::class, 'index'])->name('domains');
+        Route::post('/domains/{domain}/approve', [DomainsController::class, 'approve'])->whereNumber('domain')->name('domains.approve');
+        Route::post('/domains/{domain}/reject', [DomainsController::class, 'reject'])->whereNumber('domain')->name('domains.reject');
+        Route::post('/domains/{domain}/check', [DomainsController::class, 'check'])->whereNumber('domain')->middleware('throttle:20,1')->name('domains.check');
         Route::post('/domains/{domain}', [DomainsController::class, 'update'])->name('domains.update');
         // «إعلانات للمطاعم»: a banner on the restaurant dashboards (all of them or one plan) between two dates
         Route::get('/announcements', [AnnouncementsController::class, 'index'])->name('announcements');

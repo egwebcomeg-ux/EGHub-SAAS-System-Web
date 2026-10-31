@@ -52,6 +52,15 @@ class PlatformAdmin extends Authenticatable
         return $this->is_active && in_array($permission, $this->grantedPermissions(), true);
     }
 
+    /**
+     * Does this admin go on field visits («زياراتي» in the menu, the sales tabs and the badge)? The platform owner has
+     * crm.visits with everything else and may still open the page, but nothing promotes it to them.
+     */
+    public function doesFieldVisits(): bool
+    {
+        return ! $this->isOwner() && $this->allows('crm.visits');
+    }
+
     /** @return list<string> */
     public function grantedPermissions(): array
     {

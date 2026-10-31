@@ -34,7 +34,7 @@
         @if ($telUrl)<a href="{{ $telUrl }}" class="btn bg-emerald-600 text-white" data-tel>{{ __('Call') }} <span dir="ltr">{{ $prospect->phone }}</span></a>@endif
         @if ($whatsappUrl)<a href="{{ $whatsappUrl }}" target="_blank" rel="noopener" class="btn border border-emerald-200 bg-emerald-50 text-emerald-800">{{ __('WhatsApp') }}</a>@endif
         @if ($prospect->hasLocation())<a href="https://www.google.com/maps/dir/?api=1&destination={{ $prospect->lat }},{{ $prospect->lng }}" target="_blank" rel="noopener" class="btn-ghost">{{ __('Directions') }}</a>@endif
-        @if ($admin->allows('crm.visits') && $prospect->isOpen())
+        @if ($admin->doesFieldVisits() && $prospect->isOpen())
             <form method="post" action="{{ route('admin.crm.visits.walkin', $prospect) }}">@csrf<button class="btn-navy">{{ __('Start a visit now') }}</button></form>
         @endif
     </div>

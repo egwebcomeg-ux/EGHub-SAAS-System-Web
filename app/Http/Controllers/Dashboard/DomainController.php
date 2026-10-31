@@ -7,6 +7,7 @@ use App\Models\Domain;
 use App\Models\PlatformAdmin;
 use App\Models\PlatformSetting;
 use App\Notifications\DomainRequested;
+use App\Services\DomainDns;
 use App\Services\Entitlements;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -51,15 +52,14 @@ class DomainController extends Controller
     }
 
     /** Checks whether the domain already resolves to our server (a hint for the owner; EgWeb still activates it). */
-    public function check(): RedirectResponse
+    public function check(DomainDns $dns): RedirectResponse
     {
         $domain = tenant()->domains()->latest('id')->firstOrFail();
-        $ip = PlatformSetting::get('server_ip', '');
-        $resolved = gethostbyname($domain->domain);
+        $result = $dns->check($domain);
 
-        return back()->with('ok', $ip !== '' && $resolved === $ip
+        return back()->with('ok', $result['points'] === true
             ? __('The domain points to our server. We will finish connecting it shortly.')
-            : __('The domain does not point to our server yet (it points to :ip). DNS changes can take a few hours.', ['ip' => $resolved === $domain->domain ? '—' : $resolved]));
+            : __('The domain does not point to our server yet (it points to :ip). DNS changes can take a few hours.', ['ip' => $result['ip'] ?? '—']));
     }
 
     public function destroy(): RedirectResponse

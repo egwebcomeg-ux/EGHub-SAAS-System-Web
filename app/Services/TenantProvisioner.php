@@ -8,6 +8,7 @@ use App\Models\DiningTable;
 use App\Models\KitchenStation;
 use App\Models\Plan;
 use App\Models\Subscription;
+use App\Models\SubscriptionChange;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\WhatsApp\PhoneVerification;
@@ -37,12 +38,12 @@ final class TenantProvisioner
             $trial = $d['trial'] ?? true;
             $days = max(1, (int) ($d['trial_days'] ?? self::TRIAL_DAYS));
             $plan = Plan::query()->where('code', $d['plan'] ?? ($trial ? self::TRIAL_PLAN : Entitlements::FALLBACK_PLAN))->firstOrFail();
-            Subscription::query()->create([
+            SubscriptionChange::because('signup', fn () => Subscription::query()->create([
                 'tenant_id' => $tenant->id, 'plan_id' => $plan->id, 'status' => $trial ? 'trialing' : 'active', 'cycle_months' => 1,
                 'trial_ends_at' => $trial ? now()->addDays($days) : null,
                 'current_period_start' => now(),
                 'current_period_end' => $trial ? now()->addDays($days) : now()->addMonth(),
-            ]);
+            ]));
 
             tenancy()->initialize($tenant);
             try {
