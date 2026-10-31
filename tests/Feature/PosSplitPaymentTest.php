@@ -61,7 +61,7 @@ class PosSplitPaymentTest extends TenantTestCase
         $this->assertSame(250.0, $summary['expected_cash']); // 200 + the cash part only
         $this->assertSame(180.0, $summary['total']);
 
-        $report = $this->as($this->tenant, fn () => (new SalesReport(CarbonImmutable::today(), CarbonImmutable::today()))->build());
+        $report = $this->as($this->tenant, fn () => (new SalesReport(CarbonImmutable::parse(local_today()), CarbonImmutable::parse(local_today())))->build());
         $methods = collect($report['by_method'])->keyBy('key');
         $this->assertSame([50.0, 70.0, 60.0], [$methods['cash']['total'], $methods['card']['total'], $methods['instapay']['total']]);
 

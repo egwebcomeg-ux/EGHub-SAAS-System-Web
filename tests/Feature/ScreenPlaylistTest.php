@@ -130,8 +130,8 @@ class ScreenPlaylistTest extends TenantTestCase
     public function test_ready_numbers_come_from_called_pager_tickets_and_need_the_feature(): void
     {
         $branch = $this->as($this->cafe, fn () => Branch::query()->first());
-        $this->as($this->cafe, fn () => PagerTicket::query()->create(['branch_id' => $branch->id, 'number' => 42, 'service_date' => today(), 'token' => random_token(12), 'status' => 'called', 'called_at' => now()]));
-        $this->as($this->cafe, fn () => PagerTicket::query()->create(['branch_id' => $branch->id, 'number' => 43, 'service_date' => today(), 'token' => random_token(12), 'status' => 'waiting']));
+        $this->as($this->cafe, fn () => PagerTicket::query()->create(['branch_id' => $branch->id, 'number' => 42, 'service_date' => local_today(), 'token' => random_token(12), 'status' => 'called', 'called_at' => now()]));
+        $this->as($this->cafe, fn () => PagerTicket::query()->create(['branch_id' => $branch->id, 'number' => 43, 'service_date' => local_today(), 'token' => random_token(12), 'status' => 'waiting']));
 
         $this->device('ready')->assertOk()->assertExactJson(['ready' => [42], 'preparing' => []]);
 

@@ -29,7 +29,7 @@ class MenuTopTest extends TenantTestCase
         $croissant = $this->item($tenant, 'Croissant', 35);
         $this->as($tenant, function () use ($croissant) {
             Settings::put(['cart_goal_enabled' => '1', 'cart_goal_amount' => '150', 'cart_goal_reward' => 'item', 'cart_goal_item' => (string) $croissant->id]);
-            Season::query()->create(['name' => 'R', 'preset' => 'ramadan', 'starts_on' => today()->toDateString(), 'ends_on' => today()->toDateString(), 'greeting' => 'رمضان كريم', 'accent' => '#0F6B4F']);
+            Season::query()->create(['name' => 'R', 'preset' => 'ramadan', 'starts_on' => local_today(), 'ends_on' => local_today(), 'greeting' => 'رمضان كريم', 'accent' => '#0F6B4F']);
         });
     }
 

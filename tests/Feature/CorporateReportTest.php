@@ -38,7 +38,7 @@ class CorporateReportTest extends TenantTestCase
         $tenant ??= $this->tenant;
 
         return $this->as($tenant, fn () => app(CorporateVouchers::class)->createContract($overrides + [
-            'voucher_value' => 200, 'quantity' => 3, 'expires_on' => now()->addMonth()->format('Y-m-d'), 'mode' => 'single',
+            'voucher_value' => 200, 'quantity' => 3, 'expires_on' => local_at()->addMonth()->format('Y-m-d'), 'mode' => 'single',
         ], $this->owner($tenant)));
     }
 
@@ -69,9 +69,9 @@ class CorporateReportTest extends TenantTestCase
         $this->cashier = $this->staff($this->tenant, 'cashier', 'cashier@cafe-r.test');
         $this->manager = $this->staff($this->tenant, 'manager', 'manager@cafe-r.test');
         $this->eva = $this->contract(['name' => 'Eva Pharma']);
-        $this->bank = $this->contract(['name' => 'Nile Bank', 'prefix' => 'NB', 'voucher_value' => 100, 'quantity' => 2, 'mode' => 'balance', 'expires_on' => now()->addDays(20)->format('Y-m-d')]);
+        $this->bank = $this->contract(['name' => 'Nile Bank', 'prefix' => 'NB', 'voucher_value' => 100, 'quantity' => 2, 'mode' => 'balance', 'expires_on' => local_at()->addDays(20)->format('Y-m-d')]);
         $old = $this->contract(['name' => 'Old Co', 'prefix' => 'OLD', 'voucher_value' => 50, 'quantity' => 1, 'mode' => 'balance']);
-        $this->as($this->tenant, fn () => CorporateVoucher::query()->where('corporate_contract_id', $old->id)->update(['expires_on' => now()->subDays(2)->format('Y-m-d')]));
+        $this->as($this->tenant, fn () => CorporateVoucher::query()->where('corporate_contract_id', $old->id)->update(['expires_on' => local_at()->subDays(2)->format('Y-m-d')]));
 
         [$eva1, $eva2, $eva3] = $this->vouchers($this->eva);
         [$bank1, $bank2] = $this->vouchers($this->bank);
@@ -88,7 +88,7 @@ class CorporateReportTest extends TenantTestCase
         $this->actingAs($this->manager)->postJson($this->dashUrl("/vouchers/redeem/batches/$batch/cancel"), ['reason' => 'Typed by mistake'])->assertOk();
 
         // an expired voucher taken with the manager's exception
-        $this->as($this->tenant, fn () => CorporateVoucher::query()->whereKey($eva3->id)->update(['expires_on' => now()->subDay()->format('Y-m-d')]));
+        $this->as($this->tenant, fn () => CorporateVoucher::query()->whereKey($eva3->id)->update(['expires_on' => local_at()->subDay()->format('Y-m-d')]));
         $token = $this->actingAs($this->manager)->postJson($this->dashUrl("/vouchers/redeem/{$eva3->id}/exception"), ['reason' => 'Staff came on the last day'])->assertOk()->json('token');
         $this->manual($eva3->code, 200, $this->manager, $token);
     }
@@ -96,7 +96,7 @@ class CorporateReportTest extends TenantTestCase
     private function report(array $query = []): array
     {
         return $this->actingAs($this->manager)->get($this->dashUrl('/corporate/report?'.http_build_query($query + [
-            'range' => 'custom', 'from' => now()->subDays(10)->format('Y-m-d'), 'to' => now()->format('Y-m-d'),
+            'range' => 'custom', 'from' => local_at()->subDays(10)->format('Y-m-d'), 'to' => local_today(),
         ])))->assertOk()->viewData('r');
     }
 
@@ -136,7 +136,7 @@ class CorporateReportTest extends TenantTestCase
         $other = $this->as($this->tenant, fn () => Branch::query()->create(['name' => 'Second', 'slug' => 'second', 'is_active' => true]));
         $this->assertSame(0.0, $this->report(['branch' => $other->id])['kpis']['redeemed']);
         // a range before any use
-        $empty = $this->actingAs($this->manager)->get($this->dashUrl('/corporate/report?range=custom&from='.now()->subDays(40)->format('Y-m-d').'&to='.now()->subDays(30)->format('Y-m-d')))
+        $empty = $this->actingAs($this->manager)->get($this->dashUrl('/corporate/report?range=custom&from='.local_at()->subDays(40)->format('Y-m-d').'&to='.local_at()->subDays(30)->format('Y-m-d')))
             ->assertOk()->assertSee('data-chart-empty', false);
         $this->assertSame(0.0, $empty->viewData('r')['kpis']['redeemed']);
         $this->assertSame(410.0, $this->actingAs($this->manager)->get($this->dashUrl('/corporate/report?range=today'))->viewData('r')['kpis']['redeemed']);

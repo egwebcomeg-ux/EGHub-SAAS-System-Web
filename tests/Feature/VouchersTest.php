@@ -182,7 +182,7 @@ class VouchersTest extends TenantTestCase
             ->assertRedirect()->assertSessionHasNoErrors();
         $given = $this->as($a, fn () => Coupon::query()->where('customer_id', $mona->id)->sole());
         $this->assertSame(1, $given->max_uses);
-        $this->assertTrue($given->expires_at->isSameDay(now()->addDays(7)));
+        $this->assertSame(local_at()->addDays(7)->toDateString(), local_today($given->expires_at));
         $this->actingAs($cashier)->get($this->dashUrl('/loyalty?q=01011112222'))->assertOk()->assertSee($given->code)->assertDontSee('OMARONLY');
 
         $this->get($this->subUrl('cafe-a', "card/{$mona->card_token}"))->assertOk()

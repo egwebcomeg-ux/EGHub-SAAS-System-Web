@@ -159,7 +159,7 @@ class VoucherRedeemTest extends TenantTestCase
         $csv = $this->actingAs($this->manager)->get($this->dashUrl("/corporate/{$contract->id}/statement?format=csv"))->assertOk()->streamedContent();
         $this->assertStringContainsString('فاتورة ورقية B-77', $csv);
         $this->assertStringContainsString('350', $csv);
-        $report = $this->as($this->tenant, fn () => (new SalesReport(CarbonImmutable::now(), CarbonImmutable::now()))->build());
+        $report = $this->as($this->tenant, fn () => (new SalesReport(CarbonImmutable::parse(local_today()), CarbonImmutable::parse(local_today())))->build());
         $this->assertSame(['count' => 2, 'total' => 350.0], $report['paper_vouchers']);
         $this->actingAs($this->owner($this->tenant))->get($this->dashUrl('/reports'))->assertOk()->assertSee('data-report-paper-vouchers', false);
 

@@ -196,7 +196,7 @@ class CorporateVouchersTest extends TenantTestCase
         $this->actingAs($this->cashier)->get($this->dashUrl('/shifts'))->assertOk()->assertSee('data-shift-corporate', false)->assertSee('مش كاش في الدرج');
 
         // the reports: the same split
-        $report = $this->as($this->tenant, fn () => (new SalesReport(CarbonImmutable::now(), CarbonImmutable::now()))->build());
+        $report = $this->as($this->tenant, fn () => (new SalesReport(CarbonImmutable::parse(local_today()), CarbonImmutable::parse(local_today())))->build());
         $byMethod = collect($report['by_method'])->keyBy('key');
         $this->assertSame(320.0, $byMethod['corporate']['total']);
         $this->assertSame(100.0, $byMethod['cash']['total']);

@@ -17,6 +17,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Inventory\StockService;
 use App\Services\Orders\OrderService;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Tests\TenantTestCase;
 
@@ -238,11 +239,11 @@ class InventoryOperationsTest extends TenantTestCase
     {
         $milk = $this->ingredient('Milk', 0.05);
         $saffron = $this->ingredient('Saffron', 10);
-        $this->travelTo(now()->setDate(2026, 10, 1));
+        $this->travelTo(Carbon::parse('2026-10-01 12:00', 'Africa/Cairo'));
         $this->receive($milk, 1000);
         $this->receive($saffron, 10);
 
-        $this->travelTo(now()->setDate(2026, 10, 5));
+        $this->travelTo(Carbon::parse('2026-10-05 12:00', 'Africa/Cairo'));
         $this->sellLattes($milk, 100, 2);                        // 200 ml by the recipes
         $this->as($this->tenant, function () use ($milk, $saffron) {
             $stock = app(StockService::class);
@@ -251,7 +252,7 @@ class InventoryOperationsTest extends TenantTestCase
             $stock->count($saffron->fresh(), $this->branch, 8, null);    // 2 g of saffron (20.00) gone
         });
 
-        $this->travelTo(now()->setDate(2026, 10, 20));         // after the period: not in it
+        $this->travelTo(Carbon::parse('2026-10-20 12:00', 'Africa/Cairo'));         // after the period: not in it
         $this->receive($milk, 500);
 
         $response = $this->actingAs($this->owner)->get($this->dashUrl('/inventory/variance?from=2026-10-02&to=2026-10-10'))->assertOk();

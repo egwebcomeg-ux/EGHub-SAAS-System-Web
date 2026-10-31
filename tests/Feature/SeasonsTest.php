@@ -26,7 +26,7 @@ class SeasonsTest extends TenantTestCase
         $owner = $this->owner($a);
 
         $this->actingAs($owner)->post($this->dashUrl('/marketing/seasons'), [
-            'name' => 'Ramadan 2026', 'preset' => 'ramadan', 'starts_on' => today()->subDay()->toDateString(), 'ends_on' => today()->addDays(20)->toDateString(),
+            'name' => 'Ramadan 2026', 'preset' => 'ramadan', 'starts_on' => local_at()->subDay()->toDateString(), 'ends_on' => local_at()->addDays(20)->toDateString(),
             'decoration' => '1', 'banner' => UploadedFile::fake()->image('banner.jpg', 1600, 700), 'logo' => UploadedFile::fake()->image('logo.png', 300, 300),
         ])->assertSessionHasNoErrors();
 
@@ -73,13 +73,13 @@ class SeasonsTest extends TenantTestCase
         $this->item($a);
         $this->as($a, function () {
             Settings::put(['menu_theme' => 'bistro']);
-            Season::query()->create(['name' => 'R', 'preset' => 'ramadan', 'starts_on' => today()->toDateString(), 'ends_on' => today()->toDateString(), 'greeting' => 'رمضان كريم', 'accent' => '#0F6B4F']);
+            Season::query()->create(['name' => 'R', 'preset' => 'ramadan', 'starts_on' => local_today(), 'ends_on' => local_today(), 'greeting' => 'رمضان كريم', 'accent' => '#0F6B4F']);
         });
         $this->get($this->subUrl('cafe-a'))->assertOk()->assertSee('--menu-surface: #1E1E1E;', false)->assertSee('--menu-accent: #0F6B4F;', false);
 
         $b = $this->restaurant('cafe-b', 'basic');
         $this->item($b);
-        $this->as($b, fn () => Season::query()->create(['name' => 'R', 'preset' => 'ramadan', 'starts_on' => today()->toDateString(), 'ends_on' => today()->toDateString(), 'greeting' => 'رمضان كريم', 'accent' => '#0F6B4F']));
+        $this->as($b, fn () => Season::query()->create(['name' => 'R', 'preset' => 'ramadan', 'starts_on' => local_today(), 'ends_on' => local_today(), 'greeting' => 'رمضان كريم', 'accent' => '#0F6B4F']));
         $this->get($this->subUrl('cafe-b'))->assertOk()->assertDontSee('data-ticker-line="season"', false)->assertDontSee('#0F6B4F', false);
         $this->actingAs($this->owner($b))->post($this->dashUrl('/marketing/seasons'), ['name' => 'X', 'preset' => 'eid', 'starts_on' => '2026-01-01', 'ends_on' => '2026-01-02'])->assertForbidden();
     }
