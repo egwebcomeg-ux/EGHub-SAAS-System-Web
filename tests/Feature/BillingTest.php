@@ -66,7 +66,7 @@ class BillingTest extends TenantTestCase
         $this->assertSame('full', $sub->plan->code);
         $this->assertSame('active', $sub->status);
         $this->assertSame(6, $sub->cycle_months);
-        $this->assertTrue($sub->current_period_end->between(now()->addMonths(6)->subDay(), now()->addMonths(6)->addDay()));
+        $this->assertTrue($sub->current_period_end->between(now()->addMonthsNoOverflow(6)->subDay(), now()->addMonthsNoOverflow(6)->addDay()));
         $this->assertSame('paid', $invoice->fresh()->status);
         $this->assertSame(1, $invoice->payments()->where('status', 'succeeded')->count());
     }
