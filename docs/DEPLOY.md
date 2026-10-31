@@ -151,6 +151,12 @@ uploaded by hand any more.
    migrates, `optimize` (which purges the page cache) and comes back up. `.env`, `storage/` and `vendor/` are not
    tracked, so they are never touched. If any step fails, it rolls the code back to the previous commit, comes back
    up and does not retry that build. Everything goes to `storage/logs/deploy.log`.
+3. After coming back up it seeds the built-in roles' permissions and any missing plan or add-on (prices edited on
+   admin › Prices stay), then opens `APP_URL/up` and the home page; if either fails the build is rolled back too.
+4. A build that went live but misbehaves: `sh deploy.sh rollback` (same `PHP`/`COMPOSER` as the cron line) puts back
+   the build before it (from `storage/framework/deploy.history`) and keeps the bad one from coming back; the next
+   merge to master deploys as usual. Only code goes back: the database and `storage/` (uploads) stay as they are, so a
+   migration that changed data is undone from the backup taken before it (`storage/app/backups`).
 
 One-time setup in cPanel > Terminal (adjust `USER` and the PHP path):
 
