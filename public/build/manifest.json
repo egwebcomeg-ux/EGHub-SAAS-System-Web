@@ -1,0 +1,302 @@
+{
+  "_cairo-400-normal-CAYwymWN.woff": {
+    "file": "assets/cairo-400-normal-CAYwymWN.woff",
+    "src": "_cairo-400-normal-CAYwymWN.woff"
+  },
+  "_cairo-400-normal-DN15VWMM.woff2": {
+    "file": "assets/cairo-400-normal-DN15VWMM.woff2",
+    "src": "_cairo-400-normal-DN15VWMM.woff2"
+  },
+  "_cairo-400-normal-Dh7otpdh.woff2": {
+    "file": "assets/cairo-400-normal-Dh7otpdh.woff2",
+    "src": "_cairo-400-normal-Dh7otpdh.woff2"
+  },
+  "_cairo-400-normal-b1R3q6Pf.woff": {
+    "file": "assets/cairo-400-normal-b1R3q6Pf.woff",
+    "src": "_cairo-400-normal-b1R3q6Pf.woff"
+  },
+  "_cairo-500-normal-BADfnM6v.woff": {
+    "file": "assets/cairo-500-normal-BADfnM6v.woff",
+    "src": "_cairo-500-normal-BADfnM6v.woff"
+  },
+  "_cairo-500-normal-D-WQsSKQ.woff2": {
+    "file": "assets/cairo-500-normal-D-WQsSKQ.woff2",
+    "src": "_cairo-500-normal-D-WQsSKQ.woff2"
+  },
+  "_cairo-500-normal-DDl0i4Xv.woff2": {
+    "file": "assets/cairo-500-normal-DDl0i4Xv.woff2",
+    "src": "_cairo-500-normal-DDl0i4Xv.woff2"
+  },
+  "_cairo-500-normal-DkdkMETP.woff": {
+    "file": "assets/cairo-500-normal-DkdkMETP.woff",
+    "src": "_cairo-500-normal-DkdkMETP.woff"
+  },
+  "_cairo-600-normal-B3EOalmC.woff": {
+    "file": "assets/cairo-600-normal-B3EOalmC.woff",
+    "src": "_cairo-600-normal-B3EOalmC.woff"
+  },
+  "_cairo-600-normal-buYOP1M3.woff": {
+    "file": "assets/cairo-600-normal-buYOP1M3.woff",
+    "src": "_cairo-600-normal-buYOP1M3.woff"
+  },
+  "_cairo-600-normal-mGS0uvCM.woff2": {
+    "file": "assets/cairo-600-normal-mGS0uvCM.woff2",
+    "src": "_cairo-600-normal-mGS0uvCM.woff2"
+  },
+  "_cairo-600-normal-rkrvveqO.woff2": {
+    "file": "assets/cairo-600-normal-rkrvveqO.woff2",
+    "src": "_cairo-600-normal-rkrvveqO.woff2"
+  },
+  "_cairo-700-normal-6fcUy4Rc.woff": {
+    "file": "assets/cairo-700-normal-6fcUy4Rc.woff",
+    "src": "_cairo-700-normal-6fcUy4Rc.woff"
+  },
+  "_cairo-700-normal-C3GYtKbV.woff2": {
+    "file": "assets/cairo-700-normal-C3GYtKbV.woff2",
+    "src": "_cairo-700-normal-C3GYtKbV.woff2"
+  },
+  "_cairo-700-normal-CyOqhaeK.woff": {
+    "file": "assets/cairo-700-normal-CyOqhaeK.woff",
+    "src": "_cairo-700-normal-CyOqhaeK.woff"
+  },
+  "_cairo-700-normal-D3nDedWX.woff2": {
+    "file": "assets/cairo-700-normal-D3nDedWX.woff2",
+    "src": "_cairo-700-normal-D3nDedWX.woff2"
+  },
+  "_cairo-800-normal-BBdTpBXf.woff2": {
+    "file": "assets/cairo-800-normal-BBdTpBXf.woff2",
+    "src": "_cairo-800-normal-BBdTpBXf.woff2"
+  },
+  "_cairo-800-normal-CVTPwINa.woff": {
+    "file": "assets/cairo-800-normal-CVTPwINa.woff",
+    "src": "_cairo-800-normal-CVTPwINa.woff"
+  },
+  "_cairo-800-normal-G1qvPr6G.woff2": {
+    "file": "assets/cairo-800-normal-G1qvPr6G.woff2",
+    "src": "_cairo-800-normal-G1qvPr6G.woff2"
+  },
+  "_cairo-800-normal-ReWrxM5E.woff": {
+    "file": "assets/cairo-800-normal-ReWrxM5E.woff",
+    "src": "_cairo-800-normal-ReWrxM5E.woff"
+  },
+  "_cairo-900-normal-CZYZHNME.woff2": {
+    "file": "assets/cairo-900-normal-CZYZHNME.woff2",
+    "src": "_cairo-900-normal-CZYZHNME.woff2"
+  },
+  "_cairo-900-normal-DNm2WYV7.woff2": {
+    "file": "assets/cairo-900-normal-DNm2WYV7.woff2",
+    "src": "_cairo-900-normal-DNm2WYV7.woff2"
+  },
+  "_cairo-900-normal-YbAqUPRv.woff": {
+    "file": "assets/cairo-900-normal-YbAqUPRv.woff",
+    "src": "_cairo-900-normal-YbAqUPRv.woff"
+  },
+  "_cairo-900-normal-dTOb6H7Y.woff": {
+    "file": "assets/cairo-900-normal-dTOb6H7Y.woff",
+    "src": "_cairo-900-normal-dTOb6H7Y.woff"
+  },
+  "_corporate-vouchers-BTmmKKRz.js": {
+    "file": "assets/corporate-vouchers-BTmmKKRz.js",
+    "name": "corporate-vouchers"
+  },
+  "_delivery-geo-D-BgKGgP.js": {
+    "file": "assets/delivery-geo-D-BgKGgP.js",
+    "name": "delivery-geo"
+  },
+  "_fonts-CC5wYMWN.css": {
+    "file": "assets/fonts-CC5wYMWN.css",
+    "src": "_fonts-CC5wYMWN.css"
+  },
+  "_kb-drawer-C67jpjcA.js": {
+    "file": "assets/kb-drawer-C67jpjcA.js",
+    "name": "kb-drawer"
+  },
+  "_native-Cqck2T-J.js": {
+    "file": "assets/native-Cqck2T-J.js",
+    "name": "native"
+  },
+  "_pager-call-uelDQ0bp.js": {
+    "file": "assets/pager-call-uelDQ0bp.js",
+    "name": "pager-call"
+  },
+  "resources/css/app.css": {
+    "file": "assets/app-DA-fdThj.css",
+    "name": "app",
+    "names": [
+      "app.css"
+    ],
+    "src": "resources/css/app.css",
+    "isEntry": true
+  },
+  "resources/css/landing.css": {
+    "file": "assets/landing-B7jqkavp.css",
+    "name": "landing",
+    "names": [
+      "landing.css"
+    ],
+    "src": "resources/css/landing.css",
+    "isEntry": true
+  },
+  "resources/js/board.js": {
+    "file": "assets/board-Ce_DaiH6.js",
+    "name": "board",
+    "src": "resources/js/board.js",
+    "isEntry": true,
+    "imports": [
+      "_kb-drawer-C67jpjcA.js",
+      "_pager-call-uelDQ0bp.js"
+    ]
+  },
+  "resources/js/dash-home.js": {
+    "file": "assets/dash-home-Bba8eS7y.js",
+    "name": "dash-home",
+    "src": "resources/js/dash-home.js",
+    "isEntry": true
+  },
+  "resources/js/dash-ui.js": {
+    "file": "assets/dash-ui-BeOBQ1NO.js",
+    "name": "dash-ui",
+    "src": "resources/js/dash-ui.js",
+    "isEntry": true
+  },
+  "resources/js/delivery-pricing.js": {
+    "file": "assets/delivery-pricing-CR5tBjoA.js",
+    "name": "delivery-pricing",
+    "src": "resources/js/delivery-pricing.js",
+    "isEntry": true,
+    "imports": [
+      "_delivery-geo-D-BgKGgP.js"
+    ]
+  },
+  "resources/js/driver.js": {
+    "file": "assets/driver-DZIWy2BM.js",
+    "name": "driver",
+    "src": "resources/js/driver.js",
+    "isEntry": true,
+    "imports": [
+      "_native-Cqck2T-J.js"
+    ]
+  },
+  "resources/js/drivers.js": {
+    "file": "assets/drivers-CvYKihOm.js",
+    "name": "drivers",
+    "src": "resources/js/drivers.js",
+    "isEntry": true
+  },
+  "resources/js/kiosk.js": {
+    "file": "assets/kiosk-DjW4dCNt.js",
+    "name": "kiosk",
+    "src": "resources/js/kiosk.js",
+    "isEntry": true,
+    "imports": [
+      "_native-Cqck2T-J.js"
+    ]
+  },
+  "resources/js/kitchen.js": {
+    "file": "assets/kitchen-DHxls4eu.js",
+    "name": "kitchen",
+    "src": "resources/js/kitchen.js",
+    "isEntry": true,
+    "imports": [
+      "_pager-call-uelDQ0bp.js"
+    ]
+  },
+  "resources/js/landing.js": {
+    "file": "assets/landing-8Uu3daQO.js",
+    "name": "landing",
+    "src": "resources/js/landing.js",
+    "isEntry": true
+  },
+  "resources/js/menu-editor.js": {
+    "file": "assets/menu-editor-WxCKr_h3.js",
+    "name": "menu-editor",
+    "src": "resources/js/menu-editor.js",
+    "isEntry": true
+  },
+  "resources/js/menu.js": {
+    "file": "assets/menu-Bg_EJryq.js",
+    "name": "menu",
+    "src": "resources/js/menu.js",
+    "isEntry": true,
+    "imports": [
+      "_delivery-geo-D-BgKGgP.js"
+    ]
+  },
+  "resources/js/native-print.js": {
+    "file": "assets/native-print-BpKQqqku.js",
+    "name": "native-print",
+    "src": "resources/js/native-print.js",
+    "isEntry": true,
+    "imports": [
+      "_native-Cqck2T-J.js"
+    ]
+  },
+  "resources/js/native-push.js": {
+    "file": "assets/native-push-BvXPQh82.js",
+    "name": "native-push",
+    "src": "resources/js/native-push.js",
+    "isEntry": true,
+    "imports": [
+      "_native-Cqck2T-J.js"
+    ]
+  },
+  "resources/js/notifications.js": {
+    "file": "assets/notifications-B6jlLh9s.js",
+    "name": "notifications",
+    "src": "resources/js/notifications.js",
+    "isEntry": true
+  },
+  "resources/js/pager-station.js": {
+    "file": "assets/pager-station-Ce50dQbF.js",
+    "name": "pager-station",
+    "src": "resources/js/pager-station.js",
+    "isEntry": true,
+    "imports": [
+      "_pager-call-uelDQ0bp.js"
+    ]
+  },
+  "resources/js/pager.js": {
+    "file": "assets/pager-D8ZayUtu.js",
+    "name": "pager",
+    "src": "resources/js/pager.js",
+    "isEntry": true
+  },
+  "resources/js/pos.js": {
+    "file": "assets/pos-CovtQ0YI.js",
+    "name": "pos",
+    "src": "resources/js/pos.js",
+    "isEntry": true,
+    "imports": [
+      "_delivery-geo-D-BgKGgP.js",
+      "_kb-drawer-C67jpjcA.js",
+      "_pager-call-uelDQ0bp.js",
+      "_corporate-vouchers-BTmmKKRz.js",
+      "resources/js/native-print.js",
+      "resources/js/native-print.js"
+    ]
+  },
+  "resources/js/qr-tool.js": {
+    "file": "assets/qr-tool-LBoj8ULN.js",
+    "name": "qr-tool",
+    "src": "resources/js/qr-tool.js",
+    "isEntry": true,
+    "css": [
+      "assets/qr-tool-CupbWSEs.css"
+    ]
+  },
+  "resources/js/voucher-redeem.js": {
+    "file": "assets/voucher-redeem-i7qOECX6.js",
+    "name": "voucher-redeem",
+    "src": "resources/js/voucher-redeem.js",
+    "isEntry": true,
+    "imports": [
+      "_corporate-vouchers-BTmmKKRz.js"
+    ]
+  },
+  "resources/js/zones-map.js": {
+    "file": "assets/zones-map-hIAzPFyY.js",
+    "name": "zones-map",
+    "src": "resources/js/zones-map.js",
+    "isEntry": true
+  }
+}
