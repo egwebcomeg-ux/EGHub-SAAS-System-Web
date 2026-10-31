@@ -30,6 +30,8 @@ final class AdminMenu
             [__('Customers'), [
                 ['admin.tenants', __('Restaurants'), 'M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6M9 11h.01M15 11h.01', 'tenants.view', ['admin.tenants*'], null],
                 ['admin.invoices', __('Invoices & payments'), 'M6 2h9l5 5v15H6zM14 2v6h6M9 13h6M9 17h6', 'billing.manage', ['admin.invoices*'], 'invoices'],
+                ['admin.subscriptions', __('Subscriptions & revenue'), 'M3 3v18h18M7 16v-4M12 16V8M17 16v-7', 'billing.manage', ['admin.subscriptions*'], null],
+                ['admin.announcements', __('Announcements'), 'M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13', 'tenants.manage', ['admin.announcements*'], null],
             ]],
             [__('Sales'), [
                 ['admin.crm.visits', __('My visits'), 'M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15', 'crm.visits', ['admin.crm.visits*'], 'visits'],

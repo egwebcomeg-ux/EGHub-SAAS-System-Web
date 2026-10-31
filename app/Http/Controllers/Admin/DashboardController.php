@@ -7,6 +7,7 @@ use App\Models\Invoice;
 use App\Models\ServiceRequest;
 use App\Models\Subscription;
 use App\Models\Tenant;
+use App\Services\AdminSubscriptionReport;
 use App\Services\AdminWorkspace;
 use App\Services\Crm\LeadSearch;
 use Illuminate\Http\Request;
@@ -41,8 +42,8 @@ class DashboardController extends Controller
                 'unpaid_count' => (clone $openInvoices)->count(),
                 'trials_ending' => $workspace->trialsEnding(),
             ],
-            // Monthly recurring revenue of paying restaurants (yearly cycles spread over 12 months).
-            'mrr' => $subs->where('status', 'active')->sum(fn ($s) => $s->plan->priceFor($s->cycle_months) / max(1, $s->cycle_months)),
+            // Monthly recurring revenue of paying restaurants, the same figure as the subscriptions report
+            'mrr' => $admin->allows('billing.manage') ? app(AdminSubscriptionReport::class)->mrr() : 0.0,
             'unpaid' => (float) (clone $openInvoices)->sum('total'),
             'signups' => $this->perDay(Tenant::query()->where('created_at', '>=', $since)->pluck('created_at'), $since),
             'revenue' => $admin->allows('billing.manage') ? $this->perDay(

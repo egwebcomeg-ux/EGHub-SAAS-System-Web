@@ -14,9 +14,13 @@
         <h1 class="page-title">{{ __('Restaurants') }}</h1>
         <p class="muted">{{ __(':count restaurants', ['count' => number_format($tenants->total())]) }}</p>
     </div>
-    @if (auth('admin')->user()->allows('tenants.manage'))
-        <a href="{{ route('admin.tenants.create') }}" class="btn-primary">{{ __('New restaurant') }}</a>
-    @endif
+    <div class="flex flex-wrap gap-2">
+        {{-- the same search, filters and sort as the list --}}
+        <a href="{{ route('admin.tenants.export', array_filter($f, fn ($v) => $v !== '' && $v !== 'newest')) }}" class="btn-ghost" data-tenants-export>{{ __('Export CSV') }}</a>
+        @if (auth('admin')->user()->allows('tenants.manage'))
+            <a href="{{ route('admin.tenants.create') }}" class="btn-primary">{{ __('New restaurant') }}</a>
+        @endif
+    </div>
 </div>
 
 {{-- business types: how many places of each match the other filters --}}

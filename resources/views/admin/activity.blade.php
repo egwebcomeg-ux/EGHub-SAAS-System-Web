@@ -20,10 +20,10 @@
     </div>
     <div>
         <label class="field-label" for="f-action">{{ __('Action') }}</label>
-        <select id="f-action" name="action" class="field" dir="ltr">
+        <select id="f-action" name="action" class="field">
             <option value="">{{ __('All actions') }}</option>
             @foreach ($actions as $action)
-                <option value="{{ $action }}" @selected($filters['action'] === $action)>{{ $action }}</option>
+                <option value="{{ $action }}" @selected($filters['action'] === $action)>{{ \App\Support\AdminActivityLabels::label($action) }}</option>
             @endforeach
         </select>
     </div>
@@ -51,7 +51,10 @@
             <tr data-activity-row="{{ $log->id }}">
                 <td class="whitespace-nowrap">{{ local_time($log->created_at, 'Y/m/d h:i A') }}<div class="text-xs text-navy-400" dir="ltr">{{ $log->ip }}</div></td>
                 <td class="whitespace-nowrap">{{ $log->admin?->name ?? __('System') }}</td>
-                <td><span class="badge bg-navy-100 text-navy-700" dir="ltr">{{ $log->action }}</span></td>
+                <td>
+                    @php($actionLabel = \App\Support\AdminActivityLabels::label($log->action))
+                    <span class="badge bg-navy-100 text-navy-700" title="{{ $log->action }}" data-action="{{ $log->action }}" @if ($actionLabel === $log->action) dir="ltr" @endif>{{ $actionLabel }}</span>
+                </td>
                 <td dir="ltr" class="text-start">
                     @if ($canTenants && $log->subject !== '' && $log->action !== 'tenant.deleted' && (str_starts_with($log->action, 'tenant.') || str_starts_with($log->action, 'crm.discount')))
                         <a href="{{ route('admin.tenants.show', $log->subject) }}" class="font-semibold text-navy-800 hover:text-brand-700">{{ $log->subject }}</a>

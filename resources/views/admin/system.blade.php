@@ -99,13 +99,21 @@
     <section class="card mt-4 overflow-x-auto" data-failed-jobs>
         <h2 class="section-title mb-3">{{ __('Last failed jobs') }}</h2>
         <table class="table-base">
-            <thead><tr><th>{{ __('Time') }}</th><th>{{ __('Job') }}</th><th>{{ __('Error') }}</th></tr></thead>
+            <thead><tr><th>{{ __('Time') }}</th><th>{{ __('Job') }}</th><th>{{ __('Error') }}</th><th><span class="sr-only">{{ __('Actions') }}</span></th></tr></thead>
             <tbody>
             @foreach ($failedJobs as $job)
-                <tr>
+                <tr data-failed-job="{{ $job['uuid'] }}">
                     <td class="whitespace-nowrap">{{ local_time($job['at'], 'm/d h:i A') }}</td>
                     <td dir="ltr" class="text-start">{{ class_basename($job['job']) }}<div class="text-xs text-navy-400">{{ $job['queue'] }}</div></td>
                     <td dir="ltr" class="min-w-[260px] text-start text-xs text-navy-600">{{ $job['error'] }}</td>
+                    <td class="whitespace-nowrap">
+                        @if ($job['uuid'] !== '')
+                            <div class="flex gap-2">
+                                <form method="post" action="{{ route('admin.system.retry', $job['uuid']) }}">@csrf<button class="btn-navy min-h-9 px-3">{{ __('Retry') }}</button></form>
+                                <form method="post" action="{{ route('admin.system.forget', $job['uuid']) }}" onsubmit="return confirm(@js(__('Delete this failed job? It will not run again.')))">@csrf<button class="btn-ghost min-h-9 px-3">{{ __('Delete') }}</button></form>
+                            </div>
+                        @endif
+                    </td>
                 </tr>
             @endforeach
             </tbody>

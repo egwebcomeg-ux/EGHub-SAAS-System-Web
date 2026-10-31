@@ -4,8 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Billing\OnlinePayments;
 use App\Http\Controllers\Controller;
+use App\Models\PlatformAuditLog;
 use App\Services\Push\FcmClient;
 use App\Support\SystemDoctor;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -44,6 +48,37 @@ class SystemController extends Controller
         ]);
     }
 
+    /** Sends a failed job back to its queue (`queue:retry`), written in the activity log. */
+    public function retry(Request $request, string $uuid): RedirectResponse
+    {
+        $job = $this->failedJob($uuid);
+        Artisan::call('queue:retry', ['id' => [$uuid]]);
+        PlatformAuditLog::record($request->user('admin'), 'failed_job.retried', $job['job'], ['queue' => $job['queue'], 'uuid' => $uuid]);
+
+        return redirect()->route('admin.system')->with('ok', __('The job was sent back to the queue.'));
+    }
+
+    /** Forgets a failed job for good (`queue:forget`), written in the activity log. */
+    public function forget(Request $request, string $uuid): RedirectResponse
+    {
+        $job = $this->failedJob($uuid);
+        Artisan::call('queue:forget', ['id' => $uuid]);
+        PlatformAuditLog::record($request->user('admin'), 'failed_job.deleted', $job['job'], ['queue' => $job['queue'], 'uuid' => $uuid]);
+
+        return redirect()->route('admin.system')->with('ok', __('The failed job was deleted.'));
+    }
+
+    /** @return array{job: string, queue: string} the failed job's name and queue; 404 when it is gone */
+    private function failedJob(string $uuid): array
+    {
+        $row = app('queue.failer')->find($uuid) ?? abort(404);
+
+        return [
+            'job' => (string) (json_decode((string) $row->payload, true)['displayName'] ?? ''),
+            'queue' => (string) $row->queue,
+        ];
+    }
+
     private function count(string $table): ?int
     {
         try {
@@ -53,11 +88,12 @@ class SystemController extends Controller
         }
     }
 
-    /** @return list<array{queue: string, job: string, error: string, at: string}> the last failed jobs, the first line of each error only */
+    /** @return list<array{uuid: string, queue: string, job: string, error: string, at: string}> the last failed jobs, the first line of each error only */
     private function failedJobs(): array
     {
         try {
             return DB::table('failed_jobs')->latest('failed_at')->limit(5)->get()->map(fn ($row) => [
+                'uuid' => (string) $row->uuid,
                 'queue' => (string) $row->queue,
                 'job' => (string) (json_decode((string) $row->payload, true)['displayName'] ?? ''),
                 'error' => Str::limit(strtok((string) $row->exception, "\n") ?: '', 200),

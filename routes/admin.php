@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\Admin\AdminsController;
+use App\Http\Controllers\Admin\AnnouncementsController;
 use App\Http\Controllers\Admin\AssistantController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\BlogController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SecurityController;
 use App\Http\Controllers\Admin\ServicesController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\SubscriptionsController;
 use App\Http\Controllers\Admin\SupportAccessController;
 use App\Http\Controllers\Admin\SystemController;
 use App\Http\Controllers\Admin\TenantDiscountsController;
@@ -51,6 +53,8 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
     Route::middleware('admin.access:tenants.view')->group(function () {
         Route::get('/tenants', [TenantsController::class, 'index'])->name('tenants');
         Route::get('/tenants/create', [TenantsController::class, 'create'])->middleware('admin.access:tenants.manage')->name('tenants.create');
+        // the list with its filters as a CSV (a slug never has a dot, so no restaurant is shadowed)
+        Route::get('/tenants/export.csv', [TenantsController::class, 'export'])->middleware('throttle:10,1')->name('tenants.export');
         Route::get('/tenants/{tenant}', [TenantsController::class, 'show'])->name('tenants.show');
     });
     Route::middleware('admin.access:tenants.manage')->group(function () {
@@ -69,6 +73,12 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         Route::post('/tenants/{tenant}/users/{user}/password', [TenantUsersController::class, 'setPassword'])->whereNumber('user')->middleware('throttle:10,1')->name('tenants.users.password');
         Route::post('/tenants/{tenant}/users/{user}/sign-out', [TenantUsersController::class, 'signOut'])->whereNumber('user')->name('tenants.users.sign-out');
         Route::post('/domains/{domain}', [DomainsController::class, 'update'])->name('domains.update');
+        // «إعلانات للمطاعم»: a banner on the restaurant dashboards (all of them or one plan) between two dates
+        Route::get('/announcements', [AnnouncementsController::class, 'index'])->name('announcements');
+        Route::post('/announcements', [AnnouncementsController::class, 'store'])->name('announcements.store');
+        Route::get('/announcements/{announcement}/edit', [AnnouncementsController::class, 'edit'])->whereNumber('announcement')->name('announcements.edit');
+        Route::post('/announcements/{announcement}', [AnnouncementsController::class, 'update'])->whereNumber('announcement')->name('announcements.update');
+        Route::post('/announcements/{announcement}/delete', [AnnouncementsController::class, 'destroy'])->whereNumber('announcement')->name('announcements.delete');
     });
     // "open the restaurant's dashboard" as its owner (or a picked staff account): a one-time ticket, then app.<domain>
     Route::post('/tenants/{tenant}/support-access', [SupportAccessController::class, 'store'])
@@ -80,6 +90,9 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         Route::get('/invoices', [InvoicesController::class, 'index'])->name('invoices');
         Route::post('/invoices/{invoice}/paid', [InvoicesController::class, 'markPaid'])->name('invoices.paid');
         Route::post('/invoices/{invoice}/void', [InvoicesController::class, 'void'])->name('invoices.void');
+        // «الاشتراكات والإيرادات»: by plan and status, the MRR, new and churned, revenue per month, what ends soon
+        Route::get('/subscriptions', [SubscriptionsController::class, 'index'])->name('subscriptions');
+        Route::get('/subscriptions/export.csv', [SubscriptionsController::class, 'export'])->middleware('throttle:10,1')->name('subscriptions.export');
     });
 
     // «متابعة العملاء»: every restaurant is a lead. crm.view to look, crm.manage to log calls and change them, crm.discount
@@ -158,6 +171,9 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         // the platform look: logo, favicon, site name and brand colors (App\Support\PlatformBrand)
         // «صحة النظام»: the deploy checklist, background jobs, backups, outside services, the automatic deploy log
         Route::get('/system', [SystemController::class, 'index'])->name('system');
+        // a failed background job sent back to its queue, or forgotten (both in the activity log)
+        Route::post('/system/failed-jobs/{uuid}/retry', [SystemController::class, 'retry'])->whereUuid('uuid')->name('system.retry');
+        Route::post('/system/failed-jobs/{uuid}/delete', [SystemController::class, 'forget'])->whereUuid('uuid')->name('system.forget');
         Route::get('/branding', [BrandingController::class, 'edit'])->name('branding');
         Route::post('/branding', [BrandingController::class, 'update'])->name('branding.update');
         Route::post('/branding/reset', [BrandingController::class, 'reset'])->name('branding.reset');

@@ -8,7 +8,6 @@
     $badges = \App\Support\AdminMenu::badges($admin);
     $canSearch = $admin->allows('tenants.view') || $admin->allows('billing.manage') || $admin->allows('crm.view');
     $pageTitle = trim(\Illuminate\Support\Str::before(trim($__env->yieldContent('title')), ' · ')) ?: __('Overview');
-    $initials = collect(preg_split('/\s+/u', trim($admin->name)))->filter()->take(2)->map(fn ($w) => mb_substr($w, 0, 1))->implode('');
 @endphp
 
 @section('body_class', 'bg-navy-50 text-navy-900')
@@ -74,7 +73,7 @@
             <a class="hidden min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-navy-600 hover:bg-navy-50 sm:inline-flex" href="?lang={{ app()->getLocale() === 'ar' ? 'en' : 'ar' }}">{{ app()->getLocale() === 'ar' ? 'English' : 'عربي' }}</a>
             <details class="relative" data-admin-account>
                 <summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-1.5 hover:bg-navy-50 [&::-webkit-details-marker]:hidden">
-                    <span class="grid size-9 shrink-0 place-items-center rounded-full bg-navy-800 text-sm font-bold text-white">{{ $initials ?: 'A' }}</span>
+                    <span class="grid size-9 shrink-0 place-items-center rounded-full bg-navy-800 text-sm font-bold text-white" data-admin-initials>{{ $admin->initials() }}</span>
                     <span class="hidden text-start leading-tight md:block">
                         <span class="block max-w-40 truncate text-sm font-bold">{{ $admin->name }}</span>
                         <span class="block text-xs text-navy-500">{{ $admin->roleName() }}</span>

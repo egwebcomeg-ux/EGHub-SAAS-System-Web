@@ -77,6 +77,19 @@ class PlatformAdmin extends Authenticatable
         return max(0, min(TenantDiscount::CAP, (int) $limit));
     }
 
+    /**
+     * The header avatar: the first letter of the first two words of the name, Arabic or English ("سارة محمد" → "س‌م",
+     * "sara ali" → "SA"). A zero-width non-joiner keeps two Arabic letters apart instead of joined into one word.
+     */
+    public function initials(): string
+    {
+        $letters = collect(preg_split('/\s+/u', trim((string) $this->name)) ?: [])
+            ->map(fn (string $word) => preg_match('/[\p{L}\p{N}]/u', $word, $match) ? mb_strtoupper($match[0]) : '')
+            ->filter()->take(2);
+
+        return $letters->implode("\u{200C}") ?: 'A';
+    }
+
     public function roleName(): string
     {
         return AdminPermissions::roleLabel((string) $this->role);

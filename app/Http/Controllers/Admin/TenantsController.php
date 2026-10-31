@@ -33,6 +33,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /** Restaurants and their subscriptions, managed by EgWeb. */
 class TenantsController extends Controller
@@ -51,6 +52,34 @@ class TenantsController extends Controller
             'types' => AdminTenantSearch::typesOf($tenants->pluck('id')),
             'plans' => Plan::query()->orderBy('sort_order')->get(['id', 'code', 'name', 'name_en']),
         ]);
+    }
+
+    /**
+     * The list with the same search, filters and sort as the page, as a CSV that Excel opens in Arabic (UTF-8 BOM).
+     * The business types are read once per chunk of 500 places, never per row.
+     */
+    public function export(Request $request, AdminTenantSearch $search): StreamedResponse
+    {
+        $rows = $search->listing(AdminTenantSearch::filters($request));
+
+        return response()->streamDownload(function () use ($rows) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, [__('Restaurant'), __('Link'), __('Business type'), __('Plan'), __('Subscription'), __('Ends'), __('Menu'), __('Created'), __('Last order')]);
+            $rows->chunk(500, function ($chunk) use ($out) {
+                $types = AdminTenantSearch::typesOf($chunk->pluck('id'));
+                foreach ($chunk as $tenant) {
+                    $sub = $tenant->subscription;
+                    fputcsv($out, csv_row([
+                        $tenant->name, $tenant->id, BusinessType::label($types[$tenant->id]),
+                        (string) $sub?->plan?->displayName(), (string) $sub?->statusLabel(), $sub?->endsAt() ? local_today($sub->endsAt()) : '',
+                        $tenant->status === 'suspended' ? __('Suspended') : __('Online'), local_today($tenant->created_at),
+                        $tenant->last_order_at ? local_today($tenant->last_order_at) : '',
+                    ]));
+                }
+            });
+            fclose($out);
+        }, 'restaurants-'.local_today().'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     public function create(): View

@@ -247,6 +247,7 @@
                     <a href="{{ route('dash.billing') }}" class="btn-primary min-h-9 px-3">{{ __('Choose a plan') }}</a>
                 </div>
             @endif
+            @include('dashboard.partials.announcements')
             @include('dashboard.partials.demo-banner')
             @include('dashboard.partials.whatsapp-banner')
             @include('dashboard.partials.phone-banner')

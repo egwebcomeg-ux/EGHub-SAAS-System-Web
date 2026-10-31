@@ -91,11 +91,11 @@
 
 <div class="mt-3 grid grid-cols-2 gap-3 xl:grid-cols-4" data-kpis="money">
     @if ($canBilling)
-        <div class="card p-4">
+        <a href="{{ route('admin.subscriptions') }}" class="card block p-4 transition hover:border-navy-200 hover:shadow-md">
             <div class="text-sm font-semibold text-navy-500">{{ __('MRR') }}</div>
             <div class="mt-1 text-2xl font-black">{{ money($mrr) }} <span class="text-sm font-bold text-navy-500">{{ __('EGP') }}</span></div>
             <div class="mt-1 text-xs text-navy-500">{{ __('Monthly recurring revenue of active subscriptions') }}</div>
-        </div>
+        </a>
         <a href="{{ route('admin.invoices', ['status' => 'open']) }}" class="card block p-4 transition hover:border-navy-200 hover:shadow-md">
             <div class="text-sm font-semibold text-navy-500">{{ __('Unpaid invoices') }}</div>
             <div class="mt-1 text-2xl font-black">{{ money($unpaid) }} <span class="text-sm font-bold text-navy-500">{{ __('EGP') }}</span></div>

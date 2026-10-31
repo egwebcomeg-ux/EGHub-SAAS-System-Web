@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Dashboard\AnnouncementsController;
 use App\Http\Controllers\Dashboard\AuditController;
 use App\Http\Controllers\Dashboard\AuthController;
 use App\Http\Controllers\Dashboard\AutomationsController;
@@ -797,6 +798,12 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::post('/onboarding/skip', [OnboardingController::class, 'skip'])->name('onboarding.skip');
     Route::post('/onboarding/dismiss', [OnboardingController::class, 'dismiss'])->name('onboarding.dismiss');
     Route::get('/help', [OnboardingController::class, 'help'])->name('help');
+});
+
+// ---- EgWeb's announcements on the dashboard (App\Models\Announcement): each user hides one for themselves ----
+Route::middleware(['auth:web', 'tenant.user'])->group(function () {
+    Route::post('/announcements/{announcement}/dismiss', [AnnouncementsController::class, 'dismiss'])->whereNumber('announcement')
+        ->middleware('support.blocked')->name('announcements.dismiss');
 });
 
 // ---- The dashboard as an installable app (App\Services\Pwa): manifest and a static-files-only service worker ----
