@@ -9,6 +9,7 @@ use App\Models\Shift;
 use App\Models\User;
 use App\Services\Audit;
 use App\Services\Notify\GuestNotifier;
+use App\Services\Push\StaffPush;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -104,6 +105,15 @@ final class DeliveryService
             Audit::record('order.driver', '#'.$order->number, ['id' => $order->id, 'driver' => $driver?->id, 'by' => $by->id]);
             if ($driver) {
                 DB::afterCommit(fn () => app(GuestNotifier::class)->driverAssigned($order, $driver)); // WhatsApp to the driver (setting)
+            }
+            // the driver app: the new driver's phone rings, the one it was taken from hears it is gone (not the
+            // same driver given the same order again while still on it)
+            $previous = $locked->delivery_status === 'assigned' && $locked->driver_id ? $locked->driver_id : null;
+            if ($driver && $previous !== $driver->id) {
+                DB::afterCommit(fn () => app(StaffPush::class)->driverAssigned($order, $driver));
+            }
+            if ($previous && $previous !== $driver?->id && ($was = User::query()->find($previous))) {
+                DB::afterCommit(fn () => app(StaffPush::class)->driverRemoved($order, $was, cancelled: false));
             }
 
             return $order;

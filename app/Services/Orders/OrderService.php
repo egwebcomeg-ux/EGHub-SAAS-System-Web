@@ -553,6 +553,10 @@ final class OrderService
                     DB::afterCommit(fn () => app(StaffPush::class)->orderReady($order)); // the waiters' phones (EgHub waiter app)
                 }
             }
+            if ($to === 'cancelled' && $order->driver_id && in_array($order->delivery_status, ['assigned', 'picked_up'], true)
+                && ($driver = User::query()->find($order->driver_id))) {
+                DB::afterCommit(fn () => app(StaffPush::class)->driverRemoved($order, $driver, cancelled: true)); // the driver app
+            }
             if ($to === 'cancelled' && $order->table_session_id) {
                 $order->tableSession?->refreshTotal();
             }

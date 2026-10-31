@@ -24,7 +24,7 @@
     @endif
     @fonts
     @php
-        // inside the EgHub restaurant / waiter apps the signed-in staff member's phone registers for push notifications
+        // inside the EgHub restaurant / waiter / driver apps the signed-in staff member's phone registers for push notifications
         $nativePush = auth()->check() && request()->getHost() === 'app.'.(config('tenancy.central_domains')[0] ?? 'localhost');
     @endphp
     @if ($nativePush)

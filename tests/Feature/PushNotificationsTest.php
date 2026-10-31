@@ -4,12 +4,14 @@ namespace Tests\Feature;
 
 use App\Jobs\SendPushNotification;
 use App\Models\Branch;
+use App\Models\DeliveryZone;
 use App\Models\DeviceToken;
 use App\Models\DiningTable;
 use App\Models\Order;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Orders\OrderService;
+use App\Services\Push\StaffPush;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -221,6 +223,49 @@ class PushNotificationsTest extends TenantTestCase
         $this->assertSame($this->token('waiter'), $push['message']['token']);
         $this->assertSame('طلب #'.$order->number.' جاهز', $push['message']['notification']['title']);
         $this->assertSame('ترابيزة 5', $push['message']['notification']['body']);
+    }
+
+    public function test_a_driver_hears_only_about_their_own_orders_given_taken_back_or_cancelled(): void
+    {
+        $this->configureFcm();
+        $this->fakeFcm();
+        $a = $this->restaurant('cafe-a');
+        $manager = $this->staff($a, 'manager', 'm@cafe-a.test');
+        [$karim, $samy] = [$this->staff($a, 'driver', 'karim@cafe-a.test'), $this->staff($a, 'driver', 'samy@cafe-a.test')];
+        $this->register($karim, $this->token('karim'), 'driver')->assertOk();
+        $this->register($samy, $this->token('samy'), 'driver')->assertOk();
+        $this->register($this->owner($a), $this->token('owner'))->assertOk();
+        $item = $this->item($a, 'Pizza', 100);
+        $order = $this->as($a, function () use ($item) {
+            $branch = Branch::query()->first();
+            $zone = DeliveryZone::query()->create(['branch_id' => $branch->id, 'name' => 'Maadi', 'fee' => 20, 'is_active' => true]);
+
+            return app(OrderService::class)->place([
+                'items' => [['item_id' => $item->id, 'qty' => 1]], 'customer_name' => 'Mona', 'customer_phone' => '01012345678',
+                'source' => 'pos', 'type' => 'delivery', 'delivery_zone' => $zone, 'delivery_address' => ['zone' => 'Maadi', 'text' => '9 Road 233'],
+            ], $branch);
+        });
+        $sent = fn () => Http::recorded(fn (Request $r) => $r->url() === self::SEND_URL)->map(fn ($pair) => $pair[0]['message'])->values();
+        $assign = fn (?User $driver) => $this->actingAs($manager)->postJson($this->dashUrl("/orders/{$order->id}/driver"), ['driver_id' => $driver?->id])->assertOk();
+
+        $assign($karim);
+        $assign($karim); // the same driver again: no second ring
+        $push = $sent()->sole();
+        $this->assertSame($this->token('karim'), $push['token']);
+        $this->assertArrayNotHasKey('notification', $push); // data-only: the driver app draws it on its loud channel
+        $this->assertSame('أوردر جديد معاك #'.$order->number, $push['data']['title']);
+        $this->assertSame('Mona · Maadi - 9 Road 233 · تحصيل '.money(120), $push['data']['body']);
+        $this->assertSame(['driver_order', (string) $order->id, 'http://app.egmenu.test/driver'], [$push['data']['type'], $push['data']['order'], $push['data']['url']]);
+
+        $assign($samy); // taken from Karim, given to Samy
+        $this->assertSame([[$this->token('samy'), 'driver_order'], [$this->token('karim'), 'driver_order_removed']],
+            $sent()->slice(1)->map(fn ($m) => [$m['token'], $m['data']['type']])->values()->all());
+
+        $this->as($a, fn () => app(OrderService::class)->transition($order->fresh(), 'cancelled'));
+        $last = $sent()->last();
+        $this->assertSame([$this->token('samy'), 'driver_order_removed', 'الأوردر #'.$order->number.' اتلغى'], [$last['token'], $last['data']['type'], $last['data']['title']]);
+        $this->assertCount(4, $sent()); // the owner's phone heard none of it
+        $this->assertArrayNotHasKey('driver_order', $this->as($a, fn () => StaffPush::preferences($this->owner($a))));
     }
 
     public function test_without_fcm_configured_nothing_is_queued_and_it_is_noted_once(): void

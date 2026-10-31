@@ -1,10 +1,10 @@
-// Inside the EgHub restaurant and waiter apps: hands this phone's push token (FCM) to the server for the signed-in
+// Inside the EgHub restaurant, waiter and driver apps: hands this phone's push token (FCM) to the server for the signed-in
 // staff member on every page load and whenever the app refreshes it, and takes it back on sign-out. Loaded on every
 // dashboard page (layouts.base, when signed in on app.<domain>); a no-op in a browser and in the other apps.
 import { call, inApp, nativeInfo, onNative, store } from './native';
 
 const meta = document.querySelector('meta[name="eg-push-register"]');
-if (meta && inApp('restaurant', 'waiter')) {
+if (meta && inApp('restaurant', 'waiter', 'driver')) {
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
     const KEY = 'eg-push-sent';
     const post = (url, body, keepalive = false) => fetch(url, {

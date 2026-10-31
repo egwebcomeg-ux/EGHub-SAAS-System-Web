@@ -43,10 +43,12 @@ class FcmClient
 
     /**
      * Sends one notification to one device. $data values are strings (FCM requires it); `url` opens on tap.
+     * $dataOnly sends no "notification" block (title and body go in the data): the app's own messaging service
+     * always gets it, even closed or in the background, and shows it on its own loud channel (the driver app).
      *
      * @param  array<string,string>  $data
      */
-    public function send(string $token, string $title, string $body, array $data = []): string
+    public function send(string $token, string $title, string $body, array $data = [], bool $dataOnly = false): string
     {
         if (! $this->configured()) {
             $this->noteUnconfigured();
@@ -60,12 +62,18 @@ class FcmClient
             }
             $response = Http::withToken($access)->acceptJson()->timeout(10)->post(
                 'https://fcm.googleapis.com/v1/projects/'.rawurlencode($this->projectId()).'/messages:send',
-                ['message' => [
-                    'token' => $token,
-                    'notification' => ['title' => mb_substr($title, 0, 120), 'body' => mb_substr($body, 0, 400)],
-                    'data' => array_map('strval', $data),
-                    'android' => ['priority' => 'high', 'notification' => ['sound' => 'default']],
-                ]],
+                ['message' => $dataOnly
+                    ? [
+                        'token' => $token,
+                        'data' => array_map('strval', $data + ['title' => mb_substr($title, 0, 120), 'body' => mb_substr($body, 0, 400)]),
+                        'android' => ['priority' => 'high', 'ttl' => '600s'],
+                    ]
+                    : [
+                        'token' => $token,
+                        'notification' => ['title' => mb_substr($title, 0, 120), 'body' => mb_substr($body, 0, 400)],
+                        'data' => array_map('strval', $data),
+                        'android' => ['priority' => 'high', 'notification' => ['sound' => 'default']],
+                    ]],
             );
         } catch (\Throwable $e) {
             Log::warning('FCM send failed: '.$e->getMessage());

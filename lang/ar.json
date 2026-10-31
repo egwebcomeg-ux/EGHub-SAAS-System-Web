@@ -7277,5 +7277,11 @@
     ":m m": ":m متر",
     "Visit": "زيارة",
     "Next days": "الأيام الجاية",
-    "Places & field sales": "الأماكن والمبيعات الميدانية"
+    "Places & field sales": "الأماكن والمبيعات الميدانية",
+    "New order with you #:n": "أوردر جديد معاك #:n",
+    "Collect :amount": "تحصيل :amount",
+    "Paid already": "مدفوع",
+    "Order #:n was cancelled": "الأوردر #:n اتلغى",
+    "Order #:n was taken back from you": "الأوردر #:n اتسحب منك",
+    "Do not deliver it.": "متوصّلوش."
 }

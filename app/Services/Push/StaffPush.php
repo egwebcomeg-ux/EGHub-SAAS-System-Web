@@ -16,7 +16,9 @@ use Illuminate\Support\Collection;
  * waiters). Each event has the right it needs and the roles that get it unless they switch it off; every staff
  * member picks their own on /notifications/push (users.push_preferences). A user tied to a branch only hears about
  * that branch. Sends are queued (App\Jobs\SendPushNotification) after the database commit; without FCM configured
- * nothing is queued (logged once).
+ * nothing is queued (logged once). The driver app (delivery drivers) hears only about its own orders: one given to
+ * them, taken back from them or cancelled (driverAssigned() / driverRemoved()), as data-only high-priority messages
+ * the app draws itself on its loud channel and hands to the open page (eg-native-push) to refresh at once.
  */
 final class StaffPush
 {
@@ -29,7 +31,16 @@ final class StaffPush
         'corporate_booking' => ['contracts.manage', ['owner', 'manager'], 'زيارة شركة مستنية موافقة', 'A company visit waiting for approval'],
         'daily_digest' => ['reports.view', ['owner', 'manager'], 'تقرير المدير اليومي', 'Manager daily report'],
         'order_ready' => ['orders.view', ['waiter'], 'الطلب جاهز (طلبات الصالة)', 'Order ready (dine-in orders)'],
+        'driver_order' => ['delivery.drive', ['driver'], 'أوردر جديد معاك، أو اتسحب منك أو اتلغى', 'An order given to you, taken back from you or cancelled'],
     ];
+
+    /** Events only the roles named for them can receive (an owner may do everything, but drives no orders). */
+    public const ROLE_ONLY = ['driver_order'];
+
+    /** The message types the driver app gets (data `type`): a new order with them, and one gone from them. */
+    public const DRIVER_ASSIGNED = 'driver_order';
+
+    public const DRIVER_REMOVED = 'driver_order_removed';
 
     /** Sources whose new orders ring the phones: the guest's own online / WhatsApp orders and the call center's. */
     public const NEW_ORDER_SOURCES = ['online', 'whatsapp', 'callcenter'];
@@ -50,8 +61,8 @@ final class StaffPush
     public static function preferences(User $user): array
     {
         $out = [];
-        foreach (self::EVENTS as $event => [$right]) {
-            if ($user->can($right)) {
+        foreach (self::EVENTS as $event => [$right, $roles]) {
+            if ($user->can($right) && (! in_array($event, self::ROLE_ONLY, true) || $user->hasAnyRole($roles))) {
                 $out[$event] = self::wants($user, $event);
             }
         }
@@ -63,6 +74,9 @@ final class StaffPush
     {
         [$right, $roles] = self::EVENTS[$event];
         if (! $user->is_active || ! $user->can($right)) {
+            return false;
+        }
+        if (in_array($event, self::ROLE_ONLY, true) && ! $user->hasAnyRole($roles)) {
             return false;
         }
         $saved = (array) ($user->push_preferences ?? []);
@@ -144,6 +158,31 @@ final class StaffPush
             ['url' => platform_url('app', '/orders'), 'order' => (string) $order->id]);
     }
 
+    /** A delivery order was given to $driver (or given to them again after a failed try): their phone rings. */
+    public function driverAssigned(Order $order, User $driver): void
+    {
+        $address = (array) ($order->delivery_address ?? []);
+        $where = trim(($address['zone'] ?? '').' - '.($address['text'] ?? ''), ' -');
+        $collect = $order->amountToCollect();
+        $body = collect([
+            $order->customer_name,
+            $where,
+            $collect > 0 ? __('Collect :amount', ['amount' => money($collect)]) : __('Paid already'),
+        ])->filter(fn (?string $part) => trim((string) $part) !== '')->implode(' · ');
+        $this->notifyDriver($driver, __('New order with you #:n', ['n' => $order->number]), $body,
+            ['type' => self::DRIVER_ASSIGNED, 'order' => (string) $order->id, 'priority' => 'high']);
+    }
+
+    /** An order $driver was working on is gone from them: given to someone else / taken back, or cancelled. */
+    public function driverRemoved(Order $order, User $driver, bool $cancelled): void
+    {
+        $title = $cancelled
+            ? __('Order #:n was cancelled', ['n' => $order->number])
+            : __('Order #:n was taken back from you', ['n' => $order->number]);
+        $this->notifyDriver($driver, $title, __('Do not deliver it.'),
+            ['type' => self::DRIVER_REMOVED, 'order' => (string) $order->id, 'priority' => 'high']);
+    }
+
     /**
      * Users of the current restaurant who get $event for $branchId and have a phone registered.
      *
@@ -154,6 +193,28 @@ final class StaffPush
         return User::query()->where('is_active', true)->whereHas('deviceTokens')
             ->when($branchId, fn ($q) => $q->where(fn ($q) => $q->whereNull('branch_id')->orWhere('branch_id', $branchId)))
             ->get()->filter(fn (User $u) => self::wants($u, $event))->values();
+    }
+
+    /**
+     * One driver's phones only (never another driver's): a data-only message the driver app draws on its own channel.
+     *
+     * @param  array<string,string>  $data
+     */
+    private function notifyDriver(User $driver, string $title, string $body, array $data): void
+    {
+        try {
+            if (! $this->fcm->configured()) {
+                $this->fcm->noteUnconfigured();
+
+                return;
+            }
+            if (! self::wants($driver, 'driver_order') || ! $driver->deviceTokens()->exists()) {
+                return;
+            }
+            SendPushNotification::dispatch([$driver->id], $title, $body, $data + ['url' => platform_url('app', '/driver')], dataOnly: true)->afterCommit();
+        } catch (\Throwable $e) {
+            report($e); // a push never breaks giving an order to a driver
+        }
     }
 
     /** @param array<string,string> $data */

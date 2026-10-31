@@ -4,7 +4,10 @@
 // page is visible, with the state always shown on top. The server refuses positions when nothing is out.
 // Inside the EgHub driver app the app's own service keeps sending the position in the background (screen off, other
 // apps open): started when an order goes out, stopped when nothing is out any more (App\Services\Orders\NativeTracking).
-import { call, callJson, inApp } from './native';
+// The driver app also rings on its own when an order is given / taken back / cancelled (FCM, App\Services\Push\StaffPush)
+// and hands the message to this page (eg-native-push): the list refreshes at once. Its WebView plays sound without a
+// tap first, so the beep is ready from the start there; native-push.js registers the phone's push token.
+import { call, callJson, inApp, onNative } from './native';
 
 const dataEl = document.getElementById('driver-data');
 if (dataEl) {
@@ -158,6 +161,7 @@ if (dataEl) {
         } catch {}
     };
     document.addEventListener('pointerdown', unlockAudio, { passive: true }); // browsers allow sound only after a tap
+    if (inApp()) unlockAudio(); // the EgHub app's WebView needs no tap
     function beep() {
         if (!soundOn || !audio || audio.state !== 'running') return;
         try {
@@ -371,6 +375,12 @@ if (dataEl) {
         syncWatch();
     });
     window.addEventListener('online', () => refresh());
+    window.addEventListener('focus', () => refresh());
+    // the driver app got a push (a new order with this driver, or one taken back / cancelled): refresh now; a new
+    // order announces itself (banner, beep, vibration) through refresh()
+    onNative('eg-native-push', (d) => {
+        if (!d.type || String(d.type).startsWith('driver_order')) refresh();
+    });
 
     render();
     refreshed.textContent = t.refreshed.replace('__T__', timeNow());
