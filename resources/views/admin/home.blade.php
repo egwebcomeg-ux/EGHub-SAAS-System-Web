@@ -27,6 +27,8 @@
     </div>
 </div>
 
+@include('admin.partials.workspace')
+
 @if ($betaApps)
     <div class="card mb-5 p-4" data-beta-apps>
         <div class="font-bold text-navy-900">{{ __('Android apps under test') }}</div>
@@ -69,11 +71,12 @@
 @endif
 
 @if ($canTenants)
-    <div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5" data-kpis="tenants">
+    <div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6" data-kpis="tenants">
         @foreach ([
             [__('Restaurants'), $counts['tenants'], route('admin.tenants'), 'text-navy-900', __('+:n this month', ['n' => $counts['new_this_month']])],
             [__('Active'), $counts['active'], route('admin.tenants', ['status' => 'active']), 'text-emerald-700', __('Paying subscriptions')],
             [__('Trial'), $counts['trialing'], route('admin.tenants', ['status' => 'trialing']), 'text-brand-700', __('On the free trial')],
+            [__('Trials ending'), $counts['trials_ending'], route('admin.tenants', ['status' => 'trialing']), $counts['trials_ending'] > 0 ? 'text-red-700' : 'text-navy-300', __('In the next 7 days')],
             [__('Past due'), $counts['past_due'], route('admin.tenants', ['status' => 'past_due']), 'text-amber-700', __('Renewal not paid yet')],
             [__('Suspended'), $counts['suspended'], route('admin.tenants', ['status' => 'suspended']), 'text-navy-500', __('Menu offline')],
         ] as [$label, $value, $href, $tone, $hint])

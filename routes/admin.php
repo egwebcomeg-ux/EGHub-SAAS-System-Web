@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\Admin\AdminsController;
 use App\Http\Controllers\Admin\AssistantController;
 use App\Http\Controllers\Admin\AuthController;
@@ -16,10 +17,12 @@ use App\Http\Controllers\Admin\PlansController;
 use App\Http\Controllers\Admin\ProspectImportController;
 use App\Http\Controllers\Admin\ProspectsController;
 use App\Http\Controllers\Admin\SalesTeamController;
+use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SecurityController;
 use App\Http\Controllers\Admin\ServicesController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\SupportAccessController;
+use App\Http\Controllers\Admin\SystemController;
 use App\Http\Controllers\Admin\TenantDiscountsController;
 use App\Http\Controllers\Admin\TenantsController;
 use App\Http\Controllers\Admin\TenantUsersController;
@@ -41,6 +44,8 @@ Route::post('/reset-password', [PasswordResetController::class, 'update'])->midd
 Route::middleware(['auth:admin', 'admin.access'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/', [DashboardController::class, 'index'])->name('home');
+    // the header search (each group by the admin's permissions, checked in the controller)
+    Route::get('/search', SearchController::class)->middleware('throttle:60,1')->name('search');
 
     // Restaurants: tenants.view to look, tenants.manage to change them and their users, billing.manage for money
     Route::middleware('admin.access:tenants.view')->group(function () {
@@ -151,6 +156,8 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         Route::get('/settings', [SettingsController::class, 'edit'])->name('settings');
         Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
         // the platform look: logo, favicon, site name and brand colors (App\Support\PlatformBrand)
+        // «صحة النظام»: the deploy checklist, background jobs, backups, outside services, the automatic deploy log
+        Route::get('/system', [SystemController::class, 'index'])->name('system');
         Route::get('/branding', [BrandingController::class, 'edit'])->name('branding');
         Route::post('/branding', [BrandingController::class, 'update'])->name('branding.update');
         Route::post('/branding/reset', [BrandingController::class, 'reset'])->name('branding.reset');
@@ -191,6 +198,8 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
 
     // The admin team: who can sign in here and what each one may do
     Route::middleware('admin.access:admins.manage')->group(function () {
+        // «سجل العمليات»: what the team changed on the platform side (App\Models\PlatformAuditLog)
+        Route::get('/activity', [ActivityController::class, 'index'])->name('activity');
         Route::get('/team', [AdminsController::class, 'index'])->name('admins');
         Route::get('/team/create', [AdminsController::class, 'create'])->name('admins.create');
         Route::post('/team', [AdminsController::class, 'store'])->name('admins.store');
