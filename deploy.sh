@@ -60,7 +60,7 @@ if [ "$BRANCH" = rollback ]; then
     "$PHP" artisan down --render="errors.503" --retry=60 || true
     git reset --quiet --hard "$NEW"
     $COMPOSER_BIN install --no-dev --optimize-autoloader --no-interaction --quiet || true
-    "$PHP" artisan optimize:clear || true
+    "$PHP" artisan view:clear || true
     "$PHP" artisan optimize || true
     "$PHP" artisan up || true
     grep -v "^$OLD\$" "$HISTORY" >"$HISTORY.tmp" || true
@@ -116,7 +116,7 @@ fi
 # built-in roles get new permissions; plans and add-ons are only created when missing (edited prices stay)
 "$PHP" artisan db:seed --class=RoleSeeder --force || rollback "roles"
 "$PHP" artisan db:seed --class=PlanSeeder --force || rollback "plans"
-"$PHP" artisan optimize:clear || rollback "optimize:clear"
+"$PHP" artisan view:clear || rollback "view:clear" # not optimize:clear: it empties the app cache (scheduler and backup records, rate limits)
 "$PHP" artisan optimize || rollback "optimize"
 "$PHP" artisan up || rollback "up"
 if [ -n "$SITE" ]; then
