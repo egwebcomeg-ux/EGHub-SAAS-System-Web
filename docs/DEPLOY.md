@@ -153,7 +153,7 @@ uploaded by hand any more.
    up and does not retry that build. Everything goes to `storage/logs/deploy.log`.
 3. After coming back up it seeds the built-in roles' permissions and any missing plan or add-on (prices edited on
    admin › Prices stay), then opens `APP_URL/up` and the home page; if either fails the build is rolled back too.
-4. A build that went live but misbehaves: `sh deploy.sh rollback` (same `PHP`/`COMPOSER` as the cron line) puts back
+4. A build that went live but misbehaves: `sh deploy.sh rollback` (same `PHP`/`COMPOSER_BIN` as the cron line) puts back
    the build before it (from `storage/framework/deploy.history`) and keeps the bad one from coming back; the next
    merge to master deploys as usual. Only code goes back: the database and `storage/` (uploads) stay as they are, so a
    migration that changed data is undone from the backup taken before it (`storage/app/backups`).
@@ -172,7 +172,7 @@ git show origin/production:deploy.sh > deploy.sh                              # 
 Then cPanel > Cron Jobs, every minute, next to the `schedule:run` line:
 
 ```
-* * * * * cd /home/USER/egmenu && PHP=/opt/cpanel/ea-php84/root/usr/bin/php COMPOSER="/opt/cpanel/ea-php84/root/usr/bin/php /opt/cpanel/composer/bin/composer" sh deploy.sh production
+* * * * * cd /home/USER/egmenu && PHP=/opt/cpanel/ea-php84/root/usr/bin/php COMPOSER_BIN="/opt/cpanel/ea-php84/root/usr/bin/php /opt/cpanel/composer/bin/composer" sh deploy.sh production
 ```
 
 Check after the next merge: `tail -20 storage/logs/deploy.log`. While the repository is public the fetch needs no

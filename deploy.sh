@@ -11,13 +11,17 @@
 # current one from coming back. Only the code goes back: the database and uploads (storage/) are never touched, and
 # a backup is taken before any migration runs.
 #
-# Usage: PHP=/opt/cpanel/ea-php84/root/usr/bin/php COMPOSER="$PHP /opt/cpanel/composer/bin/composer" sh deploy.sh production
+# Usage: PHP=/opt/cpanel/ea-php84/root/usr/bin/php COMPOSER_BIN="$PHP /opt/cpanel/composer/bin/composer" sh deploy.sh production
+# (COMPOSER_BIN, not COMPOSER: composer itself reads COMPOSER as the name of composer.json; an old cron line that
+# still sets COMPOSER keeps working, it is moved over and unset)
 
 set -eu
 
 BRANCH="${1:-production}"
 PHP="${PHP:-php}"
-COMPOSER="${COMPOSER:-composer}"
+COMPOSER_BIN="${COMPOSER_BIN:-${COMPOSER:-composer}}"
+unset COMPOSER
+BUILD_KEEP="$APP_DIR/storage/framework/build.prev"
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOCK="$APP_DIR/storage/framework/deploy.lock.d"
 FAILED="$APP_DIR/storage/framework/deploy.failed"
@@ -46,7 +50,7 @@ if [ "$BRANCH" = rollback ]; then
     echo "== $(date '+%Y-%m-%d %H:%M:%S') rollback by hand: $OLD -> $NEW ($OLD will not be retried)"
     "$PHP" artisan down --render="errors.503" --retry=60 || true
     git reset --quiet --hard "$NEW"
-    $COMPOSER install --no-dev --optimize-autoloader --no-interaction --quiet || true
+    $COMPOSER_BIN install --no-dev --optimize-autoloader --no-interaction --quiet || true
     "$PHP" artisan optimize:clear || true
     "$PHP" artisan optimize || true
     "$PHP" artisan up || true
@@ -65,12 +69,27 @@ fi
 exec >>"$LOG" 2>&1
 echo "== $(date '+%Y-%m-%d %H:%M:%S') $BRANCH: $OLD -> $NEW"
 
+# the live public/build (assets) before the reset: a rollback to a build that does not track them puts them back
+keep_build() {
+    rm -rf "$BUILD_KEEP"
+    if [ -f public/build/manifest.json ]; then
+        cp -a public/build "$BUILD_KEEP"
+    fi
+}
+restore_build() {
+    if [ ! -f public/build/manifest.json ] && [ -d "$BUILD_KEEP" ]; then
+        rm -rf public/build
+        cp -a "$BUILD_KEEP" public/build
+    fi
+}
+
 rollback() {
     echo "!! failed at: $1. Rolling back to $OLD; $NEW will not be retried."
     echo "$NEW" >"$FAILED"
     if [ "$OLD" != none ]; then
         git reset --quiet --hard "$OLD"
-        $COMPOSER install --no-dev --optimize-autoloader --no-interaction --quiet || true
+        restore_build
+        $COMPOSER_BIN install --no-dev --optimize-autoloader --no-interaction --quiet || true
         "$PHP" artisan optimize || true
     fi
     "$PHP" artisan up || true
@@ -78,8 +97,9 @@ rollback() {
 }
 
 "$PHP" artisan down --render="errors.503" --retry=60 || true
+keep_build
 git reset --quiet --hard "$NEW" || rollback "git reset"
-$COMPOSER install --no-dev --optimize-autoloader --no-interaction --quiet || rollback "composer install"
+$COMPOSER_BIN install --no-dev --optimize-autoloader --no-interaction --quiet || rollback "composer install"
 if ! "$PHP" artisan migrate:status --pending --no-ansi | grep -q "No pending migrations"; then
     "$PHP" artisan egmenu:backup || rollback "backup before migrations"
     "$PHP" artisan migrate --force || rollback "migrate"
