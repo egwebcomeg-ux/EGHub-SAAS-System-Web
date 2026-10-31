@@ -7,18 +7,22 @@ use App\Models\Invoice;
 use App\Models\ServiceRequest;
 use App\Models\Subscription;
 use App\Models\Tenant;
+use App\Services\AdminWorkspace;
 use App\Services\Crm\LeadSearch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
-/** Overview of the platform: restaurants, money, sign-ups of the last 30 days and what waits for the team. All real data. */
+/**
+ * The admin home: on top what this member of the team works on today (App\Services\AdminWorkspace, by their
+ * permissions), then the platform overview: restaurants, money, sign-ups of the last 30 days. All real data.
+ */
 class DashboardController extends Controller
 {
     private const DAYS = 30;
 
-    public function index(Request $request): View
+    public function index(Request $request, AdminWorkspace $workspace): View
     {
         $admin = $request->user('admin');
         $subs = Subscription::query()->with('plan')->get();
@@ -35,6 +39,7 @@ class DashboardController extends Controller
                 'new_this_month' => Tenant::query()->where('created_at', '>=', local_at()->startOfMonth()->utc())->count(),
                 'services_new' => ServiceRequest::query()->where('status', 'new')->count(),
                 'unpaid_count' => (clone $openInvoices)->count(),
+                'trials_ending' => $workspace->trialsEnding(),
             ],
             // Monthly recurring revenue of paying restaurants (yearly cycles spread over 12 months).
             'mrr' => $subs->where('status', 'active')->sum(fn ($s) => $s->plan->priceFor($s->cycle_months) / max(1, $s->cycle_months)),
@@ -46,8 +51,12 @@ class DashboardController extends Controller
             'invoices' => $admin->allows('billing.manage') ? Invoice::query()->with('tenant', 'plan', 'payments')->latest('id')->limit(6)->get() : collect(),
             'admin' => $admin,
             // «متابعة العملاء»: new sign-ups nobody called, follow-ups due today and overdue
-            'crm' => $admin->allows('crm.view') ? app(LeadSearch::class)->counts() : null,
+            'crm' => $admin->allows('crm.manage') ? app(LeadSearch::class)->counts() : null,
             'betaApps' => $this->betaApps(),
+            'attention' => $workspace->attention($admin),
+            'seat' => $workspace->seat($admin),
+            'support' => $workspace->support($admin),
+            'content' => $workspace->content($admin),
         ]);
     }
 
