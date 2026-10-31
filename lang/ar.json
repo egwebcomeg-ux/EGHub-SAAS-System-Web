@@ -7485,5 +7485,13 @@
     "No domain requests.": "مفيش طلبات دومين.",
     "From the recorded subscription changes. Started paying: became active on a paid plan this month. Stopped paying: was paying and became past due, moved to the Free plan or was canceled this month.": "من سجل تغييرات الاشتراكات. بدأ يدفع: بقى نشط على باقة مدفوعة الشهر ده. وقف الدفع: كان بيدفع واتأخر في السداد أو اتنقل للباقة المجانية أو اتلغى الشهر ده.",
     "Estimated from the invoices: subscription changes are recorded only since :date.": "تقدير من الفواتير: تغييرات الاشتراكات بتتسجل من :date بس.",
-    "Estimated from the invoices: no subscription change is recorded yet.": "تقدير من الفواتير: لسه مفيش أي تغيير اشتراك متسجل."
+    "Estimated from the invoices: no subscription change is recorded yet.": "تقدير من الفواتير: لسه مفيش أي تغيير اشتراك متسجل.",
+    "Paid from my balance": "مدفوع من رصيدي",
+    "The full details are with the order at the restaurant.": "باقي التفاصيل موجودة مع الطلب عند المطعم.",
+    "One last step: send your order to the restaurant on WhatsApp": "آخر خطوة: ابعت طلبك للمطعم على واتساب",
+    "Send the order on WhatsApp": "ابعت الطلب على واتساب",
+    "Your order is saved. WhatsApp opens with the message ready: just press send.": "طلبك اتسجّل. واتساب هيفتح والرسالة جاهزة، دوس إرسال بس.",
+    "After confirming, send the guest to your WhatsApp with the order ready": "بعد تأكيد الطلب، ودّي العميل على واتساب المطعم والطلب جاهز في الرسالة",
+    "The order still reaches your orders board. The guest sends the message from their own WhatsApp, so it uses no credits. For orders from the table QR and the menu link.": "الطلب بيوصل شاشة الطلبات عادي. العميل بيبعت الرسالة من واتساب بتاعه، فمش بتتخصم رصيد. للطلبات من QR الترابيزة ولينك المنيو.",
+    "You have no WhatsApp number yet: add it in the restaurant's contact details. Until then guests see the normal confirmation.": "لسه مفيش رقم واتساب: ضيفه في بيانات التواصل بتاعة المطعم. لحد ما تضيفه، العميل هيشوف صفحة التأكيد العادية."
 }

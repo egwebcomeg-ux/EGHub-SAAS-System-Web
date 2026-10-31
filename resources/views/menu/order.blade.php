@@ -36,6 +36,7 @@
     .trk-pop { animation: trk-pop .5s ease-out; }
     .trk-action { display: flex; align-items: center; justify-content: center; gap: .5rem; min-height: 3rem; border-radius: .875rem; font-weight: 700; }
     .trk-action svg { width: 1.25rem; height: 1.25rem; }
+    .trk-send { min-height: 3.75rem; padding-inline: 1rem; font-size: 1.125rem; font-weight: 800; }
     @keyframes trk-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--menu-accent) 45%, transparent); } 70%, 100% { box-shadow: 0 0 0 .75rem transparent; } }
     @keyframes trk-blink { 50% { opacity: .35; } }
     @keyframes trk-pop { from { opacity: .3; transform: scale(.96); } to { opacity: 1; transform: none; } }
@@ -92,6 +93,15 @@
             @if ($manyBranches)<span class="trk-chip">{{ tr($branch->name, $branch->name_en) }}</span>@endif
         </div>
     </header>
+
+    @if ($whatsappOrderUrl)
+        {{-- the reliable way to WhatsApp: a real tap, which no phone blocks (the automatic attempt is below) --}}
+        <div class="card mt-5 text-center" data-whatsapp-order>
+            <p class="font-extrabold">{{ __('One last step: send your order to the restaurant on WhatsApp') }}</p>
+            <a href="{{ $whatsappOrderUrl }}" target="_blank" rel="noopener" class="trk-action trk-send mt-3 bg-[#25D366] text-white" data-whatsapp-order-link>{!! $icon('chat') !!} {{ __('Send the order on WhatsApp') }}</a>
+            <p class="mt-2 text-xs m-muted">{{ __('Your order is saved. WhatsApp opens with the message ready: just press send.') }}</p>
+        </div>
+    @endif
 
     <div class="card mt-5 text-center" aria-live="polite" data-hero>
         @if ($cancelled)
@@ -248,6 +258,23 @@
         <a href="{{ route('menu.show') }}" class="trk-action btn-ghost border">{{ __('Back to menu') }}</a>
     </div>
 </main>
+
+@if ($whatsappOrderUrl && request()->boolean('wa'))
+<script data-whatsapp-order-auto>
+    // Right after placing the order: try WhatsApp once. The address loses ?wa=1 first, so coming back or reloading
+    // stays on this page with the button; a tap on the button cancels the attempt so it does not open twice.
+    (() => {
+        const link = document.querySelector('[data-whatsapp-order-link]');
+        try {
+            const here = new URL(location.href);
+            here.searchParams.delete('wa');
+            history.replaceState(history.state, '', here.toString());
+        } catch {}
+        const attempt = setTimeout(() => { location.href = link.href; }, 900);
+        link.addEventListener('click', () => clearTimeout(attempt));
+    })();
+</script>
+@endif
 
 @unless ($final)
 <script>

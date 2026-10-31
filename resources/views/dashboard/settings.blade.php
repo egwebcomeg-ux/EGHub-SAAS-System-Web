@@ -354,6 +354,14 @@
                     <span class="text-xs text-navy-500">{{ __('0 = never. Not table orders (they close with the table) or deliveries (the driver closes them).') }}</span>
                 </label>
             </div>
+            <div class="rounded-xl bg-navy-50 p-3 sm:col-span-2 lg:col-span-4" id="whatsapp-order" data-whatsapp-handoff>
+                <input type="hidden" name="whatsapp_handoff_sent" value="1">
+                <label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="order_whatsapp_handoff" value="1" @checked($s['order_whatsapp_handoff'] === '1') class="size-4 accent-brand-600"> {{ __('After confirming, send the guest to your WhatsApp with the order ready') }}</label>
+                <p class="mt-1 text-xs text-navy-500">{{ __('The order still reaches your orders board. The guest sends the message from their own WhatsApp, so it uses no credits. For orders from the table QR and the menu link.') }}</p>
+                @unless (\App\Services\Orders\WhatsAppOrderLink::hasNumber())
+                    <p class="mt-1 text-xs font-semibold text-amber-700" data-whatsapp-handoff-no-number>{{ __('You have no WhatsApp number yet: add it in the restaurant\'s contact details. Until then guests see the normal confirmation.') }}</p>
+                @endunless
+            </div>
             @if (\App\Services\Entitlements::current()->allows('online_ordering'))
                 <div class="rounded-xl bg-navy-50 p-3 sm:col-span-2 lg:col-span-4">
                     <div class="mb-2 font-semibold">{{ __('Online ordering from your menu link (no table)') }}</div>

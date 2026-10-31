@@ -15,6 +15,7 @@ use App\Services\Notify\GuestNotifier;
 use App\Services\Orders\AutoCancel;
 use App\Services\Orders\OrderConfirmation;
 use App\Services\Orders\OrderFlow;
+use App\Services\Orders\WhatsAppOrderLink;
 use App\Services\Settings;
 use App\Support\BusinessType;
 use App\Support\Cities;
@@ -218,6 +219,10 @@ class SettingsController extends Controller
         // the category row (chips or circles): not sent = keep it
         if (($values['menu_category_style'] ?? '') === '') {
             unset($values['menu_category_style']);
+        }
+        // the guest sends the placed order on WhatsApp (sent with the ordering section): not sent = keep it
+        if ($request->boolean('whatsapp_handoff_sent')) {
+            $values[WhatsAppOrderLink::SETTING] = $request->boolean(WhatsAppOrderLink::SETTING) ? '1' : '0';
         }
         // how orders move with the screens in use: not sent (another tab) = keep what is saved
         if ($request->has('order_flow')) {

@@ -58,6 +58,8 @@ final class Settings
         // ordering
         'ordering_enabled' => '1',
         'whatsapp_ordering' => '0',
+        // the guest sends the placed order to the restaurant's WhatsApp themselves (App\Services\Orders\WhatsAppOrderLink)
+        'order_whatsapp_handoff' => '0',
         // online ordering from the menu link (plan feature online_ordering)
         'online_takeaway' => '1',
         'online_delivery' => '0',

@@ -18,6 +18,7 @@ use App\Services\Orders\BusyMode;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use App\Services\Orders\Pager;
+use App\Services\Orders\WhatsAppOrderLink;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
 use App\Support\DeliveryAddress;
@@ -107,6 +108,10 @@ class OrderController extends Controller
         // a pickup ordered from the guest's own phone needs no QR: the page they land on is already their pager
         // (on the address the guest is using, like the tracking page)
         $url = Pager::enabled() && Pager::forOrder($order) ? route('menu.pager.show', $order->pagerKey()) : route('menu.order.show', $order->tracking_token);
+        // the restaurant wants the order on WhatsApp too: the tracking page holds the button (the pager is one tap from it)
+        if (WhatsAppOrderLink::url($order) !== null) {
+            $url = route('menu.order.show', ['token' => $order->tracking_token, 'wa' => 1]);
+        }
         $response = response()->json(['ok' => true, 'number' => $order->number, 'url' => $url]);
 
         if ($order->wasRecentlyCreated && $order->source === 'online') {
@@ -293,7 +298,12 @@ class OrderController extends Controller
         $order = Order::query()->where('tracking_token', $token)->with(['items', 'table', 'branch', 'deliveryZone.parent'])->firstOrFail();
         $settings = Settings::all();
 
-        return view('menu.order', ['order' => $order, 'settings' => $settings, 'tracking' => (new OrderTracking($order, $settings))->toArray()]);
+        return view('menu.order', [
+            'order' => $order,
+            'settings' => $settings,
+            'tracking' => (new OrderTracking($order, $settings))->toArray(),
+            'whatsappOrderUrl' => WhatsAppOrderLink::url($order),
+        ]);
     }
 
     /**
