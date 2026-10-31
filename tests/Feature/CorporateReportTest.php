@@ -38,7 +38,7 @@ class CorporateReportTest extends TenantTestCase
         $tenant ??= $this->tenant;
 
         return $this->as($tenant, fn () => app(CorporateVouchers::class)->createContract($overrides + [
-            'voucher_value' => 200, 'quantity' => 3, 'expires_on' => local_at()->addMonth()->format('Y-m-d'), 'mode' => 'single',
+            'voucher_value' => 200, 'quantity' => 3, 'expires_on' => local_at()->addDays(45)->format('Y-m-d'), 'mode' => 'single',
         ], $this->owner($tenant)));
     }
 
