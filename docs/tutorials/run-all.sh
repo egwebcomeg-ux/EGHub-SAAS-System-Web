@@ -9,6 +9,7 @@ OUT=${OUT:-../../public/tutorials}
 for id in menu-items tables-qr order-flow-settings pos-sale order-board kitchen-display guest-qr-order callcenter-order \
           reservations guest-desk rewards campaigns coupons offers corporate-contract company-visits redeem-voucher reports \
           inventory-recipes purchases inventory-count users-roles daily-digest menu-import menu-languages printed-menu \
-          pager kiosk tv-screens knowledge-base delivery-zones custom-domain whatsapp shifts-cash; do
+          pager kiosk tv-screens knowledge-base delivery-zones custom-domain whatsapp shifts-cash gift-cards reviews \
+          driver-tracking menu-design; do
     OUT=$OUT node record.cjs scenarios/$id.cjs
 done

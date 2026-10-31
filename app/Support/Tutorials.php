@@ -227,6 +227,30 @@ final class Tutorials
                 __('At the end count the cash, type it and tap "Close shift".'),
                 __('The difference shows: short or over, and who was on the shift.'),
             ]),
+            'gift-cards' => $t('dash.wallet', 'wallet.manage', 'wallet', __('Gift cards'), [
+                __('Guest desk: find the buyer by mobile, then open "Sell a gift card".'),
+                __('The amount, the receiver\'s mobile and a message printed on the card.'),
+                __('Tap "Sell" once the money is in, and print the card with its QR.'),
+                __('The receiver scans it and adds it to their balance; Wallet → Gift cards lists them all.'),
+            ]),
+            'reviews' => $t('dash.feedback', 'reports.view|customers.view', 'feedback', __('Guest ratings'), [
+                __('Guests rate with stars at the end of the menu and after their order.'),
+                __('Happy guests (4-5 stars) are invited to rate you on Google too.'),
+                __('Reports → Ratings: the average and how many of each star.'),
+                __('Tap the low stars to read only the complaints; set the Google link in Settings → Identity.'),
+            ]),
+            'menu-design' => $t('dash.settings', 'settings.manage', 'menu_themes', __('Menu design'), [
+                __('Settings → Menu: pick a ready design ("Suits you" marks the ones for your place).'),
+                __('How the items are laid out, a quick sheet or a full page per item, chips or circles for categories.'),
+                __('Settings → Identity: your colours and font.'),
+                __('Save: guests see the new design at once, with the same QR.'),
+            ]),
+            'driver-tracking' => $t('dash.drivers', 'delivery.assign|delivery.drivers', 'delivery_zones|online_ordering', __('Drivers & live tracking'), [
+                __('Pick the driver on the delivery order\'s card on the order board.'),
+                __('The driver sees only their orders and taps "Picked up"; their position is sent on the way.'),
+                __('The guest follows the driver on the map from their order page.'),
+                __('The Drivers page shows each driver on the map, their orders and the cash they hold.'),
+            ]),
         ];
     }
 
@@ -271,7 +295,7 @@ final class Tutorials
      * before signing up. Slugs are App\Support\SiteModules keys; a recording without its file is left out.
      */
     public const FOR_MODULE = [
-        'qr-menu' => ['menu-items', 'tables-qr'],
+        'qr-menu' => ['menu-items', 'menu-design', 'tables-qr'],
         'languages' => ['menu-languages'],
         'printed-menu' => ['printed-menu'],
         'tv-screens' => ['tv-screens'],
@@ -284,16 +308,16 @@ final class Tutorials
         'offers' => ['offers', 'coupons'],
         'whatsapp' => ['whatsapp'],
         'campaigns' => ['campaigns'],
-        'wallet' => ['guest-desk'],
+        'wallet' => ['gift-cards', 'guest-desk'],
         'corporate-vouchers' => ['corporate-contract', 'company-visits', 'redeem-voucher'],
         'knowledge-base' => ['knowledge-base'],
         'pos' => ['pos-sale', 'shifts-cash'],
         'kiosk' => ['kiosk'],
         'kitchen-display' => ['kitchen-display'],
         'call-center' => ['callcenter-order'],
-        'delivery-drivers' => ['delivery-zones'],
+        'delivery-drivers' => ['driver-tracking', 'delivery-zones'],
         'inventory' => ['inventory-recipes', 'inventory-count', 'purchases'],
-        'reports' => ['reports', 'daily-digest'],
+        'reports' => ['reports', 'reviews', 'daily-digest'],
         'multi-branch' => ['users-roles'],
         'custom-domain' => ['custom-domain'],
     ];

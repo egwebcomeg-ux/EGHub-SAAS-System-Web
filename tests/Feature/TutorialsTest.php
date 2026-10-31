@@ -48,6 +48,8 @@ class TutorialsTest extends TenantTestCase
             $this->assertStringContainsString('data-feature-video="'.$key.'"', $inventory);
         }
         $this->get($this->menuUrl('features/pager'))->assertOk()->assertSee('data-feature-video="pager"', false);
+        $this->get($this->menuUrl('features/delivery-drivers'))->assertOk()->assertSee('data-feature-video="driver-tracking"', false);
+        $this->get($this->menuUrl('features/wallet'))->assertOk()->assertSee('data-feature-video="gift-cards"', false);
         $this->get($this->menuUrl('features/featured-listing'))->assertOk()->assertDontSee('data-feature-videos', false);
     }
 }
