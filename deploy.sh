@@ -17,12 +17,21 @@
 
 set -eu
 
+# The reset below rewrites this very file while sh is still reading it: run from a copy taken first.
+if [ -z "${DEPLOY_APP_DIR:-}" ]; then
+    DEPLOY_APP_DIR="$(cd "$(dirname "$0")" && pwd)"
+    export DEPLOY_APP_DIR
+    COPY="$DEPLOY_APP_DIR/storage/framework/deploy.running.sh"
+    cp "$0" "$COPY"
+    exec sh "$COPY" "$@"
+fi
+
 BRANCH="${1:-production}"
 PHP="${PHP:-php}"
 COMPOSER_BIN="${COMPOSER_BIN:-${COMPOSER:-composer}}"
 unset COMPOSER
+APP_DIR="$DEPLOY_APP_DIR"
 BUILD_KEEP="$APP_DIR/storage/framework/build.prev"
-APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOCK="$APP_DIR/storage/framework/deploy.lock.d"
 FAILED="$APP_DIR/storage/framework/deploy.failed"
 LOG="$APP_DIR/storage/logs/deploy.log"
