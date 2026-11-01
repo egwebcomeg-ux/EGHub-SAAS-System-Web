@@ -9,7 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 
-/** Answers one message to the EgHub number out of the webhook: Meta must get its 200 without waiting for the model. */
+/** Answers one message to the EgHub number right after the webhook responded: Meta must get its 200 without waiting for the model, and the person must not wait for the next queue run. */
 class SendPlatformAutoReply implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable;
