@@ -24,6 +24,13 @@ return [
      */
     'guest_sign_in' => (bool) env('WHATSAPP_GUEST_SIGN_IN', true),
 
+    /*
+     * «ابعتلي كود» from the EgHub number for a restaurant without its own (App\Services\Customers\SignIn\PhoneCodeSignIn).
+     * Turn it on only once the sign_in_code template is approved in Arabic on the EgHub account and it has a payment
+     * method: Meta bills EgHub for these, no restaurant credit.
+     */
+    'platform_sign_in_code' => (bool) env('WHATSAPP_PLATFORM_SIGN_IN_CODE', false),
+
     // Inbound webhook (GET/POST /webhooks/whatsapp on the main domain): Meta's verify token and the app secret
     // that signs every POST (X-Hub-Signature-256). Without the app secret every Meta payload is refused.
     'verify_token' => env('WHATSAPP_VERIFY_TOKEN'),
@@ -59,8 +66,8 @@ return [
         // "confirm your cash-on-delivery order" (category Utility): 6 body parameters and 3 quick-reply buttons, the
         // exact text to submit is above Templates::PARAMS['order_confirm']
         'order_confirm' => env('WHATSAPP_TPL_ORDER_CONFIRM', 'egmenu_order_confirm'),
-        // the guest's sign-in code (category Authentication, a copy-code button), sent only from a restaurant's OWN
-        // number (App\Services\Customers\SignIn\PhoneCodeSignIn): Meta bills the restaurant's account, no EgHub credit
+        // the guest's sign-in code (category Authentication, a copy-code button), from a restaurant's OWN number when
+        // it has one (Meta bills its account), else from the EgHub number with platform_sign_in_code on (Meta bills EgHub)
         'sign_in_code' => env('WHATSAPP_TPL_SIGN_IN_CODE', 'egmenu_sign_in_code'),
     ],
 

@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\GuestSignIn;
 use App\Services\Settings;
 use App\Services\Sms\Sms;
+use App\Services\WhatsApp\Drivers\MetaCloudDriver;
 use App\Services\WhatsApp\OwnNumber;
 use App\Services\WhatsApp\WhatsApp;
 use Illuminate\Support\Facades\DB;
@@ -42,9 +43,15 @@ final class PhoneCodeSignIn
     public static function senders(): array
     {
         return array_values(array_filter([
-            OwnNumber::sender(OwnNumber::AUTH_TEMPLATE, WhatsApp::locale()) !== null ? 'whatsapp' : null,
+            OwnNumber::sender(OwnNumber::AUTH_TEMPLATE, WhatsApp::locale()) !== null || self::platformSends() ? 'whatsapp' : null,
             Sms::enabled() ? 'sms' : null,
         ]));
+    }
+
+    /** The EgHub number sends the code for a restaurant without its own: switched on, with its Cloud API credentials. */
+    private static function platformSends(): bool
+    {
+        return (bool) config('whatsapp.platform_sign_in_code') && filled(config('whatsapp.meta.phone_id')) && filled(config('whatsapp.meta.token'));
     }
 
     /**
@@ -210,10 +217,19 @@ final class PhoneCodeSignIn
     {
         $locale = app()->getLocale() === 'en' ? 'en' : 'ar';
         if ($channel === 'whatsapp') {
-            $connection = OwnNumber::sender(OwnNumber::AUTH_TEMPLATE, WhatsApp::locale()) ?? throw new \RuntimeException('own number not available');
-            OwnNumber::sendCode($connection, $phone, $code, WhatsApp::locale());
+            $connection = OwnNumber::sender(OwnNumber::AUTH_TEMPLATE, WhatsApp::locale());
+            if ($connection !== null) {
+                OwnNumber::sendCode($connection, $phone, $code, WhatsApp::locale());
 
-            return (float) config('whatsapp.auth_cost', 0);
+                return (float) config('whatsapp.auth_cost', 0);
+            }
+            if (! self::platformSends()) {
+                throw new \RuntimeException('no WhatsApp sender');
+            }
+            // Arabic only: the one language approved on the EgHub account; Meta bills EgHub, so nothing to this restaurant
+            (new MetaCloudDriver)->sendAuthCode(whatsapp_number($phone), OwnNumber::templateName(OwnNumber::AUTH_TEMPLATE), OwnNumber::language('ar'), $code);
+
+            return 0.0;
         }
         $driver = Sms::driver() ?? throw new \RuntimeException('no SMS provider');
         $brand = trim(tr(Settings::get('brand_name'), Settings::get('brand_name_en'))) ?: (string) tenant()->name;

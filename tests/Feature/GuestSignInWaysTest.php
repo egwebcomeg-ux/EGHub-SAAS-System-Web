@@ -215,6 +215,38 @@ class GuestSignInWaysTest extends TenantTestCase
         $this->phoneVerify('cafe-a', $this->lastSmsCode())->assertOk();
     }
 
+    public function test_the_eghub_number_sends_the_code_when_switched_on_and_it_opens_only_that_restaurant(): void
+    {
+        config(['whatsapp.platform_sign_in_code' => true, 'whatsapp.meta.phone_id' => '999', 'whatsapp.meta.token' => 'tok']);
+        Http::fake(['*' => Http::response(['messages' => [['id' => 'wamid.1']]])]);
+        $a = $this->restaurant('cafe-a');
+        $this->restaurant('cafe-b');
+
+        $this->phoneStart('cafe-a')->assertJson(['status' => 'sent', 'channel' => 'whatsapp']);
+        $sent = null;
+        Http::assertSent(function ($request) use (&$sent) {
+            $sent = $request->data();
+
+            return str_ends_with($request->url(), '/999/messages');
+        });
+        $this->assertSame('egmenu_sign_in_code', $sent['template']['name']);
+        $this->assertSame('ar', $sent['template']['language']['code']);
+        $code = $sent['template']['components'][0]['parameters'][0]['text'];
+        $this->assertSame(['whatsapp' => ['count' => 1, 'cost' => 0.0]], $this->as($a, fn () => PhoneCodeSignIn::usage()));
+
+        $this->phoneVerify('cafe-b', $code)->assertStatus(422);
+        $this->phoneVerify('cafe-a', $code)->assertOk();
+    }
+
+    public function test_when_meta_refuses_the_eghub_number_the_page_offers_the_other_ways(): void
+    {
+        config(['whatsapp.platform_sign_in_code' => true, 'whatsapp.meta.phone_id' => '999', 'whatsapp.meta.token' => 'tok']);
+        Http::fake(['*' => Http::response(['error' => ['message' => 'template not found', 'code' => 132001]], 400)]);
+        $this->restaurant('cafe-a');
+
+        $this->phoneStart('cafe-a')->assertOk()->assertJson(['status' => 'choose'])->assertJsonFragment(['channel' => 'order']);
+    }
+
     public function test_without_whatsapp_or_sms_the_code_goes_to_the_email_the_guest_has(): void
     {
         Notification::fake();
