@@ -45,7 +45,7 @@ final class PlatformAutoReply
         self::BUTTON_PREFIX.'team' => 'أكلم حد من الفريق',
     ];
 
-    private const GREETING = '/^(?:[\p{P}\s]*(?:أهلا|اهلا|أهلًا|هاي|هلا|مرحبا|سلام|السلام عليكم|صباح الخير|مساء الخير|ازيك|إزيك|hi|hello|hey)[\p{P}\s]*)+$/iu';
+    private const GREETING = '/^(?:[\p{P}\s]*(?:و?عليكم السلام|السلام عليكم|ورحمة الله|وبركاته|أهلا|اهلا|أهلًا|هاي|هلا|مرحبا|سلام|صباح الخير|مساء الخير|ازيك|إزيك|hi|hello|hey)[\p{P}\s]*)+$/iu';
 
     private const MEDIA_TYPES = ['image', 'audio', 'video', 'document', 'location', 'contacts'];
 
@@ -176,6 +176,10 @@ TXT;
         }
         while ($turns !== [] && $turns[0]['role'] !== 'user') {
             array_shift($turns);
+        }
+        // the welcome just sent comes after the question: the model must be asked with the person's words last
+        while ($turns !== [] && $turns[array_key_last($turns)]['role'] !== 'user') {
+            array_pop($turns);
         }
 
         return $turns;

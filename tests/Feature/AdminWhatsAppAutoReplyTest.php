@@ -208,6 +208,17 @@ class AdminWhatsAppAutoReplyTest extends TenantTestCase
         $this->assertSame(1, Http::recorded(fn ($request) => str_contains($request->url(), 'graph.facebook.com') && $request['type'] === 'interactive')->count());
     }
 
+    public function test_a_long_islamic_greeting_gets_the_buttons_only(): void
+    {
+        $this->fakeModel('رد');
+
+        $this->webhook($this->text('السلام عليكم ورحمة الله وبركاته'))->assertOk();
+
+        $this->assertSame(0, $this->askedTheModel());
+        $this->assertSame(1, $this->sentToMeta());
+        $this->assertFalse(PlatformConversation::query()->sole()->botPaused());
+    }
+
     public function test_a_real_first_question_gets_the_welcome_and_the_answer(): void
     {
         $this->fakeModel('الإجابة');
@@ -215,6 +226,7 @@ class AdminWhatsAppAutoReplyTest extends TenantTestCase
         $this->webhook($this->text('الاسعار كام'))->assertOk();
 
         $this->assertSame(1, $this->askedTheModel());
+        Http::assertSent(fn ($request) => ! str_contains($request->url(), 'api.anthropic.com') || end($request->data()['messages'])['role'] === 'user');
         $this->assertSame(2, $this->sentToMeta());
     }
 
