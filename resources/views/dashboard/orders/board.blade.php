@@ -42,6 +42,7 @@
 <div class="dash-head">
     <div class="min-w-0">
         <h1 class="page-title">{{ __('Orders') }}</h1>
+        <a href="{{ route('dash.orders.history') }}" class="text-sm font-semibold text-brand-700" data-order-history-link>{{ __('Order history') }}</a>
         <p class="dash-help">{{ __('New orders appear here by themselves; move each one along until it is served.') }}</p>
     </div>
     <div class="dash-head-actions text-sm">

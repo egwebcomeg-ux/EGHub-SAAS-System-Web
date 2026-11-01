@@ -43,6 +43,7 @@ use App\Http\Controllers\Dashboard\ModulesController;
 use App\Http\Controllers\Dashboard\NativeTrackingController;
 use App\Http\Controllers\Dashboard\NotificationsController;
 use App\Http\Controllers\Dashboard\OnboardingController;
+use App\Http\Controllers\Dashboard\OrderHistoryController;
 use App\Http\Controllers\Dashboard\OrdersController;
 use App\Http\Controllers\Dashboard\OutreachController;
 use App\Http\Controllers\Dashboard\PagerController;
@@ -267,6 +268,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::middleware(['feature:order_board', 'permission:orders.view'])->group(function () {
         Route::get('/orders', [OrdersController::class, 'board'])->name('orders');
         Route::get('/orders/feed', [OrdersController::class, 'feed'])->name('orders.feed');
+        Route::get('/orders/history', [OrderHistoryController::class, 'index'])->name('orders.history');
         Route::post('/orders/calls/{call}', [OrdersController::class, 'handleCall'])->name('orders.call');
         Route::post('/orders/{order}/status', [OrdersController::class, 'transition'])
             ->middleware('permission:orders.manage')->name('orders.status');

@@ -72,6 +72,13 @@
                 <option value="unpaid" @selected($f['paid'] === 'unpaid')>{{ __('Not paying yet') }}</option>
             </select>
         </label>
+        <label class="grid gap-1 text-xs font-semibold text-navy-600">{{ __('Paying with no orders') }}
+            <select class="field" name="quiet" data-tenants-quiet>
+                <option value="">{{ __('All') }}</option>
+                <option value="14" @selected($f['quiet'] === '14')>{{ __('For :days days', ['days' => 14]) }}</option>
+                <option value="30" @selected($f['quiet'] === '30')>{{ __('For :days days', ['days' => 30]) }}</option>
+            </select>
+        </label>
         <label class="grid gap-1 text-xs font-semibold text-navy-600">{{ __('Directory') }}
             <select class="field" name="hidden">
                 <option value="">{{ __('All places') }}</option>

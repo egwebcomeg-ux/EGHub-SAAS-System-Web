@@ -26,7 +26,7 @@ final class AdminTenantSearch
     /**
      * The filters of the request, cleaned (anything unknown is dropped).
      *
-     * @return array{q: string, status: string, type: string, plan: string, paid: string, created: string, from: string, to: string, hidden: string, sort: string}
+     * @return array{q: string, status: string, type: string, plan: string, paid: string, quiet: string, created: string, from: string, to: string, hidden: string, sort: string}
      */
     public static function filters(Request $request): array
     {
@@ -43,6 +43,8 @@ final class AdminTenantSearch
             'type' => $pick('type', array_keys(BusinessType::TYPES)),
             'plan' => preg_match('/^[a-z0-9_-]{1,40}$/', $plan = (string) $request->query('plan', '')) ? $plan : '',
             'paid' => $pick('paid', ['paid', 'unpaid']),
+            // paying places with no order for this many days: worth a call before they cancel
+            'quiet' => $pick('quiet', ['14', '30']),
             // dates typed without picking "custom" still count
             'created' => $created === '' && ($from !== '' || $to !== '') ? 'custom' : $created,
             'from' => $from,
@@ -90,6 +92,10 @@ final class AdminTenantSearch
         if ($f['paid'] !== '') {
             $paid = fn ($s) => $s->where('status', 'active')->whereHas('plan', fn ($p) => $p->where('code', '!=', Entitlements::FALLBACK_PLAN));
             $f['paid'] === 'paid' ? $query->whereHas('subscription', $paid) : $query->whereDoesntHave('subscription', $paid);
+        }
+        if ($f['quiet'] !== '') {
+            $query->whereHas('subscription', fn ($s) => $s->where('status', 'active')->whereHas('plan', fn ($p) => $p->where('code', '!=', Entitlements::FALLBACK_PLAN)))
+                ->whereNotExists(fn (QueryBuilder $o) => $o->from('orders')->whereColumn('orders.tenant_id', 'tenants.id')->where('orders.created_at', '>=', now()->subDays((int) $f['quiet'])));
         }
         [$from, $to] = $this->period($f);
         $query->when($from, fn ($w) => $w->where('tenants.created_at', '>=', $from))->when($to, fn ($w) => $w->where('tenants.created_at', '<', $to));
