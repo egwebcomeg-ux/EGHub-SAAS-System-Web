@@ -6,8 +6,10 @@ use App\Models\PlatformAdmin;
 use App\Models\PlatformCannedReply;
 use App\Models\PlatformConversation;
 use App\Models\PlatformSetting;
+use App\Notifications\InboxNeedsAnswer;
 use App\Services\WhatsApp\PlatformAutoReply;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Testing\TestResponse;
 use Tests\TenantTestCase;
 
@@ -266,6 +268,38 @@ class AdminWhatsAppAutoReplyTest extends TenantTestCase
         $support = PlatformAdmin::query()->create(['name' => 'Sara', 'email' => 'sara@egweb.test', 'password' => 'Secret-pass-123', 'role' => 'support']);
         $this->actingAs($support, 'admin')->post($this->adminUrl('/inbox/start'), ['phone' => 'abc', 'name' => 'منى'])->assertSessionHasErrors('phone');
         Http::assertNothingSent();
+    }
+
+    public function test_the_team_gets_one_email_on_hand_over_and_only_the_follower_after_it(): void
+    {
+        Notification::fake();
+        $this->fakeModel('حد من الفريق هيرد عليك هنا. [[HUMAN]]');
+        $first = PlatformAdmin::query()->create(['name' => 'First', 'email' => 'first@egweb.test', 'password' => 'Secret-pass-123', 'role' => 'support']);
+        $second = PlatformAdmin::query()->create(['name' => 'Second', 'email' => 'second@egweb.test', 'password' => 'Secret-pass-123', 'role' => 'support']);
+        $conversation = $this->welcomed();
+
+        $this->webhook($this->text('عايز اكلم موظف'))->assertOk();
+        $this->webhook($this->text('فين الرد'))->assertOk();
+
+        $this->assertSame($first->id, $conversation->refresh()->assigned_to);
+        Notification::assertSentToTimes($first, InboxNeedsAnswer::class, 1);
+        Notification::assertNotSentTo($second, InboxNeedsAnswer::class);
+    }
+
+    public function test_with_the_automatic_answer_off_the_whole_team_is_told_but_not_of_a_reaction(): void
+    {
+        Notification::fake();
+        Http::fake();
+        PlatformSetting::put(PlatformAutoReply::SETTING, '0');
+        $admin = PlatformAdmin::query()->create(['name' => 'Sara', 'email' => 'sara@egweb.test', 'password' => 'Secret-pass-123', 'role' => 'support']);
+        $field = PlatformAdmin::query()->create(['name' => 'Field', 'email' => 'field@egweb.test', 'password' => 'Secret-pass-123', 'role' => 'field_sales']);
+
+        $this->webhook(['type' => 'reaction', 'reaction' => ['emoji' => 'x']])->assertOk();
+        Notification::assertNothingSent();
+
+        $this->webhook($this->text('الاسعار'))->assertOk();
+        Notification::assertSentTo($admin, InboxNeedsAnswer::class);
+        Notification::assertNotSentTo($field, InboxNeedsAnswer::class);
     }
 
     public function test_the_switch_needs_inbox_manage(): void

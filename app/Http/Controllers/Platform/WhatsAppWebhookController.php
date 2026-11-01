@@ -122,6 +122,8 @@ class WhatsAppWebhookController extends Controller
                         $kept = app(PlatformInbox::class)->receive((array) $message, (array) ($value['contacts'] ?? []));
                         if ($kept && app(PlatformAutoReply::class)->shouldAnswer($kept->conversation)) {
                             SendPlatformAutoReply::dispatchAfterResponse($kept->id);
+                        } elseif ($kept && $kept->type !== 'reaction') {
+                            app(PlatformInbox::class)->alertTeam($kept->conversation);
                         }
                     }
                     // (Meta resends a payload it thinks was not received: the same wamid is answered once)

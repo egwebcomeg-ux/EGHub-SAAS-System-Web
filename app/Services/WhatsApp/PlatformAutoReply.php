@@ -143,6 +143,7 @@ TXT;
         $conversation->assigned_to = $this->nextTeamMember()?->id;
         $conversation->messages()->create(['direction' => 'note', 'body' => self::HANDOVER_NOTE]);
         $conversation->forceFill(['bot_paused_until' => now()->addHours(self::PAUSE_HOURS)])->save();
+        $this->inbox->alertTeam($conversation);
     }
 
     private function answersToday(PlatformConversation $conversation): int

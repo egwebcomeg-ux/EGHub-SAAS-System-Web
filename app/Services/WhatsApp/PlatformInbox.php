@@ -5,8 +5,11 @@ namespace App\Services\WhatsApp;
 use App\Models\PlatformAdmin;
 use App\Models\PlatformConversation;
 use App\Models\PlatformConversationMessage;
+use App\Notifications\InboxNeedsAnswer;
 use App\Services\WhatsApp\Drivers\MetaCloudDriver;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * «محادثات واتساب»: keeps what people write to the EgHub number and sends the team's answers from it. A sign-in or
@@ -16,6 +19,8 @@ use Illuminate\Support\Facades\DB;
  */
 final class PlatformInbox
 {
+    public const ALERT_MINUTES = 30;
+
     /** The text of the approved template egmenu_welcome, as the team reads it in the conversation. */
     public const WELCOME_TEMPLATE = 'أهلًا {{1}}، معاك فريق EgHub للمنيو الإلكتروني والطلبات للمطاعم والكافيهات. لو حابب تعرف الأسعار أو تبدأ، رد على الرسالة دي وهنساعدك.';
 
@@ -106,6 +111,19 @@ final class PlatformInbox
         $conversation->forceFill(['last_message_at' => now()])->save();
 
         return $row;
+    }
+
+    /**
+     * Tells the team by email that a person waits: whoever follows the conversation, else everyone who answers here.
+     * One email per conversation in ALERT_MINUTES, so a person writing several messages sends one.
+     */
+    public function alertTeam(PlatformConversation $conversation): void
+    {
+        if (! Cache::add('inbox:alert:'.$conversation->id, 1, now()->addMinutes(self::ALERT_MINUTES))) {
+            return;
+        }
+        $assignee = $conversation->assignee;
+        Notification::send($assignee?->is_active ? collect([$assignee]) : PlatformAdmin::notifiable('inbox.manage'), new InboxNeedsAnswer($conversation));
     }
 
     /** Delivery news for an answer of the team; true when the message was one of ours. */
