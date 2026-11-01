@@ -2,6 +2,7 @@
 
 namespace App\Services\Customers\SignIn;
 
+use App\Billing\Credits;
 use App\Models\Customer;
 use App\Models\GuestSignIn;
 use App\Services\Settings;
@@ -19,14 +20,18 @@ use Throwable;
  * then this phone opens THAT restaurant's guest with that mobile (an imported or ordering guest keeps their addresses
  * and history), or a new guest. The code goes out the best way this restaurant has, each only when available:
  *  1. whatsapp  the Authentication template from the restaurant's OWN connected WhatsApp number (Meta bills the
- *               restaurant's account, like every message from its own number: no EgHub credit);
- *  2. sms       the configured SMS provider (config/sms.php);
+ *               restaurant's account, like every message from its own number: no EgHub credit), or from the EgHub
+ *               number when the restaurant chose it (CHANNEL_SETTING): one credit per code, given back if Meta refuses;
+ *  2. sms      the configured SMS provider (config/sms.php);
  * and when neither can send, or the guest asks for another way: 3. reverse  the guest sends a code to the EgHub
  * number (WhatsAppSignIn, free); 4. email  a sign-in link to the email that guest already has here. A password is
  * never sent anywhere. Every code sent is kept with its channel and estimated cost (usage()).
  */
 final class PhoneCodeSignIn
 {
+    /** email | whatsapp: how this restaurant wants the code sent when it has no number of its own. */
+    public const CHANNEL_SETTING = 'guest_code_channel';
+
     public const MINUTES = 5;
 
     public const TRIES = 5;
@@ -48,10 +53,14 @@ final class PhoneCodeSignIn
         ]));
     }
 
-    /** The EgHub number sends the code for a restaurant without its own: switched on, with its Cloud API credentials. */
+    /**
+     * The EgHub number sends the code for a restaurant that chose it (setting guest_code_channel, one credit per code):
+     * switched on for the platform, with its Cloud API credentials.
+     */
     private static function platformSends(): bool
     {
-        return (bool) config('whatsapp.platform_sign_in_code') && filled(config('whatsapp.meta.phone_id')) && filled(config('whatsapp.meta.token'));
+        return Settings::get(self::CHANNEL_SETTING) === 'whatsapp' && (bool) config('whatsapp.platform_sign_in_code')
+            && filled(config('whatsapp.meta.phone_id')) && filled(config('whatsapp.meta.token'));
     }
 
     /**
@@ -150,7 +159,7 @@ final class PhoneCodeSignIn
             'code_hash' => self::codeHash($phone, $code), 'expires_at' => now()->addMinutes(self::MINUTES), 'channel' => $channel,
         ]);
         try {
-            $cost = $channel === 'email' ? $this->email((string) $email, $code, $ip) : $this->send($channel, $phone, $code);
+            $cost = $channel === 'email' ? $this->email((string) $email, $code, $ip) : $this->send($channel, $phone, $code, 'otp:'.$row->id);
         } catch (Throwable $e) {
             Log::warning('guest sign-in code not sent', ['channel' => $channel, 'error' => mb_substr($e->getMessage(), 0, 180)]);
             $row->forceFill(['used_at' => now(), 'expires_at' => now(), 'channel' => null, 'created_at' => now()->subSeconds(self::RESEND_SECONDS)])->save();
@@ -213,7 +222,7 @@ final class PhoneCodeSignIn
     }
 
     /** Sends the code; returns its estimated cost. */
-    private function send(string $channel, string $phone, string $code): float
+    private function send(string $channel, string $phone, string $code, string $reference): float
     {
         $locale = app()->getLocale() === 'en' ? 'en' : 'ar';
         if ($channel === 'whatsapp') {
@@ -226,8 +235,19 @@ final class PhoneCodeSignIn
             if (! self::platformSends()) {
                 throw new \RuntimeException('no WhatsApp sender');
             }
-            // Arabic only: the one language approved on the EgHub account; Meta bills EgHub, so nothing to this restaurant
-            (new MetaCloudDriver)->sendAuthCode(whatsapp_number($phone), OwnNumber::templateName(OwnNumber::AUTH_TEMPLATE), OwnNumber::language('ar'), $code);
+            $credits = app(Credits::class);
+            $tenantId = (string) tenant()->getTenantKey();
+            if (! $credits->spend($tenantId, $reference)) {
+                throw new \RuntimeException('no credits');
+            }
+            try {
+                // Arabic only: the one language approved on the EgHub account
+                (new MetaCloudDriver)->sendAuthCode(whatsapp_number($phone), OwnNumber::templateName(OwnNumber::AUTH_TEMPLATE), OwnNumber::language('ar'), $code);
+            } catch (Throwable $e) {
+                $credits->add($tenantId, 1, 'refund', $reference);
+
+                throw $e;
+            }
 
             return 0.0;
         }

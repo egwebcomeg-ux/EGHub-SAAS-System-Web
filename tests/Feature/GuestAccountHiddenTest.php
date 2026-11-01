@@ -81,6 +81,19 @@ class GuestAccountHiddenTest extends TenantTestCase
         $this->assertSame(1, $this->as($a, fn () => Order::query()->count()));
     }
 
+    public function test_the_owner_chooses_how_the_sign_in_code_is_sent_and_email_is_the_default(): void
+    {
+        $a = $this->restaurantWith('cafe-a');
+        $owner = $this->owner($a);
+        $this->assertSame('email', $this->as($a, fn () => Settings::get('guest_code_channel')));
+
+        $this->actingAs($owner)->post($this->dashUrl('/settings'), self::FORM + ['whatsapp_handoff_sent' => '1', 'guest_code_channel' => 'whatsapp'])->assertSessionHasNoErrors();
+        $this->assertSame('whatsapp', $this->as($a, fn () => Settings::get('guest_code_channel')));
+
+        $this->actingAs($owner)->post($this->dashUrl('/settings'), self::FORM + ['whatsapp_handoff_sent' => '1', 'guest_code_channel' => 'anything'])->assertSessionHasNoErrors();
+        $this->assertSame('email', $this->as($a, fn () => Settings::get('guest_code_channel')));
+    }
+
     public function test_the_owner_switches_it_from_the_orders_settings(): void
     {
         $a = $this->restaurantWith('cafe-a');

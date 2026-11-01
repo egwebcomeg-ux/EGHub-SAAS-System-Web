@@ -62,6 +62,8 @@ final class Settings
         'order_whatsapp_handoff' => '0',
         // no "حسابي" on this restaurant's menu: orders only, handed to its WhatsApp (GuestAccount::hidden)
         'guest_account_hidden' => '0',
+        // email (free) | whatsapp (from the EgHub number, one credit per code): the guest's sign-in code (PhoneCodeSignIn)
+        'guest_code_channel' => 'email',
         // online ordering from the menu link (plan feature online_ordering)
         'online_takeaway' => '1',
         'online_delivery' => '0',

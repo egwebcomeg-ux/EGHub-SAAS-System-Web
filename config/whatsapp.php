@@ -25,9 +25,9 @@ return [
     'guest_sign_in' => (bool) env('WHATSAPP_GUEST_SIGN_IN', true),
 
     /*
-     * «ابعتلي كود» from the EgHub number for a restaurant without its own (App\Services\Customers\SignIn\PhoneCodeSignIn).
-     * Turn it on only once the sign_in_code template is approved in Arabic on the EgHub account and it has a payment
-     * method: Meta bills EgHub for these, no restaurant credit.
+     * «ابعتلي كود» from the EgHub number for a restaurant that chose it (setting guest_code_channel): one credit per code
+     * from its wallet (App\Services\Customers\SignIn\PhoneCodeSignIn), while Meta bills EgHub. Turn it on only once
+     * the sign_in_code template is approved in Arabic on the EgHub account and it has a payment method.
      */
     'platform_sign_in_code' => (bool) env('WHATSAPP_PLATFORM_SIGN_IN_CODE', false),
 

@@ -360,6 +360,13 @@
                 <p class="mt-1 text-xs text-navy-500">{{ __('The order still reaches your orders board. The guest sends the message from their own WhatsApp, so it uses no credits. For orders from the table QR and the menu link.') }}</p>
                 <label class="mt-3 flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="guest_account_hidden" value="1" @checked($s['guest_account_hidden'] === '1') class="size-4 accent-brand-600"> {{ __('Hide "My account" from the menu') }}</label>
                 <p class="mt-1 text-xs text-navy-500" data-guest-account-hidden-note>{{ __('For a simple place: no sign-in, addresses, points or loyalty card on the menu, and every guest order goes to your WhatsApp. The order still reaches your orders board. Turn it off any time: nothing is deleted.') }}</p>
+                <label class="mt-3 flex flex-wrap items-center gap-2 text-sm font-semibold" data-guest-code-channel>{{ __('Send the guest\'s sign-in code by') }}
+                    <select class="field min-h-9 w-auto" name="guest_code_channel">
+                        <option value="email" @selected($s['guest_code_channel'] === 'email')>{{ __('Email (free)') }}</option>
+                        <option value="whatsapp" @selected($s['guest_code_channel'] === 'whatsapp')>{{ __('WhatsApp (1 credit per code)') }}</option>
+                    </select>
+                </label>
+                <p class="mt-1 text-xs text-navy-500">{{ __('WhatsApp codes go out from the EgHub number and use your WhatsApp balance. With no balance left, the guest sees the other ways to sign in. If your own WhatsApp number is connected, codes go out from it instead.') }}</p>
                 @unless (\App\Services\Orders\WhatsAppOrderLink::hasNumber())
                     <p class="mt-1 text-xs font-semibold text-amber-700" data-whatsapp-handoff-no-number>{{ __('You have no WhatsApp number yet: add it in the restaurant\'s contact details. Until then guests see the normal confirmation.') }}</p>
                 @endunless

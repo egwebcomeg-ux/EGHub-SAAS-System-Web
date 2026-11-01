@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Billing\Credits;
 use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Customer;
@@ -15,6 +16,7 @@ use App\Models\WhatsAppMessage;
 use App\Notifications\GuestAccountEmail;
 use App\Services\Customers\ClaimLinks;
 use App\Services\Customers\SignIn\PhoneCodeSignIn;
+use App\Services\Settings;
 use App\Services\Sms\SmsDriver;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Http;
@@ -215,14 +217,50 @@ class GuestSignInWaysTest extends TenantTestCase
         $this->phoneVerify('cafe-a', $this->lastSmsCode())->assertOk();
     }
 
-    public function test_the_eghub_number_sends_the_code_when_switched_on_and_it_opens_only_that_restaurant(): void
+    /** A restaurant that chose WhatsApp codes from the EgHub number, with $credits in its wallet. */
+    private function whatsappCodes(string $slug, int $credits): Tenant
     {
         config(['whatsapp.platform_sign_in_code' => true, 'whatsapp.meta.phone_id' => '999', 'whatsapp.meta.token' => 'tok']);
-        Http::fake(['*' => Http::response(['messages' => [['id' => 'wamid.1']]])]);
+        $tenant = $this->restaurant($slug);
+        $this->as($tenant, fn () => Settings::put(['guest_code_channel' => 'whatsapp']));
+        app(Credits::class)->add($tenant, $credits, 'test');
+
+        return $tenant;
+    }
+
+    public function test_a_restaurant_that_chose_email_never_sends_from_the_eghub_number(): void
+    {
+        Notification::fake();
+        Http::fake();
+        config(['whatsapp.platform_sign_in_code' => true, 'whatsapp.meta.phone_id' => '999', 'whatsapp.meta.token' => 'tok']);
         $a = $this->restaurant('cafe-a');
+        $this->guest($a, ['email' => 'mona@example.com']);
+        app(Credits::class)->add($a, 5, 'test');
+
+        $this->phoneStart('cafe-a')->assertJson(['status' => 'sent', 'channel' => 'email']);
+
+        Http::assertNothingSent();
+        $this->assertSame(5, app(Credits::class)->balance($a));
+    }
+
+    public function test_with_no_credit_left_nothing_is_sent_and_the_page_offers_the_other_ways(): void
+    {
+        Http::fake();
+        $this->whatsappCodes('cafe-a', 0);
+
+        $this->phoneStart('cafe-a')->assertOk()->assertJson(['status' => 'choose'])->assertJsonFragment(['channel' => 'order']);
+
+        Http::assertNothingSent();
+    }
+
+    public function test_the_eghub_number_sends_the_code_for_one_credit_and_it_opens_only_that_restaurant(): void
+    {
+        Http::fake(['*' => Http::response(['messages' => [['id' => 'wamid.1']]])]);
+        $a = $this->whatsappCodes('cafe-a', 2);
         $this->restaurant('cafe-b');
 
         $this->phoneStart('cafe-a')->assertJson(['status' => 'sent', 'channel' => 'whatsapp']);
+        $this->assertSame(1, app(Credits::class)->balance($a));
         $sent = null;
         Http::assertSent(function ($request) use (&$sent) {
             $sent = $request->data();
@@ -238,13 +276,14 @@ class GuestSignInWaysTest extends TenantTestCase
         $this->phoneVerify('cafe-a', $code)->assertOk();
     }
 
-    public function test_when_meta_refuses_the_eghub_number_the_page_offers_the_other_ways(): void
+    public function test_when_meta_refuses_the_eghub_number_the_credit_comes_back_and_the_page_offers_the_other_ways(): void
     {
-        config(['whatsapp.platform_sign_in_code' => true, 'whatsapp.meta.phone_id' => '999', 'whatsapp.meta.token' => 'tok']);
         Http::fake(['*' => Http::response(['error' => ['message' => 'template not found', 'code' => 132001]], 400)]);
-        $this->restaurant('cafe-a');
+        $a = $this->whatsappCodes('cafe-a', 1);
 
         $this->phoneStart('cafe-a')->assertOk()->assertJson(['status' => 'choose'])->assertJsonFragment(['channel' => 'order']);
+
+        $this->assertSame(1, app(Credits::class)->balance($a));
     }
 
     public function test_without_whatsapp_or_sms_the_code_goes_to_the_email_the_guest_has(): void
