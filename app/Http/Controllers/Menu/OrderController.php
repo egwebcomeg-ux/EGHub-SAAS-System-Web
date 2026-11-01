@@ -114,7 +114,7 @@ class OrderController extends Controller
         }
         $response = response()->json(['ok' => true, 'number' => $order->number, 'url' => $url]);
 
-        if ($order->wasRecentlyCreated && $order->source === 'online') {
+        if ($order->wasRecentlyCreated && $order->source === 'online' && ! GuestAccount::hidden()) {
             GuestAccount::rememberAddress($order);
         }
         // «أكّد إيميلك»: the email typed with the order becomes a sign-in only through its link (EmailConfirmation)
@@ -124,7 +124,7 @@ class OrderController extends Controller
         }
         // "حسابي" on this phone right away for a brand-new guest; an existing guest's account never opens just
         // because someone typed their mobile (they use their link or mobile + a delivered order's number)
-        if ($newGuest && $order->wasRecentlyCreated && $order->source === 'online' && $order->customer_id
+        if ($newGuest && ! GuestAccount::hidden() && $order->wasRecentlyCreated && $order->source === 'online' && $order->customer_id
             && GuestAccount::fromRequest($request) === null && ($guest = Customer::query()->find($order->customer_id))) {
             $response->withCookie(GuestAccount::rememberCookie(GuestAccount::token($guest)));
         }
@@ -140,7 +140,7 @@ class OrderController extends Controller
     {
         $rule = Settings::get('online_verify_phone', 'off');
 
-        return ($rule === 'all' || ($rule === 'delivery' && $type === 'delivery')) && PhoneCodeSignIn::canProve();
+        return ! GuestAccount::hidden() && ($rule === 'all' || ($rule === 'delivery' && $type === 'delivery')) && PhoneCodeSignIn::canProve();
     }
 
     /**

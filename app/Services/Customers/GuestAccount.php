@@ -27,6 +27,14 @@ final class GuestAccount
 
     public const ORDERS_SHOWN = 30;
 
+    public const HIDDEN_SETTING = 'guest_account_hidden';
+
+    /** The restaurant turned "حسابي" off: no sign-in, card or account pages, and every guest order goes to its WhatsApp. */
+    public static function hidden(): bool
+    {
+        return Settings::get(self::HIDDEN_SETTING) === '1';
+    }
+
     /** The cookie this phone keeps the guest in, per restaurant (shared with the loyalty card and the wallet). */
     public static function cookieName(): string
     {
@@ -36,7 +44,7 @@ final class GuestAccount
     /** The guest this phone remembers at this restaurant, if the remembered key is still theirs. */
     public static function fromRequest(Request $request): ?Customer
     {
-        return self::byToken($request->cookie(self::cookieName()));
+        return self::hidden() ? null : self::byToken($request->cookie(self::cookieName()));
     }
 
     public static function byToken(mixed $token): ?Customer
@@ -315,7 +323,7 @@ final class GuestAccount
      */
     public static function orderCard(Order $order, Request $request): ?array
     {
-        if (! in_array($order->type, ['takeaway', 'delivery'], true) || ! $order->customer_id) {
+        if (self::hidden() || ! in_array($order->type, ['takeaway', 'delivery'], true) || ! $order->customer_id) {
             return null;
         }
         $customer = Customer::query()->find($order->customer_id);

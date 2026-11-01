@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MenuItem;
 use App\Services\Audit;
 use App\Services\BrandAssets;
+use App\Services\Customers\GuestAccount;
 use App\Services\Entitlements;
 use App\Services\ImageService;
 use App\Services\Import\Ai\AiException;
@@ -223,6 +224,7 @@ class SettingsController extends Controller
         // the guest sends the placed order on WhatsApp (sent with the ordering section): not sent = keep it
         if ($request->boolean('whatsapp_handoff_sent')) {
             $values[WhatsAppOrderLink::SETTING] = $request->boolean(WhatsAppOrderLink::SETTING) ? '1' : '0';
+            $values[GuestAccount::HIDDEN_SETTING] = $request->boolean(GuestAccount::HIDDEN_SETTING) ? '1' : '0';
         }
         // how orders move with the screens in use: not sent (another tab) = keep what is saved
         if ($request->has('order_flow')) {

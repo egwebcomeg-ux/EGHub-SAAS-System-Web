@@ -122,7 +122,7 @@ class MenuController extends Controller
         $popup = $announcements->filter(fn (Banner $b) => $b->is_popup)->sortByDesc('id')->first();
         $popupLink = $popup ? self::bannerLink($popup, $available, $shownCategories) : null;
 
-        $loyalty = app(LoyaltyService::class)->program();
+        $loyalty = GuestAccount::hidden() ? null : app(LoyaltyService::class)->program();
         $profile = new RestaurantProfile;
         // prepaid balance of the guest whose card this phone remembers (cookie set by their card link)
         // the same guest is "حسابي" in the header, and their name and mobile fill the cart
@@ -176,9 +176,9 @@ class MenuController extends Controller
             'cardToken' => $loyalty ? $accountGuest?->card_token : null,
             // "حسابي" in the header: the remembered guest's page, else the sheet with the ways in (no table scanned)
             'accountUrl' => $accountGuest ? GuestAccount::url($accountGuest) : null,
-            'accountEntry' => $accountGuest !== null || ($table === null && $online !== null),
+            'accountEntry' => $accountGuest !== null || (! GuestAccount::hidden() && $table === null && $online !== null),
             // «سجّل وخد …» on the first online order (the same for every visitor without a remembered guest)
-            'welcomeReward' => $online !== null && WelcomeReward::enabled() ? WelcomeReward::label() : null,
+            'welcomeReward' => $online !== null && ! GuestAccount::hidden() && WelcomeReward::enabled() ? WelcomeReward::label() : null,
             'feedback' => Entitlements::current()->allows('feedback'),
             'settings' => $settings,
             'categories' => $categories,

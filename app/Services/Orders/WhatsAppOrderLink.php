@@ -5,6 +5,7 @@ namespace App\Services\Orders;
 use App\Models\Branch;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Services\Customers\GuestAccount;
 use App\Services\Settings;
 
 /**
@@ -28,7 +29,7 @@ final class WhatsAppOrderLink
 
     public static function enabled(): bool
     {
-        return Settings::get(self::SETTING) === '1';
+        return Settings::get(self::SETTING) === '1' || GuestAccount::hidden();
     }
 
     /**
