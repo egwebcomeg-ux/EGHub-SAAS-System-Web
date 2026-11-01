@@ -6,6 +6,7 @@ use App\Billing\Billing;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\PlatformAuditLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -34,16 +35,23 @@ class InvoicesController extends Controller
             'reference' => 'nullable|string|max:80',
             'amount' => 'required|numeric|min:0',
         ]);
+        if (abs((float) $data['amount'] - (float) $invoice->total) > 0.01) {
+            return back()->withErrors(['amount' => __('The amount must equal the invoice total, :amount EGP.', ['amount' => money($invoice->total)])]);
+        }
         $applied = $billing->markPaid($invoice, $data['gateway'], $data['reference'] ?? null, (float) $data['amount'],
             'admin:'.$invoice->id, $request->user('admin')->id);
+        if ($applied) {
+            PlatformAuditLog::record($request->user('admin'), 'invoice.marked_paid', (string) $invoice->tenant_id, ['invoice' => $invoice->id, 'amount' => (float) $data['amount'], 'gateway' => $data['gateway'], 'reference' => $data['reference'] ?? null]);
+        }
 
         return back()->with('ok', $applied ? __('Payment confirmed and plan activated.') : __('This invoice was already settled.'));
     }
 
-    public function void(Invoice $invoice): RedirectResponse
+    public function void(Request $request, Invoice $invoice): RedirectResponse
     {
         if ($invoice->status === 'open') {
             $invoice->update(['status' => 'void']);
+            PlatformAuditLog::record($request->user('admin'), 'invoice.voided', (string) $invoice->tenant_id, ['invoice' => $invoice->id, 'total' => (float) $invoice->total]);
         }
 
         return back()->with('ok', __('Invoice voided.'));

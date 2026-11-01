@@ -88,6 +88,7 @@ class CustomersController extends Controller
         $segment = Segments::fromRequest($request->query('segment'));
         // the segment rules (VIP threshold, recent orders) are resolved now, while the tenant scope is still active
         $ids = $this->search(trim((string) $request->query('q', '')), $segment)->pluck('id');
+        Audit::record('customers.exported', (string) $segment, ['rows' => $ids->count()]);
         $rows = Customer::query()->withoutGlobalScopes()->where('tenant_id', tenant()->getTenantKey())->whereIn('id', $ids)->orderBy('id');
         $segments = app(Segments::class);
         $segments->vipThreshold();

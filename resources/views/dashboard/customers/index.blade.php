@@ -6,7 +6,7 @@
     <x-slot:actions>
         @can('customers.import')<a href="{{ route('dash.customers.import') }}" class="btn-ghost" data-customers-import>⬆ {{ __('Import customers') }}</a>@endcan
         @can('marketing.manage')<a href="{{ route('dash.campaigns', array_filter(['segment' => $segment])) }}" class="btn-ghost" data-campaigns-link>💬 {{ __('Campaigns') }}</a>@endcan
-        <a href="{{ route('dash.customers.export', array_filter(['q' => $q, 'segment' => $segment])) }}" class="btn-ghost">⬇ {{ __('Export to Excel (CSV)') }}</a>
+        @can('customers.import')<a href="{{ route('dash.customers.export', array_filter(['q' => $q, 'segment' => $segment])) }}" class="btn-ghost" data-customers-export>⬇ {{ __('Export to Excel (CSV)') }}</a>@endcan
     </x-slot:actions>
 </x-dash.page-header>
 

@@ -51,7 +51,7 @@ class ArchivedPlansTest extends TenantTestCase
 
         // the admin's plan change and a new restaurant on it are refused
         $this->actingAs($admin, 'admin')->post($this->adminUrl('/tenants/cafe-a/subscription'), [
-            'plan_id' => $business->id, 'status' => 'active', 'cycle_months' => 1,
+            'plan_id' => $business->id, 'status' => 'active', 'cycle_months' => 1, 'current_period_end' => now()->addMonth()->toDateString(),
         ])->assertSessionHasErrors('plan_id');
         $this->assertSame($this->plan('full')->id, $tenant->subscription()->value('plan_id'));
         $this->expectException(ValidationException::class);

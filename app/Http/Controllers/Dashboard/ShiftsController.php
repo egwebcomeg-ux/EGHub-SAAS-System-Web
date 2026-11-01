@@ -22,10 +22,10 @@ class ShiftsController extends Controller
     public function index(Request $request, ShiftService $shifts): View
     {
         $current = $shifts->current($request->user());
-        // managers see every closed shift (or one terminal's, ?terminal=); a cashier sees their own
+        // managers see every closed shift of their branch, all branches when tied to none (or one terminal's, ?terminal=); a cashier sees their own
         $terminal = $request->user()->can('reports.view') && $request->filled('terminal') ? (int) $request->query('terminal') : null;
         $history = $request->user()->can('reports.view')
-            ? Shift::query()->with(['user', 'branch', 'terminal'])->whereNotNull('closed_at')->when($terminal, fn ($q) => $q->where('terminal_id', $terminal))->latest('id')->limit(30)->get()
+            ? Shift::query()->with(['user', 'branch', 'terminal'])->whereNotNull('closed_at')->when($request->user()->branch_id, fn ($q, $branch) => $q->where('branch_id', $branch))->when($terminal, fn ($q) => $q->where('terminal_id', $terminal))->latest('id')->limit(30)->get()
             : Shift::query()->with('terminal')->where('user_id', $request->user()->id)->whereNotNull('closed_at')->latest('id')->limit(10)->get();
 
         return view('dashboard.shifts', [

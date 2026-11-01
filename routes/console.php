@@ -5,6 +5,7 @@ use App\Models\CorporateBooking;
 use App\Models\Order;
 use App\Models\Tenant;
 use App\Models\TenantSetting;
+use App\Notifications\ScheduledTaskFailed;
 use App\Services\Corporate\CorporateBookings;
 use App\Services\Entitlements;
 use App\Services\Loyalty\LoyaltyService;
@@ -134,3 +135,8 @@ Artisan::command('egmenu:automations', function (Automations $automations) {
     $this->info('automation messages sent: '.$automations->runAll());
 })->purpose('Send the due welcome, winback and birthday WhatsApp messages of every restaurant');
 Schedule::command('egmenu:automations')->everyFifteenMinutes()->withoutOverlapping(10);
+
+// a scheduled command that fails emails the team (at most once in 6 hours per command); a dead cron cannot, System health shows that
+foreach (Schedule::events() as $event) {
+    $event->onFailure(fn () => ScheduledTaskFailed::alert((string) ($event->command ?? $event->description)));
+}

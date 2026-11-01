@@ -39,6 +39,7 @@ class AuditController extends Controller
         'stock.purchase_posted' => ['تسجيل فاتورة شراء في المخزن', 'Purchase posted'],
         'stock.purchase_cancelled' => ['إلغاء فاتورة شراء متسجّلة', 'Posted purchase cancelled'],
         'customers.imported' => ['استيراد عملاء', 'Customers imported'],
+        'customers.exported' => ['تصدير قايمة العملاء', 'Customer list exported'],
         'customer.account_link_rotated' => ['رابط جديد لحساب عميل (القديم اتقفل)', 'New guest account link (old one closed)'],
         'account.sign_in' => ['دخول ضيوف على «حسابي» (عدد في الساعة)', 'Guest «My account» sign-ins (hourly counts)'],
         'support.access_by_platform' => ['دخول من فريق EgHub', 'EgHub team signed in'],

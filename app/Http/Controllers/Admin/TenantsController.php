@@ -309,6 +309,10 @@ class TenantsController extends Controller
             'current_period_end' => 'nullable|date',
             'trial_ends_at' => 'nullable|date',
         ]);
+        // an active paid plan with no end date would never be reminded, invoiced or moved to the free plan
+        if ($data['status'] === 'active' && empty($data['current_period_end']) && (float) Plan::query()->whereKey($data['plan_id'])->value('monthly_price') > 0) {
+            return back()->withInput()->withErrors(['current_period_end' => __('Write when this paid period ends.')]);
+        }
 
         $sub = SubscriptionChange::because('admin', fn () => Subscription::query()->updateOrCreate(['tenant_id' => $tenant->id], [
             'plan_id' => $data['plan_id'], 'status' => $data['status'], 'cycle_months' => $data['cycle_months'],
@@ -321,6 +325,10 @@ class TenantsController extends Controller
             app(Billing::class)->claimLaunchOfferBranch($tenant);
         }
         Entitlements::flush();
+        PlatformAuditLog::record($request->user('admin'), 'tenant.subscription_changed', $tenant->id, [
+            'plan' => Plan::query()->whereKey($data['plan_id'])->value('code'), 'status' => $data['status'], 'cycle_months' => (int) $data['cycle_months'],
+            'period_end' => $data['current_period_end'] ?? null, 'trial_ends' => $data['trial_ends_at'] ?? null,
+        ]);
 
         return back()->with('ok', __('Subscription updated.'));
     }
@@ -333,6 +341,7 @@ class TenantsController extends Controller
             $qty = (int) ($data['addons'][$addon->key] ?? 0);
             $billing->setAddon($tenant, $addon->key, $addon->isFeaturePack() ? min(1, $qty) : $qty);
         }
+        PlatformAuditLog::record($request->user('admin'), 'tenant.addons_changed', $tenant->id, ['addons' => array_filter(array_map('intval', $data['addons'] ?? []))]);
 
         return back()->with('ok', __('Add-ons saved.'));
     }
@@ -342,6 +351,7 @@ class TenantsController extends Controller
     {
         $data = $request->validate(['delta' => 'required|integer|between:-100000,100000|not_in:0', 'note' => 'nullable|string|max:60']);
         $credits->add($tenant, (int) $data['delta'], 'adjustment', trim('admin '.($data['note'] ?? '')));
+        PlatformAuditLog::record($request->user('admin'), 'tenant.credits_adjusted', $tenant->id, ['delta' => (int) $data['delta'], 'note' => $data['note'] ?? null]);
 
         return back()->with('ok', __('WhatsApp credits updated.'));
     }
@@ -376,16 +386,18 @@ class TenantsController extends Controller
         return back()->with('ok', __('Two-factor authentication reset for :name. They can sign in with their password and set it up again.', ['name' => $staff->name]));
     }
 
-    public function suspend(Tenant $tenant): RedirectResponse
+    public function suspend(Request $request, Tenant $tenant): RedirectResponse
     {
         $tenant->update(['status' => 'suspended', 'suspended_at' => now()]);
+        PlatformAuditLog::record($request->user('admin'), 'tenant.suspended', $tenant->id);
 
         return back()->with('ok', __('Restaurant suspended. Its menu is offline; the dashboard stays reachable.'));
     }
 
-    public function activate(Tenant $tenant): RedirectResponse
+    public function activate(Request $request, Tenant $tenant): RedirectResponse
     {
         $tenant->update(['status' => 'active', 'suspended_at' => null]);
+        PlatformAuditLog::record($request->user('admin'), 'tenant.activated', $tenant->id);
 
         return back()->with('ok', __('Restaurant activated.'));
     }

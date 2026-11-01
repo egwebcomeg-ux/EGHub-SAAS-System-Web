@@ -351,7 +351,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     // ---- Guests: customers, loyalty card, feedback ----
     Route::middleware(['feature:customers', 'permission:customers.view'])->group(function () {
         Route::get('/customers', [CustomersController::class, 'index'])->name('customers');
-        Route::get('/customers/export', [CustomersController::class, 'export'])->middleware('support.blocked')->name('customers.export');
+        Route::get('/customers/export', [CustomersController::class, 'export'])->middleware(['support.blocked', 'permission:customers.import'])->name('customers.export');
         // import a guest list (CSV / Excel): upload, review, save (owner and manager only: customers.import)
         Route::middleware('permission:customers.import')->group(function () {
             Route::get('/customers/import', [CustomerImportController::class, 'create'])->name('customers.import');

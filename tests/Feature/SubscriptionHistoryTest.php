@@ -57,7 +57,7 @@ class SubscriptionHistoryTest extends TenantTestCase
 
         $admin = $this->admin();
         $this->actingAs($admin, 'admin')->post($this->adminUrl('/tenants/cafe-a/subscription'), [
-            'plan_id' => $this->plan('pro')->id, 'status' => 'active', 'cycle_months' => 1,
+            'plan_id' => $this->plan('pro')->id, 'status' => 'active', 'cycle_months' => 1, 'current_period_end' => now()->addMonth()->toDateString(),
         ])->assertSessionHasNoErrors();
 
         $this->assertSame([
@@ -89,7 +89,7 @@ class SubscriptionHistoryTest extends TenantTestCase
         $this->pay($starts, 'pro');
         // set active on a paid plan by the admin, no invoice: paying in the history, invisible to the invoices
         $this->actingAs($this->admin(), 'admin')->post($this->adminUrl("/tenants/{$byHand->id}/subscription"), [
-            'plan_id' => $this->plan('pro')->id, 'status' => 'active', 'cycle_months' => 1,
+            'plan_id' => $this->plan('pro')->id, 'status' => 'active', 'cycle_months' => 1, 'current_period_end' => now()->addMonth()->toDateString(),
         ])->assertSessionHasNoErrors();
 
         $movement = app(AdminSubscriptionReport::class)->movement('2026-10');

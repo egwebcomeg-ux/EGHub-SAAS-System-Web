@@ -266,6 +266,7 @@
                 <div>
                     <label class="field-label">{{ __('Paid until') }}</label>
                     <input class="field" type="date" name="current_period_end" value="{{ $sub?->current_period_end ? local_today($sub->current_period_end) : '' }}">
+                    @error('current_period_end')<div class="field-error">{{ $message }}</div>@enderror
                 </div>
                 <div>
                     <label class="field-label">{{ __('Trial ends') }}</label>

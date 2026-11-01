@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Billing\OnlinePayments;
 use App\Http\Controllers\Controller;
+use App\Models\PlatformAuditLog;
 use App\Models\PlatformSetting;
 use App\Services\WhatsApp\PhoneVerification;
 use App\Support\SocialLinks;
@@ -19,6 +20,9 @@ use Illuminate\View\View;
  */
 class SettingsController extends Controller
 {
+    /** The new value of these goes in the activity log: where restaurants send their money and who they call. */
+    private const AUDITED_VALUES = ['pay_instapay_enabled', 'pay_instapay_handle', 'pay_vodafone_enabled', 'pay_vodafone_number', 'gateway_kashier_enabled', 'support_whatsapp', 'sales_whatsapp'];
+
     public const KEYS = [
         'pay_instapay_enabled', 'pay_instapay_handle', 'pay_vodafone_enabled', 'pay_vodafone_number', 'pay_instructions',
         'gateway_kashier_enabled', 'kashier_methods', 'kashier_installments_min', 'support_whatsapp', 'support_email',
@@ -92,13 +96,20 @@ class SettingsController extends Controller
             'pay_instapay_handle.required_if_accepted' => __('Write the InstaPay address restaurants pay to before switching InstaPay on.'),
             'pay_vodafone_number.required_if_accepted' => __('Write the Vodafone Cash number restaurants pay to before switching it on.'),
         ]);
+        $changed = [];
         foreach (self::KEYS as $key) {
             $value = match (true) {
                 str_ends_with($key, '_enabled') => $request->boolean($key) ? '1' : '0',
                 $key === 'kashier_methods' => implode(',', array_intersect(array_keys(OnlinePayments::METHODS), (array) $request->input($key, []))),
                 default => (string) $request->input($key, ''),
             };
+            if ((string) PlatformSetting::get($key, '') !== $value) {
+                $changed[$key] = in_array($key, self::AUDITED_VALUES, true) ? $value : true;
+            }
             PlatformSetting::put($key, $value);
+        }
+        if ($changed !== []) {
+            PlatformAuditLog::record($request->user('admin'), 'settings.updated', '', ['changed' => $changed]);
         }
 
         return back()->with('ok', __('Settings saved.'));
