@@ -76,6 +76,26 @@ class WhatsAppInboxController extends Controller
         return back();
     }
 
+    /**
+     * «ابدأ محادثة»: the welcome template to a new customer. Someone who wrote in the last 24 hours is simply opened,
+     * and a person already welcomed is not sent it twice in a day.
+     */
+    public function start(Request $request, PlatformInbox $inbox): RedirectResponse
+    {
+        $data = $request->validate(['phone' => ['required', 'string', 'regex:/^\+?[0-9 ()-]{8,20}$/'], 'name' => 'required|string|max:60']);
+        $phone = whatsapp_number($data['phone']);
+        $existing = PlatformConversation::query()->where('phone', $phone)->first();
+        if ($existing && ($existing->canReply() || $existing->messages()->where('direction', 'out')->where('status', '!=', 'failed')->where('created_at', '>', now()->subDay())->exists())) {
+            return redirect()->route('admin.inbox.show', $existing);
+        }
+        $row = $inbox->start($phone, $data['name'], $request->user('admin'));
+        if ($row->status === 'failed') {
+            return redirect()->route('admin.inbox.show', $row->platform_conversation_id)->withErrors(['body' => __('WhatsApp did not send it: :error', ['error' => $row->error])]);
+        }
+
+        return redirect()->route('admin.inbox.show', $row->platform_conversation_id);
+    }
+
     /** The switch of the automatic answer, for the whole number. */
     public function autoReply(Request $request): RedirectResponse
     {

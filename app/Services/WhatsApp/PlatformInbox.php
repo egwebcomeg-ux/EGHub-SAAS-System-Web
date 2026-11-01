@@ -16,6 +16,9 @@ use Illuminate\Support\Facades\DB;
  */
 final class PlatformInbox
 {
+    /** The text of the approved template egmenu_welcome, as the team reads it in the conversation. */
+    public const WELCOME_TEMPLATE = 'أهلًا {{1}}، معاك فريق EgHub للمنيو الإلكتروني والطلبات للمطاعم والكافيهات. لو حابب تعرف الأسعار أو تبدأ، رد على الرسالة دي وهنساعدك.';
+
     /** The label of what cannot be shown as text: media stays on the sender's and on Meta's side. */
     private const TYPE_LABELS = [
         'image' => 'صورة', 'audio' => 'رسالة صوتية', 'video' => 'فيديو', 'document' => 'ملف', 'sticker' => 'ملصق',
@@ -60,18 +63,47 @@ final class PlatformInbox
      */
     public function reply(PlatformConversation $conversation, ?PlatformAdmin $admin, string $text): PlatformConversationMessage
     {
+        $row = $this->deliver($conversation, $admin, $text, fn (MetaCloudDriver $driver) => $driver->reply($conversation->phone, $text));
+        if ($admin) {
+            $conversation->forceFill(['bot_paused_until' => now()->addHours(PlatformAutoReply::PAUSE_HOURS)])->save();
+        }
+
+        return $row;
+    }
+
+    /**
+     * The automatic welcome with its reply buttons.
+     *
+     * @param  array<string, string>  $buttons  id => title
+     */
+    public function replyWithButtons(PlatformConversation $conversation, string $text, array $buttons): PlatformConversationMessage
+    {
+        return $this->deliver($conversation, null, $text, fn (MetaCloudDriver $driver) => $driver->replyWithButtons($conversation->phone, $text, $buttons));
+    }
+
+    /**
+     * The team writes first to a new customer: only an approved template may open a conversation. The person's answer
+     * opens the 24-hour window, and the automatic answer takes it from there.
+     */
+    public function start(string $phone, string $name, PlatformAdmin $admin): PlatformConversationMessage
+    {
+        $conversation = PlatformConversation::query()->firstOrCreate(['phone' => $phone], ['name' => $name]);
+        $text = str_replace('{{1}}', $name, self::WELCOME_TEMPLATE);
+
+        return $this->deliver($conversation, $admin, $text, fn (MetaCloudDriver $driver) => $driver->send($phone, 'welcome', [$name]));
+    }
+
+    /** @param  \Closure(MetaCloudDriver): string  $send */
+    private function deliver(PlatformConversation $conversation, ?PlatformAdmin $admin, string $text, \Closure $send): PlatformConversationMessage
+    {
         $row = $conversation->messages()->create(['direction' => 'out', 'body' => $text, 'status' => 'sending', 'admin_id' => $admin?->id]);
         try {
-            $id = (new MetaCloudDriver)->reply($conversation->phone, $text);
+            $id = $send(new MetaCloudDriver);
             $row->update(['status' => 'sent', 'provider_id' => mb_substr($id, 0, 120)]);
         } catch (WhatsAppException $e) {
             $row->update(['status' => 'failed', 'error' => mb_substr($e->getMessage(), 0, 255)]);
         }
-        $conversation->forceFill(['last_message_at' => now()]);
-        if ($admin) {
-            $conversation->bot_paused_until = now()->addHours(PlatformAutoReply::PAUSE_HOURS);
-        }
-        $conversation->save();
+        $conversation->forceFill(['last_message_at' => now()])->save();
 
         return $row;
     }
@@ -99,9 +131,10 @@ final class PlatformInbox
         $text = match ($type) {
             'text' => (string) ($message['text']['body'] ?? ''),
             'image', 'video', 'document' => (string) ($message[$type]['caption'] ?? ''),
+            'interactive' => (string) ($message['interactive']['button_reply']['title'] ?? ''),
             default => '',
         };
-        $label = self::TYPE_LABELS[$type] ?? ($type === 'text' ? '' : $type);
+        $label = self::TYPE_LABELS[$type] ?? (in_array($type, ['text', 'interactive'], true) ? '' : $type);
 
         return trim(($label !== '' ? "[{$label}] " : '').$text);
     }

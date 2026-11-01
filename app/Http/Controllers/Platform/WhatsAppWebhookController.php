@@ -113,6 +113,10 @@ class WhatsAppWebhookController extends Controller
                     }
                     // a tap on a template's quick-reply button (type button) or on an interactive reply button
                     $payload = $message['button']['payload'] ?? $message['interactive']['button_reply']['id'] ?? null;
+                    // a tap on the automatic welcome's buttons is a question, kept and answered like one
+                    if (is_string($payload) && str_starts_with($payload, PlatformAutoReply::BUTTON_PREFIX)) {
+                        $payload = null;
+                    }
                     // anything else written to the EgHub number is for the team («محادثات واتساب»)
                     if (! $connection && $verification && ! $isCode && $payload === null && $phoneId !== '' && $phoneId === (string) config('whatsapp.meta.phone_id')) {
                         $kept = app(PlatformInbox::class)->receive((array) $message, (array) ($value['contacts'] ?? []));

@@ -69,6 +69,8 @@ return [
         // the guest's sign-in code (category Authentication, a copy-code button), from a restaurant's OWN number when
         // it has one (Meta bills its account), else from the EgHub number with platform_sign_in_code on (Meta bills EgHub)
         'sign_in_code' => env('WHATSAPP_TPL_SIGN_IN_CODE', 'egmenu_sign_in_code'),
+        // the first message the team sends a new customer from «محادثات واتساب», {{1}} their name
+        'welcome' => env('WHATSAPP_TPL_WELCOME', 'egmenu_welcome'),
     ],
 
     // what one authentication message is estimated to cost the restaurant on Meta (shown on the customers page)

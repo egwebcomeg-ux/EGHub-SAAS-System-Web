@@ -20,6 +20,20 @@
     </form>
 </section>
 
+<section class="card mb-4" data-inbox-start>
+    <h2 class="section-title">{{ __('Start a conversation') }}</h2>
+    <p class="muted text-sm">{{ __('Sends the approved welcome to a new customer who agreed to hear from you. When they answer, the automatic answer takes over.') }}</p>
+    <form method="post" action="{{ route('admin.inbox.start') }}" class="mt-2 grid gap-2 sm:grid-cols-3">
+        @csrf
+        <label class="sr-only" for="start-name">{{ __('Name') }}</label>
+        <input id="start-name" name="name" required maxlength="60" value="{{ old('name', request('name')) }}" class="field min-h-10" placeholder="{{ __('Name') }}">
+        <label class="sr-only" for="start-phone">{{ __('Mobile') }}</label>
+        <input id="start-phone" name="phone" required maxlength="20" dir="ltr" value="{{ old('phone', request('phone')) }}" class="field min-h-10" placeholder="{{ __('Mobile') }}">
+        <button class="btn-navy min-h-10">{{ __('Start a conversation') }}</button>
+    </form>
+    @error('phone')<p class="mt-2 text-sm font-semibold text-red-700" role="alert">{{ $message }}</p>@enderror
+</section>
+
 <div class="grid gap-4 lg:grid-cols-3">
     <section @class(['card space-y-3', 'hidden lg:block' => $conversation]) data-inbox-list>
         <nav class="flex gap-1 overflow-x-auto" aria-label="{{ __('Status') }}">
@@ -143,6 +157,7 @@
 
 <section class="card mt-4 max-w-3xl space-y-3" data-inbox-canned>
     <h2 class="section-title">{{ __('Ready answers') }}</h2>
+    <p class="muted text-sm">{{ __('The automatic answer uses these too, on top of what the site says. Write here what it should know.') }}</p>
     <ul class="divide-y divide-navy-100">
         @foreach ($canned as $c)
             <li class="flex items-start justify-between gap-3 py-2 text-sm">

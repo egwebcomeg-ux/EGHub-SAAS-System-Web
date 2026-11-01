@@ -73,6 +73,24 @@ final class MetaCloudDriver implements InteractiveGateway
         ]);
     }
 
+    /**
+     * A text with up to three reply buttons (only inside the 24-hour window).
+     *
+     * @param  array<string, string>  $buttons  id => title (20 characters at most)
+     */
+    public function replyWithButtons(string $to, string $text, array $buttons): string
+    {
+        $rows = [];
+        foreach ($buttons as $id => $title) {
+            $rows[] = ['type' => 'reply', 'reply' => ['id' => $id, 'title' => $title]];
+        }
+
+        return $this->post([
+            'messaging_product' => 'whatsapp', 'recipient_type' => 'individual', 'to' => $to, 'type' => 'interactive',
+            'interactive' => ['type' => 'button', 'body' => ['text' => mb_substr($text, 0, 1024)], 'action' => ['buttons' => $rows]],
+        ]);
+    }
+
     /** @param  array<string,mixed>  $payload */
     private function post(array $payload): string
     {

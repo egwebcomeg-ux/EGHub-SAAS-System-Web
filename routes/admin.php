@@ -92,6 +92,7 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
     // «محادثات واتساب»: the EgHub number's messages and the team's answers
     Route::middleware('admin.access:inbox.manage')->group(function () {
         Route::get('/inbox', [WhatsAppInboxController::class, 'index'])->name('inbox');
+        Route::post('/inbox/start', [WhatsAppInboxController::class, 'start'])->middleware('throttle:30,1')->name('inbox.start');
         Route::post('/inbox/auto-reply', [WhatsAppInboxController::class, 'autoReply'])->name('inbox.auto-reply');
         Route::post('/inbox/canned', [WhatsAppInboxController::class, 'storeCanned'])->name('inbox.canned');
         Route::post('/inbox/canned/{reply}/delete', [WhatsAppInboxController::class, 'destroyCanned'])->whereNumber('reply')->name('inbox.canned.delete');

@@ -45,6 +45,9 @@
                     <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $waIcon }}"/></svg>
                     {{ __('WhatsApp') }}
                 </a>
+                @if (auth('admin')->user()?->allows('inbox.manage'))
+                    <a href="{{ route('admin.inbox', ['phone' => $phone, 'name' => $owner?->name]) }}" class="btn flex-1 border border-navy-100 bg-white text-navy-800 hover:bg-navy-50 sm:flex-none" data-start-conversation>{{ __('Start a conversation') }}</a>
+                @endif
             @endif
         </div>
     </div>
