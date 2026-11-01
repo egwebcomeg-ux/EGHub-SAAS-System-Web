@@ -31,6 +31,7 @@ use App\Http\Controllers\Admin\TenantUsersController;
 use App\Http\Controllers\Admin\TestimonialsController;
 use App\Http\Controllers\Admin\TwoFactorController;
 use App\Http\Controllers\Admin\VisitsController;
+use App\Http\Controllers\Admin\WhatsAppInboxController;
 use Illuminate\Support\Facades\Route;
 
 // admin.<domain> — EgWeb super admin. Guard "admin" = platform_admins table, never restaurant staff.
@@ -88,6 +89,17 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
     // "open the restaurant's dashboard" as its owner (or a picked staff account): a one-time ticket, then app.<domain>
     Route::post('/tenants/{tenant}/support-access', [SupportAccessController::class, 'store'])
         ->middleware(['admin.access:tenants.impersonate', 'throttle:10,1'])->name('tenants.support-access');
+    // «محادثات واتساب»: the EgHub number's messages and the team's answers
+    Route::middleware('admin.access:inbox.manage')->group(function () {
+        Route::get('/inbox', [WhatsAppInboxController::class, 'index'])->name('inbox');
+        Route::post('/inbox/canned', [WhatsAppInboxController::class, 'storeCanned'])->name('inbox.canned');
+        Route::post('/inbox/canned/{reply}/delete', [WhatsAppInboxController::class, 'destroyCanned'])->whereNumber('reply')->name('inbox.canned.delete');
+        Route::get('/inbox/{conversation}', [WhatsAppInboxController::class, 'show'])->whereNumber('conversation')->name('inbox.show');
+        Route::post('/inbox/{conversation}/reply', [WhatsAppInboxController::class, 'reply'])->whereNumber('conversation')->middleware('throttle:60,1')->name('inbox.reply');
+        Route::post('/inbox/{conversation}/note', [WhatsAppInboxController::class, 'note'])->whereNumber('conversation')->name('inbox.note');
+        Route::post('/inbox/{conversation}/assign', [WhatsAppInboxController::class, 'assign'])->whereNumber('conversation')->name('inbox.assign');
+        Route::post('/inbox/{conversation}/status', [WhatsAppInboxController::class, 'status'])->whereNumber('conversation')->name('inbox.status');
+    });
     Route::middleware('admin.access:billing.manage')->group(function () {
         Route::post('/tenants/{tenant}/subscription', [TenantsController::class, 'subscription'])->name('tenants.subscription');
         Route::post('/tenants/{tenant}/addons', [TenantsController::class, 'addons'])->name('tenants.addons');

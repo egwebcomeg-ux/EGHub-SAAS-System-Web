@@ -8,6 +8,7 @@ use App\Models\WhatsAppMessage;
 use App\Services\Customers\SignIn\WhatsAppSignIn;
 use App\Services\Orders\OrderConfirmation;
 use App\Services\WhatsApp\PhoneVerification;
+use App\Services\WhatsApp\PlatformInbox;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -18,7 +19,8 @@ use Illuminate\Support\Facades\Log;
  * Inbound WhatsApp on the main domain. Three callers:
  *  - Meta Cloud API for the EgHub number (/webhooks/whatsapp): GET for the one-time subscription handshake, POST
  *    with every payload signed by EgHub's app secret (X-Hub-Signature-256). Texts feed the owner's phone
- *    confirmation and a guest's «ادخل بواتساب» code (App\Services\Customers\SignIn\WhatsAppSignIn);
+ *    confirmation and a guest's «ادخل بواتساب» code (App\Services\Customers\SignIn\WhatsAppSignIn),
+ *    any other message goes to the team (App\Services\WhatsApp\PlatformInbox);
  *    button taps answer an order confirmation (App\Services\Orders\OrderConfirmation); message statuses update
  *    whatsapp_messages. A change whose metadata.phone_number_id is a restaurant's connected number (our own app
  *    subscribed to its WABA, as Embedded Signup will do) is handled for that restaurant only.
@@ -101,12 +103,18 @@ class WhatsAppWebhookController extends Controller
                 }
                 foreach ((array) ($value['messages'] ?? []) as $message) {
                     // the owner's phone confirmation and a guest's «ادخل بواتساب» code are messages to the EgHub number only
+                    $isCode = false;
                     if (! $connection && $verification && ($message['type'] ?? '') === 'text' && isset($message['from'], $message['text']['body'])) {
-                        $verification->confirm((string) $message['from'], (string) $message['text']['body']);
-                        app(WhatsAppSignIn::class)->confirm((string) $message['from'], (string) $message['text']['body']);
+                        $owner = $verification->confirm((string) $message['from'], (string) $message['text']['body']);
+                        $guest = app(WhatsAppSignIn::class)->confirm((string) $message['from'], (string) $message['text']['body']);
+                        $isCode = $owner !== null || $guest !== null;
                     }
                     // a tap on a template's quick-reply button (type button) or on an interactive reply button
                     $payload = $message['button']['payload'] ?? $message['interactive']['button_reply']['id'] ?? null;
+                    // anything else written to the EgHub number is for the team («محادثات واتساب»)
+                    if (! $connection && $verification && ! $isCode && $payload === null && $phoneId !== '' && $phoneId === (string) config('whatsapp.meta.phone_id')) {
+                        app(PlatformInbox::class)->receive((array) $message, (array) ($value['contacts'] ?? []));
+                    }
                     // (Meta resends a payload it thinks was not received: the same wamid is answered once)
                     if (isset($message['from']) && is_string($payload) && $payload !== ''
                         && Cache::add('whatsapp:tap:'.($message['id'] ?? sha1($payload.$message['from'])), 1, now()->addDay())) {
@@ -183,6 +191,9 @@ class WhatsAppWebhookController extends Controller
         $id = (string) ($status['id'] ?? '');
         $state = strtolower((string) ($status['status'] ?? ''));
         if ($id === '' || ! in_array($state, ['sent', 'delivered', 'read', 'failed'], true)) {
+            return;
+        }
+        if (! $connection && app(PlatformInbox::class)->recordStatus($id, $state, $status['errors'][0]['title'] ?? $status['errors'][0]['message'] ?? null)) {
             return;
         }
         $message = WhatsAppMessage::query()->withoutGlobalScopes()->where('provider_id', $id)

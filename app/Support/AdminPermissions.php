@@ -19,6 +19,7 @@ final class AdminPermissions
         'services.manage' => ['طلبات الخدمات', 'Service requests'],
         'content.manage' => ['المدونة وآراء العملاء', 'Blog & testimonials'],
         'assistant.view' => ['أسئلة الزوار للمساعد', 'Assistant questions'],
+        'inbox.manage' => ['محادثات واتساب: قراءة رسايل رقم EgHub والرد عليها', 'WhatsApp conversations: read and answer the EgHub number'],
         'settings.manage' => ['إعدادات الدفع والهوية والشكل', 'Payment settings & branding'],
         'admins.manage' => ['فريق الإدارة والصلاحيات', 'Admin team & permissions'],
         'crm.view' => ['متابعة العملاء: عرض العملاء الجداد والمكالمات', 'Customer follow-up: see leads and calls'],
@@ -41,17 +42,17 @@ final class AdminPermissions
         ],
         'manager' => [
             'label' => ['مدير', 'Manager'],
-            'permissions' => ['tenants.view', 'tenants.manage', 'billing.manage', 'plans.manage', 'services.manage', 'content.manage', 'assistant.view', 'crm.view', 'crm.manage', 'crm.discount', 'crm.import', 'crm.team'],
+            'permissions' => ['tenants.view', 'tenants.manage', 'billing.manage', 'plans.manage', 'services.manage', 'content.manage', 'assistant.view', 'inbox.manage', 'crm.view', 'crm.manage', 'crm.discount', 'crm.import', 'crm.team'],
             'hint' => ['كل الشغل اليومي من غير إعدادات المنصة وفريق الإدارة', 'Day-to-day work, without platform settings and the team'],
         ],
         'support' => [
             'label' => ['دعم فني', 'Support'],
-            'permissions' => ['tenants.view', 'tenants.manage', 'services.manage', 'assistant.view', 'crm.view', 'crm.manage'],
+            'permissions' => ['tenants.view', 'tenants.manage', 'services.manage', 'assistant.view', 'inbox.manage', 'crm.view', 'crm.manage'],
             'hint' => ['يساعد المطاعم: كلمات السر، التحقق، طلبات الخدمات', 'Helps restaurants: passwords, verification, service requests'],
         ],
         'sales' => [
             'label' => ['مبيعات', 'Sales'],
-            'permissions' => ['tenants.view', 'crm.view', 'crm.manage', 'crm.discount', 'crm.import'],
+            'permissions' => ['tenants.view', 'inbox.manage', 'crm.view', 'crm.manage', 'crm.discount', 'crm.import'],
             'hint' => ['يكلم العملاء الجداد والأماكن اللي على الخريطة، ويحجز زيارات للمندوب، ويدي خصم في حدود نسبته', 'Calls new sign-ups and mapped places, books visits for the field rep, gives discounts within their limit'],
         ],
         'field_sales' => [
