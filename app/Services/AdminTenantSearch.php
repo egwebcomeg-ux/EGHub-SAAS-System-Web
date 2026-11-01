@@ -93,7 +93,7 @@ final class AdminTenantSearch
             $paid = fn ($s) => $s->where('status', 'active')->whereHas('plan', fn ($p) => $p->where('code', '!=', Entitlements::FALLBACK_PLAN));
             $f['paid'] === 'paid' ? $query->whereHas('subscription', $paid) : $query->whereDoesntHave('subscription', $paid);
         }
-        if ($f['quiet'] !== '') {
+        if (($f['quiet'] ?? '') !== '') {
             $query->whereHas('subscription', fn ($s) => $s->where('status', 'active')->whereHas('plan', fn ($p) => $p->where('code', '!=', Entitlements::FALLBACK_PLAN)))
                 ->whereNotExists(fn (QueryBuilder $o) => $o->from('orders')->whereColumn('orders.tenant_id', 'tenants.id')->where('orders.created_at', '>=', now()->subDays((int) $f['quiet'])));
         }
