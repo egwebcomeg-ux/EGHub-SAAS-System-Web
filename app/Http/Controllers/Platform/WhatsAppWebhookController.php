@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Platform;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendPlatformAutoReply;
 use App\Models\WhatsAppConnection;
 use App\Models\WhatsAppMessage;
 use App\Services\Customers\SignIn\WhatsAppSignIn;
 use App\Services\Orders\OrderConfirmation;
 use App\Services\WhatsApp\PhoneVerification;
+use App\Services\WhatsApp\PlatformAutoReply;
 use App\Services\WhatsApp\PlatformInbox;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -113,7 +115,10 @@ class WhatsAppWebhookController extends Controller
                     $payload = $message['button']['payload'] ?? $message['interactive']['button_reply']['id'] ?? null;
                     // anything else written to the EgHub number is for the team («محادثات واتساب»)
                     if (! $connection && $verification && ! $isCode && $payload === null && $phoneId !== '' && $phoneId === (string) config('whatsapp.meta.phone_id')) {
-                        app(PlatformInbox::class)->receive((array) $message, (array) ($value['contacts'] ?? []));
+                        $kept = app(PlatformInbox::class)->receive((array) $message, (array) ($value['contacts'] ?? []));
+                        if ($kept && app(PlatformAutoReply::class)->shouldAnswer($kept->conversation)) {
+                            SendPlatformAutoReply::dispatch($kept->id);
+                        }
                     }
                     // (Meta resends a payload it thinks was not received: the same wamid is answered once)
                     if (isset($message['from']) && is_string($payload) && $payload !== ''

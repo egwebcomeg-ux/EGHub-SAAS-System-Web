@@ -7,6 +7,19 @@
     <p class="muted">{{ __('What people write to the EgHub number, and your answers from it. Sign-in codes do not show here.') }}</p>
 </div>
 
+<section class="card mb-4 flex flex-wrap items-center justify-between gap-3" data-inbox-auto-reply>
+    <div class="min-w-0">
+        <h2 class="section-title">{{ __('Automatic answer') }}: {{ $autoReplyOn ? __('On') : __('Off') }}</h2>
+        <p class="muted text-sm">{{ __('Answers prices and services from the live plans. It goes quiet when someone asks for the team or a person from the team answers.') }}</p>
+        @if (! $assistantReady)<p class="mt-1 text-sm font-semibold text-red-700">{{ __('The assistant has no API key, so nothing is answered.') }}</p>@endif
+    </div>
+    <form method="post" action="{{ route('admin.inbox.auto-reply') }}">
+        @csrf
+        <input type="hidden" name="enabled" value="{{ $autoReplyOn ? 0 : 1 }}">
+        <button @class(['min-h-10 px-4', 'btn-ghost' => $autoReplyOn, 'btn-navy' => ! $autoReplyOn])>{{ $autoReplyOn ? __('Turn it off') : __('Turn it on') }}</button>
+    </form>
+</section>
+
 <div class="grid gap-4 lg:grid-cols-3">
     <section @class(['card space-y-3', 'hidden lg:block' => $conversation]) data-inbox-list>
         <nav class="flex gap-1 overflow-x-auto" aria-label="{{ __('Status') }}">
@@ -60,6 +73,12 @@
                             @endforeach
                         </select>
                     </form>
+                    @if ($conversation->botPaused() || $conversation->assigned_to)
+                        <form method="post" action="{{ route('admin.inbox.resume-bot', $conversation) }}" data-inbox-resume-bot>
+                            @csrf
+                            <button class="btn-ghost min-h-9 px-3">{{ __('Give it back to the automatic answer') }}</button>
+                        </form>
+                    @endif
                     <form method="post" action="{{ route('admin.inbox.status', $conversation) }}">
                         @csrf
                         <input type="hidden" name="status" value="{{ $conversation->status === 'open' ? 'closed' : 'open' }}">
@@ -79,7 +98,7 @@
                             @if ($m->direction === 'note')<div class="text-xs font-bold">{{ __('Note for the team') }}</div>@endif
                             <div class="whitespace-pre-line break-words" dir="auto">{{ $m->body }}</div>
                             <div class="mt-1 text-[11px] opacity-70">
-                                {{ local_time($m->created_at, 'Y/m/d H:i') }}@if ($m->admin) · {{ $m->admin->name }}@endif
+                                {{ local_time($m->created_at, 'Y/m/d H:i') }}@if ($m->admin) · {{ $m->admin->name }}@elseif ($m->direction === 'out') · {{ __('Automatic answer') }}@endif
                                 @if ($m->direction === 'out') · {{ ['sending' => __('Sending'), 'sent' => __('Sent'), 'delivered' => __('Delivered'), 'read' => __('Read'), 'failed' => __('Not sent')][$m->status] ?? $m->status }}@endif
                             </div>
                             @if ($m->error)<div class="mt-1 text-xs font-semibold">{{ $m->error }}</div>@endif

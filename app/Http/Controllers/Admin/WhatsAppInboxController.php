@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\PlatformAdmin;
 use App\Models\PlatformCannedReply;
 use App\Models\PlatformConversation;
+use App\Models\PlatformSetting;
+use App\Services\Assistant;
+use App\Services\WhatsApp\PlatformAutoReply;
 use App\Services\WhatsApp\PlatformInbox;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -73,6 +76,22 @@ class WhatsAppInboxController extends Controller
         return back();
     }
 
+    /** The switch of the automatic answer, for the whole number. */
+    public function autoReply(Request $request): RedirectResponse
+    {
+        PlatformSetting::put(PlatformAutoReply::SETTING, $request->boolean('enabled') ? '1' : '0');
+
+        return back();
+    }
+
+    /** The team is done here: the automatic answer may speak in this conversation again. */
+    public function resumeBot(PlatformConversation $conversation): RedirectResponse
+    {
+        $conversation->update(['bot_paused_until' => null, 'assigned_to' => null]);
+
+        return back();
+    }
+
     public function storeCanned(Request $request): RedirectResponse
     {
         $data = $request->validate(['title' => 'required|string|max:80', 'body' => 'required|string|max:1000']);
@@ -105,6 +124,8 @@ class WhatsAppInboxController extends Controller
             'team' => $this->team(),
             'canned' => PlatformCannedReply::query()->orderBy('title')->get(),
             'filter' => $filter,
+            'autoReplyOn' => PlatformSetting::get(PlatformAutoReply::SETTING) === '1',
+            'assistantReady' => Assistant::enabled(),
             'search' => $search,
         ]);
     }

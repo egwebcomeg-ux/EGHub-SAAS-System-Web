@@ -53,13 +53,14 @@ final class Assistant
 
     /**
      * @param  array<int,array{role:string,content:string}>  $messages  the conversation so far, ending with the visitor's question
+     * @param  string  $channelRules  extra rules where the answer is not read on the website (WhatsApp)
      * @return array{text:string,handoff:bool,in:int,out:int}
      *
      * @throws \RuntimeException when the model cannot be reached or answers nothing
      */
-    public static function reply(array $messages, string $lang): array
+    public static function reply(array $messages, string $lang, string $channelRules = ''): array
     {
-        [$text, $truncated, $in, $out] = self::provider() === 'gemini' ? self::gemini($messages, $lang) : self::anthropic($messages, $lang);
+        [$text, $truncated, $in, $out] = self::provider() === 'gemini' ? self::gemini($messages, $lang, $channelRules) : self::anthropic($messages, $lang, $channelRules);
         if ($truncated) {
             // cut off mid-sentence: keep the answer up to its last full line or sentence
             $cut = max((int) mb_strrpos($text, "\n"), (int) mb_strrpos($text, '.'), (int) mb_strrpos($text, '؟'), (int) mb_strrpos($text, '!'));
@@ -76,7 +77,7 @@ final class Assistant
     }
 
     /** @return array{0:string,1:bool,2:int,3:int} text, cut off by max_tokens, tokens in, tokens out */
-    private static function anthropic(array $messages, string $lang): array
+    private static function anthropic(array $messages, string $lang, string $channelRules): array
     {
         $res = Http::withHeaders([
             'x-api-key' => (string) config('assistant.key'),
@@ -89,7 +90,7 @@ final class Assistant
                 // the long, slowly changing part: cached by the API between visitors
                 ['type' => 'text', 'text' => self::knowledge($lang), 'cache_control' => ['type' => 'ephemeral']],
                 // the rules again after the long reference, where the model weighs them most
-                ['type' => 'text', 'text' => self::reminder()],
+                ['type' => 'text', 'text' => trim(self::reminder()."\n\n".$channelRules)],
             ],
             'messages' => $messages,
         ]);
@@ -114,10 +115,10 @@ final class Assistant
      * a 5xx is retried once after a short pause, then tried on the fallback model; the visitor only sees an error
      * when both models are down. @return array{0:string,1:bool,2:int,3:int}
      */
-    private static function gemini(array $messages, string $lang): array
+    private static function gemini(array $messages, string $lang, string $channelRules): array
     {
         $payload = [
-            'system_instruction' => ['parts' => [['text' => self::instructions($lang)."\n\n".self::knowledge($lang)."\n\n".self::reminder()]]],
+            'system_instruction' => ['parts' => [['text' => self::instructions($lang)."\n\n".self::knowledge($lang)."\n\n".trim(self::reminder()."\n\n".$channelRules)]]],
             'contents' => array_map(fn ($m) => ['role' => $m['role'] === 'assistant' ? 'model' : 'user', 'parts' => [['text' => $m['content']]]], $messages),
             'generationConfig' => ['maxOutputTokens' => (int) config('assistant.max_tokens', 900), 'temperature' => 0.4],
         ];

@@ -54,17 +54,24 @@ final class PlatformInbox
         });
     }
 
-    /** An answer from the team. Returns the row, with status failed and the reason when Meta refused it. */
-    public function reply(PlatformConversation $conversation, PlatformAdmin $admin, string $text): PlatformConversationMessage
+    /**
+     * An answer from the team, or from App\Services\WhatsApp\PlatformAutoReply when $admin is null. Returns the row, with
+     * status failed and the reason when Meta refused it. A person from the team answering quiets the automatic answer.
+     */
+    public function reply(PlatformConversation $conversation, ?PlatformAdmin $admin, string $text): PlatformConversationMessage
     {
-        $row = $conversation->messages()->create(['direction' => 'out', 'body' => $text, 'status' => 'sending', 'admin_id' => $admin->id]);
+        $row = $conversation->messages()->create(['direction' => 'out', 'body' => $text, 'status' => 'sending', 'admin_id' => $admin?->id]);
         try {
             $id = (new MetaCloudDriver)->reply($conversation->phone, $text);
             $row->update(['status' => 'sent', 'provider_id' => mb_substr($id, 0, 120)]);
         } catch (WhatsAppException $e) {
             $row->update(['status' => 'failed', 'error' => mb_substr($e->getMessage(), 0, 255)]);
         }
-        $conversation->forceFill(['last_message_at' => now()])->save();
+        $conversation->forceFill(['last_message_at' => now()]);
+        if ($admin) {
+            $conversation->bot_paused_until = now()->addHours(PlatformAutoReply::PAUSE_HOURS);
+        }
+        $conversation->save();
 
         return $row;
     }

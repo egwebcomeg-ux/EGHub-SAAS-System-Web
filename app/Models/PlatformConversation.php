@@ -28,7 +28,7 @@ class PlatformConversation extends Model
 
     protected function casts(): array
     {
-        return ['last_message_at' => 'datetime', 'last_inbound_at' => 'datetime', 'unread' => 'integer'];
+        return ['last_message_at' => 'datetime', 'last_inbound_at' => 'datetime', 'bot_paused_until' => 'datetime', 'unread' => 'integer'];
     }
 
     /** @return HasMany<PlatformConversationMessage, $this> */
@@ -46,6 +46,12 @@ class PlatformConversation extends Model
     public function canReply(): bool
     {
         return $this->last_inbound_at !== null && $this->last_inbound_at->gt(now()->subHours(self::WINDOW_HOURS));
+    }
+
+    /** The team has this conversation: the automatic answer stays quiet. */
+    public function botPaused(): bool
+    {
+        return $this->bot_paused_until !== null && $this->bot_paused_until->isFuture();
     }
 
     public function displayName(): string
