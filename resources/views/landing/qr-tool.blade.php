@@ -29,14 +29,14 @@
         'frame' => 'none', 'frame_text' => __('Scan me'), 'frame_color' => '#0a2540', 'frame_text_color' => '#ffffff',
     ];
     $presets = [
-        'egmenu' => [__('EgHub orange'), ['body' => 'liquid', 'eye_frame' => 'rounded', 'eye_ball' => 'rounded', 'fill_type' => 'linear', 'color1' => '#e05310', 'color2' => '#a93a0b', 'eye_custom' => true, 'eye_frame_color' => '#0a2540', 'eye_ball_color' => '#e05310'] + $base],
+        'eghub' => [__('EgHub orange'), ['body' => 'liquid', 'eye_frame' => 'rounded', 'eye_ball' => 'rounded', 'fill_type' => 'linear', 'color1' => '#e05310', 'color2' => '#a93a0b', 'eye_custom' => true, 'eye_frame_color' => '#0a2540', 'eye_ball_color' => '#e05310'] + $base],
         'navy' => [__('Navy classic'), $base],
         'sunset' => [__('Gradient sunset'), ['body' => 'dots', 'eye_frame' => 'leaf', 'eye_ball' => 'leaf', 'fill_type' => 'linear', 'color1' => '#b3125a', 'color2' => '#e04e00', 'angle' => 35] + $base],
         'minimal' => [__('Dots minimal'), ['body' => 'dots', 'eye_frame' => 'circle', 'eye_ball' => 'circle', 'color1' => '#111827', 'color2' => '#111827'] + $base],
         'gold' => [__('Luxury gold'), ['body' => 'classy', 'eye_frame' => 'double', 'eye_ball' => 'diamond', 'fill_type' => 'radial', 'color1' => '#5c430b', 'color2' => '#9c7418', 'eye_custom' => true, 'eye_frame_color' => '#1a1a1a', 'eye_ball_color' => '#9c7418', 'bg_color' => '#fffdf5', 'frame' => 'bottom', 'frame_color' => '#111111', 'frame_text_color' => '#d9b54a'] + $base],
         'restaurant' => [__('Restaurant menu'), ['body' => 'rounded', 'eye_frame' => 'rounded', 'eye_ball' => 'rounded', 'eye_custom' => true, 'eye_frame_color' => '#e05310', 'eye_ball_color' => '#0a2540', 'logo' => 'menu', 'logo_size' => 'large', 'frame' => 'bottom', 'frame_text' => __('Scan the menu'), 'frame_color' => '#e05310'] + $base],
     ];
-    $d = $presets['egmenu'][1];
+    $d = $presets['eghub'][1];
 
     $i18n = [
         'empty' => __('Fill in the content and your code appears here.'),

@@ -109,7 +109,7 @@ class PlansAndEntitlementsTest extends TenantTestCase
 
         $basic = Plan::query()->where('code', 'basic')->first();
         $features = array_keys(array_filter($basic->load('features')->entitlements()['features']));
-        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@egmenu.test', 'password' => 'Secret-pass-123']);
+        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@eghub.test', 'password' => 'Secret-pass-123']);
 
         $this->actingAs($admin, 'admin')->post($this->adminUrl("/plans/{$basic->id}"), [
             'name' => 'أساسية', 'monthly_price' => 129, 'features' => [...$features, 'ai_import'],
@@ -126,7 +126,7 @@ class PlansAndEntitlementsTest extends TenantTestCase
 
     public function test_admin_creates_a_restaurant_and_activates_a_paid_plan(): void
     {
-        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@egmenu.test', 'password' => 'Secret-pass-123']);
+        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@eghub.test', 'password' => 'Secret-pass-123']);
 
         $this->actingAs($admin, 'admin')->post($this->adminUrl('/tenants'), [
             'name' => 'Koshary Place', 'slug' => 'koshary', 'owner_name' => 'Ahmed', 'email' => 'ahmed@koshary.test',

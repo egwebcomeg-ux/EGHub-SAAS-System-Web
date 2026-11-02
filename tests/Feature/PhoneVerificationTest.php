@@ -185,10 +185,10 @@ class PhoneVerificationTest extends TenantTestCase
         $owner = $this->pending($a, '01011111111', 'AB2CD3');
 
         $this->postJson($this->menuUrl('webhooks/whatsapp'), ['from' => '+201011111111', 'text' => 'EGMENU AB2CD3'])->assertForbidden();
-        $this->postJson($this->menuUrl('webhooks/whatsapp'), ['from' => '+201011111111', 'text' => 'EGMENU AB2CD3'], ['X-EgMenu-Secret' => 'wrong'])->assertForbidden();
+        $this->postJson($this->menuUrl('webhooks/whatsapp'), ['from' => '+201011111111', 'text' => 'EGMENU AB2CD3'], ['X-EgHub-Secret' => 'wrong'])->assertForbidden();
         $this->assertNull($owner->fresh()->phone_verified_at);
 
-        $this->postJson($this->menuUrl('webhooks/whatsapp'), ['from' => '+201011111111', 'text' => 'EGMENU AB2CD3'], ['X-EgMenu-Secret' => 'provider-secret'])
+        $this->postJson($this->menuUrl('webhooks/whatsapp'), ['from' => '+201011111111', 'text' => 'EGMENU AB2CD3'], ['X-EgHub-Secret' => 'provider-secret'])
             ->assertOk()->assertJsonPath('verified', true);
         $this->assertNotNull($owner->fresh()->phone_verified_at);
     }
@@ -240,7 +240,7 @@ class PhoneVerificationTest extends TenantTestCase
         config(['whatsapp.number' => '201000000000', 'whatsapp.verify_token' => 'verify-me']);
         $a = $this->restaurant('cafe-a');
         $owner = $this->pending($a, '01011111111', 'AB2CD3');
-        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@egmenu.test', 'password' => 'Secret-pass-123']);
+        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@eghub.test', 'password' => 'Secret-pass-123']);
 
         // the owner cannot use the admin action
         $this->actingAs($owner)->post($this->adminUrl("/tenants/cafe-a/users/{$owner->id}/verify-phone"))->assertRedirect(route('admin.login'));
@@ -264,7 +264,7 @@ class PhoneVerificationTest extends TenantTestCase
     public function test_codes_are_extracted_tolerantly(): void
     {
         $this->assertSame(['AB2CD3'], PhoneVerification::extractCodes('EGMENU AB2CD3'));
-        $this->assertSame(['AB2CD3'], PhoneVerification::extractCodes('egmenu: ab2cd3 .'));
+        $this->assertSame(['AB2CD3'], PhoneVerification::extractCodes('eghub: ab2cd3 .'));
         $this->assertSame(['AB2CD3'], PhoneVerification::extractCodes('كود التأكيد EGMENU AB٢CD٣ شكراً'));
         $this->assertSame([], PhoneVerification::extractCodes('EGMENU'));
         $this->assertSame(['AB2CD3'], PhoneVerification::extractCodes('EGHUB AB2CD3'));

@@ -1,8 +1,8 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "egweb/egmenu",
+    "name": "egweb/eghub",
     "type": "project",
-    "description": "EgMenu: multi-tenant SaaS for restaurant QR menus, table ordering, POS and loyalty. By EgWeb.",
+    "description": "EgHub: multi-tenant SaaS for restaurant QR menus, table ordering, POS and loyalty. By EgWeb.",
     "keywords": [
         "laravel",
         "framework"

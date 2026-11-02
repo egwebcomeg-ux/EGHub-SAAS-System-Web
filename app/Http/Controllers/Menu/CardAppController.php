@@ -75,7 +75,7 @@ class CardAppController extends Controller
         $state = $cards->for($this->customer($token)) ?? abort(404);
         $images = [];
         foreach (['icon.png' => 29, 'icon@2x.png' => 58, 'icon@3x.png' => 87, 'logo.png' => 50, 'logo@2x.png' => 100] as $file => $size) {
-            $images[$file] = PwaIcons::available() ? $icons->tenant($size) : (string) file_get_contents(public_path('icons/egmenu-192.png'));
+            $images[$file] = PwaIcons::available() ? $icons->tenant($size) : (string) file_get_contents(public_path('icons/eghub-192.png'));
         }
         $pass = $passes->applePass($state, $images) ?? abort(404);
 

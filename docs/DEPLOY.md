@@ -6,26 +6,26 @@ Stack: Laravel 13, PHP 8.4+, MySQL, LiteSpeed, behind Cloudflare. No Node, no qu
 
 - PHP 8.4 or newer (cPanel > Select PHP Version / MultiPHP Manager). The locked packages need 8.4.1+; 8.3 fails at `composer install`.
 - PHP extensions: `pdo_mysql`, `mbstring`, `gd` (menu image resizing), `zip` (backups + XLSX import/export), `openssl`, `curl`, `fileinfo`, `xml`/`dom`, `tokenizer`, `ctype`, `json`, `bcmath` (recommended). `intl` is not required.
-- `exec`/`proc_open` must not be disabled and `mysqldump` must exist (used by `egmenu:backup`). Check with `which mysqldump`.
+- `exec`/`proc_open` must not be disabled and `mysqldump` must exist (used by `eghub:backup`). Check with `which mysqldump`.
 - Composer 2 (or run `composer install` locally and upload `vendor/`).
 - Cron access, SSH access recommended (Terminal in cPanel works).
 
 ## 2. cPanel setup
 
-1. Upload or `git clone` the project **outside** the web root, e.g. `/home/USER/egmenu` (not `public_html`).
-2. Domains: the **document root of every host must be `/home/USER/egmenu/public`**.
-   - `eghub.app` (addon/primary domain) -> docroot `egmenu/public`
-   - Subdomains `app.eghub.app` and `admin.eghub.app` -> same docroot `egmenu/public`
-   - Wildcard subdomain: cPanel > Domains (or Subdomains) > create `*.eghub.app`, docroot `egmenu/public`. If the host will not create a wildcard, ask support or add it in the vhost.
-   - If `public_html` must stay the docroot, symlink instead: `rm -rf public_html && ln -s /home/USER/egmenu/public public_html`.
+1. Upload or `git clone` the project **outside** the web root, e.g. `/home/USER/eghub` (not `public_html`).
+2. Domains: the **document root of every host must be `/home/USER/eghub/public`**.
+   - `eghub.app` (addon/primary domain) -> docroot `eghub/public`
+   - Subdomains `app.eghub.app` and `admin.eghub.app` -> same docroot `eghub/public`
+   - Wildcard subdomain: cPanel > Domains (or Subdomains) > create `*.eghub.app`, docroot `eghub/public`. If the host will not create a wildcard, ask support or add it in the vhost.
+   - If `public_html` must stay the docroot, symlink instead: `rm -rf public_html && ln -s /home/USER/eghub/public public_html`.
 3. DNS (Cloudflare): `A eghub.app`, `A app`, `A admin`, `A *` all -> server IP, **proxied (orange cloud)**. The old `egmenu.app` keeps the same records (same docroot): it only redirects to eghub.app, see `CENTRAL_DOMAINS`.
-4. MySQL: cPanel > MySQL Databases: create database `USER_egmenu`, user `USER_egmenu` with a long random password, add the user to the database with ALL PRIVILEGES. Charset utf8mb4 is used by the app.
+4. MySQL: cPanel > MySQL Databases: create database `USER_eghub`, user `USER_eghub` with a long random password, add the user to the database with ALL PRIVILEGES. Charset utf8mb4 is used by the app.
 5. Select PHP 8.4+ for all the domains above (including the wildcard).
 
 ## 3. First deploy
 
 ```bash
-cd /home/USER/egmenu
+cd /home/USER/eghub
 composer install --no-dev --optimize-autoloader
 cp .env.example .env
 nano .env                         # see section 4
@@ -34,9 +34,9 @@ php artisan migrate --force
 php artisan db:seed --class=PlanSeeder --force
 php artisan db:seed --class=RoleSeeder --force
 php artisan storage:link
-php artisan egmenu:admin you@yourdomain.com --name="Your Name"   # prompts for the password
+php artisan eghub:admin you@yourdomain.com --name="Your Name"   # prompts for the password
 php artisan optimize
-php artisan egmenu:doctor
+php artisan eghub:doctor
 ```
 
 Do **not** run plain `db:seed` in production (`DatabaseSeeder` only adds demo data on local, but stay explicit).
@@ -51,17 +51,17 @@ There is no Node on the server. Build locally and upload:
 npm ci && npm run build
 ```
 
-Upload the whole `public/build` folder to `/home/USER/egmenu/public/build` (the folder is gitignored). Re-upload it after every frontend change.
+Upload the whole `public/build` folder to `/home/USER/eghub/public/build` (the folder is gitignored). Re-upload it after every frontend change.
 
 ### Cron
 
 cPanel > Cron Jobs, every minute (adjust the PHP path, e.g. `/usr/local/bin/ea-php84` or `/opt/cpanel/ea-php84/root/usr/bin/php`):
 
 ```
-* * * * * cd /home/USER/egmenu && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /home/USER/eghub && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-This one line runs everything: the queue worker every minute (`queue:work --stop-when-empty`), billing lifecycle 03:00, loyalty expiry 03:30, backup 02:30, and a heartbeat read by `egmenu:doctor`.
+This one line runs everything: the queue worker every minute (`queue:work --stop-when-empty`), billing lifecycle 03:00, loyalty expiry 03:30, backup 02:30, and a heartbeat read by `eghub:doctor`.
 
 ## 4. `.env` for production
 
@@ -113,18 +113,18 @@ After editing `.env` always run `php artisan config:clear && php artisan optimiz
 
 ### WhatsApp inbound webhook (phone confirmation at signup)
 
-Owners confirm their mobile by sending one prepared message (`EGMENU <code>`) to the platform's WhatsApp number; the webhook matches sender + code and stamps `users.phone_verified_at`. Nothing blocks the dashboard if this is not set up.
+Owners confirm their mobile by sending one prepared message (`EGHUB <code>`) to the platform's WhatsApp number; the webhook matches sender + code and stamps `users.phone_verified_at`. Nothing blocks the dashboard if this is not set up.
 
 1. `.env`: `WHATSAPP_NUMBER=2010xxxxxxxx` (the number owners write to; empty falls back to the admin setting "support WhatsApp"), `WHATSAPP_VERIFY_TOKEN=<any long random string>`, `WHATSAPP_APP_SECRET=<Meta App → Settings → Basic → App secret>`. Then `php artisan config:clear && php artisan optimize`.
 2. Meta for Developers → your app → WhatsApp → Configuration → Webhook: callback URL `https://eghub.app/webhooks/whatsapp`, verify token = `WHATSAPP_VERIFY_TOKEN`, click Verify (Meta sends `GET` with `hub.challenge`; the app answers it when the token matches). Subscribe to the **messages** field. The admin Settings page shows the URL and token ready to copy.
 3. Every `POST` must carry a valid `X-Hub-Signature-256` (HMAC of the raw body with the app secret). Without `WHATSAPP_APP_SECRET` every payload is refused with 403 (logged once a day). Message status updates (sent/delivered/read/failed) in the same payloads update `whatsapp_messages.status` by `provider_id`.
-4. Another provider instead of Meta: have it `POST {"from": "2010xxxxxxxx", "text": "..."}` to the same URL with header `X-EgMenu-Secret: <WHATSAPP_WEBHOOK_SECRET>`.
+4. Another provider instead of Meta: have it `POST {"from": "2010xxxxxxxx", "text": "..."}` to the same URL with header `X-EgHub-Secret: <WHATSAPP_WEBHOOK_SECRET>`.
 5. The route is on the main domain only and excluded from CSRF; Cloudflare must not cache or challenge `/webhooks/*` (add a WAF skip rule if bot protection is on).
 
 ## 6. Updating
 
 ```bash
-cd /home/USER/egmenu
+cd /home/USER/eghub
 php artisan down --render="errors.503" --retry=60
 git pull origin master
 composer install --no-dev --optimize-autoloader
@@ -133,10 +133,10 @@ php artisan migrate --force
 php artisan optimize:clear
 php artisan optimize              # also purges the LiteSpeed page cache (section 6a)
 php artisan up
-php artisan egmenu:doctor
+php artisan eghub:doctor
 ```
 
-Never run `key:generate` or `migrate:fresh` here. Take a backup first for risky releases: `php artisan egmenu:backup`.
+Never run `key:generate` or `migrate:fresh` here. Take a backup first for risky releases: `php artisan eghub:backup`.
 
 ## 6b. Automatic deploys (the server pulls from GitHub)
 
@@ -161,7 +161,7 @@ uploaded by hand any more.
 One-time setup in cPanel > Terminal (adjust `USER` and the PHP path):
 
 ```bash
-cd /home/USER/egmenu
+cd /home/USER/eghub
 git status                       # a git clone already? If "not a git repository", run the next two lines
 git init && git remote add origin https://github.com/egwebcomeg-ux/EGHub-SAAS-System-Web.git
 git fetch origin production
@@ -172,7 +172,7 @@ git show origin/production:deploy.sh > deploy.sh                              # 
 Then cPanel > Cron Jobs, every minute, next to the `schedule:run` line:
 
 ```
-* * * * * cd /home/USER/egmenu && PHP=/opt/cpanel/ea-php84/root/usr/bin/php COMPOSER_BIN="/opt/cpanel/ea-php84/root/usr/bin/php /opt/cpanel/composer/bin/composer" sh deploy.sh production
+* * * * * cd /home/USER/eghub && PHP=/opt/cpanel/ea-php84/root/usr/bin/php COMPOSER_BIN="/opt/cpanel/ea-php84/root/usr/bin/php /opt/cpanel/composer/bin/composer" sh deploy.sh production
 ```
 
 Check after the next merge: `tail -20 storage/logs/deploy.log`. While the repository is public the fetch needs no
@@ -213,14 +213,14 @@ PAGE_CACHE_ORIGIN_IP=<server IP>   # purge calls go straight to the server, not 
   After uploading a new `public/build` without running `optimize`, purge by hand:
 
 ```bash
-/opt/cpanel/ea-php84/root/usr/bin/php artisan egmenu:page-cache-purge                 # everything
-/opt/cpanel/ea-php84/root/usr/bin/php artisan egmenu:page-cache-purge --tenant=rosto   # one restaurant
-/opt/cpanel/ea-php84/root/usr/bin/php artisan egmenu:page-cache-purge --platform       # marketing pages
+/opt/cpanel/ea-php84/root/usr/bin/php artisan eghub:page-cache-purge                 # everything
+/opt/cpanel/ea-php84/root/usr/bin/php artisan eghub:page-cache-purge --tenant=rosto   # one restaurant
+/opt/cpanel/ea-php84/root/usr/bin/php artisan eghub:page-cache-purge --platform       # marketing pages
 ```
 
 Check: `curl -sI https://eghub.app/pricing | grep -i x-litespeed` twice; the second answer says
 `x-litespeed-cache: hit`. Turn it off: `PAGE_CACHE=false`, `config:clear`, `optimize` (the purge runs while still on,
-so run `egmenu:page-cache-purge` before switching it off).
+so run `eghub:page-cache-purge` before switching it off).
 
 ## 7. Rolling back
 
@@ -232,14 +232,14 @@ so run `egmenu:page-cache-purge` before switching it off).
 
 ## 8. Backups and restore
 
-`egmenu:backup` runs daily at 02:30. It writes `storage/app/backups/egmenu-YYYY-mm-dd-HHMM.zip` containing `database.sql` and `public/` (uploads), keeps `BACKUP_KEEP_DAYS` days locally and copies to `BACKUP_DISK` if set. Run manually: `php artisan egmenu:backup`.
+`eghub:backup` runs daily at 02:30. It writes `storage/app/backups/eghub-YYYY-mm-dd-HHMM.zip` containing `database.sql` and `public/` (uploads), keeps `BACKUP_KEEP_DAYS` days locally and copies to `BACKUP_DISK` if set. Run manually: `php artisan eghub:backup`.
 
 Restore:
 
 ```bash
-cd /home/USER/egmenu
+cd /home/USER/eghub
 php artisan down --render="errors.503"
-mkdir /tmp/restore && unzip storage/app/backups/egmenu-2026-01-01-0230.zip -d /tmp/restore   # download from the bucket first if needed
+mkdir /tmp/restore && unzip storage/app/backups/eghub-2026-01-01-0230.zip -d /tmp/restore   # download from the bucket first if needed
 mysql -u DB_USER -p DB_NAME < /tmp/restore/database.sql      # asks for the password
 cp -a /tmp/restore/public/. storage/app/public/
 php artisan optimize:clear && php artisan up
@@ -250,14 +250,14 @@ Test a restore on a scratch database at least once. Keep `APP_KEY` backed up sep
 
 ## 9. Post-deploy smoke checklist
 
-- [ ] `php artisan egmenu:doctor` prints no FAIL (WARN for "Scheduler" is normal in the first minute; "Backup" until the first backup).
+- [ ] `php artisan eghub:doctor` prints no FAIL (WARN for "Scheduler" is normal in the first minute; "Backup" until the first backup).
 - [ ] `https://eghub.app/up` returns 200.
 - [ ] Landing page loads with styles (proves `public/build` is uploaded) over HTTPS with no certificate warning.
-- [ ] `https://admin.eghub.app` login works with the admin created by `egmenu:admin`.
+- [ ] `https://admin.eghub.app` login works with the admin created by `eghub:admin`.
 - [ ] `https://app.eghub.app` signup/login works; a password-reset email arrives.
 - [ ] Create a test restaurant: its menu opens at `https://eghub.app/{slug}` (and its subdomain, once enabled).
 - [ ] Upload a menu image: it displays (checks `storage:link` and `gd`).
 - [ ] Import an XLSX/export a template (checks `zip`).
-- [ ] Wait two minutes, re-run `egmenu:doctor`: scheduler check is OK.
-- [ ] Run `php artisan egmenu:backup` once and confirm the zip (and the copy in the bucket if configured).
+- [ ] Wait two minutes, re-run `eghub:doctor`: scheduler check is OK.
+- [ ] Run `php artisan eghub:backup` once and confirm the zip (and the copy in the bucket if configured).
 - [ ] `APP_DEBUG=false`: a random 404 URL shows the EgHub 404 page, not a stack trace.

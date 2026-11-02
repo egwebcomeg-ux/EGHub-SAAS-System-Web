@@ -14,8 +14,8 @@ use Illuminate\Support\Facades\Storage;
  * The first set is dated `days_ago` before the run. The editorial calendar (calendar()) has fixed Cairo times: the
  * ones in the past are live at once, the future ones are scheduled and go live by themselves at that time, and a
  * `draft` one stays unpublished for the owner to finish from admin › المدونة. Every article has a cover_card; its
- * cover drawn by `php artisan egmenu:blog-covers` (database/seeders/blog-covers/{slug}.webp) is copied to the public
- * disk when the article is created, and `egmenu:blog-covers --apply` puts redrawn covers on articles that exist.
+ * cover drawn by `php artisan eghub:blog-covers` (database/seeders/blog-covers/{slug}.webp) is copied to the public
+ * disk when the article is created, and `eghub:blog-covers --apply` puts redrawn covers on articles that exist.
  */
 class BlogSeeder extends Seeder
 {
@@ -53,7 +53,7 @@ class BlogSeeder extends Seeder
     }
 
     /**
-     * What `egmenu:blog-covers` draws for every seeded article, in publishing order (the starter set oldest first,
+     * What `eghub:blog-covers` draws for every seeded article, in publishing order (the starter set oldest first,
      * then the calendar): two or three words, the illustration under share-cards/blog-art/, and the background,
      * navy and white taking turns.
      *
@@ -69,7 +69,7 @@ class BlogSeeder extends Seeder
     }
 
     /**
-     * Puts the drawn covers on the articles that already exist (`egmenu:blog-covers --apply`, run on the server after
+     * Puts the drawn covers on the articles that already exist (`eghub:blog-covers --apply`, run on the server after
      * a deploy brings new files): an article without a cover, or still showing a cover this seeder gave it, gets the
      * current drawing; a cover uploaded from admin is kept. Returns how many articles changed.
      */

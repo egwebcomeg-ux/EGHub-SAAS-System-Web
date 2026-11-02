@@ -9,14 +9,14 @@ use Illuminate\Support\Facades\Process;
 
 /**
  * Draws the covers of the articles in database/seeders/BlogSeeder.php (coverCards()) into
- * database/seeders/blog-covers/{slug}.webp with a local headless Chrome, the same way as `egmenu:share-images`
+ * database/seeders/blog-covers/{slug}.webp with a local headless Chrome, the same way as `eghub:share-images`
  * (resources/js/tools/share-cards.mjs). Run it on a developer machine and commit the files: the server has no Chrome.
  * BlogSeeder copies a drawn cover to the public disk when it creates the article; on the server, `--apply` (no Chrome
  * needed) puts the committed drawings on the articles that already exist.
  */
 class BlogCoversCommand extends Command
 {
-    protected $signature = 'egmenu:blog-covers
+    protected $signature = 'eghub:blog-covers
         {--only=* : Article slugs to draw (all covers when empty)}
         {--apply : Do not draw: put the committed drawings on the existing articles (run on the server after a deploy)}
         {--chrome= : Path to Chrome or Chromium (found automatically when empty)}';

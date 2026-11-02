@@ -69,7 +69,7 @@ final class Settings
         'online_delivery' => '0',
         'delivery_zone_mode' => 'manual',   // manual (main area → sub-areas/streets, fees typed) | map (areas drawn on the map)
         'online_prep_minutes' => '20',
-        'online_auto_cancel_minutes' => '0',  // 0 = off; else online orders nobody accepted in N minutes are cancelled (egmenu:auto-cancel)
+        'online_auto_cancel_minutes' => '0',  // 0 = off; else online orders nobody accepted in N minutes are cancelled (eghub:auto-cancel)
         // off | delivery | all: online orders (no table) only from a guest signed in with a mobile they proved (a code)
         'online_verify_phone' => 'off',
         // how orders move with the screens in use (App\Services\Orders\OrderFlow): a paid counter sale is done at once

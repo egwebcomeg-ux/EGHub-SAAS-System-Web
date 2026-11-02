@@ -23,7 +23,7 @@ use Illuminate\Http\Response;
 use Illuminate\View\View;
 
 /**
- * The guest's digital loyalty card: {tenant}.egmenu.app/card/{token}. Joining only needs a mobile number; the
+ * The guest's digital loyalty card: {tenant}.eghub.app/card/{token}. Joining only needs a mobile number; the
  * card shows stamps and rewards but can never add stamps itself (staff or a counted order do that).
  * The browser remembers the card per restaurant so the menu can link to "My card".
  */

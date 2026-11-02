@@ -283,7 +283,7 @@ class PageCacheTest extends TenantTestCase
 
         // the deploy command: everything, on every host
         Http::fake();
-        $this->artisan('egmenu:page-cache-purge')->assertSuccessful();
+        $this->artisan('eghub:page-cache-purge')->assertSuccessful();
         Http::assertSent(fn (HttpRequest $r) => $r->url() === 'http://egmenu.test/_lscache/purge' && $r['tags'] === '*');
         Http::assertSent(fn (HttpRequest $r) => $r->url() === 'http://purge.egmenu.test/_lscache/purge' && $r['tags'] === '*');
 

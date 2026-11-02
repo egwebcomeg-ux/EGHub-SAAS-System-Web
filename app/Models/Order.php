@@ -60,7 +60,7 @@ class Order extends TenantModel
     /** Orders guests place themselves (the board alarm rings for these until someone accepts them). */
     public const GUEST_SOURCES = ['qr', 'online', 'whatsapp'];
 
-    /** cancel_reason written by egmenu:auto-cancel (shown translated to the guest). */
+    /** cancel_reason written by eghub:auto-cancel (shown translated to the guest). */
     public const REASON_NOT_ACCEPTED = 'not accepted in time';
 
     /** The cancel reason as the guest should read it. */

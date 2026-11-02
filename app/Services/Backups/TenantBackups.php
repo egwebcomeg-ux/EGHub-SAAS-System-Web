@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Storage;
 
 /**
  * The life of a restaurant's backups (rows of tenant_backups, zips on the private disk), inside the tenant context:
- * start one (manual from the dashboard: queued; weekly from egmenu:tenant-backups: built in place), build it, prune
+ * start one (manual from the dashboard: queued; weekly from eghub:tenant-backups: built in place), build it, prune
  * the old ones. The zip itself is written by TenantBackupBuilder.
  *
  * Retention: the last `keep_scheduled` weekly backups stay; a manual one is deleted `keep_manual_days` after it was
@@ -18,8 +18,8 @@ use Illuminate\Support\Facades\Storage;
  */
 final class TenantBackups
 {
-    /** Cache key the weekly command stamps when a run finished (read by egmenu:doctor). */
-    public const LAST_RUN_KEY = 'egmenu:tenant_backups_at';
+    /** Cache key the weekly command stamps when a run finished (read by eghub:doctor). */
+    public const LAST_RUN_KEY = 'eghub:tenant_backups_at';
 
     public function __construct(private TenantBackupBuilder $builder) {}
 

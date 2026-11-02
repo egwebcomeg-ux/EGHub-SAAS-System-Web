@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 /**
- * «صحة النظام» (settings.manage): the egmenu:doctor checklist, the background jobs (waiting and failed), the last
+ * «صحة النظام» (settings.manage): the eghub:doctor checklist, the background jobs (waiting and failed), the last
  * backups and scheduler run, which outside services are set up (yes / no only, never a key) and the end of the
  * automatic deploy log.
  */

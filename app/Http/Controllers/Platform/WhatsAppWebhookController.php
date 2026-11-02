@@ -31,7 +31,7 @@ use Illuminate\Support\Facades\Log;
  *    on App\Models\WhatsAppConnection), so the signature is checked against that secret. Only changes for that
  *    restaurant's phone_number_id are handled, never another restaurant's.
  *  - another provider (the webhook driver's counterpart): POST {from, text} or {from, payload} with the shared
- *    X-EgMenu-Secret.
+ *    X-EgHub-Secret.
  * Meta always gets 200 for a valid payload, whatever it contains; only an order confirmation tap gets a reply, sent
  * from the number the guest tapped on.
  */
@@ -170,11 +170,11 @@ class WhatsAppWebhookController extends Controller
             ->header('Content-Type', 'text/plain');
     }
 
-    /** Another provider calling us with the shared secret of the webhook driver (header X-EgMenu-Secret). */
+    /** Another provider calling us with the shared secret of the webhook driver (header X-EgHub-Secret). */
     private function fromProvider(Request $request): bool
     {
         $secret = (string) config('whatsapp.webhook.secret');
-        $given = (string) $request->header('X-EgMenu-Secret', '');
+        $given = (string) ($request->header('X-EgHub-Secret') ?? $request->header('X-EgMenu-Secret', ''));
 
         return $secret !== '' && $given !== '' && hash_equals($secret, $given);
     }

@@ -246,7 +246,7 @@ class LoyaltyTest extends TenantTestCase
         $this->as($a, fn () => app(LoyaltyService::class)->stamp($card, 2, $this->owner($a)));
 
         $this->travel(31)->days();
-        $this->artisan('egmenu:loyalty-expire')->assertSuccessful();
+        $this->artisan('eghub:loyalty-expire')->assertSuccessful();
         $this->assertSame(0, $card->fresh()->stamps);
     }
 

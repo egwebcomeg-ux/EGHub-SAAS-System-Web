@@ -29,7 +29,7 @@ class ProspectRestaurantTest extends TenantTestCase
 {
     private function admin(): PlatformAdmin
     {
-        return PlatformAdmin::query()->firstOrCreate(['email' => 'admin@egmenu.test'], ['name' => 'Admin', 'password' => 'Secret-pass-123']);
+        return PlatformAdmin::query()->firstOrCreate(['email' => 'admin@eghub.test'], ['name' => 'Admin', 'password' => 'Secret-pass-123']);
     }
 
     /** @param  array<string,mixed>  $overrides */

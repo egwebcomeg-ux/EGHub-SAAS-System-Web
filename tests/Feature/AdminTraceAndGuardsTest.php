@@ -109,7 +109,7 @@ class AdminTraceAndGuardsTest extends TenantTestCase
     {
         Notification::fake();
         $admin = $this->admin();
-        $event = collect(Schedule::events())->first(fn ($e) => str_contains((string) $e->command, 'egmenu:billing'));
+        $event = collect(Schedule::events())->first(fn ($e) => str_contains((string) $e->command, 'eghub:billing'));
 
         $event->exitCode = 1;
         $event->finish(app(), 1);

@@ -13,7 +13,7 @@
     <script>
         (() => {
             const banner = document.querySelector('[data-phone-banner]');
-            const key = 'egmenu.phone-banner.' + @js(auth()->id());
+            const key = 'eghub.phone-banner.' + @js(auth()->id());
             try { if (sessionStorage.getItem(key) === '1') banner.classList.add('hidden'); } catch (e) {}
             banner.querySelector('[data-phone-banner-dismiss]').addEventListener('click', () => {
                 banner.classList.add('hidden');

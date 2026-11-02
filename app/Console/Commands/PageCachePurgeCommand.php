@@ -13,7 +13,7 @@ use Illuminate\Console\Command;
  */
 class PageCachePurgeCommand extends Command
 {
-    protected $signature = 'egmenu:page-cache-purge
+    protected $signature = 'eghub:page-cache-purge
         {--tenant=* : Restaurant slug(s) to purge (their menu, item and place pages on every host)}
         {--platform : Only the marketing pages and the directory}';
 

@@ -2,7 +2,7 @@
 
 /*
 | "Continue with Google / Facebook" comes back to the dashboard host: <APP_URL scheme>://app.<first CENTRAL_DOMAINS
-| entry>[:port]/auth/{provider}/callback, e.g. https://app.egmenu.app/auth/google/callback. This exact address goes
+| entry>[:port]/auth/{provider}/callback, e.g. https://app.eghub.app/auth/google/callback. This exact address goes
 | into the provider's console. *_REDIRECT_URI overrides it when ever needed.
 */
 $socialCallback = function (string $provider): string {
@@ -89,7 +89,7 @@ return [
     /*
     | The guest's loyalty card in Apple Wallet / Google Wallet (App\Services\Loyalty\WalletPasses). Each button shows
     | on the card page only when its keys are set and the files exist. Paths are absolute or relative to the app root.
-    | Apple: the Pass Type ID (pass.app.egmenu...), the Team ID, the Pass Type ID certificate (.p12 + its password, or
+    | Apple: the Pass Type ID (pass.app.eghub...), the Team ID, the Pass Type ID certificate (.p12 + its password, or
     | a PEM with the certificate and its key) and Apple's WWDR intermediate certificate (PEM). OpenSSL 3 cannot read
     | Apple's older .p12 encryption: convert it once with `openssl pkcs12 -legacy -in pass.p12 -out pass.pem -nodes`.
     | Google: the Wallet issuer ID and the JSON key file of a service account that has access to that issuer.

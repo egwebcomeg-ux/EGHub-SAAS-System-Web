@@ -11,7 +11,7 @@
         'datePublished' => $post->published_at->toAtomString(), 'dateModified' => $post->updated_at->toAtomString(),
         'mainEntityOfPage' => $url, 'inLanguage' => $post->isArabicBody() ? 'ar' : 'en',
         'author' => ['@type' => 'Organization', 'name' => 'EgHub'],
-        'publisher' => ['@type' => 'Organization', 'name' => 'EgHub', 'logo' => ['@type' => 'ImageObject', 'url' => url('/icons/egmenu-512.png')]],
+        'publisher' => ['@type' => 'Organization', 'name' => 'EgHub', 'logo' => ['@type' => 'ImageObject', 'url' => url('/icons/eghub-512.png')]],
     ] + ($cover ? ['image' => [$cover]] : []);
 @endphp
 

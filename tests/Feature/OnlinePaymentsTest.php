@@ -309,7 +309,7 @@ class OnlinePaymentsTest extends TenantTestCase
 
         $this->actingAs($this->owner($a))->post($this->dashUrl("/billing/invoices/{$invoice->number}/claim"), ['method' => 'instapay', 'reference' => 'TX-123'])
             ->assertSessionHasNoErrors();
-        $admin = PlatformAdmin::query()->firstOrCreate(['email' => 'admin@egmenu.test'], ['name' => 'Admin', 'password' => 'Secret-pass-123']);
+        $admin = PlatformAdmin::query()->firstOrCreate(['email' => 'admin@eghub.test'], ['name' => 'Admin', 'password' => 'Secret-pass-123']);
         $this->actingAs($admin, 'admin')->get($this->adminUrl('/invoices'))->assertOk()->assertSee('TX-123')->assertSee($online->merchant_ref);
         $this->actingAs($admin, 'admin')->post($this->adminUrl("/invoices/{$invoice->id}/paid"), ['gateway' => 'instapay', 'reference' => 'TX-123', 'amount' => $invoice->total])
             ->assertSessionHasNoErrors();
@@ -323,7 +323,7 @@ class OnlinePaymentsTest extends TenantTestCase
     {
         $this->kashier('card');
         config(['services.kashier.secret_key' => '']);
-        $admin = PlatformAdmin::query()->firstOrCreate(['email' => 'admin@egmenu.test'], ['name' => 'Admin', 'password' => 'Secret-pass-123']);
+        $admin = PlatformAdmin::query()->firstOrCreate(['email' => 'admin@eghub.test'], ['name' => 'Admin', 'password' => 'Secret-pass-123']);
 
         $this->actingAs($admin, 'admin')->get($this->adminUrl('/settings'))->assertOk()
             ->assertSee('KASHIER_SECRET_KEY')->assertDontSee(self::API_KEY)->assertSee('http://app.egmenu.test/billing/kashier/webhook');

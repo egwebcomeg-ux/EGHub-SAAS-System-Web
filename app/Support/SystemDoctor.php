@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * The post-deploy checklist, shared by `egmenu:doctor` (App\Console\Commands\DoctorCommand) and the admin's
+ * The post-deploy checklist, shared by `eghub:doctor` (App\Console\Commands\DoctorCommand) and the admin's
  * «صحة النظام» page. A failed check without `warn` is a real problem; a warning is something to look at. Hints never
  * carry a secret (keys and passwords are only checked for being set).
  */
@@ -64,20 +64,20 @@ final class SystemDoctor
 
         $lastTenants = $this->lastTenantBackupsAt();
         $check('Restaurant backups ran within 8 days', $lastTenants && $lastTenants > now()->subDays(8)->timestamp,
-            $lastTenants ? 'last '.now()->setTimestamp($lastTenants)->diffForHumans() : 'no weekly run recorded yet (egmenu:tenant-backups, Sunday 03:30)', warn: true);
+            $lastTenants ? 'last '.now()->setTimestamp($lastTenants)->diffForHumans() : 'no weekly run recorded yet (eghub:tenant-backups, Sunday 03:30)', warn: true);
 
         return $checks;
     }
 
-    /** Unix time of the last platform backup (egmenu:backup), null when none was recorded. */
+    /** Unix time of the last platform backup (eghub:backup), null when none was recorded. */
     public function lastBackupAt(): ?int
     {
-        $at = cache()->get('egmenu:last_backup_at');
+        $at = cache()->get('eghub:last_backup_at');
 
         return $at ? (int) $at : null;
     }
 
-    /** Unix time of the last weekly restaurant backups run (egmenu:tenant-backups), null when none was recorded. */
+    /** Unix time of the last weekly restaurant backups run (eghub:tenant-backups), null when none was recorded. */
     public function lastTenantBackupsAt(): ?int
     {
         $at = cache()->get(TenantBackups::LAST_RUN_KEY);
@@ -88,7 +88,7 @@ final class SystemDoctor
     /** Unix time the scheduler last ran (touched every minute, see routes/console.php), null when never. */
     public function schedulerAt(): ?int
     {
-        $at = cache()->get('egmenu:scheduler_at');
+        $at = cache()->get('eghub:scheduler_at');
 
         return $at ? (int) $at : null;
     }

@@ -76,7 +76,7 @@ class AuthAndRolesTest extends TenantTestCase
     public function test_admin_and_staff_sessions_are_separate(): void
     {
         $a = $this->restaurant('cafe-a');
-        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@egmenu.test', 'password' => 'Secret-pass-123']);
+        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@eghub.test', 'password' => 'Secret-pass-123']);
 
         // A platform admin session is not a restaurant session.
         $this->actingAs($admin, 'admin')->get($this->dashUrl())->assertRedirect($this->dashUrl('/login'));

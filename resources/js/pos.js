@@ -17,7 +17,7 @@ if (dataEl) {
     const fmt = (n) => `${Math.round(n * 100) / 100} ${D.currency}`;
     const session = { csrf: $('meta[name="csrf-token"]').content };
     const items = Object.fromEntries(D.items.map((i) => [i.id, i]));
-    const display = 'BroadcastChannel' in window ? new BroadcastChannel('egmenu-pos') : null;
+    const display = 'BroadcastChannel' in window ? new BroadcastChannel('eghub-pos') : null;
     const uuid = () => crypto.randomUUID?.() ?? 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
         const r = (crypto.getRandomValues(new Uint8Array(1))[0] & 15);
         return (c === 'x' ? r : (r & 3) | 8).toString(16);
@@ -1358,7 +1358,7 @@ if (dataEl) {
     });
 
     $('[data-customer-display]').addEventListener('click', () => {
-        window.open(D.urls.display, 'egmenu-display', 'width=900,height=600');
+        window.open(D.urls.display, 'eghub-display', 'width=900,height=600');
         setTimeout(render, 800);
     });
 

@@ -1,6 +1,7 @@
 // Public menu: item sheet with sizes/extras, cart kept per restaurant in localStorage, ordering from the table or
 // online, the hall list for the waiter, bill split, the order-type screen and the intro splash.
 // Prices here are only for display; the server recomputes every amount when the order is placed.
+import './storage-rename';
 
 import { quoteAt, zoneAt } from './delivery-geo';
 
@@ -14,7 +15,7 @@ if (dataEl) {
     // the bilingual menu (setting menu_bilingual): the other language under a name, in its own lang/dir; the outer
     // span keeps the page's direction so the line stays aligned with the name above it
     const alt = (text, cls = 'm-alt') => (M.alt && text ? `<span class="${cls}" data-alt-name><span lang="${esc(M.alt.lang)}" dir="${esc(M.alt.dir)}">${esc(text)}</span></span>` : '');
-    const storeKey = `egmenu.cart.${M.tenant}`;
+    const storeKey = `eghub.cart.${M.tenant}`;
     const session = {
         get(key) { try { return sessionStorage.getItem(key); } catch { return null; } },
         set(key, value) { try { sessionStorage.setItem(key, value); } catch {} },
@@ -28,15 +29,15 @@ if (dataEl) {
     // delivery priced by the guest's pin (drawn zones or distance rings): the map comes first, the list of areas is
     // the fallback ("deliveryBy" = map | list). The pin and its quote are the preview only; the server prices again.
     const mapFirst = !!O?.pricing?.map;
-    const byKey = `egmenu.deliveryBy.${M.tenant}`;
+    const byKey = `eghub.deliveryBy.${M.tenant}`;
     let deliveryBy = mapFirst && session.get(byKey) === 'list' && (O?.zones || []).length ? 'list' : 'map';
     const byMap = () => mapFirst && deliveryBy === 'map';
-    const pinKey = `egmenu.pin.${M.tenant}`;
+    const pinKey = `eghub.pin.${M.tenant}`;
     let pin = null;
     try { pin = JSON.parse(session.get(pinKey) || 'null'); } catch { pin = null; }
     // the place found for the confirmed pin («شارع البحر، قسم أول طنطا»), asked from this host (M.geo), one call per ~25 m
     const GEO = M.geo;
-    const placeKey = `egmenu.place.${M.tenant}`;
+    const placeKey = `eghub.place.${M.tenant}`;
     let place = null;
     try { place = JSON.parse(session.get(placeKey) || 'null'); } catch { place = null; }
     const placeCache = new Map();
@@ -49,7 +50,7 @@ if (dataEl) {
     const hidePrices = () => inHall() && !H.prices;
     // inside the place the owner may show item prices but no bill total; takeaway and delivery always show it
     const hideTotal = () => hidePrices() || (H.hideTotal && inHall());
-    const wayKey = `egmenu.way.${M.tenant}`;
+    const wayKey = `eghub.way.${M.tenant}`;
     // 2+ ways on the general link: nothing is picked for the guest. Until they choose (the sheet, the header chip or
     // the cart switch) the cart shows the switch alone and nothing can be sent
     let wayPicked = !!H.table || (M.ways || []).length < 2;
@@ -423,7 +424,7 @@ if (dataEl) {
 
     // the first item in the cart and no way chosen yet (2+ ways, setting order_type_prompt): the "how will you order?"
     // sheet opens once, after any open sheet (the item, "goes well with") is closed; delivery then asks for the area
-    const wayAskedKey = `egmenu.wayAsked.${M.tenant}`;
+    const wayAskedKey = `eghub.wayAsked.${M.tenant}`;
     function askWayAfterAdd() {
         if (!M.askWayOnAdd || wayPicked || session.get(wayAskedKey)) return;
         session.set(wayAskedKey, '1');
@@ -492,7 +493,7 @@ if (dataEl) {
     });
 
     // ---- favourites: a heart on the cards and in the item sheet, kept on this phone only ----
-    const favKey = `egmenu.fav.${M.tenant}`;
+    const favKey = `eghub.fav.${M.tenant}`;
     let favs = [];
     try { favs = (JSON.parse(localStorage.getItem(favKey) || '[]') || []).map(Number).filter((id) => M.items[id]); } catch {}
     const search = $('[data-search]');
@@ -865,8 +866,8 @@ if (dataEl) {
     // ---- the first-open sheet, one step: the branch (2+ branches, no table) on top, a tap on an order type continues ----
     const firstSheet = $('[data-order-choice]');
     let pickedBranch = null;
-    const branchMemKey = `egmenu.branch.${M.tenant}`;
-    const zoneAskKey = `egmenu.zoneAsk.${M.tenant}`;
+    const branchMemKey = `eghub.branch.${M.tenant}`;
+    const zoneAskKey = `eghub.zoneAsk.${M.tenant}`;
     const wayCards = () => firstSheet?.querySelectorAll('[data-way-pick] [data-way]') ?? [];
     // the way chosen before (this sheet or the cart switch) is marked, so a reopen shows what is on
     function markWays() {
@@ -983,7 +984,7 @@ if (dataEl) {
 
     // ---- delivery area: main area, then its street / sub-area; "detect my area" against drawn zones (map mode) ----
     const zoneSheet = $('[data-zone-sheet]');
-    const zoneKey = `egmenu.zone.${M.tenant}`;
+    const zoneKey = `eghub.zone.${M.tenant}`;
     function zoneStep(step) {
         zoneSheet.querySelectorAll('[data-zone-step]').forEach((el) => el.classList.toggle('hidden', el.dataset.zoneStep !== String(step)));
     }
@@ -1431,7 +1432,7 @@ if (dataEl) {
     }
 
     // ---- the personal link of a manual campaign (?ref=): kept 14 days on this phone and sent with the next order ----
-    const refKey = `egmenu.ref.${M.tenant}`;
+    const refKey = `eghub.ref.${M.tenant}`;
     try {
         const here = new URL(location.href);
         const ref = here.searchParams.get('ref');
@@ -1537,7 +1538,7 @@ if (dataEl) {
     });
 
     // ---- the guest's name and mobile, kept on this phone after an order and filled in next time ("not you?" clears) ----
-    const guestKey = `egmenu.guest.${M.tenant}`;
+    const guestKey = `eghub.guest.${M.tenant}`;
     const guestForget = $('[data-guest-forget]');
     function rememberGuest() {
         const name = $('[data-customer-name]')?.value.trim() || '';
@@ -1551,7 +1552,7 @@ if (dataEl) {
         const here = new URL(location.href);
         if (here.searchParams.has('signed_out')) {
             localStorage.removeItem(guestKey);
-            localStorage.removeItem(`egmenu.last.${M.tenant}`);
+            localStorage.removeItem(`eghub.last.${M.tenant}`);
             here.searchParams.delete('signed_out');
             history.replaceState(history.state, '', here.toString());
         }
@@ -1585,7 +1586,7 @@ if (dataEl) {
     });
 
     // ---- "اطلب تاني": the last order placed from this phone, and ?reorder={token} from the order page ----
-    const lastKey = `egmenu.last.${M.tenant}`;
+    const lastKey = `eghub.last.${M.tenant}`;
     function rememberLastOrder() {
         try {
             localStorage.setItem(lastKey, JSON.stringify({ at: Date.now(), lines: cart.map((l) => ({ item_id: l.item_id, option_ids: l.option_ids, qty: l.qty, notes: l.notes })) }));
@@ -2213,7 +2214,7 @@ if (dataEl) {
     const P = M.popup;
     const popupBox = $('[data-popup]');
     if (P && popupBox) {
-        const key = `egmenu.popup.${M.tenant}.${P.id}`;
+        const key = `eghub.popup.${M.tenant}.${P.id}`;
         let store = null; // reading window.sessionStorage itself throws when the browser blocks site data
         try { store = P.frequency === 'session' ? sessionStorage : localStorage; } catch {}
         let seen = null;

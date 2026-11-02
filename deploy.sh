@@ -110,7 +110,7 @@ keep_build
 git reset --quiet --hard "$NEW" || rollback "git reset"
 $COMPOSER_BIN install --no-dev --optimize-autoloader --no-interaction --quiet || rollback "composer install"
 if ! "$PHP" artisan migrate:status --pending --no-ansi | grep -q "No pending migrations"; then
-    "$PHP" artisan egmenu:backup || rollback "backup before migrations"
+    "$PHP" artisan eghub:backup || rollback "backup before migrations"
     "$PHP" artisan migrate --force || rollback "migrate"
 fi
 # built-in roles get new permissions; plans and add-ons are only created when missing (edited prices stay)
@@ -127,5 +127,5 @@ fi
 [ "$OLD" != none ] && ! grep -q "^$OLD\$" "$HISTORY" 2>/dev/null && echo "$OLD" >>"$HISTORY"
 echo "$NEW" >>"$HISTORY"
 rm -f "$FAILED"
-"$PHP" artisan egmenu:doctor || true
+"$PHP" artisan eghub:doctor || true
 echo "== done $NEW"

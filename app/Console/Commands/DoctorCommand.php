@@ -8,7 +8,10 @@ use Illuminate\Console\Command;
 /** Post-deploy checklist (App\Support\SystemDoctor). Exit code 1 when any check fails; warnings do not fail. */
 class DoctorCommand extends Command
 {
-    protected $signature = 'egmenu:doctor';
+    protected $signature = 'eghub:doctor';
+
+    /** The deploy script running while this version arrives still calls the old name. */
+    protected $aliases = ['egmenu:doctor'];
 
     protected $description = 'Check the things a human needs to verify after a deploy';
 

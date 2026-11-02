@@ -3,6 +3,7 @@
 // a full-screen alert in the restaurant's colour, a loud chime written in memory (no sound file), the phone
 // vibrating and the tab title flashing, until the guest taps "I picked it up" (or silences it until the next call).
 // Phones only play sound after a tap, hence "Test the sound". Nothing works once the page is closed: say so honestly.
+import './storage-rename';
 
 const root = document.getElementById('pager');
 if (root) {
@@ -12,7 +13,7 @@ if (root) {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const $ = (s) => document.querySelector(s);
     const baseTitle = document.title;
-    const storeKey = `egmenu.pager.${root.dataset.key}`;
+    const storeKey = `eghub.pager.${root.dataset.key}`;
     let state = JSON.parse(root.dataset.state);
     // the call count the guest silenced ("I am on my way"): a newer call rings again
     let silenced = 0;
@@ -119,7 +120,7 @@ if (root) {
     async function notify() {
         if (!('Notification' in window) || Notification.permission !== 'granted') return;
         const title = T.ready;
-        const options = { body: `${T.number.replace('__N__', state.number)} · ${T.come}`, tag: 'egmenu-pager', renotify: true, requireInteraction: true, vibrate: [400, 150, 400] };
+        const options = { body: `${T.number.replace('__N__', state.number)} · ${T.come}`, tag: 'eghub-pager', renotify: true, requireInteraction: true, vibrate: [400, 150, 400] };
         try {
             const reg = await navigator.serviceWorker?.getRegistration();
             if (reg) return await reg.showNotification(title, options);

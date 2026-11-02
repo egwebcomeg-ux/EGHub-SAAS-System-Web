@@ -36,7 +36,7 @@ final class PlatformSchema
             'name' => 'EgHub',
             'legalName' => $legalName,
             'url' => platform_url(null, '/'),
-            'logo' => versioned_asset('icons/egmenu-512.png'),
+            'logo' => versioned_asset('icons/eghub-512.png'),
             'sameAs' => array_column(SocialLinks::all(), 'url') ?: null,
             'contactPoint' => isset($contact['email']) || isset($contact['telephone']) ? $contact : null,
         ]);

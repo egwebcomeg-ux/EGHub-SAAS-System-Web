@@ -14,7 +14,7 @@ class LaunchHardeningTest extends TenantTestCase
 {
     private function admin(): PlatformAdmin
     {
-        return PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@egmenu.test', 'password' => 'Secret-pass-123']);
+        return PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@eghub.test', 'password' => 'Secret-pass-123']);
     }
 
     public function test_only_the_dashboard_host_may_use_the_camera(): void
@@ -33,7 +33,7 @@ class LaunchHardeningTest extends TenantTestCase
 
     public function test_an_admin_without_two_factor_can_only_open_the_security_page(): void
     {
-        config(['egmenu.admin_require_2fa' => true]);
+        config(['eghub.admin_require_2fa' => true]);
         $admin = $this->admin();
 
         $this->actingAs($admin, 'admin')->get($this->adminUrl('/'))->assertRedirect(route('admin.security'));
@@ -52,12 +52,12 @@ class LaunchHardeningTest extends TenantTestCase
 
     public function test_an_admin_without_two_factor_can_still_sign_out_and_the_flag_relaxes_it(): void
     {
-        config(['egmenu.admin_require_2fa' => true]);
+        config(['eghub.admin_require_2fa' => true]);
         $admin = $this->admin();
         $this->actingAs($admin, 'admin')->post($this->adminUrl('/logout'))->assertRedirect(route('admin.login'));
         $this->assertGuest('admin');
 
-        config(['egmenu.admin_require_2fa' => false]);
+        config(['eghub.admin_require_2fa' => false]);
         $this->actingAs($admin, 'admin')->get($this->adminUrl('/'))->assertOk();
     }
 
@@ -78,15 +78,15 @@ class LaunchHardeningTest extends TenantTestCase
         $this->admin();
         for ($i = 1; $i <= 5; $i++) {
             $this->withServerVariables(['REMOTE_ADDR' => "10.1.0.$i"])
-                ->post($this->adminUrl('/login'), ['email' => 'admin@egmenu.test', 'password' => 'wrong'])->assertSessionHasErrors('email');
+                ->post($this->adminUrl('/login'), ['email' => 'admin@eghub.test', 'password' => 'wrong'])->assertSessionHasErrors('email');
         }
         $this->withServerVariables(['REMOTE_ADDR' => '10.1.0.99'])
-            ->post($this->adminUrl('/login'), ['email' => 'admin@egmenu.test', 'password' => 'wrong'])->assertStatus(429);
+            ->post($this->adminUrl('/login'), ['email' => 'admin@eghub.test', 'password' => 'wrong'])->assertStatus(429);
     }
 
     public function test_an_idle_admin_session_is_signed_out(): void
     {
-        config(['egmenu.admin_idle_minutes' => 120]);
+        config(['eghub.admin_idle_minutes' => 120]);
         $admin = $this->admin();
 
         $this->actingAs($admin, 'admin')->get($this->adminUrl('/'))->assertOk();

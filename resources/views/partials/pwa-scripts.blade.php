@@ -29,7 +29,7 @@
             }
             const banner = document.querySelector('[data-pwa-banner]');
             if (!banner) return;
-            const KEY = 'egmenu.pwa.' + @js($pwa['key']);
+            const KEY = 'eghub.pwa.' + @js($pwa['key']);
             const DAY = 86400000;
             let state = {};
             try { state = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) {}

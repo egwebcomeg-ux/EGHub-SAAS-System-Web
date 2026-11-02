@@ -1,5 +1,6 @@
 // Kitchen display: polls the feed, oldest ticket first; green → amber after 10 min → red after 20 (Filetto rule).
 // "Start" moves a new ticket to preparing, "Ready" bumps it (only this station's lines when a station is chosen).
+import './storage-rename';
 
 import { bindPager, pagerButtons, pagerStatus } from './pager-call';
 
@@ -17,7 +18,7 @@ if (kds) {
     let tickets = [];
     let lastTickets = null; // the last feed drawn, to skip redraws when nothing changed
     let soundOn = false;
-    try { soundOn = localStorage.getItem('egmenu.kds.sound') === '1'; } catch {}
+    try { soundOn = localStorage.getItem('eghub.kds.sound') === '1'; } catch {}
     let audio = null;
     let wakeLock = null;
 
@@ -40,7 +41,7 @@ if (kds) {
     const KINDS = ['food', 'drinks'];
     const ICON = { food: '🍽', drinks: '☕' };
     let filter = 'all';
-    try { filter = localStorage.getItem('egmenu.kds.filter') || 'all'; } catch {}
+    try { filter = localStorage.getItem('eghub.kds.filter') || 'all'; } catch {}
     const pending = (t, kind) => t.items.some((i) => !i.done && (!kind || i.kind === kind));
 
     // what this screen shows of a ticket under the filter (null = nothing to do here)
@@ -64,7 +65,7 @@ if (kds) {
         const c = e.target.closest('[data-chip]');
         if (!c) return;
         filter = c.dataset.chip;
-        try { localStorage.setItem('egmenu.kds.filter', filter); } catch {}
+        try { localStorage.setItem('eghub.kds.filter', filter); } catch {}
         render();
     });
 
@@ -170,7 +171,7 @@ if (kds) {
 
     document.querySelector('[data-sound]').addEventListener('click', (e) => {
         soundOn = !soundOn;
-        try { localStorage.setItem('egmenu.kds.sound', soundOn ? '1' : '0'); } catch {}
+        try { localStorage.setItem('eghub.kds.sound', soundOn ? '1' : '0'); } catch {}
         e.currentTarget.classList.toggle('ring-2', soundOn);
         chime();
     });

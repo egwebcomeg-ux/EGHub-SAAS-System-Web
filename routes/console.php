@@ -50,25 +50,25 @@ $forEachTenant = function (string $command, iterable $tenants, Closure $fn): int
     return $failed;
 };
 
-Artisan::command('egmenu:billing', function (Lifecycle $lifecycle) {
+Artisan::command('eghub:billing', function (Lifecycle $lifecycle) {
     $r = $lifecycle->run();
     $this->info("past_due: {$r['past_due']} · downgraded to free: {$r['downgraded']} · reminded: {$r['reminded']} · launch offer reminders: {$r['offer_reminded']}");
 })->purpose('Daily subscription lifecycle: trial/period end → grace → suspension, reminders');
 
-Artisan::command('egmenu:auto-serve', function (OrderFlow $flow, OrderService $orders) use ($forEachTenant) {
+Artisan::command('eghub:auto-serve', function (OrderFlow $flow, OrderService $orders) use ($forEachTenant) {
     // only restaurants with a paid order left ready (no table, not a delivery): the rest have nothing to close
     $tenants = Tenant::query()->where('status', 'active')->whereIn('id', Order::query()->withoutGlobalScopes()->where('status', 'ready')
         ->where('payment_status', 'paid')->whereNull('dining_table_id')->where('type', '!=', 'delivery')->select('tenant_id'))->orderBy('id')->get();
     $n = 0;
-    $failed = $forEachTenant('egmenu:auto-serve', $tenants, function () use ($flow, $orders, &$n) {
+    $failed = $forEachTenant('eghub:auto-serve', $tenants, function () use ($flow, $orders, &$n) {
         $n += $flow->autoServe($orders);
     });
     $this->info("closed ready orders: $n · failed restaurants: $failed");
 })->purpose('Close paid orders left ready past each restaurant\'s order_auto_serve_minutes');
 
-Artisan::command('egmenu:corporate-visits', function (CorporateBookings $bookings) use ($forEachTenant) {
+Artisan::command('eghub:corporate-visits', function (CorporateBookings $bookings) use ($forEachTenant) {
     $n = 0;
-    $failed = $forEachTenant('egmenu:corporate-visits', Tenant::query()->where('status', 'active')->whereIn('id', CorporateBooking::query()->withoutGlobalScopes()
+    $failed = $forEachTenant('eghub:corporate-visits', Tenant::query()->where('status', 'active')->whereIn('id', CorporateBooking::query()->withoutGlobalScopes()
         ->where('status', 'confirmed')->select('tenant_id'))->orderBy('id')->get(), function () use ($bookings, &$n) {
             // even when the plan no longer has the feature: what is left of the meals is the company's money
             $n += $bookings->closePast();
@@ -76,10 +76,10 @@ Artisan::command('egmenu:corporate-visits', function (CorporateBookings $booking
     $this->info("closed company visits: $n · failed restaurants: $failed");
 })->purpose('Close the company visits of past days: what the meals did not use goes onto the company\'s voucher');
 
-Artisan::command('egmenu:loyalty-expire', function (LoyaltyService $loyalty, Packages $packages, WalletService $wallet) use ($forEachTenant) {
+Artisan::command('eghub:loyalty-expire', function (LoyaltyService $loyalty, Packages $packages, WalletService $wallet) use ($forEachTenant) {
     // runs per restaurant so the tenant scope and plan rights apply
     $n = $p = $c = 0;
-    $failed = $forEachTenant('egmenu:loyalty-expire', Tenant::query()->where('status', 'active')->orderBy('id')->get(), function () use ($loyalty, $packages, $wallet, &$n, &$p, &$c) {
+    $failed = $forEachTenant('eghub:loyalty-expire', Tenant::query()->where('status', 'active')->orderBy('id')->get(), function () use ($loyalty, $packages, $wallet, &$n, &$p, &$c) {
         $n += $loyalty->expireStamps();
         $p += $packages->expire();
         $c += $wallet->expireCashback();
@@ -87,23 +87,23 @@ Artisan::command('egmenu:loyalty-expire', function (LoyaltyService $loyalty, Pac
     $this->info("expired cards: $n · expired packages: $p · expired cashback lines: $c · failed restaurants: $failed");
 })->purpose('Clear loyalty stamps older than each program allows, close prepaid packages past their date, take back expired cashback');
 
-Artisan::command('egmenu:campaigns', function (Campaigns $campaigns) {
+Artisan::command('eghub:campaigns', function (Campaigns $campaigns) {
     $this->info('campaigns started: '.$campaigns->startDue());
 })->purpose('Start the WhatsApp campaigns scheduled until now');
-Artisan::command('egmenu:daily-digest', function (DailyDigest $digest) {
+Artisan::command('eghub:daily-digest', function (DailyDigest $digest) {
     $this->info('daily digests sent: '.$digest->run());
 })->purpose('Send owners and managers yesterday\'s digest: sales, cancellations, refunds, cash, open orders, visits, low stock');
 
-Artisan::command('egmenu:weekly-report', function (WeeklyReportMailer $mailer) {
+Artisan::command('eghub:weekly-report', function (WeeklyReportMailer $mailer) {
     $this->info('weekly reports sent: '.$mailer->run());
 })->purpose('Email last week\'s numbers to the owners who turned the weekly report on (advanced reports)');
 
-Artisan::command('egmenu:auto-cancel', function (AutoCancel $autoCancel) use ($forEachTenant) {
+Artisan::command('eghub:auto-cancel', function (AutoCancel $autoCancel) use ($forEachTenant) {
     // every minute, so only the restaurants that set online_auto_cancel_minutes (0 = off, the default) are visited
     $tenantIds = TenantSetting::query()->withoutGlobalScopes()->where('key', 'online_auto_cancel_minutes')
         ->whereNotIn('value', ['', '0'])->pluck('tenant_id');
     $n = 0;
-    $failed = $forEachTenant('egmenu:auto-cancel', Tenant::query()->whereIn('id', $tenantIds)->where('status', 'active')->orderBy('id')->get(), function () use ($autoCancel, &$n) {
+    $failed = $forEachTenant('eghub:auto-cancel', Tenant::query()->whereIn('id', $tenantIds)->where('status', 'active')->orderBy('id')->get(), function () use ($autoCancel, &$n) {
         $n += $autoCancel->run();
     });
     $this->info("auto-cancelled orders: $n · failed restaurants: $failed");
@@ -113,28 +113,28 @@ Artisan::command('egmenu:auto-cancel', function (AutoCancel $autoCancel) use ($f
 // Times of day are restaurant time (app.schedule_timezone, Cairo): 03:00 stays 03:00 through daylight saving.
 // withoutOverlapping(N): the lock expires after N minutes, so a run killed half-way (deploy, OOM) never blocks the
 // command for the default 24 hours. Daily/weekly jobs get a lock as long as they can reasonably take.
-Schedule::command('egmenu:billing')->dailyAt('03:00')->withoutOverlapping(60);
-Schedule::command('egmenu:auto-serve')->everyFiveMinutes()->withoutOverlapping(10);
-Schedule::command('egmenu:corporate-visits')->dailyAt('04:00')->withoutOverlapping(60);
-Schedule::command('egmenu:loyalty-expire')->dailyAt('03:30')->withoutOverlapping(60);
-Schedule::command('egmenu:backup')->dailyAt('02:30')->withoutOverlapping(120)->runInBackground();
+Schedule::command('eghub:billing')->dailyAt('03:00')->withoutOverlapping(60);
+Schedule::command('eghub:auto-serve')->everyFiveMinutes()->withoutOverlapping(10);
+Schedule::command('eghub:corporate-visits')->dailyAt('04:00')->withoutOverlapping(60);
+Schedule::command('eghub:loyalty-expire')->dailyAt('03:30')->withoutOverlapping(60);
+Schedule::command('eghub:backup')->dailyAt('02:30')->withoutOverlapping(120)->runInBackground();
 // per-restaurant backup zips the owners download (plans with the `backups` feature), Sunday night after the platform backup
-Schedule::command('egmenu:tenant-backups')->weeklyOn(0, '03:30')->withoutOverlapping(180)->runInBackground();
-Schedule::command('egmenu:campaigns')->everyMinute()->withoutOverlapping(10);
-Schedule::command('egmenu:auto-cancel')->everyMinute()->withoutOverlapping(10);
-Schedule::command('egmenu:daily-digest')->dailyAt('07:40')->withoutOverlapping(60);
-Schedule::command('egmenu:weekly-report')->weeklyOn(1, '08:00')->withoutOverlapping(60);
+Schedule::command('eghub:tenant-backups')->weeklyOn(0, '03:30')->withoutOverlapping(180)->runInBackground();
+Schedule::command('eghub:campaigns')->everyMinute()->withoutOverlapping(10);
+Schedule::command('eghub:auto-cancel')->everyMinute()->withoutOverlapping(10);
+Schedule::command('eghub:daily-digest')->dailyAt('07:40')->withoutOverlapping(60);
+Schedule::command('eghub:weekly-report')->weeklyOn(1, '08:00')->withoutOverlapping(60);
 // background jobs (AI menu import) without a separate worker process: drained every minute by the same cron, in the
 // background so the minute's other entries (and the heartbeat) are not held up; a failed job is retried twice, 30 s apart
 Schedule::command('queue:work --stop-when-empty --max-time=55 --tries=3 --backoff=30')->everyMinute()->withoutOverlapping(5)->runInBackground();
-// heartbeat read by egmenu:doctor to confirm the cron line is installed
-Schedule::call(fn () => cache()->put('egmenu:scheduler_at', now()->timestamp, now()->addDay()))->everyMinute()->name('scheduler-heartbeat');
+// heartbeat read by eghub:doctor to confirm the cron line is installed
+Schedule::call(fn () => cache()->put('eghub:scheduler_at', now()->timestamp, now()->addDay()))->everyMinute()->name('scheduler-heartbeat');
 
 // Marketing automations (welcome / winback / birthday): every 15 minutes, per restaurant, inside each one's send window
-Artisan::command('egmenu:automations', function (Automations $automations) {
+Artisan::command('eghub:automations', function (Automations $automations) {
     $this->info('automation messages sent: '.$automations->runAll());
 })->purpose('Send the due welcome, winback and birthday WhatsApp messages of every restaurant');
-Schedule::command('egmenu:automations')->everyFifteenMinutes()->withoutOverlapping(10);
+Schedule::command('eghub:automations')->everyFifteenMinutes()->withoutOverlapping(10);
 
 // a scheduled command that fails emails the team (at most once in 6 hours per command); a dead cron cannot, System health shows that
 foreach (Schedule::events() as $event) {

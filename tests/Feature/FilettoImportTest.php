@@ -19,7 +19,7 @@ use Illuminate\Testing\PendingCommand;
 use PDO;
 use Tests\TenantTestCase;
 
-/** egmenu:import-filetto: Filetto BBQ's old ordering site into the restaurant `filetto`. */
+/** eghub:import-filetto: Filetto BBQ's old ordering site into the restaurant `filetto`. */
 class FilettoImportTest extends TenantTestCase
 {
     private string $folder;
@@ -100,7 +100,7 @@ class FilettoImportTest extends TenantTestCase
 
     private function import(array $options = []): PendingCommand
     {
-        return $this->artisan('egmenu:import-filetto', [
+        return $this->artisan('eghub:import-filetto', [
             '--source' => $this->folder.'/database.sqlite', '--assets' => $this->folder.'/assets', '--prices' => $this->folder.'/prices.json',
         ] + $options);
     }

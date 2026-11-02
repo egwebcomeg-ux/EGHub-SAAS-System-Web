@@ -27,7 +27,7 @@ final class Pwa
         if (str_starts_with($name, 'dash.')) {
             return [
                 'manifest' => route('dash.manifest'), 'sw' => route('dash.sw'), 'scope' => '/', 'theme' => self::THEME,
-                'icon' => versioned_asset('icons/egmenu-192.png'), 'title' => 'EgHub', 'key' => 'dashboard', 'install' => false,
+                'icon' => versioned_asset('icons/eghub-192.png'), 'title' => 'EgHub', 'key' => 'dashboard', 'install' => false,
             ];
         }
         if (tenant() && preg_match('/^(menu|path|custom)\.card$/', $name) && is_string($token = request()->route('token'))) {
@@ -140,10 +140,10 @@ final class Pwa
             'background_color' => self::BACKGROUND,
             'theme_color' => self::THEME,
             'icons' => [
-                ['src' => versioned_asset('icons/egmenu-192.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
-                ['src' => versioned_asset('icons/egmenu-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
-                ['src' => versioned_asset('icons/egmenu-maskable-192.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'maskable'],
-                ['src' => versioned_asset('icons/egmenu-maskable-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
+                ['src' => versioned_asset('icons/eghub-192.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+                ['src' => versioned_asset('icons/eghub-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+                ['src' => versioned_asset('icons/eghub-maskable-192.png'), 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'maskable'],
+                ['src' => versioned_asset('icons/eghub-maskable-512.png'), 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
             ],
         ];
     }

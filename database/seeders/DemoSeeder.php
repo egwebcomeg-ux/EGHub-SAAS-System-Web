@@ -13,7 +13,7 @@ use Illuminate\Database\Seeder;
 
 /**
  * Local development data: a super admin and a demo cafe with a small menu.
- *   admin.localhost:8000  admin@egmenu.test / password
+ *   admin.localhost:8000  admin@eghub.test / password
  *   app.localhost:8000    owner@demo.test   / password
  *   localhost:8000/demo-cafe
  */
@@ -21,7 +21,7 @@ class DemoSeeder extends Seeder
 {
     public function run(): void
     {
-        PlatformAdmin::query()->firstOrCreate(['email' => 'admin@egmenu.test'], ['name' => 'EgWeb Admin', 'password' => 'password']);
+        PlatformAdmin::query()->firstOrCreate(['email' => 'admin@eghub.test'], ['name' => 'EgWeb Admin', 'password' => 'password']);
 
         if (Tenant::query()->whereKey('demo-cafe')->exists()) {
             return;

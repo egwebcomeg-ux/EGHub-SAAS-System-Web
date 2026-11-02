@@ -166,7 +166,7 @@ class CustomerSegmentsTest extends TenantTestCase
         $this->assertSame('دايمين', $saved['loyal']->audienceLabel());
         $this->actingAs($this->owner($a))->get($this->dashUrl('/campaigns'))->assertOk()->assertSee('مزاروش من 30 يوم');
 
-        Artisan::call('egmenu:campaigns');
+        Artisan::call('eghub:campaigns');
         $this->assertSame('sent', $this->as($a, fn () => $scheduled->fresh()->status));
         $this->assertSame([$g['at_risk']->id], $this->as($a, fn () => WhatsAppMessage::query()->where('campaign_id', $scheduled->id)->pluck('customer_id')->all()));
     }

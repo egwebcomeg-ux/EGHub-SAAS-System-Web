@@ -1,5 +1,5 @@
 {{--
-    One share card (1200×630), drawn by headless Chrome from `php artisan egmenu:share-images` (App\Support\ShareCards).
+    One share card (1200×630), drawn by headless Chrome from `php artisan eghub:share-images` (App\Support\ShareCards).
     Same family as public/og-image.svg: a solid background with flat dots (no gradients or glows), either navy ("hub"
     of the EgHub wordmark in white) or white ("hub" in navy, navy text, orange accents) by $card['theme'], the exact
     paths of components/logo.blade.php, Cairo. Text on the start side, the page's own drawing on the other.

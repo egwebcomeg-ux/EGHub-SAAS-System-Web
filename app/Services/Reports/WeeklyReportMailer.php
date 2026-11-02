@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Notification;
 
 /**
  * Sends last week's numbers (Monday to Sunday) to the owners of every restaurant that turned the weekly report on
- * and has the advanced reports. Run on Monday morning by egmenu:weekly-report.
+ * and has the advanced reports. Run on Monday morning by eghub:weekly-report.
  */
 final class WeeklyReportMailer
 {

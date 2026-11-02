@@ -56,7 +56,7 @@ class LocalTimeTest extends TestCase
 
     public function test_the_schedule_runs_at_restaurant_time(): void
     {
-        $billing = collect(app(Schedule::class)->events())->first(fn (Event $e) => str_contains($e->command, 'egmenu:billing'));
+        $billing = collect(app(Schedule::class)->events())->first(fn (Event $e) => str_contains($e->command, 'eghub:billing'));
 
         // 03:00 in Cairo: 00:00 UTC in summer, 01:00 UTC in winter
         $this->travelTo(Carbon::parse('2026-07-01 00:00:00'));

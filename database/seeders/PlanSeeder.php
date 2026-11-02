@@ -15,7 +15,7 @@ use Illuminate\Database\Seeder;
  *    plans are hidden from the pricing page and new upgrades but stay as they are for whoever subscribes to them;
  *  - feature packs are no longer sold (existing holders keep theirs); WhatsApp credits, the featured listing, the
  *    extra branch and the 5-users pack stay on sale. Nothing here deletes a plan or touches a subscription;
- *  - archiving is a production action (`php artisan egmenu:archive-legacy-plans`): this seeder never sets or clears
+ *  - archiving is a production action (`php artisan eghub:archive-legacy-plans`): this seeder never sets or clears
  *    plans.archived_at, so an archived plan stays archived on every later run, and a fresh install (and the tests)
  *    still gets the legacy plans, unarchived and hidden from pricing.
  */

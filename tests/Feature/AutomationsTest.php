@@ -71,8 +71,8 @@ class AutomationsTest extends TenantTestCase
         $this->customer($b, '01000000001', ['visits_count' => 1, 'last_visit_at' => now()->subHour()]);
         app(Credits::class)->add($b, 10, 'adjustment');
 
-        Artisan::call('egmenu:automations');
-        Artisan::call('egmenu:automations');
+        Artisan::call('eghub:automations');
+        Artisan::call('eghub:automations');
 
         $messages = $this->messages($a);
         $this->assertCount(1, $messages);
@@ -92,7 +92,7 @@ class AutomationsTest extends TenantTestCase
         $this->enable($a, 'welcome');
         $item = $this->item($a, 'Latte', 50);
 
-        Artisan::call('egmenu:automations');
+        Artisan::call('eghub:automations');
         $this->assertCount(0, $this->messages($a));
 
         $this->as($a, function () use ($item) {
@@ -101,7 +101,7 @@ class AutomationsTest extends TenantTestCase
             ], Branch::query()->first());
             app(LoyaltyService::class)->orderCompleted($order);
         });
-        Artisan::call('egmenu:automations');
+        Artisan::call('eghub:automations');
         $messages = $this->messages($a, 'welcome');
         $this->assertCount(1, $messages);
         $this->assertStringStartsWith('أهلاً Mona', $messages[0]->body);
@@ -116,14 +116,14 @@ class AutomationsTest extends TenantTestCase
         app(Credits::class)->add($a, 10, 'adjustment');
         $this->enable($a, 'winback', ['days' => 30]);
 
-        Artisan::call('egmenu:automations');
-        Artisan::call('egmenu:automations');
+        Artisan::call('eghub:automations');
+        Artisan::call('eghub:automations');
         $this->assertSame([$away->id], $this->messages($a)->pluck('customer_id')->all());
 
         // 60 days later guest 2 is 80 days away and gets their message; guest 1 was messaged 60 days ago and waits
         // for the 90-day cooldown
         $this->travel(60)->days();
-        Artisan::call('egmenu:automations');
+        Artisan::call('eghub:automations');
         $this->assertSame([$away->id, $away->id + 1], $this->messages($a)->pluck('customer_id')->sort()->values()->all());
     }
 
@@ -134,13 +134,13 @@ class AutomationsTest extends TenantTestCase
         app(Credits::class)->add($a, 10, 'adjustment');
         $this->enable($a, 'winback', ['days' => 30]);
 
-        Artisan::call('egmenu:automations');
+        Artisan::call('eghub:automations');
         $this->assertCount(1, $this->messages($a));
         $this->travel(89)->days();
-        Artisan::call('egmenu:automations');
+        Artisan::call('eghub:automations');
         $this->assertCount(1, $this->messages($a));
         $this->travel(2)->days();
-        Artisan::call('egmenu:automations');
+        Artisan::call('eghub:automations');
         $this->assertCount(2, $this->messages($a));
         $this->assertSame([$away->id, $away->id], $this->messages($a)->pluck('customer_id')->all());
         $this->assertSame(8, app(Credits::class)->balance($a));
@@ -157,17 +157,17 @@ class AutomationsTest extends TenantTestCase
         $this->enable($a, 'birthday'); // 9:00 – 13:00 by default
 
         $this->travelTo(local_at()->setTime(15, 0));
-        Artisan::call('egmenu:automations');
+        Artisan::call('eghub:automations');
         $this->assertCount(0, $this->messages($a));
 
         $this->travelTo(local_at()->setTime(10, 30));
-        Artisan::call('egmenu:automations');
-        Artisan::call('egmenu:automations');
+        Artisan::call('eghub:automations');
+        Artisan::call('eghub:automations');
         $this->assertSame([$today->id], $this->messages($a)->pluck('customer_id')->all());
         $this->assertStringContainsString('كل سنة وإنت طيب يا Guest 001', $this->messages($a)[0]->body);
 
         $this->travelTo(now()->addYear());
-        Artisan::call('egmenu:automations');
+        Artisan::call('eghub:automations');
         $this->assertCount(2, $this->messages($a));
     }
 
@@ -183,17 +183,17 @@ class AutomationsTest extends TenantTestCase
         $g2 = $this->customer($broke, '01000000002', ['visits_count' => 1, 'last_visit_at' => now()->subHour()]);
         $this->enable($broke, 'welcome');
 
-        Artisan::call('egmenu:automations');
+        Artisan::call('eghub:automations');
         $this->assertCount(0, $this->messages($pro));
         $this->assertSame(10, app(Credits::class)->balance($pro));
         $this->assertCount(0, $this->messages($broke));
 
         // one credit for two due guests: one goes out, the other waits for the next run after a top-up
         app(Credits::class)->add($broke, 1, 'adjustment');
-        Artisan::call('egmenu:automations');
+        Artisan::call('eghub:automations');
         $this->assertSame(['sent'], $this->messages($broke)->pluck('status')->all());
         app(Credits::class)->add($broke, 5, 'adjustment');
-        Artisan::call('egmenu:automations');
+        Artisan::call('eghub:automations');
         $this->assertSame([$g1->id, $g2->id], $this->messages($broke)->where('status', 'sent')->pluck('customer_id')->sort()->values()->all());
         $this->assertSame(4, app(Credits::class)->balance($broke));
     }
@@ -223,7 +223,7 @@ class AutomationsTest extends TenantTestCase
 
         // a guest gets the message and comes back with the coupon: the box counts the send, the order and its revenue
         $this->customer($a, '01000000001', ['visits_count' => 2, 'last_visit_at' => now()->subDays(50)]);
-        Artisan::call('egmenu:automations');
+        Artisan::call('eghub:automations');
         $this->assertCount(1, $this->messages($a));
         $item = $this->item($a, 'Latte', 100);
         $this->as($a, fn () => app(OrderService::class)->place([

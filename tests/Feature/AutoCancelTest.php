@@ -45,7 +45,7 @@ class AutoCancelTest extends TenantTestCase
         $this->travelBack();
         $fresh = $this->place($a, ['source' => 'online', 'type' => 'takeaway', 'customer_phone' => '01012345678']);
 
-        Artisan::call('egmenu:auto-cancel');
+        Artisan::call('eghub:auto-cancel');
         $this->assertStringContainsString('auto-cancelled orders: 2', Artisan::output());
 
         $status = fn (Order $o) => $this->as($a, fn () => Order::query()->findOrFail($o->id));
@@ -60,7 +60,7 @@ class AutoCancelTest extends TenantTestCase
         $this->assertSame('new', $status($fresh)->status);     // not old enough yet
 
         // the second run finds nothing more (and the history has exactly one cancellation per order)
-        Artisan::call('egmenu:auto-cancel');
+        Artisan::call('eghub:auto-cancel');
         $this->assertStringContainsString('auto-cancelled orders: 0', Artisan::output());
         $this->assertSame(1, $this->as($a, fn () => $late->history()->where('to_status', 'cancelled')->count()));
 
@@ -108,7 +108,7 @@ class AutoCancelTest extends TenantTestCase
             }
         });
 
-        Artisan::call('egmenu:auto-cancel');
+        Artisan::call('eghub:auto-cancel');
         $this->assertStringContainsString('auto-cancelled orders: 1 · failed restaurants: 1', Artisan::output());
         $this->assertSame('new', $this->as($a, fn () => Order::query()->findOrFail($orderA->id)->status));
         $this->assertSame('cancelled', $this->as($b, fn () => Order::query()->findOrFail($orderB->id)->status));

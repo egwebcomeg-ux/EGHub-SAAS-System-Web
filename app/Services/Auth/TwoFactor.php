@@ -99,15 +99,15 @@ final class TwoFactor
         return Settings::get('require_2fa') === '1' && ! $user->hasTwoFactorEnabled();
     }
 
-    /** Every platform admin must use 2FA (config egmenu.admin_require_2fa): until it is on, only the security page opens. */
+    /** Every platform admin must use 2FA (config eghub.admin_require_2fa): until it is on, only the security page opens. */
     public static function adminSetupRequired(PlatformAdmin $admin): bool
     {
-        return (bool) config('egmenu.admin_require_2fa') && ! $admin->hasTwoFactorEnabled();
+        return (bool) config('eghub.admin_require_2fa') && ! $admin->hasTwoFactorEnabled();
     }
 
     public static function cookieName(string $guard): string
     {
-        return "egmenu_2fa_$guard";
+        return "eghub_2fa_$guard";
     }
 
     /** HMAC over the payload, keyed by the app key and the user's current 2FA setup (a reset invalidates it). */

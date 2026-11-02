@@ -15,7 +15,7 @@ use Illuminate\Console\Command;
  */
 class ArchiveLegacyPlansCommand extends Command
 {
-    protected $signature = 'egmenu:archive-legacy-plans {--dry-run : Only report what would be archived}';
+    protected $signature = 'eghub:archive-legacy-plans {--dry-run : Only report what would be archived}';
 
     protected $description = 'Archive the legacy plans (starter, basic, pro, business) once nobody uses them';
 
@@ -54,7 +54,7 @@ class ArchiveLegacyPlansCommand extends Command
         }
         foreach ($toArchive as $plan) {
             $plan->archive();
-            PlatformAuditLog::record(null, 'plan.archived', $plan->code, ['via' => 'egmenu:archive-legacy-plans']);
+            PlatformAuditLog::record(null, 'plan.archived', $plan->code, ['via' => 'eghub:archive-legacy-plans']);
         }
         Entitlements::flush();
         $this->info(count($toArchive).' plan(s) archived.');

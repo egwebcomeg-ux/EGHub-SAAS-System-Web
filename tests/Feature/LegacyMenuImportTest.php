@@ -15,7 +15,7 @@ use Illuminate\Testing\PendingCommand;
 use PDO;
 use Tests\TenantTestCase;
 
-/** egmenu:import-legacy-menu: a legacy (Desoky-family) menu.db into an EgHub restaurant. */
+/** eghub:import-legacy-menu: a legacy (Desoky-family) menu.db into an EgHub restaurant. */
 class LegacyMenuImportTest extends TenantTestCase
 {
     private string $folder;
@@ -84,7 +84,7 @@ class LegacyMenuImportTest extends TenantTestCase
 
     private function import(string $tenant, array $options = []): PendingCommand
     {
-        return $this->artisan('egmenu:import-legacy-menu', ['path' => $this->folder, 'tenant' => $tenant] + $options);
+        return $this->artisan('eghub:import-legacy-menu', ['path' => $this->folder, 'tenant' => $tenant] + $options);
     }
 
     public function test_maps_settings_menu_options_and_images(): void

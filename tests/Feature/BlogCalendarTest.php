@@ -239,7 +239,7 @@ class BlogCalendarTest extends TenantTestCase
         Post::query()->where('slug', 'takeaway-packaging-guide')->update(['cover' => 'platform/blog/takeaway-packaging-guide.webp']);
         Post::query()->where('slug', 'year-end-review')->update(['cover' => 'platform/blog/owner-upload.webp']);
 
-        $this->artisan('egmenu:blog-covers', ['--apply' => true])->expectsOutput('2 article covers updated.')->assertSuccessful();
+        $this->artisan('eghub:blog-covers', ['--apply' => true])->expectsOutput('2 article covers updated.')->assertSuccessful();
 
         foreach (['menu-engineering', 'takeaway-packaging-guide'] as $slug) {
             $cover = Post::query()->where('slug', $slug)->value('cover');
@@ -247,6 +247,6 @@ class BlogCalendarTest extends TenantTestCase
             Storage::disk('public')->assertExists($cover);
         }
         $this->assertSame('platform/blog/owner-upload.webp', Post::query()->where('slug', 'year-end-review')->value('cover'));
-        $this->artisan('egmenu:blog-covers', ['--apply' => true])->expectsOutput('0 article covers updated.');
+        $this->artisan('eghub:blog-covers', ['--apply' => true])->expectsOutput('0 article covers updated.');
     }
 }

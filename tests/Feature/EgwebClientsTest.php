@@ -133,7 +133,7 @@ class EgwebClientsTest extends TenantTestCase
         File::copy(public_path('img/egweb-clients/medic8.webp'), "$dir/Some Other.webp");
 
         try {
-            $this->artisan('egmenu:import-egweb-clients', ['dir' => $dir])->assertSuccessful();
+            $this->artisan('eghub:import-egweb-clients', ['dir' => $dir])->assertSuccessful();
             $list = EgwebClients::all();
             $this->assertSame(['filetto', 'some-other'], array_column($list, 'key'));
             $this->assertSame(['Filetto', true], [$list[0]['name'], $list[0]['active']]);
@@ -142,7 +142,7 @@ class EgwebClientsTest extends TenantTestCase
 
             // an edit by the admin survives a second run, and nothing is added twice
             EgwebClients::save([['name' => 'Filetto Meats'] + $list[0], $list[1]]);
-            $this->artisan('egmenu:import-egweb-clients', ['dir' => $dir])->expectsOutputToContain('0 logo(s) added')->assertSuccessful();
+            $this->artisan('eghub:import-egweb-clients', ['dir' => $dir])->expectsOutputToContain('0 logo(s) added')->assertSuccessful();
             $this->assertSame(['Filetto Meats', 2], [EgwebClients::all()[0]['name'], count(EgwebClients::all())]);
         } finally {
             File::deleteDirectory($dir);

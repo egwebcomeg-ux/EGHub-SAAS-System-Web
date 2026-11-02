@@ -18,7 +18,7 @@
      data-l10n="{{ json_encode($asstL10n, JSON_UNESCAPED_UNICODE) }}"
      class="fixed inset-0 z-[60] flex flex-col overflow-hidden bg-white shadow-2xl sm:inset-auto sm:bottom-6 sm:end-6 sm:h-[min(620px,calc(100dvh-48px))] sm:w-[400px] sm:rounded-3xl sm:border sm:border-navy-100">
     <header class="flex items-center gap-3 bg-navy-900 px-4 py-3 text-white">
-        <img src="{{ versioned_asset('icons/egmenu-192.png') }}" alt="" width="40" height="40" class="size-10 shrink-0 rounded-xl bg-white p-0.5">
+        <img src="{{ versioned_asset('icons/eghub-192.png') }}" alt="" width="40" height="40" class="size-10 shrink-0 rounded-xl bg-white p-0.5">
         <div class="min-w-0 flex-1">
             <p id="asst-title" class="truncate text-base font-extrabold">{{ __('EgHub assistant') }}</p>
             <p class="text-xs text-white/70">{{ __('Replies instantly · automated assistant') }}</p>
@@ -59,7 +59,7 @@
     var chips = panel.querySelector('[data-asst-chips]');
     var human = panel.querySelector('[data-asst-human]');
     var csrf = document.querySelector('meta[name=csrf-token]');
-    var KEY = 'egmenu-assistant';
+    var KEY = 'eghub-assistant';
     var busy = false, lastFocus = null;
     var BOT = 'max-w-[86%] self-start rounded-2xl rounded-ss-md border border-navy-100 bg-white px-3.5 py-2.5 text-navy-900 [&_a]:font-bold [&_a]:text-brand-700 [&_a]:underline';
     var ME = 'max-w-[86%] self-end rounded-2xl rounded-se-md bg-brand-600 px-3.5 py-2.5 text-white [&_a]:underline';

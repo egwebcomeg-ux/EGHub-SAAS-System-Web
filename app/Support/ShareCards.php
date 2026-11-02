@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
  * link sent on WhatsApp or Facebook shows a picture about that page (a feature page shows its own name and drawing).
  *
  * The images are drawn from resources/views/share-cards/card.blade.php by headless Chrome on a developer machine
- * (`php artisan egmenu:share-images`) and committed under public/og/{ar|en}/{key}.png: the server never draws them.
+ * (`php artisan eghub:share-images`) and committed under public/og/{ar|en}/{key}.png: the server never draws them.
  * A page names its card with @section('share_card', 'features/pager'); a missing file falls back to og-image.png.
  * Every text on a card is copy the page itself already shows (SiteModules, the page headings).
  * Cards are solid navy or solid white (no gradients or glows), split by theme(): about half of each.

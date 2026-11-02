@@ -14,7 +14,7 @@ use App\Services\Entitlements;
 use Illuminate\Support\Facades\Notification;
 
 /**
- * Daily subscription housekeeping (egmenu:billing). No data is ever deleted and no menu goes offline:
+ * Daily subscription housekeeping (eghub:billing). No data is ever deleted and no menu goes offline:
  *   trial ended (unpaid)        → the free plan (menu stays online, ordering and paid features pause)
  *   paid period ended           → past_due with GRACE_DAYS of grace (everything still works)
  *   grace ended                 → the free plan

@@ -23,7 +23,7 @@
     (() => {
         const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
         const welcome = document.getElementById('lines').innerHTML;
-        new BroadcastChannel('egmenu-pos').onmessage = ({ data }) => {
+        new BroadcastChannel('eghub-pos').onmessage = ({ data }) => {
             const fmt = (n) => `${Math.round(n * 100) / 100} ${data.currency}`;
             document.getElementById('lines').innerHTML = data.lines.length
                 ? data.lines.map((l) => `<li class="flex justify-between gap-4"><span><b>${l.qty}×</b> ${esc(l.name)}</span><span>${fmt(l.amount)}</span></li>`).join('')

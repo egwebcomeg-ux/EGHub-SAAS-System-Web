@@ -135,10 +135,10 @@ class CampaignsTest extends TenantTestCase
         ])->assertSessionHasNoErrors();
         $this->assertSame('scheduled', $this->as($a, fn () => Campaign::query()->sole()->status));
 
-        Artisan::call('egmenu:campaigns');
+        Artisan::call('eghub:campaigns');
         $this->assertSame('scheduled', $this->as($a, fn () => Campaign::query()->sole()->status));
         $this->travel(2)->hours();
-        Artisan::call('egmenu:campaigns');
+        Artisan::call('eghub:campaigns');
         $this->assertSame('sent', $this->as($a, fn () => Campaign::query()->sole()->status));
         $this->assertSame(4, app(Credits::class)->balance($a));
     }

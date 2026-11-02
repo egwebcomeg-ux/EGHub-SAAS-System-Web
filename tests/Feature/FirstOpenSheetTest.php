@@ -49,7 +49,7 @@ class FirstOpenSheetTest extends TenantTestCase
         // two branches: no search box (it comes from 5)
         $this->assertStringNotContainsString('data-branch-search', $sheet);
         // a first visit with no branch chosen opens it before the first paint (once: the browser remembers the branch)
-        $this->assertStringContainsString('egmenu.branch.cafe-a', $html);
+        $this->assertStringContainsString('eghub.branch.cafe-a', $html);
         $this->assertSame(1, substr_count($html, "root.classList.add('choice-open')"));
         // reduced motion: the sheet does not slide in
         $this->assertStringContainsString('@media (prefers-reduced-motion: reduce) { .m-choice-card { animation: none; } }', $html);
@@ -131,7 +131,7 @@ class FirstOpenSheetTest extends TenantTestCase
         $this->get($this->subUrl('solo'))->assertOk()
             ->assertSee('data-first-sheet', false)->assertSee('data-way="takeaway"', false)
             ->assertDontSee('data-branch-sheet', false)->assertDontSee('من أنهي فرع؟')->assertDontSee('data-branch-open', false)
-            ->assertDontSee('egmenu.branch.solo', false);
+            ->assertDontSee('eghub.branch.solo', false);
     }
 
     public function test_a_single_branch_never_opens_the_sheet_by_itself_and_nothing_is_picked_for_the_guest(): void

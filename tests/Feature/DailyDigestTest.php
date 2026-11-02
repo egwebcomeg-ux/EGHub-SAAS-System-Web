@@ -37,7 +37,7 @@ class DailyDigestTest extends TenantTestCase
         $this->actingAs($cashier)->post($this->dashUrl('/shifts/close'), ['closing_cash' => 200])->assertSessionHasNoErrors();
 
         $this->travel(1)->days();
-        $this->artisan('egmenu:daily-digest')->assertSuccessful();
+        $this->artisan('eghub:daily-digest')->assertSuccessful();
 
         Notification::assertSentTo([$owner, $manager], DailyDigestReport::class, function (DailyDigestReport $n, array $channels, $notifiable) {
             $d = $n->digest;
@@ -55,10 +55,10 @@ class DailyDigestTest extends TenantTestCase
         Notification::assertNotSentTo($cashier, DailyDigestReport::class);
 
         // a rerun the same morning sends nothing, and neither does a quiet day
-        $this->artisan('egmenu:daily-digest')->assertSuccessful();
+        $this->artisan('eghub:daily-digest')->assertSuccessful();
         Notification::assertSentToTimes($owner, DailyDigestReport::class, 1);
         $this->travel(1)->days();
-        $this->artisan('egmenu:daily-digest')->assertSuccessful();
+        $this->artisan('eghub:daily-digest')->assertSuccessful();
         Notification::assertSentToTimes($owner, DailyDigestReport::class, 1);
     }
 
@@ -76,7 +76,7 @@ class DailyDigestTest extends TenantTestCase
         ]));
 
         $this->travel(1)->days();
-        $this->artisan('egmenu:daily-digest')->assertSuccessful();
+        $this->artisan('eghub:daily-digest')->assertSuccessful();
         Notification::assertNothingSent();
     }
 }

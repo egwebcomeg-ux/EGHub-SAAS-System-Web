@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Schema;
  */
 class TenantBackupsCommand extends Command
 {
-    protected $signature = 'egmenu:tenant-backups {--tenant= : only this restaurant (its slug)}';
+    protected $signature = 'eghub:tenant-backups {--tenant= : only this restaurant (its slug)}';
 
     protected $description = 'Build the weekly backup zip of every active restaurant whose plan includes backups, and prune the old ones';
 

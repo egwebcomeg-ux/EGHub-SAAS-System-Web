@@ -1,5 +1,6 @@
 // Menu editor helpers: drag-to-reorder lists, quick sold-out/visible toggles, inline price edit, search as you type,
 // category chips, the menu settings panel, and on the item form the sizes & extras editor.
+import './storage-rename';
 
 const csrf = () => document.querySelector('meta[name="csrf-token"]').content;
 
@@ -45,10 +46,10 @@ document.querySelectorAll('[data-sortable]').forEach((list) => {
 const untilSelect = document.querySelector('[data-sold-out-until]:not(select[name])');
 const untilAt = document.querySelector('[data-sold-out-until-at]:not(input[name])');
 if (untilSelect) {
-    try { untilSelect.value = localStorage.getItem('egmenu.soldOutUntil') || ''; } catch {}
+    try { untilSelect.value = localStorage.getItem('eghub.soldOutUntil') || ''; } catch {}
     const syncUntil = () => {
         untilAt?.classList.toggle('hidden', untilSelect.value !== 'custom');
-        try { localStorage.setItem('egmenu.soldOutUntil', untilSelect.value); } catch {}
+        try { localStorage.setItem('eghub.soldOutUntil', untilSelect.value); } catch {}
     };
     untilSelect.addEventListener('change', syncUntil);
     syncUntil();
@@ -235,11 +236,11 @@ if (chips && 'IntersectionObserver' in window) {
 const settingsPanel = document.querySelector('[data-menu-settings]');
 if (settingsPanel) {
     if (!settingsPanel.hasAttribute('data-force-open')) {
-        try { settingsPanel.open = localStorage.getItem('egmenu.menuSettingsOpen') === '1'; } catch {}
+        try { settingsPanel.open = localStorage.getItem('eghub.menuSettingsOpen') === '1'; } catch {}
         if (location.hash === '#ai-translate') settingsPanel.open = true;
     }
     settingsPanel.addEventListener('toggle', () => {
-        try { localStorage.setItem('egmenu.menuSettingsOpen', settingsPanel.open ? '1' : '0'); } catch {}
+        try { localStorage.setItem('eghub.menuSettingsOpen', settingsPanel.open ? '1' : '0'); } catch {}
     });
 }
 

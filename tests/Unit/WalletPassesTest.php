@@ -100,12 +100,12 @@ class WalletPassesTest extends TestCase
 
     public function test_apple_pkpass_is_a_zip_with_a_sha1_manifest_and_a_detached_pkcs7_signature(): void
     {
-        [, $keyPem, $certPem] = $this->selfSigned('Pass Type ID: pass.app.egmenu.card');
+        [, $keyPem, $certPem] = $this->selfSigned('Pass Type ID: pass.app.eghub.card');
         [, , $wwdrPem] = $this->selfSigned('Test WWDR');
         file_put_contents($this->dir.'/pass.pem', $certPem.$keyPem);
         file_put_contents($this->dir.'/wwdr.pem', $wwdrPem);
         $passes = new WalletPasses(['apple' => [
-            'pass_type_id' => 'pass.app.egmenu.card', 'team_id' => 'ABCDE12345',
+            'pass_type_id' => 'pass.app.eghub.card', 'team_id' => 'ABCDE12345',
             'certificate' => $this->dir.'/pass.pem', 'wwdr_certificate' => $this->dir.'/wwdr.pem',
         ]]);
         $this->assertTrue($passes->appleConfigured());
@@ -148,7 +148,7 @@ class WalletPassesTest extends TestCase
         $pass = json_decode((string) $zip->getFromName('pass.json'), true);
         $zip->close();
         $this->assertSame(1, $pass['formatVersion']);
-        $this->assertSame('pass.app.egmenu.card', $pass['passTypeIdentifier']);
+        $this->assertSame('pass.app.eghub.card', $pass['passTypeIdentifier']);
         $this->assertSame('ABCDE12345', $pass['teamIdentifier']);
         $this->assertSame('cafe-a-0123456789abcdef01234567', $pass['serialNumber']);
         $this->assertSame('كافيه أ', $pass['organizationName']);

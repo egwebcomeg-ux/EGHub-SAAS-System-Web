@@ -271,7 +271,7 @@ class TenantBackupsTest extends TenantTestCase
         $this->item($a, 'Latte A');
         $this->as($free, fn () => TenantBackup::query()->create(['filename' => 'old.zip', 'kind' => 'manual', 'status' => 'ready', 'created_at' => now()->subDays(40), 'expires_at' => now()->subDays(10)]));
 
-        $this->artisan('egmenu:tenant-backups')->assertSuccessful()
+        $this->artisan('eghub:tenant-backups')->assertSuccessful()
             ->expectsOutputToContain('built: 2 · failed: 0 · not in plan: 2 · pruned: 1');
 
         foreach ([$a, $b] as $t) {
@@ -286,7 +286,7 @@ class TenantBackupsTest extends TenantTestCase
         $this->assertSame(0, $this->as($pro, fn () => TenantBackup::query()->count()));
         $this->assertNotNull(cache()->get(TenantBackups::LAST_RUN_KEY));
 
-        Artisan::call('egmenu:doctor');
+        Artisan::call('eghub:doctor');
         $this->assertStringContainsString('OK    Restaurant backups ran within 8 days', Artisan::output());
     }
 
@@ -306,7 +306,7 @@ class TenantBackupsTest extends TenantTestCase
             });
         });
 
-        $this->artisan('egmenu:tenant-backups')->assertSuccessful()
+        $this->artisan('eghub:tenant-backups')->assertSuccessful()
             ->expectsOutputToContain('built: 2 · failed: 1 · not in plan: 0 · pruned: 0');
 
         $this->assertTrue($this->as($a, fn () => TenantBackup::query()->sole())->isReady());
@@ -320,15 +320,15 @@ class TenantBackupsTest extends TenantTestCase
 
     public function test_doctor_warns_when_the_weekly_run_is_stale(): void
     {
-        Artisan::call('egmenu:doctor');
+        Artisan::call('eghub:doctor');
         $this->assertStringContainsString('WARN  Restaurant backups ran within 8 days - no weekly run recorded yet', Artisan::output());
 
         cache()->forever(TenantBackups::LAST_RUN_KEY, now()->subDays(9)->timestamp);
-        Artisan::call('egmenu:doctor');
+        Artisan::call('eghub:doctor');
         $this->assertStringContainsString('WARN  Restaurant backups ran within 8 days - last ', Artisan::output());
 
         cache()->forever(TenantBackups::LAST_RUN_KEY, now()->subDays(2)->timestamp);
-        Artisan::call('egmenu:doctor');
+        Artisan::call('eghub:doctor');
         $this->assertStringContainsString('OK    Restaurant backups ran within 8 days', Artisan::output());
     }
 }

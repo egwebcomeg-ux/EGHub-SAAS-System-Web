@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Public menu on the restaurant's subdomain: {tenant}.egmenu.app/... (a short alias for QR codes and branding; its
+ * Public menu on the restaurant's subdomain: {tenant}.eghub.app/... (a short alias for QR codes and branding; its
  * pages declare eghub.app/{tenant}/... or the custom domain as canonical). Resolves the restaurant from the
  * {tenant} host parameter, initialises tenancy and removes the parameter so controllers never receive it
  * (route('menu.*') fills it in by itself). Unknown or reserved name → 404.

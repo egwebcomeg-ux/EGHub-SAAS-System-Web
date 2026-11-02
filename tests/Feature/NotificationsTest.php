@@ -54,7 +54,7 @@ class NotificationsTest extends TenantTestCase
         Notification::fake();
         $a = $this->restaurant('cafe-a', 'pro', trial: true);
         $owner = $this->owner($a);
-        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@egmenu.test', 'password' => 'Secret-pass-123']);
+        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@eghub.test', 'password' => 'Secret-pass-123']);
         $billing = app(Billing::class);
 
         $invoice = $billing->invoiceForPlan($a, Plan::query()->where('code', 'basic')->first(), 1);

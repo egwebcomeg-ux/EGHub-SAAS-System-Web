@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Platform admin pages: a switched-off admin is signed out on the next request; "admin.access:billing.manage" also
  * needs that permission (App\Support\AdminPermissions), else 403. While two-factor authentication is required of admins
- * (config egmenu.admin_require_2fa) and not on yet, only the security page, its forms and logout open. Runs after auth:admin.
+ * (config eghub.admin_require_2fa) and not on yet, only the security page, its forms and logout open. Runs after auth:admin.
  */
 class AdminAccess
 {

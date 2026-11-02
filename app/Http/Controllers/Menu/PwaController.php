@@ -47,7 +47,7 @@ class PwaController extends Controller
         $size = (int) $size;
         abort_unless(in_array($size, PwaIcons::SIZES, true), 404);
         if (! PwaIcons::available()) {
-            return response(file_get_contents(public_path("icons/egmenu-$size.png")), 200, ['Content-Type' => 'image/png']);
+            return response(file_get_contents(public_path("icons/eghub-$size.png")), 200, ['Content-Type' => 'image/png']);
         }
         $etag = '"'.md5($icons->fingerprint().$size).'"';
         $headers = ['Content-Type' => 'image/png', 'Cache-Control' => 'public, max-age=86400', 'ETag' => $etag];

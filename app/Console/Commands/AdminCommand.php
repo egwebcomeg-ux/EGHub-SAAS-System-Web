@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 /** Creates or updates a platform admin (admin.<domain>) from the server shell. */
 class AdminCommand extends Command
 {
-    protected $signature = 'egmenu:admin {email : Login email} {--name=Admin : Display name} {--password= : Password (prompted when omitted)}';
+    protected $signature = 'eghub:admin {email : Login email} {--name=Admin : Display name} {--password= : Password (prompted when omitted)}';
 
     protected $description = 'Create or update a platform admin';
 

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Platform admin sessions end after config('egmenu.admin_idle_minutes') without a request (default 120): the next
+ * Platform admin sessions end after config('eghub.admin_idle_minutes') without a request (default 120): the next
  * request signs the admin out (remember-me cookie included) and goes to the login page. The dashboard has no idle limit.
  */
 class AdminIdleTimeout
@@ -17,7 +17,7 @@ class AdminIdleTimeout
 
     public function handle(Request $request, Closure $next): Response
     {
-        $minutes = (int) config('egmenu.admin_idle_minutes');
+        $minutes = (int) config('eghub.admin_idle_minutes');
         if ($minutes > 0 && Auth::guard('admin')->check()) {
             $lastSeen = (int) $request->session()->get(self::SESSION_KEY, 0);
             if ($lastSeen > 0 && now()->timestamp - $lastSeen > $minutes * 60) {

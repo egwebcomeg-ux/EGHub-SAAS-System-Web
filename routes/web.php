@@ -118,7 +118,7 @@ Route::domain($domain)->group(function () use ($slug) {
         });
     Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('sitemap');
     Route::get('/robots.txt', [SeoController::class, 'robots'])->name('robots');
-    // Inbound WhatsApp (Meta Cloud API handshake + signed payloads, or another provider with X-EgMenu-Secret).
+    // Inbound WhatsApp (Meta Cloud API handshake + signed payloads, or another provider with X-EgHub-Secret).
     Route::get('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify'])->name('webhooks.whatsapp');
     Route::post('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive'])->middleware('throttle:600,1');
     Route::get('/webhooks/meta', [WhatsAppWebhookController::class, 'verify'])->name('webhooks.meta');
@@ -143,7 +143,7 @@ Route::domain($domain)->group(function () use ($slug) {
         ->middleware('tenant.path')->name('path.')->group(base_path('routes/menu.php'));
 });
 
-// Public menus on {tenant}.egmenu.app (alias of eghub.app/{tenant}). The platform hosts (www, app, admin) are excluded here as well as by their
+// Public menus on {tenant}.eghub.app (alias of eghub.app/{tenant}). The platform hosts (www, app, admin) are excluded here as well as by their
 // own groups above, so a path those groups do not define is a 404 there, never a menu.
 Route::domain('{tenant}.'.$domain)->where(['tenant' => '(?!(?:www|app|admin)\.)'.$slug])
     ->middleware('tenant.subdomain')->name('menu.')->group(base_path('routes/menu.php'));

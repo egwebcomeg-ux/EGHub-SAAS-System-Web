@@ -227,7 +227,7 @@ class CorporateBookingsTest extends TenantTestCase
         $this->actingAs($this->manager)->post($this->dashUrl("/corporate/bookings/{$booking->id}/approve"), ['meal_price' => 250])->assertSessionHasNoErrors();
 
         $this->travelTo(local_at($booking->visit_at)->addDay()->setTime(4, 0));
-        $this->artisan('egmenu:corporate-visits')->assertSuccessful();
+        $this->artisan('eghub:corporate-visits')->assertSuccessful();
         $booking = $this->booking();
         [, $rest] = $this->vouchers($booking);
         $this->assertSame(['closed', 0.0, 1000.0], [$booking->status, $booking->meals_amount, $booking->voucher_amount]);

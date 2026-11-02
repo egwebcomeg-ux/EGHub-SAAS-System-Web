@@ -256,7 +256,7 @@ class TwoFactorTest extends TenantTestCase
 
     public function test_platform_admins_have_the_same_flow_on_their_own_host(): void
     {
-        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@egmenu.test', 'password' => 'Secret-pass-123']);
+        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@eghub.test', 'password' => 'Secret-pass-123']);
 
         $this->actingAs($admin, 'admin')->get($this->adminUrl('/security'))->assertOk()->assertSee('data-two-factor-state="off"', false);
         $this->actingAs($admin, 'admin')->post($this->adminUrl('/security/two-factor'))->assertRedirect(route('admin.security'));
@@ -267,7 +267,7 @@ class TwoFactorTest extends TenantTestCase
         $this->assertNotSame($secret, DB::table('platform_admins')->where('id', $admin->id)->value('two_factor_secret'));
         $this->actingAs($admin, 'admin')->post($this->adminUrl('/logout'));
 
-        $login = ['email' => 'admin@egmenu.test', 'password' => 'Secret-pass-123'];
+        $login = ['email' => 'admin@eghub.test', 'password' => 'Secret-pass-123'];
         $this->post($this->adminUrl('/login'), $login)->assertRedirect(route('admin.two-factor'));
         $this->assertGuest('admin');
         $this->get($this->adminUrl('/two-factor'))->assertOk()->assertSee('data-two-factor-form', false);
@@ -277,7 +277,7 @@ class TwoFactorTest extends TenantTestCase
 
         // a wrong password never reaches the challenge
         $this->post($this->adminUrl('/logout'));
-        $this->post($this->adminUrl('/login'), ['email' => 'admin@egmenu.test', 'password' => 'nope'])->assertSessionHasErrors('email');
+        $this->post($this->adminUrl('/login'), ['email' => 'admin@eghub.test', 'password' => 'nope'])->assertSessionHasErrors('email');
         $this->get($this->adminUrl('/two-factor'))->assertRedirect(route('admin.login'));
 
         $this->actingAs($admin, 'admin')->post($this->adminUrl('/security/two-factor/disable'), ['password' => 'nope'])->assertSessionHasErrors('password');
@@ -293,7 +293,7 @@ class TwoFactorTest extends TenantTestCase
         $ownerB = $this->owner($b);
         $this->enable($owner);
         $this->enable($ownerB);
-        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@egmenu.test', 'password' => 'Secret-pass-123']);
+        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@eghub.test', 'password' => 'Secret-pass-123']);
 
         // a restaurant owner cannot use the admin action
         $this->actingAs($owner)->post($this->adminUrl("/tenants/cafe-a/users/{$owner->id}/reset-2fa"))->assertRedirect(route('admin.login'));
@@ -306,7 +306,7 @@ class TwoFactorTest extends TenantTestCase
 
         $line = $this->as($a, fn () => AuditLog::query()->where('action', 'two_factor.reset_by_platform')->first());
         $this->assertNotNull($line);
-        $this->assertSame('admin@egmenu.test', $line->meta['admin']);
+        $this->assertSame('admin@eghub.test', $line->meta['admin']);
         $this->assertSame(0, $this->as($b, fn () => AuditLog::query()->where('action', 'two_factor.reset_by_platform')->count()));
 
         // a user of another restaurant is not reachable through this one; a user without 2FA is an error, not a crash
@@ -322,7 +322,7 @@ class TwoFactorTest extends TenantTestCase
 
     public function test_a_platform_admin_changes_their_own_password_with_the_current_one(): void
     {
-        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@egmenu.test', 'password' => 'Secret-pass-123']);
+        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@eghub.test', 'password' => 'Secret-pass-123']);
 
         $this->actingAs($admin, 'admin')->get($this->adminUrl('/security'))->assertOk()->assertSee('data-password-form', false);
         $this->actingAs($admin, 'admin')->from($this->adminUrl('/security'))->post($this->adminUrl('/security/password'), [

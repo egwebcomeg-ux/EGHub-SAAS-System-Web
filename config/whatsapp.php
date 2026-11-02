@@ -54,7 +54,7 @@ return [
 
     'webhook' => [
         'url' => env('WHATSAPP_WEBHOOK_URL'),
-        // sent as the X-EgMenu-Secret header so the provider can reject anyone else; the same header authenticates
+        // sent as the X-EgHub-Secret header so the provider can reject anyone else; the same header authenticates
         // the provider's inbound POSTs {from, text} to /webhooks/whatsapp
         'secret' => env('WHATSAPP_WEBHOOK_SECRET'),
     ],

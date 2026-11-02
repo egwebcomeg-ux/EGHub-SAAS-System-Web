@@ -32,7 +32,7 @@
     <script>document.documentElement.classList.add('js')</script>
     <meta name="description" content="@yield('description', $description)">
     <meta name="theme-color" content="#ffffff">
-    <link rel="apple-touch-icon" href="{{ versioned_asset('icons/egmenu-192.png') }}">
+    <link rel="apple-touch-icon" href="{{ versioned_asset('icons/eghub-192.png') }}">
     <meta name="apple-mobile-web-app-title" content="EgHub">
     <link rel="canonical" href="@yield('canonical', $defaultCanonical)">
     @foreach ($hreflang as $hreflangCode => $hreflangUrl)

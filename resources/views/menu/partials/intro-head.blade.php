@@ -3,13 +3,14 @@
     menu never flashes before them. The overlays fade out on their own in CSS even if the menu script fails.
 --}}
 @php
-    $introKey = 'egmenu.intro.' . tenant()->getTenantKey();
-    $branchKey = 'egmenu.branch.' . tenant()->getTenantKey();
+    $introKey = 'eghub.intro.' . tenant()->getTenantKey();
+    $branchKey = 'eghub.branch.' . tenant()->getTenantKey();
     // "always": every time the menu is opened (a scan, a link, a new tab) — but not when coming back from another page
     // of the same menu (order tracking, card); "session": once per browser session
     // (the mascot intro is longer: once per browser session, like the brand it comes from)
     $introAlways = $intro !== 'mascot' && \App\Services\Settings::get('menu_intro_repeat') !== 'session';
 @endphp
+@include('partials.storage-rename')
 <script>
     (function () {
         var root = document.documentElement, store = null;

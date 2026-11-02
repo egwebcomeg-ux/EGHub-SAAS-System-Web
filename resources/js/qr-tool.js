@@ -841,7 +841,7 @@ function init(root) {
     }
 
     // a hook for checks and screenshots (no network, no state)
-    window.egmenuQr = { applyPreset, png: (px = 1024) => toPng(px), svg: () => (current ? exportSvg(1024) : null), ready: () => !!current, state: () => current, setType };
+    window.eghubQr = { applyPreset, png: (px = 1024) => toPng(px), svg: () => (current ? exportSvg(1024) : null), ready: () => !!current, state: () => current, setType };
 
     syncControls();
     update();

@@ -84,18 +84,18 @@ class OrderFlowScreensTest extends TenantTestCase
         }
 
         $this->travel(30)->minutes();
-        $this->artisan('egmenu:auto-serve')->assertSuccessful();
+        $this->artisan('eghub:auto-serve')->assertSuccessful();
         $this->assertSame('ready', $paid->fresh()->status);
 
         $this->travel(31)->minutes();
-        $this->artisan('egmenu:auto-serve')->assertSuccessful();
+        $this->artisan('eghub:auto-serve')->assertSuccessful();
         $this->assertSame(['served', 'ready'], [$paid->fresh()->status, $unpaid->fresh()->status]);
 
         // 0 = never
         $this->settings(['order_auto_serve_minutes' => '0']);
         $this->actingAs($this->cashier)->postJson($this->dashUrl("/pos/orders/{$unpaid->id}/pay"), ['method' => 'cash'])->assertOk();
         $this->travel(2)->hours();
-        $this->artisan('egmenu:auto-serve')->assertSuccessful();
+        $this->artisan('eghub:auto-serve')->assertSuccessful();
         $this->assertSame('ready', $unpaid->fresh()->status);
     }
 

@@ -7,6 +7,7 @@
 // The driver app also rings on its own when an order is given / taken back / cancelled (FCM, App\Services\Push\StaffPush)
 // and hands the message to this page (eg-native-push): the list refreshes at once. Its WebView plays sound without a
 // tap first, so the beep is ready from the start there; native-push.js registers the phone's push token.
+import './storage-rename';
 import { call, callJson, inApp, onNative } from './native';
 
 const dataEl = document.getElementById('driver-data');
@@ -152,7 +153,7 @@ if (dataEl) {
     // ---- a new order given to this driver: banner, sound and vibration ----
     let known = new Set(orders.map((o) => o.id));
     let soundOn = true;
-    try { soundOn = localStorage.getItem('egmenu.driver.sound') !== '0'; } catch {}
+    try { soundOn = localStorage.getItem('eghub.driver.sound') !== '0'; } catch {}
     let audio = null;
     const unlockAudio = () => {
         try {
@@ -187,7 +188,7 @@ if (dataEl) {
     }
     soundBtn.addEventListener('click', () => {
         soundOn = !soundOn;
-        try { localStorage.setItem('egmenu.driver.sound', soundOn ? '1' : '0'); } catch {}
+        try { localStorage.setItem('eghub.driver.sound', soundOn ? '1' : '0'); } catch {}
         renderSound();
         if (soundOn) { unlockAudio(); beep(); }
     });

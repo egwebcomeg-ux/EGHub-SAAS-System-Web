@@ -107,7 +107,7 @@ class ArchivedPlansTest extends TenantTestCase
     {
         $this->restaurant('cafe-a', 'basic');
 
-        $this->artisan('egmenu:archive-legacy-plans')->expectsOutputToContain('cafe-a')->assertFailed();
+        $this->artisan('eghub:archive-legacy-plans')->expectsOutputToContain('cafe-a')->assertFailed();
 
         $this->assertSame(0, Plan::query()->whereNotNull('archived_at')->count());
     }
@@ -118,19 +118,19 @@ class ArchivedPlansTest extends TenantTestCase
         $this->restaurant('cafe-a', 'pro');
         Subscription::query()->where('tenant_id', 'cafe-a')->update(['status' => 'canceled']);
 
-        $this->artisan('egmenu:archive-legacy-plans --dry-run')->expectsOutputToContain('would be archived')->assertSuccessful();
+        $this->artisan('eghub:archive-legacy-plans --dry-run')->expectsOutputToContain('would be archived')->assertSuccessful();
         $this->assertSame(0, Plan::query()->whereNotNull('archived_at')->count());
 
-        $this->artisan('egmenu:archive-legacy-plans')->assertSuccessful();
+        $this->artisan('eghub:archive-legacy-plans')->assertSuccessful();
         $this->assertEqualsCanonicalizing(PlanSeeder::LEGACY, Plan::query()->whereNotNull('archived_at')->pluck('code')->all());
         $this->assertSame(['free', 'custom', 'full', 'enterprise'], Plan::query()->offered()->orderBy('sort_order')->pluck('code')->all());
 
-        $this->artisan('egmenu:archive-legacy-plans')->expectsOutputToContain('already archived')->assertSuccessful();
+        $this->artisan('eghub:archive-legacy-plans')->expectsOutputToContain('already archived')->assertSuccessful();
     }
 
     public function test_the_seeder_keeps_archived_plans_archived(): void
     {
-        $this->artisan('egmenu:archive-legacy-plans')->assertSuccessful();
+        $this->artisan('eghub:archive-legacy-plans')->assertSuccessful();
 
         $this->seed(PlanSeeder::class);
 

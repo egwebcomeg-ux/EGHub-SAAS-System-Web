@@ -47,7 +47,7 @@ class LaunchSiteTest extends TenantTestCase
     {
         $this->get($this->menuUrl('terms'))->assertOk()->assertDontSee('data-legal-details', false)->assertDontSee('data-footer-legal', false);
 
-        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@egmenu.test', 'password' => 'Secret-pass-123']);
+        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@eghub.test', 'password' => 'Secret-pass-123']);
         $this->actingAs($admin, 'admin')->post($this->adminUrl('/settings'), ['legal_entity' => 'EgWeb Test LLC', 'commercial_register' => '12345'])
             ->assertSessionHasNoErrors();
 
@@ -98,7 +98,7 @@ class LaunchSiteTest extends TenantTestCase
     {
         $this->place('real-cafe');
         $demo = $this->place('demo-cafe');
-        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@egmenu.test', 'password' => 'Secret-pass-123']);
+        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@eghub.test', 'password' => 'Secret-pass-123']);
 
         $this->get($this->menuUrl('restaurants'))->assertOk()->assertSee('Brand demo-cafe');
 

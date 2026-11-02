@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
  */
 class ImportEgwebClientsCommand extends Command
 {
-    protected $signature = 'egmenu:import-egweb-clients {dir : Folder with the logo files (png, webp, jpg, svg)}';
+    protected $signature = 'eghub:import-egweb-clients {dir : Folder with the logo files (png, webp, jpg, svg)}';
 
     protected $description = 'Import EgWeb client logos into the home page strip (idempotent)';
 

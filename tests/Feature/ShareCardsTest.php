@@ -8,7 +8,7 @@ use App\Support\SiteModules;
 use Illuminate\Support\Facades\File;
 use Tests\TenantTestCase;
 
-/** Each marketing page shares its own picture (public/og/{ar|en}/…png, drawn by egmenu:share-images). */
+/** Each marketing page shares its own picture (public/og/{ar|en}/…png, drawn by eghub:share-images). */
 class ShareCardsTest extends TenantTestCase
 {
     private function shareImage(string $html): string
@@ -86,7 +86,7 @@ class ShareCardsTest extends TenantTestCase
             app()->setLocale($locale);
             foreach (array_keys(ShareCards::all()) as $key) {
                 $file = public_path(ShareCards::path($key, $locale));
-                $this->assertFileExists($file, "run php artisan egmenu:share-images --only=$key");
+                $this->assertFileExists($file, "run php artisan eghub:share-images --only=$key");
                 [$width, $height] = getimagesize($file);
                 $this->assertSame([ShareCards::WIDTH, ShareCards::HEIGHT], [$width, $height], $key);
                 $this->assertLessThan(300 * 1024, filesize($file), $key);

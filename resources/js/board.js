@@ -1,5 +1,6 @@
 // Live order board: polls the feed every few seconds, rebuilds the columns, chimes when a new order arrives and
 // keeps ringing while an online / QR order waits to be accepted (moved to "preparing").
+import './storage-rename';
 import './kb-drawer';
 import { bindPager, pagerButtons, pagerStatus } from './pager-call';
 
@@ -14,14 +15,14 @@ if (board) {
     let lastCallId = null;
     let drivers = []; // who delivery orders can go to (empty without the delivery feature or the assign permission)
     let soundOn = false;
-    try { soundOn = localStorage.getItem('egmenu.sound') === '1'; } catch {}
+    try { soundOn = localStorage.getItem('eghub.sound') === '1'; } catch {}
     let audio = null;
 
     const soundBtn = document.querySelector('[data-sound]');
     const renderSoundBtn = () => soundBtn?.classList.toggle('ring-2', soundOn);
     soundBtn?.addEventListener('click', () => {
         soundOn = !soundOn;
-        try { localStorage.setItem('egmenu.sound', soundOn ? '1' : '0'); } catch {}
+        try { localStorage.setItem('eghub.sound', soundOn ? '1' : '0'); } catch {}
         renderSoundBtn();
         if (soundOn) chime();
     });
@@ -69,7 +70,7 @@ if (board) {
     const GUEST_SOURCES = ['qr', 'online', 'whatsapp'];
     const ALARM_EVERY_MS = 4000;
     let alarmMuted = false;
-    try { alarmMuted = localStorage.getItem('egmenu.alarm.muted') === '1'; } catch {}
+    try { alarmMuted = localStorage.getItem('eghub.alarm.muted') === '1'; } catch {}
     let waitingGuestOrders = 0;
     const alarmBtn = document.querySelector('[data-alarm-mute]');
     function renderAlarmBtn() {
@@ -80,7 +81,7 @@ if (board) {
     }
     alarmBtn?.addEventListener('click', () => {
         alarmMuted = !alarmMuted;
-        try { localStorage.setItem('egmenu.alarm.muted', alarmMuted ? '1' : '0'); } catch {}
+        try { localStorage.setItem('eghub.alarm.muted', alarmMuted ? '1' : '0'); } catch {}
         renderAlarmBtn();
     });
     renderAlarmBtn();
@@ -175,7 +176,7 @@ if (board) {
     };
     const chipsBox = document.querySelector('[data-chips]');
     let filter = 'all';
-    try { filter = FILTERS[localStorage.getItem('egmenu.board.filter')] ? localStorage.getItem('egmenu.board.filter') : 'all'; } catch {}
+    try { filter = FILTERS[localStorage.getItem('eghub.board.filter')] ? localStorage.getItem('eghub.board.filter') : 'all'; } catch {}
     let lastOrders = [];
     function renderChips(counts) {
         chipsBox?.querySelectorAll('[data-chip]').forEach((chip) => {
@@ -188,7 +189,7 @@ if (board) {
         const chip = e.target.closest('[data-chip]');
         if (!chip || !FILTERS[chip.dataset.chip]) return;
         filter = chip.dataset.chip;
-        try { localStorage.setItem('egmenu.board.filter', filter); } catch {}
+        try { localStorage.setItem('eghub.board.filter', filter); } catch {}
         renderChips(null);
         render(lastOrders);
     });

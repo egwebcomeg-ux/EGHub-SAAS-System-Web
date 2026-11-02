@@ -120,16 +120,16 @@ class PwaTest extends TenantTestCase
         $this->get($this->menuUrl())->assertOk()->assertDontSee('rel="manifest"', false);
     }
 
-    public function test_the_dashboard_installs_as_egmenu_with_a_service_worker_that_only_keeps_the_pos_page(): void
+    public function test_the_dashboard_installs_as_eghub_with_a_service_worker_that_only_keeps_the_pos_page(): void
     {
         $a = $this->restaurant('cafe-a');
 
         $this->get($this->dashUrl('/manifest.webmanifest'))->assertOk()
             ->assertJsonPath('name', 'EgHub')->assertJsonPath('short_name', 'EgHub')->assertJsonPath('display', 'standalone')
             ->assertJsonPath('start_url', '/?source=pwa')->assertJsonPath('theme_color', '#0A2540')->assertJsonPath('background_color', '#FFFFFF')
-            ->assertJsonPath('icons.0.src', versioned_asset('icons/egmenu-192.png'))->assertJsonPath('icons.1.src', versioned_asset('icons/egmenu-512.png'))
+            ->assertJsonPath('icons.0.src', versioned_asset('icons/eghub-192.png'))->assertJsonPath('icons.1.src', versioned_asset('icons/eghub-512.png'))
             ->assertJsonPath('icons.2.purpose', 'maskable');
-        foreach (['egmenu-192.png' => 192, 'egmenu-512.png' => 512, 'egmenu-maskable-192.png' => 192, 'egmenu-maskable-512.png' => 512] as $file => $size) {
+        foreach (['eghub-192.png' => 192, 'eghub-512.png' => 512, 'eghub-maskable-192.png' => 192, 'eghub-maskable-512.png' => 512] as $file => $size) {
             $this->assertFileExists(public_path("icons/$file"));
             $this->assertSame([$size, $size], array_slice((array) getimagesize(public_path("icons/$file")), 0, 2));
         }

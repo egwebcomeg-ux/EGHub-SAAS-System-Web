@@ -12,7 +12,7 @@ use Stancl\Tenancy\Database\Concerns\HasDomains;
 use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
 
 /**
- * A restaurant or cafe. Its id is the slug of its public menu: eghub.app/{slug} (canonical), {slug}.egmenu.app (alias).
+ * A restaurant or cafe. Its id is the slug of its public menu: eghub.app/{slug} (canonical), {slug}.eghub.app (alias).
  * Soft delete keeps everything restorable and suspension only takes the menu offline; only the platform owner's
  * "delete permanently" (App\Services\TenantEraser) removes a restaurant and its rows for good.
  */
@@ -155,7 +155,7 @@ class Tenant extends BaseTenant
         return self::pathUrl($this->id, $path);
     }
 
-    /** The menu on the main domain: pathUrl('rosto', 't/abc') → https://egmenu.app/rosto/t/abc (no trailing slash). */
+    /** The menu on the main domain: pathUrl('rosto', 't/abc') → https://eghub.app/rosto/t/abc (no trailing slash). */
     public static function pathUrl(string $slug, string $path = ''): string
     {
         $path = ltrim($path, '/');
@@ -163,7 +163,7 @@ class Tenant extends BaseTenant
         return platform_url(null, $slug.($path === '' || str_starts_with($path, '?') ? $path : '/'.$path));
     }
 
-    /** The short alias {slug}.egmenu.app (same pages, canonical to url()). */
+    /** The short alias {slug}.eghub.app (same pages, canonical to url()). */
     public function subdomainUrl(string $path = ''): string
     {
         return platform_url($this->id, ltrim($path, '/'));

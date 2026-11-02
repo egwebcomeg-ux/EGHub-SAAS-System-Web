@@ -42,7 +42,7 @@ class ScheduledTaskFailed extends Notification
             ->salutation('EgHub');
     }
 
-    /** "'/usr/bin/php' 'artisan' egmenu:billing" reads as egmenu:billing. */
+    /** "'/usr/bin/php' 'artisan' eghub:billing" reads as eghub:billing. */
     private static function shortName(string $task): string
     {
         return trim((string) preg_replace("/^.*'?artisan'?\s+/", '', $task));

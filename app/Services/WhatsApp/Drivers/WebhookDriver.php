@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Http;
 
 /**
  * Any other provider (local Egyptian WhatsApp gateways): a JSON POST to WHATSAPP_WEBHOOK_URL with the shared
- * secret in the X-EgMenu-Secret header. The provider answers 2xx with {"id": "..."} (or "message_id").
+ * secret in the X-EgHub-Secret header. The provider answers 2xx with {"id": "..."} (or "message_id").
  */
 final class WebhookDriver implements WhatsAppGateway
 {
@@ -22,7 +22,7 @@ final class WebhookDriver implements WhatsAppGateway
         }
 
         try {
-            $response = Http::withHeaders(['X-EgMenu-Secret' => $secret])->acceptJson()->timeout((int) config('whatsapp.timeout', 15))
+            $response = Http::withHeaders(['X-EgHub-Secret' => $secret])->acceptJson()->timeout((int) config('whatsapp.timeout', 15))
                 ->post($url, ['to' => $to, 'template' => $templateKey, 'params' => $params, 'locale' => $locale, 'text' => $text]);
         } catch (ConnectionException) {
             throw new WhatsAppException('WhatsApp webhook could not be reached.');

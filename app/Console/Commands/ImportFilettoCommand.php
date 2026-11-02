@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 /** Sets up Filetto BBQ (restaurant `filetto`) from its old ordering site's database, safe to run again. */
 class ImportFilettoCommand extends Command
 {
-    protected $signature = 'egmenu:import-filetto
+    protected $signature = 'eghub:import-filetto
         {--source= : The old site\'s SQLite database (backend/database/database.sqlite), opened read-only}
         {--assets= : Folder with the old uploads (the old backend/public: uploads/menu/*.webp and the logo)}
         {--prices= : JSON price mapping (rows[].target + new_price) to apply over the old prices}

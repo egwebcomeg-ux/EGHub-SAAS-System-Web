@@ -26,7 +26,7 @@ class BillingTest extends TenantTestCase
 
     private function admin(): PlatformAdmin
     {
-        return PlatformAdmin::query()->firstOrCreate(['email' => 'admin@egmenu.test'], ['name' => 'Admin', 'password' => 'Secret-pass-123']);
+        return PlatformAdmin::query()->firstOrCreate(['email' => 'admin@eghub.test'], ['name' => 'Admin', 'password' => 'Secret-pass-123']);
     }
 
     public function test_quote_applies_cycle_discount(): void

@@ -30,8 +30,8 @@ RewriteRule ^ - [F,L]
     RewriteEngine On
 
     # Flags for the header rules below (no rewrite happens): Vite's hashed build files, and uploaded SVGs
-    RewriteRule ^build/ - [E=EGMENU_BUILD_ASSET:1]
-    RewriteRule ^storage/.+\.svg$ - [NC,E=EGMENU_USER_SVG:1]
+    RewriteRule ^build/ - [E=EGHUB_BUILD_ASSET:1]
+    RewriteRule ^storage/.+\.svg$ - [NC,E=EGHUB_USER_SVG:1]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
@@ -55,13 +55,13 @@ RewriteRule ^ - [F,L]
 <IfModule mod_headers.c>
     # /build/assets/*-<hash>.ext never change (a new build gets new names): cache them for a year
     <FilesMatch "-[A-Za-z0-9_-]{8}\.(js|css|woff2?|png|webp|svg|jpe?g)$">
-        Header set Cache-Control "public, max-age=31536000, immutable" env=EGMENU_BUILD_ASSET
+        Header set Cache-Control "public, max-age=31536000, immutable" env=EGHUB_BUILD_ASSET
     </FilesMatch>
     # SVGs uploaded by restaurants (/storage/...) can carry scripts: opened directly they run nothing
     # (storage/app/public/.htaccess sends the same when the symlinked folder's own file is read)
     <FilesMatch "(?i)\.svg$">
-        Header set Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src data:" env=EGMENU_USER_SVG
-        Header set X-Content-Type-Options "nosniff" env=EGMENU_USER_SVG
+        Header set Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; img-src data:" env=EGHUB_USER_SVG
+        Header set X-Content-Type-Options "nosniff" env=EGHUB_USER_SVG
     </FilesMatch>
 </IfModule>
 

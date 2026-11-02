@@ -9,7 +9,7 @@ use Illuminate\Console\Command;
 /** Moves a legacy plain-PHP + SQLite client menu (menu.db) into an existing EgHub restaurant. */
 class ImportLegacyMenuCommand extends Command
 {
-    protected $signature = 'egmenu:import-legacy-menu
+    protected $signature = 'eghub:import-legacy-menu
         {path : Folder with menu.db (and uploads/, assets/)}
         {tenant : Existing restaurant id (slug)}
         {--dry-run : Show what would happen, write nothing}

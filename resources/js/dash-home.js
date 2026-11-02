@@ -1,10 +1,11 @@
 // The apps screen (dashboard/home.blade.php): the search box filters the tiles on the page, no request. "/" focuses
 // it on a desktop keyboard, Escape clears it, Enter opens the first app left. The "your next step" card remembers
 // whether this browser folded it.
+import './storage-rename';
 
 const nextStep = document.querySelector('[data-next-step-body]');
 if (nextStep) {
-    const key = 'egmenu.home.nextStep';
+    const key = 'eghub.home.nextStep';
     try {
         if (localStorage.getItem(key) === 'closed') {
             nextStep.open = false;

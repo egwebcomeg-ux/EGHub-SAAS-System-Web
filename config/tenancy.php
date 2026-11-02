@@ -11,7 +11,7 @@ use Stancl\Tenancy\TenantDatabaseManagers\SQLiteDatabaseManager;
 
 return [
     'tenant_model' => Tenant::class,
-    'id_generator' => null, // tenant id = its slug: {slug}.egmenu.app
+    'id_generator' => null, // tenant id = its slug: {slug}.eghub.app
 
     'domain_model' => Domain::class,
 

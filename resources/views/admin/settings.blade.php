@@ -156,7 +156,7 @@
             <dt class="font-semibold">{{ __('Provider secret') }} <span class="font-normal text-navy-500">(WHATSAPP_WEBHOOK_SECRET)</span></dt>
             <dd>
                 <span class="badge {{ $whatsapp['provider_secret_set'] ? 'bg-emerald-100 text-emerald-800' : 'bg-navy-100 text-navy-600' }}">{{ $whatsapp['provider_secret_set'] ? __('Set') : __('Not set') }}</span>
-                <span class="text-navy-500">{{ __('Only for a non-Meta provider posting {from, text} with the X-EgMenu-Secret header.') }}</span>
+                <span class="text-navy-500">{{ __('Only for a non-Meta provider posting {from, text} with the X-EgHub-Secret header.') }}</span>
             </dd>
         </dl>
         <p class="text-xs text-navy-500">{{ __('In Meta for Developers: WhatsApp → Configuration → Webhook: paste the URL and the verify token, then subscribe to the "messages" field. Edit .env and run php artisan config:clear to change these.') }}</p>

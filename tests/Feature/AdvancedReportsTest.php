@@ -180,7 +180,7 @@ class AdvancedReportsTest extends TenantTestCase
         $this->sale($on, 999, $monday->toDateTimeString());               // this week: not in the email
         $this->travelTo($monday);
 
-        $this->artisan('egmenu:weekly-report')->expectsOutputToContain('weekly reports sent: 1')->assertSuccessful();
+        $this->artisan('eghub:weekly-report')->expectsOutputToContain('weekly reports sent: 1')->assertSuccessful();
 
         Notification::assertSentTo($this->owner($on), WeeklyReport::class, function (WeeklyReport $n) use ($monday) {
             $mail = $n->toMail($this->owner(Tenant::find('cafe-on')));
@@ -196,7 +196,7 @@ class AdvancedReportsTest extends TenantTestCase
         Notification::assertCount(1);
 
         // the command run again the same morning (manual rerun, overlapping cron) sends nothing new
-        $this->artisan('egmenu:weekly-report')->expectsOutputToContain('weekly reports sent: 0')->assertSuccessful();
+        $this->artisan('eghub:weekly-report')->expectsOutputToContain('weekly reports sent: 0')->assertSuccessful();
         Notification::assertCount(1);
     }
 
@@ -212,7 +212,7 @@ class AdvancedReportsTest extends TenantTestCase
         $this->as($a, fn () => $this->assertSame('0', Settings::get('weekly_report_email')));
 
         $event = collect(app(Schedule::class)->events())
-            ->first(fn ($e) => str_contains((string) $e->command, 'egmenu:weekly-report'));
+            ->first(fn ($e) => str_contains((string) $e->command, 'eghub:weekly-report'));
         $this->assertNotNull($event);
         $this->assertSame('0 8 * * 1', $event->expression);
     }

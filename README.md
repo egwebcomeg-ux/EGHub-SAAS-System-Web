@@ -37,7 +37,7 @@ php artisan serve --port=8000
 
 - Menu: http://demo-cafe.localhost:8000
 - Dashboard: http://app.localhost:8000 — `owner@demo.test` / `password`
-- Super admin: http://admin.localhost:8000 — `admin@egmenu.test` / `password`
+- Super admin: http://admin.localhost:8000 — `admin@eghub.test` / `password`
 - Order as a guest: open a table QR from Dashboard → Tables & QR → Print, or `http://demo-cafe.localhost:8000/t/{token}`.
 
 ## Code map

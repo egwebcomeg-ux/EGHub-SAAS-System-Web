@@ -38,11 +38,11 @@ class BackupCommandTest extends TestCase
         touch($old, now()->subDays(10)->timestamp);
         touch($recent, now()->subDays(2)->timestamp);
 
-        $this->artisan('egmenu:backup')->assertSuccessful();
+        $this->artisan('eghub:backup')->assertSuccessful();
 
         $this->assertFileDoesNotExist($old);
         $this->assertFileExists($recent);
-        $zips = array_values(array_filter(glob($this->dir.'/egmenu-*.zip'), fn ($f) => $f !== $recent));
+        $zips = array_values(array_filter(glob($this->dir.'/eghub-*.zip'), fn ($f) => $f !== $recent));
         $this->assertCount(1, $zips);
 
         $zip = new ZipArchive;
@@ -56,7 +56,7 @@ class BackupCommandTest extends TestCase
         Storage::fake('offsite');
         config(['backup.disk' => 'offsite']);
 
-        $this->artisan('egmenu:backup')->assertSuccessful();
+        $this->artisan('eghub:backup')->assertSuccessful();
 
         $this->assertCount(1, Storage::disk('offsite')->files('egmenu-backups'));
     }
@@ -65,6 +65,6 @@ class BackupCommandTest extends TestCase
     {
         config(['database.connections.sqlite.database' => $this->dir.'/nope.sqlite']);
 
-        $this->artisan('egmenu:backup')->assertFailed();
+        $this->artisan('eghub:backup')->assertFailed();
     }
 }

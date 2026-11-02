@@ -1,4 +1,4 @@
-// Screenshots the share cards for `php artisan egmenu:share-images` (App\Console\Commands\ShareImagesCommand).
+// Screenshots the share cards for `php artisan eghub:share-images` (App\Console\Commands\ShareImagesCommand).
 // One headless Chrome over the DevTools protocol, no npm packages (Node 22+ has WebSocket built in).
 // Usage: node share-cards.mjs <chrome> <jobs.json>   jobs.json: {"width":1200,"height":630,"profile":"dir","jobs":[{"html":"file:///…","png":"…"}]}
 import { spawn } from 'node:child_process';

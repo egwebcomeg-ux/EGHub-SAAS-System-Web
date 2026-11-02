@@ -12,7 +12,10 @@ use ZipArchive;
 /** Database dump + storage/app/public into one zip, pruned locally and optionally copied to a second disk. */
 class BackupCommand extends Command
 {
-    protected $signature = 'egmenu:backup';
+    protected $signature = 'eghub:backup';
+
+    /** The deploy script running while this version arrives still calls the old name. */
+    protected $aliases = ['egmenu:backup'];
 
     protected $description = 'Back up the database and uploaded files into storage/app/backups (and BACKUP_DISK if set)';
 
@@ -22,7 +25,7 @@ class BackupCommand extends Command
         File::ensureDirectoryExists($dir);
 
         $tmp = tempnam(sys_get_temp_dir(), 'egbk');
-        $archive = $dir.'/egmenu-'.now()->format('Y-m-d-Hi').'.zip';
+        $archive = $dir.'/eghub-'.now()->format('Y-m-d-Hi').'.zip';
 
         try {
             $dbName = $this->dumpDatabase($tmp);
@@ -53,7 +56,7 @@ class BackupCommand extends Command
             }
         }
 
-        cache()->forever('egmenu:last_backup_at', now()->timestamp);
+        cache()->forever('eghub:last_backup_at', now()->timestamp);
 
         return self::SUCCESS;
     }
@@ -121,7 +124,7 @@ class BackupCommand extends Command
     {
         $cutoff = now()->subDays(max(1, (int) config('backup.keep_days')))->timestamp;
         $removed = 0;
-        foreach (glob($dir.'/egmenu-*.zip') ?: [] as $file) {
+        foreach (glob($dir.'/{eghub,egmenu}-*.zip', GLOB_BRACE) ?: [] as $file) {
             if (filemtime($file) < $cutoff && @unlink($file)) {
                 $removed++;
             }

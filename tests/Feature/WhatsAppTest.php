@@ -183,7 +183,7 @@ class WhatsAppTest extends TenantTestCase
     public function test_egweb_adjusts_credits_from_the_restaurant_page(): void
     {
         $a = $this->restaurant('cafe-a');
-        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@egmenu.test', 'password' => 'Secret-pass-123']);
+        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@eghub.test', 'password' => 'Secret-pass-123']);
 
         $this->actingAs($admin, 'admin')->post($this->adminUrl('/tenants/cafe-a/credits'), ['delta' => 120, 'note' => 'gift'])->assertSessionHasNoErrors();
         $this->actingAs($admin, 'admin')->post($this->adminUrl('/tenants/cafe-a/credits'), ['delta' => -500])->assertSessionHasNoErrors();
@@ -255,7 +255,7 @@ class WhatsAppTest extends TenantTestCase
 
         $this->order($a);
         $this->assertSame('p-77', $this->messages($a)->sole()->provider_id);
-        Http::assertSent(fn ($r) => $r->hasHeader('X-EgMenu-Secret', 's3cret') && $r['template'] === 'order_received' && str_contains($r['text'], 'Mona'));
+        Http::assertSent(fn ($r) => $r->hasHeader('X-EgHub-Secret', 's3cret') && $r['template'] === 'order_received' && str_contains($r['text'], 'Mona'));
     }
 
     public function test_loyalty_rewards_and_reservations_send_their_messages(): void

@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Process;
  */
 class ShareImagesCommand extends Command
 {
-    protected $signature = 'egmenu:share-images
+    protected $signature = 'eghub:share-images
         {--only=* : Card keys to draw, wildcards allowed (features/*, directory/cairo); all cards when empty}
         {--locale=* : ar and/or en (both when empty)}
         {--domain=eghub.app : Main domain shown on the cards}

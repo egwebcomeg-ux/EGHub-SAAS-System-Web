@@ -1,6 +1,6 @@
 {{--
     A blog article cover (1600×900, the 16:9 of ImageService's "post" profile), drawn by headless Chrome from
-    `php artisan egmenu:blog-covers`. A solid background (navy or white, no gradients or glows) with flat dots, the
+    `php artisan eghub:blog-covers`. A solid background (navy or white, no gradients or glows) with flat dots, the
     article's own illustration (share-cards/blog-art/{art}) on a light disc, two or three words and the small EgHub logo.
     Everything important stays inside the middle 1480×780, so the 1200×630 share crop keeps it.
     $card: BlogSeeder::coverCards() entry {label, art, theme}

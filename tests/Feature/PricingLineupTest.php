@@ -93,7 +93,7 @@ class PricingLineupTest extends TenantTestCase
     public function test_the_super_admin_assigns_enterprise_with_any_period(): void
     {
         $this->restaurant('chain', 'free');
-        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@egmenu.test', 'password' => 'Secret-pass-123']);
+        $admin = PlatformAdmin::query()->create(['name' => 'Admin', 'email' => 'admin@eghub.test', 'password' => 'Secret-pass-123']);
         $enterprise = Plan::query()->where('code', 'enterprise')->firstOrFail();
 
         $this->actingAs($admin, 'admin')->get($this->adminUrl('/plans'))->assertOk()->assertSee('data-plan-contact', false);

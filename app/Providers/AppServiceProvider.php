@@ -155,6 +155,6 @@ class AppServiceProvider extends ServiceProvider
         Queue::after(fn () => $this->app->make(PageCache::class)->flushOverHttp());
         Queue::failing(fn () => $this->app->make(PageCache::class)->flushOverHttp());
 
-        $this->optimizes(optimize: 'egmenu:page-cache-purge', key: 'page-cache');
+        $this->optimizes(optimize: 'eghub:page-cache-purge', key: 'page-cache');
     }
 }
