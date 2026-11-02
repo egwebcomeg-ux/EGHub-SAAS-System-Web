@@ -36,7 +36,7 @@ class PlatformConversation extends Model
 
     protected function casts(): array
     {
-        return ['last_message_at' => 'datetime', 'last_inbound_at' => 'datetime', 'bot_paused_until' => 'datetime', 'unread' => 'integer'];
+        return ['last_message_at' => 'datetime', 'last_inbound_at' => 'datetime', 'bot_paused_until' => 'datetime', 'waiting_for_team_since' => 'datetime', 'unread' => 'integer'];
     }
 
     /** @return HasMany<PlatformConversationMessage, $this> */
@@ -60,6 +60,12 @@ class PlatformConversation extends Model
     public function botPaused(): bool
     {
         return $this->bot_paused_until !== null && $this->bot_paused_until->isFuture();
+    }
+
+    /** The automatic answer handed over and no person answered yet. */
+    public function waitingForTeam(): bool
+    {
+        return $this->waiting_for_team_since !== null;
     }
 
     public function isWhatsApp(): bool

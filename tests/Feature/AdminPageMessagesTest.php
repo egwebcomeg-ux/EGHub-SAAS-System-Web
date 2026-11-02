@@ -171,7 +171,7 @@ class AdminPageMessagesTest extends TenantTestCase
 
         $this->webhook(['message' => ['mid' => 'm_2', 'attachments' => [['type' => 'ig_reel', 'payload' => ['url' => 'https://example.test/r']]]]])->assertOk();
         $this->assertSame(PlatformAutoReply::HANDOVER_TEXT, $this->sent()->first()[0]['message']['text']);
-        $this->assertTrue($conversation->refresh()->botPaused());
+        $this->assertTrue($conversation->refresh()->waitingForTeam());
         $this->assertSame('[ملف]', $conversation->messages()->where('direction', 'in')->latest('id')->first()->body);
     }
 

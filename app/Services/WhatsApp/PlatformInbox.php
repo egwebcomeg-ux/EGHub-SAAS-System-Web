@@ -69,7 +69,7 @@ final class PlatformInbox
             return;
         }
         $conversation->messages()->create(['direction' => 'note', 'body' => __('Answered in Meta: :text', ['text' => $text]), 'provider_id' => $providerId]);
-        $conversation->forceFill(['bot_paused_until' => now()->addHours(PlatformAutoReply::PAUSE_HOURS), 'last_message_at' => now()])->save();
+        $conversation->forceFill(['bot_paused_until' => now()->addHours(PlatformAutoReply::PAUSE_HOURS), 'waiting_for_team_since' => null, 'last_message_at' => now()])->save();
     }
 
     /** Called after the response: Meta sends only an id with the message. */
@@ -107,7 +107,7 @@ final class PlatformInbox
     {
         $row = $this->deliver($conversation, $admin, $text, fn () => $this->driver($conversation)->reply($conversation->phone, $text));
         if ($admin) {
-            $conversation->forceFill(['bot_paused_until' => now()->addHours(PlatformAutoReply::PAUSE_HOURS)])->save();
+            $conversation->forceFill(['bot_paused_until' => now()->addHours(PlatformAutoReply::PAUSE_HOURS), 'waiting_for_team_since' => null])->save();
         }
 
         return $row;

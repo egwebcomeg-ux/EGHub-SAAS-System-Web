@@ -13,10 +13,11 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * The automatic answer on the EgHub number and page: App\Services\Assistant answers from the live plans and add-ons, so a price
- * is never invented. It stays quiet where the team has the conversation (assigned, or answered in the last 24 hours),
- * and hands over when the person asks for someone, when it cannot answer, on media it cannot read, when the model is
- * down, or after DAILY_LIMIT answers to one person, and then gives the conversation to the team member with the fewest
- * open ones. The first message of a new person gets a welcome with buttons. Off until the team switches it on in «محادثات واتساب».
+ * is never invented. It stays quiet where a person of the team has the conversation (assigned by hand, or answered in
+ * the last 24 hours), and hands over when the person asks for someone, when it cannot answer, on media it cannot read,
+ * when the model is down, or after DAILY_LIMIT answers to one person, and then gives the conversation to the team member
+ * with the fewest open ones. Until a person answers it keeps answering what it can, on every channel, and says only once
+ * that the team will answer. The first message of a new person gets a welcome with buttons. Off until the team switches it on in «محادثات واتساب».
  */
 final class PlatformAutoReply
 {
@@ -32,7 +33,7 @@ final class PlatformAutoReply
     /** What a person is told when the team takes over and the model has no words of its own. */
     public const HANDOVER_TEXT = 'وصلتنا رسالتك، وحد من فريق EgHub هيرد عليك هنا في أقرب وقت.';
 
-    public const HANDOVER_NOTE = 'الرد الآلي سكت هنا والمحادثة مستنية رد من الفريق.';
+    public const HANDOVER_NOTE = 'المحادثة مستنية رد من الفريق. الرد الآلي بيجاوب على الأسئلة لحد ما حد يرد.';
 
     public const BUTTON_PREFIX = 'inbox:';
 
@@ -51,6 +52,10 @@ final class PlatformAutoReply
 
     private const MEDIA_TYPES = ['image', 'audio', 'video', 'document', 'location', 'contacts'];
 
+    private const WAITING_RULES = <<<'TXT'
+The team has already been told and will answer in this chat. Answer what you can from your facts and do not say again that the team will answer. If you cannot answer, end your answer with [[HUMAN]].
+TXT;
+
     private const CHANNEL_RULES = <<<'TXT'
 CHANNEL: This conversation is on WhatsApp, on EgHub's own number. The person is already talking to EgHub here: never give a wa.me link or another WhatsApp number. When the team is needed, say that someone from the team will answer here in this chat. Never claim to be a human; if asked, say you are EgHub's automatic assistant. If they ask how to reach support or for a phone number, say this same number is EgHub's main number and that writing «أكلم حد من الفريق» here brings a person; never give any personal number. Do not promise working hours or a response time. If they ask to delete their messages or data, say the team will do it and end your answer with [[HUMAN]].
 TXT;
@@ -68,7 +73,7 @@ TXT;
 
     public function shouldAnswer(PlatformConversation $conversation): bool
     {
-        return self::enabled() && $conversation->assigned_to === null && ! $conversation->botPaused() && $conversation->canReply();
+        return self::enabled() && ($conversation->assigned_to === null || $conversation->waitingForTeam()) && ! $conversation->botPaused() && $conversation->canReply();
     }
 
     /** Reached from the queue: the conversation is checked again, the team may have answered meanwhile. */
@@ -135,6 +140,8 @@ TXT;
 
         $rules = $conversation->isWhatsApp() ? self::CHANNEL_RULES : str_replace(':channel', ucfirst($conversation->channel), self::PAGE_RULES);
 
+        $rules .= $conversation->waitingForTeam() ? "\n".self::WAITING_RULES : '';
+
         return $rules.($answers !== '' ? "\n\nTEAM ANSWERS (written by the EgHub team, facts you may use):\n".$answers : '');
     }
 
@@ -149,10 +156,15 @@ TXT;
 
     private function handOver(PlatformConversation $conversation, string $text): void
     {
+        if ($conversation->waitingForTeam()) {
+            $this->inbox->alertTeam($conversation); // the person was told already
+
+            return;
+        }
         $this->inbox->reply($conversation, null, $text);
         $conversation->assigned_to = $this->nextTeamMember()?->id;
         $conversation->messages()->create(['direction' => 'note', 'body' => self::HANDOVER_NOTE]);
-        $conversation->forceFill(['bot_paused_until' => now()->addHours(self::PAUSE_HOURS)])->save();
+        $conversation->forceFill(['waiting_for_team_since' => now()])->save();
         $this->inbox->alertTeam($conversation);
     }
 

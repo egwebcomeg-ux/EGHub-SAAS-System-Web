@@ -64,7 +64,7 @@ class WhatsAppInboxController extends Controller
     public function assign(Request $request, PlatformConversation $conversation): RedirectResponse
     {
         $data = $request->validate(['assigned_to' => ['nullable', 'integer', Rule::in($this->team()->pluck('id')->all())]]);
-        $conversation->update(['assigned_to' => $data['assigned_to'] ?? null]);
+        $conversation->update(['assigned_to' => $data['assigned_to'] ?? null, 'waiting_for_team_since' => null]);
 
         return back();
     }
@@ -116,7 +116,7 @@ class WhatsAppInboxController extends Controller
     /** The team is done here: the automatic answer may speak in this conversation again. */
     public function resumeBot(PlatformConversation $conversation): RedirectResponse
     {
-        $conversation->update(['bot_paused_until' => null, 'assigned_to' => null]);
+        $conversation->update(['bot_paused_until' => null, 'assigned_to' => null, 'waiting_for_team_since' => null]);
 
         return back();
     }

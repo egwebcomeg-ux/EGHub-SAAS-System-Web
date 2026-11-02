@@ -113,7 +113,7 @@ class AdminWhatsAppAutoReplyTest extends TenantTestCase
         $this->actingAs($admin, 'admin')->get($this->adminUrl('/inbox/'.$conversation->id))->assertOk()->assertSee(__('Automatic answer'));
     }
 
-    public function test_asking_for_a_person_hands_over_and_later_messages_get_no_answer(): void
+    public function test_asking_for_a_person_hands_over_and_says_so_only_once(): void
     {
         $this->fakeModel('حد من الفريق هيرد عليك هنا. [[HUMAN]]');
         $this->welcomed();
@@ -121,15 +121,53 @@ class AdminWhatsAppAutoReplyTest extends TenantTestCase
         $this->webhook($this->text('عايز اكلم موظف'))->assertOk();
 
         $conversation = PlatformConversation::query()->sole();
-        $this->assertTrue($conversation->botPaused());
+        $this->assertTrue($conversation->waitingForTeam());
         $this->assertSame(1, $this->sentToMeta());
         $this->assertSame(1, $conversation->messages()->where('direction', 'note')->count());
         $this->assertStringNotContainsString('[[HUMAN]]', (string) $conversation->messages()->where('direction', 'out')->latest('id')->first()->body);
 
         $this->webhook($this->text('فين الرد'))->assertOk();
-        $this->assertSame(1, $this->askedTheModel());
         $this->assertSame(1, $this->sentToMeta());
+        $this->assertSame(1, $conversation->messages()->where('direction', 'note')->count());
         $this->assertSame(2, $conversation->refresh()->unread);
+    }
+
+    public function test_while_waiting_for_the_team_questions_are_answered_until_a_person_answers(): void
+    {
+        $model = fn (string $text) => ['content' => [['type' => 'text', 'text' => $text]], 'stop_reason' => 'end_turn', 'usage' => ['input_tokens' => 1, 'output_tokens' => 1]];
+        Http::fake([
+            'api.anthropic.com/*' => Http::sequence()->push($model('حد من الفريق هيرد عليك هنا. [[HUMAN]]'))->push($model('الشاشة في الباقة الكاملة')),
+            'graph.facebook.com/*' => fn () => Http::response(['messages' => [['id' => 'wamid.out'.uniqid()]]]),
+        ]);
+        $admin = PlatformAdmin::query()->create(['name' => 'Sara', 'email' => 'sara@egweb.test', 'password' => 'Secret-pass-123', 'role' => 'support']);
+        $conversation = $this->welcomed();
+        $this->webhook($this->text('عايز اكلم موظف'))->assertOk();
+        $this->assertSame($admin->id, $conversation->refresh()->assigned_to);
+
+        $this->webhook($this->text('شاشة'))->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'api.anthropic.com') && str_contains(json_encode($request['system']), 'already been told'));
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'graph.facebook.com') && ($request['text']['body'] ?? '') === 'الشاشة في الباقة الكاملة');
+        $this->assertSame($admin->id, $conversation->refresh()->assigned_to);
+
+        $this->actingAs($admin, 'admin')->post($this->adminUrl("/inbox/{$conversation->id}/reply"), ['body' => 'أهلا'])->assertSessionHasNoErrors();
+        $this->assertFalse($conversation->refresh()->waitingForTeam());
+        $asked = $this->askedTheModel();
+        $this->webhook($this->text('سؤال تاني'))->assertOk();
+        $this->assertSame($asked, $this->askedTheModel());
+    }
+
+    public function test_assigning_by_hand_while_waiting_quiets_it(): void
+    {
+        $this->fakeModel('رد');
+        $admin = PlatformAdmin::query()->create(['name' => 'Sara', 'email' => 'sara@egweb.test', 'password' => 'Secret-pass-123', 'role' => 'support']);
+        $conversation = $this->welcomed();
+        $conversation->forceFill(['waiting_for_team_since' => now()])->save();
+
+        $this->actingAs($admin, 'admin')->post($this->adminUrl("/inbox/{$conversation->id}/assign"), ['assigned_to' => $admin->id])->assertRedirect();
+        $this->webhook($this->text('سؤال'))->assertOk();
+
+        $this->assertSame(0, $this->askedTheModel());
     }
 
     public function test_a_team_answer_or_an_assignment_quiets_it_and_the_team_can_give_it_back(): void
@@ -163,7 +201,7 @@ class AdminWhatsAppAutoReplyTest extends TenantTestCase
         $this->webhook(['type' => 'audio', 'audio' => ['id' => '1']])->assertOk();
         $this->assertSame(0, $this->askedTheModel());
         Http::assertSent(fn ($request) => str_contains($request->url(), 'graph.facebook.com') && ($request['text']['body'] ?? '') === PlatformAutoReply::HANDOVER_TEXT);
-        $this->assertTrue(PlatformConversation::query()->sole()->botPaused());
+        $this->assertTrue(PlatformConversation::query()->sole()->waitingForTeam());
     }
 
     public function test_when_the_model_is_down_the_person_is_told_the_team_will_answer(): void
@@ -177,7 +215,7 @@ class AdminWhatsAppAutoReplyTest extends TenantTestCase
         $this->webhook($this->text('الاسعار'))->assertOk();
 
         Http::assertSent(fn ($request) => str_contains($request->url(), 'graph.facebook.com') && $request['text']['body'] === PlatformAutoReply::HANDOVER_TEXT);
-        $this->assertTrue(PlatformConversation::query()->sole()->botPaused());
+        $this->assertTrue(PlatformConversation::query()->sole()->waitingForTeam());
     }
 
     public function test_after_the_daily_limit_the_team_takes_over_without_the_model(): void
@@ -191,7 +229,7 @@ class AdminWhatsAppAutoReplyTest extends TenantTestCase
         $this->webhook($this->text('كمان سؤال'))->assertOk();
 
         $this->assertSame(0, $this->askedTheModel());
-        $this->assertTrue($conversation->refresh()->botPaused());
+        $this->assertTrue($conversation->refresh()->waitingForTeam());
     }
 
     public function test_the_first_message_gets_the_welcome_with_buttons_and_a_hello_needs_nothing_more(): void
