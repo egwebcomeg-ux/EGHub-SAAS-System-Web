@@ -73,11 +73,11 @@ return [
      * message). The body parameters are sent in the order of App\Services\WhatsApp\Templates::PARAMS.
      */
     'templates' => [
-        'order_received' => env('WHATSAPP_TPL_ORDER_RECEIVED', 'egmenu_order_received'),
-        'order_ready' => env('WHATSAPP_TPL_ORDER_READY', 'egmenu_order_ready'),
-        'order_on_way' => env('WHATSAPP_TPL_ORDER_ON_WAY', 'egmenu_order_on_way'),
-        'reservation_confirmed' => env('WHATSAPP_TPL_RESERVATION_CONFIRMED', 'egmenu_reservation_confirmed'),
-        'loyalty_reward' => env('WHATSAPP_TPL_LOYALTY_REWARD', 'egmenu_loyalty_reward'),
+        'order_received' => env('WHATSAPP_TPL_ORDER_RECEIVED', 'eghub_order_received'),
+        'order_ready' => env('WHATSAPP_TPL_ORDER_READY', 'eghub_order_ready'),
+        'order_on_way' => env('WHATSAPP_TPL_ORDER_ON_WAY', 'eghub_order_on_way'),
+        'reservation_confirmed' => env('WHATSAPP_TPL_RESERVATION_CONFIRMED', 'eghub_reservation_confirmed'),
+        'loyalty_reward' => env('WHATSAPP_TPL_LOYALTY_REWARD', 'eghub_loyalty_reward'),
         'campaign' => env('WHATSAPP_TPL_CAMPAIGN', 'egmenu_campaign'),
         'automation' => env('WHATSAPP_TPL_AUTOMATION', 'egmenu_campaign'),       // free text {{1}}, same template as campaigns
         'order_staff' => env('WHATSAPP_TPL_ORDER_STAFF', 'egmenu_campaign'),     // new-order alert to the restaurant, free text {{1}}

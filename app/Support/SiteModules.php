@@ -40,7 +40,13 @@ final class SiteModules
         static $cache = [];
         $locale = app()->getLocale();
 
-        return $cache[$locale] ??= collect(self::definitions())->keyBy('slug')->all();
+        return $cache[$locale] ??= collect(self::definitions())->keyBy('slug')->map(function (array $module) {
+            if (in_array($module['slug'], ['whatsapp', 'campaigns'], true) && ! WhatsApp::platformSends()) {
+                $module['name'] .= ' ('.__('Coming soon').')';
+            }
+
+            return $module;
+        })->all();
     }
 
     public static function find(string $slug): ?array

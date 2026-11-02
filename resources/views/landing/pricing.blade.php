@@ -22,6 +22,9 @@
         'growth' => [__('Add to your plan'), __('More branches and users for the Complete plan, more items and tables for the free one, and a featured place in the directory.'), $addons->filter(fn ($a) => ($a->isFeaturePack() && !$isOps($a)) || $a->type === 'limit')->values()],
         'credits' => [__('Credits'), __('WhatsApp messages for order updates and campaigns. One message is one credit.'), $addons->filter(fn ($a) => $a->isCreditPack())->values()],
     ];
+    if (! \App\Services\WhatsApp\WhatsApp::platformSends()) {
+        unset($addonGroups['credits']);
+    }
     // the first module page that sells each add-on
     $moduleFor = [];
     foreach (\App\Support\SiteModules::all() as $m) {

@@ -235,7 +235,7 @@ class WhatsAppTest extends TenantTestCase
         $this->assertSame('wamid.1', $this->messages($a)->sole()->provider_id);
         Http::assertSent(fn ($r) => $r->url() === 'https://graph.facebook.com/v21.0/123/messages'
             && $r->hasHeader('Authorization', 'Bearer secret-token')
-            && $r['template']['name'] === 'egmenu_order_received' && $r['template']['language']['code'] === 'ar'
+            && $r['template']['name'] === 'eghub_order_received' && $r['template']['language']['code'] === 'ar'
             && count($r['template']['components'][0]['parameters']) === 4 && $r['to'] === '201012345678');
 
         $this->credits()->add($a, 1, 'adjustment');

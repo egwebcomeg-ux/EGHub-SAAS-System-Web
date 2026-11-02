@@ -78,7 +78,7 @@ class WhatsAppOwnNumberTest extends TenantTestCase
     }
 
     /** A restaurant whose own number is connected with the given templates approved (Arabic). */
-    private function connected(Tenant $tenant, string $phoneId, string $secret, array $approved = ['egmenu_order_ready', 'egmenu_order_confirm']): WhatsAppConnection
+    private function connected(Tenant $tenant, string $phoneId, string $secret, array $approved = ['eghub_order_ready', 'egmenu_order_confirm']): WhatsAppConnection
     {
         return $this->as($tenant, fn () => WhatsAppConnection::query()->create([
             'waba_id' => '111222333', 'phone_number_id' => $phoneId, 'access_token' => 'token-of-'.$tenant->id,
@@ -196,7 +196,7 @@ class WhatsAppOwnNumberTest extends TenantTestCase
     {
         $this->fakeMeta();
         $a = $this->restaurant('cafe-a');
-        $this->metaTemplates = ['egmenu_order_ready' => ['ar' => 'APPROVED', 'en' => 'REJECTED'], 'someone_elses' => ['ar' => 'APPROVED']];
+        $this->metaTemplates = ['eghub_order_ready' => ['ar' => 'APPROVED', 'en' => 'REJECTED'], 'someone_elses' => ['ar' => 'APPROVED']];
         $this->actingAs($this->owner($a))->post($this->dashUrl('/settings/whatsapp-number'), $this->form());
         $this->assertCount(14, Http::recorded(fn ($r) => $r->method() === 'POST' && str_ends_with($r->url(), '/message_templates')));
 
@@ -204,7 +204,7 @@ class WhatsAppOwnNumberTest extends TenantTestCase
         $this->actingAs($this->owner($a))->post($this->dashUrl('/settings/whatsapp-number/templates'))->assertSessionHas('ok');
 
         $c = $this->connection($a);
-        $this->assertSame(['approved', 'rejected', 'approved'], [$c->templateStatus('egmenu_order_ready', 'ar'), $c->templateStatus('egmenu_order_ready', 'en'), $c->templateStatus('egmenu_order_confirm', 'ar')]);
+        $this->assertSame(['approved', 'rejected', 'approved'], [$c->templateStatus('eghub_order_ready', 'ar'), $c->templateStatus('eghub_order_ready', 'en'), $c->templateStatus('egmenu_order_confirm', 'ar')]);
         $this->assertArrayNotHasKey('someone_elses', $c->templates);
     }
 
@@ -248,7 +248,7 @@ class WhatsAppOwnNumberTest extends TenantTestCase
         $own = $this->message($a, 'order_ready');
         $this->assertSame(['sent', 'own', 0], [$own->status, $own->channel, $own->cost_credits]);
         Http::assertSent(fn ($r) => $r->url() === 'https://graph.facebook.com/v21.0/444555666/messages'
-            && $r->hasHeader('Authorization', 'Bearer token-of-cafe-a') && $r['template']['name'] === 'egmenu_order_ready');
+            && $r->hasHeader('Authorization', 'Bearer token-of-cafe-a') && $r['template']['name'] === 'eghub_order_ready');
 
         // a template not approved in the restaurant's account: the EgHub number (log driver here), one credit
         $platform = $this->message($a, 'order_received');

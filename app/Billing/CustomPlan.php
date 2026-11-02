@@ -6,6 +6,7 @@ use App\Models\AddonPrice;
 use App\Models\Plan;
 use App\Models\Tenant;
 use App\Services\ModuleChoice;
+use App\Services\WhatsApp\WhatsApp;
 use App\Support\SiteModules;
 use Illuminate\Support\Collection;
 
@@ -40,6 +41,12 @@ final class CustomPlan
 
     /** Modules sold apart from the custom plan: the featured directory place (on any plan) and extra branches. */
     public const OUTSIDE = ['featured-listing', 'multi-branch'];
+
+    /** @return list<string> what cannot be ticked now: the WhatsApp modules wait for the EgHub number's approved templates */
+    public static function outside(): array
+    {
+        return WhatsApp::platformSends() ? self::OUTSIDE : [...self::OUTSIDE, 'whatsapp', 'campaigns'];
+    }
 
     /** module => [the modules any one of which it needs, the one added when none of them is ticked] */
     public const NEEDS = [
@@ -94,7 +101,7 @@ final class CustomPlan
         $packs = self::packs($plan);
         $out = [];
         foreach (SiteModules::all() as $module) {
-            if (in_array($module['slug'], self::OUTSIDE, true)) {
+            if (in_array($module['slug'], self::outside(), true)) {
                 continue;
             }
             $included = SiteModules::enabled($features, $module['feature']);
