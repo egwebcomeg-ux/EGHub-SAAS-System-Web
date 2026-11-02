@@ -54,6 +54,7 @@ final class AreaTabs
             ['zreport', __('End of day (Z)'), __('End of day (Z)'), 'dash.zreport', 'reports.view|shifts.manage', 'pos', ['in' => self::IN_REPORTS]],
             ['corporate', __('Company vouchers'), __('Company vouchers report'), 'dash.corporate.report', 'contracts.manage|reports.view', 'corporate_vouchers', ['in' => self::IN_REPORTS]],
             ['feedback', __('Ratings'), __('Ratings'), 'dash.feedback', 'reports.view|customers.view', 'feedback'],
+            ['expenses', __('Expenses and profit'), __('Expenses and profit'), 'dash.expenses', 'reports.expenses', 'daily_reports'],
         ]);
     }
 

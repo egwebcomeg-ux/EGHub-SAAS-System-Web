@@ -95,6 +95,29 @@ class InventoryController extends Controller
         return back()->with('ok', __('Stock updated.'));
     }
 
+    /** A manager sends stock from the chosen branch to another branch of the restaurant. */
+    public function transfer(Request $request, StockService $stock): RedirectResponse
+    {
+        $from = self::currentBranch($request);
+        if (! Permissions::isManager($request->user())) {
+            return back()->withErrors(['transfer' => __('Only a manager can transfer stock.')]);
+        }
+        $data = $request->validate([
+            'ingredient_id' => ['required', Rule::exists('ingredients', 'id')->where('tenant_id', tenant()->getTenantKey())],
+            'to_branch' => ['required', 'integer', Rule::notIn([$from->id]), Rule::exists('branches', 'id')->where('tenant_id', tenant()->getTenantKey())],
+            'quantity' => 'required|numeric|min:0.001|max:1000000',
+            'note' => 'nullable|string|max:150',
+        ]);
+        $ingredient = Ingredient::query()->findOrFail($data['ingredient_id']);
+        $to = Branch::query()->findOrFail($data['to_branch']);
+        if (! $stock->transfer($ingredient, $from, $to, (float) $data['quantity'], $request->user(), $data['note'] ?? null)) {
+            return back()->withErrors(['transfer' => __(':branch does not have that much.', ['branch' => $from->name])])->withInput();
+        }
+        Audit::record('stock.transfer', $ingredient->name, ['ingredient_id' => $ingredient->id, 'from' => $from->id, 'to' => $to->id, 'quantity' => (float) $data['quantity']]);
+
+        return back()->with('ok', __('Stock transferred.'));
+    }
+
     public function movements(Request $request): View
     {
         $branch = self::currentBranch($request);

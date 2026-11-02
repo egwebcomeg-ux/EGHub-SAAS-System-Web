@@ -81,6 +81,27 @@
                 <p class="text-xs text-navy-500">{{ __('Counting many items? Use a full count sheet.') }} <a href="{{ route('dash.inventory.counts') }}" class="text-brand-700 underline">{{ __('Stock counts') }}</a></p>
             </form>
         @endif
+        @php($otherBranches = $isManager ? \App\Models\Branch::query()->whereKeyNot($branch->id)->orderBy('name')->get() : collect())
+        @if ($ingredients->isNotEmpty() && $otherBranches->isNotEmpty())
+            <form method="post" action="{{ route('dash.inventory.transfer') }}" class="card space-y-2" data-stock-transfer>
+                @csrf
+                <h2 class="section-title">{{ __('Transfer to another branch') }} <span class="text-sm font-normal text-navy-500">· {{ __('From :branch', ['branch' => $branch->name]) }}</span></h2>
+                <input type="hidden" name="branch" value="{{ $branch->id }}">
+                @error('transfer')<p class="text-sm font-semibold text-red-700" role="alert">{{ $message }}</p>@enderror
+                <label class="sr-only" for="transfer-to">{{ __('Branch') }}</label>
+                <select id="transfer-to" class="field" name="to_branch" required>
+                    @foreach ($otherBranches as $b)<option value="{{ $b->id }}">{{ __('To :branch', ['branch' => $b->name]) }}</option>@endforeach
+                </select>
+                <label class="sr-only" for="transfer-ingredient">{{ __('Ingredient') }}</label>
+                <select id="transfer-ingredient" class="field" name="ingredient_id" required>
+                    @foreach ($ingredients->where('is_active', true) as $i)<option value="{{ $i->id }}">{{ $i->name }} ({{ $i->unitLabel() }})</option>@endforeach
+                </select>
+                <label class="field-label" for="transfer-quantity">{{ __('Quantity') }}</label>
+                <input id="transfer-quantity" class="field" name="quantity" type="number" step="0.001" min="0.001" required>
+                <input class="field" name="note" maxlength="150" placeholder="{{ __('Note') }}">
+                <button class="btn-navy w-full min-h-10">{{ __('Transfer') }}</button>
+            </form>
+        @endif
         <form method="post" action="{{ route('dash.inventory.store') }}" class="card space-y-2">
             @csrf
             <h2 class="section-title">{{ __('Add ingredient') }}</h2>

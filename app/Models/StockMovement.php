@@ -17,6 +17,7 @@ class StockMovement extends TenantModel
         'return' => ['رجوع طلب ملغي', 'Cancelled order returned'],
         'waste' => ['هالك', 'Waste'],
         'count' => ['جرد', 'Stock count'],
+        'transfer' => ['تحويل بين الفروع', 'Transfer between branches'],
     ];
 
     protected function casts(): array

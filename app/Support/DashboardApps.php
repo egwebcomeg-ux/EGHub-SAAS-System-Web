@@ -65,7 +65,7 @@ final class DashboardApps
         'dash.loyalty.desk' => ['dash.rewards'],
         'dash.campaigns' => ['dash.outreach', 'dash.outreach.*'],
         'dash.devices' => ['dash.tv', 'dash.tv.*', 'dash.kiosks', 'dash.kiosks.*'],
-        'dash.reports' => ['dash.feedback', 'dash.feedback.*'],
+        'dash.reports' => ['dash.feedback', 'dash.feedback.*', 'dash.expenses', 'dash.expenses.*'],
         'dash.corporate' => ['dash.redeem', 'dash.redeem.*'],
         'dash.corporate.bookings' => ['dash.corporate', 'dash.corporate.*', 'dash.redeem', 'dash.redeem.*'],
         'dash.redeem' => ['dash.corporate', 'dash.corporate.*'],
@@ -79,7 +79,7 @@ final class DashboardApps
     public static function isActive(string $route): bool
     {
         if (AreaTabs::fromReports()) {
-            return in_array($route, ['dash.reports', 'dash.feedback'], true);
+            return in_array($route, ['dash.reports', 'dash.feedback', 'dash.expenses'], true);
         }
 
         return request()->routeIs($route)

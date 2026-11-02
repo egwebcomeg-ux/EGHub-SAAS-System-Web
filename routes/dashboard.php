@@ -26,6 +26,7 @@ use App\Http\Controllers\Dashboard\DevicesController;
 use App\Http\Controllers\Dashboard\DomainController;
 use App\Http\Controllers\Dashboard\DriverController;
 use App\Http\Controllers\Dashboard\DriversController;
+use App\Http\Controllers\Dashboard\ExpensesController;
 use App\Http\Controllers\Dashboard\FeedbackController;
 use App\Http\Controllers\Dashboard\HoldsController;
 use App\Http\Controllers\Dashboard\HomeController;
@@ -316,6 +317,11 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         ->middleware('permission:orders.view|pos.use|pager.use')->name('orders.receipt');
 
     // ---- Reports (daily on Pro, advanced on Business) ----
+    Route::middleware(['feature:daily_reports', 'permission:reports.expenses'])->group(function () {
+        Route::get('/expenses', [ExpensesController::class, 'index'])->name('expenses');
+        Route::post('/expenses', [ExpensesController::class, 'store'])->name('expenses.store');
+        Route::post('/expenses/{expense}/delete', [ExpensesController::class, 'destroy'])->whereNumber('expense')->name('expenses.destroy');
+    });
     Route::middleware(['feature:daily_reports', 'permission:reports.view'])->group(function () {
         Route::get('/reports', [ReportsController::class, 'index'])->name('reports');
         Route::get('/reports/export', [ReportsController::class, 'export'])->name('reports.export');
@@ -586,6 +592,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/inventory/ingredients', [InventoryController::class, 'store'])->name('inventory.store');
         Route::post('/inventory/ingredients/{ingredient}', [InventoryController::class, 'update'])->name('inventory.update');
         Route::post('/inventory/move', [InventoryController::class, 'move'])->name('inventory.move');
+        Route::post('/inventory/transfer', [InventoryController::class, 'transfer'])->name('inventory.transfer');
         Route::get('/inventory/movements', [InventoryController::class, 'movements'])->name('inventory.movements');
         Route::get('/inventory/recipes', [InventoryController::class, 'recipes'])->name('inventory.recipes');
         Route::get('/inventory/recipes/{item}', [InventoryController::class, 'recipe'])->name('inventory.recipe');

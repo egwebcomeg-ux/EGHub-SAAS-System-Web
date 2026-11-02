@@ -29,7 +29,7 @@ final class SalesReport
     /** @return array<string, mixed> */
     public function build(): array
     {
-        $orders = $this->orders()->get(['id', 'branch_id', 'customer_id', 'status', 'type', 'source', 'payment_status', 'payment_method', 'payments', 'corporate_amount', 'total', 'discount', 'created_at']);
+        $orders = $this->orders()->get(['id', 'branch_id', 'customer_id', 'status', 'type', 'source', 'payment_status', 'payment_method', 'payments', 'corporate_amount', 'total', 'discount', 'tax', 'created_at']);
         $sold = $orders->where('status', '!=', 'cancelled');
         $refunds = $this->refunds();
         // net of the refunds given in the period (a return lowers the day it happened)
@@ -59,6 +59,7 @@ final class SalesReport
             'revenue' => $revenue,
             'average' => $sold->count() ? round($revenue / $sold->count(), 2) : 0.0,
             'discounts' => round((float) $sold->sum('discount'), 2),
+            'tax' => round((float) $sold->sum('tax'), 2),
             'cancelled' => $orders->where('status', 'cancelled')->count(),
             'unpaid' => round((float) $sold->where('payment_status', 'unpaid')->sum('total'), 2),
             'days' => $days,

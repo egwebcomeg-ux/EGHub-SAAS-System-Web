@@ -164,6 +164,26 @@ class StockService
         $this->move($ingredient->id, $branch->id, 'waste', -abs($qty), $by, null, $note);
     }
 
+    /**
+     * Moves stock from one branch to another: one movement out, one in, at the current cost, so the average cost does
+     * not change. False (and nothing moves) when the branch sending it does not have that much.
+     */
+    public function transfer(Ingredient $ingredient, Branch $from, Branch $to, float $qty, ?User $by, ?string $note = null): bool
+    {
+        return DB::transaction(function () use ($ingredient, $from, $to, $qty, $by, $note) {
+            // both rows locked in branch order: two transfers the opposite way never deadlock
+            $stocks = IngredientStock::query()->where('ingredient_id', $ingredient->id)->whereIn('branch_id', [$from->id, $to->id])
+                ->orderBy('branch_id')->lockForUpdate()->get()->keyBy('branch_id');
+            if ((float) ($stocks[$from->id]->quantity ?? 0) + 0.0005 < $qty) {
+                return false;
+            }
+            $this->move($ingredient->id, $from->id, 'transfer', -abs($qty), $by, null, trim(__('To :branch', ['branch' => $to->name]).' '.$note));
+            $this->move($ingredient->id, $to->id, 'transfer', abs($qty), $by, null, trim(__('From :branch', ['branch' => $from->name]).' '.$note));
+
+            return true;
+        });
+    }
+
     /** Physical count: records the difference so the stock equals what is on the shelf. */
     public function count(Ingredient $ingredient, Branch $branch, float $actual, ?User $by, ?string $note = null): void
     {

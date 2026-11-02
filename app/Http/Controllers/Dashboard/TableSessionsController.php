@@ -73,9 +73,14 @@ class TableSessionsController extends Controller
     public function pay(Request $request, TableSession $tableSession, OrderService $orders, ShiftService $shifts): JsonResponse
     {
         abort_unless($this->visible($request, $tableSession), 404);
-        $method = $request->validate(['method' => ['required', Rule::in(ShiftService::METHODS)]])['method'];
+        $data = $request->validate([
+            'method' => ['required_without:parts', Rule::in(ShiftService::METHODS)],
+            'parts' => 'nullable|array|max:8',
+            'parts.*.method' => ['required', Rule::in(OrderService::SPLIT_METHODS)],
+            'parts.*.amount' => 'required|numeric|min:0.01|max:9999999',
+        ]);
         try {
-            $paid = $orders->paySession($tableSession, $method, $request->user(), $shifts->current($request->user()));
+            $paid = $orders->paySession($tableSession, $data['method'] ?? 'cash', $request->user(), $shifts->current($request->user()), $data['parts'] ?? []);
         } catch (OrderException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }

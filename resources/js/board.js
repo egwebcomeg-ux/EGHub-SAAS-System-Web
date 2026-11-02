@@ -503,6 +503,40 @@ if (grid) {
         body: JSON.stringify(data),
     });
     let method = Object.keys(methods)[0] || 'cash';
+    const splitMethods = Object.keys(methods).filter((k) => ['cash', 'card', 'instapay', 'wallet'].includes(k));
+    let billDue = 0;
+
+    // the guests share the bill: equal shares by default, the last one takes the rounding; each amount and method can change
+    function renderSplit(people) {
+        const box = body.querySelector('[data-split-rows]');
+        if (!box) return;
+        const share = Math.floor((billDue / people) * 100) / 100;
+        box.innerHTML = Array.from({ length: people }, (_, i) => {
+            const amount = i === people - 1 ? (billDue - share * (people - 1)).toFixed(2) : share.toFixed(2);
+            return `<div class="flex items-center gap-2" data-split-row>
+                <span class="w-20 shrink-0 text-sm font-semibold">${esc(t.person.replace('__N__', i + 1))}</span>
+                <input type="number" step="0.01" min="0.01" value="${amount}" dir="ltr" class="field min-h-10 min-w-0 flex-1" data-split-amount aria-label="${esc(t.person.replace('__N__', i + 1))}">
+                <select class="field min-h-10 w-auto" data-split-method aria-label="${esc(t.method)}">${splitMethods.map((k) => `<option value="${k}">${esc(methods[k])}</option>`).join('')}</select>
+            </div>`;
+        }).join('');
+        updateSplitLeft();
+    }
+
+    function splitParts() {
+        return [...body.querySelectorAll('[data-split-row]')].map((row) => ({
+            method: row.querySelector('[data-split-method]').value,
+            amount: Number(row.querySelector('[data-split-amount]').value),
+        }));
+    }
+
+    function updateSplitLeft() {
+        const left = Math.round((billDue - splitParts().reduce((sum, p) => sum + (p.amount || 0), 0)) * 100) / 100;
+        const el = body.querySelector('[data-split-left]');
+        if (el) {
+            el.textContent = t.splitLeft.replace('__A__', left);
+            el.classList.toggle('hidden', Math.abs(left) < 0.005);
+        }
+    }
 
     function tile(table) {
         const s = table.session;
@@ -539,6 +573,7 @@ if (grid) {
     function renderBill(b) {
         const row = (label, value, cls = '') => (value === null || value === undefined ? '' : `<div class="flex justify-between ${cls}"><span>${esc(label)}</span><span class="tabular-nums">${esc(value)}</span></div>`);
         const due = b.due_amount > 0.004;
+        billDue = Number(b.due_amount) || 0;
         body.innerHTML = `
             <header class="mb-3 flex items-start justify-between gap-3">
                 <div><h2 class="text-xl font-extrabold">${esc(t.table.replace('__N__', b.table))}</h2>
@@ -560,7 +595,14 @@ if (grid) {
             <p class="mt-3 hidden rounded-xl bg-red-50 p-2 text-sm font-semibold text-red-700" data-bill-error></p>
             ${canPay && due ? `<fieldset class="mt-4"><legend class="mb-2 text-xs font-bold text-navy-500">${esc(t.method)}</legend>
                 <div class="flex flex-wrap gap-2">${Object.entries(methods).map(([k, label]) => `
-                    <button type="button" data-method="${k}" aria-pressed="${k === method}" class="min-h-10 rounded-xl px-3 text-sm font-bold ring-1 ring-navy-200 aria-pressed:bg-navy-800 aria-pressed:text-white">${esc(label)}</button>`).join('')}</div></fieldset>` : ''}
+                    <button type="button" data-method="${k}" aria-pressed="${k === method}" class="min-h-10 rounded-xl px-3 text-sm font-bold ring-1 ring-navy-200 aria-pressed:bg-navy-800 aria-pressed:text-white">${esc(label)}</button>`).join('')}</div></fieldset>
+                <button type="button" class="mt-3 text-sm font-bold text-brand-700 underline" data-split-toggle aria-expanded="false">${esc(t.split)}</button>
+                <div class="mt-2 hidden space-y-2 rounded-xl bg-navy-50 p-3" data-split-panel>
+                    <label class="flex items-center justify-between gap-2 text-sm font-semibold">${esc(t.people)}
+                        <input type="number" min="2" max="8" value="2" dir="ltr" class="field min-h-10 w-20" data-split-people></label>
+                    <div class="space-y-2" data-split-rows></div>
+                    <p class="hidden text-sm font-semibold text-red-700" data-split-left></p>
+                </div>` : ''}
             <div class="mt-4 grid gap-2 sm:grid-cols-2">
                 <a href="${esc(b.receipt)}" target="_blank" rel="noopener" class="btn-ghost min-h-11 justify-center">🖨 ${esc(t.print)}</a>
                 ${canPay ? (due
@@ -592,6 +634,16 @@ if (grid) {
 
     body.addEventListener('click', async (e) => {
         if (e.target.closest('[data-bill-close]')) return dialog.close();
+        const toggle = e.target.closest('[data-split-toggle]');
+        if (toggle) {
+            const panel = body.querySelector('[data-split-panel]');
+            const open = panel.classList.toggle('hidden') === false;
+            toggle.setAttribute('aria-expanded', String(open));
+            toggle.textContent = open ? t.splitOff : t.split;
+            body.querySelector('[data-split-rows]').innerHTML = '';
+            if (open) renderSplit(Number(body.querySelector('[data-split-people]').value) || 2);
+            return;
+        }
         const m = e.target.closest('[data-method]');
         if (m) {
             method = m.dataset.method;
@@ -604,7 +656,8 @@ if (grid) {
         if (btn.dataset.closeOnly && !confirm(t.sure)) return;
         btn.disabled = true;
         if (btn.dataset.payClose || btn.dataset.payOnly) {
-            const res = await post(grid.dataset.payUrl.replace('__ID__', id), { method });
+            const parts = splitParts();
+            const res = await post(grid.dataset.payUrl.replace('__ID__', id), parts.length ? { parts } : { method });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
                 btn.disabled = false;
@@ -624,6 +677,15 @@ if (grid) {
         body.innerHTML = `<div class="py-8 text-center"><div class="text-5xl">✅</div><p class="mt-3 text-lg font-bold">${esc(t.closed)}</p>
             <button type="button" class="btn-primary mt-4 min-h-11 px-6" data-bill-close>OK</button></div>`;
         load();
+    });
+
+    body.addEventListener('input', (e) => {
+        if (e.target.matches('[data-split-people]')) {
+            const people = Math.min(8, Math.max(2, Number(e.target.value) || 2));
+            renderSplit(people);
+        } else if (e.target.matches('[data-split-amount]')) {
+            updateSplitLeft();
+        }
     });
 
     async function poll() {

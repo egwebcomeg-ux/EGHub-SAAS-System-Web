@@ -641,28 +641,66 @@ final class OrderService
     /**
      * Takes the payment of a whole table session: each unpaid order is paid through pay() (same method, same shift),
      * so the shift drawer, loyalty and the reports see ordinary paid orders. Orders already paid are skipped; all or
-     * nothing (one refused order leaves every order unpaid).
+     * nothing (one refused order leaves every order unpaid). With $parts the guests share the bill: each pays their
+     * amount by their own method, the parts must add up to what is due, and they are laid over the orders in turn.
      *
+     * @param  list<array{method?:string, amount?:mixed}>  $parts
      * @return int how many orders were paid now
      */
-    public function paySession(TableSession $session, string $method, User $by, ?Shift $shift): int
+    public function paySession(TableSession $session, string $method, User $by, ?Shift $shift, array $parts = []): int
     {
         if ($method === WalletService::METHOD || $method === CorporateVouchers::METHOD) {
             throw new OrderException(__('Prepaid balance is taken per order from the POS.'));
         }
 
-        return DB::transaction(function () use ($session, $method, $by, $shift) {
+        $parts = self::paymentParts($parts);
+
+        return DB::transaction(function () use ($session, $method, $by, $shift, $parts) {
             $locked = TableSession::query()->lockForUpdate()->findOrFail($session->id);
             if (! $locked->isOpen()) {
                 throw new OrderException(__('This table is already closed.'));
             }
             $unpaid = $locked->orders()->where('status', '!=', 'cancelled')->where('payment_status', '!=', 'paid')->get();
+            if ($parts !== []) {
+                $due = round((float) $unpaid->sum('total'), 2);
+                $sum = round(array_sum(array_column($parts, 'amount')), 2);
+                if (abs($sum - $due) > 0.004) {
+                    throw new OrderException(__('The parts add up to :sum, the order needs :rest.', ['sum' => money($sum), 'rest' => money($due)]));
+                }
+            }
             foreach ($unpaid as $order) {
-                $this->pay($order, $method, $by, $shift);
+                if ($parts === []) {
+                    $this->pay($order, $method, $by, $shift);
+
+                    continue;
+                }
+                $this->pay($order, $parts[0]['method'], $by, $shift, [], null, self::takeParts($parts, round((float) $order->total, 2)));
             }
 
             return $unpaid->count();
         });
+    }
+
+    /**
+     * Takes $amount off the front of the guests' parts, which keep what is left.
+     *
+     * @param  list<array{method:string, amount:float}>  $parts
+     * @return list<array{method:string, amount:float}>
+     */
+    private static function takeParts(array &$parts, float $amount): array
+    {
+        $taken = [];
+        while ($amount > 0.004 && $parts !== []) {
+            $share = min($amount, $parts[0]['amount']);
+            $taken[] = ['method' => $parts[0]['method'], 'amount' => round($share, 2)];
+            $amount = round($amount - $share, 2);
+            $parts[0]['amount'] = round($parts[0]['amount'] - $share, 2);
+            if ($parts[0]['amount'] <= 0.004 && count($parts) > 1) {
+                array_shift($parts);
+            }
+        }
+
+        return $taken;
     }
 
     /**

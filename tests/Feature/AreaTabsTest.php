@@ -100,15 +100,15 @@ class AreaTabsTest extends TenantTestCase
         $owner = $this->owner($this->tenant);
         $html = $this->actingAs($owner)->get($this->dashUrl('/reports'))->assertOk()
             ->assertSee(route('dash.zreport', ['in' => 'reports'], false), false)->getContent();
-        $this->assertSame(['sales', 'zreport', 'corporate', 'feedback'], $this->tabs($html, 'reports'));
+        $this->assertSame(['sales', 'zreport', 'corporate', 'feedback', 'expenses'], $this->tabs($html, 'reports'));
 
         // opened from the reports, the Z report and the vouchers report show the reports' tabs and count as Reports
         $html = $this->actingAs($owner)->get($this->dashUrl('/pos/z-report?in=reports'))->assertOk()
             ->assertSee('<input type="hidden" name="in" value="reports">', false)->getContent();
-        $this->assertSame(['sales', 'zreport', 'corporate', 'feedback'], $this->tabs($html, 'reports'));
+        $this->assertSame(['sales', 'zreport', 'corporate', 'feedback', 'expenses'], $this->tabs($html, 'reports'));
         $this->assertTrue($this->railActive($html, 'dash.reports'));
         $html = $this->actingAs($owner)->get($this->dashUrl('/corporate/report?in=reports'))->assertOk()->getContent();
-        $this->assertSame(['sales', 'zreport', 'corporate', 'feedback'], $this->tabs($html, 'reports'));
+        $this->assertSame(['sales', 'zreport', 'corporate', 'feedback', 'expenses'], $this->tabs($html, 'reports'));
         $this->assertSame([], $this->tabs($html, 'corporate'));
 
         // their old URLs stay in their own apps
@@ -119,7 +119,7 @@ class AreaTabsTest extends TenantTestCase
 
         // the ratings are a tab of the reports, and keep their own entry for whoever sees the guests but not the reports
         $html = $this->actingAs($owner)->get($this->dashUrl('/feedback'))->assertOk()->getContent();
-        $this->assertSame(['sales', 'zreport', 'corporate', 'feedback'], $this->tabs($html, 'reports'));
+        $this->assertSame(['sales', 'zreport', 'corporate', 'feedback', 'expenses'], $this->tabs($html, 'reports'));
         $this->assertTrue($this->railActive($html, 'dash.reports'));
         $this->assertNotContains('dash.feedback', $this->tiles($owner));
         $cashier = $this->staff($this->tenant, 'cashier', 'cashier@cafe-a.test');
@@ -132,6 +132,6 @@ class AreaTabsTest extends TenantTestCase
         // each tab needs its plan feature: no POS, no Z report tab
         $complete = $this->restaurant('cafe-c', 'full');
         $html = $this->actingAs($this->owner($complete))->get($this->dashUrl('/reports'))->assertOk()->getContent();
-        $this->assertSame(['sales', 'corporate', 'feedback'], $this->tabs($html, 'reports'));
+        $this->assertSame(['sales', 'corporate', 'feedback', 'expenses'], $this->tabs($html, 'reports'));
     }
 }

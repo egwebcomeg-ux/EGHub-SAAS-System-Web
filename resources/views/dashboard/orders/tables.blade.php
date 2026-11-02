@@ -16,6 +16,8 @@
         'stillKitchen' => __('Some orders of this table are still being prepared.'),
         'closed' => __('Table closed. It is free now.'), 'empty' => __('No tables yet. Add them in Tables & QR.'),
         'method' => __('Payment method'), 'sure' => __('Close this table?'),
+        'split' => __('Split the bill'), 'splitOff' => __('One payment'), 'people' => __('How many people?'), 'person' => __('Person :n', ['n' => '__N__']),
+        'splitLeft' => __('Still to share: :amount', ['amount' => '__A__']),
     ];
     $methodLabels = collect($methods)->mapWithKeys(fn ($m) => [$m => \App\Billing\PaymentMethods::label($m)]);
 @endphp

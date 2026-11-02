@@ -43,10 +43,10 @@ final class VarianceReport
             $value = fn (string ...$types) => array_sum(array_map(fn ($t) => (float) ($moves[$t]->value ?? 0), $types));
 
             $closing = (float) ($stock[$ingredient->id] ?? 0) - (float) ($after[$ingredient->id] ?? 0);
-            $opening = $closing - $qty('purchase', 'sale', 'return', 'waste', 'count');
+            $opening = $closing - $qty('purchase', 'transfer', 'sale', 'return', 'waste', 'count');
             $sales = -$qty('sale', 'return');
             $waste = -$qty('waste');
-            $actual = $opening + $qty('purchase') - $closing;
+            $actual = $opening + $qty('purchase', 'transfer') - $closing;
             $rows[] = [
                 'ingredient' => $ingredient,
                 'opening' => round($opening, 3), 'purchases' => round($qty('purchase'), 3), 'purchases_cost' => round($value('purchase'), 2),
