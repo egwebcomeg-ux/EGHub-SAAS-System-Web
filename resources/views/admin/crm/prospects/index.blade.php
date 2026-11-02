@@ -139,12 +139,14 @@
 @endif
 
 {{-- a new place: the caller types one she heard of, the field rep adds the one in front of him --}}
-<form method="post" action="{{ route('admin.crm.prospects.store') }}" id="new-place" class="card mt-6 space-y-3" data-new-place-form>
+<details id="new-place" class="card mt-6" @if ($errors->any() && old('name') !== null) open @endif>
+<summary class="section-title flex min-h-11 cursor-pointer items-center">{{ __('Add a place') }}</summary>
+<form method="post" action="{{ route('admin.crm.prospects.store') }}" class="mt-3 space-y-3" data-new-place-form>
     @csrf
-    <h2 class="section-title">{{ __('Add a place') }}</h2>
     @include('admin.crm.prospects.fields', ['p' => new \App\Models\Prospect(['category' => 'restaurant', 'governorate' => 'الغربية', 'city' => 'طنطا'])])
     <button class="btn-primary">{{ __('Save the place') }}</button>
 </form>
+</details>
 @endsection
 
 @push('scripts')
@@ -168,6 +170,7 @@
             group.addTo(map);
             if (pins.length) map.fitBounds(group.getBounds().pad(0.1));
         }
+        document.querySelector('[data-new-place]')?.addEventListener('click', () => { document.getElementById('new-place').open = true; });
         // "use my location" fills the pin of the place being added
         document.querySelectorAll('[data-locate]').forEach((button) => button.addEventListener('click', () => {
             const form = button.closest('form');

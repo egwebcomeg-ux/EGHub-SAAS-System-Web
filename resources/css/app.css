@@ -131,6 +131,9 @@
 
 .table-base td { @apply border-b border-navy-50 px-3 py-3 align-middle; }
 
+/* rows of several lines: every cell starts on the same line */
+.table-roomy td { @apply py-4 align-top; }
+
 /* EgHub Pro accent: a word in orange-to-blue gradient (hero headlines) */
 .text-brand-gradient {
     /* theme variables, so the colors picked in admin › branding (App\Support\PlatformBrand) reach it too */

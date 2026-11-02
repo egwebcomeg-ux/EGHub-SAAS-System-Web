@@ -180,7 +180,7 @@
             <tbody>
             @forelse ($subscriptions as $sub)
                 <tr data-subscription-row="{{ $sub->tenant_id }}">
-                    <td>{!! $tenantLink($sub->tenant_id, $sub->tenant?->name) !!}<div class="text-xs text-navy-400" dir="ltr">{{ $sub->tenant_id }}</div></td>
+                    <td>{!! $tenantLink($sub->tenant_id, $sub->tenant?->name) !!}<div class="mt-0.5 text-xs text-navy-400"><bdi dir="ltr">{{ $sub->tenant_id }}</bdi></div></td>
                     <td>{{ $sub->plan?->displayName() }}</td>
                     <td>{{ $sub->statusLabel() }}</td>
                     <td class="whitespace-nowrap">{{ cycle_label((int) $sub->cycle_months) }}</td>

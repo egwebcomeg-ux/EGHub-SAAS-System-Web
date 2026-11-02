@@ -59,7 +59,7 @@
             </div>
         </div>
 
-        <dl class="grid gap-3 text-sm sm:grid-cols-[auto_1fr] sm:gap-x-6">
+        <dl class="grid min-w-0 grid-cols-1 gap-3 text-sm sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-x-6">
             @foreach ($kashier['keys'] as $key)
                 <dt class="font-semibold" dir="ltr">{{ $key['env'] }}</dt>
                 <dd><span class="badge {{ $key['set'] ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-700' }}">{{ $key['set'] ? '✓ ' . __('Set') : '✗ ' . __('Not set') }}</span></dd>
@@ -68,11 +68,11 @@
             <dd><span class="badge {{ $kashier['mode'] === 'live' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">{{ $kashier['mode'] === 'live' ? __('Live') : __('Test') }}</span></dd>
             <dt class="font-semibold">{{ __('Webhook URL') }}</dt>
             <dd class="flex flex-wrap items-center gap-2" dir="ltr">
-                <code class="rounded bg-navy-50 px-2 py-1">{{ $kashier['webhook_url'] }}</code>
+                <code class="break-all rounded bg-navy-50 px-2 py-1">{{ $kashier['webhook_url'] }}</code>
                 <button type="button" class="btn-ghost min-h-8 px-2 text-xs" data-copy="{{ $kashier['webhook_url'] }}">{{ __('Copy') }}</button>
             </dd>
             <dt class="font-semibold">{{ __('Return address') }}</dt>
-            <dd dir="ltr" class="text-start"><code class="rounded bg-navy-50 px-2 py-1">{{ $kashier['return_url'] }}</code></dd>
+            <dd dir="ltr" class="text-start"><code class="break-all rounded bg-navy-50 px-2 py-1">{{ $kashier['return_url'] }}</code></dd>
         </dl>
         <p class="text-xs text-navy-500">{{ __('Both addresses are sent with every payment, so nothing has to be pasted in Kashier. Edit .env and run php artisan config:clear to change the keys.') }}</p>
     </div>
@@ -121,7 +121,7 @@
     <div class="card space-y-3" id="whatsapp-verification">
         <h2 class="text-lg font-bold">{{ __('WhatsApp phone confirmation') }}</h2>
         <p class="text-sm text-navy-500">{{ __('Owners confirm their mobile by sending one ready message (EGHUB + code) to the platform number. These values come from .env and are shown here so you can paste them into Meta.') }}</p>
-        <dl class="grid gap-3 text-sm sm:grid-cols-[auto_1fr] sm:gap-x-6">
+        <dl class="grid min-w-0 grid-cols-1 gap-3 text-sm sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-x-6">
             <dt class="font-semibold">{{ __('Platform WhatsApp number') }}</dt>
             <dd dir="ltr" class="text-start">
                 @if ($whatsapp['number'])
@@ -133,13 +133,13 @@
             </dd>
             <dt class="font-semibold">{{ __('Webhook URL') }}</dt>
             <dd class="flex flex-wrap items-center gap-2" dir="ltr">
-                <code class="rounded bg-navy-50 px-2 py-1">{{ $whatsapp['webhook_url'] }}</code>
+                <code class="break-all rounded bg-navy-50 px-2 py-1">{{ $whatsapp['webhook_url'] }}</code>
                 <button type="button" class="btn-ghost min-h-8 px-2 text-xs" data-copy="{{ $whatsapp['webhook_url'] }}">{{ __('Copy') }}</button>
             </dd>
             <dt class="font-semibold">{{ __('Verify token') }} <span class="font-normal text-navy-500">(WHATSAPP_VERIFY_TOKEN)</span></dt>
             <dd class="flex flex-wrap items-center gap-2" dir="ltr">
                 @if ($whatsapp['verify_token'] !== '')
-                    <code class="rounded bg-navy-50 px-2 py-1">{{ $whatsapp['verify_token'] }}</code>
+                    <code class="break-all rounded bg-navy-50 px-2 py-1">{{ $whatsapp['verify_token'] }}</code>
                     <button type="button" class="btn-ghost min-h-8 px-2 text-xs" data-copy="{{ $whatsapp['verify_token'] }}">{{ __('Copy') }}</button>
                 @else
                     <span class="text-amber-700">{{ __('Not set') }}</span>

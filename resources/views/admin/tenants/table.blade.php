@@ -19,14 +19,16 @@
 @endphp
 {{-- wide screens: a table --}}
 <div @class(['hidden overflow-x-auto', 'md:block' => ! $compact, '2xl:block' => $compact])>
-    <table class="table-base">
+    <table @class(['table-base', 'table-roomy' => ! $compact])>
         <thead><tr>
             <th>{{ __('Restaurant') }}</th>
             @unless ($compact)<th>{{ __('Owner') }}</th>@else<th>{{ __('Mobile') }}</th>@endunless
-            <th>{{ __('Plan') }}</th><th>{{ __('Status') }}</th>
-            @unless ($compact)<th>{{ __('Ends') }}</th>@endunless
-            <th>{{ __('Created') }}</th>
-            @unless ($compact)<th>{{ __('Last order') }}</th>@endunless
+            @unless ($compact)
+                <th>{{ __('Subscription') }}</th>
+            @else
+                <th>{{ __('Plan') }}</th><th>{{ __('Status') }}</th>
+            @endunless
+            @unless ($compact)<th>{{ __('Dates') }}</th>@else<th>{{ __('Created') }}</th>@endunless
             @if ($canOpen)<th><span class="sr-only">{{ __('Open the restaurant dashboard') }}</span></th>@endif
         </tr></thead>
         <tbody>
@@ -38,37 +40,49 @@
             @endphp
             <tr data-tenant-row="{{ $t->id }}">
                 <td>
-                    <a href="{{ route('admin.tenants.show', $t) }}" class="font-semibold text-brand-700 hover:underline">{{ $t->name }}</a>
+                    <a href="{{ route('admin.tenants.show', $t) }}" class="font-bold text-brand-700 hover:underline">{{ $t->name }}</a>
                     @unless ($compact)
-                        <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-navy-500">
-                            <span dir="ltr">/{{ $t->id }}</span>
-                            @if ($type)<span data-tenant-type="{{ $type }}"><span aria-hidden="true">{{ \App\Support\BusinessType::emoji($type) }}</span> {{ \App\Support\BusinessType::label($type) }}</span>@endif
-                            @if ($t->hidden_from_directory)<span class="badge bg-navy-100 text-navy-600">{{ __('Hidden from the directory') }}</span>@endif
-                        </div>
+                        @if ($type)<div class="mt-1 text-sm text-navy-700" data-tenant-type="{{ $type }}"><span aria-hidden="true">{{ \App\Support\BusinessType::emoji($type) }}</span> {{ \App\Support\BusinessType::label($type) }}</div>@endif
+                        <div class="mt-1 text-xs text-navy-500"><bdi dir="ltr">/{{ $t->id }}</bdi></div>
+                        @if ($t->hidden_from_directory)<div class="mt-1.5"><span class="badge bg-navy-100 text-navy-600">{{ __('Hidden from the directory') }}</span></div>@endif
                     @endunless
                 </td>
                 <td>
                     @unless ($compact)
-                        @if ($owner?->email)<div dir="ltr" class="break-all text-start text-sm">{{ $owner->email }}</div>@endif
+                        @if ($owner?->email)<div class="break-all text-sm text-navy-800"><bdi dir="ltr">{{ $owner->email }}</bdi></div>@endif
                     @endunless
                     @if ($owner?->phone)
-                        <span dir="ltr">{{ $owner->phone }}</span>
-                        @if ($owner->hasVerifiedPhone())
-                            <span class="badge bg-emerald-100 text-emerald-800">✓ {{ __('Phone confirmed') }}</span>
-                        @else
-                            <span class="badge bg-amber-100 text-amber-800">{{ __('Not confirmed') }}</span>
-                        @endif
+                        <div @class(['mt-1' => ! $compact, 'text-sm text-navy-700 tabular-nums'])><bdi dir="ltr">{{ $owner->phone }}</bdi></div>
+                        <div class="mt-1.5">
+                            @if ($owner->hasVerifiedPhone())
+                                <span class="badge bg-emerald-100 text-emerald-800">✓ {{ __('Phone confirmed') }}</span>
+                            @else
+                                <span class="badge bg-amber-100 text-amber-800">{{ __('Not confirmed') }}</span>
+                            @endif
+                        </div>
                     @elseif ($compact || ! $owner?->email)
                         —
                     @endif
                 </td>
-                <td>{{ $t->subscription?->plan->displayName() ?? '—' }}</td>
-                <td>@if ($badgeLabel)<span class="badge {{ $badgeClass }}">{{ $badgeLabel }}</span>@endif</td>
-                @unless ($compact)<td>{{ $t->subscription?->endsAt() ? local_time($t->subscription->endsAt(), 'Y/m/d') : '—' }}</td>@endunless
-                <td>{{ local_time($t->created_at, 'Y/m/d') }}</td>
-                @unless ($compact)<td class="whitespace-nowrap text-navy-500">{{ $t->last_order_at ? local_time($t->last_order_at, 'Y/m/d') : '—' }}</td>@endunless
-                @if ($canOpen)
+                @unless ($compact)
                     <td>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="font-semibold text-navy-800">{{ $t->subscription?->plan->displayName() ?? '—' }}</span>
+                            @if ($badgeLabel)<span class="badge {{ $badgeClass }}">{{ $badgeLabel }}</span>@endif
+                        </div>
+                        @if ($t->subscription?->endsAt())<div class="mt-1.5 text-xs text-navy-500">{{ __('Ends') }}: <span class="tabular-nums">{{ local_time($t->subscription->endsAt(), 'Y/m/d') }}</span></div>@endif
+                    </td>
+                    <td class="whitespace-nowrap text-xs text-navy-500">
+                        <div>{{ __('Created') }}: <span class="tabular-nums text-navy-700">{{ local_time($t->created_at, 'Y/m/d') }}</span></div>
+                        <div class="mt-1.5">{{ __('Last order') }}: <span class="tabular-nums text-navy-700">{{ $t->last_order_at ? local_time($t->last_order_at, 'Y/m/d') : '—' }}</span></div>
+                    </td>
+                @else
+                    <td>{{ $t->subscription?->plan->displayName() ?? '—' }}</td>
+                    <td>@if ($badgeLabel)<span class="badge {{ $badgeClass }}">{{ $badgeLabel }}</span>@endif</td>
+                    <td>{{ local_time($t->created_at, 'Y/m/d') }}</td>
+                @endunless
+                @if ($canOpen)
+                    <td class="text-end">
                         <form method="post" action="{{ route('admin.tenants.support-access', $t) }}" target="_blank">
                             @csrf
                             <button class="btn-ghost min-h-9 whitespace-nowrap px-3 text-xs" data-support-access="{{ $t->id }}">{{ __('Open the restaurant dashboard') }}</button>

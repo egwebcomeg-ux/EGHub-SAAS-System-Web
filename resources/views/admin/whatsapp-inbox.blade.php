@@ -164,7 +164,7 @@
     </section>
 </div>
 
-<section class="card mt-4 max-w-3xl space-y-3" data-inbox-canned>
+<section class="card mt-4 space-y-3" data-inbox-canned>
     <h2 class="section-title">{{ __('Ready answers') }}</h2>
     <p class="muted text-sm">{{ __('The automatic answer uses these too, on top of what the site says. Write here what it should know.') }}</p>
     <ul class="divide-y divide-navy-100">

@@ -49,7 +49,7 @@
             @endif
         </div>
     </div>
-    <div class="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
+    <div class="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
         <label class="grid gap-1 text-xs font-semibold text-navy-600">{{ __('Plan') }}
             <select class="field" name="plan">
                 <option value="">{{ __('All plans') }}</option>
@@ -87,7 +87,7 @@
             </select>
         </label>
         <label class="grid gap-1 text-xs font-semibold text-navy-600">{{ __('Created') }}
-            <select class="field" name="created">
+            <select class="field" name="created" data-created-filter>
                 <option value="">{{ __('Any time') }}</option>
                 <option value="week" @selected($f['created'] === 'week')>{{ __('This week') }}</option>
                 <option value="month" @selected($f['created'] === 'month')>{{ __('This month') }}</option>
@@ -103,7 +103,7 @@
             </select>
         </label>
     </div>
-    <div class="grid grid-cols-2 gap-2 sm:max-w-md">
+    <div @class(['grid grid-cols-2 gap-2 sm:max-w-md', 'hidden' => $f['created'] !== 'custom']) data-created-dates>
         <label class="grid gap-1 text-xs font-semibold text-navy-600">{{ __('From') }}<input class="field" type="date" name="from" value="{{ $f['from'] }}" dir="ltr"></label>
         <label class="grid gap-1 text-xs font-semibold text-navy-600">{{ __('To') }}<input class="field" type="date" name="to" value="{{ $f['to'] }}" dir="ltr"></label>
     </div>
@@ -114,3 +114,11 @@
     <div class="mt-4">{{ $tenants->links() }}</div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    document.querySelector('[data-created-filter]')?.addEventListener('change', (event) => {
+        document.querySelector('[data-created-dates]').classList.toggle('hidden', event.target.value !== 'custom');
+    });
+</script>
+@endpush
