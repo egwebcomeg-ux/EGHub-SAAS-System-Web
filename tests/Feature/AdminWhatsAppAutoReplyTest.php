@@ -219,6 +219,18 @@ class AdminWhatsAppAutoReplyTest extends TenantTestCase
         $this->assertFalse(PlatformConversation::query()->sole()->botPaused());
     }
 
+    public function test_a_later_hello_gets_the_buttons_and_does_not_answer_an_older_unanswered_question(): void
+    {
+        $this->fakeModel('الأسعار كذا');
+        $conversation = $this->welcomed();
+        $conversation->messages()->create(['direction' => 'in', 'type' => 'interactive', 'body' => 'الأسعار والباقات']);
+
+        $this->webhook($this->text('السلام عليكم'))->assertOk();
+
+        $this->assertSame(0, $this->askedTheModel());
+        $this->assertSame(1, Http::recorded(fn ($request) => str_contains($request->url(), 'graph.facebook.com') && $request['type'] === 'interactive')->count());
+    }
+
     public function test_a_real_first_question_gets_the_welcome_and_the_answer(): void
     {
         $this->fakeModel('الإجابة');

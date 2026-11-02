@@ -86,10 +86,12 @@ TXT;
             return; // a reaction or a system notice asks for nothing
         }
         $isFirst = ! $conversation->messages()->where('direction', 'out')->exists();
-        if ($isFirst) {
+        // a hello gets the choices at any time, never the model: it would answer an older question still in the conversation
+        $isGreeting = $message->type === 'text' && preg_match(self::GREETING, (string) $message->body);
+        if (($isFirst || $isGreeting) && $this->answersToday($conversation) < self::DAILY_LIMIT) {
             $this->inbox->replyWithButtons($conversation, $conversation->isWhatsApp() ? self::WELCOME_TEXT : self::PAGE_WELCOME_TEXT, self::WELCOME_BUTTONS);
-            if ($message->type === 'text' && preg_match(self::GREETING, (string) $message->body)) {
-                return; // the welcome is the answer to a hello
+            if ($isGreeting) {
+                return;
             }
         }
         if (in_array($message->type, self::MEDIA_TYPES, true) || $this->answersToday($conversation) >= self::DAILY_LIMIT) {
