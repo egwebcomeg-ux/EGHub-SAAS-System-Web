@@ -24,6 +24,8 @@ final class PlatformInbox
 {
     public const ALERT_MINUTES = 30;
 
+    public const WELCOME_TRIES = 3;
+
     /** The text of the approved template egmenu_welcome, as the team reads it in the conversation. */
     public const WELCOME_TEMPLATE = 'أهلًا {{1}}، معاك فريق EgHub للمنيو الإلكتروني والطلبات للمطاعم والكافيهات. لو حابب تعرف الأسعار أو تبدأ، رد على الرسالة دي وهنساعدك.';
 
@@ -145,7 +147,13 @@ final class PlatformInbox
         return $conversation;
     }
 
-    /** @return int how many new restaurants were welcomed: each once, in their first week, and never a person already talking to us */
+    /** The welcome waits for Meta: the team cannot start a conversation until then. */
+    public static function welcomeIsWaiting(): bool
+    {
+        return PlatformTemplates::isNotApprovedYet((string) config('whatsapp.templates.welcome'));
+    }
+
+    /** @return int how many new restaurants were welcomed: each once, in their first week, and never a person already talking to us. A welcome that failed is tried again, up to WELCOME_TRIES times. */
     public function welcomeNewRestaurants(): int
     {
         if (! PlatformTemplates::isApproved((string) config('whatsapp.templates.welcome')) || ! PlatformAutoReply::enabled()) {
@@ -153,7 +161,9 @@ final class PlatformInbox
         }
         $sent = 0;
         PlatformConversation::query()->whereNotNull('tenant_id')->where('created_at', '>=', now()->subDays(7))
-            ->whereDoesntHave('messages')->each(function (PlatformConversation $conversation) use (&$sent) {
+            ->whereDoesntHave('messages', fn ($messages) => $messages->where('status', '!=', 'failed'))
+            ->whereHas('messages', fn ($messages) => $messages->where('status', 'failed'), '<', self::WELCOME_TRIES)
+            ->each(function (PlatformConversation $conversation) use (&$sent) {
                 $this->start($conversation->phone, (string) $conversation->name);
                 $sent++;
             });

@@ -7296,6 +7296,8 @@
     "OpenStreetMap does not have every place or every phone number. The field rep adds what is missing from the street, and a file from Google Maps can be imported below.": "OpenStreetMap مش فيها كل الأماكن ولا كل الأرقام. المندوب بيضيف الناقص من الشارع، وممكن تستورد ملف من Google Maps تحت.",
     "Import this area": "استورد المنطقة دي",
     "Hello!": "أهلاً!",
+    "Meta has not approved the welcome template yet, so a new conversation cannot start. It can answer whoever writes to us.": "ميتا لسه ما وافقتش على قالب الترحيب، فمش هينفع نبدأ محادثة جديدة دلوقتي. لكن نقدر نرد على أي حد يكلمنا.",
+    "Meta has not approved the welcome template yet. This restaurant gets it by itself once it is approved.": "ميتا لسه ما وافقتش على قالب الترحيب. المطعم ده هيوصله الترحيب لوحده أول ما يتوافق عليه.",
     "WhatsApp offer": "عرض واتساب",
     "Trial menu offer": "عرض المنيو التجريبي",
     "This place got the offer in the last :n days.": "المكان ده وصله العرض في آخر :n يوم.",

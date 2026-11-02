@@ -67,6 +67,31 @@ class NewRestaurantBotAndPlatformSendingTest extends TenantTestCase
         $this->assertStringContainsString('Sara', $conversation->messages()->sole()->body);
     }
 
+    public function test_the_button_sends_nothing_before_approval_and_a_failed_welcome_is_tried_again_after_it(): void
+    {
+        $this->welcomeStatus = 'PENDING';
+        $this->fakeMeta();
+        $this->artisan('eghub:whatsapp-templates')->assertSuccessful();
+        $tenant = $this->restaurant('cafe-a');
+        $this->owner($tenant)->forceFill(['phone' => '01011111111'])->save();
+        $admin = PlatformAdmin::query()->create(['name' => 'Sara', 'email' => 's@egweb.test', 'password' => 'Secret-pass-123', 'role' => 'support', 'is_active' => true]);
+
+        $this->actingAs($admin, 'admin')->post($this->adminUrl('/tenants/cafe-a/conversation'))->assertRedirect()->assertSessionHas('ok');
+        $conversation = PlatformConversation::query()->sole();
+        $this->assertSame(0, $conversation->messages()->count());
+        $this->post($this->adminUrl('/inbox/start'), ['phone' => '01022222222', 'name' => 'Ali'])->assertSessionHasErrors('phone');
+        $this->assertSame(1, PlatformConversation::query()->count());
+
+        // a press before this fix left a failed message behind
+        $conversation->messages()->create(['direction' => 'out', 'body' => 'x', 'status' => 'failed', 'error' => 'Template name does not exist']);
+        $this->welcomeStatus = 'APPROVED';
+        $this->artisan('eghub:whatsapp-templates')->assertSuccessful();
+        $this->artisan('eghub:welcome-new-restaurants')->assertSuccessful();
+        $this->artisan('eghub:welcome-new-restaurants')->assertSuccessful();
+
+        $this->assertSame(1, $conversation->messages()->where('status', 'sent')->count());
+    }
+
     public function test_a_restaurants_conversation_opens_from_its_page_for_who_handles_the_inbox_only(): void
     {
         $this->fakeMeta();

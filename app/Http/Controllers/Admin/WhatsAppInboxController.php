@@ -92,6 +92,9 @@ class WhatsAppInboxController extends Controller
         if ($existing && ($existing->canReply() || $existing->messages()->where('direction', 'out')->where('status', '!=', 'failed')->where('created_at', '>', now()->subDay())->exists())) {
             return redirect()->route('admin.inbox.show', $existing);
         }
+        if (PlatformInbox::welcomeIsWaiting()) {
+            return back()->withInput()->withErrors(['phone' => __('Meta has not approved the welcome template yet, so a new conversation cannot start. It can answer whoever writes to us.')]);
+        }
         $row = $inbox->start($phone, $data['name'], $request->user('admin'));
         if ($row->status === 'failed') {
             return redirect()->route('admin.inbox.show', $row->platform_conversation_id)->withErrors(['body' => __(':channel did not send it: :error', ['channel' => __('WhatsApp'), 'error' => $row->error])]);
@@ -110,6 +113,9 @@ class WhatsAppInboxController extends Controller
         $conversation = $inbox->forRestaurant($tenant, $owner->phone, $owner->name);
         if ($conversation->canReply() || $conversation->messages()->where('direction', 'out')->where('status', '!=', 'failed')->where('created_at', '>', now()->subDay())->exists()) {
             return redirect()->route('admin.inbox.show', $conversation);
+        }
+        if (PlatformInbox::welcomeIsWaiting()) {
+            return redirect()->route('admin.inbox.show', $conversation)->with('ok', __('Meta has not approved the welcome template yet. This restaurant gets it by itself once it is approved.'));
         }
         $row = $inbox->start($conversation->phone, $owner->name, $request->user('admin'));
         if ($row->status === 'failed') {

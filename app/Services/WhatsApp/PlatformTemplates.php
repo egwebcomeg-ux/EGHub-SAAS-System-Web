@@ -21,6 +21,12 @@ final class PlatformTemplates
         return (self::known()[$name] ?? null) === 'APPROVED';
     }
 
+    /** Meta knows this template and has not approved it, so sending it can only fail. */
+    public static function isNotApprovedYet(string $name): bool
+    {
+        return isset(self::known()[$name]) && ! self::isApproved($name);
+    }
+
     /**
      * Reads Meta and keeps the answer; null when it could not be read.
      *
