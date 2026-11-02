@@ -92,20 +92,23 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
     Route::post('/tenants/{tenant}/support-access', [SupportAccessController::class, 'store'])
         ->middleware(['admin.access:tenants.impersonate', 'throttle:10,1'])->name('tenants.support-access');
     // «محادثات واتساب»: the EgHub number's messages and the team's answers
+    // what changes the number for everyone or cannot be undone: the owner, a manager, or who was given it
+    Route::middleware('admin.access:inbox.admin')->group(function () {
+        Route::post('/inbox/auto-reply', [WhatsAppInboxController::class, 'autoReply'])->name('inbox.auto-reply');
+        Route::post('/inbox/canned', [WhatsAppInboxController::class, 'storeCanned'])->name('inbox.canned');
+        Route::post('/inbox/canned/{reply}/delete', [WhatsAppInboxController::class, 'destroyCanned'])->whereNumber('reply')->name('inbox.canned.delete');
+        Route::post('/inbox/{conversation}/delete', [WhatsAppInboxController::class, 'destroy'])->whereNumber('conversation')->name('inbox.delete');
+    });
     Route::middleware('admin.access:inbox.manage')->group(function () {
         Route::get('/inbox', [WhatsAppInboxController::class, 'index'])->name('inbox');
         Route::post('/inbox/start', [WhatsAppInboxController::class, 'start'])->middleware('throttle:30,1')->name('inbox.start');
         Route::post('/tenants/{tenant}/conversation', [WhatsAppInboxController::class, 'startForRestaurant'])->middleware('throttle:30,1')->name('tenants.conversation');
-        Route::post('/inbox/auto-reply', [WhatsAppInboxController::class, 'autoReply'])->name('inbox.auto-reply');
-        Route::post('/inbox/canned', [WhatsAppInboxController::class, 'storeCanned'])->name('inbox.canned');
-        Route::post('/inbox/canned/{reply}/delete', [WhatsAppInboxController::class, 'destroyCanned'])->whereNumber('reply')->name('inbox.canned.delete');
         Route::get('/inbox/{conversation}', [WhatsAppInboxController::class, 'show'])->whereNumber('conversation')->name('inbox.show');
         Route::post('/inbox/{conversation}/reply', [WhatsAppInboxController::class, 'reply'])->whereNumber('conversation')->middleware('throttle:60,1')->name('inbox.reply');
         Route::post('/inbox/{conversation}/resume-bot', [WhatsAppInboxController::class, 'resumeBot'])->whereNumber('conversation')->name('inbox.resume-bot');
         Route::post('/inbox/{conversation}/note', [WhatsAppInboxController::class, 'note'])->whereNumber('conversation')->name('inbox.note');
         Route::post('/inbox/{conversation}/assign', [WhatsAppInboxController::class, 'assign'])->whereNumber('conversation')->name('inbox.assign');
         Route::post('/inbox/{conversation}/status', [WhatsAppInboxController::class, 'status'])->whereNumber('conversation')->name('inbox.status');
-        Route::post('/inbox/{conversation}/delete', [WhatsAppInboxController::class, 'destroy'])->whereNumber('conversation')->name('inbox.delete');
     });
     Route::middleware('admin.access:billing.manage')->group(function () {
         Route::post('/tenants/{tenant}/subscription', [TenantsController::class, 'subscription'])->name('tenants.subscription');

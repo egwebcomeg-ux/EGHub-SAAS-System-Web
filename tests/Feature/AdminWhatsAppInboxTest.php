@@ -182,7 +182,7 @@ class AdminWhatsAppInboxTest extends TenantTestCase
         Http::fake();
         $conversation = PlatformConversation::factory()->create();
 
-        $this->actingAs($this->admin(), 'admin')->post($this->adminUrl('/inbox/canned'), ['title' => 'الأسعار', 'body' => 'الباقات على eghub.app'])->assertSessionHasNoErrors();
+        $this->actingAs($this->admin('manager'), 'admin')->post($this->adminUrl('/inbox/canned'), ['title' => 'الأسعار', 'body' => 'الباقات على eghub.app'])->assertSessionHasNoErrors();
         $this->get($this->adminUrl("/inbox/{$conversation->id}"))->assertSee('الباقات على eghub.app');
         Http::assertNothingSent();
 

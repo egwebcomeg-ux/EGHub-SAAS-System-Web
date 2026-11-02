@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\PlatformAdmin;
+use App\Models\PlatformAuditLog;
 use App\Models\TenantDiscount;
 use App\Support\AdminPermissions;
 use Illuminate\Http\RedirectResponse;
@@ -122,6 +123,7 @@ class AdminsController extends Controller
         if ($member->isOwner() && $member->is_active && $this->activeOwners() <= 1) {
             return back()->withErrors(['role' => __('This is the last active owner. Make someone else an owner first.')]);
         }
+        PlatformAuditLog::record($me, 'admin.deleted', $member->email, ['name' => $member->name, 'role' => $member->role]);
         $member->delete();
 
         return redirect()->route('admin.admins')->with('ok', __(':name was removed from the team.', ['name' => $member->name]));

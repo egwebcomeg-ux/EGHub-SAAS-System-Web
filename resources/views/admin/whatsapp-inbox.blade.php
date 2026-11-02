@@ -2,6 +2,7 @@
 @section('title', __('Conversations') . ' · EgHub Admin')
 
 @section('content')
+@php($canAdministerInbox = auth('admin')->user()->allows('inbox.admin'))
 <div class="mb-4">
     <h1 class="page-title">{{ __('Conversations') }}</h1>
     <p class="muted">{{ __('What people write to the EgHub number and page, and your answers. Sign-in codes do not show here.') }}</p>
@@ -14,11 +15,13 @@
         <p class="muted text-sm">{{ __('Answers prices and services from the live plans. It goes quiet when someone asks for the team or a person from the team answers.') }}</p>
         @if (! $assistantReady)<p class="mt-1 text-sm font-semibold text-red-700">{{ __('The assistant has no API key, so nothing is answered.') }}</p>@endif
     </div>
-    <form method="post" action="{{ route('admin.inbox.auto-reply') }}">
-        @csrf
-        <input type="hidden" name="enabled" value="{{ $autoReplyOn ? 0 : 1 }}">
-        <button @class(['min-h-10 px-4', 'btn-ghost' => $autoReplyOn, 'btn-navy' => ! $autoReplyOn])>{{ $autoReplyOn ? __('Turn it off') : __('Turn it on') }}</button>
-    </form>
+    @if ($canAdministerInbox)
+        <form method="post" action="{{ route('admin.inbox.auto-reply') }}">
+            @csrf
+            <input type="hidden" name="enabled" value="{{ $autoReplyOn ? 0 : 1 }}">
+            <button @class(['min-h-10 px-4', 'btn-ghost' => $autoReplyOn, 'btn-navy' => ! $autoReplyOn])>{{ $autoReplyOn ? __('Turn it off') : __('Turn it on') }}</button>
+        </form>
+    @endif
 </section>
 
 <section class="card mb-4" data-inbox-start>
@@ -103,10 +106,12 @@
                         <input type="hidden" name="status" value="{{ $conversation->status === 'open' ? 'closed' : 'open' }}">
                         <button class="btn-ghost min-h-9 px-3">{{ $conversation->status === 'open' ? __('Close the conversation') : __('Reopen the conversation') }}</button>
                     </form>
-                    <form method="post" action="{{ route('admin.inbox.delete', $conversation) }}" onsubmit="return confirm(@js(__('Delete this conversation and all its messages?')))" data-inbox-delete>
-                        @csrf
-                        <button class="btn-ghost min-h-9 px-3 text-red-600">{{ __('Delete') }}</button>
-                    </form>
+                    @if ($canAdministerInbox)
+                        <form method="post" action="{{ route('admin.inbox.delete', $conversation) }}" onsubmit="return confirm(@js(__('Delete this conversation and all its messages?')))" data-inbox-delete>
+                            @csrf
+                            <button class="btn-ghost min-h-9 px-3 text-red-600">{{ __('Delete') }}</button>
+                        </form>
+                    @endif
                 </div>
             </div>
 
@@ -171,10 +176,11 @@
         @foreach ($canned as $c)
             <li class="flex items-start justify-between gap-3 py-2 text-sm">
                 <div class="min-w-0"><div class="font-semibold">{{ $c->title }}</div><div class="whitespace-pre-line text-navy-600" dir="auto">{{ $c->body }}</div></div>
-                <form method="post" action="{{ route('admin.inbox.canned.delete', $c) }}">@csrf<button class="btn-ghost min-h-9 px-3 text-red-600">{{ __('Delete') }}</button></form>
+                @if ($canAdministerInbox)<form method="post" action="{{ route('admin.inbox.canned.delete', $c) }}">@csrf<button class="btn-ghost min-h-9 px-3 text-red-600">{{ __('Delete') }}</button></form>@endif
             </li>
         @endforeach
     </ul>
+    @if ($canAdministerInbox)
     <form method="post" action="{{ route('admin.inbox.canned') }}" class="grid gap-2 sm:grid-cols-3">
         @csrf
         <label class="sr-only" for="canned-title">{{ __('Title') }}</label>
@@ -183,6 +189,7 @@
         <textarea id="canned-body" name="body" rows="2" required maxlength="1000" dir="auto" class="field sm:col-span-2" placeholder="{{ __('The answer') }}"></textarea>
         <button class="btn-navy min-h-10 sm:col-start-3">{{ __('Add') }}</button>
     </form>
+    @endif
 </section>
 
 <script>

@@ -20,6 +20,7 @@ final class AdminPermissions
         'content.manage' => ['المدونة وآراء العملاء', 'Blog & testimonials'],
         'assistant.view' => ['أسئلة الزوار للمساعد', 'Assistant questions'],
         'inbox.manage' => ['المحادثات: قراءة رسايل رقم وصفحة EgHub والرد عليها', 'Conversations: read and answer the EgHub number and page'],
+        'inbox.admin' => ['المحادثات: مسح محادثة، وتشغيل الرد الآلي وإيقافه، وتعديل الردود الجاهزة', 'Conversations: delete, the automatic answer and ready answers'],
         'settings.manage' => ['إعدادات الدفع والهوية والشكل', 'Payment settings & branding'],
         'admins.manage' => ['فريق الإدارة والصلاحيات', 'Admin team & permissions'],
         'crm.view' => ['متابعة العملاء: عرض العملاء الجداد والمكالمات', 'Customer follow-up: see leads and calls'],
@@ -42,7 +43,7 @@ final class AdminPermissions
         ],
         'manager' => [
             'label' => ['مدير', 'Manager'],
-            'permissions' => ['tenants.view', 'tenants.manage', 'billing.manage', 'plans.manage', 'services.manage', 'content.manage', 'assistant.view', 'inbox.manage', 'crm.view', 'crm.manage', 'crm.discount', 'crm.import', 'crm.team'],
+            'permissions' => ['tenants.view', 'tenants.manage', 'billing.manage', 'plans.manage', 'services.manage', 'content.manage', 'assistant.view', 'inbox.manage', 'inbox.admin', 'crm.view', 'crm.manage', 'crm.discount', 'crm.import', 'crm.team'],
             'hint' => ['كل الشغل اليومي من غير إعدادات المنصة وفريق الإدارة', 'Day-to-day work, without platform settings and the team'],
         ],
         'support' => [

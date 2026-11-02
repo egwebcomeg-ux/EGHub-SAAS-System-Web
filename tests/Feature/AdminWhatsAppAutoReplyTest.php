@@ -371,8 +371,12 @@ class AdminWhatsAppAutoReplyTest extends TenantTestCase
         $this->actingAs($field, 'admin')->post($this->adminUrl('/inbox/auto-reply'), ['enabled' => 1])->assertForbidden();
         $this->assertSame('0', PlatformSetting::get(PlatformAutoReply::SETTING));
 
-        $support = PlatformAdmin::query()->create(['name' => 'Sara', 'email' => 'sara@egweb.test', 'password' => 'Secret-pass-123', 'role' => 'support']);
-        $this->actingAs($support, 'admin')->post($this->adminUrl('/inbox/auto-reply'), ['enabled' => 1])->assertRedirect();
+        $sales = PlatformAdmin::query()->create(['name' => 'Mona', 'email' => 'mona@egweb.test', 'password' => 'Secret-pass-123', 'role' => 'sales']);
+        $this->actingAs($sales, 'admin')->post($this->adminUrl('/inbox/auto-reply'), ['enabled' => 1])->assertForbidden();
+        $this->assertSame('0', PlatformSetting::get(PlatformAutoReply::SETTING));
+
+        $manager = PlatformAdmin::query()->create(['name' => 'Sara', 'email' => 'sara@egweb.test', 'password' => 'Secret-pass-123', 'role' => 'manager']);
+        $this->actingAs($manager, 'admin')->post($this->adminUrl('/inbox/auto-reply'), ['enabled' => 1])->assertRedirect();
         $this->assertSame('1', PlatformSetting::get(PlatformAutoReply::SETTING));
     }
 }

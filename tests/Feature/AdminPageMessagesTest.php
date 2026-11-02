@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\PlatformAdmin;
+use App\Models\PlatformAuditLog;
 use App\Models\PlatformConversation;
 use App\Models\PlatformSetting;
 use App\Services\WhatsApp\PlatformAutoReply;
@@ -201,17 +202,26 @@ class AdminPageMessagesTest extends TenantTestCase
         $this->assertTrue($conversation->refresh()->botPaused());
     }
 
-    public function test_deleting_a_conversation_needs_inbox_manage_and_takes_its_messages(): void
+    public function test_deleting_a_conversation_is_for_the_owner_or_a_manager_and_is_logged(): void
     {
         $conversation = $this->welcomed();
         $field = PlatformAdmin::query()->create(['name' => 'Field', 'email' => 'field@egweb.test', 'password' => 'Secret-pass-123', 'role' => 'field_sales']);
         $this->actingAs($field, 'admin')->post($this->adminUrl("/inbox/{$conversation->id}/delete"))->assertForbidden();
         $this->assertTrue($conversation->fresh()->exists);
 
-        $support = PlatformAdmin::query()->create(['name' => 'Sara', 'email' => 'sara@egweb.test', 'password' => 'Secret-pass-123', 'role' => 'support']);
-        $this->actingAs($support, 'admin')->post($this->adminUrl("/inbox/{$conversation->id}/delete"))->assertRedirect();
+        foreach (['support', 'sales'] as $role) {
+            $worker = PlatformAdmin::query()->create(['name' => $role, 'email' => "$role@egweb.test", 'password' => 'Secret-pass-123', 'role' => $role]);
+            $this->actingAs($worker, 'admin')->get($this->adminUrl("/inbox/{$conversation->id}"))->assertOk()->assertDontSee('data-inbox-delete', false);
+            $this->actingAs($worker, 'admin')->post($this->adminUrl("/inbox/{$conversation->id}/delete"))->assertForbidden();
+            $this->assertNotNull($conversation->fresh());
+        }
+
+        $manager = PlatformAdmin::query()->create(['name' => 'Sara', 'email' => 'sara@egweb.test', 'password' => 'Secret-pass-123', 'role' => 'manager']);
+        $this->actingAs($manager, 'admin')->get($this->adminUrl("/inbox/{$conversation->id}"))->assertSee('data-inbox-delete', false);
+        $this->actingAs($manager, 'admin')->post($this->adminUrl("/inbox/{$conversation->id}/delete"))->assertRedirect();
 
         $this->assertNull($conversation->fresh());
+        $this->assertSame('inbox.deleted', PlatformAuditLog::query()->latest('id')->value('action'));
         $this->assertDatabaseCount('platform_conversation_messages', 0);
     }
 }

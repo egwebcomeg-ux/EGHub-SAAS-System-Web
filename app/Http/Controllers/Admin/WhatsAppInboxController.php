@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\PlatformAdmin;
+use App\Models\PlatformAuditLog;
 use App\Models\PlatformCannedReply;
 use App\Models\PlatformConversation;
 use App\Models\PlatformSetting;
@@ -126,8 +127,9 @@ class WhatsAppInboxController extends Controller
     }
 
     /** A person asked to have their messages removed (the privacy policy promises it). */
-    public function destroy(PlatformConversation $conversation): RedirectResponse
+    public function destroy(Request $request, PlatformConversation $conversation): RedirectResponse
     {
+        PlatformAuditLog::record($request->user('admin'), 'inbox.deleted', (string) $conversation->phone, ['channel' => $conversation->channel, 'name' => $conversation->name, 'tenant' => $conversation->tenant_id, 'messages' => $conversation->messages()->count()]);
         $conversation->delete();
 
         return redirect()->route('admin.inbox')->with('ok', __('Conversation deleted.'));
@@ -137,6 +139,7 @@ class WhatsAppInboxController extends Controller
     public function autoReply(Request $request): RedirectResponse
     {
         PlatformSetting::put(PlatformAutoReply::SETTING, $request->boolean('enabled') ? '1' : '0');
+        PlatformAuditLog::record($request->user('admin'), 'inbox.auto_reply', $request->boolean('enabled') ? 'on' : 'off');
 
         return back();
     }
