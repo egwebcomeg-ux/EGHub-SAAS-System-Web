@@ -7,6 +7,7 @@ use App\Billing\OnlinePayments;
 use App\Models\AddonPrice;
 use App\Models\Plan;
 use App\Models\PlatformSetting;
+use App\Services\WhatsApp\WhatsApp;
 use App\Support\SiteModules;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
@@ -264,7 +265,7 @@ TXT;
     private static function addonsText(): string
     {
         $out = ['ADD-ONS (only these are sold; modules are no longer sold one by one, they come with the plans; monthly unless "paid once"; paying the plan for 6 or 12 months gives the same discount on monthly add-ons):'];
-        foreach (AddonPrice::query()->where('is_active', true)->orderBy('sort_order')->get() as $a) {
+        foreach (AddonPrice::query()->where('is_active', true)->when(! WhatsApp::platformSends(), fn ($q) => $q->where('type', '!=', 'credits'))->orderBy('sort_order')->get() as $a) {
             $price = $a->isCreditPack() ? money($a->monthly_price).' EGP paid once ('.$a->credits.' WhatsApp messages, never expire)' : money($a->monthly_price).' EGP / month';
             $notes = array_filter([
                 $a->per_branch ? 'priced per branch, 40% off each extra branch' : null,
@@ -320,7 +321,9 @@ TXT;
             '- Free plan: the QR menu online with the eghub badge, no ordering; limits are in the plans above. No ads, ever, on any plan.',
             self::paymentFact(),
             '- No commission on orders on any plan; you pay only the subscription or add-ons.',
-            '- WhatsApp messages to guests (order updates, bookings, loyalty rewards, campaigns, automations) use message credits sold once (wa_500 / wa_2000 add-ons).',
+            WhatsApp::platformSends()
+                ? '- WhatsApp messages to guests (order updates, bookings, loyalty rewards, campaigns, automations) use message credits sold once (wa_500 / wa_2000 add-ons).'
+                : '- Automatic WhatsApp messages to guests from the EgHub number are not available yet, so never promise them or sell credits. A restaurant can connect its own WhatsApp Business number instead.',
             "- EgWeb services (menu entry and data entry, food photography, printed QR stands and menus, training, custom domain and branded email) are one-time paid services: {$site}/services — prices are listed there.",
             '- The guest needs no app: the menu, the loyalty card, the wallet balance and order tracking open from a link and can be added to the phone home screen.',
             '- Mobile apps for iOS/Android are not available yet.',

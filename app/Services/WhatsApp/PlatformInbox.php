@@ -5,6 +5,7 @@ namespace App\Services\WhatsApp;
 use App\Models\PlatformAdmin;
 use App\Models\PlatformConversation;
 use App\Models\PlatformConversationMessage;
+use App\Models\Tenant;
 use App\Notifications\InboxNeedsAnswer;
 use App\Services\WhatsApp\Drivers\MetaCloudDriver;
 use App\Services\WhatsApp\Drivers\MetaPageDriver;
@@ -127,12 +128,37 @@ final class PlatformInbox
      * The team writes first to a new customer: only an approved template may open a conversation. The person's answer
      * opens the 24-hour window, and the automatic answer takes it from there.
      */
-    public function start(string $phone, string $name, PlatformAdmin $admin): PlatformConversationMessage
+    public function start(string $phone, string $name, ?PlatformAdmin $admin = null): PlatformConversationMessage
     {
         $conversation = PlatformConversation::query()->firstOrCreate(['channel' => PlatformConversation::WHATSAPP, 'phone' => $phone], ['name' => $name]);
         $text = str_replace('{{1}}', $name, self::WELCOME_TEMPLATE);
 
         return $this->deliver($conversation, $admin, $text, fn () => (new MetaCloudDriver)->send($phone, 'welcome', [$name]));
+    }
+
+    /** The conversation of a restaurant's owner, waiting for its welcome until the template is approved. */
+    public function forRestaurant(Tenant $tenant, string $phone, string $name): PlatformConversation
+    {
+        $conversation = PlatformConversation::query()->firstOrCreate(['channel' => PlatformConversation::WHATSAPP, 'phone' => whatsapp_number($phone)], ['name' => $name]);
+        $conversation->forceFill(['tenant_id' => $tenant->id])->save();
+
+        return $conversation;
+    }
+
+    /** @return int how many new restaurants were welcomed: each once, in their first week, and never a person already talking to us */
+    public function welcomeNewRestaurants(): int
+    {
+        if (! PlatformTemplates::isApproved((string) config('whatsapp.templates.welcome')) || ! PlatformAutoReply::enabled()) {
+            return 0;
+        }
+        $sent = 0;
+        PlatformConversation::query()->whereNotNull('tenant_id')->where('created_at', '>=', now()->subDays(7))
+            ->whereDoesntHave('messages')->each(function (PlatformConversation $conversation) use (&$sent) {
+                $this->start($conversation->phone, (string) $conversation->name);
+                $sent++;
+            });
+
+        return $sent;
     }
 
     private function driver(PlatformConversation $conversation): MetaCloudDriver|MetaPageDriver

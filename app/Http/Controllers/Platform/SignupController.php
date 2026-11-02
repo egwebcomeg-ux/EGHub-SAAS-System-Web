@@ -12,6 +12,7 @@ use App\Services\Crm\ProspectLinker;
 use App\Services\MenuSetupRequest;
 use App\Services\ModuleChoice;
 use App\Services\TenantProvisioner;
+use App\Services\WhatsApp\PlatformInbox;
 use App\Support\BusinessType;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -112,6 +113,7 @@ class SignupController extends Controller
         app(ProspectLinker::class)->link($tenant, $owner->phone);
         // the lead is already in the admin's customer follow-up (Tenant::created): tell whoever calls new sign-ups
         Notification::send(NewSignup::recipients(), new NewSignup($tenant, $owner, $data['business_type'] ?? BusinessType::DEFAULT));
+        app(PlatformInbox::class)->forRestaurant($tenant, $owner->phone, $owner->name);
 
         return redirect()->away(URL::temporarySignedRoute('dash.welcome', now()->addMinutes(5), ['user' => $owner->id]));
     }

@@ -26,6 +26,12 @@ final class WhatsApp
 {
     public function __construct(private Credits $credits, private WhatsAppGateway $gateway) {}
 
+    /** Whether the EgHub number sends for restaurants at all; their own connected number does not depend on it. */
+    public static function platformSends(): bool
+    {
+        return (bool) config('whatsapp.platform_sending');
+    }
+
     /**
      * Records a message and sends it from the queue (after the surrounding transaction commits).
      * Returns null when the phone is not a valid Egyptian mobile. Must run inside a tenant context.
@@ -97,6 +103,12 @@ final class WhatsApp
         $session = in_array($message->template, Templates::SESSION, true);
         $own = $this->ownSender($message, $session);
         $message->channel = $own ? 'own' : 'platform';
+        if ($own === null && ! self::platformSends()) {
+            $message->update(['status' => 'failed', 'error' => WhatsAppMessage::PLATFORM_OFF]);
+            OrderConfirmation::messageFailed($message);
+
+            return $message;
+        }
         $free = $session || $own !== null;
         $reference = 'wa:'.$message->id;
         if (! $free && ! $this->credits->spend($message->tenant_id, $reference)) {

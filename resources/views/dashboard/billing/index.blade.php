@@ -189,6 +189,7 @@
     </div>
 @endif
 
+<div class="mt-8">@include('dashboard.partials.whatsapp-platform-off')</div>
 @if ($creditPacks->isNotEmpty())
     <section class="mt-8" id="whatsapp-credits">
         <h2 class="mb-1 text-lg font-bold">{{ __('WhatsApp credits') }}</h2>

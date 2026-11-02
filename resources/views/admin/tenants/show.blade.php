@@ -71,6 +71,13 @@
     </div>
 @endif
 
+@if (auth('admin')->user()?->allows('inbox.manage'))
+    <form method="post" action="{{ route('admin.tenants.conversation', $tenant) }}" class="mb-4" data-tenant-conversation>
+        @csrf
+        @error('conversation')<p class="mb-2 text-sm font-semibold text-red-700" role="alert">{{ $message }}</p>@enderror
+        <button class="btn-navy min-h-10">{{ __('Start a conversation with the bot') }}</button>
+    </form>
+@endif
 @include('admin.tenants.welcome-kit')
 
 @if (($lead && $me->allows('crm.view')) || ($teamDiscount && ($canBilling || $me->allows('crm.view'))))

@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\AddonPrice;
 use App\Models\Plan;
+use App\Services\WhatsApp\WhatsApp;
 use Illuminate\Support\Collection;
 
 /**
@@ -96,7 +97,7 @@ final class SiteModules
             'from' => $in->first(),
             'everyPlan' => $in->count() === $plans->count() && $plans->isNotEmpty(),
             'addons' => $listed->reject(fn (AddonPrice $a) => $a->isCreditPack())->values(),
-            'credits' => $listed->filter(fn (AddonPrice $a) => $a->isCreditPack())->values(),
+            'credits' => WhatsApp::platformSends() ? $listed->filter(fn (AddonPrice $a) => $a->isCreditPack())->values() : collect(),
         ];
     }
 

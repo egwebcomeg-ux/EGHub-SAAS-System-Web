@@ -403,6 +403,7 @@
 
     <div class="space-y-4" data-settings-panel="messages" @if ($tab !== 'messages') hidden @endif>
         <section class="card grid gap-4 lg:grid-cols-2" id="whatsapp">
+            <div class="lg:col-span-2">@include('dashboard.partials.whatsapp-platform-off')</div>
             <div class="lg:col-span-2">
                 <h2 class="section-title">{{ __('WhatsApp') }}</h2>
                 <p class="muted">{{ __('Automatic WhatsApp messages to your guests. Each message uses one credit from your WhatsApp balance.') }}</p>

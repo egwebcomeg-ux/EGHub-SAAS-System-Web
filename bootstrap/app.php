@@ -13,6 +13,7 @@ use App\Http\Middleware\InitializeTenancyFromUser;
 use App\Http\Middleware\LiteSpeedCacheHeaders;
 use App\Http\Middleware\RequireFeature;
 use App\Http\Middleware\SecurityHeaders;
+use App\Services\ErrorAlert;
 use App\Services\PageCache;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -73,4 +74,5 @@ return Application::configure(basePath: dirname(__DIR__))
         );
         // Every log line carries the restaurant, so one tenant's problems can be traced.
         $exceptions->context(fn () => ['tenant' => tenant()?->getTenantKey()]);
+        $exceptions->report(fn (Throwable $e) => ErrorAlert::report($e));
     })->create();

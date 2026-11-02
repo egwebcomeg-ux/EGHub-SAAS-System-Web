@@ -10,6 +10,9 @@ class WhatsAppMessage extends TenantModel
 {
     public const NO_CREDITS = 'no_credits';
 
+    /** Not sent and not charged: the EgHub number does not send for restaurants yet (config whatsapp.platform_sending). */
+    public const PLATFORM_OFF = 'platform_off';
+
     protected $table = 'whatsapp_messages';
 
     protected function casts(): array

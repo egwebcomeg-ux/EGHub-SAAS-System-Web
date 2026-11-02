@@ -3,12 +3,15 @@
 namespace App\Services\WhatsApp;
 
 use App\Models\AssistantMessage;
+use App\Models\MenuItem;
 use App\Models\PlatformAdmin;
 use App\Models\PlatformCannedReply;
 use App\Models\PlatformConversation;
 use App\Models\PlatformConversationMessage;
 use App\Models\PlatformSetting;
+use App\Models\Tenant;
 use App\Services\Assistant;
+use App\Services\Settings;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -56,6 +59,14 @@ final class PlatformAutoReply
 The team has already been told and will answer in this chat. Answer what you can from your facts and do not say again that the team will answer. If you cannot answer, end your answer with [[HUMAN]].
 TXT;
 
+    private const RESTAURANT_RULES = <<<'TXT'
+NEW RESTAURANT: This person is the owner of «:name», which signed up on EgHub. Its menu link is :url and its dashboard is :dashboard. It has :items menu items and a logo: :logo. Your job is to help them finish, one request at a time, and to wait for the answer before the next:
+1. No items yet: ask them to send the menu here as a photo or a PDF, or tell them to upload it from the dashboard.
+2. No logo yet: ask them to send it.
+3. Then ask how many tables they have, and tell them that the QR codes print from the dashboard.
+Thank them for what they send and say that the team will add it. Answer their questions from your facts. Never say that something was added or is ready unless these details show it.
+TXT;
+
     private const CHANNEL_RULES = <<<'TXT'
 CHANNEL: This conversation is on WhatsApp, on EgHub's own number. The person is already talking to EgHub here: never give a wa.me link or another WhatsApp number. When the team is needed, say that someone from the team will answer here in this chat. Never claim to be a human; if asked, say you are EgHub's automatic assistant. If they ask how to reach support or for a phone number, say this same number is EgHub's main number and that writing «أكلم حد من الفريق» here brings a person; never give any personal number. Do not promise working hours or a response time. If they ask to delete their messages or data, say the team will do it and end your answer with [[HUMAN]].
 TXT;
@@ -92,7 +103,7 @@ TXT;
         }
         $isFirst = ! $conversation->messages()->where('direction', 'out')->exists();
         // a hello gets the choices at any time, never the model: it would answer an older question still in the conversation
-        $isGreeting = $message->type === 'text' && preg_match(self::GREETING, (string) $message->body);
+        $isGreeting = ! $conversation->tenant_id && $message->type === 'text' && preg_match(self::GREETING, (string) $message->body);
         if (($isFirst || $isGreeting) && $this->answersToday($conversation) < self::DAILY_LIMIT) {
             $this->inbox->replyWithButtons($conversation, $conversation->isWhatsApp() ? self::WELCOME_TEXT : self::PAGE_WELCOME_TEXT, self::WELCOME_BUTTONS);
             if ($isGreeting) {
@@ -133,6 +144,21 @@ TXT;
     }
 
     /** The rules of this channel, and the team's own ready answers: what they write there the assistant can say. */
+    /** What the bot asks a restaurant's owner for, from that restaurant's own state. */
+    private function restaurantRules(PlatformConversation $conversation): string
+    {
+        $tenant = $conversation->tenant_id ? Tenant::query()->find($conversation->tenant_id) : null;
+        if (! $tenant) {
+            return '';
+        }
+        [$items, $logo] = $tenant->run(fn () => [MenuItem::query()->count(), filled(Settings::get('logo'))]);
+
+        return "\n".strtr(self::RESTAURANT_RULES, [
+            ':name' => $tenant->name, ':url' => $tenant->url(), ':dashboard' => platform_url('app', '/'),
+            ':items' => (string) $items, ':logo' => $logo ? 'yes' : 'no',
+        ]);
+    }
+
     private function channelRules(PlatformConversation $conversation): string
     {
         $answers = PlatformCannedReply::query()->orderBy('title')->limit(self::MAX_TEAM_ANSWERS)->get()
@@ -141,6 +167,7 @@ TXT;
         $rules = $conversation->isWhatsApp() ? self::CHANNEL_RULES : str_replace(':channel', ucfirst($conversation->channel), self::PAGE_RULES);
 
         $rules .= $conversation->waitingForTeam() ? "\n".self::WAITING_RULES : '';
+        $rules .= $this->restaurantRules($conversation);
 
         return $rules.($answers !== '' ? "\n\nTEAM ANSWERS (written by the EgHub team, facts you may use):\n".$answers : '');
     }

@@ -3,11 +3,14 @@
 use App\Billing\Lifecycle;
 use App\Models\CorporateBooking;
 use App\Models\Order;
+use App\Models\PlatformAdmin;
 use App\Models\Tenant;
 use App\Models\TenantSetting;
 use App\Notifications\ScheduledTaskFailed;
+use App\Notifications\WhatsAppTemplatesChanged;
 use App\Services\Corporate\CorporateBookings;
 use App\Services\Entitlements;
+use App\Services\ErrorAlert;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Loyalty\Packages;
 use App\Services\Marketing\Automations;
@@ -19,8 +22,12 @@ use App\Services\Reports\DailyDigest;
 use App\Services\Reports\WeeklyReportMailer;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
+use App\Services\WhatsApp\PlatformInbox;
+use App\Services\WhatsApp\PlatformTemplates;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schedule;
 
 /**
@@ -135,6 +142,27 @@ Artisan::command('eghub:automations', function (Automations $automations) {
     $this->info('automation messages sent: '.$automations->runAll());
 })->purpose('Send the due welcome, winback and birthday WhatsApp messages of every restaurant');
 Schedule::command('eghub:automations')->everyFifteenMinutes()->withoutOverlapping(10);
+
+// Meta's answers on the EgHub number's templates: the team hears of a change once, and new restaurants get their welcome
+Artisan::command('eghub:whatsapp-templates', function (PlatformTemplates $templates) {
+    $changed = $templates->refresh();
+    if ($changed) {
+        Notification::send(PlatformAdmin::notifiable('inbox.manage'), new WhatsAppTemplatesChanged($changed));
+    }
+    $this->info($changed === null ? 'could not read Meta' : 'changed: '.count($changed));
+})->purpose('Read the status of the EgHub number\'s templates at Meta and tell the team what changed');
+Schedule::command('eghub:whatsapp-templates')->hourly()->withoutOverlapping(10);
+Artisan::command('eghub:welcome-new-restaurants', function (PlatformInbox $inbox) {
+    $this->info('welcomed: '.$inbox->welcomeNewRestaurants());
+})->purpose('Send the WhatsApp welcome to restaurants that signed up and were not welcomed yet');
+Schedule::command('eghub:welcome-new-restaurants')->everyFiveMinutes()->withoutOverlapping(10);
+// jobs waiting too long mean the queue is stuck: orders' messages and emails are not going out
+Schedule::call(function () {
+    $oldest = DB::table('jobs')->min('created_at');
+    if ($oldest && $oldest < now()->subMinutes(20)->timestamp) {
+        ErrorAlert::notice('The queue is stuck', 'The oldest job has been waiting since '.date('H:i', (int) $oldest).'.');
+    }
+})->everyTenMinutes()->name('queue-stuck-alert');
 
 // a scheduled command that fails emails the team (at most once in 6 hours per command); a dead cron cannot, System health shows that
 foreach (Schedule::events() as $event) {

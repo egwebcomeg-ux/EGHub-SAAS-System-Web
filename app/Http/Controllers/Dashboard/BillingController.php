@@ -14,6 +14,7 @@ use App\Models\Invoice;
 use App\Models\Plan;
 use App\Services\Entitlements;
 use App\Services\ModuleChoice;
+use App\Services\WhatsApp\WhatsApp;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -59,7 +60,7 @@ class BillingController extends Controller
             // the extra branch it already has free with the launch offer: until when, then billed at its price
             'branchOfferEnds' => LaunchOffer::coversBranchNow($subscription) && ($myAddons[LaunchOffer::ADDON] ?? 0) > 0
                 ? $subscription->branch_offer_until : null,
-            'creditPacks' => AddonPrice::query()->where('is_active', true)->where('type', 'credits')->orderBy('sort_order')->get(),
+            'creditPacks' => WhatsApp::platformSends() ? AddonPrice::query()->where('is_active', true)->where('type', 'credits')->orderBy('sort_order')->get() : collect(),
             'creditBalance' => $credits->balance(tenant()),
             'myAddons' => $myAddons,
             'onlineEnabled' => $online->payNowMethods() !== [] || $online->installmentMethods() !== [],
@@ -138,6 +139,8 @@ class BillingController extends Controller
     {
         $addon = AddonPrice::query()->where('is_active', true)->where('key', $key)->firstOrFail();
         if ($addon->isCreditPack()) {
+            abort_unless(WhatsApp::platformSends(), 404);
+
             return redirect()->route('dash.billing.invoice', $billing->invoiceForAddon(tenant(), $addon, 1)->number);
         }
         $mine = (int) tenant()->subscription()->first()?->addons()->where('key', $key)->value('quantity');

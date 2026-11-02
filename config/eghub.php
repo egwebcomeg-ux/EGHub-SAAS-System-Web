@@ -12,4 +12,7 @@ return [
 
     'admin_idle_minutes' => (int) env('ADMIN_IDLE_MINUTES', 120),
 
+    // emails the owners when something breaks (App\Services\ErrorAlert)
+    'error_alerts' => (bool) env('ERROR_ALERTS', env('APP_ENV') === 'production'),
+
 ];

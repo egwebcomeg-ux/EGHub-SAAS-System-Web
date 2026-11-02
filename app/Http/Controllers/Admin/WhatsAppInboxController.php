@@ -7,7 +7,10 @@ use App\Models\PlatformAdmin;
 use App\Models\PlatformCannedReply;
 use App\Models\PlatformConversation;
 use App\Models\PlatformSetting;
+use App\Models\Tenant;
+use App\Models\User;
 use App\Services\Assistant;
+use App\Services\WelcomeKit;
 use App\Services\WhatsApp\Drivers\MetaPageDriver;
 use App\Services\WhatsApp\PlatformAutoReply;
 use App\Services\WhatsApp\PlatformInbox;
@@ -95,6 +98,25 @@ class WhatsAppInboxController extends Controller
         }
 
         return redirect()->route('admin.inbox.show', $row->platform_conversation_id);
+    }
+
+    /** From a restaurant's page: the conversation with its owner opens, with the welcome when it is due. */
+    public function startForRestaurant(Tenant $tenant, PlatformInbox $inbox, WelcomeKit $kit, Request $request): RedirectResponse
+    {
+        $owner = $kit->owner($tenant) ?? User::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->orderBy('id')->first();
+        if (! $owner?->phone) {
+            return back()->withErrors(['conversation' => __('This restaurant has no owner mobile.')]);
+        }
+        $conversation = $inbox->forRestaurant($tenant, $owner->phone, $owner->name);
+        if ($conversation->canReply() || $conversation->messages()->where('direction', 'out')->where('status', '!=', 'failed')->where('created_at', '>', now()->subDay())->exists()) {
+            return redirect()->route('admin.inbox.show', $conversation);
+        }
+        $row = $inbox->start($conversation->phone, $owner->name, $request->user('admin'));
+        if ($row->status === 'failed') {
+            return redirect()->route('admin.inbox.show', $conversation)->withErrors(['body' => __(':channel did not send it: :error', ['channel' => __('WhatsApp'), 'error' => $row->error])]);
+        }
+
+        return redirect()->route('admin.inbox.show', $conversation);
     }
 
     /** A person asked to have their messages removed (the privacy policy promises it). */

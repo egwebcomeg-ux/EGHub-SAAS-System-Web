@@ -15,6 +15,8 @@ use App\Services\Marketing\Automations;
 use App\Services\Marketing\Campaigns;
 use App\Services\Notify\GuestNotifier;
 use App\Services\Sms\Sms;
+use App\Services\WhatsApp\OwnNumber;
+use App\Services\WhatsApp\WhatsApp;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -138,7 +140,7 @@ class CampaignsController extends Controller
         $rights = Entitlements::current();
         $phone = $rights->allows('customers') && $user->can('customers.view');
 
-        return array_keys(array_filter(['manual' => $phone, 'sms' => $phone && Sms::enabled(), 'whatsapp' => $rights->allows('campaigns')]));
+        return array_keys(array_filter(['manual' => $phone, 'sms' => $phone && Sms::enabled(), 'whatsapp' => $rights->allows('campaigns') && (WhatsApp::platformSends() || OwnNumber::current()?->isConnected())]));
     }
 
     /** The send list made now: the staff send it row by row from their own WhatsApp, or it goes out as SMS at once. */

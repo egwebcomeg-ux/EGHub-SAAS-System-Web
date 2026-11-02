@@ -17,6 +17,15 @@ return [
     'number' => env('WHATSAPP_NUMBER'),
 
     /*
+     * Restaurants' messages from the EgHub number (order updates, campaigns, credits sold). Off until their templates are
+     * approved at Meta: nothing is sold or charged, and a restaurant's own connected number keeps working.
+     */
+    'platform_sending' => (bool) env('WHATSAPP_PLATFORM_SENDING', false),
+
+    // the Meta account whose templates `eghub:whatsapp-templates` follows
+    'business_account_id' => env('WHATSAPP_BUSINESS_ACCOUNT_ID'),
+
+    /*
      * «ادخل بواتساب» in a menu's «حسابي» (App\Services\Customers\SignIn\WhatsAppSignIn): the guest sends a prepared
      * message with a 6-digit code to the number above and the inbound webhook confirms the sender's mobile. Offered
      * only when that number AND a verified inbound webhook (app secret, or the provider secret) are set; false here
