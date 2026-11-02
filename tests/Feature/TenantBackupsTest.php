@@ -200,7 +200,7 @@ class TenantBackupsTest extends TenantTestCase
         $this->actingAs($owner)->get($this->dashUrl("/backups/{$mine->id}/download"))->assertForbidden(); // no signature
 
         $response = $this->actingAs($owner)->get($this->signedDownload($mine->id))->assertOk();
-        $this->assertStringContainsString('egmenu-cafe-a-'.$mine->filename, (string) $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('eghub-cafe-a-'.$mine->filename, (string) $response->headers->get('content-disposition'));
 
         // delete: own backup goes (file and row), another restaurant's is not found
         $this->actingAs($owner)->post($this->dashUrl("/backups/{$theirs->id}/delete"))->assertNotFound();
