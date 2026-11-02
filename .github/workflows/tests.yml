@@ -14,6 +14,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
+    # production runs MariaDB, the tests SQLite, which does not enforce column lengths: the migrations run on it too
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: eghub_ci
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+
     steps:
       - uses: actions/checkout@v4
 
@@ -21,7 +33,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: mbstring, intl, gd, zip, bcmath, exif, pdo_sqlite, sqlite3
+          extensions: mbstring, intl, gd, zip, bcmath, exif, pdo_sqlite, sqlite3, pdo_mysql
           ini-values: memory_limit=1G
           coverage: none
 
@@ -44,6 +56,19 @@ jobs:
       - run: npm ci && npm run build
 
       - run: cp .env.example .env && php artisan key:generate
+
+      - name: Migrations on MariaDB
+        env:
+          DB_CONNECTION: mariadb
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: eghub_ci
+          DB_USERNAME: root
+          DB_PASSWORD: root
+          CACHE_STORE: array
+          SESSION_DRIVER: array
+          QUEUE_CONNECTION: 'null'
+        run: php artisan migrate --force --no-interaction
 
       - name: Code style (Pint)
         run: vendor/bin/pint --test
