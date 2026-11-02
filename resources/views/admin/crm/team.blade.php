@@ -11,7 +11,7 @@
     </div>
     <form method="get" class="flex items-center gap-2">
         <input type="month" name="month" value="{{ $month }}" class="field" dir="ltr" aria-label="{{ __('Month') }}">
-        <button class="btn-ghost">{{ __('Show') }}</button>
+        <button class="btn-ghost">{{ __('View') }}</button>
     </form>
 </div>
 

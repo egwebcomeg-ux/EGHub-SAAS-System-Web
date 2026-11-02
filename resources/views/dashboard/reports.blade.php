@@ -43,7 +43,7 @@
                 @foreach ($branches as $b)<option value="{{ $b->id }}" @selected($branchId === $b->id)>{{ $b->name }}</option>@endforeach
             </select>
         @endif
-        <button class="btn-primary min-h-9">{{ __('Show') }}</button>
+        <button class="btn-primary min-h-9">{{ __('View') }}</button>
     @else
         <span class="text-xs text-navy-500">{{ \App\Services\Entitlements::current()->upgradeMessage('advanced_reports') }}</span>
     @endif

@@ -593,7 +593,7 @@ if (grid) {
             </div>
             ${b.in_kitchen ? `<p class="mt-3 rounded-xl bg-amber-50 p-2 text-sm font-semibold text-amber-900">🍳 ${esc(t.stillKitchen)}</p>` : ''}
             <p class="mt-3 hidden rounded-xl bg-red-50 p-2 text-sm font-semibold text-red-700" data-bill-error></p>
-            ${canPay && due ? `<fieldset class="mt-4"><legend class="mb-2 text-xs font-bold text-navy-500">${esc(t.method)}</legend>
+            ${canPay && due ? `<fieldset class="mt-4" data-pay-methods><legend class="mb-2 text-xs font-bold text-navy-500">${esc(t.method)}</legend>
                 <div class="flex flex-wrap gap-2">${Object.entries(methods).map(([k, label]) => `
                     <button type="button" data-method="${k}" aria-pressed="${k === method}" class="min-h-10 rounded-xl px-3 text-sm font-bold ring-1 ring-navy-200 aria-pressed:bg-navy-800 aria-pressed:text-white">${esc(label)}</button>`).join('')}</div></fieldset>
                 <button type="button" class="mt-3 text-sm font-bold text-brand-700 underline" data-split-toggle aria-expanded="false">${esc(t.split)}</button>
@@ -640,6 +640,8 @@ if (grid) {
             const open = panel.classList.toggle('hidden') === false;
             toggle.setAttribute('aria-expanded', String(open));
             toggle.textContent = open ? t.splitOff : t.split;
+            body.querySelector('[data-pay-methods]').classList.toggle('hidden', open);
+            body.querySelector('[data-bill-error]').classList.add('hidden');
             body.querySelector('[data-split-rows]').innerHTML = '';
             if (open) renderSplit(Number(body.querySelector('[data-split-people]').value) || 2);
             return;
@@ -685,6 +687,7 @@ if (grid) {
             renderSplit(people);
         } else if (e.target.matches('[data-split-amount]')) {
             updateSplitLeft();
+            body.querySelector('[data-bill-error]').classList.add('hidden');
         }
     });
 

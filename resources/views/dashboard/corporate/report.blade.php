@@ -54,7 +54,7 @@
             </select></label>
     </div>
     <div class="flex flex-wrap items-center gap-2">
-        <button class="btn-primary">{{ __('Show') }}</button>
+        <button class="btn-primary">{{ __('View') }}</button>
         <span class="text-sm text-navy-500">{{ local_time($report->from, 'Y/m/d') }} – {{ local_time($report->to, 'Y/m/d') }}</span>
     </div>
 </form>

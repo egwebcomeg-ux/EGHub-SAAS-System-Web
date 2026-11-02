@@ -6470,7 +6470,7 @@
     "To :branch": "إلى :branch",
     "From :branch": "من :branch",
     "Only a manager can transfer stock.": "المدير بس اللي يقدر يحوّل مخزون.",
-    ":branch does not have that much.": "فرع :branch مفيهوش الكمية دي.",
+    ":branch does not have that much.": ":branch مفيهوش الكمية دي.",
     "Stock transferred.": "المخزون اتحوّل.",
     "Transfer to another branch": "تحويل لفرع تاني",
     "One payment": "دفعة واحدة",

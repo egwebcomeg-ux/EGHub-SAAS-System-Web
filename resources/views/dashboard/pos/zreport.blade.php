@@ -39,7 +39,7 @@
         <label class="block"><span class="field-label">{{ __('Terminal') }}</span>
             <select class="field" name="terminal"><option value="">{{ __('All terminals') }}</option>@foreach ($terminals as $t)<option value="{{ $t->id }}" @selected($terminal?->id === $t->id)>{{ $t->label() }}</option>@endforeach</select></label>
     @endif
-    <button class="btn-primary">{{ __('Show') }}</button>
+    <button class="btn-primary">{{ __('View') }}</button>
 </form>
 
 <div class="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4" data-z-kpis>
