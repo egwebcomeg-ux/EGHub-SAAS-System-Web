@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\AssistantController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\BlogController;
 use App\Http\Controllers\Admin\BrandingController;
+use App\Http\Controllers\Admin\CallsController;
 use App\Http\Controllers\Admin\CallScriptController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DomainsController;
@@ -146,6 +147,13 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         Route::get('/crm/playbook', [SalesTeamController::class, 'playbook'])->name('crm.playbook');
     });
     Route::middleware('admin.access:crm.manage')->group(function () {
+        Route::get('/crm/calls', [CallsController::class, 'index'])->name('crm.calls');
+        Route::get('/crm/calls/current', [CallsController::class, 'current'])->withoutMiddleware('admin.idle')->middleware('throttle:60,1')->name('crm.calls.current');
+        Route::get('/crm/calls/{call}', [CallsController::class, 'show'])->whereNumber('call')->name('crm.calls.show');
+        Route::post('/crm/calls/{call}', [CallsController::class, 'summarize'])->whereNumber('call')->name('crm.calls.summarize');
+        Route::post('/crm/calls/{call}/place', [CallsController::class, 'addPlace'])->whereNumber('call')->name('crm.calls.place');
+        Route::post('/crm/call-devices', [CallsController::class, 'linkDevice'])->middleware('throttle:10,1')->name('crm.devices.link');
+        Route::post('/crm/call-devices/{device}/delete', [CallsController::class, 'unlinkDevice'])->whereNumber('device')->name('crm.devices.unlink');
         Route::post('/crm/prospects/assign', [ProspectsController::class, 'bulkAssign'])->name('crm.prospects.bulk');
         Route::post('/crm/prospects/{prospect}/calls', [ProspectsController::class, 'call'])->whereNumber('prospect')->name('crm.prospects.call');
         Route::post('/crm/prospects/{prospect}/whatsapp-offer', [ProspectsController::class, 'whatsappOffer'])->whereNumber('prospect')->name('crm.prospects.offer');

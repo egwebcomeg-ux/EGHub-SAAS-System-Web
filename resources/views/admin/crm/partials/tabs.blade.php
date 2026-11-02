@@ -3,6 +3,7 @@
     $me = auth('admin')->user();
     $tabs = array_filter([
         $me->allows('crm.manage') ? ['admin.crm', __('Sign-ups'), ['admin.crm', 'admin.crm.show']] : null,
+        $me->allows('crm.manage') ? ['admin.crm.calls', __('Calls'), ['admin.crm.calls*']] : null,
         ['admin.crm.prospects', __('Places'), ['admin.crm.prospects*']],
         $me->doesFieldVisits() ? ['admin.crm.visits', __('My visits'), ['admin.crm.visits*']] : null,
         $me->allows('crm.import') ? ['admin.crm.import', __('Import places'), ['admin.crm.import*']] : null,

@@ -3,6 +3,7 @@
 use App\Http\Middleware\AdminAccess;
 use App\Http\Middleware\AdminIdleTimeout;
 use App\Http\Middleware\AdminLocale;
+use App\Http\Middleware\AuthenticateCallDevice;
 use App\Http\Middleware\BlockDuringSupportAccess;
 use App\Http\Middleware\CachePublicPage;
 use App\Http\Middleware\GuestAccountsOpen;
@@ -55,6 +56,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.locale' => AdminLocale::class,
             'admin.access' => AdminAccess::class,
             'admin.idle' => AdminIdleTimeout::class,
+            'crm.device' => AuthenticateCallDevice::class,
             'support.blocked' => BlockDuringSupportAccess::class,
             'page.cache' => CachePublicPage::class,
             'guest.accounts' => GuestAccountsOpen::class,

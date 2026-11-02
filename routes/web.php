@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\CallDeviceApiController;
 use App\Http\Controllers\Platform\AppsController;
 use App\Http\Controllers\Platform\AssistantController;
 use App\Http\Controllers\Platform\BillingWebhookController;
@@ -49,6 +50,14 @@ Route::post('/_lscache/purge', [PageCacheController::class, 'purge'])->middlewar
 // Dashboard and admin are never indexed.
 Route::domain("admin.$domain")->get('/robots.txt', [SeoController::class, 'robotsPrivate']);
 Route::domain("app.$domain")->get('/robots.txt', [SeoController::class, 'robotsPrivate']);
+
+// the sales phone's own calls: its token instead of a session (App\Http\Middleware\AuthenticateCallDevice)
+Route::domain("admin.$domain")->prefix('crm/device')->middleware(['crm.device', 'throttle:240,1'])
+    ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])->group(function () {
+        Route::post('/ringing', [CallDeviceApiController::class, 'ringing']);
+        Route::post('/calls', [CallDeviceApiController::class, 'calls']);
+        Route::get('/directory', [CallDeviceApiController::class, 'directory']);
+    });
 
 Route::domain("admin.$domain")->middleware(['admin.locale', 'admin.idle'])->name('admin.')->group(base_path('routes/admin.php'));
 

@@ -95,6 +95,9 @@
         <main class="mx-auto w-full max-w-7xl min-w-0 flex-1 px-4 py-6 sm:px-6">
             <x-flash />
             @yield('content')
+            @if (auth('admin')->user()?->allows('crm.manage'))
+                @include('admin.crm.calls.live-banner')
+            @endif
         </main>
     </div>
 </div>
