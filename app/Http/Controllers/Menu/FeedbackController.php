@@ -7,6 +7,7 @@ use App\Models\Feedback;
 use App\Models\Order;
 use App\Services\Entitlements;
 use App\Services\Menu\MenuCatalog;
+use App\Services\Reports\LowRatingAlert;
 use App\Services\Settings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -53,9 +54,10 @@ class FeedbackController extends Controller
         if ($limited) {
             return response()->json(['message' => __('Thank you! You already sent your rating.')], 429);
         }
-        Feedback::query()->create($where + [
+        $feedback = Feedback::query()->create($where + [
             'rating' => $rating, 'comment' => trim((string) $comment) ?: null, 'ip_hash' => $ipHash,
         ]);
+        app(LowRatingAlert::class)->received($feedback);
 
         $google = Settings::get('google_review_url');
 

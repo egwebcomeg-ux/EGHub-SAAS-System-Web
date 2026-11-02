@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Models\Feedback;
 use App\Models\IngredientStock;
 use App\Models\Order;
 use App\Models\Reservation;
@@ -10,13 +11,14 @@ use App\Models\TableCall;
 use App\Models\User;
 use App\Services\Entitlements;
 use App\Services\Orders\OrderConfirmation;
+use App\Services\Reports\LowRatingAlert;
 use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
  * The bell in the dashboard header, polled every 20 seconds. Built from what already happens (no extra events): new
- * orders, orders turned ready, waiter calls and bill requests, booking requests and ingredients under their minimum,
+ * orders, orders turned ready, waiter calls and bill requests, booking requests, low guest ratings and ingredients under their minimum,
  * each only with its plan feature and the user's right, in the user's branch. Opening the list marks it read
  * (users.notifications_seen_at).
  */
@@ -103,6 +105,15 @@ class NotificationsController extends Controller
             }
         }
 
+        if ($rights->allows('feedback') && $user->can('reports.view')) {
+            $ratings = Feedback::query()->when($branch, fn ($q) => $q->where('branch_id', $branch))
+                ->where('rating', '<=', LowRatingAlert::MAX_STARS)->where('created_at', '>=', $since)->latest('id')->limit(self::LIMIT)->get();
+            foreach ($ratings as $f) {
+                $items[] = ['key' => "rating-{$f->id}", 'kind' => 'rating', 'icon' => '⭐', 'title' => __('A guest gave :n of 5', ['n' => $f->rating]),
+                    'detail' => mb_substr((string) $f->comment, 0, 80), 'at' => $f->created_at, 'url' => route('dash.feedback')];
+            }
+        }
+
         if ($rights->allows('inventory') && $user->can('inventory.manage')) {
             // listed while it stays low (not only within the window), dated by its last stock change
             $low = IngredientStock::query()->when($branch, fn ($q) => $q->where('branch_id', $branch))
@@ -125,6 +136,7 @@ class NotificationsController extends Controller
 
         return ($rights->allows('order_board') && $user->can('orders.view'))
             || ($rights->allows('reservations') && $user->can('reservations.manage'))
+            || ($rights->allows('feedback') && $user->can('reports.view'))
             || ($rights->allows('inventory') && $user->can('inventory.manage'));
     }
 }

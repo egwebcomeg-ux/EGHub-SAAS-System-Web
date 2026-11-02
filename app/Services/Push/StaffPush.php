@@ -4,6 +4,7 @@ namespace App\Services\Push;
 
 use App\Jobs\SendPushNotification;
 use App\Models\CorporateBooking;
+use App\Models\Feedback;
 use App\Models\Order;
 use App\Models\Reservation;
 use App\Models\User;
@@ -30,6 +31,7 @@ final class StaffPush
         'reservation_new' => ['reservations.manage', ['owner', 'manager'], 'حجز ترابيزة جديد', 'New table reservation'],
         'corporate_booking' => ['contracts.manage', ['owner', 'manager'], 'زيارة شركة مستنية موافقة', 'A company visit waiting for approval'],
         'daily_digest' => ['reports.view', ['owner', 'manager'], 'تقرير المدير اليومي', 'Manager daily report'],
+        'low_rating' => ['reports.view', ['owner', 'manager'], 'تقييم ضعيف من عميل', 'A guest gave a low rating'],
         'order_ready' => ['orders.view', ['waiter'], 'الطلب جاهز (طلبات الصالة)', 'Order ready (dine-in orders)'],
         'driver_order' => ['delivery.drive', ['driver'], 'أوردر جديد معاك، أو اتسحب منك أو اتلغى', 'An order given to you, taken back from you or cancelled'],
     ];
@@ -144,6 +146,13 @@ final class StaffPush
         ]);
         $this->notify('daily_digest', null, __('Yesterday: :n orders · :amount', ['n' => $digest['orders'], 'amount' => money($digest['revenue'])]),
             $flags ? implode(' · ', $flags) : __('Nothing needs your attention.'), ['url' => platform_url('app', '/reports')]);
+    }
+
+    /** A guest gave 1 or 2 stars (App\Services\Reports\LowRatingAlert). */
+    public function lowRating(Feedback $feedback, string $where): void
+    {
+        $this->notify('low_rating', $feedback->branch_id, __('A guest gave :n of 5', ['n' => $feedback->rating]),
+            trim($where.' '.mb_substr((string) $feedback->comment, 0, 120)), ['url' => platform_url('app', '/feedback')]);
     }
 
     /** A dine-in order is ready: the waiters take it to the table. */
