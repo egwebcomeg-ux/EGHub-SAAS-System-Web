@@ -57,7 +57,7 @@
                             <bdi class="min-w-0 truncate font-bold">{{ $c->displayName() }}</bdi>
                             @if ($c->unread > 0)<span class="badge bg-brand-600 text-white" data-inbox-unread>{{ $c->unread }}</span>@endif
                         </span>
-                        <span class="mt-1 block text-xs text-navy-500" data-inbox-channel="{{ $c->channel }}">{{ $c->channelLabel() }} · {{ $c->last_message_at?->diffForHumans() }}@if ($c->assignee) · {{ $c->assignee->name }}@endif</span>
+                        <span class="mt-1 block text-xs text-navy-500" data-inbox-channel="{{ $c->channel }}">@include('admin.partials.channel-logo', ['channel' => $c->channel]) · {{ $c->last_message_at?->diffForHumans() }}@if ($c->assignee) · {{ $c->assignee->name }}@endif</span>
                     </a>
                 </li>
             @empty
@@ -78,7 +78,7 @@
                     @if ($conversation->isWhatsApp())
                         <a href="https://wa.me/{{ $conversation->phone }}" target="_blank" rel="noopener" dir="ltr" class="text-sm text-navy-500">+{{ $conversation->phone }}</a>
                     @else
-                        <span class="text-sm text-navy-500">{{ $conversation->channelLabel() }}</span>
+                        <span class="text-sm text-navy-500">@include('admin.partials.channel-logo', ['channel' => $conversation->channel])</span>
                     @endif
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
