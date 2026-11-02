@@ -6,6 +6,7 @@ use App\Billing\OnlinePayments;
 use App\Models\CallScriptItem;
 use App\Models\Plan;
 use App\Models\PlatformAdmin;
+use App\Models\Prospect;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\TenantProvisioner;
@@ -59,6 +60,37 @@ final class CallScript
     }
 
     /**
+     * The same sections for a place that never signed up: its own words, so nobody is told they have an account.
+     *
+     * @return array<string, Collection<int, CallScriptItem>>
+     */
+    public function placeSections(): array
+    {
+        $sections = $this->sections();
+
+        return [
+            'opening' => $sections['place_opening'], 'whatsapp' => $sections['place_whatsapp'], 'pitch' => $sections['place_pitch'],
+            'question' => collect(), 'objection' => $sections['place_objection'], 'closing' => $sections['place_closing'],
+        ];
+    }
+
+    /**
+     * What each placeholder becomes for a place that has no restaurant yet: live prices too, never a guessed number.
+     *
+     * @return array<string, string>
+     */
+    public function placeContext(Prospect $prospect, PlatformAdmin $caller): array
+    {
+        return [
+            '{owner}' => Str::before(trim((string) $prospect->owner_name), ' '),
+            '{restaurant}' => $prospect->name,
+            '{caller}' => Str::before(trim($caller->name), ' '),
+            '{trial_length}' => (string) TenantProvisioner::TRIAL_DAYS,
+            ...$this->prices(),
+        ];
+    }
+
+    /**
      * What each placeholder becomes for this lead and caller. Prices are read from the plans and services as they are
      * now; a missing plan leaves "—" rather than a guessed number.
      *
@@ -66,12 +98,7 @@ final class CallScript
      */
     public function context(Tenant $tenant, ?User $owner, PlatformAdmin $caller): array
     {
-        $plans = Plan::query()->whereIn('code', ['free', 'full'])->with('features')->get()->keyBy('code');
-        $full = $plans->get('full');
-        $free = $plans->get('free');
         $sub = $tenant->subscription;
-        $freeItems = $free?->entitlements()['limits']['menu_items'] ?? null;
-        $menuSetup = SiteServices::find('menu_setup');
 
         return [
             '{owner}' => $owner ? Str::before(trim($owner->name), ' ') : '',
@@ -81,6 +108,19 @@ final class CallScript
             '{plan}' => $sub?->plan?->displayName() ?? '—',
             '{trial_days}' => $sub && $sub->status === 'trialing' ? (string) $sub->daysLeft() : '0',
             '{trial_length}' => (string) TenantProvisioner::TRIAL_DAYS,
+            ...$this->prices(),
+        ];
+    }
+
+    /** @return array<string, string> */
+    private function prices(): array
+    {
+        $plans = Plan::query()->whereIn('code', ['free', 'full'])->with('features')->get()->keyBy('code');
+        $full = $plans->get('full');
+        $freeItems = $plans->get('free')?->entitlements()['limits']['menu_items'] ?? null;
+        $menuSetup = SiteServices::find('menu_setup');
+
+        return [
             '{free_items}' => $freeItems === null ? '—' : (string) $freeItems,
             '{full_price}' => $full ? money($full->monthly_price) : '—',
             '{full_year_price}' => $full ? money($full->priceFor(12)) : '—',

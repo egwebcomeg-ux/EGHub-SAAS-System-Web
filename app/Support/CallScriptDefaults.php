@@ -16,6 +16,7 @@ final class CallScriptDefaults
     public static function items(): array
     {
         return [
+            ...self::placeItems(),
             [
                 'kind' => 'opening', 'key' => 'opening',
                 'title' => 'أول ما يرد',
@@ -126,6 +127,68 @@ final class CallScriptDefaults
                 'kind' => 'closing', 'key' => 'closing',
                 'title' => 'قفلة المكالمة',
                 'body' => 'تمام يا أستاذ {owner}، هبعتلك على الواتساب اللي اتكلمنا فيه. ولو احتجت أي حاجة أنا موجود على الرقم ده. شكراً لوقتك.',
+            ],
+        ];
+    }
+
+    /**
+     * What is said to a place that never signed up (imported from the map or added by the team): nothing here may
+     * suggest they have an account, a trial or a menu with us.
+     *
+     * @return list<array{kind: string, key: string, title: string, body: string}>
+     */
+    private static function placeItems(): array
+    {
+        return [
+            [
+                'kind' => 'place_opening', 'key' => 'place_opening',
+                'title' => 'أول ما يرد',
+                'body' => "أهلاً، معاك {caller} من EgHub. مع حضرتك صاحب «{restaurant}» أو المسؤول عنه؟\nإحنا شركة بنعمل منيو QR وطلبات أونلاين للمطاعم والكافيهات، وحبيت أعرض على حضرتك نعملكم نسخة تجريبية من المنيو ببلاش. معايا دقيقتين؟\n\n(لو قال مش فاضي: «ولا يهمك، أكلم حضرتك إمتى؟» وسجّل الميعاد تحت.)",
+            ],
+            [
+                'kind' => 'place_whatsapp', 'key' => 'place_whatsapp',
+                'title' => 'لو مردّش أو طلب واتساب',
+                'body' => "أهلاً، معاك {caller} من EgHub.\nبنعمل منيو QR وطلبات أونلاين للمطاعم والكافيهات، وحابين نعمل لـ«{restaurant}» نسخة تجريبية من المنيو ببلاش ومن غير أي التزام.\nلو مهتمين ردوا عليا هنا، ولو مش مهتمين قولولي ومش هبعت تاني.",
+            ],
+            [
+                'kind' => 'place_pitch', 'key' => 'place_pitch_short',
+                'title' => 'لو سأل يعني إيه EgHub',
+                'body' => "EgHub سيستم للمطاعم والكافيهات. أهم حاجة فيه منيو أونلاين بـQR: الزبون يصوّر الكود اللي على الترابيزة بكاميرا الموبايل، يشوف المنيو بالصور والأسعار من غير ما يحمّل أي تطبيق.\nولو حابب، الزبون يطلب من الترابيزة، أو يطلب أونلاين تيك أواي وتوصيل من لينك محلك من غير عمولة على الطلب. وفيه كمان كارت ولاء وحجز ترابيزات وتقارير.\nلو سجلت، بتاخد {trial_length} يوم تجربة على الباقة الكاملة ببلاش ومن غير كارت بنكي. ولو ما اشتركتش بعدها، المنيو بيفضل شغال على الباقة المجانية.",
+            ],
+            [
+                'kind' => 'place_pitch', 'key' => 'place_pitch_price',
+                'title' => 'لو سأل على السعر',
+                'body' => "الباقة الكاملة بـ{full_price} جنيه في الشهر، ولو دفعت سنة مرة واحدة بتبقى {full_year_price} جنيه (خصم {year_discount}%).\nوالباقة المجانية فيها منيو QR لحد {free_items} صنف ومن غير أي تكلفة.\nولو محلك أكتر من فرع أو محتاج كاشير وشاشة مطبخ، فيه الباقة الاحترافية، وسعرها بيتحدد مع المبيعات حسب احتياجك.",
+            ],
+            [
+                'kind' => 'place_objection', 'key' => 'place_obj_how_number',
+                'title' => '«جبت رقمي منين؟»',
+                'body' => 'رقم حضرتك ظاهر مع المحل على الخرائط. لو مش حابب نكلمك تاني قولي وهشيله من عندنا حالاً.',
+            ],
+            [
+                'kind' => 'place_objection', 'key' => 'place_obj_price',
+                'title' => '«غالي»',
+                'body' => 'فاهمك. تقدر تبدأ بالباقة المجانية: منيو QR لحد {free_items} صنف ومش هتدفع حاجة، وتشترك وقت ما تحتاج أكتر من كده.',
+            ],
+            [
+                'kind' => 'place_objection', 'key' => 'place_obj_has_system',
+                'title' => '«عندي سيستم»',
+                'body' => 'حلو جداً. EgHub مش لازم ياخد مكان السيستم بتاعك: ممكن تستخدمه للمنيو الـQR والطلب أونلاين من غير عمولة بس. جرّبه {trial_length} يوم وشوف بنفسك.',
+            ],
+            [
+                'kind' => 'place_objection', 'key' => 'place_obj_busy',
+                'title' => '«مش فاضي»',
+                'body' => 'ولا يهمك خالص. أكلم حضرتك إمتى يناسبك؟ ولو تحب أبعتلك التفاصيل على الواتساب تشوفها وقت ما تفضى.',
+            ],
+            [
+                'kind' => 'place_objection', 'key' => 'place_obj_guests',
+                'title' => '«زباينّي مش بيستخدموا QR»',
+                'body' => 'الزبون مش محتاج يحمّل تطبيق، بيصوّر الكود بالكاميرا والمنيو يفتح على طول. ولو في زباين بيحبوا الورق، تقدر تطبع المنيو PDF.',
+            ],
+            [
+                'kind' => 'place_closing', 'key' => 'place_closing',
+                'title' => 'قفلة المكالمة',
+                'body' => 'تمام، هبعت لحضرتك التفاصيل على الواتساب. ولو احتجت أي حاجة أنا موجود على الرقم ده. شكراً لوقتك.',
             ],
         ];
     }

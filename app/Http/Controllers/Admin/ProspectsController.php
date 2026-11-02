@@ -15,7 +15,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -76,11 +75,12 @@ class ProspectsController extends Controller
     {
         $admin = $request->user('admin');
         abort_unless($prospect->isVisibleTo($admin), 404);
-        $sections = $script->sections();
-        $context = [
-            '{owner}' => Str::before(trim($prospect->owner_name), ' '), '{restaurant}' => $prospect->name,
-            '{caller}' => Str::before(trim($admin->name), ' '),
-        ];
+        // a place that signed up is a customer of ours; every other one has never heard of us
+        $signedUp = $prospect->tenant_id !== null && $prospect->tenant !== null;
+        $sections = $signedUp ? $script->sections() : $script->placeSections();
+        $context = $signedUp
+            ? $script->context($prospect->tenant, $prospect->tenant->owners()->first(), $admin)
+            : $script->placeContext($prospect, $admin);
         $phone = (string) ($prospect->phone ?? '');
         $whatsappText = CallScript::fill((string) ($sections['whatsapp']->first()?->body ?? ''), $context);
 

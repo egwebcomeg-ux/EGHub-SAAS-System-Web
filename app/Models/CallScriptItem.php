@@ -26,6 +26,11 @@ class CallScriptItem extends Model
         'question' => ['أسئلة نفهم بيها محله', 'Discovery questions'],
         'objection' => ['الاعتراضات والرد عليها', 'Objections and replies'],
         'closing' => ['قفلة المكالمة', 'Closing'],
+        'place_opening' => ['مكان لسه ما سجلش: بداية المكالمة', 'Place not signed up: opening'],
+        'place_whatsapp' => ['مكان لسه ما سجلش: رسالة الواتساب', 'Place not signed up: WhatsApp message'],
+        'place_pitch' => ['مكان لسه ما سجلش: EgHub في كلمتين', 'Place not signed up: EgHub in a few words'],
+        'place_objection' => ['مكان لسه ما سجلش: الاعتراضات', 'Place not signed up: objections'],
+        'place_closing' => ['مكان لسه ما سجلش: قفلة المكالمة', 'Place not signed up: closing'],
     ];
 
     /**

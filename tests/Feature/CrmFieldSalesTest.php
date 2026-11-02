@@ -205,6 +205,21 @@ class CrmFieldSalesTest extends TenantTestCase
         Http::assertNothingSent();
     }
 
+    public function test_a_place_that_never_signed_up_is_not_told_it_did_and_one_that_signed_up_is(): void
+    {
+        $mona = $this->admin('sales', 'Mona Caller');
+        $place = $this->place(['name' => 'كافيه الخريطة', 'phone' => '01066666666', 'source' => 'map', 'owner_name' => '']);
+
+        $page = $this->actingAs($mona, 'admin')->get($this->adminUrl("/crm/prospects/{$place->id}"))->assertOk();
+        $page->assertSee('كافيه الخريطة')->assertDontSee('حضرتك سجلت')->assertDontSee('لما سجلت')->assertDontSee('{full_price}', false)->assertDontSee('{trial_length}', false)->assertDontSee('{caller}', false);
+        $page->assertDontSee('الأيام الباقية')->assertSee('نسخة تجريبية');
+        $this->assertStringNotContainsString(rawurlencode('سجلت'), $page->viewData('whatsappUrl'));
+
+        $tenant = $this->restaurant('aseel', 'free');
+        $signedUp = $this->place(['name' => 'مطعم مسجل', 'phone' => '01055555555', 'tenant_id' => $tenant->id, 'stage' => 'trial']);
+        $this->get($this->adminUrl("/crm/prospects/{$signedUp->id}"))->assertOk()->assertSee('حضرتك سجلت');
+    }
+
     public function test_every_ready_area_is_a_box_one_import_accepts(): void
     {
         foreach (PlaceImporter::PRESETS as $key => [$name, $governorate, $s, $w, $n, $e]) {
