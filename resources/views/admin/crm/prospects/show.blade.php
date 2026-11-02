@@ -32,6 +32,12 @@
     </div>
     <div class="flex flex-wrap gap-2">
         @if ($telUrl)<a href="{{ $telUrl }}" class="btn bg-emerald-600 text-white" data-tel>{{ __('Call') }} <span dir="ltr">{{ $prospect->phone }}</span></a>@endif
+        @if ($canManage && $prospect->phone && $prospect->isOpen())
+            <form method="post" action="{{ route('admin.crm.prospects.offer', $prospect) }}" target="_blank" data-whatsapp-offer>
+                @csrf
+                <button class="btn bg-emerald-600 text-white">{{ __('WhatsApp offer') }}</button>
+            </form>
+        @endif
         @if ($whatsappUrl)<a href="{{ $whatsappUrl }}" target="_blank" rel="noopener" class="btn border border-emerald-200 bg-emerald-50 text-emerald-800">{{ __('WhatsApp') }}</a>@endif
         @if ($prospect->hasLocation())<a href="https://www.google.com/maps/dir/?api=1&destination={{ $prospect->lat }},{{ $prospect->lng }}" target="_blank" rel="noopener" class="btn-ghost">{{ __('Directions') }}</a>@endif
         @if ($admin->doesFieldVisits() && $prospect->isOpen())
@@ -39,6 +45,8 @@
         @endif
     </div>
 </div>
+
+@error('offer')<p class="field-error mb-3">{{ $message }}</p>@enderror
 
 <div class="grid gap-4 lg:grid-cols-[1fr_22rem]">
     <div class="space-y-4">

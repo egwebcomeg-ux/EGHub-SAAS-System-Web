@@ -7,6 +7,7 @@ use App\Models\AddonPrice;
 use App\Models\PlatformAdmin;
 use App\Models\PlatformConversation;
 use App\Models\PlatformSetting;
+use App\Models\Prospect;
 use App\Models\WhatsAppMessage;
 use App\Notifications\WhatsAppTemplatesChanged;
 use App\Services\ErrorAlert;
@@ -96,6 +97,24 @@ class NewRestaurantBotAndPlatformSendingTest extends TenantTestCase
         app(PlatformAutoReply::class)->answer($message);
 
         Http::assertSent(fn ($request) => str_contains($request->url(), 'anthropic') && str_contains(json_encode($request->data(), JSON_UNESCAPED_UNICODE), 'NEW RESTAURANT'));
+    }
+
+    public function test_the_bot_knows_the_menu_offer_only_for_the_number_of_a_place_that_got_it(): void
+    {
+        Http::fake(['api.anthropic.com/*' => Http::response(['content' => [['type' => 'text', 'text' => 'ابعت المنيو']], 'stop_reason' => 'end_turn']), 'graph.facebook.com/*' => fn () => Http::response(['messages' => [['id' => 'wamid.'.uniqid()]]])]);
+        $place = Prospect::query()->create(['name' => 'مطعم العرض', 'category' => 'restaurant', 'phone' => '01066666666']);
+        $place->events()->create(['type' => 'whatsapp', 'outcome' => 'sent', 'meta' => ['offer' => true]]);
+        $ask = function (string $phone): void {
+            $conversation = PlatformConversation::query()->create(['channel' => 'whatsapp', 'phone' => $phone, 'name' => 'x', 'last_inbound_at' => now()]);
+            app(PlatformAutoReply::class)->answer($conversation->messages()->create(['direction' => 'in', 'type' => 'text', 'body' => 'عايز منيو تجريبي', 'status' => 'received']));
+        };
+        $offerAsked = fn () => collect(Http::recorded())->filter(fn ($pair) => str_contains($pair[0]->url(), 'anthropic') && str_contains(json_encode($pair[0]->data(), JSON_UNESCAPED_UNICODE), 'MENU OFFER'))->count();
+
+        $ask('201011111111');
+        $this->assertSame(0, $offerAsked());
+
+        $ask('201066666666');
+        $this->assertSame(1, $offerAsked());
     }
 
     public function test_while_the_eghub_number_is_off_nothing_is_sold_or_charged_and_nothing_pretends_to_be_sent(): void

@@ -4,6 +4,7 @@ namespace App\Services\WhatsApp;
 
 use App\Models\AssistantMessage;
 use App\Models\MenuItem;
+use App\Models\Plan;
 use App\Models\PlatformAdmin;
 use App\Models\PlatformCannedReply;
 use App\Models\PlatformConversation;
@@ -11,7 +12,9 @@ use App\Models\PlatformConversationMessage;
 use App\Models\PlatformSetting;
 use App\Models\Tenant;
 use App\Services\Assistant;
+use App\Services\Crm\WhatsAppOffer;
 use App\Services\Settings;
+use App\Services\TenantProvisioner;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -65,6 +68,10 @@ NEW RESTAURANT: This person is the owner of «:name», which signed up on EgHub.
 2. No logo yet: ask them to send it.
 3. Then ask how many tables they have, and tell them that the QR codes print from the dashboard.
 Thank them for what they send and say that the team will add it. Answer their questions from your facts. Never say that something was added or is ready unless these details show it.
+TXT;
+
+    private const MENU_OFFER_RULES = <<<'TXT'
+MENU OFFER: This person writes from the number of «:name», which our team offered a trial QR menu: send a photo or a PDF of the menu here, the team builds the full menu, and they try it free for :days days with no commitment. After the trial the free plan keeps a menu of up to :items items, and bigger menus need a paid plan. Ask them to send the menu here. Thank them for what they send and say that the team will build it and send the link here. Never say that it is ready, and never say that everything is free forever.
 TXT;
 
     private const CHANNEL_RULES = <<<'TXT'
@@ -149,7 +156,12 @@ TXT;
     {
         $tenant = $conversation->tenant_id ? Tenant::query()->find($conversation->tenant_id) : null;
         if (! $tenant) {
-            return '';
+            $place = $conversation->isWhatsApp() ? app(WhatsAppOffer::class)->placeWritingFrom($conversation->phone) : null;
+
+            return $place ? "\n".strtr(self::MENU_OFFER_RULES, [
+                ':name' => $place->name, ':days' => (string) TenantProvisioner::TRIAL_DAYS,
+                ':items' => (string) (Plan::query()->where('code', 'free')->with('features')->first()?->entitlements()['limits']['menu_items'] ?? '—'),
+            ]) : '';
         }
         [$items, $logo] = $tenant->run(fn () => [MenuItem::query()->count(), filled(Settings::get('logo'))]);
 

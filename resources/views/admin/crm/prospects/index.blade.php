@@ -37,15 +37,23 @@
             <h2 class="section-title">{{ __('Recommended calls') }}</h2>
             <span class="text-xs text-navy-500">{{ __('The system picks: follow-ups due, then the best places nobody called') }}</span>
         </div>
+        <p class="mb-2 text-xs text-navy-500">{{ __('WhatsApp offers you opened today: :used of :limit. Each one opens on your phone and you press send.', ['used' => $offersToday, 'limit' => \App\Services\Crm\WhatsAppOffer::DAILY_LIMIT]) }}</p>
+        @error('offer')<p class="field-error mb-2">{{ $message }}</p>@enderror
         <ul class="divide-y divide-navy-50">
             @foreach ($recommended as $p)
-                <li class="flex items-center gap-3 py-2">
-                    <a href="{{ route('admin.crm.prospects.show', $p) }}" class="min-w-0 flex-1">
+                <li class="flex flex-wrap items-center gap-3 py-2">
+                    <a href="{{ route('admin.crm.prospects.show', $p) }}" class="min-w-0 flex-1 basis-48">
                         <span class="font-bold text-navy-900">{{ $p->categoryEmoji() }} {{ $p->name }}</span>
                         <span class="block truncate text-xs text-navy-500">{{ $p->place() ?: '—' }} · {{ __('Score :n', ['n' => $p->score]) }}
                             @if ($p->next_follow_up_at) · {{ __('Follow-up :at', ['at' => local_time($p->next_follow_up_at, 'd/m h:i A')]) }}@endif</span>
                     </a>
-                    <a href="tel:{{ $p->phone }}" class="btn border border-emerald-200 bg-emerald-50 text-emerald-800" dir="ltr">{{ $p->phone }}</a>
+                    <div class="flex gap-2">
+                        <form method="post" action="{{ route('admin.crm.prospects.offer', $p) }}" target="_blank" data-whatsapp-offer>
+                            @csrf
+                            <button class="btn bg-emerald-600 text-white">{{ __('WhatsApp offer') }}</button>
+                        </form>
+                        <a href="tel:{{ $p->phone }}" class="btn border border-emerald-200 bg-emerald-50 text-emerald-800" dir="ltr">{{ $p->phone }}</a>
+                    </div>
                 </li>
             @endforeach
         </ul>

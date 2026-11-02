@@ -15,6 +15,10 @@ width: 100% !important;
 .footer {
 width: 100% !important;
 }
+
+.content-cell {
+padding: 20px !important;
+}
 }
 
 @media only screen and (max-width: 500px) {
@@ -36,7 +40,7 @@ width: 100% !important;
 <!-- Email Body -->
 <tr>
 <td class="body" width="100%" cellpadding="0" cellspacing="0" style="border: hidden !important;">
-<table class="inner-body" align="center" width="570" cellpadding="0" cellspacing="0" role="presentation">
+<table class="inner-body" align="center" width="100%" cellpadding="0" cellspacing="0" role="presentation">
 <!-- Body content -->
 <tr>
 <td class="content-cell">

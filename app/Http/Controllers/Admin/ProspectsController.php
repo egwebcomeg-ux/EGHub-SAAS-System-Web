@@ -9,6 +9,7 @@ use App\Models\PlatformAdmin;
 use App\Models\Prospect;
 use App\Services\Crm\CallScript;
 use App\Services\Crm\ProspectScore;
+use App\Services\Crm\WhatsAppOffer;
 use App\Support\SalesPlan;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -60,6 +61,7 @@ class ProspectsController extends Controller
             'cities' => Prospect::query()->visibleTo($admin)->where('city', '!=', '')->distinct()->orderBy('city')->pluck('city'),
             'recommended' => $admin->allows('crm.manage') ? $this->recommendedCalls($admin) : collect(),
             'team' => $this->team(),
+            'offersToday' => app(WhatsAppOffer::class)->sentToday($admin),
             'counts' => [
                 'new' => Prospect::query()->visibleTo($admin)->where('stage', 'new')->count(),
                 'appointment' => Prospect::query()->visibleTo($admin)->where('stage', 'appointment')->count(),
@@ -168,6 +170,27 @@ class ProspectsController extends Controller
         ]);
 
         return redirect()->route('admin.crm.prospects.show', $prospect)->with('ok', __('Call saved.'));
+    }
+
+    /** Counts the trial menu offer and opens it ready on the sales person's WhatsApp. */
+    public function whatsappOffer(Request $request, Prospect $prospect, WhatsAppOffer $offer): RedirectResponse
+    {
+        $admin = $request->user('admin');
+        abort_unless($offer->canBeSentTo($prospect), 422);
+        if ($offer->sentRecently($prospect)) {
+            return back()->withErrors(['offer' => __('This place got the offer in the last :n days.', ['n' => WhatsAppOffer::RESEND_AFTER_DAYS])]);
+        }
+        if ($offer->sentToday($admin) >= WhatsAppOffer::DAILY_LIMIT) {
+            return back()->withErrors(['offer' => __('You reached today\'s :n offers. This keeps your number safe from a WhatsApp ban.', ['n' => WhatsAppOffer::DAILY_LIMIT])]);
+        }
+        $stage = $prospect->stage === 'new' ? 'contacted' : null;
+        $prospect->events()->create(['type' => 'whatsapp', 'admin_id' => $admin->id, 'outcome' => 'sent', 'notes' => __('Trial menu offer'),
+            'meta' => array_filter(['offer' => true, 'from' => $stage ? $prospect->stage : null, 'to' => $stage])]);
+        $prospect->update(array_filter(['stage' => $stage]) + [
+            'last_contact_at' => now(), 'next_follow_up_at' => now()->addDays(WhatsAppOffer::FOLLOW_UP_DAYS), 'caller_id' => $prospect->caller_id ?? $admin->id,
+        ]);
+
+        return redirect()->away($offer->url($prospect, $admin));
     }
 
     /** Stage by hand, the caller and the field rep of the place. */

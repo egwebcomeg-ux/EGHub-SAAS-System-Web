@@ -12,6 +12,7 @@ use App\Models\SalesTarget;
 use App\Services\Crm\CallScript;
 use App\Services\Crm\GooglePlacesSearch;
 use App\Services\Crm\TeamStats;
+use App\Services\Crm\WhatsAppOffer;
 use App\Support\SalesPlan;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
@@ -201,6 +202,49 @@ class CrmFieldSalesTest extends TenantTestCase
         $this->actingAs($this->admin('field_sales', 'Omar Field'), 'admin')
             ->post($this->adminUrl('/crm/import/google'), ['preset' => 'tanta', 'categories' => ['cafe']])->assertForbidden();
         Http::assertNothingSent();
+    }
+
+    public function test_the_whatsapp_offer_opens_on_the_senders_phone_is_logged_and_is_not_sent_twice(): void
+    {
+        config(['whatsapp.number' => '201289500020']);
+        $mona = $this->admin('sales', 'Mona Caller');
+        $place = $this->place(['name' => 'مطعم الأصيل', 'phone' => '01066666666']);
+
+        $response = $this->actingAs($mona, 'admin')->post($this->adminUrl("/crm/prospects/{$place->id}/whatsapp-offer"));
+
+        $url = $response->assertRedirect()->headers->get('Location');
+        $this->assertStringStartsWith('https://wa.me/201066666666?text=', $url);
+        $text = rawurldecode($url);
+        $this->assertStringContainsString('مطعم الأصيل', $text);
+        $this->assertStringContainsString('Mona', $text);
+        $this->assertStringContainsString('wa.me/201289500020', $text);
+        $place->refresh();
+        $this->assertSame(['contacted', $mona->id], [$place->stage, $place->caller_id]);
+        $this->assertTrue($place->next_follow_up_at->isFuture());
+        $this->assertSame(1, $place->events()->where('type', 'whatsapp')->count());
+
+        $this->post($this->adminUrl("/crm/prospects/{$place->id}/whatsapp-offer"))->assertSessionHasErrors('offer');
+        $this->assertSame(1, $place->events()->where('type', 'whatsapp')->count());
+    }
+
+    public function test_the_whatsapp_offer_stops_at_the_daily_limit_and_stays_with_the_callers(): void
+    {
+        config(['whatsapp.number' => '201289500020']);
+        $mona = $this->admin('sales', 'Mona Caller');
+        $done = $this->place(['name' => 'Done', 'phone' => '01055555555']);
+        foreach (range(1, WhatsAppOffer::DAILY_LIMIT) as $i) {
+            $done->events()->create(['type' => 'whatsapp', 'admin_id' => $mona->id, 'outcome' => 'sent', 'meta' => ['offer' => true]]);
+        }
+        $place = $this->place(['name' => 'Next', 'phone' => '01066666666']);
+
+        $this->actingAs($mona, 'admin')->post($this->adminUrl("/crm/prospects/{$place->id}/whatsapp-offer"))->assertSessionHasErrors('offer');
+        $this->assertSame('new', $place->refresh()->stage);
+
+        $this->actingAs($this->admin('field_sales', 'Omar Field'), 'admin')
+            ->post($this->adminUrl("/crm/prospects/{$place->id}/whatsapp-offer"))->assertForbidden();
+
+        $lost = $this->place(['name' => 'Lost', 'phone' => '01077777777', 'stage' => 'lost']);
+        $this->actingAs($mona, 'admin')->post($this->adminUrl("/crm/prospects/{$lost->id}/whatsapp-offer"))->assertStatus(422);
     }
 
     public function test_a_csv_from_google_maps_is_imported_with_its_kinds(): void

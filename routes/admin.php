@@ -148,6 +148,7 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
     Route::middleware('admin.access:crm.manage')->group(function () {
         Route::post('/crm/prospects/assign', [ProspectsController::class, 'bulkAssign'])->name('crm.prospects.bulk');
         Route::post('/crm/prospects/{prospect}/calls', [ProspectsController::class, 'call'])->whereNumber('prospect')->name('crm.prospects.call');
+        Route::post('/crm/prospects/{prospect}/whatsapp-offer', [ProspectsController::class, 'whatsappOffer'])->whereNumber('prospect')->name('crm.prospects.offer');
         Route::post('/crm/prospects/{prospect}/assign', [ProspectsController::class, 'assign'])->whereNumber('prospect')->name('crm.prospects.assign');
         Route::post('/crm/prospects/{prospect}/book', [ProspectsController::class, 'book'])->whereNumber('prospect')->name('crm.prospects.book');
     });
