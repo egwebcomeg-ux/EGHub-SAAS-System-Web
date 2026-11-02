@@ -18,8 +18,12 @@
         <div><label class="field-label" for="im-preset">{{ __('A ready area, or move the map and import what you see') }}</label>
             <select id="im-preset" name="preset" class="field" data-preset>
                 <option value="">{{ __('What the map shows now') }}</option>
-                @foreach ($presets as $key => [$name, $gov, $s, $w, $n, $e])
-                    <option value="{{ $key }}" data-box="{{ $s }},{{ $w }},{{ $n }},{{ $e }}" @selected(old('preset') === $key)>{{ $name }} ({{ $gov }})</option>
+                @foreach (collect($presets)->groupBy(fn ($area) => $area[1], preserveKeys: true) as $governorate => $areas)
+                    <optgroup label="{{ $governorate }}">
+                        @foreach ($areas as $key => [$name, $gov, $s, $w, $n, $e])
+                            <option value="{{ $key }}" data-box="{{ $s }},{{ $w }},{{ $n }},{{ $e }}" @selected(old('preset') === $key)>{{ $name }} ({{ $gov }})</option>
+                        @endforeach
+                    </optgroup>
                 @endforeach
             </select></div>
         <div class="grid grid-cols-2 gap-2 sm:w-72">

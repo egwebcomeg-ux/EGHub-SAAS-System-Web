@@ -30,7 +30,7 @@ class AdminAccess
             return redirect()->route('admin.login')->withErrors(['email' => __('This account is turned off. Ask the platform owner.')]);
         }
         if (TwoFactor::adminSetupRequired($admin) && ! $request->routeIs('admin.security', 'admin.security.*', 'admin.logout')) {
-            return redirect()->route('admin.security');
+            return redirect()->route('admin.security')->with('ok', __('Turn on two-step verification first. The other pages open after that.'));
         }
         if ($permission !== null && ! $admin->allows($permission)) {
             abort(403, __('You do not have permission for this page.'));

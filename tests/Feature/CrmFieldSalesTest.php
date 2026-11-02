@@ -11,6 +11,7 @@ use App\Models\Prospect;
 use App\Models\SalesTarget;
 use App\Services\Crm\CallScript;
 use App\Services\Crm\GooglePlacesSearch;
+use App\Services\Crm\PlaceImporter;
 use App\Services\Crm\TeamStats;
 use App\Services\Crm\WhatsAppOffer;
 use App\Support\SalesPlan;
@@ -202,6 +203,15 @@ class CrmFieldSalesTest extends TenantTestCase
         $this->actingAs($this->admin('field_sales', 'Omar Field'), 'admin')
             ->post($this->adminUrl('/crm/import/google'), ['preset' => 'tanta', 'categories' => ['cafe']])->assertForbidden();
         Http::assertNothingSent();
+    }
+
+    public function test_every_ready_area_is_a_box_one_import_accepts(): void
+    {
+        foreach (PlaceImporter::PRESETS as $key => [$name, $governorate, $s, $w, $n, $e]) {
+            $this->assertTrue($n > $s && $e > $w && $n - $s <= PlaceImporter::MAX_SPAN && $e - $w <= PlaceImporter::MAX_SPAN, $key);
+            $this->assertTrue($s > 22 && $n < 32 && $w > 24.5 && $e < 37, $key); // inside Egypt
+        }
+        $this->actingAs($this->admin('owner', 'Owner'), 'admin')->get($this->adminUrl('/crm/import'))->assertOk()->assertSee('ميت غمر')->assertSee('<optgroup', false);
     }
 
     public function test_the_whatsapp_offer_opens_on_the_senders_phone_is_logged_and_is_not_sent_twice(): void
