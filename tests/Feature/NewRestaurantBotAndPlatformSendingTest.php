@@ -90,6 +90,7 @@ class NewRestaurantBotAndPlatformSendingTest extends TenantTestCase
         $this->artisan('eghub:welcome-new-restaurants')->assertSuccessful();
 
         $this->assertSame(1, $conversation->messages()->where('status', 'sent')->count());
+        $this->actingAs($admin, 'admin')->get($this->adminUrl("/inbox/{$conversation->id}"))->assertOk()->assertSee('لسه ما ردش');
     }
 
     public function test_a_restaurants_conversation_opens_from_its_page_for_who_handles_the_inbox_only(): void

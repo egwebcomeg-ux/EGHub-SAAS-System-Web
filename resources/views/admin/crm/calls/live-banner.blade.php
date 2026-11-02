@@ -15,7 +15,8 @@
 <script>
     (() => {
         const box = document.querySelector('[data-live-call]');
-        if (!box) return;
+        // the app itself shows the card on the phone
+        if (!box || window.EgHubNative) return;
         const part = (name) => box.querySelector(`[data-live-${name}]`);
         let closedAt = 0;
         let shownAt = 0;

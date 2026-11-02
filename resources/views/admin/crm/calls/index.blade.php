@@ -89,6 +89,13 @@
             <li class="py-2 text-sm text-navy-500">{{ __('No phone linked yet.') }}</li>
         @endforelse
     </ul>
+    <ul class="mt-3 hidden space-y-2" data-phone-status data-allow="{{ __('Allow') }}">
+        @foreach (['phone' => __('Phone'), 'callLog' => __('Call log'), 'overlay' => __('Show the card over calls'), 'notifications' => __('Notifications'), 'battery' => __('Battery: no restrictions')] as $key => $label)
+            <li class="flex min-h-11 items-center justify-between gap-2 rounded-xl border border-navy-100 px-3 text-sm" data-phone-permission="{{ $key }}">
+                <span class="font-semibold text-navy-800">{{ $label }}</span><span data-permission-state></span>
+            </li>
+        @endforeach
+    </ul>
     <div class="mt-3 hidden" data-link-device-box>
         <button type="button" class="btn-primary" data-link-device data-url="{{ route('admin.crm.devices.link') }}" data-done="{{ __('This phone is linked.') }}" data-failed="{{ __('It did not link. Try again.') }}">{{ __('Link this phone') }}</button>
         <p class="mt-2 text-sm font-semibold text-navy-700" data-link-device-status role="status"></p>
@@ -102,7 +109,30 @@
         const native = window.EgHubNative;
         const box = document.querySelector('[data-link-device-box]');
         if (!box || !native || typeof native.linkSalesDevice !== 'function') return;
-        box.classList.remove('hidden');
+        const statusList = document.querySelector('[data-phone-status]');
+        const refresh = () => {
+            const state = JSON.parse(native.salesStatus());
+            box.classList.toggle('hidden', state.linked === true);
+            statusList.classList.toggle('hidden', state.linked !== true);
+            statusList.querySelectorAll('[data-phone-permission]').forEach((row) => {
+                const key = row.dataset.phonePermission;
+                const cell = row.querySelector('[data-permission-state]');
+                cell.replaceChildren();
+                if (state[key]) {
+                    cell.textContent = '✓';
+                    cell.className = 'font-black text-emerald-700';
+                    return;
+                }
+                const allow = document.createElement('button');
+                allow.type = 'button';
+                allow.className = 'btn-primary min-h-9 px-3 text-xs';
+                allow.textContent = statusList.dataset.allow;
+                allow.addEventListener('click', () => native.fixSalesPermission(key));
+                cell.append(allow);
+            });
+        };
+        refresh();
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
         const button = box.querySelector('[data-link-device]');
         const status = box.querySelector('[data-link-device-status]');
         button.addEventListener('click', async () => {
@@ -116,6 +146,7 @@
                 const data = await response.json();
                 const linked = JSON.parse(native.linkSalesDevice(data.token));
                 status.textContent = linked.ok ? button.dataset.done : button.dataset.failed;
+                refresh();
             } catch (error) {
                 status.textContent = button.dataset.failed;
             }

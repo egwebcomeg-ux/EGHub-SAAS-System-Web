@@ -148,7 +148,7 @@
                     <span class="text-xs text-navy-500">{{ __('You can answer until :time.', ['time' => local_time($conversation->last_inbound_at->copy()->addHours(\App\Models\PlatformConversation::WINDOW_HOURS), 'Y/m/d H:i')]) }}</span>
                 </form>
             @else
-                <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-800" data-inbox-window-closed>{{ $conversation->isWhatsApp() ? __('More than 24 hours passed since their last message. WhatsApp allows only an approved template now, so you can call them or wait until they write again.') : __('More than 24 hours passed since their last message, so you can answer when they write again.') }}</p>
+                <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-800" data-inbox-window-closed>{{ $conversation->last_inbound_at === null ? __('They have not answered yet. You can write here as soon as they do.') : ($conversation->isWhatsApp() ? __('More than 24 hours passed since their last message. WhatsApp allows only an approved template now, so you can call them or wait until they write again.') : __('More than 24 hours passed since their last message, so you can answer when they write again.')) }}</p>
             @endif
 
             <details class="rounded-xl border border-navy-100 p-3">
