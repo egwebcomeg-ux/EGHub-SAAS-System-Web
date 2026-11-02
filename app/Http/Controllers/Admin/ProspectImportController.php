@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Prospect;
+use App\Services\Crm\GooglePlacesSearch;
 use App\Services\Crm\PlaceImporter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,8 +13,8 @@ use Illuminate\View\View;
 use RuntimeException;
 
 /**
- * «استيراد أماكن» (crm.import): restaurants, cafes, bakeries and sweets shops inside an area of the map (OpenStreetMap)
- * or from a CSV file, straight into the sales team's places with their «ترشيح السيستم».
+ * «استيراد أماكن» (crm.import): restaurants, cafes, bakeries and sweets shops inside an area of the map (Google Maps or
+ * OpenStreetMap) or from a CSV file, straight into the sales team's places with their «ترشيح السيستم».
  */
 class ProspectImportController extends Controller
 {
@@ -21,12 +22,49 @@ class ProspectImportController extends Controller
     {
         return view('admin.crm.import', [
             'presets' => PlaceImporter::PRESETS,
+            'googleReady' => GooglePlacesSearch::isConfigured(),
+            'googleUsed' => GooglePlacesSearch::usedThisMonth(),
+            'googleLimit' => (int) config('services.google_places.monthly_limit'),
             'total' => Prospect::query()->count(),
             'bySource' => Prospect::query()->selectRaw('source, count(*) as n')->groupBy('source')->pluck('n', 'source'),
         ]);
     }
 
     public function map(Request $request, PlaceImporter $importer): RedirectResponse
+    {
+        [$box, $categories, $city, $governorate] = $this->area($request);
+        try {
+            $result = $importer->fromMap($box, $categories, $city, $governorate, $request->user('admin'));
+        } catch (RuntimeException $e) {
+            return back()->withInput()->withErrors(['map' => $e->getMessage()]);
+        }
+
+        return redirect()->route('admin.crm.prospects', ['sort' => 'score', 'source' => 'map'])
+            ->with('ok', __('Map import: :found found, :added added, :skipped already in the system.', $result));
+    }
+
+    public function google(Request $request, PlaceImporter $importer): RedirectResponse
+    {
+        [$box, $categories, $city, $governorate] = $this->area($request);
+        try {
+            $result = $importer->fromGoogle($box, $categories, $city, $governorate, $request->user('admin'));
+        } catch (RuntimeException $e) {
+            return back()->withInput()->withErrors(['map' => $e->getMessage()]);
+        }
+        $message = __('Google import: :found found, :added added, :skipped already in the system.', $result);
+        if ($result['stopped']) {
+            $message .= ' '.__('It stopped at the request limit, so the area may have more: import a smaller area.');
+        }
+
+        return redirect()->route('admin.crm.prospects', ['sort' => 'score', 'source' => 'google'])->with('ok', $message);
+    }
+
+    /**
+     * The box, kinds of places, city and governorate of an import from the map form.
+     *
+     * @return array{0: array{0: float, 1: float, 2: float, 3: float}, 1: list<string>, 2: string, 3: string}
+     */
+    private function area(Request $request): array
     {
         $data = $request->validate([
             'preset' => ['nullable', Rule::in(array_keys(PlaceImporter::PRESETS))],
@@ -46,14 +84,8 @@ class ProspectImportController extends Controller
             $city = trim((string) ($data['city'] ?? ''));
             $governorate = trim((string) ($data['governorate'] ?? '')) ?: 'الغربية';
         }
-        try {
-            $result = $importer->fromMap([$s, $w, $n, $e], $data['categories'], $city, $governorate, $request->user('admin'));
-        } catch (RuntimeException $e) {
-            return back()->withInput()->withErrors(['map' => $e->getMessage()]);
-        }
 
-        return redirect()->route('admin.crm.prospects', ['sort' => 'score', 'source' => 'map'])
-            ->with('ok', __('Map import: :found found, :added added, :skipped already in the system.', $result));
+        return [[$s, $w, $n, $e], $data['categories'], $city, $governorate];
     }
 
     public function csv(Request $request, PlaceImporter $importer): RedirectResponse

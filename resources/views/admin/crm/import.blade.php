@@ -13,7 +13,7 @@
 
 <form method="post" action="{{ route('admin.crm.import.map') }}" class="card mb-4 space-y-3" data-map-import>
     @csrf
-    <h2 class="section-title">{{ __('From the map (OpenStreetMap)') }}</h2>
+    <h2 class="section-title">{{ __('From the map') }}</h2>
     <div class="grid gap-3 sm:grid-cols-[1fr_auto]">
         <div><label class="field-label" for="im-preset">{{ __('A ready area, or move the map and import what you see') }}</label>
             <select id="im-preset" name="preset" class="field" data-preset>
@@ -38,8 +38,18 @@
     </fieldset>
     @error('map')<p class="field-error">{{ $message }}</p>@enderror
     @error('categories')<p class="field-error">{{ $message }}</p>@enderror
+    @if ($googleReady)
+        <p class="text-xs text-navy-500">{{ __('Google Maps requests this month: :used of :limit.', ['used' => number_format($googleUsed), 'limit' => number_format($googleLimit)]) }}</p>
+    @else
+        <p class="text-xs text-navy-500">{{ __('Google import is not set up yet.') }}</p>
+    @endif
     <p class="text-xs text-navy-500">{{ __('OpenStreetMap does not have every place or every phone number. The field rep adds what is missing from the street, and a file from Google Maps can be imported below.') }}</p>
-    <button class="btn-primary" data-import-button>{{ __('Import this area') }}</button>
+    <div class="flex flex-wrap gap-2">
+        @if ($googleReady)
+            <button class="btn-primary" formaction="{{ route('admin.crm.import.google') }}" data-import-button>{{ __('Import from Google Maps') }}</button>
+        @endif
+        <button class="{{ $googleReady ? 'btn-navy' : 'btn-primary' }}" data-import-button>{{ __('Import from OpenStreetMap') }}</button>
+    </div>
 </form>
 
 <form method="post" action="{{ route('admin.crm.import.csv') }}" enctype="multipart/form-data" class="card space-y-3" data-csv-import>
@@ -83,7 +93,7 @@
             form.city.value = option.textContent.split(' (')[0].trim();
             form.governorate.value = option.textContent.split('(')[1].replace(')', '').trim();
         });
-        form.addEventListener('submit', () => { form.querySelector('[data-import-button]').disabled = true; });
+        form.addEventListener('submit', () => { form.querySelectorAll('[data-import-button]').forEach((button) => { button.disabled = true; }); });
     })();
 </script>
 @endpush

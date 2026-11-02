@@ -46,6 +46,7 @@ class Prospect extends Model
     public const OPEN_STAGES = ['new', 'contacted', 'appointment', 'visited'];
 
     public const SOURCES = [
+        'google' => ['من جوجل', 'Google Maps'],
         'map' => ['من الخريطة', 'Map import'],
         'field' => ['المندوب في الشارع', 'Field visit'],
         'referral' => ['ترشيح', 'Referral'],

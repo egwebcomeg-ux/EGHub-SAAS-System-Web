@@ -160,6 +160,7 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
     Route::middleware('admin.access:crm.import')->group(function () {
         Route::get('/crm/import', [ProspectImportController::class, 'show'])->name('crm.import');
         Route::post('/crm/import/map', [ProspectImportController::class, 'map'])->middleware('throttle:10,1')->name('crm.import.map');
+        Route::post('/crm/import/google', [ProspectImportController::class, 'google'])->middleware('throttle:10,1')->name('crm.import.google');
         Route::post('/crm/import/csv', [ProspectImportController::class, 'csv'])->name('crm.import.csv');
     });
     Route::middleware('admin.access:crm.team')->group(function () {

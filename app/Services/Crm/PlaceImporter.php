@@ -10,8 +10,9 @@ use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 /**
- * The map import of the sales team: restaurants, cafes, bakeries and sweets shops from OpenStreetMap (the Overpass
- * API, free, no key) inside a box on the map, or rows of a CSV file (a Google Maps export or a list typed by hand).
+ * The map import of the sales team: restaurants, cafes, bakeries and sweets shops inside a box on the map from Google
+ * Maps (GooglePlacesSearch, needs a key) or OpenStreetMap (the Overpass API, free, no key, few places in Egypt), or
+ * rows of a CSV file (a Google Maps export or a list typed by hand).
  * A place already in the system (same map id or same mobile) is skipped; every new one is scored (ProspectScore).
  */
 final class PlaceImporter
@@ -50,7 +51,7 @@ final class PlaceImporter
         'damanhour' => ['دمنهور', 'البحيرة', 31.020, 30.440, 31.060, 30.490],
     ];
 
-    public function __construct(private ProspectScore $score) {}
+    public function __construct(private ProspectScore $score, private GooglePlacesSearch $google) {}
 
     /**
      * Imports the places of $categories inside the box from OpenStreetMap.
@@ -107,6 +108,25 @@ final class PlaceImporter
         }
 
         return $this->store($rows, 'map', $admin);
+    }
+
+    /**
+     * Imports the places of $categories inside the box from Google Maps.
+     *
+     * @param  array{0: float, 1: float, 2: float, 3: float}  $box  south, west, north, east
+     * @param  list<string>  $categories
+     * @return array{found: int, added: int, skipped: int, stopped: bool}
+     */
+    public function fromGoogle(array $box, array $categories, string $city, string $governorate, ?PlatformAdmin $admin): array
+    {
+        [$s, $w, $n, $e] = $box;
+        if ($n <= $s || $e <= $w || $n - $s > self::MAX_SPAN || $e - $w > self::MAX_SPAN) {
+            throw new RuntimeException(__('Zoom in: the area is too big for one import.'));
+        }
+        $result = $this->google->search($box, $categories);
+        $rows = array_map(fn (array $row) => [...$row, 'city' => $city, 'governorate' => $governorate], $result['places']);
+
+        return [...$this->store($rows, 'google', $admin), 'stopped' => $result['stopped']];
     }
 
     /**

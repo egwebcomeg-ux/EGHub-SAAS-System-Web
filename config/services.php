@@ -73,6 +73,14 @@ return [
         'guest_redirect' => env('GOOGLE_GUEST_REDIRECT_URI') ?: $guestCallback('google'),
     ],
 
+    // «استيراد أماكن» from Google Maps (App\Services\Crm\GooglePlacesSearch). Google bills each request; the monthly
+    // limit stays inside its free 1,000 requests a month for searches that read the phone number.
+    'google_places' => [
+        'key' => env('GOOGLE_PLACES_KEY'),
+        'import_limit' => (int) env('GOOGLE_PLACES_IMPORT_LIMIT', 50),
+        'monthly_limit' => (int) env('GOOGLE_PLACES_MONTHLY_LIMIT', 900),
+    ],
+
     /*
     | Kashier (developers.kashier.io): restaurants pay their EgHub invoices online (App\Billing\Gateways\KashierGateway).
     | merchant_id (MID-xxx-xxx), api_key = the Payment API key (signs webhooks), secret_key = the merchant secret key

@@ -10,6 +10,7 @@ use App\Models\PlatformAdmin;
 use App\Models\Prospect;
 use App\Models\SalesTarget;
 use App\Services\Crm\CallScript;
+use App\Services\Crm\GooglePlacesSearch;
 use App\Services\Crm\TeamStats;
 use App\Support\SalesPlan;
 use Illuminate\Http\UploadedFile;
@@ -132,6 +133,74 @@ class CrmFieldSalesTest extends TenantTestCase
 
         $this->post($this->adminUrl('/crm/import/map'), ['preset' => 'tanta', 'categories' => ['restaurant', 'cafe', 'sweets']]);
         $this->assertSame(4, Prospect::query()->count());
+    }
+
+    public function test_the_google_import_keeps_food_places_cuts_a_full_box_and_skips_known_ones(): void
+    {
+        config(['services.google_places.key' => 'test-key']);
+        $owner = $this->admin('owner', 'Owner');
+        $this->place(['name' => 'Known', 'phone' => '01099999999']);
+        $place = fn (string $id, array $types, array $extra = []) => ['id' => $id, 'displayName' => ['text' => "Place $id"], 'types' => $types,
+            'location' => ['latitude' => 30.79, 'longitude' => 31.0], 'formattedAddress' => 'طنطا', ...$extra];
+        $full = array_map(fn (int $i) => $place("full$i", ['restaurant']), range(1, 20));
+        Http::fake(function ($request) use ($place, $full) {
+            if ($request['textQuery'] === 'كافيهات') {
+                return Http::response(['places' => [
+                    $place('coffee', ['coffee_shop', 'food'], ['nationalPhoneNumber' => '0100 123 4567']),
+                    $place('plain', ['point_of_interest', 'establishment']),
+                    $place('pharmacy', ['pharmacy', 'establishment']),
+                    $place('closed', ['cafe'], ['businessStatus' => 'CLOSED_PERMANENTLY']),
+                    $place('same', ['cafe'], ['nationalPhoneNumber' => '01099999999']),
+                ]]);
+            }
+            // the whole box fills Google's 60 places over three pages; each of its quarters is then small
+            $rectangle = $request['locationRestriction']['rectangle'];
+            $isWholeBox = $rectangle['low']['latitude'] === 30.755 && $rectangle['high']['latitude'] === 30.83 && $rectangle['low']['longitude'] === 30.955 && $rectangle['high']['longitude'] === 31.05;
+            if (! $isWholeBox) {
+                return Http::response(['places' => [$place('inner'.md5(json_encode($request['locationRestriction'])), ['restaurant'])]]);
+            }
+
+            return Http::response(['places' => $full, ...(($request['pageToken'] ?? '') === 'p2' ? [] : ['nextPageToken' => isset($request['pageToken']) ? 'p2' : 'p1'])]);
+        });
+
+        $this->actingAs($owner, 'admin')->post($this->adminUrl('/crm/import/google'), ['preset' => 'tanta', 'categories' => ['restaurant', 'cafe']])
+            ->assertRedirect()->assertSessionHas('ok');
+
+        $coffee = Prospect::query()->where('external_ref', 'google:coffee')->first();
+        $this->assertSame(['cafe', '01001234567', 'طنطا', 'google'], [$coffee->category, $coffee->phone, $coffee->city, $coffee->source]);
+        $this->assertSame('cafe', Prospect::query()->where('external_ref', 'google:plain')->value('category'));
+        foreach (['pharmacy', 'closed', 'same'] as $skipped) {
+            $this->assertFalse(Prospect::query()->where('external_ref', "google:$skipped")->exists());
+        }
+        $this->assertSame(4, Prospect::query()->where('external_ref', 'like', 'google:inner%')->count());
+        Http::assertSent(fn ($request) => $request->hasHeader('X-Goog-Api-Key', 'test-key') && str_contains($request->header('X-Goog-FieldMask')[0], 'nationalPhoneNumber'));
+        // 1 cafe page + 3 pages of the full box + 4 quarters
+        $this->assertSame(8, GooglePlacesSearch::usedThisMonth());
+    }
+
+    public function test_the_google_import_stops_at_the_monthly_limit_and_needs_a_key(): void
+    {
+        $owner = $this->admin('owner', 'Owner');
+        Http::fake(['places.googleapis.com/*' => Http::response(['places' => [['id' => 'a', 'displayName' => ['text' => 'A'], 'types' => ['cafe']]], 'nextPageToken' => 'more'])]);
+        $this->actingAs($owner, 'admin')->post($this->adminUrl('/crm/import/google'), ['preset' => 'tanta', 'categories' => ['cafe']])
+            ->assertSessionHasErrors('map');
+        Http::assertNothingSent();
+
+        config(['services.google_places.key' => 'test-key', 'services.google_places.monthly_limit' => 2]);
+        $this->post($this->adminUrl('/crm/import/google'), ['preset' => 'tanta', 'categories' => ['cafe']])->assertRedirect()->assertSessionHas('ok');
+
+        Http::assertSentCount(2);
+        $this->assertSame(2, GooglePlacesSearch::usedThisMonth());
+        $this->assertTrue(Prospect::query()->where('external_ref', 'google:a')->exists()); // what it found is kept
+    }
+
+    public function test_the_import_page_and_google_import_stay_with_those_who_may_import(): void
+    {
+        config(['services.google_places.key' => 'test-key']);
+        Http::fake();
+        $this->actingAs($this->admin('field_sales', 'Omar Field'), 'admin')
+            ->post($this->adminUrl('/crm/import/google'), ['preset' => 'tanta', 'categories' => ['cafe']])->assertForbidden();
+        Http::assertNothingSent();
     }
 
     public function test_a_csv_from_google_maps_is_imported_with_its_kinds(): void
