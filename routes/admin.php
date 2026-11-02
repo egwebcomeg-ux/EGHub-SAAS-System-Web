@@ -102,6 +102,7 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         Route::post('/inbox/{conversation}/note', [WhatsAppInboxController::class, 'note'])->whereNumber('conversation')->name('inbox.note');
         Route::post('/inbox/{conversation}/assign', [WhatsAppInboxController::class, 'assign'])->whereNumber('conversation')->name('inbox.assign');
         Route::post('/inbox/{conversation}/status', [WhatsAppInboxController::class, 'status'])->whereNumber('conversation')->name('inbox.status');
+        Route::post('/inbox/{conversation}/delete', [WhatsAppInboxController::class, 'destroy'])->whereNumber('conversation')->name('inbox.delete');
     });
     Route::middleware('admin.access:billing.manage')->group(function () {
         Route::post('/tenants/{tenant}/subscription', [TenantsController::class, 'subscription'])->name('tenants.subscription');

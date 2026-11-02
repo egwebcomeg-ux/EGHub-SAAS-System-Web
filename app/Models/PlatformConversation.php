@@ -9,9 +9,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * One person writing to the EgHub WhatsApp number (App\Services\WhatsApp\PlatformInbox). Platform data, no tenant.
+ * One person writing to the EgHub number, or to its page on Messenger or Instagram (App\Services\WhatsApp\PlatformInbox).
+ * Platform data, no tenant.
  *
- * @property string $phone
+ * @property string $channel whatsapp | messenger | instagram
+ * @property string $phone the mobile on WhatsApp, the sender's id on the other two
  * @property ?string $name
  * @property string $status open | closed
  * @property int $unread
@@ -23,6 +25,12 @@ class PlatformConversation extends Model
 
     /** Meta allows a free-form reply for this long after the person's last message; after it only a template. */
     public const WINDOW_HOURS = 24;
+
+    public const WHATSAPP = 'whatsapp';
+
+    public const MESSENGER = 'messenger';
+
+    public const INSTAGRAM = 'instagram';
 
     protected $guarded = ['id'];
 
@@ -54,8 +62,26 @@ class PlatformConversation extends Model
         return $this->bot_paused_until !== null && $this->bot_paused_until->isFuture();
     }
 
+    public function isWhatsApp(): bool
+    {
+        return $this->channel === self::WHATSAPP;
+    }
+
+    public function channelLabel(): string
+    {
+        return match ($this->channel) {
+            self::MESSENGER => __('Messenger'),
+            self::INSTAGRAM => __('Instagram'),
+            default => __('WhatsApp'),
+        };
+    }
+
     public function displayName(): string
     {
-        return filled($this->name) ? (string) $this->name : '+'.$this->phone;
+        if (filled($this->name)) {
+            return (string) $this->name;
+        }
+
+        return $this->isWhatsApp() ? '+'.$this->phone : __('Customer on :channel', ['channel' => $this->channelLabel()]);
     }
 }

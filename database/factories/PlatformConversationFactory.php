@@ -18,6 +18,7 @@ class PlatformConversationFactory extends Factory
     public function definition(): array
     {
         return [
+            'channel' => PlatformConversation::WHATSAPP,
             'phone' => '2010'.fake()->unique()->numerify('########'),
             'name' => fake()->name(),
             'status' => 'open',

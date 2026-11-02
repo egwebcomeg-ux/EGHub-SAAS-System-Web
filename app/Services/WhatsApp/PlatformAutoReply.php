@@ -12,7 +12,7 @@ use App\Services\Assistant;
 use Illuminate\Support\Facades\Log;
 
 /**
- * The automatic answer on the EgHub number: App\Services\Assistant answers from the live plans and add-ons, so a price
+ * The automatic answer on the EgHub number and page: App\Services\Assistant answers from the live plans and add-ons, so a price
  * is never invented. It stays quiet where the team has the conversation (assigned, or answered in the last 24 hours),
  * and hands over when the person asks for someone, when it cannot answer, on media it cannot read, when the model is
  * down, or after DAILY_LIMIT answers to one person, and then gives the conversation to the team member with the fewest
@@ -38,6 +38,8 @@ final class PlatformAutoReply
 
     public const WELCOME_TEXT = 'أهلًا بيك في EgHub، المنيو الإلكتروني والطلبات للمطاعم والكافيهات. اكتب سؤالك هنا أو اختار من الأزرار، ولو حابب تكلم حد من الفريق هيرد عليك هنا على نفس الرقم.';
 
+    public const PAGE_WELCOME_TEXT = 'أهلًا بيك في EgHub، المنيو الإلكتروني والطلبات للمطاعم والكافيهات. اكتب سؤالك هنا أو اختار من الأزرار، ولو حابب تكلم حد من الفريق هيرد عليك هنا في نفس المحادثة.';
+
     /** The titles are the questions: a tap reaches the assistant like a written message, the last one hands over. */
     private const WELCOME_BUTTONS = [
         self::BUTTON_PREFIX.'prices' => 'الأسعار والباقات',
@@ -50,7 +52,11 @@ final class PlatformAutoReply
     private const MEDIA_TYPES = ['image', 'audio', 'video', 'document', 'location', 'contacts'];
 
     private const CHANNEL_RULES = <<<'TXT'
-CHANNEL: This conversation is on WhatsApp, on EgHub's own number. The person is already talking to EgHub here: never give a wa.me link or another WhatsApp number. When the team is needed, say that someone from the team will answer here in this chat. Never claim to be a human; if asked, say you are EgHub's automatic assistant. If they ask how to reach support or for a phone number, say this same number is EgHub's main number and that writing «أكلم حد من الفريق» here brings a person; never give any personal number. Do not promise working hours or a response time.
+CHANNEL: This conversation is on WhatsApp, on EgHub's own number. The person is already talking to EgHub here: never give a wa.me link or another WhatsApp number. When the team is needed, say that someone from the team will answer here in this chat. Never claim to be a human; if asked, say you are EgHub's automatic assistant. If they ask how to reach support or for a phone number, say this same number is EgHub's main number and that writing «أكلم حد من الفريق» here brings a person; never give any personal number. Do not promise working hours or a response time. If they ask to delete their messages or data, say the team will do it and end your answer with [[HUMAN]].
+TXT;
+
+    private const PAGE_RULES = <<<'TXT'
+CHANNEL: This conversation is on :channel, in the chat of EgHub's own page. The person is already talking to EgHub here: never give a wa.me link. When the team is needed, say that someone from the team will answer here in this chat. Never claim to be a human; if asked, say you are EgHub's automatic assistant. If they ask for a phone number, give only EgHub's main number from your instructions, and say that writing «أكلم حد من الفريق» here brings a person; never give any personal number. Do not promise working hours or a response time. If they ask to delete their messages or data, say the team will do it and end your answer with [[HUMAN]].
 TXT;
 
     public function __construct(private PlatformInbox $inbox) {}
@@ -81,7 +87,7 @@ TXT;
         }
         $isFirst = ! $conversation->messages()->where('direction', 'out')->exists();
         if ($isFirst) {
-            $this->inbox->replyWithButtons($conversation, self::WELCOME_TEXT, self::WELCOME_BUTTONS);
+            $this->inbox->replyWithButtons($conversation, $conversation->isWhatsApp() ? self::WELCOME_TEXT : self::PAGE_WELCOME_TEXT, self::WELCOME_BUTTONS);
             if ($message->type === 'text' && preg_match(self::GREETING, (string) $message->body)) {
                 return; // the welcome is the answer to a hello
             }
@@ -93,7 +99,7 @@ TXT;
         }
         $turns = $this->turns($conversation);
         try {
-            $answer = Assistant::reply($turns, 'ar', $this->channelRules());
+            $answer = Assistant::reply($turns, 'ar', $this->channelRules($conversation));
         } catch (\Throwable $e) {
             Log::warning('whatsapp auto reply failed: '.$e->getMessage());
             $this->handOver($conversation, self::HANDOVER_TEXT);
@@ -106,7 +112,7 @@ TXT;
         }
 
         AssistantMessage::query()->create([
-            'conversation' => 'wa-'.$conversation->id, 'visitor' => hash('sha256', $conversation->phone.'|'.config('app.key')),
+            'conversation' => (['messenger' => 'fb-', 'instagram' => 'ig-'][$conversation->channel] ?? 'wa-').$conversation->id, 'visitor' => hash('sha256', $conversation->phone.'|'.config('app.key')),
             'lang' => 'ar', 'question' => end($turns)['content'], 'answer' => $text,
             'handoff' => $answer['handoff'], 'tokens_in' => $answer['in'], 'tokens_out' => $answer['out'],
         ]);
@@ -120,12 +126,14 @@ TXT;
     }
 
     /** The rules of this channel, and the team's own ready answers: what they write there the assistant can say. */
-    private function channelRules(): string
+    private function channelRules(PlatformConversation $conversation): string
     {
         $answers = PlatformCannedReply::query()->orderBy('title')->limit(self::MAX_TEAM_ANSWERS)->get()
             ->map(fn (PlatformCannedReply $reply) => '- '.$reply->title.': '.$reply->body)->implode("\n");
 
-        return self::CHANNEL_RULES.($answers !== '' ? "\n\nTEAM ANSWERS (written by the EgHub team, facts you may use):\n".$answers : '');
+        $rules = $conversation->isWhatsApp() ? self::CHANNEL_RULES : str_replace(':channel', ucfirst($conversation->channel), self::PAGE_RULES);
+
+        return $rules.($answers !== '' ? "\n\nTEAM ANSWERS (written by the EgHub team, facts you may use):\n".$answers : '');
     }
 
     /** Fewest open conversations first, so people are shared across the team and no personal number is ever given out. */

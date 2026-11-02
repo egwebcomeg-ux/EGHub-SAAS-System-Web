@@ -19,7 +19,7 @@ final class AdminPermissions
         'services.manage' => ['طلبات الخدمات', 'Service requests'],
         'content.manage' => ['المدونة وآراء العملاء', 'Blog & testimonials'],
         'assistant.view' => ['أسئلة الزوار للمساعد', 'Assistant questions'],
-        'inbox.manage' => ['محادثات واتساب: قراءة رسايل رقم EgHub والرد عليها', 'WhatsApp conversations: read and answer the EgHub number'],
+        'inbox.manage' => ['المحادثات: قراءة رسايل رقم وصفحة EgHub والرد عليها', 'Conversations: read and answer the EgHub number and page'],
         'settings.manage' => ['إعدادات الدفع والهوية والشكل', 'Payment settings & branding'],
         'admins.manage' => ['فريق الإدارة والصلاحيات', 'Admin team & permissions'],
         'crm.view' => ['متابعة العملاء: عرض العملاء الجداد والمكالمات', 'Customer follow-up: see leads and calls'],

@@ -1,10 +1,11 @@
 @extends('layouts.admin')
-@section('title', __('WhatsApp conversations') . ' · EgHub Admin')
+@section('title', __('Conversations') . ' · EgHub Admin')
 
 @section('content')
 <div class="mb-4">
-    <h1 class="page-title">{{ __('WhatsApp conversations') }}</h1>
-    <p class="muted">{{ __('What people write to the EgHub number, and your answers from it. Sign-in codes do not show here.') }}</p>
+    <h1 class="page-title">{{ __('Conversations') }}</h1>
+    <p class="muted">{{ __('What people write to the EgHub number and page, and your answers. Sign-in codes do not show here.') }}</p>
+    <p class="muted mt-1 text-sm" data-inbox-channels>{{ __('Messenger') }}: {{ $messengerConnected ? __('Connected') : __('Not connected yet') }} · {{ __('Instagram') }}: {{ $instagramConnected ? __('Connected') : __('Not connected yet') }}</p>
 </div>
 
 <section class="card mb-4 flex flex-wrap items-center justify-between gap-3" data-inbox-auto-reply>
@@ -56,7 +57,7 @@
                             <bdi class="min-w-0 truncate font-bold">{{ $c->displayName() }}</bdi>
                             @if ($c->unread > 0)<span class="badge bg-brand-600 text-white" data-inbox-unread>{{ $c->unread }}</span>@endif
                         </span>
-                        <span class="mt-1 block text-xs text-navy-500">{{ $c->last_message_at?->diffForHumans() }}@if ($c->assignee) · {{ $c->assignee->name }}@endif</span>
+                        <span class="mt-1 block text-xs text-navy-500" data-inbox-channel="{{ $c->channel }}">{{ $c->channelLabel() }} · {{ $c->last_message_at?->diffForHumans() }}@if ($c->assignee) · {{ $c->assignee->name }}@endif</span>
                     </a>
                 </li>
             @empty
@@ -74,7 +75,11 @@
                 <div class="min-w-0">
                     <a href="{{ route('admin.inbox') }}" class="mb-1 block text-sm text-brand-700 lg:hidden">{{ __('Back to conversations') }}</a>
                     <h2 class="section-title"><bdi>{{ $conversation->displayName() }}</bdi></h2>
-                    <a href="https://wa.me/{{ $conversation->phone }}" target="_blank" rel="noopener" dir="ltr" class="text-sm text-navy-500">+{{ $conversation->phone }}</a>
+                    @if ($conversation->isWhatsApp())
+                        <a href="https://wa.me/{{ $conversation->phone }}" target="_blank" rel="noopener" dir="ltr" class="text-sm text-navy-500">+{{ $conversation->phone }}</a>
+                    @else
+                        <span class="text-sm text-navy-500">{{ $conversation->channelLabel() }}</span>
+                    @endif
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                     <form method="post" action="{{ route('admin.inbox.assign', $conversation) }}" class="flex items-center gap-2">
@@ -97,6 +102,10 @@
                         @csrf
                         <input type="hidden" name="status" value="{{ $conversation->status === 'open' ? 'closed' : 'open' }}">
                         <button class="btn-ghost min-h-9 px-3">{{ $conversation->status === 'open' ? __('Close the conversation') : __('Reopen the conversation') }}</button>
+                    </form>
+                    <form method="post" action="{{ route('admin.inbox.delete', $conversation) }}" onsubmit="return confirm(@js(__('Delete this conversation and all its messages?')))" data-inbox-delete>
+                        @csrf
+                        <button class="btn-ghost min-h-9 px-3 text-red-600">{{ __('Delete') }}</button>
                     </form>
                 </div>
             </div>
@@ -135,11 +144,11 @@
                     @endif
                     <label class="sr-only" for="inbox-body">{{ __('Your answer') }}</label>
                     <textarea id="inbox-body" name="body" rows="3" maxlength="4096" required dir="auto" class="field" placeholder="{{ __('Your answer') }}">{{ old('body') }}</textarea>
-                    <button class="btn-primary">{{ __('Send on WhatsApp') }}</button>
+                    <button class="btn-primary">{{ __('Send on :channel', ['channel' => $conversation->channelLabel()]) }}</button>
                     <span class="text-xs text-navy-500">{{ __('You can answer until :time.', ['time' => local_time($conversation->last_inbound_at->copy()->addHours(\App\Models\PlatformConversation::WINDOW_HOURS), 'Y/m/d H:i')]) }}</span>
                 </form>
             @else
-                <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-800" data-inbox-window-closed>{{ __('More than 24 hours passed since their last message. WhatsApp allows only an approved template now, so you can call them or wait until they write again.') }}</p>
+                <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-800" data-inbox-window-closed>{{ $conversation->isWhatsApp() ? __('More than 24 hours passed since their last message. WhatsApp allows only an approved template now, so you can call them or wait until they write again.') : __('More than 24 hours passed since their last message, so you can answer when they write again.') }}</p>
             @endif
 
             <details class="rounded-xl border border-navy-100 p-3">

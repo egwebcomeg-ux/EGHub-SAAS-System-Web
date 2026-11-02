@@ -7,12 +7,14 @@ use App\Models\PlatformConversation;
 use App\Models\PlatformConversationMessage;
 use App\Notifications\InboxNeedsAnswer;
 use App\Services\WhatsApp\Drivers\MetaCloudDriver;
+use App\Services\WhatsApp\Drivers\MetaPageDriver;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
 /**
- * «محادثات واتساب»: keeps what people write to the EgHub number and sends the team's answers from it. A sign-in or
+ * «المحادثات»: keeps what people write to the EgHub number, or to its page on Messenger and Instagram, and sends the
+ * team's answers from where they wrote. A sign-in or
  * phone-confirmation code and a button tap never come here (the webhook handles those). Meta resends a payload it
  * thinks was not received, so a message is kept once per wamid. Answers are free-form text, so they go out only
  * inside the 24-hour window the person opened (PlatformConversation::canReply).
@@ -43,15 +45,50 @@ final class PlatformInbox
         if ($phone === '' || strlen($phone) > 20 || $providerId === '') {
             return null;
         }
-        if (PlatformConversationMessage::query()->where('provider_id', $providerId)->exists()) {
+        $type = mb_substr((string) ($message['type'] ?? 'text'), 0, 20);
+
+        return $this->keep(PlatformConversation::WHATSAPP, $phone, $this->profileName($contacts, $phone), $providerId, $type, self::text($message, $type));
+    }
+
+    /** One message to the EgHub page on Messenger or Instagram. */
+    public function receiveFromPage(string $channel, string $sender, string $providerId, string $type, string $text): ?PlatformConversationMessage
+    {
+        if (! preg_match('/^\d{1,64}$/', $sender)) {
             return null;
         }
-        $type = mb_substr((string) ($message['type'] ?? 'text'), 0, 20);
-        $body = self::text($message, $type);
-        $name = $this->profileName($contacts, $phone);
+        $label = self::TYPE_LABELS[$type] ?? '';
 
-        return DB::transaction(function () use ($phone, $name, $providerId, $type, $body) {
-            $conversation = PlatformConversation::query()->firstOrCreate(['phone' => $phone]);
+        return $this->keep($channel, $sender, null, $providerId, $type, trim(($label !== '' ? "[{$label}] " : '').$text));
+    }
+
+    /** A person of the team answered in Meta's own inbox: the team sees it here, and the automatic answer goes quiet. */
+    public function answeredOnMeta(string $channel, string $recipient, string $providerId, string $text): void
+    {
+        $conversation = PlatformConversation::query()->where('channel', $channel)->where('phone', $recipient)->first();
+        if (! $conversation || PlatformConversationMessage::query()->where('provider_id', $providerId)->exists()) {
+            return;
+        }
+        $conversation->messages()->create(['direction' => 'note', 'body' => __('Answered in Meta: :text', ['text' => $text]), 'provider_id' => $providerId]);
+        $conversation->forceFill(['bot_paused_until' => now()->addHours(PlatformAutoReply::PAUSE_HOURS), 'last_message_at' => now()])->save();
+    }
+
+    /** Called after the response: Meta sends only an id with the message. */
+    public function fillPageName(PlatformConversation $conversation): void
+    {
+        $name = (new MetaPageDriver($conversation->channel))->profileName($conversation->phone);
+        if ($name !== null) {
+            $conversation->forceFill(['name' => $name])->save();
+        }
+    }
+
+    private function keep(string $channel, string $address, ?string $name, string $providerId, string $type, string $body): ?PlatformConversationMessage
+    {
+        if ($providerId === '' || PlatformConversationMessage::query()->where('provider_id', $providerId)->exists()) {
+            return null;
+        }
+
+        return DB::transaction(function () use ($channel, $address, $name, $providerId, $type, $body) {
+            $conversation = PlatformConversation::query()->firstOrCreate(['channel' => $channel, 'phone' => $address]);
             $row = $conversation->messages()->create(['direction' => 'in', 'type' => $type, 'body' => $body, 'provider_id' => $providerId]);
             $conversation->forceFill([
                 'name' => $name ?? $conversation->name, 'status' => 'open', 'unread' => $conversation->unread + 1,
@@ -68,7 +105,7 @@ final class PlatformInbox
      */
     public function reply(PlatformConversation $conversation, ?PlatformAdmin $admin, string $text): PlatformConversationMessage
     {
-        $row = $this->deliver($conversation, $admin, $text, fn (MetaCloudDriver $driver) => $driver->reply($conversation->phone, $text));
+        $row = $this->deliver($conversation, $admin, $text, fn () => $this->driver($conversation)->reply($conversation->phone, $text));
         if ($admin) {
             $conversation->forceFill(['bot_paused_until' => now()->addHours(PlatformAutoReply::PAUSE_HOURS)])->save();
         }
@@ -83,7 +120,7 @@ final class PlatformInbox
      */
     public function replyWithButtons(PlatformConversation $conversation, string $text, array $buttons): PlatformConversationMessage
     {
-        return $this->deliver($conversation, null, $text, fn (MetaCloudDriver $driver) => $driver->replyWithButtons($conversation->phone, $text, $buttons));
+        return $this->deliver($conversation, null, $text, fn () => $this->driver($conversation)->replyWithButtons($conversation->phone, $text, $buttons));
     }
 
     /**
@@ -92,19 +129,24 @@ final class PlatformInbox
      */
     public function start(string $phone, string $name, PlatformAdmin $admin): PlatformConversationMessage
     {
-        $conversation = PlatformConversation::query()->firstOrCreate(['phone' => $phone], ['name' => $name]);
+        $conversation = PlatformConversation::query()->firstOrCreate(['channel' => PlatformConversation::WHATSAPP, 'phone' => $phone], ['name' => $name]);
         $text = str_replace('{{1}}', $name, self::WELCOME_TEMPLATE);
 
-        return $this->deliver($conversation, $admin, $text, fn (MetaCloudDriver $driver) => $driver->send($phone, 'welcome', [$name]));
+        return $this->deliver($conversation, $admin, $text, fn () => (new MetaCloudDriver)->send($phone, 'welcome', [$name]));
     }
 
-    /** @param  \Closure(MetaCloudDriver): string  $send */
+    private function driver(PlatformConversation $conversation): MetaCloudDriver|MetaPageDriver
+    {
+        return $conversation->isWhatsApp() ? new MetaCloudDriver : new MetaPageDriver($conversation->channel);
+    }
+
+    /** @param  \Closure(): string  $send */
     private function deliver(PlatformConversation $conversation, ?PlatformAdmin $admin, string $text, \Closure $send): PlatformConversationMessage
     {
         $row = $conversation->messages()->create(['direction' => 'out', 'body' => $text, 'status' => 'sending', 'admin_id' => $admin?->id]);
         try {
-            $id = $send(new MetaCloudDriver);
-            $row->update(['status' => 'sent', 'provider_id' => mb_substr($id, 0, 120)]);
+            $id = $send();
+            $row->update(['status' => 'sent', 'provider_id' => mb_substr($id, 0, 255)]);
         } catch (WhatsAppException $e) {
             $row->update(['status' => 'failed', 'error' => mb_substr($e->getMessage(), 0, 255)]);
         }

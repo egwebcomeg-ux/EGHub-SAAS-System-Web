@@ -8,6 +8,7 @@ use App\Models\PlatformCannedReply;
 use App\Models\PlatformConversation;
 use App\Models\PlatformSetting;
 use App\Services\Assistant;
+use App\Services\WhatsApp\Drivers\MetaPageDriver;
 use App\Services\WhatsApp\PlatformAutoReply;
 use App\Services\WhatsApp\PlatformInbox;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,7 +19,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * «محادثات واتساب» (inbox.manage): the people who wrote to the EgHub number, the team's answers from it, notes only
+ * «المحادثات» (inbox.manage): the people who wrote to the EgHub number or page, the team's answers, notes only
  * the team sees, who follows each conversation, and ready answers.
  */
 class WhatsAppInboxController extends Controller
@@ -42,11 +43,11 @@ class WhatsAppInboxController extends Controller
     {
         $data = $request->validate(['body' => 'required|string|max:4096']);
         if (! $conversation->canReply()) {
-            return back()->withInput()->withErrors(['body' => __('More than 24 hours passed since their last message. WhatsApp allows only an approved template now.')]);
+            return back()->withInput()->withErrors(['body' => __('More than 24 hours passed since their last message, so an answer cannot be sent now.')]);
         }
         $row = $inbox->reply($conversation, $request->user('admin'), $data['body']);
         if ($row->status === 'failed') {
-            return back()->withInput()->withErrors(['body' => __('WhatsApp did not send it: :error', ['error' => $row->error])]);
+            return back()->withInput()->withErrors(['body' => __(':channel did not send it: :error', ['channel' => $conversation->channelLabel(), 'error' => $row->error])]);
         }
 
         return back();
@@ -84,19 +85,27 @@ class WhatsAppInboxController extends Controller
     {
         $data = $request->validate(['phone' => ['required', 'string', 'regex:/^\+?[0-9 ()-]{8,20}$/'], 'name' => 'required|string|max:60']);
         $phone = whatsapp_number($data['phone']);
-        $existing = PlatformConversation::query()->where('phone', $phone)->first();
+        $existing = PlatformConversation::query()->where('channel', PlatformConversation::WHATSAPP)->where('phone', $phone)->first();
         if ($existing && ($existing->canReply() || $existing->messages()->where('direction', 'out')->where('status', '!=', 'failed')->where('created_at', '>', now()->subDay())->exists())) {
             return redirect()->route('admin.inbox.show', $existing);
         }
         $row = $inbox->start($phone, $data['name'], $request->user('admin'));
         if ($row->status === 'failed') {
-            return redirect()->route('admin.inbox.show', $row->platform_conversation_id)->withErrors(['body' => __('WhatsApp did not send it: :error', ['error' => $row->error])]);
+            return redirect()->route('admin.inbox.show', $row->platform_conversation_id)->withErrors(['body' => __(':channel did not send it: :error', ['channel' => __('WhatsApp'), 'error' => $row->error])]);
         }
 
         return redirect()->route('admin.inbox.show', $row->platform_conversation_id);
     }
 
-    /** The switch of the automatic answer, for the whole number. */
+    /** A person asked to have their messages removed (the privacy policy promises it). */
+    public function destroy(PlatformConversation $conversation): RedirectResponse
+    {
+        $conversation->delete();
+
+        return redirect()->route('admin.inbox')->with('ok', __('Conversation deleted.'));
+    }
+
+    /** The switch of the automatic answer, for the whole number and page. */
     public function autoReply(Request $request): RedirectResponse
     {
         PlatformSetting::put(PlatformAutoReply::SETTING, $request->boolean('enabled') ? '1' : '0');
@@ -146,6 +155,8 @@ class WhatsAppInboxController extends Controller
             'filter' => $filter,
             'autoReplyOn' => PlatformSetting::get(PlatformAutoReply::SETTING) === '1',
             'assistantReady' => Assistant::enabled(),
+            'messengerConnected' => MetaPageDriver::connected(PlatformConversation::MESSENGER),
+            'instagramConnected' => MetaPageDriver::connected(PlatformConversation::INSTAGRAM),
             'search' => $search,
         ]);
     }

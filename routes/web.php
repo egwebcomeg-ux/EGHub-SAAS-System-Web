@@ -8,6 +8,7 @@ use App\Http\Controllers\Platform\DirectoryController;
 use App\Http\Controllers\Platform\FeaturesController;
 use App\Http\Controllers\Platform\GuestOAuthController;
 use App\Http\Controllers\Platform\LandingController;
+use App\Http\Controllers\Platform\MetaMessagesWebhookController;
 use App\Http\Controllers\Platform\PageCacheController;
 use App\Http\Controllers\Platform\QrToolController;
 use App\Http\Controllers\Platform\ScreenPlayerController;
@@ -120,6 +121,8 @@ Route::domain($domain)->group(function () use ($slug) {
     // Inbound WhatsApp (Meta Cloud API handshake + signed payloads, or another provider with X-EgMenu-Secret).
     Route::get('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify'])->name('webhooks.whatsapp');
     Route::post('/webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive'])->middleware('throttle:600,1');
+    Route::get('/webhooks/meta', [WhatsAppWebhookController::class, 'verify'])->name('webhooks.meta');
+    Route::post('/webhooks/meta', [MetaMessagesWebhookController::class, 'receive'])->middleware('throttle:600,1');
     // A restaurant's own WhatsApp number: its own Meta app calls this URL (shown on its dashboard) and signs with its
     // own app secret (App\Models\WhatsAppConnection).
     Route::get('/webhooks/whatsapp/{key}', [WhatsAppWebhookController::class, 'verifyOwn'])->where('key', '[a-f0-9]{32}')

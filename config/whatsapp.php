@@ -43,6 +43,15 @@ return [
         'base_url' => 'https://graph.facebook.com',
     ],
 
+    // The EgHub Facebook page and its Instagram account in the team's inbox (/webhooks/meta). The page's token comes
+    // from the Meta app that signs the webhook (app_secret above); app_id tells our own answers from the team's.
+    'page' => [
+        'id' => env('META_PAGE_ID'),
+        'instagram_id' => env('META_INSTAGRAM_ID'),
+        'token' => env('META_PAGE_TOKEN'),
+        'app_id' => env('META_MESSAGING_APP_ID'),
+    ],
+
     'webhook' => [
         'url' => env('WHATSAPP_WEBHOOK_URL'),
         // sent as the X-EgMenu-Secret header so the provider can reject anyone else; the same header authenticates
