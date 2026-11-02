@@ -14,7 +14,7 @@ use Illuminate\Testing\TestResponse;
 use Tests\TenantTestCase;
 
 /**
- * Phone confirmation over WhatsApp: the owner sends "EGMENU <code>" from their mobile to the platform number;
+ * Phone confirmation over WhatsApp: the owner sends "EGHUB <code>" from their mobile to the platform number;
  * the inbound webhook (Meta or another provider) matches sender + code and stamps the user. Never a gate.
  */
 class PhoneVerificationTest extends TenantTestCase
@@ -77,8 +77,8 @@ class PhoneVerificationTest extends TenantTestCase
         $owner = $this->pending($a, '01011111111', 'AB2CD3');
 
         $this->actingAs($owner)->get($this->dashUrl('/phone'))->assertOk()
-            ->assertSee('https://wa.me/201000000000?text=EGMENU%20AB2CD3', false)
-            ->assertSee('EGMENU AB2CD3');
+            ->assertSee('https://wa.me/201000000000?text=EGHUB%20AB2CD3', false)
+            ->assertSee('EGHUB AB2CD3');
         $this->actingAs($owner)->get($this->dashUrl('/phone/status'))->assertJsonPath('verified', false);
 
         // the dashboard reminds until confirmed, then stops
@@ -100,7 +100,7 @@ class PhoneVerificationTest extends TenantTestCase
 
         PlatformSetting::put('support_whatsapp', '0100 000 0000');
         $this->assertSame('201000000000', PhoneVerification::number());
-        $this->actingAs($owner)->get($this->dashUrl('/phone'))->assertOk()->assertSee('https://wa.me/201000000000?text=EGMENU%20AB2CD3', false);
+        $this->actingAs($owner)->get($this->dashUrl('/phone'))->assertOk()->assertSee('https://wa.me/201000000000?text=EGHUB%20AB2CD3', false);
     }
 
     public function test_after_the_module_step_the_owner_lands_on_the_confirmation_step_when_a_number_is_configured(): void
@@ -131,7 +131,7 @@ class PhoneVerificationTest extends TenantTestCase
     {
         $a = $this->restaurant('cafe-a');
         $owner = $this->pending($a, '01011111111', 'AB2CD3');
-        $payload = $this->metaPayload('201011111111', 'EGMENU AB2CD3');
+        $payload = $this->metaPayload('201011111111', 'EGHUB AB2CD3');
 
         config(['whatsapp.app_secret' => null]);
         $this->postMeta($payload)->assertForbidden();            // nothing can be verified without the secret
@@ -232,7 +232,7 @@ class PhoneVerificationTest extends TenantTestCase
         $this->assertNull($owner->phone_verified_at);
         $this->assertNotSame('AB2CD3', $owner->phone_verification_code);
         $this->assertSame(6, strlen((string) $owner->phone_verification_code));
-        $this->actingAs($owner)->get($this->dashUrl('/phone'))->assertOk()->assertSee('EGMENU '.$owner->phone_verification_code);
+        $this->actingAs($owner)->get($this->dashUrl('/phone'))->assertOk()->assertSee('EGHUB '.$owner->phone_verification_code);
     }
 
     public function test_egweb_sees_the_state_and_can_confirm_by_hand(): void
@@ -247,7 +247,7 @@ class PhoneVerificationTest extends TenantTestCase
         $this->assertNull($owner->fresh()->phone_verified_at);
 
         $this->actingAs($admin, 'admin')->get($this->adminUrl('/tenants'))->assertOk()->assertSee('01011111111')->assertSee(__('Not confirmed'));
-        $this->actingAs($admin, 'admin')->get($this->adminUrl('/tenants/cafe-a'))->assertOk()->assertSee('EGMENU AB2CD3');
+        $this->actingAs($admin, 'admin')->get($this->adminUrl('/tenants/cafe-a'))->assertOk()->assertSee('EGHUB AB2CD3');
         $this->actingAs($admin, 'admin')->get($this->adminUrl('/settings'))->assertOk()
             ->assertSee(route('webhooks.whatsapp'))->assertSee('verify-me')->assertSee('+201000000000');
 
@@ -267,6 +267,8 @@ class PhoneVerificationTest extends TenantTestCase
         $this->assertSame(['AB2CD3'], PhoneVerification::extractCodes('egmenu: ab2cd3 .'));
         $this->assertSame(['AB2CD3'], PhoneVerification::extractCodes('كود التأكيد EGMENU AB٢CD٣ شكراً'));
         $this->assertSame([], PhoneVerification::extractCodes('EGMENU'));
+        $this->assertSame(['AB2CD3'], PhoneVerification::extractCodes('EGHUB AB2CD3'));
+        $this->assertSame([], PhoneVerification::extractCodes('EGHUB'));
         $this->assertSame([], PhoneVerification::extractCodes('AB2CD34'));     // 7 chars is not a code
         $this->assertSame([], PhoneVerification::extractCodes('AB1CD0'));      // 0/1 are never in a code
         $this->assertNotSame(PhoneVerification::code(), PhoneVerification::code());

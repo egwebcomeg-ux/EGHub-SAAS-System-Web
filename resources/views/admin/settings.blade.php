@@ -120,7 +120,7 @@
 
     <div class="card space-y-3" id="whatsapp-verification">
         <h2 class="text-lg font-bold">{{ __('WhatsApp phone confirmation') }}</h2>
-        <p class="text-sm text-navy-500">{{ __('Owners confirm their mobile by sending one ready message (EGMENU + code) to the platform number. These values come from .env and are shown here so you can paste them into Meta.') }}</p>
+        <p class="text-sm text-navy-500">{{ __('Owners confirm their mobile by sending one ready message (EGHUB + code) to the platform number. These values come from .env and are shown here so you can paste them into Meta.') }}</p>
         <dl class="grid gap-3 text-sm sm:grid-cols-[auto_1fr] sm:gap-x-6">
             <dt class="font-semibold">{{ __('Platform WhatsApp number') }}</dt>
             <dd dir="ltr" class="text-start">

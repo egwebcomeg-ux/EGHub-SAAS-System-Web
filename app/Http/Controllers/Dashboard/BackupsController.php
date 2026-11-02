@@ -60,7 +60,7 @@ class BackupsController extends Controller
         abort_unless($backup->isReady() && Storage::disk('local')->exists($backup->storagePath()), 404);
         Audit::record('backup.downloaded', $backup->filename, ['kind' => $backup->kind, 'size' => $backup->size]);
 
-        return Storage::disk('local')->download($backup->storagePath(), 'egmenu-'.$backup->tenant_id.'-'.$backup->filename);
+        return Storage::disk('local')->download($backup->storagePath(), 'eghub-'.$backup->tenant_id.'-'.$backup->filename);
     }
 
     public function destroy(TenantBackup $backup): RedirectResponse

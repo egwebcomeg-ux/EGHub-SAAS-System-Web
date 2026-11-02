@@ -793,7 +793,7 @@ function init(root) {
         a.click();
         a.remove();
     };
-    const fileBase = () => 'egmenu-qr-' + (values().type || 'code');
+    const fileBase = () => 'eghub-qr-' + (values().type || 'code');
 
     function printPage() {
         const sheet = document.createElement('div');

@@ -37,7 +37,7 @@ class CustomerImportController extends Controller
             ['Sara Ali', '01198765432', '', '', '', '', 0, '', '', '', '', ''],
         ])->save($path);
 
-        return response()->download($path, 'egmenu-customers-template.xlsx')->deleteFileAfterSend();
+        return response()->download($path, 'eghub-customers-template.xlsx')->deleteFileAfterSend();
     }
 
     public function store(Request $request): RedirectResponse

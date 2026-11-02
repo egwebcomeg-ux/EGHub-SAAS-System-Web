@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Confirms an owner's mobile without codes to type: the dashboard shows a wa.me link that opens WhatsApp with
- * "EGMENU <code>" ready to send to the platform number; the inbound webhook matches sender + code and stamps
+ * "EGHUB <code>" ready to send to the platform number; the inbound webhook matches sender + code and stamps
  * users.phone_verified_at. Nothing here ever blocks the dashboard: with no platform number configured the step
  * is simply not offered.
  */
@@ -22,7 +22,10 @@ final class PhoneVerification
 
     public const LENGTH = 6;
 
-    public const PREFIX = 'EGMENU';
+    public const PREFIX = 'EGHUB';
+
+    /** The word before the code until the rename: a message prepared earlier can still arrive, and it is six letters like a code. */
+    public const OLD_PREFIX = 'EGMENU';
 
     /** The platform WhatsApp number as wa.me digits (2010xxxxxxxx), or null when none is configured. */
     public static function number(): ?string
@@ -67,7 +70,7 @@ final class PhoneVerification
             for ($i = 0; $i < self::LENGTH; $i++) {
                 $code .= self::ALPHABET[random_int(0, strlen(self::ALPHABET) - 1)];
             }
-        } while ($code === self::PREFIX);
+        } while ($code === self::OLD_PREFIX);
 
         return $code;
     }
@@ -81,7 +84,7 @@ final class PhoneVerification
         return $code;
     }
 
-    /** The prepared text the owner sends: "EGMENU AB2CD3". */
+    /** The prepared text the owner sends: "EGHUB AB2CD3". */
     public static function message(string $code): string
     {
         return self::PREFIX.' '.strtoupper($code);
@@ -109,7 +112,7 @@ final class PhoneVerification
         $pattern = '/(?<![A-Z0-9])(['.self::ALPHABET.']{'.self::LENGTH.'})(?![A-Z0-9])/';
         preg_match_all($pattern, $latin, $m);
 
-        return array_values(array_unique(array_filter($m[1], fn (string $c) => $c !== self::PREFIX)));
+        return array_values(array_unique(array_filter($m[1], fn (string $c) => $c !== self::OLD_PREFIX)));
     }
 
     /**

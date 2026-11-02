@@ -2650,7 +2650,7 @@
     "Pending code": "الكود المنتظر",
     "Mark as confirmed": "علّم كمؤكّد",
     "WhatsApp phone confirmation": "تأكيد الرقم على واتساب",
-    "Owners confirm their mobile by sending one ready message (EGMENU + code) to the platform number. These values come from .env and are shown here so you can paste them into Meta.": "أصحاب المطاعم بيأكدوا رقمهم برسالة واحدة جاهزة (EGMENU + كود) على رقم المنصة. القيم دي من ملف .env ومعروضة هنا عشان تنسخها في Meta.",
+    "Owners confirm their mobile by sending one ready message (EGHUB + code) to the platform number. These values come from .env and are shown here so you can paste them into Meta.": "أصحاب المطاعم بيأكدوا رقمهم برسالة واحدة جاهزة (EGHUB + كود) على رقم المنصة. القيم دي من ملف .env ومعروضة هنا عشان تنسخها في Meta.",
     "Platform WhatsApp number": "رقم واتساب المنصة",
     "the support WhatsApp above": "واتساب الدعم اللي فوق",
     "Not set — owners are not asked to confirm their number.": "مش محدد — مش هيتطلب من أصحاب المطاعم تأكيد رقمهم.",

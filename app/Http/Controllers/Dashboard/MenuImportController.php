@@ -51,7 +51,7 @@ class MenuImportController extends Controller
             ['حلويات', 'Desserts', 'تشيز كيك', 'Cheesecake', 90, '', '', '', '', 'gluten | dairy | eggs'],
         ])->save($path);
 
-        return response()->download($path, 'egmenu-menu-template.xlsx')->deleteFileAfterSend();
+        return response()->download($path, 'eghub-menu-template.xlsx')->deleteFileAfterSend();
     }
 
     public function excel(Request $request): RedirectResponse
