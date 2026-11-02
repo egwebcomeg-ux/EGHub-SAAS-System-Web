@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\PasswordResetController;
 use App\Http\Controllers\Admin\PlansController;
 use App\Http\Controllers\Admin\ProspectImportController;
 use App\Http\Controllers\Admin\ProspectsController;
+use App\Http\Controllers\Admin\SalesReportsController;
 use App\Http\Controllers\Admin\SalesTeamController;
 use App\Http\Controllers\Admin\SearchController;
 use App\Http\Controllers\Admin\SecurityController;
@@ -141,12 +142,17 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         Route::get('/crm/prospects', [ProspectsController::class, 'index'])->name('crm.prospects');
         Route::post('/crm/prospects', [ProspectsController::class, 'store'])->name('crm.prospects.store');
         Route::get('/crm/prospects/{prospect}', [ProspectsController::class, 'show'])->whereNumber('prospect')->name('crm.prospects.show');
+        Route::get('/crm/prospects/{prospect}/print', [SalesReportsController::class, 'prospectFile'])->whereNumber('prospect')->name('crm.prospect-file');
         Route::post('/crm/prospects/{prospect}', [ProspectsController::class, 'update'])->whereNumber('prospect')->name('crm.prospects.update');
         Route::post('/crm/appointments/{appointment}', [ProspectsController::class, 'appointment'])->whereNumber('appointment')->name('crm.appointments.update');
         Route::get('/crm/appointments/{appointment}/photos/{index}', [VisitsController::class, 'photo'])->whereNumber(['appointment', 'index'])->name('crm.appointments.photo');
         Route::get('/crm/playbook', [SalesTeamController::class, 'playbook'])->name('crm.playbook');
     });
     Route::middleware('admin.access:crm.manage')->group(function () {
+        Route::get('/crm/reports', [SalesReportsController::class, 'index'])->name('crm.reports');
+        Route::get('/crm/reports/print', [SalesReportsController::class, 'print'])->name('crm.reports.print');
+        Route::get('/crm/reports/export.csv', [SalesReportsController::class, 'export'])->name('crm.reports.export');
+        Route::get('/crm/leads/{lead}/print', [SalesReportsController::class, 'leadFile'])->whereNumber('lead')->name('crm.lead-file');
         Route::get('/crm/calls', [CallsController::class, 'index'])->name('crm.calls');
         Route::get('/crm/calls/current', [CallsController::class, 'current'])->withoutMiddleware('admin.idle')->middleware('throttle:60,1')->name('crm.calls.current');
         Route::get('/crm/calls/{call}', [CallsController::class, 'show'])->whereNumber('call')->name('crm.calls.show');

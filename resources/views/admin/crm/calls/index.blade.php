@@ -1,11 +1,11 @@
 @extends('layouts.admin')
-@section('title', __('Calls') . ' · EgHub Admin')
+@section('title', __('Phone calls') . ' · EgHub Admin')
 
 @section('content')
 @include('admin.crm.partials.tabs')
 
 <div class="mb-4">
-    <h1 class="page-title">{{ __('Calls') }}</h1>
+    <h1 class="page-title">{{ __('Phone calls') }}</h1>
     <p class="muted">{{ __('Every call of the linked sales phones: who called, how long, and what was said. The sound is not recorded.') }}</p>
 </div>
 
@@ -37,7 +37,7 @@
     </section>
 @endif
 
-<nav class="mb-3 flex gap-2 overflow-x-auto pb-1" aria-label="{{ __('Calls') }}">
+<nav class="mb-3 flex gap-2 overflow-x-auto pb-1" aria-label="{{ __('Phone calls') }}">
     @foreach (['' => __('All'), 'missed' => __('Missed, not returned'), 'unsummarized' => __('Waiting for a summary'), 'unknown' => __('New numbers')] as $key => $label)
         <a href="{{ route('admin.crm.calls', array_filter(['show' => $key])) }}" @class(['inline-flex min-h-10 shrink-0 items-center rounded-full border px-3.5 text-sm font-semibold',
             'border-navy-800 bg-navy-800 text-white' => $filter === $key, 'border-navy-200 bg-white text-navy-700 hover:bg-navy-50' => $filter !== $key])>{{ $label }}</a>

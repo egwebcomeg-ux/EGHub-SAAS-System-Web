@@ -1,5 +1,5 @@
 @extends('layouts.admin')
-@section('title', __('Calls') . ' · EgHub Admin')
+@section('title', __('Phone calls') . ' · EgHub Admin')
 
 @section('content')
 @php
@@ -8,7 +8,7 @@
 @include('admin.crm.partials.tabs')
 
 <div class="mb-4">
-    <a href="{{ route('admin.crm.calls') }}" class="text-sm font-semibold text-navy-500 hover:underline">← {{ __('Calls') }}</a>
+    <a href="{{ route('admin.crm.calls') }}" class="text-sm font-semibold text-navy-500 hover:underline">← {{ __('Phone calls') }}</a>
     <h1 class="page-title mt-1">{{ $call->contactName() }}</h1>
     <div class="mt-1 flex flex-wrap items-center gap-2 text-sm text-navy-600">
         <span class="badge {{ $call->directionClasses() }}">{{ $call->directionLabel() }}</span>

@@ -17,6 +17,7 @@
     $waIcon = 'M3 21l1.6-4.7A8.5 8.5 0 1 1 7.9 19.5zM9 9.5c0 3 2.5 5.5 5.5 5.5l1.2-1.3-1.8-1-1 .8c-1-.4-1.8-1.2-2.2-2.2l.8-1-1-1.8z';
 @endphp
 
+@if ($canManage)<a href="{{ route('admin.crm.lead-file', $lead) }}" target="_blank" rel="noopener" class="btn-ghost float-end min-h-9 px-3 text-xs" data-print-file>{{ __('Print the file') }}</a>@endif
 <a href="{{ route('admin.crm') }}" class="text-sm font-semibold text-navy-500 hover:text-navy-800">← {{ __('Customer follow-up') }}</a>
 
 {{-- who: everything needed before saying hello --}}
