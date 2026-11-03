@@ -129,7 +129,7 @@
                                 {{ local_time($m->created_at, 'Y/m/d H:i') }}@if ($m->admin) · {{ $m->admin->name }}@elseif ($m->direction === 'out') · {{ __('Automatic answer') }}@endif
                                 @if ($m->direction === 'out') · {{ ['sending' => __('Sending'), 'sent' => __('Sent'), 'delivered' => __('Delivered'), 'read' => __('Read'), 'failed' => __('Not sent')][$m->status] ?? $m->status }}@endif
                             </div>
-                            @if ($m->error)<div class="mt-1 text-xs font-semibold">{{ $m->error }}</div>@endif
+                            @if ($m->error)<div class="mt-1 text-xs font-semibold">{{ $m->errorText() }}</div>@endif
                         </div>
                     </div>
                 @endforeach

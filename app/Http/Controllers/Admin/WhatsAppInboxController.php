@@ -51,7 +51,7 @@ class WhatsAppInboxController extends Controller
         }
         $row = $inbox->reply($conversation, $request->user('admin'), $data['body']);
         if ($row->status === 'failed') {
-            return back()->withInput()->withErrors(['body' => __(':channel did not send it: :error', ['channel' => $conversation->channelLabel(), 'error' => $row->error])]);
+            return back()->withInput()->withErrors(['body' => __(':channel did not send it: :error', ['channel' => $conversation->channelLabel(), 'error' => $row->errorText()])]);
         }
 
         return back();
@@ -98,7 +98,7 @@ class WhatsAppInboxController extends Controller
         }
         $row = $inbox->start($phone, $data['name'], $request->user('admin'));
         if ($row->status === 'failed') {
-            return redirect()->route('admin.inbox.show', $row->platform_conversation_id)->withErrors(['body' => __(':channel did not send it: :error', ['channel' => __('WhatsApp'), 'error' => $row->error])]);
+            return redirect()->route('admin.inbox.show', $row->platform_conversation_id)->withErrors(['body' => __(':channel did not send it: :error', ['channel' => __('WhatsApp'), 'error' => $row->errorText()])]);
         }
 
         return redirect()->route('admin.inbox.show', $row->platform_conversation_id);
@@ -120,7 +120,7 @@ class WhatsAppInboxController extends Controller
         }
         $row = $inbox->start($conversation->phone, $owner->name, $request->user('admin'));
         if ($row->status === 'failed') {
-            return redirect()->route('admin.inbox.show', $conversation)->withErrors(['body' => __(':channel did not send it: :error', ['channel' => __('WhatsApp'), 'error' => $row->error])]);
+            return redirect()->route('admin.inbox.show', $conversation)->withErrors(['body' => __(':channel did not send it: :error', ['channel' => __('WhatsApp'), 'error' => $row->errorText()])]);
         }
 
         return redirect()->route('admin.inbox.show', $conversation);

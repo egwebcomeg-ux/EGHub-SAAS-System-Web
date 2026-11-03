@@ -153,7 +153,7 @@ final class PlatformInbox
         return PlatformTemplates::isNotApprovedYet((string) config('whatsapp.templates.welcome'));
     }
 
-    /** @return int how many new restaurants were welcomed: each once, in their first week, and never a person already talking to us. A welcome that failed is tried again, up to WELCOME_TRIES times. */
+    /** @return int how many new restaurants were welcomed: each once, in their first week, and never a person already talking to us. A welcome that failed is tried again a day later (Meta asks not to sooner), up to WELCOME_TRIES times. */
     public function welcomeNewRestaurants(): int
     {
         if (! PlatformTemplates::isApproved((string) config('whatsapp.templates.welcome')) || ! PlatformAutoReply::enabled()) {
@@ -163,6 +163,7 @@ final class PlatformInbox
         PlatformConversation::query()->whereNotNull('tenant_id')->where('created_at', '>=', now()->subDays(7))
             ->whereDoesntHave('messages', fn ($messages) => $messages->where('status', '!=', 'failed'))
             ->whereHas('messages', fn ($messages) => $messages->where('status', 'failed'), '<', self::WELCOME_TRIES)
+            ->whereDoesntHave('messages', fn ($messages) => $messages->where('created_at', '>', now()->subDay()))
             ->each(function (PlatformConversation $conversation) use (&$sent) {
                 $this->start($conversation->phone, (string) $conversation->name);
                 $sent++;

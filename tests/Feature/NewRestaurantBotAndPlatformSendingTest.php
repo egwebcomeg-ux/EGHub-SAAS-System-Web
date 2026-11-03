@@ -82,15 +82,20 @@ class NewRestaurantBotAndPlatformSendingTest extends TenantTestCase
         $this->post($this->adminUrl('/inbox/start'), ['phone' => '01022222222', 'name' => 'Ali'])->assertSessionHasErrors('phone');
         $this->assertSame(1, PlatformConversation::query()->count());
 
-        // a press before this fix left a failed message behind
-        $conversation->messages()->create(['direction' => 'out', 'body' => 'x', 'status' => 'failed', 'error' => 'Template name does not exist']);
+        // Meta refused the first try; it is tried again only a day later, as Meta asks
+        $conversation->messages()->create(['direction' => 'out', 'body' => 'x', 'status' => 'failed', 'error' => 'This message was not delivered to maintain healthy ecosystem engagement.']);
         $this->welcomeStatus = 'APPROVED';
         $this->artisan('eghub:whatsapp-templates')->assertSuccessful();
+        $this->artisan('eghub:welcome-new-restaurants')->assertSuccessful();
+        $this->assertSame(1, $conversation->messages()->count());
+        $this->actingAs($admin, 'admin')->get($this->adminUrl("/inbox/{$conversation->id}"))->assertOk()->assertSee('ميتا ما وصلتهاش');
+
+        $this->travel(25)->hours();
         $this->artisan('eghub:welcome-new-restaurants')->assertSuccessful();
         $this->artisan('eghub:welcome-new-restaurants')->assertSuccessful();
 
         $this->assertSame(1, $conversation->messages()->where('status', 'sent')->count());
-        $this->actingAs($admin, 'admin')->get($this->adminUrl("/inbox/{$conversation->id}"))->assertOk()->assertSee('لسه ما ردش');
+        $this->flushSession()->actingAs($admin, 'admin')->get($this->adminUrl("/inbox/{$conversation->id}"))->assertOk()->assertSee('لسه ما ردش');
     }
 
     public function test_a_restaurants_conversation_opens_from_its_page_for_who_handles_the_inbox_only(): void
