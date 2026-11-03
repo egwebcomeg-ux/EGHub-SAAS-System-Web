@@ -485,6 +485,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/pos/terminals', [TerminalsController::class, 'index'])->name('terminals');
         Route::post('/pos/terminals', [TerminalsController::class, 'store'])->name('terminals.store');
         Route::post('/pos/terminals/settings', [TerminalsController::class, 'settings'])->name('terminals.settings');
+        Route::post('/pos/terminals/waiter-payment', [TerminalsController::class, 'waiterPayment'])->name('terminals.waiter');
         Route::post('/pos/printing', [PrintController::class, 'settings'])->name('pos.printing');
         Route::post('/pos/terminals/{terminal}', [TerminalsController::class, 'update'])->whereNumber('terminal')->name('terminals.update');
         Route::post('/pos/terminals/{terminal}/release', [TerminalsController::class, 'release'])->whereNumber('terminal')->name('terminals.release');
@@ -494,6 +495,8 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/shifts/open', [ShiftsController::class, 'open'])->name('shifts.open');
         Route::post('/shifts/move', [ShiftsController::class, 'move'])->name('shifts.move');
         Route::post('/shifts/close', [ShiftsController::class, 'close'])->name('shifts.close');
+        // a waiter hands in the cash they took at the tables (App\Services\Orders\WaiterCash)
+        Route::post('/shifts/waiters/{waiter}/settle', [ShiftsController::class, 'settleWaiter'])->whereNumber('waiter')->name('shifts.waiter.settle');
     });
 
     // Screens & devices: TV boards, kiosks, customer display / order board, kitchen display links (each type by its right)

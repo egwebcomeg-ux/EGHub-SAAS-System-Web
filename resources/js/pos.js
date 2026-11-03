@@ -834,7 +834,8 @@ if (dataEl) {
         if (lastOrderId) window.open(D.urls.receipt.replace('__ID__', lastOrderId) + (b.dataset.print === 'kitchen' ? '?copy=kitchen' : ''), '_blank', 'width=420,height=700');
     }));
 
-    $('[data-send]').addEventListener('click', (e) => submitOnce([e.currentTarget], async () => {
+    // no "send" button when the waiter takes the money first (D.payFirst): the order goes with its payment
+    $('[data-send]')?.addEventListener('click', (e) => submitOnce([e.currentTarget], async () => {
         if (!canSubmit()) return;
         if (off && !off.online) return alert(T.offSend);
         try { done(await api(D.urls.order, payload(null)), CC ? T.placed : T.sent); } catch (err) { alert(err.message); }

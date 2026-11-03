@@ -79,6 +79,14 @@
             <input class="field" id="pos_offline_hours" name="pos_offline_hours" type="number" min="1" max="72" value="{{ $offlineHours }}" required>
             <button class="btn-ghost w-full">{{ __('Save') }}</button>
         </form>
+        {{-- App\Services\Orders\WaiterCash: the waiter's cash stays with them until a cashier takes it on the shifts page --}}
+        <form method="post" action="{{ route('dash.terminals.waiter') }}" class="card space-y-2" data-waiter-payment>
+            @csrf
+            <h2 class="section-title">{{ __('Waiters and payment') }}</h2>
+            <label class="flex items-start gap-2 text-sm font-semibold"><input type="checkbox" class="mt-0.5 size-5" name="pos_waiter_pay_first" value="1" @checked($waiterPayFirst)> {{ __('The waiter takes the money before the order goes to the kitchen') }}</label>
+            <p class="muted text-sm">{{ __('A waiter\'s order is sent only with its payment. The cash stays with the waiter until the cashier takes it on the shifts page; card, InstaPay and wallet go straight into the open shift. The cashier and the manager still open tables and pay at the end.') }}</p>
+            <button class="btn-ghost w-full">{{ __('Save') }}</button>
+        </form>
         {{-- printing from the EgHub cashier app (App\Services\Printing\PrintJobs); in a browser the receipt page prints as before --}}
         <form method="post" action="{{ route('dash.pos.printing') }}" class="card space-y-2" data-printing-settings>
             @csrf

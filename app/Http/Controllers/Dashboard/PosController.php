@@ -19,6 +19,7 @@ use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use App\Services\Orders\ShiftService;
 use App\Services\Orders\Terminals;
+use App\Services\Orders\WaiterCash;
 use App\Services\Printing\PrintJobs;
 use App\Services\Settings;
 use App\Services\Wallet\WalletService;
@@ -39,14 +40,18 @@ class PosController extends Controller
         $branch = self::branch($request);
         $settings = Settings::all();
         $shift = $shifts->current($request->user());
+        $waiterCash = app(WaiterCash::class);
 
         return view('dashboard.pos.screen', [
             'branch' => $branch,
             'branches' => $request->user()->branch_id ? collect([$branch]) : Branch::query()->where('is_active', true)->orderBy('sort_order')->get(),
             'shift' => $shift,
-            'needsShift' => Entitlements::current()->allows('shifts') && ! $shift,
+            // a waiter takes payments without a drawer (WaiterCash): no "open a shift" for them
+            'needsShift' => Entitlements::current()->allows('shifts') && ! $shift && ! $waiterCash->handles($request->user()),
             'data' => self::catalogData($branch) + [
                 'currency' => tr($settings['currency'], $settings['currency_en']),
+                // the waiter takes the money before the order goes to the kitchen: no "send" without paying
+                'payFirst' => WaiterCash::mustPayFirst($request->user()),
                 'canDiscount' => $request->user()->can('pos.discount'),
                 'canDiscardHold' => $request->user()->can('pos.hold.discard'),
                 'share' => true, // the receipt's link on WhatsApp after payment
@@ -235,7 +240,7 @@ class PosController extends Controller
     }
 
     /** Places a POS order; with `pay` it is paid at once (takeaway), otherwise it stays open (table). */
-    public function store(Request $request, OrderService $orders, ShiftService $shifts): JsonResponse
+    public function store(Request $request, OrderService $orders, ShiftService $shifts, WaiterCash $waiterCash): JsonResponse
     {
         $branch = self::branch($request);
         $data = $request->validate([
@@ -272,15 +277,21 @@ class PosController extends Controller
         if ($data['type'] === 'dine_in' && ! $table) {
             return response()->json(['message' => __('Choose a table.')], 422);
         }
+        if (empty($data['pay']) && WaiterCash::mustPayFirst($request->user())) {
+            return response()->json(['message' => __('Take the payment first: the order goes to the kitchen once it is paid.')], 422);
+        }
 
         try {
             // paid at once, it is all or nothing: a refused payment (no open shift, short balance, a voucher) leaves no
             // order behind in the kitchen, and the cashier's retry with the same ticket places it once
             $terminal = Terminals::fromRequest($request, $branch);
-            $run = function () use ($data, $branch, $table, $request, $orders, $shifts, $terminal) {
+            $run = function () use ($data, $branch, $table, $request, $orders, $shifts, $terminal, $waiterCash) {
                 $order = $orders->place(collect($data)->except(['vouchers', 'voucher_phone'])->all() + ['source' => 'pos', 'terminal_id' => $terminal?->id], $branch, $table, $request->user());
                 if (! empty($data['pay']) && $order->payment_status !== 'paid') {
-                    $orders->pay($order, $data['pay'], $request->user(), $shifts->current($request->user()), self::vouchers($data), $data['voucher_phone'] ?? null, $data['payments'] ?? []);
+                    // a waiter with no drawer of their own keeps the cash until a cashier takes it (WaiterCash)
+                    $waiterCash->handles($request->user())
+                        ? $waiterCash->pay($order, $data['pay'], $request->user(), self::vouchers($data), $data['voucher_phone'] ?? null, $data['payments'] ?? [])
+                        : $orders->pay($order, $data['pay'], $request->user(), $shifts->current($request->user()), self::vouchers($data), $data['voucher_phone'] ?? null, $data['payments'] ?? []);
                 }
 
                 return $order;

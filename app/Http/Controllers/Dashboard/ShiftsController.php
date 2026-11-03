@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\CashMovement;
 use App\Models\PosTerminal;
 use App\Models\Shift;
+use App\Models\User;
 use App\Services\Audit;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\ShiftService;
 use App\Services\Orders\Terminals;
+use App\Services\Orders\WaiterCash;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,7 +38,25 @@ class ShiftsController extends Controller
             'branch' => PosController::branch($request),
             'terminals' => $request->user()->can('reports.view') ? PosTerminal::query()->orderBy('code')->get() : collect(),
             'terminal' => $terminal,
+            // waiters holding the cash of their tables, taken into this shift with "received"
+            'waiterCash' => $current ? WaiterCash::holders($current->branch_id) : collect(),
         ]);
+    }
+
+    /** The cashier took a waiter's cash: their orders join the open shift and its drawer counts the money. */
+    public function settleWaiter(Request $request, User $waiter, ShiftService $shifts, WaiterCash $waiterCash): RedirectResponse
+    {
+        $shift = $shifts->current($request->user());
+        if (! $shift) {
+            return back()->withErrors(['shift' => __('Open a shift first.')]);
+        }
+        try {
+            $result = $waiterCash->settle($waiter, $request->user(), $shift);
+        } catch (OrderException $e) {
+            return back()->withErrors(['shift' => $e->getMessage()]);
+        }
+
+        return back()->with('ok', __(':name handed in :amount for :n orders.', ['name' => $waiter->name, 'amount' => money($result['amount']), 'n' => $result['orders']]));
     }
 
     public function open(Request $request, ShiftService $shifts): RedirectResponse

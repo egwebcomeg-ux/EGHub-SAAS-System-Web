@@ -7698,5 +7698,16 @@
     "Conversation restored": "رجوع محادثة ممسوحة",
     "Meta did not deliver it: it limits how many offers one person gets from businesses. It costs nothing. Try again tomorrow, or call them.": "ميتا ما وصلتهاش: بتحدد عدد رسايل العروض اللي الشخص بيستلمها من الشركات. مش بتتحسب عليك. جرّب بكرة، أو كلمه في التليفون.",
     "Only the orders from": "اطبع بس الطلبات اللي جاية من",
-    "A waiter's order is one placed by a staff member with the Waiter role. Nothing ticked prints every order.": "طلب الويتر هو اللي سجّله موظف دوره «ويتر». لو ما علّمتش على حاجة، كل الطلبات بتتطبع."
+    "A waiter's order is one placed by a staff member with the Waiter role. Nothing ticked prints every order.": "طلب الويتر هو اللي سجّله موظف دوره «ويتر». لو ما علّمتش على حاجة، كل الطلبات بتتطبع.",
+    "Take the payment first: the order goes to the kitchen once it is paid.": "حصّل الفلوس الأول: الطلب بيدخل المطبخ بعد الدفع.",
+    "Take the payment and send": "حصّل وابعت الطلب",
+    "The order goes to the kitchen once it is paid.": "الطلب بيدخل المطبخ بعد ما يتدفع.",
+    "Waiters and payment": "الويتر والتحصيل",
+    "The waiter takes the money before the order goes to the kitchen": "الويتر يحصّل الفلوس قبل ما الطلب يدخل المطبخ",
+    "A waiter's order is sent only with its payment. The cash stays with the waiter until the cashier takes it on the shifts page; card, InstaPay and wallet go straight into the open shift. The cashier and the manager still open tables and pay at the end.": "طلب الويتر ما بيتبعتش غير وهو مدفوع. الكاش بيفضل مع الويتر لحد ما الكاشير يستلمه من صفحة الورديات، والكارت وإنستاباي والمحفظة بيدخلوا الوردية المفتوحة على طول. الكاشير والمدير لسه يقدروا يفتحوا ترابيزة ويحصّلوا في الآخر.",
+    "This waiter has no cash to hand in.": "الويتر ده مفيش معاه كاش يسلّمه.",
+    ":name handed in :amount for :n orders.": ":name سلّم :amount عن :n طلب.",
+    "Cash with the waiters": "كاش مع الويترز",
+    "Received :amount from :name?": "استلمت :amount من :name؟",
+    "I received it": "استلمت"
 }

@@ -69,6 +69,23 @@
         </section>
 
         <div class="space-y-4">
+            @if ($waiterCash->isNotEmpty())
+                {{-- App\Services\Orders\WaiterCash: the cash each waiter took at the tables, into this drawer once received --}}
+                <section class="card space-y-2" data-waiter-cash>
+                    <h2 class="section-title">{{ __('Cash with the waiters') }}</h2>
+                    <ul class="divide-y divide-navy-50">
+                        @foreach ($waiterCash as $row)
+                            <li class="flex items-center justify-between gap-2 py-2" data-waiter="{{ $row['waiter']->id }}">
+                                <span><b>{{ $row['waiter']->name }}</b> <span class="muted text-sm">· {{ __(':n orders', ['n' => $row['orders']]) }}</span>
+                                    <span class="block font-extrabold text-brand-700">{{ money($row['amount']) }}</span></span>
+                                <form method="post" action="{{ route('dash.shifts.waiter.settle', $row['waiter']) }}" onsubmit="return confirm(@js(__('Received :amount from :name?', ['amount' => money($row['amount']), 'name' => $row['waiter']->name])))">
+                                    @csrf<button class="btn-ghost min-h-10 px-3 text-sm">{{ __('I received it') }}</button>
+                                </form>
+                            </li>
+                        @endforeach
+                    </ul>
+                </section>
+            @endif
             <form method="post" action="{{ route('dash.shifts.move') }}" class="card space-y-2">
                 @csrf
                 <h2 class="section-title">{{ __('Cash in / out') }}</h2>

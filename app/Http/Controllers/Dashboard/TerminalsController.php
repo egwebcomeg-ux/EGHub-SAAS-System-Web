@@ -9,6 +9,7 @@ use App\Models\Shift;
 use App\Services\Audit;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\Terminals;
+use App\Services\Orders\WaiterCash;
 use App\Services\Printing\PrintJobs;
 use App\Services\Settings;
 use Illuminate\Http\RedirectResponse;
@@ -30,8 +31,18 @@ class TerminalsController extends Controller
 
         return view('dashboard.pos.terminals', [
             'branches' => $branches, 'terminals' => $terminals, 'open' => $open, 'offlineHours' => Terminals::offlineHours(),
-            'printing' => PrintJobs::settings(),
+            'printing' => PrintJobs::settings(), 'waiterPayFirst' => WaiterCash::payFirst(),
         ]);
+    }
+
+    /** Waiters take the money before the order goes to the kitchen, or not (App\Services\Orders\WaiterCash). */
+    public function waiterPayment(Request $request): RedirectResponse
+    {
+        $on = $request->boolean('pos_waiter_pay_first');
+        Settings::put(['pos_waiter_pay_first' => $on ? '1' : '0']);
+        Audit::record('pos.waiter_pay_first', $on ? 'on' : 'off');
+
+        return back()->with('ok', __('Saved.'));
     }
 
     public function store(Request $request, Terminals $terminals): RedirectResponse

@@ -136,10 +136,16 @@
                     </div>
                 @endif
                 <div class="space-y-0.5" data-totals></div>
-                <div class="grid grid-cols-2 gap-2 pt-1">
-                    <button type="button" class="btn-ghost" data-send>{{ __('Send to kitchen') }}</button>
-                    <button type="button" class="btn-primary" data-pay>{{ __('Pay') }}</button>
-                </div>
+                @if ($data['payFirst'])
+                    {{-- the restaurant asks its waiters to take the money first (App\Services\Orders\WaiterCash) --}}
+                    <button type="button" class="btn-primary w-full" data-pay>{{ __('Take the payment and send') }}</button>
+                    <p class="text-center text-xs text-navy-500" data-pay-first>{{ __('The order goes to the kitchen once it is paid.') }}</p>
+                @else
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <button type="button" class="btn-ghost" data-send>{{ __('Send to kitchen') }}</button>
+                        <button type="button" class="btn-primary" data-pay>{{ __('Pay') }}</button>
+                    </div>
+                @endif
                 <div class="grid grid-cols-2 gap-2">
                     <button type="button" class="btn-ghost min-h-11" data-hold title="F4">⏸ {{ __('Hold') }}</button>
                     <button type="button" class="min-h-11 w-full rounded-xl text-center text-sm font-semibold text-red-600 hover:bg-red-50" data-clear>{{ __('Clear') }}</button>
