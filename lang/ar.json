@@ -7688,5 +7688,12 @@
     "For a simple place: no sign-in, addresses, points or loyalty card on the menu, and every guest order goes to your WhatsApp. The order still reaches your orders board. Turn it off any time: nothing is deleted.": "للمكان البسيط: مفيش دخول ولا عناوين ولا نقاط ولا كارت ولاء في المنيو، وكل طلب من العميل بيروح على واتساب المطعم. الطلب بيوصل لشاشة الطلبات برضه. تقدر تقفلها في أي وقت ومفيش حاجة بتتمسح.",
     "After confirming, send the guest to your WhatsApp with the order ready": "بعد تأكيد الطلب، ودّي العميل على واتساب المطعم والطلب جاهز في الرسالة",
     "The order still reaches your orders board. The guest sends the message from their own WhatsApp, so it uses no credits. For orders from the table QR and the menu link.": "الطلب بيوصل شاشة الطلبات عادي. العميل بيبعت الرسالة من واتساب بتاعه، فمش بتتخصم رصيد. للطلبات من QR الترابيزة ولينك المنيو.",
-    "You have no WhatsApp number yet: add it in the restaurant's contact details. Until then guests see the normal confirmation.": "لسه مفيش رقم واتساب: ضيفه في بيانات التواصل بتاعة المطعم. لحد ما تضيفه، العميل هيشوف صفحة التأكيد العادية."
+    "You have no WhatsApp number yet: add it in the restaurant's contact details. Until then guests see the normal confirmation.": "لسه مفيش رقم واتساب: ضيفه في بيانات التواصل بتاعة المطعم. لحد ما تضيفه، العميل هيشوف صفحة التأكيد العادية.",
+    "Team member removed": "حذف عضو من الفريق",
+    "Article deleted": "حذف مقال",
+    "Testimonial deleted": "حذف رأي عميل",
+    "Conversation deleted": "مسح محادثة",
+    "Automatic answer switched": "تشغيل أو إيقاف الرد الآلي",
+    "Places given to the team": "توزيع أماكن على الفريق",
+    "Conversation restored": "رجوع محادثة ممسوحة"
 }

@@ -8,7 +8,7 @@ use App\Models\PlatformAdmin;
 use Tests\TenantTestCase;
 
 /**
- * «إعلانات للمطاعم»: written in the admin (tenants.manage, in the activity log), shown as a banner on the dashboards of
+ * «إعلانات للمطاعم»: written in the admin (announcements.manage, in the activity log), shown as a banner on the dashboards of
  * the restaurants it is aimed at (all, or one plan's) while it is live, and hidden per user.
  */
 class AdminAnnouncementsTest extends TenantTestCase
@@ -27,9 +27,9 @@ class AdminAnnouncementsTest extends TenantTestCase
 
     public function test_the_team_writes_an_announcement_for_one_plan_and_it_is_logged(): void
     {
-        $support = $this->admin('support');
+        $manager = $this->admin('manager');
 
-        $this->actingAs($support, 'admin')->post($this->adminUrl('/announcements'), [
+        $this->actingAs($manager, 'admin')->post($this->adminUrl('/announcements'), [
             'title' => 'صيانة الليلة', 'body' => 'السيستم هيقف نص ساعة بعد منتصف الليل.', 'level' => 'warning',
             'plan_id' => $this->plan('full')->id, 'starts_at' => '2026-11-01T10:00', 'ends_at' => '2026-11-02T10:00',
         ])->assertRedirect(route('admin.announcements'));
@@ -37,18 +37,20 @@ class AdminAnnouncementsTest extends TenantTestCase
         $announcement = Announcement::query()->sole();
         $this->assertSame($this->plan('full')->id, $announcement->plan_id);
         $this->assertSame(local_input('2026-11-01T10:00')->toDateTimeString(), $announcement->starts_at->toDateTimeString());
-        $this->assertDatabaseHas('platform_audit_logs', ['admin_id' => $support->id, 'action' => 'announcement.created', 'subject' => 'صيانة الليلة']);
-        $this->actingAs($support, 'admin')->get($this->adminUrl('/announcements'))->assertOk()->assertSee('data-announcement-row="'.$announcement->id.'"', false);
+        $this->assertDatabaseHas('platform_audit_logs', ['admin_id' => $manager->id, 'action' => 'announcement.created', 'subject' => 'صيانة الليلة']);
+        $this->actingAs($manager, 'admin')->get($this->adminUrl('/announcements'))->assertOk()->assertSee('data-announcement-row="'.$announcement->id.'"', false);
     }
 
-    public function test_an_announcement_must_end_after_it_starts_and_needs_the_restaurants_right(): void
+    public function test_an_announcement_must_end_after_it_starts_and_needs_its_own_right(): void
     {
-        $this->actingAs($this->admin('support'), 'admin')->post($this->adminUrl('/announcements'), [
+        $this->actingAs($this->admin('manager'), 'admin')->post($this->adminUrl('/announcements'), [
             'title' => 'T', 'body' => 'B', 'level' => 'info', 'starts_at' => '2026-11-05T10:00', 'ends_at' => '2026-11-04T10:00',
         ])->assertSessionHasErrors('ends_at');
-        $this->actingAs($this->admin('content', 'Nour Content'), 'admin')->post($this->adminUrl('/announcements'), [
-            'title' => 'T', 'body' => 'B', 'level' => 'info',
-        ])->assertForbidden();
+        foreach (['support' => 'Soha Support', 'content' => 'Nour Content'] as $role => $name) {
+            $this->actingAs($this->admin($role, $name), 'admin')->post($this->adminUrl('/announcements'), [
+                'title' => 'T', 'body' => 'B', 'level' => 'info',
+            ])->assertForbidden();
+        }
         $this->assertSame(0, Announcement::query()->count());
     }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\PlatformAuditLog;
 use App\Models\Tenant;
 use App\Models\Testimonial;
 use App\Services\ImageService;
@@ -58,8 +59,9 @@ class TestimonialsController extends Controller
         return back()->with('ok', $testimonial->is_published ? __('Testimonial published.') : __('Testimonial hidden.'));
     }
 
-    public function destroy(Testimonial $testimonial, ImageService $images): RedirectResponse
+    public function destroy(Request $request, Testimonial $testimonial, ImageService $images): RedirectResponse
     {
+        PlatformAuditLog::record($request->user('admin'), 'testimonial.deleted', $testimonial->name, ['id' => $testimonial->id]);
         $images->delete($testimonial->photo);
         $testimonial->delete();
 

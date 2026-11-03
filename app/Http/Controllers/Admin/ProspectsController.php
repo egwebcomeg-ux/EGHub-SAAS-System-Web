@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Lead;
 use App\Models\PlatformAdmin;
+use App\Models\PlatformAuditLog;
 use App\Models\Prospect;
 use App\Services\Crm\CallScript;
 use App\Services\Crm\ProspectScore;
@@ -237,6 +238,7 @@ class ProspectsController extends Controller
             return back()->withErrors(['ids' => __('Pick who gets the places.')]);
         }
         $count = Prospect::query()->whereIn('id', $data['ids'])->update($changes);
+        PlatformAuditLog::record($admin, 'crm.places_assigned', (string) $count, [...$changes, 'ids' => array_values($data['ids'])]);
 
         return back()->with('ok', __(':n places assigned.', ['n' => $count]));
     }

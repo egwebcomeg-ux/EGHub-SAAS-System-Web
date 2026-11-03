@@ -35,7 +35,7 @@ final class AdminMenu
                 ['admin.subscriptions', __('Subscriptions & revenue'), 'M3 3v18h18M7 16v-4M12 16V8M17 16v-7', 'billing.manage', ['admin.subscriptions*'], null],
                 ['admin.inbox', __('Conversations'), 'M21 12a9 9 0 0 1-13.4 7.8L3 21l1.2-4.6A9 9 0 1 1 21 12z', 'inbox.manage', ['admin.inbox*'], 'inbox'],
                 ['admin.domains', __('Domain requests'), 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3.6 9h16.8M3.6 15h16.8M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18', 'tenants.manage', ['admin.domains*'], 'domains'],
-                ['admin.announcements', __('Announcements'), 'M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13', 'tenants.manage', ['admin.announcements*'], null],
+                ['admin.announcements', __('Announcements'), 'M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13', 'announcements.manage', ['admin.announcements*'], null],
             ]],
             [__('Sales'), [
                 // the field reps' page: not shown to the platform owner, who does no visits (PlatformAdmin::doesFieldVisits)

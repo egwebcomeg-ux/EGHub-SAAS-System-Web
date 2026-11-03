@@ -14,6 +14,7 @@ final class AdminPermissions
         'tenants.view' => ['عرض المطاعم وبياناتها', 'View restaurants'],
         'tenants.manage' => ['إدارة المطاعم ومستخدميها (إيقاف، كلمات السر، التحقق)', 'Manage restaurants and their users'],
         'tenants.impersonate' => ['الدخول على لوحة أي مطعم بحساب صاحبه للدعم الفني (من غير كلمة السر، ساعة بالكتير)', 'Open a restaurant dashboard as its owner for support (no password, one hour at most)'],
+        'announcements.manage' => ['إعلانات للمطاعم: رسالة تظهر في لوحة كل المطاعم أو باقة منها', 'Announcements on every restaurant dashboard'],
         'billing.manage' => ['الاشتراكات والفواتير والرصيد', 'Subscriptions, invoices & credits'],
         'plans.manage' => ['الباقات والإضافات والأسعار', 'Plans, add-ons & prices'],
         'services.manage' => ['طلبات الخدمات', 'Service requests'],
@@ -43,7 +44,7 @@ final class AdminPermissions
         ],
         'manager' => [
             'label' => ['مدير', 'Manager'],
-            'permissions' => ['tenants.view', 'tenants.manage', 'billing.manage', 'plans.manage', 'services.manage', 'content.manage', 'assistant.view', 'inbox.manage', 'inbox.admin', 'crm.view', 'crm.manage', 'crm.discount', 'crm.import', 'crm.team'],
+            'permissions' => ['tenants.view', 'tenants.manage', 'announcements.manage', 'billing.manage', 'plans.manage', 'services.manage', 'content.manage', 'assistant.view', 'inbox.manage', 'inbox.admin', 'crm.view', 'crm.manage', 'crm.discount', 'crm.import', 'crm.team'],
             'hint' => ['كل الشغل اليومي من غير إعدادات المنصة وفريق الإدارة', 'Day-to-day work, without platform settings and the team'],
         ],
         'support' => [

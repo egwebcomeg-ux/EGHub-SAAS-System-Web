@@ -5,6 +5,7 @@
 @php
     $f = $filters;
     $canManage = $admin->allows('crm.manage');
+    $canAssignMany = $admin->allows('crm.team');
     $link = fn (array $extra) => route('admin.crm.prospects', array_filter([...$f, ...$extra], fn ($v) => $v !== '' && $v !== 'score'));
     $callers = $team->where('seat', 'caller');
     $fields = $team->where('seat', 'field');
@@ -97,7 +98,7 @@
             <table class="w-full text-sm">
                 <thead class="bg-navy-50 text-start text-xs text-navy-500">
                     <tr>
-                        @if ($canManage)<th class="p-3"><span class="sr-only">{{ __('Select') }}</span></th>@endif
+                        @if ($canAssignMany)<th class="p-3"><span class="sr-only">{{ __('Select') }}</span></th>@endif
                         <th class="p-3 text-start">{{ __('Place') }}</th>
                         <th class="p-3 text-start">{{ __('Stage') }}</th>
                         <th class="p-3 text-start">{{ __('Score') }}</th>
@@ -108,7 +109,7 @@
                 <tbody class="divide-y divide-navy-50">
                     @forelse ($prospects as $p)
                         <tr data-prospect-row="{{ $p->id }}">
-                            @if ($canManage)<td class="p-3"><input type="checkbox" name="ids[]" value="{{ $p->id }}" class="size-5 accent-brand-600" aria-label="{{ $p->name }}"></td>@endif
+                            @if ($canAssignMany)<td class="p-3"><input type="checkbox" name="ids[]" value="{{ $p->id }}" class="size-5 accent-brand-600" aria-label="{{ $p->name }}"></td>@endif
                             <td class="p-3">
                                 <a href="{{ route('admin.crm.prospects.show', $p) }}" class="font-bold text-navy-900 hover:underline">{{ $p->categoryEmoji() }} {{ $p->name }}</a>
                                 <div class="text-xs text-navy-500">{{ $p->place() ?: '—' }} · {{ $p->sourceLabel() }}</div>
@@ -124,7 +125,7 @@
                 </tbody>
             </table>
         </div>
-        @if ($canManage && $prospects->isNotEmpty())
+        @if ($canAssignMany && $prospects->isNotEmpty())
             <div class="card mt-3 flex flex-wrap items-end gap-2" data-bulk-assign>
                 <div><label class="field-label" for="bulk-caller">{{ __('Give the ticked places to (caller)') }}</label>
                     <select id="bulk-caller" name="caller_id" class="field"><option value="">—</option>@foreach ($callers as $m)<option value="{{ $m['admin']->id }}">{{ $m['admin']->name }}</option>@endforeach</select></div>

@@ -81,7 +81,10 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         Route::post('/domains/{domain}/reject', [DomainsController::class, 'reject'])->whereNumber('domain')->name('domains.reject');
         Route::post('/domains/{domain}/check', [DomainsController::class, 'check'])->whereNumber('domain')->middleware('throttle:20,1')->name('domains.check');
         Route::post('/domains/{domain}', [DomainsController::class, 'update'])->name('domains.update');
-        // «إعلانات للمطاعم»: a banner on the restaurant dashboards (all of them or one plan) between two dates
+    });
+    // «إعلانات للمطاعم»: a banner on the restaurant dashboards (all of them or one plan) between two dates; it reaches
+    // every restaurant, so the owner, a manager, or who was given it
+    Route::middleware('admin.access:announcements.manage')->group(function () {
         Route::get('/announcements', [AnnouncementsController::class, 'index'])->name('announcements');
         Route::post('/announcements', [AnnouncementsController::class, 'store'])->name('announcements.store');
         Route::get('/announcements/{announcement}/edit', [AnnouncementsController::class, 'edit'])->whereNumber('announcement')->name('announcements.edit');
@@ -163,7 +166,6 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         Route::post('/crm/calls/{call}/place', [CallsController::class, 'addPlace'])->whereNumber('call')->name('crm.calls.place');
         Route::post('/crm/call-devices', [CallsController::class, 'linkDevice'])->middleware('throttle:10,1')->name('crm.devices.link');
         Route::post('/crm/call-devices/{device}/delete', [CallsController::class, 'unlinkDevice'])->whereNumber('device')->name('crm.devices.unlink');
-        Route::post('/crm/prospects/assign', [ProspectsController::class, 'bulkAssign'])->name('crm.prospects.bulk');
         Route::post('/crm/prospects/{prospect}/calls', [ProspectsController::class, 'call'])->whereNumber('prospect')->name('crm.prospects.call');
         Route::post('/crm/prospects/{prospect}/whatsapp-offer', [ProspectsController::class, 'whatsappOffer'])->whereNumber('prospect')->name('crm.prospects.offer');
         Route::post('/crm/prospects/{prospect}/assign', [ProspectsController::class, 'assign'])->whereNumber('prospect')->name('crm.prospects.assign');
@@ -184,6 +186,8 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
     Route::middleware('admin.access:crm.team')->group(function () {
         Route::get('/crm/team', [SalesTeamController::class, 'index'])->name('crm.team');
         Route::post('/crm/team/plan', [SalesTeamController::class, 'plan'])->name('crm.team.plan');
+        // many places to one caller or field rep at once: who runs the team
+        Route::post('/crm/prospects/assign', [ProspectsController::class, 'bulkAssign'])->name('crm.prospects.bulk');
         Route::post('/crm/team/{member}/targets', [SalesTeamController::class, 'targets'])->whereNumber('member')->name('crm.team.targets');
     });
     Route::middleware('admin.access:crm.discount')->group(function () {

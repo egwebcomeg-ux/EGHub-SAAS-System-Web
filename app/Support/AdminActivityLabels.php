@@ -11,6 +11,13 @@ final class AdminActivityLabels
     /** action key => English text (the translation key) */
     public const LABELS = [
         'admin.password_changed' => 'Changed own password',
+        'admin.deleted' => 'Team member removed',
+        'blog.deleted' => 'Article deleted',
+        'testimonial.deleted' => 'Testimonial deleted',
+        'inbox.deleted' => 'Conversation deleted',
+        'inbox.auto_reply' => 'Automatic answer switched',
+        'inbox.restored' => 'Conversation restored',
+        'crm.places_assigned' => 'Places given to the team',
         'announcement.created' => 'Announcement created',
         'announcement.updated' => 'Announcement edited',
         'announcement.deleted' => 'Announcement deleted',

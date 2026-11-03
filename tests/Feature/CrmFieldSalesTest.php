@@ -356,4 +356,20 @@ class CrmFieldSalesTest extends TenantTestCase
         $this->assertSame(2750.0, SalesPlan::number('base.caller'));
         $this->get($this->adminUrl('/crm/playbook'))->assertOk()->assertSee('2,750')->assertSee('خطة فريق المبيعات');
     }
+
+    public function test_many_places_are_given_out_only_by_who_runs_the_team_and_it_is_logged(): void
+    {
+        $caller = $this->admin('sales', 'Mona Caller');
+        $places = [$this->place()->id, $this->place(['name' => 'كافيه النيل'])->id];
+
+        $this->actingAs($caller, 'admin')->get($this->adminUrl('/crm/prospects'))->assertOk()->assertDontSee('data-bulk-assign', false);
+        $this->post($this->adminUrl('/crm/prospects/assign'), ['ids' => $places, 'caller_id' => $caller->id])->assertForbidden();
+        $this->assertSame(0, Prospect::query()->whereNotNull('caller_id')->count());
+
+        $manager = $this->admin('manager', 'Hala Manager');
+        $this->actingAs($manager, 'admin')->get($this->adminUrl('/crm/prospects'))->assertOk()->assertSee('data-bulk-assign', false);
+        $this->post($this->adminUrl('/crm/prospects/assign'), ['ids' => $places, 'caller_id' => $caller->id])->assertSessionHasNoErrors();
+        $this->assertSame(2, Prospect::query()->where('caller_id', $caller->id)->count());
+        $this->assertDatabaseHas('platform_audit_logs', ['admin_id' => $manager->id, 'action' => 'crm.places_assigned', 'subject' => '2']);
+    }
 }

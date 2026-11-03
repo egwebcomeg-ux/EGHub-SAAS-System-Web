@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\PlatformAuditLog;
 use App\Models\Post;
 use App\Services\ImageService;
 use Illuminate\Http\RedirectResponse;
@@ -61,8 +62,9 @@ class BlogController extends Controller
         return back()->with('ok', $post->is_published ? __('Article published.') : __('Article hidden.'));
     }
 
-    public function destroy(Post $post, ImageService $images): RedirectResponse
+    public function destroy(Request $request, Post $post, ImageService $images): RedirectResponse
     {
+        PlatformAuditLog::record($request->user('admin'), 'blog.deleted', $post->title, ['id' => $post->id, 'slug' => $post->slug]);
         $images->delete($post->cover);
         $post->delete();
         $this->flush();
