@@ -13,6 +13,7 @@ use App\Services\Entitlements;
 use App\Services\Orders\Pager;
 use App\Services\Settings;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -41,18 +42,34 @@ final class PrintJobs
 
     public const MAX_COPIES = 5;
 
+    /**
+     * Where the orders the automatic kitchen printing takes come from: a waiter's or a cashier's order on the POS screen
+     * (told apart by the role of who placed it) and each guest channel (Order::SOURCES). key => [arabic, english]
+     */
+    public const KITCHEN_FROM = [
+        'waiter' => ['طلبات الويتر', "Waiters' orders"],
+        'pos' => ['طلبات الكاشير', "Cashiers' orders"],
+        'qr' => ['منيو QR على الترابيزة', 'QR menu at the table'],
+        'online' => ['الطلب أونلاين', 'Online orders'],
+        'whatsapp' => ['واتساب', 'WhatsApp'],
+        'callcenter' => ['الكول سنتر', 'Call center'],
+        'kiosk' => ['الكشك', 'Kiosk'],
+    ];
+
     /** A logo larger than this is left off the receipt (it travels as a data URL through the app's bridge). */
     public const MAX_LOGO_BYTES = 300_000;
 
-    /** @return array{receipt_auto:bool, kitchen_auto:bool, copies:int, kitchen_copies:int, open_drawer:bool, logo:bool} */
+    /** @return array{receipt_auto:bool, kitchen_auto:bool, kitchen_from:list<string>, copies:int, kitchen_copies:int, open_drawer:bool, logo:bool} */
     public static function settings(): array
     {
         $s = Settings::all();
         $copies = fn (string $key) => max(1, min(self::MAX_COPIES, (int) $s[$key]));
+        $from = array_values(array_intersect(array_keys(self::KITCHEN_FROM), explode(',', (string) ($s['pos_print_kitchen_from'] ?? ''))));
 
         return [
             'receipt_auto' => $s['pos_print_receipt_auto'] === '1',
             'kitchen_auto' => $s['pos_print_kitchen_auto'] === '1',
+            'kitchen_from' => $from === [] ? array_keys(self::KITCHEN_FROM) : $from,
             'copies' => $copies('pos_print_copies'),
             'kitchen_copies' => $copies('pos_print_kitchen_copies'),
             'open_drawer' => $s['pos_print_open_drawer'] === '1',
@@ -292,16 +309,19 @@ final class PrintJobs
      */
     public static function pendingKitchen(Branch $branch, int $limit = 20): array
     {
-        if (! self::settings()['kitchen_auto']) {
+        $settings = self::settings();
+        if (! $settings['kitchen_auto']) {
             return [];
         }
+        $from = $settings['kitchen_from'];
         $since = now()->subHours(self::KITCHEN_WINDOW_HOURS);
         $on = Settings::get('pos_print_kitchen_since');
         if ($on !== '' && ($onAt = rescue(fn () => Carbon::parse($on)->utc(), null, false)) && $onAt->gt($since)) {
             $since = $onAt;
         }
         $orders = Order::query()->where('branch_id', $branch->id)->whereIn('status', ['new', 'preparing'])
-            ->where('created_at', '>=', $since)->with('items')->oldest('id')->limit(100)->get();
+            ->where('created_at', '>=', $since)->when(count($from) < count(self::KITCHEN_FROM), fn ($q) => self::onlyFrom($q, $from))
+            ->with('items')->oldest('id')->limit(100)->get();
         $printed = OrderPrint::query()->whereIn('order_id', $orders->pluck('id'))->where('role', 'like', 'kitchen:%')->get()
             ->groupBy('order_id')->map(fn (Collection $rows) => $rows->pluck('role')->all());
         $out = [];
@@ -316,6 +336,29 @@ final class PrintJobs
         }
 
         return $out;
+    }
+
+    /**
+     * The orders of the chosen KITCHEN_FROM keys: a POS order is a waiter's when a waiter placed it.
+     *
+     * @param  Builder<Order>  $query
+     * @param  list<string>  $from
+     */
+    private static function onlyFrom(Builder $query, array $from): void
+    {
+        $waiter = in_array('waiter', $from, true);
+        $cashier = in_array('pos', $from, true);
+        $waiters = fn () => User::query()->role('waiter')->pluck('id')->all();
+        $query->where(function (Builder $q) use ($from, $waiter, $cashier, $waiters) {
+            $q->whereIn('source', array_values(array_diff($from, ['waiter', 'pos'])));
+            if ($waiter && $cashier) {
+                $q->orWhere('source', 'pos');
+            } elseif ($waiter) {
+                $q->orWhere(fn (Builder $pos) => $pos->where('source', 'pos')->whereIn('created_by', $waiters()));
+            } elseif ($cashier) {
+                $q->orWhere(fn (Builder $pos) => $pos->where('source', 'pos')->where(fn (Builder $by) => $by->whereNull('created_by')->orWhereNotIn('created_by', $waiters())));
+            }
+        });
     }
 
     /** @return Collection<string, Collection<int, OrderItem>> role => the order's lines for it */

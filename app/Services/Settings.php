@@ -143,6 +143,7 @@ final class Settings
         // printing from the EgHub cashier app (App\Services\Printing\PrintJobs); the browser print stays as it is
         'pos_print_receipt_auto' => '0',      // '1' = the receipt prints by itself once an order is paid at the POS
         'pos_print_kitchen_auto' => '0',      // '1' = a kitchen ticket per station prints as soon as an order arrives
+        'pos_print_kitchen_from' => '',       // comma list of PrintJobs::KITCHEN_FROM keys the kitchen auto-print takes; '' = every order
         'pos_print_kitchen_since' => '',      // ISO time the kitchen auto-print was switched on (older orders never print)
         'pos_print_copies' => '1',            // receipt copies
         'pos_print_kitchen_copies' => '1',    // copies of each kitchen ticket

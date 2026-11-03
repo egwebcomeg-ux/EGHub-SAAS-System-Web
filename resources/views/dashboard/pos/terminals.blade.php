@@ -86,6 +86,16 @@
             <p class="muted text-sm">{{ __('With the EgHub cashier app on the till, the receipt and the kitchen tickets print by themselves on the printers chosen in the app. Each copy prints once, even with several devices. In a browser nothing changes: the receipt opens to print.') }}</p>
             <label class="flex items-start gap-2 text-sm font-semibold"><input type="checkbox" class="mt-0.5 size-5" name="pos_print_receipt_auto" value="1" @checked($printing['receipt_auto'])> {{ __('Print the receipt by itself after the payment') }}</label>
             <label class="flex items-start gap-2 text-sm font-semibold"><input type="checkbox" class="mt-0.5 size-5" name="pos_print_kitchen_auto" value="1" @checked($printing['kitchen_auto'])> {{ __('Print a kitchen ticket for each station as soon as the order arrives') }}</label>
+            <fieldset class="ms-7 rounded-xl border border-navy-100 p-3" data-kitchen-from>
+                <legend class="px-1 text-sm font-semibold text-navy-700">{{ __('Only the orders from') }}</legend>
+                @php($fromAll = count($printing['kitchen_from']) === count(\App\Services\Printing\PrintJobs::KITCHEN_FROM))
+                <div class="grid gap-1 sm:grid-cols-2">
+                    @foreach (\App\Services\Printing\PrintJobs::KITCHEN_FROM as $key => $label)
+                        <label class="flex min-h-9 items-center gap-2 text-sm"><input type="checkbox" class="size-5" name="pos_print_kitchen_from[]" value="{{ $key }}" @checked($fromAll || in_array($key, $printing['kitchen_from'], true))> {{ app()->getLocale() === 'en' ? $label[1] : $label[0] }}</label>
+                    @endforeach
+                </div>
+                <p class="mt-1 text-xs text-navy-500">{{ __('A waiter\'s order is one placed by a staff member with the Waiter role. Nothing ticked prints every order.') }}</p>
+            </fieldset>
             <label class="flex items-start gap-2 text-sm font-semibold"><input type="checkbox" class="mt-0.5 size-5" name="pos_print_open_drawer" value="1" @checked($printing['open_drawer'])> {{ __('Open the cash drawer with a cash payment') }}</label>
             <label class="flex items-start gap-2 text-sm font-semibold"><input type="checkbox" class="mt-0.5 size-5" name="pos_print_logo" value="1" @checked($printing['logo'])> {{ __('The logo on top of the receipt') }}</label>
             <div class="grid grid-cols-2 gap-2">

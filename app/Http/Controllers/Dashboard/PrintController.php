@@ -10,6 +10,7 @@ use App\Services\Settings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * Printing from the EgHub cashier app (resources/js/native-print.js): the print jobs of an order (receipt, kitchen
@@ -74,6 +75,8 @@ class PrintController extends Controller
         $data = $request->validate([
             'pos_print_receipt_auto' => 'nullable|boolean',
             'pos_print_kitchen_auto' => 'nullable|boolean',
+            'pos_print_kitchen_from' => 'nullable|array',
+            'pos_print_kitchen_from.*' => ['string', Rule::in(array_keys(PrintJobs::KITCHEN_FROM))],
             'pos_print_open_drawer' => 'nullable|boolean',
             'pos_print_logo' => 'nullable|boolean',
             'pos_print_copies' => 'required|integer|min:1|max:'.PrintJobs::MAX_COPIES,
@@ -83,6 +86,8 @@ class PrintController extends Controller
         $values = [
             'pos_print_receipt_auto' => $request->boolean('pos_print_receipt_auto') ? '1' : '0',
             'pos_print_kitchen_auto' => $kitchen ? '1' : '0',
+            // none ticked = every order, as before the choice existed
+            'pos_print_kitchen_from' => implode(',', array_unique($data['pos_print_kitchen_from'] ?? [])),
             'pos_print_open_drawer' => $request->boolean('pos_print_open_drawer') ? '1' : '0',
             'pos_print_logo' => $request->boolean('pos_print_logo') ? '1' : '0',
             'pos_print_copies' => (string) $data['pos_print_copies'],

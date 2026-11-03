@@ -3,12 +3,14 @@
 namespace Tests\Feature;
 
 use App\Billing\Billing;
+use App\Models\Branch;
 use App\Models\Category;
 use App\Models\KitchenStation;
 use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\OrderPrint;
 use App\Models\Tenant;
+use App\Services\Orders\OrderService;
 use App\Services\Settings;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
@@ -160,6 +162,26 @@ class NativePrintingTest extends TenantTestCase
         $this->assertSame(["kitchen:$bar"], $this->actingAs($owner)->getJson($this->dashUrl('/pos/print-queue'))->json('orders.0.roles'));
         $this->jobs($a, $order, ["kitchen:$bar"]);
         $this->actingAs($owner)->getJson($this->dashUrl('/pos/print-queue'))->assertJsonPath('orders', []);
+    }
+
+    public function test_the_kitchen_printing_can_take_only_the_waiters_orders(): void
+    {
+        [$a, , $burger] = $this->kitchenRestaurant();
+        $owner = $this->owner($a);
+        $waiter = $this->staff($a, 'waiter', 'w@cafe-a.test');
+        $this->actingAs($owner)->post($this->dashUrl('/pos/printing'), [
+            'pos_print_kitchen_auto' => '1', 'pos_print_kitchen_from' => ['waiter'], 'pos_print_copies' => 1, 'pos_print_kitchen_copies' => 1,
+        ])->assertSessionHasNoErrors();
+        $this->travel(1)->minutes();
+
+        $cashiers = $this->sell($a, [['item_id' => $burger->id, 'qty' => 1]], null);
+        $waiters = $this->as($a, fn () => app(OrderService::class)->place(['source' => 'pos', 'type' => 'dine_in', 'items' => [['item_id' => $burger->id, 'qty' => 1]]],
+            Branch::query()->firstOrFail(), null, $waiter));
+
+        $queue = $this->actingAs($owner)->getJson($this->dashUrl('/pos/print-queue'))->assertOk()->json('orders');
+        $this->assertSame([$waiters->id], array_column($queue, 'id'));
+        $this->assertNotContains($cashiers->id, array_column($queue, 'id'));
+        $this->actingAs($owner)->get($this->dashUrl('/pos/terminals'))->assertOk()->assertSee('data-kitchen-from', false);
     }
 
     public function test_only_staff_who_manage_terminals_change_the_printing_settings(): void
