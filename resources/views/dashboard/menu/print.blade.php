@@ -6,6 +6,11 @@
     <title>{{ __('Printed menu') }} · {{ tenant()->name }}</title>
     @fonts
     @vite(['resources/css/app.css'])
+    {{-- the restaurant's own font, as on its guest menu (the script waits for it before fitting the columns) --}}
+    @if ($fontCss = \App\Support\MenuFonts::cssUrl($settings['font']))
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="stylesheet" href="{{ $fontCss }}">
+    @endif
     @php
         $primary = is_hex_color($settings['color_primary']) ? $settings['color_primary'] : '#F26522';
         $secondary = is_hex_color($settings['color_secondary']) ? $settings['color_secondary'] : '#0A2540';
@@ -257,7 +262,8 @@
         }
 
         function fit() {
-            let scale = 1.35;
+            // the panels stop at 110%: larger, long names break onto two lines
+            let scale = @json($cards ? 1.1 : 1.35);
             while (scale > 0.6 && !layout(scale)) scale = Math.round((scale - 0.025) * 1000) / 1000;
             const ok = scale > 0.6 || layout(scale);
             const note = document.getElementById('fit-note');

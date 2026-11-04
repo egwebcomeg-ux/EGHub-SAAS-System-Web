@@ -8,6 +8,7 @@ use App\Models\MenuItem;
 use App\Models\Offer;
 use App\Models\Order;
 use App\Models\Tenant;
+use App\Services\Settings;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -160,10 +161,12 @@ class MarketingTest extends TenantTestCase
             $size = $dates->optionGroups()->create(['name' => 'الوزن', 'type' => 'single', 'is_required' => true]);
             $size->options()->create(['name' => '٣٠٠ جرام', 'price' => 0]);
             $size->options()->create(['name' => '١ كيلو', 'price' => 92]);
+            Settings::put(['font' => 'Baloo Bhaijaan 2']);
         });
 
         $this->actingAs($this->owner($a))->get($this->dashUrl('/menu/print?template=cards&lang=ar'))->assertOk()
             ->assertSee('A4 landscape')
+            ->assertSee('fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2', false)
             ->assertSeeInOrder(['<span>تمر الوادي</span><span class="size">٣٠٠ جرام</span><span class="price">٤٥</span>',
                 '<span></span><span class="size">١ كيلو</span><span class="price">١٣٧</span>'], false);
 

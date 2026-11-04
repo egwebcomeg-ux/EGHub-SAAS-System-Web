@@ -52,7 +52,8 @@ class PrintMenuController extends Controller
             'branches' => Branch::query()->where('is_active', true)->orderBy('sort_order')->get(),
             'settings' => $settings,
             'template' => in_array($template, ['text', 'photos', 'cards'], true) ? $template : 'text',
-            'pages' => (int) ($opts['pages'] ?? 2),
+            // the panels are one landscape price list; the other templates start on two pages
+            'pages' => (int) ($opts['pages'] ?? ($template === 'cards' ? 1 : 2)),
             'lang' => $lang,
             'mainLang' => $mainLang,
             'secondLang' => $secondLang,
