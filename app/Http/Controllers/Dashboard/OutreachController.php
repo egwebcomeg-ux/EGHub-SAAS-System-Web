@@ -73,13 +73,15 @@ class OutreachController extends Controller
         Audit::record('campaign.links_exported', $campaign->name, ['campaign' => $campaign->id]);
         $rows = CampaignRecipient::query()->where('campaign_id', $campaign->id)->whereNull('opted_out_at')
             ->whereHas('customer', fn ($q) => $q->where('whatsapp_opt_out', false))->with('coupon')->orderBy('id')->get();
+        // built while the restaurant is current: the stream below may run after the request let go of it
+        $lines = $rows->map(fn (CampaignRecipient $row) => csv_row([$row->phone, $row->name, $outreach->link($row), (string) $row->coupon?->code, $outreach->render($campaign, $row)]));
 
-        return response()->streamDownload(function () use ($rows, $campaign, $outreach) {
+        return response()->streamDownload(function () use ($lines) {
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
             fputcsv($out, ['phone', 'name', 'link', 'code', 'message']);
-            foreach ($rows as $row) {
-                fputcsv($out, csv_row([$row->phone, $row->name, $outreach->link($row), (string) $row->coupon?->code, $outreach->render($campaign, $row)]));
+            foreach ($lines as $line) {
+                fputcsv($out, $line);
             }
             fclose($out);
         }, 'campaign-'.$campaign->id.'-links.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
