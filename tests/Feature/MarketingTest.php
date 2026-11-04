@@ -166,5 +166,16 @@ class MarketingTest extends TenantTestCase
             ->assertSee('A4 landscape')
             ->assertSeeInOrder(['<span>تمر الوادي</span><span class="size">٣٠٠ جرام</span><span class="price">45</span>',
                 '<span></span><span class="size">١ كيلو</span><span class="price">137</span>'], false);
+
+        // the choice is remembered: the next visit opens the panels again
+        $this->actingAs($this->owner($a))->get($this->dashUrl('/menu/print'))->assertOk()->assertSee('A4 landscape');
+    }
+
+    public function test_printed_menu_opens_the_text_template_until_another_is_chosen(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $this->item($a, 'Iced Latte', 80);
+
+        $this->actingAs($this->owner($a))->get($this->dashUrl('/menu/print'))->assertOk()->assertDontSee('A4 landscape');
     }
 }

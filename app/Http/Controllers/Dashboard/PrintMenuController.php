@@ -39,6 +39,11 @@ class PrintMenuController extends Controller
         };
         $branch = isset($opts['branch']) ? Branch::query()->find($opts['branch']) : null;
         $catalog = MenuCatalog::forBranch($branch)->withoutOffers()->allDay();
+        // the chosen template is remembered, so the restaurant's own look opens by itself next time
+        $template = $opts['template'] ?? Settings::get('print_template');
+        if (isset($opts['template']) && $opts['template'] !== Settings::get('print_template')) {
+            Settings::put(['print_template' => $opts['template']]);
+        }
         $settings = Settings::all();
 
         return view('dashboard.menu.print', [
@@ -46,7 +51,7 @@ class PrintMenuController extends Controller
             'branch' => $catalog->branch,
             'branches' => Branch::query()->where('is_active', true)->orderBy('sort_order')->get(),
             'settings' => $settings,
-            'template' => $opts['template'] ?? 'text',
+            'template' => in_array($template, ['text', 'photos', 'cards'], true) ? $template : 'text',
             'pages' => (int) ($opts['pages'] ?? 2),
             'lang' => $lang,
             'mainLang' => $mainLang,
