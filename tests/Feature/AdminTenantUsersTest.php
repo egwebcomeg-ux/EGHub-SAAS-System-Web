@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AuditLog;
 use App\Models\PlatformAdmin;
+use App\Models\PlatformAuditLog;
 use App\Models\Tenant;
 use App\Notifications\ResetPasswordLink;
 use App\Services\Settings;
@@ -65,6 +66,8 @@ class AdminTenantUsersTest extends TenantTestCase
         $this->assertFalse(Hash::check('Secret-pass-123', $owner->password));
         $this->assertNotSame($oldToken, $owner->remember_token);
         $this->assertSame(['user.password_set_by_platform'], $this->auditActions($tenant));
+        // and on the platform's own trail, where the admin's actions are reviewed
+        $this->assertSame(['tenant.user.password_set_by_platform'], PlatformAuditLog::query()->pluck('action')->all());
 
         // the restaurant user signs in with it
         $this->post($this->dashUrl('/login'), ['login' => 'owner@cafe-a.test', 'password' => $password])->assertRedirect();

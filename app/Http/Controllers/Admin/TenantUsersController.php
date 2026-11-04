@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\PlatformAuditLog;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Audit;
@@ -93,8 +94,10 @@ class TenantUsersController extends Controller
         }
     }
 
+    /** Written on both sides: the restaurant's own trail (plan-gated page) and the platform's, where the admin's actions are reviewed. */
     private function audit(Request $request, Tenant $tenant, string $action, User $staff): void
     {
+        PlatformAuditLog::record($request->user('admin'), 'tenant.'.$action, $tenant->id, ['user' => $staff->id, 'name' => $staff->name]);
         tenancy()->initialize($tenant);
         try {
             Audit::record($action, $staff->name, ['id' => $staff->id, 'admin' => $request->user('admin')->email]);

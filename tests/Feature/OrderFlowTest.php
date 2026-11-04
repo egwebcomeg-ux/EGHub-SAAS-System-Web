@@ -8,6 +8,8 @@ use App\Models\DiningTable;
 use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\Tenant;
+use App\Services\Orders\OrderException;
+use App\Services\Orders\OrderService;
 use App\Services\Settings;
 use Illuminate\Support\Str;
 use Tests\TenantTestCase;
@@ -189,8 +191,14 @@ class OrderFlowTest extends TenantTestCase
         $feed = $this->actingAs($owner)->getJson($this->dashUrl('/orders/feed'))->assertOk();
         $this->assertSame(['Tea A'], collect($feed->json('orders'))->pluck('items.0.name')->all());
 
+        // the page polls with the stamp it was given: nothing moved → an empty answer; a move → a new board and stamp
+        $stamp = $feed->json('stamp');
+        $this->actingAs($owner)->getJson($this->dashUrl('/orders/feed?stamp='.$stamp))->assertNoContent();
+
         $id = $feed->json('orders.0.id');
         $this->actingAs($owner)->postJson($this->dashUrl("/orders/$id/status"), ['status' => 'preparing'])->assertOk();
+        $moved = $this->actingAs($owner)->getJson($this->dashUrl('/orders/feed?stamp='.$stamp))->assertOk();
+        $this->assertNotSame($stamp, $moved->json('stamp'));
         $this->actingAs($owner)->postJson($this->dashUrl("/orders/$id/status"), ['status' => 'served'])->assertStatus(422); // must be ready first
         $this->actingAs($owner)->postJson($this->dashUrl("/orders/$id/status"), ['status' => 'ready'])->assertOk();
         $this->actingAs($owner)->postJson($this->dashUrl("/orders/$id/status"), ['status' => 'served'])->assertOk();
@@ -203,6 +211,44 @@ class OrderFlowTest extends TenantTestCase
 
         $orderOfB = $this->as($b, fn () => Order::query()->value('id'));
         $this->actingAs($owner)->postJson($this->dashUrl("/orders/$orderOfB/status"), ['status' => 'preparing'])->assertNotFound();
+    }
+
+    /** Two screens: the cancel lands while the cashier's screen still shows the order unpaid, and the other way round. */
+    public function test_a_cancel_and_a_payment_crossing_each_other_never_both_land(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $tea = $this->item($a, 'Tea', 20);
+        $this->scanTable($a);
+        $this->order($a, [['item_id' => $tea->id, 'qty' => 1]])->assertOk();
+        $this->order($a, [['item_id' => $tea->id, 'qty' => 1]])->assertOk();
+        $owner = $this->owner($a);
+
+        $this->as($a, function () use ($owner) {
+            $service = app(OrderService::class);
+            [$first, $second] = Order::query()->orderBy('id')->get()->all();
+
+            // the manager's screen cancels while the cashier's screen still has the unpaid order on display
+            $stale = Order::query()->find($first->id);
+            $service->transition($first, 'cancelled', $owner);
+            try {
+                $service->pay($stale, 'cash', $owner, null, withoutShift: true);
+                $this->fail('a cancelled order was paid');
+            } catch (OrderException $e) {
+                $this->assertSame('الطلب ده اتلغى.', $e->getMessage());
+            }
+            $this->assertSame('unpaid', $first->fresh()->payment_status);
+
+            // the cashier takes the cash while the manager's screen still shows the order unpaid
+            $stale = Order::query()->find($second->id);
+            $service->pay($second, 'cash', $owner, null, withoutShift: true);
+            try {
+                $service->transition($stale, 'cancelled', $owner);
+                $this->fail('a paid order was cancelled');
+            } catch (OrderException $e) {
+                $this->assertStringContainsString('مرتجع', $e->getMessage());
+            }
+            $this->assertSame('new', $second->fresh()->status);
+        });
     }
 
     public function test_board_respects_roles_and_branches(): void

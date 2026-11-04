@@ -3,6 +3,7 @@
 // between guests; the server recomputes every amount (OrderService).
 // Inside the EgHub kiosk app the tablet is locked to this page (no home / back) and the screen stays on.
 import { call, inApp } from './native';
+import { charges } from './bill';
 
 const dataEl = document.getElementById('kiosk-data');
 if (dataEl && inApp('kiosk')) {
@@ -156,8 +157,7 @@ if (dataEl) {
     const unit = (l) => items[l.item_id].price + optionsOf(items[l.item_id]).filter((o) => l.option_ids.includes(o.id)).reduce((s, o) => s + o.price, 0);
     function totals() {
         const subtotal = state.lines.reduce((s, l) => s + unit(l) * l.qty, 0);
-        const service = state.type === 'dine_in' ? subtotal * D.service / 100 : 0;
-        const tax = (subtotal + service) * D.tax / 100;
+        const { service, tax } = charges(subtotal, state.type === 'dine_in', D);
         return { subtotal, service, tax, total: subtotal + service + tax };
     }
     function render() {

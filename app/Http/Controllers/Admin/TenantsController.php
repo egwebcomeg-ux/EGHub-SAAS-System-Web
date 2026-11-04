@@ -376,6 +376,7 @@ class TenantsController extends Controller
             return back()->withErrors(['two_factor' => __('This user has no two-factor authentication.')]);
         }
         $staff->disableTwoFactor();
+        PlatformAuditLog::record($request->user('admin'), 'tenant.two_factor_reset', $tenant->id, ['user' => $staff->id, 'name' => $staff->name]);
         tenancy()->initialize($tenant);
         try {
             Audit::record('two_factor.reset_by_platform', $staff->name, ['id' => $staff->id, 'admin' => $request->user('admin')->email]);

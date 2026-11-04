@@ -38,6 +38,11 @@ class TranslateMenu implements ShouldQueue
 
     public int $timeout = 900;
 
+    public function __construct()
+    {
+        $this->onQueue('low'); // up to 15 minutes of AI calls: never in front of the guests' messages (routes/console.php)
+    }
+
     /**
      * @return array{state:string, done:int, total:int, filled:int, error:?string, at:int}|null
      */

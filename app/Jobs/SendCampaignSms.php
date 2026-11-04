@@ -21,7 +21,10 @@ class SendCampaignSms implements ShouldQueue
 
     public int $timeout = 300;
 
-    public function __construct(public int $campaignId) {}
+    public function __construct(public int $campaignId)
+    {
+        $this->onQueue('low'); // a campaign never holds up an order's message (routes/console.php)
+    }
 
     public function handle(Outreach $outreach): void
     {

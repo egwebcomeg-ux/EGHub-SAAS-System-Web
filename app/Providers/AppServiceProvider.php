@@ -6,11 +6,14 @@ use App\Billing\Gateways\KashierGateway;
 use App\Billing\Gateways\PaymentGateway;
 use App\Billing\PricingRules;
 use App\Http\Middleware\ThrottlePerRoute;
+use App\Models\AddonPrice;
 use App\Models\Domain;
 use App\Models\Plan;
+use App\Models\PlanFeature;
 use App\Models\Subscription;
 use App\Models\SubscriptionAddon;
 use App\Models\Tenant;
+use App\Services\Entitlements;
 use App\Services\Geocoding\Geocoder;
 use App\Services\Geocoding\NominatimGeocoder;
 use App\Services\Geocoding\NullGeocoder;
@@ -76,10 +79,15 @@ class AppServiceProvider extends ServiceProvider
         // still gets only 5 tries a minute at one email or phone.
         RateLimiter::for('login', function (Request $r) {
             $account = $r->input('login', $r->input('email'));
+            $account = is_string($account) ? mb_strtolower(trim($account)) : '';
+            // the account is the number as it is stored, so "0100..." and "+20100..." count as the same account
+            if ($account !== '' && ! str_contains($account, '@')) {
+                $account = normalize_phone($account) ?? $account;
+            }
 
             return [
                 Limit::perMinute(8)->by('ip:'.$r->ip().'|'.$r->getHost()),
-                Limit::perMinute(5)->by('acct:'.(is_string($account) ? mb_strtolower(trim($account)) : '').'|'.$r->getHost()),
+                Limit::perMinute(5)->by('acct:'.$account.'|'.$r->getHost()),
             ];
         });
         RateLimiter::for('signup', fn (Request $r) => Limit::perHour(5)->by($r->ip()));
@@ -101,8 +109,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('pager', fn (Request $r) => Limit::perMinute(40)->by($r->ip().'|'.$r->path()));
         // the pager's "picked up" and rating: per page too, so a busy café on one Wi-Fi never blocks its guests
         RateLimiter::for('pager-actions', fn (Request $r) => Limit::perMinute(10)->by('pa:'.$r->ip().'|'.$r->path()));
-        // the EgHub driver app's background fixes (one every ~20 s per delivery, a few more after a dead zone)
-        RateLimiter::for('native-track', fn (Request $r) => Limit::perMinute(12)->by('nt:'.$r->route('order')));
+        // the EgHub driver app's background fixes (one every ~20 s per delivery, a few more after a dead zone); per
+        // address too, so a stranger guessing order numbers cannot use up the driver's budget
+        RateLimiter::for('native-track', fn (Request $r) => Limit::perMinute(12)->by('nt:'.$r->route('order').'|'.$r->ip()));
         // The website assistant costs money per answer: a chat's worth per visitor, and a daily ceiling for everyone.
         RateLimiter::for('assistant', fn (Request $r) => [
             Limit::perMinutes(10, 20)->by('as:'.$r->ip()),
@@ -111,6 +120,7 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         $this->bootPageCache();
+        $this->bootEntitlementsCache();
 
         // The admin plan pickers (new restaurant, a restaurant's plan change) never offer an archived plan; the
         // restaurant's own current plan stays listed so saving its page does not switch it by accident.
@@ -122,6 +132,28 @@ class AppServiceProvider extends ServiceProvider
                 $view->with('plans', $plans->reject(fn (Plan $p) => $p->isArchived() && $p->id !== $current)->values());
             }
         });
+    }
+
+    /**
+     * The cached rights of a restaurant (App\Services\Entitlements) are forgotten the moment what they are made of
+     * changes: its subscription or add-ons (that restaurant only), a plan's features or an add-on's contents (every restaurant).
+     */
+    private function bootEntitlementsCache(): void
+    {
+        $forgetTenant = function (Model $model): void {
+            $tenantId = $model instanceof Subscription ? $model->tenant_id : $model->subscription?->tenant_id;
+            if (is_string($tenantId) && $tenantId !== '') {
+                Entitlements::flush($tenantId);
+            }
+        };
+        foreach ([Subscription::class, SubscriptionAddon::class] as $model) {
+            $model::saved($forgetTenant);
+            $model::deleted($forgetTenant);
+        }
+        foreach ([Plan::class, PlanFeature::class, AddonPrice::class] as $model) {
+            $model::saved(fn () => Entitlements::flush());
+            $model::deleted(fn () => Entitlements::flush());
+        }
     }
 
     /**

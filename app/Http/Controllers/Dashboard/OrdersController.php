@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Reservation;
 use App\Models\TableCall;
 use App\Services\Audit;
@@ -21,6 +22,7 @@ use App\Support\PrepKind;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -48,8 +50,13 @@ class OrdersController extends Controller
         ]);
     }
 
-    public function feed(Request $request): JsonResponse
+    public function feed(Request $request): JsonResponse|Response
     {
+        // the page polls every few seconds: when nothing moved since the stamp it was given, nothing is built or sent
+        $stamp = $this->stamp($request);
+        if ($request->query('stamp') === $stamp) {
+            return response()->noContent();
+        }
         $orders = $this->scoped($request)
             ->where(fn ($q) => $q->whereIn('status', ['new', 'preparing', 'ready', 'on_way'])
                 ->orWhere(fn ($q) => $q->whereIn('status', ['served', 'cancelled'])->where('updated_at', '>=', now()->subHours(3))))
@@ -61,6 +68,7 @@ class OrdersController extends Controller
             ->with('table')->orderBy('id')->limit(50)->get();
 
         return response()->json([
+            'stamp' => $stamp,
             'max_id' => (int) $this->scoped($request)->max('id'),
             'busy' => BusyMode::state(),
             'orders' => $orders->map(fn (Order $o) => $this->present($o))->values(),
@@ -244,6 +252,8 @@ class OrdersController extends Controller
         ]);
         $cancel = $data['status'] === 'cancelled';
         try {
+            // paid orders are refused by the service itself (under the row lock, so a payment taken on another
+            // screen a moment ago counts too); checked here first so no approval PIN is asked for nothing
             if ($cancel && $order->payment_status === 'paid' && $order->payment_method !== WalletService::METHOD) {
                 throw new OrderException(__('This order is paid: give the money back with a refund from the cashier screen (a manager approves).'));
             }
@@ -294,6 +304,30 @@ class OrdersController extends Controller
         $branch = $request->user()->branch_id;
 
         return Order::query()->when($branch, fn ($q) => $q->where('branch_id', $branch));
+    }
+
+    /**
+     * What the board would show, in a few cheap aggregates: the newest and last-changed order, the last part marked
+     * ready, the open waiter calls, the pending reservations, and the minute (the minutes shown on calls and the
+     * stale count move with the clock). The same stamp means the same board.
+     */
+    private function stamp(Request $request): string
+    {
+        $branch = $request->user()->branch_id;
+        $open = $this->scoped($request)->whereIn('status', ['new', 'preparing', 'ready', 'on_way']);
+        $calls = TableCall::query()->whereNull('handled_at')->when($branch, fn ($q) => $q->where('branch_id', $branch));
+        $reservations = Reservation::query()->where('status', 'pending')->when($branch, fn ($q) => $q->where('branch_id', $branch));
+
+        return sha1(implode('|', [
+            (int) $this->scoped($request)->max('id'), (string) $this->scoped($request)->max('updated_at'),
+            // a move within the same second as the last change still shows: how many orders sit in each column, paid or not
+            (clone $open)->selectRaw('status, payment_status, count(*) as n')->groupBy('status', 'payment_status')
+                ->orderBy('status')->orderBy('payment_status')->get()->map(fn ($r) => "$r->status:$r->payment_status=$r->n")->implode(','),
+            (string) OrderItem::query()->whereIn('order_id', (clone $open)->select('id'))->max('ready_at'),
+            (int) (clone $calls)->max('id'), (int) (clone $calls)->count(),
+            (int) (clone $reservations)->max('id'), (int) (clone $reservations)->count(),
+            intdiv(time(), 60),
+        ]));
     }
 
     private function visible(Request $request, Order $order): bool

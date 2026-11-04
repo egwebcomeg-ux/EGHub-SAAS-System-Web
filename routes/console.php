@@ -131,9 +131,17 @@ Schedule::command('eghub:campaigns')->everyMinute()->withoutOverlapping(10);
 Schedule::command('eghub:auto-cancel')->everyMinute()->withoutOverlapping(10);
 Schedule::command('eghub:daily-digest')->dailyAt('07:40')->withoutOverlapping(60);
 Schedule::command('eghub:weekly-report')->weeklyOn(1, '08:00')->withoutOverlapping(60);
-// background jobs (AI menu import) without a separate worker process: drained every minute by the same cron, in the
-// background so the minute's other entries (and the heartbeat) are not held up; a failed job is retried twice, 30 s apart
-Schedule::command('queue:work --stop-when-empty --max-time=55 --tries=3 --backoff=30')->everyMinute()->withoutOverlapping(5)->runInBackground();
+// background jobs without a separate worker process: drained every minute by the same cron, in the background so the
+// minute's other entries (and the heartbeat) are not held up. Two lines: the guests' and staff's messages (default)
+// never wait behind a campaign of thousands, a backup or a translation (the jobs that put themselves on `low`).
+// Each job says how often it is retried ($tries); the lock outlives the longest job of its queue.
+Schedule::command('queue:work --queue=default --stop-when-empty --max-time=55')->everyMinute()->withoutOverlapping(5)->runInBackground();
+Schedule::command('queue:work --queue=low --stop-when-empty --max-time=55')->everyMinute()->withoutOverlapping(20)->runInBackground();
+// the database cache store (rate limits, locks, heartbeats) only drops an expired row when that same key is read
+// again: the one-off keys of every guest and address seen are swept here
+Schedule::call(fn () => DB::table('cache')->where('expiration', '<', time())->delete())->dailyAt('04:10')->name('cache-gc')->withoutOverlapping(30);
+// the rows nobody reads any more (delivery trails, spent sign-in steps, audit trails older than two years)
+Schedule::command('model:prune')->dailyAt('04:20')->withoutOverlapping(60);
 // heartbeat read by eghub:doctor to confirm the cron line is installed
 Schedule::call(fn () => cache()->put('eghub:scheduler_at', now()->timestamp, now()->addDay()))->everyMinute()->name('scheduler-heartbeat');
 

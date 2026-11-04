@@ -14,6 +14,7 @@ use App\Services\Orders\OrderService;
 use App\Support\PrepKind;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -40,17 +41,25 @@ class KitchenController extends Controller
         ]);
     }
 
-    public function feed(Request $request): JsonResponse
+    public function feed(Request $request): JsonResponse|Response
     {
         $branch = PosController::branch($request);
         $station = $this->station($request);
 
         OrderFlow::kitchenSeen();
         // the last STALE_HOURS: an order forgotten since yesterday never pushes today's off the screen
-        $orders = Order::query()->where('branch_id', $branch->id)->whereIn('status', ['new', 'preparing'])
+        $open = Order::query()->where('branch_id', $branch->id)->whereIn('status', ['new', 'preparing'])
             ->where(fn ($q) => $q->whereNull('scheduled_for')->where('created_at', '>=', now()->subHours(self::STALE_HOURS))
-                ->orWhere(fn ($q) => $q->whereNotNull('scheduled_for')->where('scheduled_for', '<=', now()->addMinutes(self::SCHEDULE_LEAD_MINUTES))))
-            ->with(['items', 'table'])->orderBy('id')->limit(60)->get();
+                ->orWhere(fn ($q) => $q->whereNotNull('scheduled_for')->where('scheduled_for', '<=', now()->addMinutes(self::SCHEDULE_LEAD_MINUTES))));
+        // the screen polls every few seconds: when no ticket changed since the stamp it was given, nothing is built or sent
+        $maxId = (int) Order::query()->where('branch_id', $branch->id)->max('id');
+        $stamp = sha1(implode('|', [$maxId, (string) (clone $open)->max('updated_at'),
+            (clone $open)->selectRaw('status, count(*) as n')->groupBy('status')->orderBy('status')->pluck('n', 'status')->toJson(),
+            (string) OrderItem::query()->whereIn('order_id', (clone $open)->select('id'))->max('ready_at'), intdiv(time(), 60)]));
+        if ($request->query('stamp') === $stamp) {
+            return response()->noContent();
+        }
+        $orders = $open->with(['items', 'table'])->orderBy('id')->limit(60)->get();
 
         $tickets = $orders->map(function (Order $o) use ($station, $request) {
             // a station's lines, and the lines of categories left on "all screens" (no station), so nothing is lost
@@ -76,7 +85,7 @@ class KitchenController extends Controller
             ];
         })->filter()->values();
 
-        return response()->json(['max_id' => (int) Order::query()->where('branch_id', $branch->id)->max('id'), 'tickets' => $tickets]);
+        return response()->json(['stamp' => $stamp, 'max_id' => $maxId, 'tickets' => $tickets]);
     }
 
     /**

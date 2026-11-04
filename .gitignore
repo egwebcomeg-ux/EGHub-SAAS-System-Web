@@ -29,6 +29,11 @@ Thumbs.db
 # agent worktrees
 .claude/worktrees/
 
+# reference material kept beside the code, never part of it (the published APKs under public/ stay tracked)
+/assets/
+/assits/
+*.zip
+
 # hidden beta downloads of the Android apps, uploaded to the server only
 /public/b-*/
 

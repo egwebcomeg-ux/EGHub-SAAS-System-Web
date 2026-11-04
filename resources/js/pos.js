@@ -6,6 +6,7 @@ import './kb-drawer';
 import { bindPager, pagerButtons, pagerStatus } from './pager-call';
 import { createNativePrinter } from './native-print';
 import { quoteAt } from './delivery-geo';
+import { charges } from './bill';
 
 const dataEl = document.getElementById('pos-data');
 if (dataEl) {
@@ -144,8 +145,7 @@ if (dataEl) {
         // the voucher's discount as the server priced it for this exact cart (re-checked when the cart changes)
         const voucher = state.coupon && state.coupon.key === couponKey(staff) ? Math.min(subtotal - staff, state.coupon.off) : 0;
         const discount = staff + voucher;
-        const service = state.type === 'dine_in' ? (subtotal - discount) * D.service / 100 : 0;
-        const tax = (subtotal - discount + service) * D.tax / 100;
+        const { service, tax } = charges(subtotal - discount, state.type === 'dine_in', D);
         const zone = CC && state.type === 'delivery' ? ccDelivery() : null;
         const delivery = zone ? zone.fee : 0;
         return { subtotal, staff, voucher, discount: Math.round(discount * 100) / 100, service, tax, delivery, zone, total: subtotal - discount + service + tax + delivery };
@@ -1030,8 +1030,9 @@ if (dataEl) {
         });
         const subtotal = r2(lines.reduce((sum, l) => sum + r2(l.unit_price * l.qty), 0));
         const discount = r2(Math.min(subtotal, totals().staff));
-        const service = state.type === 'dine_in' ? r2((subtotal - discount) * D.service / 100) : 0;
-        const tax = r2((subtotal - discount + service) * D.tax / 100);
+        const due = charges(subtotal - discount, state.type === 'dine_in', D);
+        const service = r2(due.service);
+        const tax = r2((subtotal - discount + service) * D.tax / 100); // on the rounded service, as the server re-checks it
         const total = r2(subtotal - discount + service + tax);
         const tendered = payMethod === 'cash' && $('[data-tendered]').value !== '' ? Number($('[data-tendered]').value) : null;
         const now = new Date().toISOString();

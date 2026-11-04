@@ -12,6 +12,7 @@ use App\Models\Plan;
 use App\Models\Tenant;
 use App\Models\TvScreen;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * The single answer to "may this restaurant do X / how many Y may it have".
@@ -35,6 +36,16 @@ final class Entitlements
         private bool $paid = false,
     ) {}
 
+    /**
+     * Seconds a restaurant's rights stay in the cache store: the dashboard's every request (and the boards' every poll)
+     * reads them in one lookup instead of the five queries of build(). A plan, add-on or subscription change forgets
+     * them at once (flush(), the model hooks in AppServiceProvider), so the minute only covers edits made behind
+     * the models' back.
+     */
+    public const CACHE_SECONDS = 60;
+
+    private const VERSION_KEY = 'entitlements:version';
+
     public static function for(Tenant $tenant): self
     {
         return self::$memo[$tenant->getTenantKey()] ??= self::build($tenant);
@@ -45,13 +56,34 @@ final class Entitlements
         return self::for(tenant() ?? throw new \LogicException('No tenant'));
     }
 
-    /** Forget memoised rights (after plan changes and between tests). */
-    public static function flush(): void
+    /**
+     * Forget the rights: of one restaurant (its subscription or add-ons changed), or of every restaurant (a plan's
+     * features or an add-on's contents changed, between tests).
+     */
+    public static function flush(?string $tenantId = null): void
     {
         self::$memo = [];
+        if ($tenantId !== null) {
+            Cache::forget(self::cacheKey($tenantId));
+        } else {
+            Cache::forever(self::VERSION_KEY, (int) Cache::get(self::VERSION_KEY, 1) + 1);
+        }
+    }
+
+    private static function cacheKey(string $tenantId): string
+    {
+        return 'entitlements:'.(int) Cache::get(self::VERSION_KEY, 1).':'.$tenantId;
     }
 
     private static function build(Tenant $tenant): self
+    {
+        $rights = Cache::remember(self::cacheKey($tenant->getTenantKey()), self::CACHE_SECONDS, fn () => self::compute($tenant));
+
+        return new self($tenant, $rights['plan'], $rights['features'], $rights['limits'], $rights['paid']);
+    }
+
+    /** @return array{plan: Plan, features: array<string,bool>, limits: array<string,int|null>, paid: bool} */
+    private static function compute(Tenant $tenant): array
     {
         $sub = $tenant->subscription()->with(['plan.features', 'addons'])->first();
         $plan = $sub?->plan ?? Plan::query()->with('features')->where('code', self::FALLBACK_PLAN)->first()
@@ -95,7 +127,7 @@ final class Entitlements
         // a paying restaurant: an active subscription on a plan other than Free (trial, past due and canceled are not)
         $paid = $sub !== null && $sub->status === 'active' && $plan->code !== self::FALLBACK_PLAN;
 
-        return new self($tenant, $plan, $e['features'], $e['limits'], $paid);
+        return ['plan' => $plan, 'features' => $e['features'], 'limits' => $e['limits'], 'paid' => $paid];
     }
 
     /** "a|b" is allowed when either feature is. */

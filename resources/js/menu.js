@@ -4,6 +4,7 @@
 import './storage-rename';
 
 import { quoteAt, zoneAt } from './delivery-geo';
+import { charges } from './bill';
 
 const dataEl = document.getElementById('menu-data');
 if (dataEl) {
@@ -582,8 +583,8 @@ if (dataEl) {
         // the coupon the server priced for exactly these lines and this code (couponFor)
         const coupon = couponFor();
         const couponOff = coupon ? Math.min(coupon.discount, subtotal - goal.off) : 0;
-        const service = inHall() ? (subtotal - goal.off - couponOff) * M.service / 100 : 0;
-        const tax = mode === 'none' ? 0 : (subtotal - goal.off - couponOff + service) * M.tax / 100;
+        const { service, tax: taxDue } = charges(subtotal - goal.off - couponOff, inHall(), M);
+        const tax = mode === 'none' ? 0 : taxDue; // the list look shows prices only, nothing is ordered from it
         const zone = currentZone();
         const fee = zone ? zone.fee : 0;
         return { subtotal, goal, coupon, service, tax, fee, zone, total: subtotal - goal.off - couponOff + service + tax + fee };
@@ -1800,10 +1801,14 @@ if (dataEl) {
             if (!who.length) { who = everyone; if (split.mode !== 'equal') unclaimed++; }
             who.forEach((i) => { food[i] += u.price / who.length; });
         });
+        // each person's share carries its share of the cart goal and coupon discounts, so the parts add up to the
+        // bill the server charges (the same rule as the cart's totals())
+        const t = totals();
+        const discounted = t.subtotal > 0 ? (t.subtotal - t.goal.off - (t.coupon ? Math.min(t.coupon.discount, t.subtotal - t.goal.off) : 0)) / t.subtotal : 1;
         const people = food.map((f) => {
-            const service = f * M.service / 100;
-            const tax = (f + service) * M.tax / 100;
-            return { food: f, service, tax, total: f + service + tax };
+            const share = f * discounted;
+            const { service, tax } = charges(share, inHall(), M);
+            return { food: share, service, tax, total: share + service + tax };
         });
         const cents = people.map((p) => Math.round(p.total * 100));
         const grand = Math.round(people.reduce((s, p) => s + p.total, 0) * 100);

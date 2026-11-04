@@ -26,6 +26,11 @@ class AuthAndRolesTest extends TenantTestCase
         $a = $this->restaurant('cafe-a');
         $this->post($this->dashUrl('/login'), ['login' => 'owner@cafe-a.test', 'password' => 'nope'])->assertSessionHasErrors('login');
 
+        // neither an email nor a mobile number: no account is looked up (the owner has no phone; a null phone must not match them)
+        $this->assertNull($this->owner($a)->phone);
+        $this->post($this->dashUrl('/login'), ['login' => 'owner', 'password' => 'Secret-pass-123'])->assertSessionHasErrors('login');
+        $this->assertGuest('web');
+
         $kitchen = $this->staff($a, 'kitchen', 'k@cafe-a.test');
         $kitchen->forceFill(['is_active' => false])->save();
         $this->post($this->dashUrl('/login'), ['login' => 'k@cafe-a.test', 'password' => 'Secret-pass-123'])->assertSessionHasErrors('login');

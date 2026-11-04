@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -25,7 +27,15 @@ class GuestSignIn extends Model
     /** «ادعي عملاءك»: a personal link that lets an existing guest claim their account (App\Services\Customers\ClaimLinks) */
     public const KIND_CLAIM = 'claim';
 
+    use MassPrunable;
+
     protected $guarded = ['id'];
+
+    /** A step a week past its expiry can never be used again: `model:prune` drops it (claim links live long by their own expiry). */
+    public function prunable(): Builder
+    {
+        return static::query()->where('expires_at', '<', now()->subDays(7));
+    }
 
     protected function casts(): array
     {

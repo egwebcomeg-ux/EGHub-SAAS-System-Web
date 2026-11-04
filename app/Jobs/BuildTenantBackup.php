@@ -21,7 +21,10 @@ class BuildTenantBackup implements ShouldQueue
 
     public int $timeout = 900;
 
-    public function __construct(public int $backupId) {}
+    public function __construct(public int $backupId)
+    {
+        $this->onQueue('low'); // up to 15 minutes: never in front of the guests' messages (routes/console.php)
+    }
 
     public function handle(TenantBackups $backups): void
     {

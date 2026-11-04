@@ -339,11 +339,21 @@ if (board) {
         bookingsBox.classList.toggle('hidden', !bookingsBox.children.length);
     });
 
+    // the server's stamp of the last board it sent: the same stamp back means "nothing moved", an empty answer
+    let stamp = null;
     async function poll() {
         try {
-            const res = await fetch(board.dataset.feed, { headers: { Accept: 'application/json' } });
+            const url = board.dataset.feed + (stamp ? (board.dataset.feed.includes('?') ? '&' : '?') + 'stamp=' + encodeURIComponent(stamp) : '');
+            const res = await fetch(url, { headers: { Accept: 'application/json' } });
+            // the session ended (idle, signed out elsewhere, a new build): the page signs in again instead of polling for nothing
+            if (res.status === 401 || res.status === 419) { location.reload(); return; }
             if (!res.ok) throw new Error(res.status);
+            if (res.status === 204) {
+                document.querySelector('[data-live-dot]')?.classList.replace('bg-red-500', 'bg-emerald-500');
+                return;
+            }
             const data = await res.json();
+            stamp = data.stamp || null;
             if (lastMaxId !== null && data.max_id > lastMaxId) chime();
             lastMaxId = data.max_id;
             drivers = data.drivers || [];
@@ -362,6 +372,7 @@ if (board) {
 
     async function refresh() {
         const data = await (await fetch(board.dataset.feed, { headers: { Accept: 'application/json' } })).json();
+        stamp = data.stamp || null;
         drivers = data.drivers || drivers;
         render(data.orders, data.counts);
     }

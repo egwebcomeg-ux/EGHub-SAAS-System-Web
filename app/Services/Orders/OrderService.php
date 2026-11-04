@@ -121,8 +121,7 @@ final class OrderService
         [$tier, $memberOff] = app(Membership::class)->discountFor($memberPhone, $subtotal - $discount);
         $discount = round($discount + $memberOff, 2);
         $type = in_array($data['type'] ?? null, array_keys(Order::TYPES), true) ? $data['type'] : ($table ? 'dine_in' : 'takeaway');
-        $service = $type === 'dine_in' ? round(($subtotal - $discount) * $this->percent('service_percent'), 2) : 0.0;
-        $tax = round(($subtotal - $discount + $service) * $this->percent('tax_percent'), 2);
+        ['service' => $service, 'tax' => $tax] = Bill::charges($subtotal - $discount, $type === 'dine_in');
 
         // Delivery: the zone sets the fee and the minimum (its sub-areas inherit empty values), or the distance quote.
         $zone = $type === 'delivery' ? ($data['delivery_zone'] ?? null) : null;
@@ -271,10 +270,14 @@ final class OrderService
         }
 
         return DB::transaction(function () use ($order, $method, $by, $shift, $vouchers, $voucherPhone, $parts) {
-            // locked: two taps on "pay" (or two cashiers) never take the money twice
+            // locked: two taps on "pay" (or two cashiers) never take the money twice, and a cancel that landed on
+            // another screen a moment ago is seen here (a cancelled order is never paid, its wallet money never taken)
             $locked = Order::query()->lockForUpdate()->findOrFail($order->id);
             if ($locked->payment_status === 'paid') {
                 throw new OrderException(__('This order is already paid.'));
+            }
+            if ($locked->status === 'cancelled') {
+                throw new OrderException(__('This order was cancelled.'));
             }
             $covered = $vouchers !== [] ? app(CorporateVouchers::class)->redeemForOrder($locked, $vouchers, $voucherPhone, $by) : 0.0;
             $rest = round((float) $locked->total - $covered, 2);
@@ -445,9 +448,8 @@ final class OrderService
             throw new OrderException(__('You are not allowed to give discounts.'));
         }
         $type = ($data['type'] ?? '') === 'dine_in' ? 'dine_in' : 'takeaway';
-        $expectedService = $type === 'dine_in' ? round(($subtotal - $discount) * $this->percent('service_percent'), 2) : 0.0;
-        $expectedTax = round(($subtotal - $discount + $service) * $this->percent('tax_percent'), 2);
-        if (abs($expectedService - $service) > 0.011 || abs($expectedTax - $tax) > 0.011) {
+        $expected = Bill::charges($subtotal - $discount, $type === 'dine_in');
+        if (abs($expected['service'] - $service) > 0.011 || abs($expected['tax'] - $tax) > 0.011) {
             $notes[] = __('Service / tax differ from today\'s settings.');
         }
         $table = $type === 'dine_in' && ! empty($data['table_id']) ? DiningTable::query()->where('branch_id', $branch->id)->find((int) $data['table_id']) : null;
@@ -516,12 +518,20 @@ final class OrderService
 
         return DB::transaction(function () use ($order, $to, $by, $reason) {
             // locked and re-read: two screens cancelling the same order at once must not give the coupon, stock,
-            // stamps or wallet money back twice (the second sees the order already cancelled)
-            $current = Order::query()->lockForUpdate()->whereKey($order->id)->value('status');
-            if ($current !== $order->status) {
-                $order->status = $current;
+            // stamps or wallet money back twice (the second sees the order already cancelled), and a payment taken
+            // on another screen a moment ago is seen here: cash in the drawer is given back with a refund, not a cancel
+            $current = Order::query()->lockForUpdate()->whereKey($order->id)->first(['status', 'payment_status', 'payment_method']);
+            if ($current->status !== $order->status) {
+                $order->status = $current->status;
                 if (! $order->canMoveTo($to)) {
                     throw new OrderException(__('This order can no longer be moved to ":status".', ['status' => Order::STATUSES[$to][app()->getLocale() === 'en' ? 1 : 0] ?? $to]));
+                }
+            }
+            if ($to === 'cancelled') {
+                $order->payment_status = $current->payment_status;
+                $order->payment_method = $current->payment_method;
+                if ($order->payment_status === 'paid' && $order->payment_method !== WalletService::METHOD) {
+                    throw new OrderException(__('This order is paid: give the money back with a refund from the cashier screen (a manager approves).'));
                 }
             }
             $from = $order->status;
@@ -810,11 +820,6 @@ final class OrderService
         }
 
         return $out;
-    }
-
-    private function percent(string $key): float
-    {
-        return max(0.0, min(100.0, (float) Settings::get($key))) / 100;
     }
 
     private function customer(string $phone, string $name, string $source = 'menu'): Customer

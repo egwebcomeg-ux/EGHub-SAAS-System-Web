@@ -131,9 +131,16 @@ if (kds) {
         }).join('');
     }
 
-    async function load() {
-        const res = await fetch(kds.dataset.feed, { headers: { Accept: 'application/json' } });
+    // the server's stamp of the last tickets it sent: the same stamp back means "nothing changed", an empty answer
+    let stamp = null;
+    async function load(force = false) {
+        const url = kds.dataset.feed + (stamp && !force ? (kds.dataset.feed.includes('?') ? '&' : '?') + 'stamp=' + encodeURIComponent(stamp) : '');
+        const res = await fetch(url, { headers: { Accept: 'application/json' } });
+        // the session ended (idle, signed out elsewhere, a new build): the screen signs in again instead of polling for nothing
+        if (res.status === 401 || res.status === 419) { location.reload(); return; }
+        if (res.status === 204) return;
         const data = await res.json();
+        stamp = data.stamp || null;
         if (lastMax !== null && data.max_id > lastMax) chime();
         lastMax = data.max_id;
         // only what changed is drawn again (the minutes move with the 30-second redraw)
@@ -149,7 +156,7 @@ if (kds) {
         setTimeout(poll, 4000);
     }
 
-    bindPager(kds, () => load().catch(() => {}));
+    bindPager(kds, () => load(true).catch(() => {}));
 
     kds.addEventListener('click', async (e) => {
         const b = e.target.closest('[data-bump]');

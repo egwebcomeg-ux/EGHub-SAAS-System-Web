@@ -25,10 +25,15 @@ class AuthController extends Controller
     {
         $data = $request->validate(['login' => 'required|string|max:120', 'password' => 'required|string|max:200']);
         $login = trim($data['login']);
-        $phone = normalize_phone($login);
+        $byEmail = str_contains($login, '@');
+        $phone = $byEmail ? null : normalize_phone($login);
+        if (! $byEmail && $phone === null) {
+            // neither an email nor a mobile number: never looked up (a null phone would match the accounts without one)
+            return back()->withInput(['login' => $login])->withErrors(['login' => __('Wrong login or password.')]);
+        }
 
         // Central context: no tenant scope yet, the identifier is unique platform-wide.
-        $user = User::query()->where(str_contains($login, '@') ? 'email' : 'phone', str_contains($login, '@') ? strtolower($login) : $phone)->first();
+        $user = User::query()->where($byEmail ? 'email' : 'phone', $byEmail ? strtolower($login) : $phone)->first();
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             return back()->withInput(['login' => $login])->withErrors(['login' => __('Wrong login or password.')]);

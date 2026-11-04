@@ -18,7 +18,10 @@ class SendCampaignBatch implements ShouldQueue
 
     public int $timeout = 300;
 
-    public function __construct(public int $campaignId) {}
+    public function __construct(public int $campaignId)
+    {
+        $this->onQueue('low'); // thousands of messages never hold up an order's "ready" message (routes/console.php)
+    }
 
     public function handle(Campaigns $campaigns): void
     {
