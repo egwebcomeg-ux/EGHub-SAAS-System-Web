@@ -40,6 +40,10 @@ abstract class TwoFactorChallengeController extends Controller
             return redirect()->route($this->routes.'login')->withErrors(['login' => __('Your session expired. Please sign in again.')]);
         }
         if (! TwoFactor::check($user, $data['code'])) {
+            if (! TwoFactor::failed($request, $this->guard)) {
+                return redirect()->route($this->routes.'login')->withErrors(['login' => __('Too many wrong codes. Sign in again.')]);
+            }
+
             return back()->withErrors(['code' => __('The code is not right. Try again.')]);
         }
         TwoFactor::complete($request, $this->guard, $user, $request->boolean('remember_device'));

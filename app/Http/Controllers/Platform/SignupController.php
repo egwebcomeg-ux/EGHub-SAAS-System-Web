@@ -14,6 +14,7 @@ use App\Services\ModuleChoice;
 use App\Services\TenantProvisioner;
 use App\Services\WhatsApp\PlatformInbox;
 use App\Support\BusinessType;
+use App\Support\Passwords;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -77,7 +78,7 @@ class SignupController extends Controller
             'owner_name' => 'required|string|max:80',
             'email' => 'required|email|max:120|unique:users,email',
             'phone' => ['required', 'regex:/^01[0125]\d{8}$/', 'unique:users,phone'],
-            'password' => $social ? 'nullable' : 'required|string|min:8|max:200|confirmed',
+            'password' => $social ? 'nullable' : ['required', 'string', 'max:200', 'confirmed', Passwords::rule()],
             'terms' => 'accepted',
             'business_type' => ['nullable', Rule::in(array_keys(BusinessType::TYPES))],
             'modules' => 'nullable|string|max:600',

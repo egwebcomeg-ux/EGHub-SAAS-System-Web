@@ -1,4 +1,4 @@
-// Kitchen display: polls the feed, oldest ticket first; green → amber after 10 min → red after 20 (Filetto rule).
+// Kitchen display: polls the feed, oldest ticket first; green → amber → red after the restaurant's minutes (10 and 20 by default).
 // "Start" moves a new ticket to preparing, "Ready" bumps it (only this station's lines when a station is chosen).
 import './storage-rename';
 
@@ -7,6 +7,9 @@ import { bindPager, pagerButtons, pagerStatus } from './pager-call';
 const kds = document.getElementById('kds');
 if (kds) {
     const T = JSON.parse(kds.dataset.i18n);
+    // the restaurant's own patience (settings kitchen_warn_minutes / kitchen_late_minutes)
+    const WARN = Number(kds.dataset.warnMinutes) || 10;
+    const LATE = Number(kds.dataset.lateMinutes) || 20;
     const csrf = document.querySelector('meta[name="csrf-token"]').content;
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     // the guest's WhatsApp answer on a cash-on-delivery order: a thin strip, the kitchen never waits for it
@@ -109,7 +112,7 @@ if (kds) {
         kds.innerHTML = shown.map((t) => {
             const split = KINDS.filter((k) => t.items.some((i) => i.kind === k)).length > 1;
             const m = minutes(t.since);
-            const tone = m >= 20 ? 'bg-brand-600 motion-safe:animate-pulse' : m >= 10 ? 'bg-amber-500' : t.status === 'new' ? 'bg-sky-600' : 'bg-emerald-600';
+            const tone = m >= LATE ? 'bg-brand-600 motion-safe:animate-pulse' : m >= WARN ? 'bg-amber-500' : t.status === 'new' ? 'bg-sky-600' : 'bg-emerald-600';
             const where = t.table ? T.table.replace('__N__', t.table) : t.type_label;
             return `<article class="flex flex-col overflow-hidden rounded-2xl bg-white text-navy-900">
                 <header class="${tone} flex items-center justify-between px-4 py-2 text-white">

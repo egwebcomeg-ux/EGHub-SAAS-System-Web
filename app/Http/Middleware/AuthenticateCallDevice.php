@@ -20,6 +20,10 @@ class AuthenticateCallDevice
         if (! $admin instanceof PlatformAdmin || ! $admin->is_active || ! $admin->allows('crm.manage') || TwoFactor::adminSetupRequired($admin)) {
             return response()->json(['ok' => false, 'error' => 'not_linked'], 401);
         }
+        // a phone silent for months (lost, replaced) is linked again by hand before its token works
+        if ($device->last_seen_at !== null && $device->last_seen_at->lt(now()->subDays(CallDevice::IDLE_DAYS))) {
+            return response()->json(['ok' => false, 'error' => 'not_linked'], 401);
+        }
         if ($device->last_seen_at === null || $device->last_seen_at->lt(now()->subMinute())) {
             $device->forceFill(['last_seen_at' => now()])->save();
         }

@@ -47,6 +47,7 @@
     <main class="grid flex-1 auto-rows-min gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4" id="kds"
           data-feed="{{ route('dash.kitchen.feed', array_filter(['station' => $station?->id])) }}"
           data-bump="{{ url('/kitchen/orders/__ID__') . ($station ? '?station=' . $station->id : '') }}"
+          data-warn-minutes="{{ $warnMinutes }}" data-late-minutes="{{ $lateMinutes }}"
           data-i18n='{{ json_encode($i18n, JSON_UNESCAPED_UNICODE) }}'></main>
 </div>
 @endsection

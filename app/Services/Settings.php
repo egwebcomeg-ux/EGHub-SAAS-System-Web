@@ -214,6 +214,9 @@ final class Settings
         'food_cost_target' => '35',
         // inventory pack: a sale may take an ingredient below zero (the count sheet corrects it); '0' refuses the order
         'stock_allow_negative' => '1',
+        // kitchen display: a ticket turns amber, then red, after these minutes (Dashboard\KitchenController)
+        'kitchen_warn_minutes' => '10',
+        'kitchen_late_minutes' => '20',
     ];
 
     /** @var array<string,array<string,string>> */
@@ -227,7 +230,8 @@ final class Settings
     /** @return array<string,string> */
     public static function all(): array
     {
-        $id = (string) tenant()?->getTenantKey();
+        // never without a restaurant: the rows of every restaurant would be read as one (the scope is silent then)
+        $id = (string) (tenant() ?? throw new \LogicException('No tenant'))->getTenantKey();
 
         return self::$memo[$id] ??= array_merge(self::DEFAULTS,
             TenantSetting::query()->pluck('value', 'key')->map(fn ($v) => (string) $v)->all());

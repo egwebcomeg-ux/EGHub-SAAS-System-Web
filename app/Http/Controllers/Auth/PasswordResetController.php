@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\Passwords;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Contracts\Auth\CanResetPassword;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\View\View;
 
 /**
@@ -46,7 +46,7 @@ abstract class PasswordResetController extends Controller
         $data = $request->validate([
             'token' => 'required|string',
             'email' => 'required|email|max:120',
-            'password' => ['required', 'confirmed', PasswordRule::min(8)],
+            'password' => ['required', 'confirmed', Passwords::rule($this->broker() === 'platform_admins' ? Passwords::ADMIN_MIN : Passwords::MIN)],
         ]);
 
         $status = Password::broker($this->broker())->reset(

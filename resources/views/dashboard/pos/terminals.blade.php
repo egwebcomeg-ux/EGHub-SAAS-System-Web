@@ -77,6 +77,17 @@
             <p class="muted text-sm">{{ __('When the internet drops, a terminal with an open shift keeps selling (cash, card, InstaPay, mobile wallet) and syncs when it is back. After this many hours without syncing it stops taking new offline sales.') }}</p>
             <label class="field-label" for="pos_offline_hours">{{ __('Hours allowed offline') }}</label>
             <input class="field" id="pos_offline_hours" name="pos_offline_hours" type="number" min="1" max="72" value="{{ $offlineHours }}" required>
+            <h2 class="section-title pt-2">{{ __('Kitchen display') }}</h2>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="field-label" for="kitchen_warn_minutes">{{ __('Kitchen ticket turns amber after (minutes)') }}</label>
+                    <input class="field" id="kitchen_warn_minutes" name="kitchen_warn_minutes" type="number" min="1" max="120" value="{{ $kitchenMinutes[0] }}" required>
+                </div>
+                <div>
+                    <label class="field-label" for="kitchen_late_minutes">{{ __('and red after (minutes)') }}</label>
+                    <input class="field" id="kitchen_late_minutes" name="kitchen_late_minutes" type="number" min="2" max="240" value="{{ $kitchenMinutes[1] }}" required>
+                </div>
+            </div>
             <button class="btn-ghost w-full">{{ __('Save') }}</button>
         </form>
         {{-- App\Services\Orders\WaiterCash: the waiter's cash stays with them until a cashier takes it on the shifts page --}}

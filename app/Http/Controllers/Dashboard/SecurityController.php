@@ -7,9 +7,9 @@ use App\Models\User;
 use App\Services\Audit;
 use App\Services\Corporate\CorporateVouchers;
 use App\Services\Entitlements;
+use App\Support\Passwords;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rules\Password;
 
 /** Account security of a restaurant staff member (app.<domain>/security), with the manager PIN for exceptions. */
 class SecurityController extends BaseSecurityController
@@ -40,7 +40,7 @@ class SecurityController extends BaseSecurityController
         $user = $request->user();
         $request->validate([
             'current_password' => ['required', 'current_password:web'],
-            'password' => ['required', 'string', 'max:200', 'confirmed', 'different:current_password', Password::min(8)->letters()->numbers()],
+            'password' => ['required', 'string', 'max:200', 'confirmed', 'different:current_password', Passwords::rule()],
         ]);
         $first = $user->must_change_password;
         $user->forceFill(['password' => $request->input('password')])->save();

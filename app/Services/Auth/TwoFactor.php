@@ -23,6 +23,27 @@ final class TwoFactor
 
     public const RECOVERY_CODES = 8;
 
+    /** Wrong codes one challenge takes before it is dropped (the password must be typed again). */
+    public const MAX_ATTEMPTS = 5;
+
+    /**
+     * A wrong code: counted against the challenge itself, so a six-digit code cannot be tried from a thousand
+     * addresses. Returns false when the challenge is used up and was dropped.
+     */
+    public static function failed(Request $request, string $guard): bool
+    {
+        $data = (array) $request->session()->get("2fa.$guard", []);
+        $data['attempts'] = (int) ($data['attempts'] ?? 0) + 1;
+        if ($data['attempts'] >= self::MAX_ATTEMPTS) {
+            $request->session()->forget("2fa.$guard");
+
+            return false;
+        }
+        $request->session()->put("2fa.$guard", $data);
+
+        return true;
+    }
+
     /** Starts the challenge: who passed the password, and whether they ticked "remember me". */
     public static function challenge(Request $request, string $guard, Authenticatable $user, bool $remember): void
     {

@@ -7735,5 +7735,8 @@
     "Open the dashboard": "افتح لوحة التحكم",
     "Settle the cash the drivers and waiters still hold first (:amount).": "سلّم الأول الكاش اللي لسه مع الطيارين والويترز (:amount).",
     "Not enough :item in stock (:left left).": "مفيش :item كفاية في المخزن (الباقي :left).",
-    "A sale may take an ingredient below zero (the count sheet corrects it)": "البيع ممكن ينزّل الصنف الخام تحت الصفر (الجرد بيصلّحه)"
+    "A sale may take an ingredient below zero (the count sheet corrects it)": "البيع ممكن ينزّل الصنف الخام تحت الصفر (الجرد بيصلّحه)",
+    "Too many wrong codes. Sign in again.": "أكواد غلط كتير. سجّل دخولك تاني.",
+    "Kitchen ticket turns amber after (minutes)": "تذكرة المطبخ بتبقى برتقالي بعد (دقايق)",
+    "and red after (minutes)": "وأحمر بعد (دقايق)"
 }

@@ -10,6 +10,9 @@ class CallDevice extends Model
 {
     protected $table = 'crm_call_devices';
 
+    /** A phone silent for this long must be linked again (App\Http\Middleware\AuthenticateCallDevice). */
+    public const IDLE_DAYS = 90;
+
     protected $guarded = ['id'];
 
     protected $hidden = ['token_hash'];

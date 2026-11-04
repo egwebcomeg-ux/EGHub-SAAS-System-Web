@@ -89,6 +89,7 @@ use App\Http\Controllers\Platform\BillingWebhookController;
 use App\Models\CampaignAutomation;
 use App\Models\Payment;
 use App\Services\Auth\SocialProviders;
+use App\Support\FeatureSets;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
@@ -98,7 +99,7 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 Route::middleware('admin.locale')->group(function () {
     Route::get('/login', [AuthController::class, 'show'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
-    Route::get('/welcome/{user}', [AuthController::class, 'welcome'])->whereNumber('user')->name('welcome');
+    Route::get('/welcome/{user}', [AuthController::class, 'welcome'])->whereNumber('user')->middleware('signed')->name('welcome');
     Route::get('/forgot-password', [PasswordResetController::class, 'request'])->name('password.request');
     Route::post('/forgot-password', [PasswordResetController::class, 'send'])->middleware('throttle:5,1')->name('password.email');
     Route::get('/reset-password/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
@@ -412,7 +413,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/loyalty/vouchers/{voucher}/toggle', [VouchersController::class, 'toggle'])->whereNumber('voucher')->name('vouchers.toggle');
     });
     // one page for every discount code: campaign coupons and loyalty vouchers (each side for whoever runs it today)
-    Route::middleware(['feature:loyalty_stamps|campaigns', 'permission:loyalty.manage|marketing.manage'])->group(function () {
+    Route::middleware(['feature:'.FeatureSets::DISCOUNT_CODES, 'permission:loyalty.manage|marketing.manage'])->group(function () {
         Route::get('/coupons', [CouponsController::class, 'index'])->name('coupons');
         Route::post('/coupons/{coupon}/toggle', [CouponsController::class, 'toggle'])->whereNumber('coupon')->name('coupons.toggle');
     });
@@ -432,7 +433,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/loyalty/rewards/{reward}/redeem', [LoyaltyController::class, 'redeem'])->name('loyalty.redeem');
     });
     // Advanced cards (cards pack / Business): cashback share, membership tiers, prepaid packages on sale
-    Route::middleware(['feature:cashback|prepaid_packages|membership', 'permission:loyalty.manage'])->group(function () {
+    Route::middleware(['feature:'.FeatureSets::ADVANCED_CARDS, 'permission:loyalty.manage'])->group(function () {
         // the old advanced cards page: its first section on the rewards page
         Route::get('/loyalty/cards', [CardsController::class, 'index'])->name('cards');
         Route::post('/loyalty/cards/cashback', [CardsController::class, 'cashback'])->name('cards.cashback');
@@ -454,7 +455,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::middleware(['feature:pos', 'permission:pos.use'])->group(function () {
         Route::get('/pos', [PosController::class, 'screen'])->name('pos');
         Route::post('/pos/orders', [PosController::class, 'store'])->name('pos.order');
-        Route::post('/pos/coupon', [PosController::class, 'coupon'])->middleware(['feature:loyalty_stamps|campaigns', 'throttle:60,1'])->name('pos.coupon');
+        Route::post('/pos/coupon', [PosController::class, 'coupon'])->middleware(['feature:'.FeatureSets::DISCOUNT_CODES, 'throttle:60,1'])->name('pos.coupon');
         Route::post('/pos/orders/{order}/pay', [PosController::class, 'pay'])->name('pos.pay');
         Route::get('/pos/open', [PosController::class, 'open'])->name('pos.open');
         Route::get('/pos/display', [PosController::class, 'display'])->name('pos.display');
@@ -547,7 +548,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     });
 
     // Delivery zones (call-center pack)
-    Route::middleware(['feature:delivery_zones|online_ordering', 'permission:delivery.manage'])->group(function () {
+    Route::middleware(['feature:'.FeatureSets::DELIVERY, 'permission:delivery.manage'])->group(function () {
         Route::get('/delivery-zones', [DeliveryZonesController::class, 'index'])->name('zones');
         Route::post('/delivery-zones', [DeliveryZonesController::class, 'store'])->name('zones.store');
         Route::post('/delivery-zones/mode', [DeliveryZonesController::class, 'mode'])->name('zones.mode');
@@ -559,7 +560,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
 
     // Delivery drivers (same plan feature as delivery): the driver's own screen and its JSON actions (the driver app
     // wraps these), giving orders to drivers, and the live drivers page with their cash
-    Route::middleware(['feature:delivery_zones|online_ordering', 'permission:delivery.drive'])->group(function () {
+    Route::middleware(['feature:'.FeatureSets::DELIVERY, 'permission:delivery.drive'])->group(function () {
         Route::get('/driver', [DriverController::class, 'screen'])->name('driver');
         Route::get('/driver/orders', [DriverController::class, 'orders'])->name('driver.orders');
         Route::post('/driver/orders/{order}/picked-up', [DriverController::class, 'pickUp'])->whereNumber('order')->middleware('throttle:30,1')->name('driver.picked-up');
@@ -568,16 +569,16 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/driver/location', [DriverController::class, 'location'])->middleware('throttle:12,1')->name('driver.location');
         Route::post('/driver/orders/{order}/tracking', [DriverController::class, 'tracking'])->whereNumber('order')->middleware('throttle:20,1')->name('driver.tracking');
     });
-    Route::middleware(['feature:delivery_zones|online_ordering', 'permission:delivery.assign'])->group(function () {
+    Route::middleware(['feature:'.FeatureSets::DELIVERY, 'permission:delivery.assign'])->group(function () {
         Route::post('/orders/{order}/driver', [DriversController::class, 'assign'])->whereNumber('order')->name('orders.driver');
     });
-    Route::middleware(['feature:delivery_zones|online_ordering', 'permission:delivery.assign|delivery.drivers'])->group(function () {
+    Route::middleware(['feature:'.FeatureSets::DELIVERY, 'permission:delivery.assign|delivery.drivers'])->group(function () {
         Route::get('/drivers', [DriversController::class, 'index'])->name('drivers');
         Route::get('/drivers/feed', [DriversController::class, 'feed'])->name('drivers.feed');
         Route::get('/drivers/orders/{order}/trail', [DriversController::class, 'trail'])->whereNumber('order')->name('drivers.trail');
     });
     Route::post('/drivers/{driver}/settle', [DriversController::class, 'settle'])->whereNumber('driver')
-        ->middleware(['feature:delivery_zones|online_ordering', 'permission:delivery.drivers'])->name('drivers.settle');
+        ->middleware(['feature:'.FeatureSets::DELIVERY, 'permission:delivery.drivers'])->name('drivers.settle');
 
     // Call-center pack: phone orders with delivery zones
     Route::middleware(['feature:call_center', 'permission:callcenter.use'])->group(function () {

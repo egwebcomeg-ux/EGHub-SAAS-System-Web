@@ -30,6 +30,14 @@ class SecurityHeaders
         if ($request->isSecure()) {
             $defaults['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
         }
+        // the second line of defence behind escaping: no plugins, no <base> rewrite, and the framing rule as above
+        // (a route that set its own X-Frame-Options keeps its framing rule here too). Script sources come later,
+        // with nonces on the inline scripts.
+        $csp = ["object-src 'none'", "base-uri 'self'"];
+        if (! $response->headers->has('X-Frame-Options')) {
+            $csp[] = "frame-ancestors 'self'";
+        }
+        $defaults['Content-Security-Policy'] = implode('; ', $csp);
         foreach ($defaults as $name => $value) {
             if (! $response->headers->has($name)) {
                 $response->headers->set($name, $value);

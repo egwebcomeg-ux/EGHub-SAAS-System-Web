@@ -529,12 +529,12 @@ final class OrderService
                     throw new OrderException(__('This order can no longer be moved to ":status".', ['status' => Order::STATUSES[$to][app()->getLocale() === 'en' ? 1 : 0] ?? $to]));
                 }
             }
-            if ($to === 'cancelled') {
+            // the screen showed the order unpaid, but a cashier took the money meanwhile: not cancelled behind their back
+            // (a caller that knows the order is paid decides for itself, as the board does: refund, or balance back)
+            if ($to === 'cancelled' && $order->payment_status !== 'paid' && $current->payment_status === 'paid' && $current->payment_method !== WalletService::METHOD) {
                 $order->payment_status = $current->payment_status;
                 $order->payment_method = $current->payment_method;
-                if ($order->payment_status === 'paid' && $order->payment_method !== WalletService::METHOD) {
-                    throw new OrderException(__('This order is paid: give the money back with a refund from the cashier screen (a manager approves).'));
-                }
+                throw new OrderException(__('This order is paid: give the money back with a refund from the cashier screen (a manager approves).'));
             }
             $from = $order->status;
             $order->status = $to;

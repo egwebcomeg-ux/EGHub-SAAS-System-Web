@@ -7,6 +7,7 @@ use App\Models\Branch;
 use App\Models\User;
 use App\Services\Audit;
 use App\Services\Entitlements;
+use App\Support\Passwords;
 use App\Support\Permissions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -108,7 +109,7 @@ class UsersController extends Controller
                     }
                 }],
             'branch_id' => ['nullable', Rule::exists('branches', 'id')->where('tenant_id', tenant()->getTenantKey())],
-            'password' => [$user ? 'nullable' : 'required', 'string', 'min:8', 'max:200'],
+            'password' => [$user ? 'nullable' : 'required', 'string', 'max:200', Passwords::rule()],
         ];
         // extra permissions exist only with the feature; without it the field is ignored, whatever was posted
         if ($this->canCustomize()) {

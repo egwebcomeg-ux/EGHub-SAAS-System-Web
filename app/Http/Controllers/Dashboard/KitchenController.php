@@ -19,7 +19,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * Kitchen display (KDS). Tickets oldest first, amber after 10 min, red after 20 (Filetto thresholds).
+ * Kitchen display (KDS). Tickets oldest first, amber then red after the restaurant's minutes (settings
+ * kitchen_warn_minutes / kitchen_late_minutes, 10 and 20 unless changed on the POS terminals page).
  * With stations, a screen shows only its station's lines; "ready" bumps those lines and the order turns ready
  * once every line is done. Scheduled orders join the queue 45 minutes before their time.
  */
@@ -38,6 +39,9 @@ class KitchenController extends Controller
             'stations' => $stations,
             'station' => $stations->firstWhere('id', (int) $request->query('station')),
             'branch' => PosController::branch($request),
+            // the restaurant's own patience: amber, then red (POS terminals page)
+            'warnMinutes' => max(1, (int) Settings::get('kitchen_warn_minutes')),
+            'lateMinutes' => max(2, (int) Settings::get('kitchen_late_minutes')),
         ]);
     }
 

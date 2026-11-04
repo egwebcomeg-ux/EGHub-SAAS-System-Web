@@ -113,6 +113,15 @@ class TwoFactorTest extends TenantTestCase
         $this->post($this->dashUrl('/two-factor'), ['code' => $this->wrongCode($secret)])->assertSessionHasErrors('code');
         $this->assertGuest('web');
 
+        // five wrong codes end the challenge: the password must be typed again (no guessing the six digits)
+        for ($i = 2; $i < TwoFactor::MAX_ATTEMPTS; $i++) {
+            $this->post($this->dashUrl('/two-factor'), ['code' => $this->wrongCode($secret)])->assertSessionHasErrors('code');
+        }
+        $this->post($this->dashUrl('/two-factor'), ['code' => $this->wrongCode($secret)])->assertRedirect(route('dash.login'));
+        $this->get($this->dashUrl('/two-factor'))->assertRedirect(route('dash.login'));
+        $this->travel(61)->seconds(); // the route's own 5-a-minute throttle
+        $this->post($this->dashUrl('/login'), $login)->assertRedirect(route('dash.two-factor'));
+
         $this->post($this->dashUrl('/two-factor'), ['code' => Totp::code($secret)])->assertRedirect(route('dash.home'));
         $this->assertAuthenticatedAs($owner, 'web');
         $this->assertNotNull($owner->fresh()->last_login_at);
@@ -142,9 +151,11 @@ class TwoFactorTest extends TenantTestCase
         $this->get($this->dashUrl('/two-factor'))->assertRedirect(route('dash.login'));
 
         $this->post($this->dashUrl('/login'), ['login' => 'owner@cafe-a.test', 'password' => 'Secret-pass-123'])->assertRedirect(route('dash.two-factor'));
-        for ($i = 0; $i < 5; $i++) {
+        for ($i = 1; $i < TwoFactor::MAX_ATTEMPTS; $i++) {
             $this->post($this->dashUrl('/two-factor'), ['code' => $this->wrongCode($secret)])->assertSessionHasErrors('code');
         }
+        // the fifth wrong code drops the challenge, and the route's throttle refuses a sixth try within the minute
+        $this->post($this->dashUrl('/two-factor'), ['code' => $this->wrongCode($secret)])->assertRedirect(route('dash.login'))->assertSessionHasErrors('login');
         $this->post($this->dashUrl('/two-factor'), ['code' => Totp::code($secret)])->assertStatus(429);
         $this->assertGuest('web');
 

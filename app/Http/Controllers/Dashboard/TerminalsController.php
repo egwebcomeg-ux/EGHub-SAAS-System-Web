@@ -31,6 +31,7 @@ class TerminalsController extends Controller
 
         return view('dashboard.pos.terminals', [
             'branches' => $branches, 'terminals' => $terminals, 'open' => $open, 'offlineHours' => Terminals::offlineHours(),
+            'kitchenMinutes' => [(int) Settings::get('kitchen_warn_minutes'), (int) Settings::get('kitchen_late_minutes')],
             'printing' => PrintJobs::settings(), 'waiterPayFirst' => WaiterCash::payFirst(),
         ]);
     }
@@ -87,9 +88,14 @@ class TerminalsController extends Controller
 
     public function settings(Request $request): RedirectResponse
     {
-        $data = $request->validate(['pos_offline_hours' => 'required|integer|min:1|max:72']);
-        Settings::put(['pos_offline_hours' => (string) $data['pos_offline_hours']]);
-        Audit::record('pos.offline_hours', (string) $data['pos_offline_hours']);
+        $data = $request->validate([
+            'pos_offline_hours' => 'required|integer|min:1|max:72',
+            // the kitchen display's patience, saved with the same form
+            'kitchen_warn_minutes' => 'sometimes|required|integer|min:1|max:120',
+            'kitchen_late_minutes' => 'sometimes|required|integer|min:2|max:240|gt:kitchen_warn_minutes',
+        ]);
+        Settings::put(array_map('strval', $data));
+        Audit::record('pos.offline_hours', (string) $data['pos_offline_hours'], array_diff_key($data, ['pos_offline_hours' => 1]));
 
         return back()->with('ok', __('Saved.'));
     }

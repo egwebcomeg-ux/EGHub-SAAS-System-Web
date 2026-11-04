@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Auth\SecurityController as BaseSecurityController;
 use App\Models\PlatformAuditLog;
+use App\Support\Passwords;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rules\Password;
 
 /** Account security of a platform admin (admin.<domain>/security): two-factor sign-in and the admin's own password. */
 class SecurityController extends BaseSecurityController
@@ -23,7 +23,7 @@ class SecurityController extends BaseSecurityController
         $admin = $request->user('admin');
         $request->validate([
             'current_password' => ['required', 'current_password:admin'],
-            'password' => ['required', 'string', 'max:200', 'confirmed', 'different:current_password', Password::min(10)->letters()->numbers()],
+            'password' => ['required', 'string', 'max:200', 'confirmed', 'different:current_password', Passwords::rule(Passwords::ADMIN_MIN)],
         ]);
         $admin->forceFill(['password' => $request->input('password')])->save();
         PlatformAuditLog::record($admin, 'admin.password_changed', $admin->email);
