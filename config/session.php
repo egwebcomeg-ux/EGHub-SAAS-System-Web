@@ -169,7 +169,8 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    // production is only ever served over https (Cloudflare, HSTS): the cookie never travels in the clear there
+    'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV') === 'production'),
 
     /*
     |--------------------------------------------------------------------------

@@ -12,6 +12,10 @@
             <label class="field-label">{{ __('Flag items with food cost above (%)') }}</label>
             <input class="field w-28" name="food_cost_target" type="number" step="0.1" min="1" max="100" value="{{ rtrim(rtrim(number_format($target, 1, '.', ''), '0'), '.') }}" required>
         </div>
+        <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="stock_allow_negative" value="1" @checked($allowNegative) data-stock-allow-negative>
+            {{ __('A sale may take an ingredient below zero (the count sheet corrects it)') }}
+        </label>
         <button class="btn-primary">{{ __('Save') }}</button>
         <div class="text-sm">
             @if ($aboveCount > 0)

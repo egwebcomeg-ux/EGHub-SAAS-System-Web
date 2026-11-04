@@ -15,4 +15,7 @@ return [
     // emails the owners when something breaks (App\Services\ErrorAlert)
     'error_alerts' => (bool) env('ERROR_ALERTS', env('APP_ENV') === 'production'),
 
+    // the uptime monitor's key for /up?token=…: with it the probe also reports the scheduler and the failed jobs
+    'monitor_token' => (string) env('MONITOR_TOKEN', ''),
+
 ];

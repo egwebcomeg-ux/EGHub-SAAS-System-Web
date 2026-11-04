@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Domain;
 use App\Models\PlatformAuditLog;
+use App\Notifications\DomainDecided;
 use App\Services\DomainDns;
 use App\Services\Entitlements;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -53,6 +55,7 @@ class DomainsController extends Controller
     {
         $domain->update(['status' => 'active', 'note' => null, 'verified_at' => $domain->verified_at ?? now()]);
         $this->log($request, 'domain.approved', $domain);
+        Notification::send($domain->tenant->owners(), new DomainDecided($domain));
 
         return back()->with('ok', __('Domain approved. The menu now opens on :domain.', ['domain' => $domain->domain]));
     }
@@ -63,6 +66,7 @@ class DomainsController extends Controller
         $data = $request->validate(['reason' => 'required|string|max:300']);
         $domain->update(['status' => 'rejected', 'note' => $data['reason'], 'verified_at' => null]);
         $this->log($request, 'domain.rejected', $domain, ['reason' => $data['reason']]);
+        Notification::send($domain->tenant->owners(), new DomainDecided($domain));
 
         return back()->with('ok', __('Domain rejected. The owner sees the reason on their domain page.'));
     }
@@ -86,11 +90,16 @@ class DomainsController extends Controller
             'status' => ['required', Rule::in(array_keys(Domain::STATUSES))],
             'note' => 'nullable|string|max:300',
         ]);
+        $before = $domain->status;
         $domain->update([
             'status' => $data['status'], 'note' => $data['note'] ?? null,
             'verified_at' => $data['status'] === 'active' ? ($domain->verified_at ?? now()) : null,
         ]);
         $this->log($request, 'domain.updated', $domain, ['status' => $data['status']]);
+        // the owner hears the decision (connected, or why not) whichever button the admin used
+        if ($before !== $data['status'] && in_array($data['status'], ['active', 'rejected'], true)) {
+            Notification::send($domain->tenant->owners(), new DomainDecided($domain));
+        }
 
         return back()->with('ok', __('Domain updated.'));
     }

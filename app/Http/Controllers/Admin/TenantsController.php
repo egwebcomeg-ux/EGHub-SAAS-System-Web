@@ -17,6 +17,7 @@ use App\Models\SubscriptionChange;
 use App\Models\Tenant;
 use App\Models\TenantDiscount;
 use App\Models\User;
+use App\Notifications\RestaurantSuspended;
 use App\Services\AdminTenantSearch;
 use App\Services\Audit;
 use App\Services\Crm\ProspectLinker;
@@ -31,6 +32,7 @@ use App\Support\BusinessType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -391,6 +393,7 @@ class TenantsController extends Controller
     {
         $tenant->update(['status' => 'suspended', 'suspended_at' => now()]);
         PlatformAuditLog::record($request->user('admin'), 'tenant.suspended', $tenant->id);
+        Notification::send($tenant->owners(), new RestaurantSuspended($tenant)); // the owner hears it from us, not from a guest
 
         return back()->with('ok', __('Restaurant suspended. Its menu is offline; the dashboard stays reachable.'));
     }

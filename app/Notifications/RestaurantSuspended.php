@@ -8,7 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-/** Grace period over: the menu is offline, the dashboard stays open to pay. */
+/** EgWeb paused the restaurant (Admin\TenantsController::suspend): the menu is offline, the dashboard stays open to pay. */
 class RestaurantSuspended extends Notification implements ShouldQueue
 {
     use Queueable;
@@ -26,9 +26,9 @@ class RestaurantSuspended extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject(__('The menu of :restaurant is paused', ['restaurant' => $this->tenant->name]))
             ->greeting(__('Hello :name,', ['name' => $notifiable->name]))
-            ->line(__('The menu of :restaurant is paused because the subscription was not renewed.', ['restaurant' => $this->tenant->name]))
-            ->line(__('Your menu, orders and customers are all kept. The menu comes back as soon as the payment is confirmed.'))
-            ->action(__('Pay now'), platform_url('app', '/billing'))
+            ->line(__('The menu of :restaurant is paused. Guests who scan your QR codes see a short notice instead of the menu.', ['restaurant' => $this->tenant->name]))
+            ->line(__('Your menu, orders and customers are all kept. Pay any open invoice from the dashboard, or write to us on WhatsApp, and the menu comes back.'))
+            ->action(__('Open the dashboard'), platform_url('app', '/billing'))
             ->salutation(__('EgHub team'));
     }
 }

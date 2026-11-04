@@ -212,6 +212,8 @@ final class Settings
         'welcome_kit' => '',
         // inventory pack: menu items whose ingredient cost is above this % of their price are flagged (Recipes & cost)
         'food_cost_target' => '35',
+        // inventory pack: a sale may take an ingredient below zero (the count sheet corrects it); '0' refuses the order
+        'stock_allow_negative' => '1',
     ];
 
     /** @var array<string,array<string,string>> */
@@ -231,12 +233,22 @@ final class Settings
             TenantSetting::query()->pluck('value', 'key')->map(fn ($v) => (string) $v)->all());
     }
 
+    /**
+     * Keys no public page reads: writing them never purges the restaurant's cached pages (the kitchen screen stamps
+     * kitchen_seen_at every hour, the digests mark the day they went out, the print page remembers its template).
+     */
+    public const INTERNAL_KEYS = ['kitchen_seen_at', 'daily_digest_sent_for', 'weekly_report_sent_for', 'welcome_kit',
+        'print_template', 'menu_translation_status', 'onboarding', 'qr_printed_at', 'demo_content', 'ordering_decided'];
+
     /** @param array<string,string|null> $values */
     public static function put(array $values): void
     {
-        foreach ($values as $key => $value) {
-            TenantSetting::query()->updateOrCreate(['key' => $key], ['value' => $value]);
-        }
+        $write = function () use ($values): void {
+            foreach ($values as $key => $value) {
+                TenantSetting::query()->updateOrCreate(['key' => $key], ['value' => $value]);
+            }
+        };
+        array_diff(array_keys($values), self::INTERNAL_KEYS) === [] ? app(PageCache::class)->muted($write) : $write();
         self::flush();
     }
 

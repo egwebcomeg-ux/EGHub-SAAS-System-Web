@@ -138,6 +138,11 @@ class ProspectRestaurantTest extends TenantTestCase
         $this->get(str_replace('/cafe-nile/', '/cafe-other/', $url))->assertForbidden();
         $this->get(strtok($url, '?'))->assertForbidden();
 
+        // three days on the page keeps everything but the password (a forwarded link must not sign anyone in)
+        $this->travel(WelcomeKit::PASSWORD_HOURS + 1)->hours();
+        $this->get($url)->assertOk()->assertSee('Cafe Nile')->assertDontSee($password);
+        $this->travelBack();
+
         // after 14 days the link is dead
         $this->travel(WelcomeKit::VALID_DAYS + 1)->days();
         $this->get($url)->assertForbidden();

@@ -86,9 +86,11 @@ final class LoyaltyService
             }
             $order->forceFill(['loyalty_applied_at' => now()])->save();
             $customer = $order->customer;
-            $customer->forceFill([
-                'visits_count' => $customer->visits_count + 1, 'total_spent' => round($customer->total_spent + $order->total, 2), 'last_visit_at' => now(),
-            ])->save();
+            // added in the database, not from the loaded row: two orders of one guest paid on two tills at once both count
+            Customer::query()->whereKey($customer->id)->update([
+                'visits_count' => DB::raw('visits_count + 1'), 'total_spent' => DB::raw('total_spent + '.round((float) $order->total, 2)), 'last_visit_at' => now(),
+            ]);
+            $customer->refresh();
             app(WalletService::class)->cashback($order); // cashback feature: a share of the order back to the wallet
 
             $program = $this->program();
@@ -116,7 +118,12 @@ final class LoyaltyService
         DB::transaction(function () use ($order) {
             $order->forceFill(['loyalty_applied_at' => null])->save();
             if ($customer = $order->customer) {
-                $customer->forceFill(['visits_count' => max(0, $customer->visits_count - 1), 'total_spent' => max(0, round($customer->total_spent - $order->total, 2))])->save();
+                $total = round((float) $order->total, 2);
+                Customer::query()->whereKey($customer->id)->update([
+                    'visits_count' => DB::raw('CASE WHEN visits_count > 0 THEN visits_count - 1 ELSE 0 END'),
+                    'total_spent' => DB::raw("CASE WHEN total_spent > $total THEN total_spent - $total ELSE 0 END"),
+                ]);
+                $customer->refresh();
             }
             app(WalletService::class)->reverseCashback($order);
             foreach (LoyaltyTransaction::query()->where('order_id', $order->id)->whereIn('type', ['stamp', 'points'])->with('card')->get() as $t) {

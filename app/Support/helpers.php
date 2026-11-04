@@ -74,6 +74,12 @@ function money(float|int|string|null $n): string
     return str_contains($s, '.') ? rtrim(rtrim($s, '0'), '.') : $s;
 }
 
+/** Stock quantity display (3 decimals at most, none when whole): 2 => "2", 0.5 => "0.5", 1.250 => "1.25". */
+function quantity(float|int|string|null $n): string
+{
+    return rtrim(rtrim(number_format((float) $n, 3, '.', ''), '0'), '.');
+}
+
 /** Arabic-Indic digits (٠-٩, ٫ ٬) as Latin ones, the way every number in the app is written ("٥٠٠ رسالة" -> "500 رسالة"). */
 function latin_digits(string $text): string
 {

@@ -20,9 +20,11 @@ use App\Http\Controllers\Platform\SupportedScreensController;
 use App\Http\Controllers\Platform\WhatsAppWebhookController;
 use App\Models\Payment;
 use App\Services\Customers\SignIn\GuestOAuth;
+use App\Support\SystemDoctor;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
@@ -46,6 +48,30 @@ $slug = '[a-z0-9][a-z0-9-]{1,28}[a-z0-9]';
 Route::get('/_csrf', [PageCacheController::class, 'token'])->middleware('throttle:60,1')->name('page-cache.token');
 Route::post('/_lscache/purge', [PageCacheController::class, 'purge'])->middleware('throttle:120,1')
     ->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])->name('page-cache.purge');
+
+// The health probe, on every host: deploy.sh rolls a build back when it fails, the uptime monitor pages the team.
+// 200 only when the database answers. With MONITOR_TOKEN (?token=) the answer also says when the scheduler last ran
+// and how many jobs failed, so one external check covers what a dead cron or a stuck queue would otherwise hide.
+Route::get('/up', function (Request $request, SystemDoctor $doctor) {
+    try {
+        DB::select('select 1');
+    } catch (Throwable) {
+        return response('database unreachable', 503)->header('Cache-Control', 'no-store');
+    }
+    $token = (string) config('eghub.monitor_token');
+    if ($token === '' || ! hash_equals($token, (string) $request->query('token'))) {
+        return response('OK')->header('Cache-Control', 'no-store');
+    }
+    $schedulerAt = $doctor->schedulerAt();
+    $failedJobs = (int) DB::table('failed_jobs')->count();
+    $schedulerMinutes = $schedulerAt ? intdiv(time() - $schedulerAt, 60) : null;
+
+    return response()->json([
+        'ok' => $schedulerMinutes !== null && $schedulerMinutes <= 5 && $failedJobs === 0,
+        'scheduler_minutes_ago' => $schedulerMinutes, 'failed_jobs' => $failedJobs,
+        'queued_jobs' => (int) DB::table('jobs')->count(),
+    ])->header('Cache-Control', 'no-store');
+})->withoutMiddleware([StartSession::class, ShareErrorsFromSession::class, PreventRequestForgery::class])->name('health');
 
 // Dashboard and admin are never indexed.
 Route::domain("admin.$domain")->get('/robots.txt', [SeoController::class, 'robotsPrivate']);

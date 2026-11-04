@@ -42,7 +42,7 @@ class WelcomeKitController extends Controller
                 'loginUrl' => platform_url('app', '/login'),
                 'owner' => $owner,
                 'placeholderEmail' => WelcomeKit::isPlaceholder($owner->email, $tenant),
-                'password' => $owner->must_change_password ? $owner->temporary_password : null,
+                'password' => $owner->must_change_password && $kit->showsPassword($tenant) ? $owner->temporary_password : null,
                 'sub' => $sub,
                 'rights' => $rights,
                 'expiresAt' => $kit->expiresAt($tenant),

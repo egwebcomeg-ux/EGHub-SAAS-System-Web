@@ -121,7 +121,7 @@ class NotificationsController extends Controller
                 ->with('ingredient')->latest('updated_at')->limit(self::LIMIT)->get();
             foreach ($low as $s) {
                 $items[] = ['key' => "stock-{$s->id}", 'kind' => 'stock', 'icon' => '📦', 'title' => __('Low stock: :name', ['name' => $s->ingredient->name]),
-                    'detail' => __('On hand: :qty', ['qty' => rtrim(rtrim(number_format($s->quantity, 3, '.', ''), '0'), '.').' '.$s->ingredient->unit]),
+                    'detail' => __('On hand: :qty', ['qty' => quantity($s->quantity).' '.$s->ingredient->unit]),
                     'at' => $s->updated_at, 'url' => route('dash.inventory')];
             }
         }

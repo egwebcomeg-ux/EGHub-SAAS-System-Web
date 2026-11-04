@@ -22,10 +22,25 @@ final class ErrorAlert
         $where = basename($e->getFile()).':'.$e->getLine();
         $request = app()->runningInConsole() ? 'console' : request()->method().' '.request()->getHost().'/'.request()->path();
         self::send(md5($e::class.$where), class_basename($e).' at '.$where, implode("\n", [
-            mb_substr($e->getMessage(), 0, 500),
+            self::redact($e->getMessage()),
             'Where: '.$request,
             'Restaurant: '.(tenant()?->getTenantKey() ?? '-'),
+            'The full message is in storage/logs.',
         ]));
+    }
+
+    /**
+     * The message as it may travel by email: a database error keeps its code but loses the statement and its
+     * bound values (guests' phones, names), and any email address, token or long number left is masked.
+     */
+    public static function redact(string $message): string
+    {
+        $message = preg_replace('/\s*\((?:Connection|SQL):.*$/s', '', $message) ?? $message;
+        $message = preg_replace('/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/', '***@***', $message) ?? $message;
+        $message = preg_replace('/\b[A-Za-z0-9_-]{32,}\b/', '***', $message) ?? $message;
+        $message = preg_replace('/\d{7,}/', '***', $message) ?? $message;
+
+        return mb_substr($message, 0, 300);
     }
 
     public static function notice(string $subject, string $body): void

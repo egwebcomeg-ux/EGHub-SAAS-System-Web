@@ -15,6 +15,7 @@ use App\Models\StockCountLine;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Services\Entitlements;
+use App\Services\Orders\OrderException;
 use App\Services\Settings;
 use Illuminate\Support\Facades\DB;
 
@@ -347,6 +348,13 @@ class StockService
             $stock = IngredientStock::query()->where('ingredient_id', $ingredientId)->where('branch_id', $branchId)->lockForUpdate()->first()
                 ?? IngredientStock::query()->create(['ingredient_id' => $ingredientId, 'branch_id' => $branchId, 'quantity' => 0]);
             $stock->quantity = round($stock->quantity + $qty, 3);
+            // a sale may take the stock below zero (the count sheet corrects it later) unless the restaurant said no
+            if ($type === 'sale' && $stock->quantity < 0 && Settings::get('stock_allow_negative') !== '1') {
+                $ingredient = Ingredient::query()->whereKey($ingredientId)->first();
+                throw new OrderException(__('Not enough :item in stock (:left left).', [
+                    'item' => $ingredient?->name ?? '#'.$ingredientId, 'left' => quantity(round($stock->quantity - $qty, 3)),
+                ]));
+            }
             $stock->save();
             StockMovement::query()->create([
                 'ingredient_id' => $ingredientId, 'branch_id' => $branchId, 'type' => $type, 'quantity' => round($qty, 3),

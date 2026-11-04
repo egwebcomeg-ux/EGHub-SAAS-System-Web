@@ -6,6 +6,7 @@ use App\Billing\Credits;
 use App\Jobs\SendWhatsAppMessage;
 use App\Models\WhatsAppConnection;
 use App\Models\WhatsAppMessage;
+use App\Services\ErrorAlert;
 use App\Services\Orders\OrderConfirmation;
 use App\Services\Settings;
 use App\Services\WhatsApp\Drivers\MetaCloudDriver;
@@ -124,10 +125,23 @@ final class WhatsApp
             if (! $free) {
                 $this->credits->add($message->tenant_id, 1, 'refund', $reference);
             }
+            // a provider down or asking for a pause: back in the queue, the job sends it again a little later
+            if ($e instanceof WhatsAppException && $e->isTemporary()) {
+                // written straight to the row: the model still holds "queued" from before the claim, so save() would skip the status
+                WhatsAppMessage::query()->whereKey($message->id)->update(['status' => 'queued', 'error' => WhatsAppMessage::RETRY_LATER]);
+                $message->forceFill(['status' => 'queued', 'error' => WhatsAppMessage::RETRY_LATER])->syncOriginal();
+
+                return $message;
+            }
             // the restaurant's token stopped working: its next messages go out from the EgHub number until it reconnects
             if ($own && $e instanceof WhatsAppException && in_array($e->getCode(), OwnNumber::TOKEN_ERRORS, true)) {
                 $own->forceFill(['status' => 'failed', 'checked_at' => now(),
                     'last_error' => __('The access token is invalid or expired. Generate a new one with the expiry set to “Never”.')])->save();
+            }
+            // the EgHub number's own token or templates: every restaurant's messages fail at once, the team must hear of it
+            if ($own === null && $e instanceof WhatsAppException && $e->getCode() !== 0) {
+                ErrorAlert::notice('WhatsApp platform number: sending fails', 'Meta error '.$e->getCode().': '.ErrorAlert::redact($e->getMessage())
+                    ."\nTemplate: {$message->template} · Restaurant: {$message->tenant_id} · Message #{$message->id}");
             }
             $error = $e instanceof WhatsAppException ? $e->getMessage() : 'provider error';
             if (! $e instanceof WhatsAppException) {

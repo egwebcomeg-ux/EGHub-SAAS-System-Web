@@ -84,7 +84,11 @@ final class Campaigns
     {
         $customers = $this->audience($campaign->segment, $campaign->segment_value)
             ->where('id', '>', $campaign->cursor)->orderBy('id')->limit(self::BATCH)->get();
-        $stopped = false;
+        // a batch run again (a worker killed half-way, a campaign resumed) never writes a guest twice: the guests
+        // already written are passed over, a message left queued (the provider was down) is sent instead of a new one
+        $written = WhatsAppMessage::query()->where('campaign_id', $campaign->id)->whereIn('customer_id', $customers->pluck('id'))
+            ->get(['id', 'customer_id', 'status', 'error'])->keyBy('customer_id');
+        $stopped = null;
         foreach ($customers as $customer) {
             if ($customer->whatsapp_opt_out) {
                 $campaign->skipped_count++;
@@ -92,11 +96,23 @@ final class Campaigns
 
                 continue;
             }
-            $message = $this->whatsapp->record($customer->phone, 'campaign', ['text' => $this->render($campaign, $customer)], $customer->id, $campaign->id);
+            $message = $written->get($customer->id);
+            if ($message && $message->status === 'sent') {
+                $campaign->cursor = $customer->id;
+
+                continue;
+            }
+            if ($message) {
+                // left queued (the provider was down) or failed before the stop (no credits): the same row goes out, no second one
+                $message = WhatsAppMessage::query()->find($message->id);
+                $message->forceFill(['status' => 'queued', 'error' => null])->save();
+            } else {
+                $message = $this->whatsapp->record($customer->phone, 'campaign', ['text' => $this->render($campaign, $customer)], $customer->id, $campaign->id);
+            }
             if ($message) {
                 $message = $this->whatsapp->deliver($message);
-                if ($message->error === WhatsAppMessage::NO_CREDITS) {
-                    $stopped = true; // this guest is tried again when the campaign is resumed
+                if (in_array($message->error, [WhatsAppMessage::NO_CREDITS, WhatsAppMessage::RETRY_LATER], true)) {
+                    $stopped = $message->error; // this guest is tried again when the campaign is resumed
 
                     break;
                 }
@@ -107,14 +123,14 @@ final class Campaigns
             $campaign->cursor = $customer->id;
         }
 
-        if ($stopped) {
-            $campaign->fill(['status' => 'stopped', 'stop_reason' => WhatsAppMessage::NO_CREDITS]);
+        if ($stopped !== null) {
+            $campaign->fill(['status' => 'stopped', 'stop_reason' => $stopped]);
         } elseif ($customers->count() < self::BATCH) {
             $campaign->fill(['status' => 'sent', 'finished_at' => now()]);
         }
         $campaign->save();
 
-        return ! $stopped && $customers->count() === self::BATCH;
+        return $stopped === null && $customers->count() === self::BATCH;
     }
 
     /** The message one guest reads: {name}, {restaurant}, {link} (the menu, with the coupon) and {coupon} (or {code}). */

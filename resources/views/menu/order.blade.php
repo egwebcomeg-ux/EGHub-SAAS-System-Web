@@ -227,6 +227,9 @@
             @if ($order->tax > 0)<div class="flex justify-between"><span>{{ __('Tax') }}</span><span>{{ money($order->tax) }} {{ $currency }}</span></div>@endif
             @if ($order->delivery_fee > 0)<div class="flex justify-between" data-delivery-fee><span>{{ __('Delivery fee') }}</span><span>{{ money($order->delivery_fee) }} {{ $currency }}</span></div>@endif
             <div class="flex justify-between pt-1 text-base font-extrabold"><span>{{ __('Total') }}</span><span>{{ money($order->total) }} {{ $currency }}</span></div>
+            @if ($order->payment_status === 'paid' && ! $cancelled)
+                <a href="{{ $order->receiptUrl() }}" class="m-primary-text mt-1 block text-center text-sm font-semibold underline" data-receipt-link>{{ __('Receipt') }}</a>
+            @endif
             @if ($order->payment_status === 'paid' && $order->payment_method === 'credit')
                 <div class="mt-1 rounded-lg bg-emerald-50 px-3 py-2 text-center font-semibold text-emerald-800" data-paid-wallet>
                     {{ $cancelled ? __('Cancelled: the amount went back to your balance.') : __('Paid from your balance') }}

@@ -158,6 +158,7 @@ class InventoryController extends Controller
 
         return view('dashboard.inventory.recipes', [
             'categories' => $categories, 'costs' => $costs, 'takeawayCosts' => $takeawayCosts, 'target' => $target, 'onlyAbove' => $request->boolean('above'),
+            'allowNegative' => Settings::get('stock_allow_negative') === '1',
             'aboveCount' => $categories->flatMap->items->filter($isAbove)->count(), 'isAbove' => $isAbove,
             'rules' => PackagingRule::query()->with('ingredient')->get()->sortBy(fn (PackagingRule $r) => [$r->order_type, $r->ingredient?->name])->values(),
             'orderPackaging' => $stock->orderPackagingCosts(),
@@ -185,11 +186,11 @@ class InventoryController extends Controller
         return back()->with('ok', __('Packaging per order saved.'));
     }
 
-    /** The food cost % above which items are flagged on Recipes & cost. */
+    /** The food cost % above which items are flagged on Recipes & cost, and whether a sale may take the stock below zero. */
     public function foodCostTarget(Request $request): RedirectResponse
     {
-        $data = $request->validate(['food_cost_target' => 'required|numeric|min:1|max:100']);
-        Settings::put(['food_cost_target' => (string) round((float) $data['food_cost_target'], 1)]);
+        $data = $request->validate(['food_cost_target' => 'required|numeric|min:1|max:100', 'stock_allow_negative' => 'nullable|boolean']);
+        Settings::put(['food_cost_target' => (string) round((float) $data['food_cost_target'], 1), 'stock_allow_negative' => $request->boolean('stock_allow_negative') ? '1' : '0']);
 
         return back()->with('ok', __('Food cost target saved.'));
     }

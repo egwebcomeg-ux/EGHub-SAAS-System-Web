@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\WhatsAppMessage;
+use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use App\Services\Orders\ShiftService;
 use App\Services\Settings;
@@ -152,8 +153,17 @@ class DeliveryCompletionTest extends TenantTestCase
         // the manager sees the cash only as "held"; the card / InstaPay money shows apart, and settling takes the cash alone
         $row = $this->actingAs($manager)->getJson($this->dashUrl('/drivers/feed'))->assertOk()->json('drivers.0');
         $this->assertSame([220, 1, 4, 220, 440], [(int) $row['holding'], $row['holding_orders'], $row['delivered_today'], (int) $row['collected_today'], (int) $row['other_today']]);
+        // the drawer cannot close while the driver still holds that cash: it would be missing from the Z report
+        $shift = $this->as($a, fn () => app(ShiftService::class)->open($manager, Branch::query()->first(), 0));
+        try {
+            $this->as($a, fn () => app(ShiftService::class)->close($shift, 0, null));
+            $this->fail('the shift closed with cash still out');
+        } catch (OrderException $e) {
+            $this->assertStringContainsString('220', $e->getMessage());
+        }
         $this->actingAs($manager)->postJson($this->dashUrl("/drivers/{$driver->id}/settle"))->assertOk()->assertJsonPath('orders', 1)->assertJsonPath('amount', 220);
         $this->assertSame(['paid', 'cash'], [$cash->fresh()->payment_status, $cash->fresh()->payment_method]);
+        $this->as($a, fn () => app(ShiftService::class)->close($shift->fresh(), 220, null));
         $this->assertNull($card->fresh()->cash_settled_at);
         $this->assertSame(0, (int) $this->actingAs($manager)->getJson($this->dashUrl('/drivers/feed'))->json('drivers.0.holding'));
     }

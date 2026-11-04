@@ -13,6 +13,9 @@ class WhatsAppMessage extends TenantModel
     /** Not sent and not charged: the EgHub number does not send for restaurants yet (config whatsapp.platform_sending). */
     public const PLATFORM_OFF = 'platform_off';
 
+    /** Still queued: the provider could not be reached or asked for a pause, the message is sent again a little later. */
+    public const RETRY_LATER = 'retry_later';
+
     protected $table = 'whatsapp_messages';
 
     protected function casts(): array

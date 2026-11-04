@@ -103,6 +103,11 @@ final class ShiftService
         if (! $shift->isOpen()) {
             throw new OrderException(__('This shift is closed.'));
         }
+        // cash still in a driver's or waiter's pocket belongs to this drawer: counted in first, or the Z report never balances
+        $pocketed = (float) Order::query()->where('branch_id', $shift->branch_id)->where('cash_collected', '>', 0)->whereNull('cash_settled_at')->sum('cash_collected');
+        if ($pocketed > 0) {
+            throw new OrderException(__('Settle the cash the drivers and waiters still hold first (:amount).', ['amount' => money($pocketed)]));
+        }
 
         return DB::transaction(function () use ($shift, $counted, $notes) {
             $shift->update([

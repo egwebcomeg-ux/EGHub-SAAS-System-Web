@@ -12,7 +12,7 @@ use ZipArchive;
 /** Database dump + storage/app/public into one zip, pruned locally and optionally copied to a second disk. */
 class BackupCommand extends Command
 {
-    protected $signature = 'eghub:backup';
+    protected $signature = 'eghub:backup {--db-only : The database dump alone, without the uploaded files (deploy.sh before a migration)}';
 
     /** The deploy script running while this version arrives still calls the old name. */
     protected $aliases = ['egmenu:backup'];
@@ -29,7 +29,7 @@ class BackupCommand extends Command
 
         try {
             $dbName = $this->dumpDatabase($tmp);
-            $this->zip($archive, $tmp, $dbName);
+            $this->zip($archive, $tmp, $dbName, withUploads: ! $this->option('db-only'));
         } catch (\Throwable $e) {
             @unlink($archive);
             $this->error('Backup failed: '.$e->getMessage());
@@ -101,7 +101,7 @@ class BackupCommand extends Command
         return 'database.sql';
     }
 
-    private function zip(string $archive, string $dbFile, string $dbName): void
+    private function zip(string $archive, string $dbFile, string $dbName, bool $withUploads = true): void
     {
         $zip = new ZipArchive;
         if ($zip->open($archive, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
@@ -110,7 +110,7 @@ class BackupCommand extends Command
         $zip->addFile($dbFile, $dbName);
 
         $root = storage_path('app/public');
-        if (is_dir($root)) {
+        if ($withUploads && is_dir($root)) {
             foreach (File::allFiles($root, true) as $file) {
                 $zip->addFile($file->getPathname(), 'public/'.str_replace('\\', '/', $file->getRelativePathname()));
             }

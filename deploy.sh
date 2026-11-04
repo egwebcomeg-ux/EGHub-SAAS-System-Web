@@ -105,12 +105,21 @@ rollback() {
     exit 1
 }
 
-"$PHP" artisan down --render="errors.503" --retry=60 || true
+# The site only goes down for a build that brings a migration (the tables must not change under a request); every
+# other build is swapped in hot: a few seconds of mixed files, which opcache and the health check below cover.
+if [ "$OLD" = none ] || [ -n "$(git diff --name-only "$OLD" "$NEW" -- database/migrations 2>/dev/null)" ]; then
+    DOWN=1
+    "$PHP" artisan down --render="errors.503" --retry=60 || true
+else
+    DOWN=0
+    echo "no new migrations: deploying without maintenance mode"
+fi
 keep_build
 git reset --quiet --hard "$NEW" || rollback "git reset"
 $COMPOSER_BIN install --no-dev --optimize-autoloader --no-interaction --quiet || rollback "composer install"
 if ! "$PHP" artisan migrate:status --pending --no-ansi | grep -q "No pending migrations"; then
-    "$PHP" artisan eghub:backup || rollback "backup before migrations"
+    # the database only: the nightly backup has the uploads, and a zip of every image would keep the site down for minutes
+    "$PHP" artisan eghub:backup --db-only || rollback "backup before migrations"
     "$PHP" artisan migrate --force || rollback "migrate"
 fi
 # built-in roles get new permissions; plans and add-ons are only created when missing (edited prices stay)
@@ -118,7 +127,9 @@ fi
 "$PHP" artisan db:seed --class=PlanSeeder --force || rollback "plans"
 "$PHP" artisan view:clear || rollback "view:clear" # not optimize:clear: it empties the app cache (scheduler and backup records, rate limits)
 "$PHP" artisan optimize || rollback "optimize"
-"$PHP" artisan up || rollback "up"
+# a queue worker started by the scheduler a moment ago still runs the old code: it stops after its current job
+"$PHP" artisan queue:restart || true
+[ "$DOWN" = 0 ] || "$PHP" artisan up || rollback "up"
 if [ -n "$SITE" ]; then
     sleep 3
     curl -fsS -o /dev/null --max-time 30 "$SITE/up" || rollback "health check $SITE/up"

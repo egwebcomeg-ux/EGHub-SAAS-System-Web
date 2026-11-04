@@ -99,6 +99,14 @@ class CampaignsTest extends TenantTestCase
         $this->assertFalse($messages->pluck('customer_id')->intersect($optedOut)->isNotEmpty());
         $this->assertStringContainsString('/cafe-a?coupon=BACK20', $messages[0]->body);
         $this->assertStringStartsWith('Hi Guest 001!', $messages[0]->body);
+
+        // a batch run again (the worker was killed half-way): the guests already written are passed over, none is charged twice
+        $this->as($a, function () use ($campaign) {
+            $campaign->forceFill(['status' => 'sending', 'cursor' => 0])->save();
+            app(Campaigns::class)->sendBatch($campaign->fresh());
+        });
+        $this->assertSame(108, $this->as($a, fn () => WhatsAppMessage::query()->where('campaign_id', $campaign->id)->count()));
+        $this->assertSame(392, app(Credits::class)->balance($a));
     }
 
     public function test_a_campaign_stops_when_credits_run_out_and_resumes_after_a_top_up(): void

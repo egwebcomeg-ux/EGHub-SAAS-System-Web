@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\PlatformAdmin;
 use App\Models\Tenant;
+use App\Notifications\RestaurantSuspended;
+use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Models\Role;
 use Tests\TenantTestCase;
 
@@ -49,8 +51,10 @@ class AdminPermissionsTest extends TenantTestCase
             $this->actingAs($support, 'admin')->get($this->adminUrl($path))->assertForbidden();
         }
         $this->actingAs($support, 'admin')->post($this->adminUrl('/tenants/cafe-a/subscription'), [])->assertForbidden();
+        Notification::fake();
         $this->actingAs($support, 'admin')->post($this->adminUrl('/tenants/cafe-a/suspend'))->assertRedirect();
         $this->assertTrue(Tenant::query()->find('cafe-a')->isSuspended());
+        Notification::assertSentTo($this->owner(Tenant::query()->find('cafe-a')), RestaurantSuspended::class); // the owner hears it from us
     }
 
     public function test_finance_sees_restaurants_read_only_and_manages_invoices(): void

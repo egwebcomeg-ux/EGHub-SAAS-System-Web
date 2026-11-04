@@ -201,11 +201,13 @@ final class OrderService
                     return $order;
                 });
             } catch (QueryException $e) {
-                // two orders took the same number at once (or the same client_uuid raced): retry / return the winner
+                // two orders took the same number at once (or the same client_uuid raced): retry / return the winner.
+                // Inside a caller's transaction (the POS paying at once) there is no retrying: the database already
+                // rolled the whole thing back, the caller's try is the retry.
                 if ($uuid && ($existing = Order::query()->where('client_uuid', $uuid)->first())) {
                     return $existing;
                 }
-                if ($attempt >= 3) {
+                if ($attempt >= 3 || DB::transactionLevel() > 0) {
                     throw $e;
                 }
             }

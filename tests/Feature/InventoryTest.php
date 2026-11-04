@@ -12,6 +12,7 @@ use App\Models\RecipeLine;
 use App\Models\StockMovement;
 use App\Models\Tenant;
 use App\Services\Inventory\StockService;
+use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
 use Illuminate\Support\Str;
 use Tests\TenantTestCase;
@@ -69,6 +70,19 @@ class InventoryTest extends TenantTestCase
         ], $branch));
         $this->assertSame(1400.0, $this->stock($a, $milk));
         $this->assertSame(-36.0, $this->stock($a, $coffee)); // never received: goes negative, the count fixes it
+
+        // the restaurant can refuse that: the sale is turned down with the ingredient named, nothing is taken
+        $this->actingAs($owner)->post($this->dashUrl('/inventory/food-cost-target'), ['food_cost_target' => 35])->assertSessionHasNoErrors();
+        try {
+            $this->as($a, fn () => app(OrderService::class)->place([
+                'client_uuid' => (string) Str::uuid(), 'source' => 'pos', 'type' => 'takeaway', 'items' => [['item_id' => $latte->id, 'qty' => 1]],
+            ], $branch));
+            $this->fail('a sale below zero went through');
+        } catch (OrderException $e) {
+            $this->assertStringContainsString('Coffee', $e->getMessage());
+        }
+        $this->assertSame(1400.0, $this->stock($a, $milk));
+        $this->actingAs($owner)->post($this->dashUrl('/inventory/food-cost-target'), ['food_cost_target' => 35, 'stock_allow_negative' => 1])->assertSessionHasNoErrors();
 
         $this->as($a, fn () => app(OrderService::class)->transition($order->fresh(), 'cancelled'));
         $this->assertSame(2000.0, $this->stock($a, $milk));

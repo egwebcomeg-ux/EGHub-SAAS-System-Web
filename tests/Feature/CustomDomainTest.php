@@ -9,6 +9,7 @@ use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\PlatformAdmin;
 use App\Models\Tenant;
+use App\Notifications\DomainDecided;
 use App\Notifications\DomainRequested;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
@@ -88,6 +89,7 @@ class CustomDomainTest extends TenantTestCase
         $this->assertSame($this->pathUrl('cafe-a'), $a->fresh()->url());
         $this->actingAs($admin, 'admin')->post($this->adminUrl("/domains/{$domain->id}"), ['status' => 'active'])->assertSessionHasNoErrors();
         $this->assertSame('http://mycafe.com/', $a->fresh()->url());
+        Notification::assertSentTo($owner, DomainDecided::class, fn (DomainDecided $n) => str_contains((string) $n->toMail($owner)->render(), 'mycafe.com'));
 
         // the egmenu domain itself, bad names and another restaurant's domain are refused
         $this->actingAs($owner)->post($this->dashUrl('/domain/connect'), ['domain' => 'x.egmenu.test'])->assertSessionHasErrors('domain');

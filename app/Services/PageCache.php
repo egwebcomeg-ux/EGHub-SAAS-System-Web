@@ -75,6 +75,24 @@ final class PageCache
 
     private bool $flushRegistered = false;
 
+    /** While true the write sniffer stays quiet (see muted()). */
+    private bool $muted = false;
+
+    /**
+     * Runs $fn without purging anything it writes: for rows that no public page reads although their table is
+     * watched (the kitchen's "seen" stamp, "digest sent" marks and the like in tenant_settings).
+     */
+    public function muted(\Closure $fn): mixed
+    {
+        $before = $this->muted;
+        $this->muted = true;
+        try {
+            return $fn();
+        } finally {
+            $this->muted = $before;
+        }
+    }
+
     public static function enabled(): bool
     {
         return (bool) config('page_cache.enabled');
@@ -137,7 +155,7 @@ final class PageCache
     public function recordWrite(string $sql): void
     {
         $first = ltrim($sql)[0] ?? '';
-        if ($first === 's' || $first === 'S' || ! self::enabled()) {
+        if ($first === 's' || $first === 'S' || $this->muted || ! self::enabled()) {
             return;
         }
         if (preg_match('/^\s*(?:insert(?:\s+or\s+\w+)?\s+into|replace\s+into|update|delete\s+from)\s+[`"\[]?([A-Za-z0-9_]+)/i', $sql, $m) !== 1) {
@@ -328,7 +346,8 @@ final class PageCache
             $options['curl'] = [CURLOPT_RESOLVE => ["$host:$port:$ip"]];
         }
         try {
-            Http::timeout(4)->connectTimeout(2)->withOptions($options)->asForm()
+            // short: it runs after the response, but it holds the PHP worker until the host answers
+            Http::timeout(3)->connectTimeout(1)->withOptions($options)->asForm()
                 ->post(scheme().'://'.$host.port_suffix().'/_lscache/purge', [
                     'tags' => $tags, 'time' => $time, 'signature' => self::signature($host, $tags, $time),
                 ]);

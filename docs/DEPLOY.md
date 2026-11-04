@@ -58,10 +58,18 @@ Upload the whole `public/build` folder to `/home/USER/eghub/public/build` (the f
 cPanel > Cron Jobs, every minute (adjust the PHP path, e.g. `/usr/local/bin/ea-php84` or `/opt/cpanel/ea-php84/root/usr/bin/php`):
 
 ```
-* * * * * cd /home/USER/eghub && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /home/USER/eghub && [ -d storage/framework/deploy.lock.d ] || php artisan schedule:run >> /dev/null 2>&1
 ```
 
-This one line runs everything: the queue worker every minute (`queue:work --stop-when-empty`), billing lifecycle 03:00, loyalty expiry 03:30, backup 02:30, and a heartbeat read by `eghub:doctor`.
+This one line runs everything: the two queue workers every minute (`queue:work --queue=default` for the guests' and
+staff's messages, `--queue=low` for campaigns, backups and translations), billing lifecycle 03:00, loyalty expiry
+03:30, backup 02:30, the nightly cache sweep and `model:prune`, and a heartbeat read by `eghub:doctor`. The
+`[ -d … deploy.lock.d ]` guard skips the minute a deploy is running (section 6b), so no command starts against a
+half-installed `vendor/`.
+
+An external uptime monitor (UptimeRobot, Cloudflare Health Checks…) should call `https://<domain>/up?token=<MONITOR_TOKEN>`
+every few minutes: the answer is 503 when the database is down, and its JSON says when the scheduler last ran and
+how many jobs failed (`"ok": false` when the cron stopped or a job failed). Without the token `/up` only answers OK.
 
 ## 4. `.env` for production
 

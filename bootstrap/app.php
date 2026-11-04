@@ -27,7 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
-        health: '/up',
+        // the health probe is routes/web.php's own /up: it answers for the database, the scheduler and the queue
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Behind Cloudflare: the real visitor IP comes from X-Forwarded-For (and https from X-Forwarded-Proto),

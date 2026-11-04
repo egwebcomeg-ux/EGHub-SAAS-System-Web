@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Billing\Billing;
 use App\Billing\Credits;
+use App\Jobs\SendWhatsAppMessage;
 use App\Models\AddonPrice;
 use App\Models\Branch;
 use App\Models\CreditTransaction;
@@ -219,6 +220,29 @@ class WhatsAppTest extends TenantTestCase
         $this->assertSame('failed', $message->status);
         $this->assertSame('Recipient not on WhatsApp', $message->error);
         $this->assertSame(2, $this->credits()->balance($a));
+    }
+
+    public function test_a_provider_that_cannot_be_reached_keeps_the_message_queued_for_another_try(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $this->credits()->add($a, 2, 'adjustment');
+        $this->settings($a, ['wa_order_received' => '1']);
+        $this->app->bind(WhatsAppGateway::class, fn () => new class implements WhatsAppGateway
+        {
+            public function send(string $to, string $templateKey, array $params, string $locale = 'ar', string $text = ''): string
+            {
+                throw new WhatsAppException('WhatsApp Cloud API could not be reached.', WhatsAppException::UNREACHABLE);
+            }
+        });
+
+        $this->order($a);
+        $message = $this->messages($a)->sole();
+        $this->assertSame(['queued', WhatsAppMessage::RETRY_LATER], [$message->status, $message->error]);
+        $this->assertSame(2, $this->credits()->balance($a)); // the credit waits with the message
+
+        // out of tries: given up like any other failed message
+        $this->as($a, fn () => (new SendWhatsAppMessage($message->id))->failed(new \RuntimeException('max attempts')));
+        $this->assertSame('failed', $this->messages($a)->sole()->status);
     }
 
     public function test_meta_driver_sends_the_approved_template_without_leaking_the_token(): void

@@ -11,7 +11,14 @@ class OpsTest extends TenantTestCase
 {
     public function test_health_endpoint_is_up(): void
     {
-        $this->get('/up')->assertOk();
+        $this->get('/up')->assertOk()->assertSee('OK');
+
+        // the monitor's token opens the details: the scheduler's last run and the failed jobs
+        config(['eghub.monitor_token' => 'watch-me']);
+        $this->get('/up?token=wrong')->assertOk()->assertSee('OK')->assertDontSee('failed_jobs');
+        $this->get('/up?token=watch-me')->assertOk()->assertJson(['ok' => false, 'scheduler_minutes_ago' => null, 'failed_jobs' => 0]);
+        cache()->put('eghub:scheduler_at', now()->timestamp, 60);
+        $this->get('/up?token=watch-me')->assertOk()->assertJson(['ok' => true, 'scheduler_minutes_ago' => 0]);
     }
 
     public function test_error_pages_render_statically(): void

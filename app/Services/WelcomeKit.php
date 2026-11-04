@@ -23,6 +23,12 @@ final class WelcomeKit
 {
     public const VALID_DAYS = 14;
 
+    /**
+     * Hours the temporary password is printed on the kit page. The page itself stays for VALID_DAYS (the QR, the
+     * links), but a link forwarded or found in a history a week later must not sign anyone in as the owner.
+     */
+    public const PASSWORD_HOURS = 72;
+
     /** The sign-in email of an owner who gave none: {slug}@eghub.app, never sent anything. */
     public const PLACEHOLDER_DOMAIN = 'eghub.app';
 
@@ -64,6 +70,14 @@ final class WelcomeKit
         $kit = $this->state($tenant);
 
         return $kit ? Carbon::createFromTimestamp($kit['expires_at']) : null;
+    }
+
+    /** Whether the kit page still prints the temporary password (PASSWORD_HOURS after the kit was issued). */
+    public function showsPassword(Tenant $tenant): bool
+    {
+        $kit = $this->state($tenant);
+
+        return $kit !== null && now()->getTimestamp() < $kit['expires_at'] - self::VALID_DAYS * 86400 + self::PASSWORD_HOURS * 3600;
     }
 
     /** The signed welcome page (null when there is no kit or it expired). */

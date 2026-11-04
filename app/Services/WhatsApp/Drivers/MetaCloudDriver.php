@@ -104,7 +104,7 @@ final class MetaCloudDriver implements InteractiveGateway
         try {
             $response = Http::withToken($token)->acceptJson()->timeout((int) config('whatsapp.timeout', 15))->post($url, $payload);
         } catch (ConnectionException) {
-            throw new WhatsAppException('WhatsApp Cloud API could not be reached.');
+            throw new WhatsAppException('WhatsApp Cloud API could not be reached.', WhatsAppException::UNREACHABLE);
         }
         if ($response->failed()) {
             $error = (string) ($response->json('error.message') ?? 'HTTP '.$response->status());

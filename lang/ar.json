@@ -7723,5 +7723,17 @@
     "They agreed on the phone that we send it on WhatsApp": "وافق في المكالمة إننا نبعتله على واتساب",
     "Send the offer from the EgHub number": "ابعت العرض من رقم EgHub",
     "Sending from the EgHub number is not on yet. Until then, use «WhatsApp offer» from your phone.": "الإرسال من رقم EgHub لسه مش شغال. لحد ما يشتغل، استخدم «عرض واتساب» من موبايلك.",
-    "Colour panels (landscape)": "كروت ملونة (بالعرض)"
+    "Colour panels (landscape)": "كروت ملونة (بالعرض)",
+    "Your domain :domain is connected": "دومينك :domain اتوصّل",
+    "Your domain :domain could not be connected": "دومينك :domain ما قدرناش نوصّله",
+    "Your menu now opens on :domain. Your QR codes and links keep working: they lead there from now on.": "المنيو بتاعك بقى بيفتح على :domain. أكواد الـ QR واللينكات بتاعتك شغالة زي ما هي: بتودّي هناك من دلوقتي.",
+    "We could not connect :domain to your menu.": "ما قدرناش نوصّل :domain بمنيوك.",
+    "Reason: :reason": "السبب: :reason",
+    "Open the domain page": "افتح صفحة الدومين",
+    "The menu of :restaurant is paused. Guests who scan your QR codes see a short notice instead of the menu.": "منيو :restaurant متوقف مؤقتاً. الزباين اللي بيمسحوا الـ QR بيشوفوا رسالة قصيرة بدل المنيو.",
+    "Your menu, orders and customers are all kept. Pay any open invoice from the dashboard, or write to us on WhatsApp, and the menu comes back.": "المنيو بتاعك وطلباتك وعملاءك كلهم محفوظين. ادفع أي فاتورة مفتوحة من لوحة التحكم، أو كلمنا على واتساب، والمنيو يرجع.",
+    "Open the dashboard": "افتح لوحة التحكم",
+    "Settle the cash the drivers and waiters still hold first (:amount).": "سلّم الأول الكاش اللي لسه مع الطيارين والويترز (:amount).",
+    "Not enough :item in stock (:left left).": "مفيش :item كفاية في المخزن (الباقي :left).",
+    "A sale may take an ingredient below zero (the count sheet corrects it)": "البيع ممكن ينزّل الصنف الخام تحت الصفر (الجرد بيصلّحه)"
 }
