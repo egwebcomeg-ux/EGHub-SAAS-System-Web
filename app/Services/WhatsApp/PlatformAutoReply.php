@@ -74,6 +74,10 @@ TXT;
 MENU OFFER: This person writes from the number of «:name», which our team offered a trial QR menu: send a photo or a PDF of the menu here, the team builds the full menu, and they try it free for :days days with no commitment. After the trial the free plan keeps a menu of up to :items items, and bigger menus need a paid plan. Ask them to send the menu here. Thank them for what they send and say that the team will build it and send the link here. Never say that it is ready, and never say that everything is free forever.
 TXT;
 
+    private const AD_LEAD_RULES = <<<'TXT'
+AD LEAD: This person wrote after EgHub's ad for restaurants, cafes and sweets shops, which offers a full QR menu to try free for :days days with no commitment. If you do not know yet, ask the name of their place and its area. Then ask them to send a photo or a PDF of the menu here: the team builds the full menu and sends the link here. After the trial the free plan keeps a menu of up to :items items, and bigger menus need a paid plan. Thank them for what they send and say that the team will build it. Never say that it is ready, and never say that everything is free forever.
+TXT;
+
     private const CHANNEL_RULES = <<<'TXT'
 CHANNEL: This conversation is on WhatsApp, on EgHub's own number. The person is already talking to EgHub here: never give a wa.me link or another WhatsApp number. When the team is needed, say that someone from the team will answer here in this chat. Never claim to be a human; if asked, say you are EgHub's automatic assistant. If they ask how to reach support or for a phone number, say this same number is EgHub's main number and that writing «أكلم حد من الفريق» here brings a person; never give any personal number. Do not promise working hours or a response time. If they ask to delete their messages or data, say the team will do it and end your answer with [[HUMAN]].
 TXT;
@@ -156,9 +160,10 @@ TXT;
     {
         $tenant = $conversation->tenant_id ? Tenant::query()->find($conversation->tenant_id) : null;
         if (! $tenant) {
-            $place = $conversation->isWhatsApp() ? app(WhatsAppOffer::class)->placeWritingFrom($conversation->phone) : null;
+            $offer = app(WhatsAppOffer::class);
+            $place = $conversation->isWhatsApp() ? $offer->placeWritingFrom($conversation->phone) : null;
 
-            return $place ? "\n".strtr(self::MENU_OFFER_RULES, [
+            return $place ? "\n".strtr($offer->gotTheOffer($place) ? self::MENU_OFFER_RULES : self::AD_LEAD_RULES, [
                 ':name' => $place->name, ':days' => (string) TenantProvisioner::TRIAL_DAYS,
                 ':items' => (string) (Plan::query()->where('code', 'free')->with('features')->first()?->entitlements()['limits']['menu_items'] ?? '—'),
             ]) : '';

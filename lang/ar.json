@@ -7709,5 +7709,18 @@
     ":name handed in :amount for :n orders.": ":name سلّم :amount عن :n طلب.",
     "Cash with the waiters": "كاش مع الويترز",
     "Received :amount from :name?": "استلمت :amount من :name؟",
-    "I received it": "استلمت"
+    "I received it": "استلمت",
+    "Came from an ad: :ad": "جه من إعلان: :ad",
+    "Ad": "إعلان",
+    "Wrote to us from an ad: :ad": "كلّمنا على واتساب من إعلان: :ad",
+    "Wrote to us on WhatsApp from an ad: :ad. The name is their WhatsApp name: fix it to the place's name.": "كلّمنا على واتساب من إعلان: :ad. الاسم ده اسمه على واتساب، غيّره لاسم المكان.",
+    "Tick that they agreed on the phone to get it on WhatsApp.": "علّم إنه وافق في المكالمة نبعتله على واتساب.",
+    "Sending from the EgHub number is not on yet.": "الإرسال من رقم EgHub لسه مش شغال.",
+    "Trial menu offer from the EgHub number, agreed on the phone": "عرض المنيو التجريبي من رقم EgHub، بعد موافقته في المكالمة",
+    "The offer went out from the EgHub number. Their answer reaches «Conversations».": "العرض اتبعت من رقم EgHub، ورده هيوصل في «المحادثات».",
+    "Offer from the EgHub number": "العرض من رقم EgHub",
+    "Only for a place that agreed on the phone to get the offer on WhatsApp. It goes out from the EgHub number, and their answer and menu photo reach «Conversations».": "للمكان اللي وافق في المكالمة إننا نبعتله العرض على واتساب بس. الرسالة بتطلع من رقم EgHub، ورده وصورة المنيو بيوصلوا في «المحادثات».",
+    "They agreed on the phone that we send it on WhatsApp": "وافق في المكالمة إننا نبعتله على واتساب",
+    "Send the offer from the EgHub number": "ابعت العرض من رقم EgHub",
+    "Sending from the EgHub number is not on yet. Until then, use «WhatsApp offer» from your phone.": "الإرسال من رقم EgHub لسه مش شغال. لحد ما يشتغل، استخدم «عرض واتساب» من موبايلك."
 }

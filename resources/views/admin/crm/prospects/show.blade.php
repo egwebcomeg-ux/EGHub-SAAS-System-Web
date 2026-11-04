@@ -75,6 +75,21 @@
                 @endif
             </section>
 
+            @if ($prospect->phone && $prospect->isOpen())
+                @php($eghubReady = \App\Services\Crm\WhatsAppOffer::fromEgHubIsReady())
+                <form method="post" action="{{ route('admin.crm.prospects.eghub-offer', $prospect) }}" class="card space-y-3" data-eghub-offer>
+                    @csrf
+                    <h2 class="section-title">{{ __('Offer from the EgHub number') }}</h2>
+                    <p class="text-sm text-navy-600">{{ __('Only for a place that agreed on the phone to get the offer on WhatsApp. It goes out from the EgHub number, and their answer and menu photo reach «Conversations».') }}</p>
+                    <label class="flex min-h-11 items-center gap-2 text-sm font-semibold">
+                        <input type="checkbox" name="agreed" value="1" class="size-5 accent-brand-600" required @disabled(! $eghubReady)> {{ __('They agreed on the phone that we send it on WhatsApp') }}
+                    </label>
+                    @error('agreed')<p class="field-error">{{ $message }}</p>@enderror
+                    <button class="btn bg-emerald-600 text-white" @disabled(! $eghubReady)>{{ __('Send the offer from the EgHub number') }}</button>
+                    @unless ($eghubReady)<p class="text-xs text-amber-700">{{ __('Sending from the EgHub number is not on yet. Until then, use «WhatsApp offer» from your phone.') }}</p>@endunless
+                </form>
+            @endif
+
             <form method="post" action="{{ route('admin.crm.prospects.call', $prospect) }}" id="call-form" class="card space-y-3" data-prospect-call>
                 @csrf
                 <h2 class="section-title">{{ __('Log this call') }}</h2>

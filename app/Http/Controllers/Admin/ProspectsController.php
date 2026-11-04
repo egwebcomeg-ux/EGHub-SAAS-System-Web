@@ -194,6 +194,32 @@ class ProspectsController extends Controller
         return redirect()->away($offer->url($prospect, $admin));
     }
 
+    /** The trial menu offer from the EgHub number, to a place that agreed on the phone to hear from us. */
+    public function platformOffer(Request $request, Prospect $prospect, WhatsAppOffer $offer): RedirectResponse
+    {
+        $admin = $request->user('admin');
+        abort_unless($offer->canBeSentTo($prospect), 422);
+        $request->validate(['agreed' => 'accepted'], ['agreed.accepted' => __('Tick that they agreed on the phone to get it on WhatsApp.')]);
+        if (! WhatsAppOffer::fromEgHubIsReady()) {
+            return back()->withErrors(['offer' => __('Sending from the EgHub number is not on yet.')]);
+        }
+        if ($offer->sentRecently($prospect)) {
+            return back()->withErrors(['offer' => __('This place got the offer in the last :n days.', ['n' => WhatsAppOffer::RESEND_AFTER_DAYS])]);
+        }
+        $row = $offer->sendFromEgHub($prospect, $admin);
+        if ($row->status === 'failed') {
+            return back()->withErrors(['offer' => __('WhatsApp did not send it: :error', ['error' => $row->errorText()])]);
+        }
+        $stage = $prospect->stage === 'new' ? 'contacted' : null;
+        $prospect->events()->create(['type' => 'whatsapp', 'admin_id' => $admin->id, 'outcome' => 'sent', 'notes' => __('Trial menu offer from the EgHub number, agreed on the phone'),
+            'meta' => array_filter(['offer' => true, 'via' => 'eghub', 'agreed' => true, 'from' => $stage ? $prospect->stage : null, 'to' => $stage])]);
+        $prospect->update(array_filter(['stage' => $stage]) + [
+            'last_contact_at' => now(), 'next_follow_up_at' => now()->addDays(WhatsAppOffer::FOLLOW_UP_DAYS), 'caller_id' => $prospect->caller_id ?? $admin->id,
+        ]);
+
+        return back()->with('ok', __('The offer went out from the EgHub number. Their answer reaches «Conversations».'));
+    }
+
     /** Stage by hand, the caller and the field rep of the place. */
     public function assign(Request $request, Prospect $prospect): RedirectResponse
     {

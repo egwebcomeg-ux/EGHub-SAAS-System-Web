@@ -80,6 +80,9 @@
                     <h2 class="section-title"><bdi>{{ $conversation->displayName() }}</bdi></h2>
                     @if ($conversation->isWhatsApp())
                         <a href="https://wa.me/{{ $conversation->phone }}" target="_blank" rel="noopener" dir="ltr" class="text-sm text-navy-500">+{{ $conversation->phone }}</a>
+                        @if ($place)
+                            <a href="{{ route('admin.crm.prospects.show', $place) }}" class="mt-1 block text-sm font-bold text-brand-700 hover:underline" data-inbox-place>{{ $place->categoryEmoji() }} {{ $place->name }} · {{ $place->stageLabel() }}</a>
+                        @endif
                     @else
                         <span class="text-sm text-navy-500">@include('admin.partials.channel-logo', ['channel' => $conversation->channel])</span>
                     @endif

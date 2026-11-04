@@ -7,6 +7,7 @@ use App\Models\PlatformConversation;
 use App\Models\PlatformConversationMessage;
 use App\Models\Tenant;
 use App\Notifications\InboxNeedsAnswer;
+use App\Services\Crm\AdLeads;
 use App\Services\WhatsApp\Drivers\MetaCloudDriver;
 use App\Services\WhatsApp\Drivers\MetaPageDriver;
 use Illuminate\Support\Facades\Cache;
@@ -49,8 +50,13 @@ final class PlatformInbox
             return null;
         }
         $type = mb_substr((string) ($message['type'] ?? 'text'), 0, 20);
+        $row = $this->keep(PlatformConversation::WHATSAPP, $phone, $this->profileName($contacts, $phone), $providerId, $type, self::text($message, $type));
+        // the first message of a person who tapped «send a WhatsApp message» on one of our ads carries the ad
+        if ($row && is_array($message['referral'] ?? null)) {
+            app(AdLeads::class)->record($row->conversation, $message['referral']);
+        }
 
-        return $this->keep(PlatformConversation::WHATSAPP, $phone, $this->profileName($contacts, $phone), $providerId, $type, self::text($message, $type));
+        return $row;
     }
 
     /** One message to the EgHub page on Messenger or Instagram. */
@@ -132,10 +138,23 @@ final class PlatformInbox
      */
     public function start(string $phone, string $name, ?PlatformAdmin $admin = null): PlatformConversationMessage
     {
-        $conversation = PlatformConversation::query()->firstOrCreate(['channel' => PlatformConversation::WHATSAPP, 'phone' => $phone], ['name' => $name]);
-        $text = str_replace('{{1}}', $name, self::WELCOME_TEMPLATE);
+        return $this->startWithTemplate($phone, $name, 'welcome', [$name], self::WELCOME_TEMPLATE, $admin);
+    }
 
-        return $this->deliver($conversation, $admin, $text, fn () => (new MetaCloudDriver)->send($phone, 'welcome', [$name]));
+    /**
+     * Opens a conversation with an approved template; $text is its body with {{1}}, {{2}}... as the team reads it.
+     *
+     * @param  list<string>  $params
+     */
+    public function startWithTemplate(string $phone, string $name, string $templateKey, array $params, string $text, ?PlatformAdmin $admin = null): PlatformConversationMessage
+    {
+        $conversation = PlatformConversation::query()->firstOrCreate(['channel' => PlatformConversation::WHATSAPP, 'phone' => $phone], ['name' => $name]);
+        $replace = [];
+        foreach ($params as $index => $value) {
+            $replace['{{'.($index + 1).'}}'] = $value;
+        }
+
+        return $this->deliver($conversation, $admin, strtr($text, $replace), fn () => (new MetaCloudDriver)->send($phone, $templateKey, $params));
     }
 
     /** The conversation of a restaurant's owner, waiting for its welcome until the template is approved. */

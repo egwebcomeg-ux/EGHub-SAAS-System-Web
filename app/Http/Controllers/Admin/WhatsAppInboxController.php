@@ -8,6 +8,7 @@ use App\Models\PlatformAuditLog;
 use App\Models\PlatformCannedReply;
 use App\Models\PlatformConversation;
 use App\Models\PlatformSetting;
+use App\Models\Prospect;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Assistant;
@@ -180,6 +181,9 @@ class WhatsAppInboxController extends Controller
                 ->when($search !== '', fn (Builder $q) => $q->where(fn (Builder $w) => $w->where('phone', 'like', '%'.$search.'%')->orWhere('name', 'like', '%'.$search.'%')))
                 ->orderByDesc('last_message_at')->orderByDesc('id')->paginate(30)->withQueryString(),
             'conversation' => $conversation,
+            // the place of the sales team with this number, so the team knows who writes
+            'place' => $conversation?->isWhatsApp() && $admin->allows('crm.view') && ($mobile = normalize_phone($conversation->phone))
+                ? Prospect::query()->where(fn (Builder $q) => $q->where('phone', $mobile)->orWhere('phone2', $mobile))->first() : null,
             'messages' => $conversation?->messages()->with('admin')->orderBy('id')->get()->take(-200) ?? collect(),
             'team' => $this->team(),
             'canned' => PlatformCannedReply::query()->orderBy('title')->get(),
