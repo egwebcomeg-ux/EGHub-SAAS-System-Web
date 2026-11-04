@@ -20,6 +20,7 @@ final class MenuFonts
         'El Messiri' => '400;600;700',
         'Amiri' => '400;700',
         'Reem Kufi' => '400;600;700',
+        'Baloo Bhaijaan 2' => '400;500;600;700;800',
         'Playfair Display' => '400;600;700;800',
         'DM Serif Display' => '400',
         'Poppins' => '400;600;700;800',
@@ -27,7 +28,7 @@ final class MenuFonts
     ];
 
     public const NAMES = ['Cairo', 'Tajawal', 'Almarai', 'IBM Plex Sans Arabic', 'Readex Pro', 'El Messiri', 'Amiri', 'Reem Kufi',
-        'Playfair Display', 'DM Serif Display', 'Poppins', 'Nunito'];
+        'Baloo Bhaijaan 2', 'Playfair Display', 'DM Serif Display', 'Poppins', 'Nunito'];
 
     /** The stylesheet of a family (null for Cairo, which every page already loads, or an unknown name). */
     public static function cssUrl(string $font): ?string
