@@ -73,6 +73,9 @@
             .slot.dark { background: var(--s2); color: #fff; }
             .slot.light { background: #fff; border: 2.5px solid var(--s2); }
             .cat-head { border: 0; padding: 0; justify-content: flex-start; font-size: calc(20px * var(--s)); }
+            .cat-head .photo { width: calc(17mm * var(--s)); height: calc(17mm * var(--s)); border-radius: 50%; object-fit: cover; margin-inline-start: auto; flex-shrink: 0; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.18); }
+            /* the category's photo by its title, as the shop's own price list does; once, not on a continued panel */
+            .cat-head.is-cont .photo { display: none; }
             .dark .cat-head { color: var(--p); } .dark .cat-head .en { color: #fff; opacity: .7; }
             .row { display: grid; grid-template-columns: 1fr auto 11mm; align-items: baseline; gap: 2mm; font-size: calc(14px * var(--s)); font-weight: 700; line-height: 1.35; }
             .item-block { padding: calc(.5mm * var(--s)) 0; }
@@ -175,7 +178,8 @@
 <div id="pool">
     @foreach ($categories as $c)
         <section class="cat">
-            <div class="cat-head"><span>{{ $text($c, 'name', $mainLang) }}</span>@if (($second = $text($c, 'name', $secondLang)) && $second !== $text($c, 'name', $mainLang))<span class="en" dir="{{ \App\Support\MenuLocales::dir($secondLang) }}">{{ $second }}</span>@endif</div>
+            <div class="cat-head"><span>{{ $text($c, 'name', $mainLang) }}</span>@if (($second = $text($c, 'name', $secondLang)) && $second !== $text($c, 'name', $mainLang))<span class="en" dir="{{ \App\Support\MenuLocales::dir($secondLang) }}">{{ $second }}</span>@endif
+                @if ($cards && $c->image)<img class="photo" src="/storage/{{ $c->image }}" alt="">@endif</div>
             @foreach ($c->items as $item)
                 @php
                     $prices = $sizePrices($item);
