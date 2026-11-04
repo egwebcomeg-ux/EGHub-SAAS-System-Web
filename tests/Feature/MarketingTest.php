@@ -151,4 +151,20 @@ class MarketingTest extends TenantTestCase
         $basic = $this->restaurant('cafe-basic', 'basic');
         $this->actingAs($this->owner($basic))->get($this->dashUrl('/menu/print'))->assertForbidden();
     }
+
+    public function test_printed_menu_panels_template_prints_every_weight_with_its_price(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $dates = $this->item($a, 'تمر الوادي', 45);
+        $this->as($a, function () use ($dates) {
+            $size = $dates->optionGroups()->create(['name' => 'الوزن', 'type' => 'single', 'is_required' => true]);
+            $size->options()->create(['name' => '٣٠٠ جرام', 'price' => 0]);
+            $size->options()->create(['name' => '١ كيلو', 'price' => 92]);
+        });
+
+        $this->actingAs($this->owner($a))->get($this->dashUrl('/menu/print?template=cards&lang=ar'))->assertOk()
+            ->assertSee('A4 landscape')
+            ->assertSeeInOrder(['<span>تمر الوادي</span><span class="size">٣٠٠ جرام</span><span class="price">45</span>',
+                '<span></span><span class="size">١ كيلو</span><span class="price">137</span>'], false);
+    }
 }

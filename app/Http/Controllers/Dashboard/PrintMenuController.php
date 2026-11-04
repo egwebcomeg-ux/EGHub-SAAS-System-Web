@@ -15,7 +15,8 @@ use Illuminate\View\View;
 /**
  * Printable menu (A4), made from the live menu in the restaurant's colors. The browser flows categories into the
  * columns and picks the largest type that fits the chosen number of pages (Scratch Cafe's algorithm); "Save as
- * PDF" in the print dialog gives the PDF. Templates: text-only, or with item photos (Kebab Pasha style).
+ * PDF" in the print dialog gives the PDF. Templates: text-only, with item photos (Kebab Pasha style), or cards: A4
+ * landscape, four rounded panels in the brand's dark colour and white, each size on its own line (Tayebat El-Wadi style).
  */
 class PrintMenuController extends Controller
 {
@@ -23,7 +24,7 @@ class PrintMenuController extends Controller
     {
         $extra = MenuLocales::enabled();
         $opts = $request->validate([
-            'template' => 'nullable|in:text,photos',
+            'template' => 'nullable|in:text,photos,cards',
             'pages' => 'nullable|integer|min:1|max:6',
             // ar, en, both (Arabic + English), an extra language "fr", or Arabic + an extra language "ar-fr"
             'lang' => ['nullable', Rule::in(array_merge(['ar', 'en', 'both'], $extra, array_map(fn ($c) => 'ar-'.$c, $extra)))],

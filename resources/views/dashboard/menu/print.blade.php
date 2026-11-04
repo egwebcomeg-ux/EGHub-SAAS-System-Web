@@ -26,6 +26,8 @@
             $sizes = $item->optionGroups->first(fn ($g) => $g->type === 'single' && $g->is_required);
             return $sizes ? $sizes->options->map(fn ($o) => [$text($o, 'name', $mainLang), $item->price + $o->price])->all() : [['', $item->price]];
         };
+        $cards = $template === 'cards';
+        $phone = $branch->phone ?: $settings['phone'];
     @endphp
     <style>
         :root { --p: {{ $primary }}; --s2: {{ $secondary }}; --s: 1; }
@@ -55,6 +57,29 @@
         footer.bottom .qr { width: 24mm; } footer.bottom .qr svg { width: 100%; height: auto; }
         #pool { position: absolute; visibility: hidden; width: 90mm; inset-inline-start: -9999px; }
         @media print { html, body { background: #fff; } .sheet { margin: 0; box-shadow: none; } .no-print { display: none !important; } }
+        @if ($cards)
+            @page { size: A4 landscape; margin: 0; }
+            .sheet { width: 297mm; height: 210mm; padding: 9mm; position: relative; }
+            .sheet .cols { grid-template-columns: repeat(4, 1fr); gap: 6mm; position: relative; z-index: 1; }
+            .dot { position: absolute; border-radius: 50%; z-index: 0; }
+            .slot { border-radius: 8mm; padding: 6mm 5mm; }
+            .slot.dark { background: var(--s2); color: #fff; }
+            .slot.light { background: #fff; border: 2.5px solid var(--s2); }
+            .cat-head { border: 0; padding: 0; justify-content: flex-start; font-size: calc(20px * var(--s)); }
+            .dark .cat-head { color: var(--p); } .dark .cat-head .en { color: #fff; opacity: .7; }
+            .row { display: grid; grid-template-columns: 1fr auto 11mm; align-items: baseline; gap: 2mm; font-size: calc(14px * var(--s)); font-weight: 700; line-height: 1.35; }
+            .item-block { padding: calc(.5mm * var(--s)) 0; }
+            .row .size { color: var(--p); font-size: .9em; white-space: nowrap; }
+            .row .price { text-align: end; font-weight: 800; }
+            .row .en { grid-column: 1 / -1; font-size: .72em; opacity: .65; }
+            .light .row .price { color: var(--s2); }
+            .item.item-block { display: block; }
+            footer.bottom { position: relative; z-index: 1; border: 0; margin-top: 4mm; padding: 0; justify-content: space-between; }
+            footer.bottom .qr { width: 20mm; }
+            .call { display: inline-flex; flex-direction: column; align-items: center; border: 2.5px solid var(--s2); border-radius: 4mm; overflow: hidden; }
+            .call b { background: var(--s2); color: #fff; padding: 1mm 6mm; font-size: 15px; }
+            .call span { padding: .5mm 5mm; font-size: 19px; font-weight: 800; color: var(--s2); }
+        @endif
     </style>
 </head>
 <body>
@@ -64,6 +89,7 @@
             <select class="field min-h-9 py-0" name="template" onchange="this.form.submit()">
                 <option value="text" @selected($template === 'text')>{{ __('Text only') }}</option>
                 <option value="photos" @selected($template === 'photos')>{{ __('With photos') }}</option>
+                <option value="cards" @selected($cards)>{{ __('Colour panels (landscape)') }}</option>
             </select></div>
         <div><label class="field-label">{{ __('Pages') }}</label>
             <select class="field min-h-9 py-0" name="pages" onchange="this.form.submit()">
@@ -92,6 +118,25 @@
 </div>
 
 @for ($p = 1; $p <= $pages; $p++)
+    @if ($cards)
+        {{-- the panels template: brand-coloured dots behind four panels, the logo, «order now» and the QR under them --}}
+        <div class="sheet">
+            @foreach ([['-9mm', '-6mm', '30mm', $primary], ['62%', '-12mm', '26mm', '#DCE34A'], ['30%', '96%', '24mm', '#6CC04A'], ['-8mm', '45%', '18mm', '#8E7CC3'], ['97%', '60%', '20mm', $primary], ['55%', '93%', '22mm', '#E86A7A']] as [$top, $left, $size, $color])
+                <span class="dot" style="top: {{ $top }}; left: {{ $left }}; width: {{ $size }}; height: {{ $size }}; background: {{ $color }}"></span>
+            @endforeach
+            <div class="cols">
+                @for ($s = 0; $s < 4; $s++)<div class="slot {{ $s % 2 ? 'light' : 'dark' }}"></div>@endfor
+            </div>
+            @if ($p === $pages)
+                <footer class="bottom">
+                    @if ($settings['logo'])<img src="/storage/{{ $settings['logo'] }}" alt="" style="height: 22mm">@else<b style="color: var(--s2); font-size: 22px">{{ $settings['brand_name'] }}</b>@endif
+                    @if ($phone)<div class="call"><b>📞 {{ __('Order now') }}</b><span dir="ltr">{{ $phone }}</span></div>@endif
+                    <div class="qr">{!! $qr !!}</div>
+                </footer>
+            @endif
+        </div>
+        @continue
+    @endif
     <div class="sheet">
         @if ($p === 1)
             <header class="top">
@@ -127,7 +172,18 @@
             @foreach ($c->items as $item)
                 @php
                     $prices = $sizePrices($item);
+                    $second = $text($item, 'name', $secondLang);
+                    $second = $second !== $text($item, 'name', $mainLang) ? $second : '';
                 @endphp
+                @if ($cards)
+                    {{-- one line per size (name on the first, then weight and price), as the shop prints its price list --}}
+                    <div class="item item-block">
+                        @foreach ($prices as [$size, $price])
+                            <div class="row"><span>{{ $loop->first ? $text($item, 'name', $mainLang) : '' }}</span><span class="size">{{ $size }}</span><span class="price">{{ money($price) }}</span>@if ($loop->first && $second)<span class="en" dir="{{ \App\Support\MenuLocales::dir($secondLang) }}">{{ $second }}</span>@endif</div>
+                        @endforeach
+                    </div>
+                    @continue
+                @endif
                 <div class="item">
                     @if ($template === 'photos' && $item->image)<img src="/storage/{{ $item->image }}" alt="">@endif
                     <div class="body">
