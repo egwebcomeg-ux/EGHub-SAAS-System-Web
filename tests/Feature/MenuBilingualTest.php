@@ -117,6 +117,19 @@ class MenuBilingualTest extends TenantTestCase
         }
     }
 
+    public function test_the_printed_menu_look_lists_every_size_with_its_full_price(): void
+    {
+        $tenant = $this->menu(false);
+        $this->as($tenant, fn () => Settings::put(['menu_theme' => 'minimal', 'item_placeholder' => '0']));
+
+        $html = (string) $this->get($this->pathUrl('cafe-a'))->assertOk()->getContent();
+        $sizes = (string) str($html)->after('data-item-sizes')->before('</button>');
+        $this->assertStringContainsString('دبل', $sizes);
+        $this->assertStringContainsString('>160 ', $sizes);
+        $this->assertStringContainsString('سينجل', $sizes);
+        $this->assertStringContainsString('>120 ', $sizes);
+    }
+
     public function test_the_owner_turns_it_on_and_off_and_staff_without_the_permission_cannot(): void
     {
         $tenant = $this->restaurant('cafe-a');
