@@ -77,9 +77,19 @@ final class Entitlements
 
     private static function build(Tenant $tenant): self
     {
-        $rights = Cache::remember(self::cacheKey($tenant->getTenantKey()), self::CACHE_SECONDS, fn () => self::compute($tenant));
+        // the cache keeps plain values only (config cache.serializable_classes is off: a model would come back as an
+        // incomplete class): the plan is stored by its id and read again, one small query instead of five
+        $key = self::cacheKey($tenant->getTenantKey());
+        $rights = Cache::get($key);
+        $plan = is_array($rights) && isset($rights['plan_id']) ? Plan::query()->find($rights['plan_id']) : null;
+        if (! $plan) {
+            $computed = self::compute($tenant);
+            $plan = $computed['plan'];
+            $rights = ['plan_id' => $plan->getKey()] + array_diff_key($computed, ['plan' => 1]);
+            Cache::put($key, $rights, self::CACHE_SECONDS);
+        }
 
-        return new self($tenant, $rights['plan'], $rights['features'], $rights['limits'], $rights['paid']);
+        return new self($tenant, $plan, $rights['features'], $rights['limits'], $rights['paid']);
     }
 
     /** @return array{plan: Plan, features: array<string,bool>, limits: array<string,int|null>, paid: bool} */
