@@ -27,6 +27,8 @@
             return $sizes ? $sizes->options->map(fn ($o) => [$text($o, 'name', $mainLang), $item->price + $o->price])->all() : [['', $item->price]];
         };
         $cards = $template === 'cards';
+        // the panels print Arabic prices in Arabic digits, like the weights next to them
+        $cardPrice = fn ($price) => $mainLang === 'ar' ? strtr(money($price), ['0' => '٠', '1' => '١', '2' => '٢', '3' => '٣', '4' => '٤', '5' => '٥', '6' => '٦', '7' => '٧', '8' => '٨', '9' => '٩', ',' => '٬', '.' => '٫']) : money($price);
         $phone = $branch->phone ?: $settings['phone'];
     @endphp
     <style>
@@ -179,7 +181,7 @@
                     {{-- one line per size (name on the first, then weight and price), as the shop prints its price list --}}
                     <div class="item item-block">
                         @foreach ($prices as [$size, $price])
-                            <div class="row"><span>{{ $loop->first ? $text($item, 'name', $mainLang) : '' }}</span><span class="size">{{ $size }}</span><span class="price">{{ money($price) }}</span>@if ($loop->first && $second)<span class="en" dir="{{ \App\Support\MenuLocales::dir($secondLang) }}">{{ $second }}</span>@endif</div>
+                            <div class="row"><span>{{ $loop->first ? $text($item, 'name', $mainLang) : '' }}</span><span class="size">{{ $size }}</span><span class="price">{{ $cardPrice($price) }}</span>@if ($loop->first && $second)<span class="en" dir="{{ \App\Support\MenuLocales::dir($secondLang) }}">{{ $second }}</span>@endif @if ($loop->first && $desc && ($d = $text($item, 'description', $mainLang)))<span class="en">{{ $d }}</span>@endif</div>
                         @endforeach
                     </div>
                     @continue

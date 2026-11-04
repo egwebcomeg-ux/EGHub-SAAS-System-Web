@@ -164,8 +164,8 @@ class MarketingTest extends TenantTestCase
 
         $this->actingAs($this->owner($a))->get($this->dashUrl('/menu/print?template=cards&lang=ar'))->assertOk()
             ->assertSee('A4 landscape')
-            ->assertSeeInOrder(['<span>تمر الوادي</span><span class="size">٣٠٠ جرام</span><span class="price">45</span>',
-                '<span></span><span class="size">١ كيلو</span><span class="price">137</span>'], false);
+            ->assertSeeInOrder(['<span>تمر الوادي</span><span class="size">٣٠٠ جرام</span><span class="price">٤٥</span>',
+                '<span></span><span class="size">١ كيلو</span><span class="price">١٣٧</span>'], false);
 
         // the choice is remembered: the next visit opens the panels again
         $this->actingAs($this->owner($a))->get($this->dashUrl('/menu/print'))->assertOk()->assertSee('A4 landscape');
