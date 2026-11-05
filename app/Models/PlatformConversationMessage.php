@@ -18,12 +18,14 @@ class PlatformConversationMessage extends Model
 {
     protected $guarded = ['id'];
 
+    /** Meta's words when it keeps a person from getting too many marketing messages (error 131049). */
+    public const MARKETING_LIMIT = 'healthy ecosystem engagement';
+
     /**
-     * Meta's own words for a refusal the team cannot fix, with what to do instead. Meta keeps a person from getting
-     * too many marketing messages (error 131049) and asks not to try again within a day.
+     * Meta's own words for a refusal the team cannot fix, with what to do instead. Meta asks not to try again within a day.
      */
     private const KNOWN_ERRORS = [
-        'healthy ecosystem engagement' => 'Meta did not deliver it: it limits how many offers one person gets from businesses. It costs nothing. Try again tomorrow, or call them.',
+        self::MARKETING_LIMIT => 'Meta did not deliver it: it limits how many offers one person gets from businesses. It costs nothing. Try again tomorrow, or call them.',
     ];
 
     /** The failure as the team reads it: a known Meta refusal explained, anything else as Meta wrote it. */

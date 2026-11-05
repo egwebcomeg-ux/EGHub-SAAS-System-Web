@@ -116,10 +116,10 @@ class WhatsAppInboxController extends Controller
         if ($conversation->canReply() || $conversation->messages()->where('direction', 'out')->where('status', '!=', 'failed')->where('created_at', '>', now()->subDay())->exists()) {
             return redirect()->route('admin.inbox.show', $conversation);
         }
-        if (PlatformInbox::welcomeIsWaiting()) {
+        if (! PlatformInbox::restaurantWelcomeIsApproved() && PlatformInbox::welcomeIsWaiting()) {
             return redirect()->route('admin.inbox.show', $conversation)->with('ok', __('Meta has not approved the welcome template yet. This restaurant gets it by itself once it is approved.'));
         }
-        $row = $inbox->start($conversation->phone, $owner->name, $request->user('admin'));
+        $row = $inbox->welcomeRestaurant($conversation, $owner->name, $tenant->name, $request->user('admin'));
         if ($row->status === 'failed') {
             return redirect()->route('admin.inbox.show', $conversation)->withErrors(['body' => __(':channel did not send it: :error', ['channel' => __('WhatsApp'), 'error' => $row->errorText()])]);
         }

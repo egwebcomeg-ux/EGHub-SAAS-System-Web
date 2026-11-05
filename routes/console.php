@@ -157,8 +157,9 @@ Artisan::command('eghub:whatsapp-templates', function (PlatformTemplates $templa
     if ($changed) {
         Notification::send(PlatformAdmin::notifiable('inbox.manage'), new WhatsAppTemplatesChanged($changed));
     }
-    $this->info($changed === null ? 'could not read Meta' : 'changed: '.count($changed));
-})->purpose('Read the status of the EgHub number\'s templates at Meta and tell the team what changed');
+    $submitted = $changed === null ? 0 : $templates->submitMissing();
+    $this->info($changed === null ? 'could not read Meta' : 'changed: '.count($changed).', submitted: '.$submitted);
+})->purpose('Read the status of the EgHub number\'s templates at Meta, submit ours it does not know, and tell the team what changed');
 Schedule::command('eghub:whatsapp-templates')->hourly()->withoutOverlapping(10);
 Artisan::command('eghub:welcome-new-restaurants', function (PlatformInbox $inbox) {
     $this->info('welcomed: '.$inbox->welcomeNewRestaurants());

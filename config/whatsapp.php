@@ -89,6 +89,9 @@ return [
         'sign_in_code' => env('WHATSAPP_TPL_SIGN_IN_CODE', 'egmenu_sign_in_code'),
         // the first message the team sends a new customer from «محادثات واتساب», {{1}} their name
         'welcome' => env('WHATSAPP_TPL_WELCOME', 'egmenu_welcome'),
+        // the welcome of a restaurant that signed up (category Utility: Meta caps Marketing per person, error 131049), the
+        // exact text is App\Services\WhatsApp\PlatformInbox::RESTAURANT_WELCOME_TEMPLATE: {{1}} the owner, {{2}} the restaurant
+        'restaurant_welcome' => env('WHATSAPP_TPL_RESTAURANT_WELCOME', 'eghub_restaurant_welcome'),
         // the trial menu offer a sales person sends a place that agreed on the phone (category Marketing), the exact
         // text is App\Services\Crm\WhatsAppOffer::TEMPLATE_TEXT: {{1}} the sales person, {{2}} the place, {{3}} the trial days
         'sales_offer' => env('WHATSAPP_TPL_SALES_OFFER', 'eghub_trial_menu_offer'),

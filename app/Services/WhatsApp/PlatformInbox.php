@@ -30,6 +30,9 @@ final class PlatformInbox
     /** The text of the approved template egmenu_welcome, as the team reads it in the conversation. */
     public const WELCOME_TEMPLATE = 'أهلًا {{1}}، معاك فريق EgHub للمنيو الإلكتروني والطلبات للمطاعم والكافيهات. لو حابب تعرف الأسعار أو تبدأ، رد على الرسالة دي وهنساعدك.';
 
+    /** The text of the Utility template restaurant_welcome (submitted by PlatformTemplates), as the team reads it. */
+    public const RESTAURANT_WELCOME_TEMPLATE = 'أهلًا {{1}}، حساب {{2}} على EgHub اتعمل. تقدر تكمّل المنيو والإعدادات من لوحة التحكم، ولو محتاج مساعدة في أي خطوة رد على الرسالة دي.';
+
     /** The label of what cannot be shown as text: media stays on the sender's and on Meta's side. */
     private const TYPE_LABELS = [
         'image' => 'صورة', 'audio' => 'رسالة صوتية', 'video' => 'فيديو', 'document' => 'ملف', 'sticker' => 'ملصق',
@@ -166,16 +169,39 @@ final class PlatformInbox
         return $conversation;
     }
 
+    /**
+     * A restaurant's owner is welcomed with the Utility template once Meta approved it (Meta does not cap it per
+     * person), else with the general welcome.
+     */
+    public function welcomeRestaurant(PlatformConversation $conversation, string $ownerName, string $restaurantName, ?PlatformAdmin $admin = null): PlatformConversationMessage
+    {
+        if (self::restaurantWelcomeIsApproved()) {
+            return $this->startWithTemplate($conversation->phone, $ownerName, 'restaurant_welcome', [$ownerName, $restaurantName], self::RESTAURANT_WELCOME_TEMPLATE, $admin);
+        }
+
+        return $this->start($conversation->phone, $ownerName, $admin);
+    }
+
+    public static function restaurantWelcomeIsApproved(): bool
+    {
+        return PlatformTemplates::isApproved((string) config('whatsapp.templates.restaurant_welcome'));
+    }
+
     /** The welcome waits for Meta: the team cannot start a conversation until then. */
     public static function welcomeIsWaiting(): bool
     {
         return PlatformTemplates::isNotApprovedYet((string) config('whatsapp.templates.welcome'));
     }
 
-    /** @return int how many new restaurants were welcomed: each once, in their first week, and never a person already talking to us. A welcome that failed is tried again a day later (Meta asks not to sooner), up to WELCOME_TRIES times. */
+    /**
+     * @return int how many new restaurants were welcomed: each once, in their first week, and never a person already
+     *             talking to us. A welcome that failed is tried again a day later (Meta asks not to sooner), up to
+     *             WELCOME_TRIES times; with only the Marketing welcome, a person Meta capped (131049) is not tried again.
+     */
     public function welcomeNewRestaurants(): int
     {
-        if (! PlatformTemplates::isApproved((string) config('whatsapp.templates.welcome')) || ! PlatformAutoReply::enabled()) {
+        $utility = self::restaurantWelcomeIsApproved();
+        if ((! $utility && ! PlatformTemplates::isApproved((string) config('whatsapp.templates.welcome'))) || ! PlatformAutoReply::enabled()) {
             return 0;
         }
         $sent = 0;
@@ -183,8 +209,10 @@ final class PlatformInbox
             ->whereDoesntHave('messages', fn ($messages) => $messages->where('status', '!=', 'failed'))
             ->whereHas('messages', fn ($messages) => $messages->where('status', 'failed'), '<', self::WELCOME_TRIES)
             ->whereDoesntHave('messages', fn ($messages) => $messages->where('created_at', '>', now()->subDay()))
+            ->when(! $utility, fn ($query) => $query->whereDoesntHave('messages', fn ($messages) => $messages->where('error', 'like', '%'.PlatformConversationMessage::MARKETING_LIMIT.'%')))
             ->each(function (PlatformConversation $conversation) use (&$sent) {
-                $this->start($conversation->phone, (string) $conversation->name);
+                $restaurant = Tenant::query()->find($conversation->tenant_id);
+                $this->welcomeRestaurant($conversation, (string) $conversation->name, (string) ($restaurant->name ?? $conversation->name));
                 $sent++;
             });
 

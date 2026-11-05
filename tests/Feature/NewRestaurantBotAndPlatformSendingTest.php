@@ -39,11 +39,63 @@ class NewRestaurantBotAndPlatformSendingTest extends TenantTestCase
 
     private string $welcomeStatus = 'APPROVED';
 
+    private ?string $restaurantWelcomeStatus = null;
+
     private function fakeMeta(): void
     {
-        Http::fake(['graph.facebook.com/*' => fn ($request) => $request->method() === 'GET'
-            ? Http::response(['data' => [['name' => 'egmenu_welcome', 'status' => $this->welcomeStatus]]])
-            : Http::response(['messages' => [['id' => 'wamid.'.uniqid()]]])]);
+        Http::fake(['graph.facebook.com/*' => fn ($request) => match (true) {
+            $request->method() === 'GET' => Http::response(['data' => array_values(array_filter([
+                ['name' => 'egmenu_welcome', 'status' => $this->welcomeStatus],
+                $this->restaurantWelcomeStatus ? ['name' => 'eghub_restaurant_welcome', 'status' => $this->restaurantWelcomeStatus] : null,
+            ]))]),
+            str_ends_with($request->url(), '/message_templates') => Http::response(['id' => '1', 'status' => 'PENDING', 'category' => 'UTILITY']),
+            default => Http::response(['messages' => [['id' => 'wamid.'.uniqid()]]]),
+        }]);
+    }
+
+    private function marketingCapped(PlatformConversation $conversation): void
+    {
+        $conversation->messages()->create(['direction' => 'out', 'body' => 'x', 'status' => 'failed', 'error' => 'This message was not delivered to maintain healthy ecosystem engagement.']);
+        $this->travel(25)->hours();
+    }
+
+    public function test_a_person_meta_capped_is_not_welcomed_again_with_the_marketing_template(): void
+    {
+        $this->fakeMeta();
+        $this->restaurant('cafe-a');
+        $conversation = PlatformConversation::query()->create(['channel' => 'whatsapp', 'phone' => '201011111111', 'name' => 'Sara', 'tenant_id' => 'cafe-a']);
+        $this->marketingCapped($conversation);
+        $this->artisan('eghub:whatsapp-templates')->assertSuccessful();
+
+        $this->artisan('eghub:welcome-new-restaurants')->assertSuccessful();
+
+        $this->assertSame(1, $conversation->messages()->count());
+        $admin = PlatformAdmin::query()->create(['name' => 'Sara', 'email' => 's@egweb.test', 'password' => 'Secret-pass-123', 'role' => 'support', 'is_active' => true]);
+        $this->actingAs($admin, 'admin')->get($this->adminUrl("/inbox/{$conversation->id}"))->assertOk()->assertSee('ميتا ما وصلتهاش');
+    }
+
+    public function test_meta_gets_the_utility_welcome_once_and_once_approved_a_capped_restaurant_gets_it(): void
+    {
+        $this->fakeMeta();
+        $this->restaurant('cafe-a');
+        $conversation = PlatformConversation::query()->create(['channel' => 'whatsapp', 'phone' => '201011111111', 'name' => 'Sara', 'tenant_id' => 'cafe-a']);
+        $this->marketingCapped($conversation);
+
+        $this->artisan('eghub:whatsapp-templates')->assertSuccessful();
+        $this->restaurantWelcomeStatus = 'PENDING';
+        $this->artisan('eghub:whatsapp-templates')->assertSuccessful();
+        $submitted = Http::recorded(fn ($request) => $request->method() === 'POST' && str_ends_with($request->url(), '/message_templates'));
+        $this->assertCount(1, $submitted);
+        $this->assertSame('UTILITY', $submitted->first()[0]['category']);
+
+        $this->restaurantWelcomeStatus = 'APPROVED';
+        $this->artisan('eghub:whatsapp-templates')->assertSuccessful();
+        $this->artisan('eghub:welcome-new-restaurants')->assertSuccessful();
+
+        $welcome = $conversation->messages()->where('status', 'sent')->sole();
+        $this->assertStringContainsString('Sara', $welcome->body);
+        $this->assertStringContainsString('حساب', $welcome->body);
+        Http::assertSent(fn ($request) => ($request['template']['name'] ?? null) === 'eghub_restaurant_welcome');
     }
 
     public function test_a_signup_waits_for_the_approved_template_then_is_welcomed_once(): void
@@ -83,12 +135,11 @@ class NewRestaurantBotAndPlatformSendingTest extends TenantTestCase
         $this->assertSame(1, PlatformConversation::query()->count());
 
         // Meta refused the first try; it is tried again only a day later, as Meta asks
-        $conversation->messages()->create(['direction' => 'out', 'body' => 'x', 'status' => 'failed', 'error' => 'This message was not delivered to maintain healthy ecosystem engagement.']);
+        $conversation->messages()->create(['direction' => 'out', 'body' => 'x', 'status' => 'failed', 'error' => 'Service temporarily unavailable.']);
         $this->welcomeStatus = 'APPROVED';
         $this->artisan('eghub:whatsapp-templates')->assertSuccessful();
         $this->artisan('eghub:welcome-new-restaurants')->assertSuccessful();
         $this->assertSame(1, $conversation->messages()->count());
-        $this->actingAs($admin, 'admin')->get($this->adminUrl("/inbox/{$conversation->id}"))->assertOk()->assertSee('ميتا ما وصلتهاش');
 
         $this->travel(25)->hours();
         $this->artisan('eghub:welcome-new-restaurants')->assertSuccessful();

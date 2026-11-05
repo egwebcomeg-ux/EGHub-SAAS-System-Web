@@ -56,4 +56,47 @@ final class PlatformTemplates
 
         return $changed;
     }
+
+    /**
+     * Submits to Meta the templates of ours it does not know yet (read by refresh() first); its answer shows on the
+     * next refresh. Returns how many were submitted.
+     */
+    public function submitMissing(): int
+    {
+        $account = config('whatsapp.business_account_id');
+        $token = config('whatsapp.meta.token');
+        if (! $account || ! $token) {
+            return 0;
+        }
+        $submitted = 0;
+        foreach (self::definitions() as $definition) {
+            if (isset(self::known()[$definition['name']])) {
+                continue;
+            }
+            $response = Http::withToken($token)->acceptJson()->timeout(20)
+                ->post('https://graph.facebook.com/'.config('whatsapp.meta.version', 'v21.0')."/$account/message_templates", $definition);
+            if ($response->successful()) {
+                PlatformSetting::put(self::SETTING, json_encode([...self::known(), $definition['name'] => (string) $response->json('status', 'PENDING')]));
+                $submitted++;
+            }
+        }
+
+        return $submitted;
+    }
+
+    /**
+     * The templates the EgHub number submits itself.
+     *
+     * @return list<array{name: string, language: string, category: string, components: list<array<string, mixed>>}>
+     */
+    public static function definitions(): array
+    {
+        return [[
+            'name' => (string) config('whatsapp.templates.restaurant_welcome'), 'language' => (string) config('whatsapp.languages.ar', 'ar'), 'category' => 'UTILITY',
+            'components' => [
+                ['type' => 'BODY', 'text' => PlatformInbox::RESTAURANT_WELCOME_TEMPLATE, 'example' => ['body_text' => [['سارة', 'كافيه النخيل']]]],
+                ['type' => 'BUTTONS', 'buttons' => [['type' => 'URL', 'text' => 'لوحة التحكم', 'url' => platform_url('app', '/')]]],
+            ],
+        ]];
+    }
 }
