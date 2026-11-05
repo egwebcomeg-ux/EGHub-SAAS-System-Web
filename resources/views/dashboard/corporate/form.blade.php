@@ -79,6 +79,7 @@
                 <input class="field" name="add_vouchers" type="number" min="0" max="{{ max(0, \App\Services\Corporate\CorporateVouchers::MAX_QUANTITY - $contract->quantity) }}" value="{{ old('add_vouchers', 0) }}" dir="ltr"></label>
             <p class="-mt-2 text-xs text-navy-500">{{ __('The new vouchers take the next serials; print them with “Print new vouchers”.') }}</p>
             @error('quantity')<p class="text-sm font-bold text-red-700">{{ $message }}</p>@enderror
+            @include('dashboard.corporate.partials.handed-to')
         @else
             <div class="grid gap-3 sm:grid-cols-2">
                 <label class="block"><span class="field-label">{{ __('Value of one voucher') }} *</span>
@@ -91,6 +92,7 @@
                     <input class="field uppercase" name="prefix" value="{{ old('prefix') }}" maxlength="6" pattern="[A-Za-z0-9]{1,6}" dir="ltr" placeholder="EVA"></label>
             </div>
             <p class="-mt-1 text-xs text-navy-500">{{ __('Serials look like EVA-0001. Empty = taken from the company name.') }} {{ __('0 vouchers = a contract for company visits only.') }}</p>
+            @include('dashboard.corporate.partials.handed-to')
             <fieldset class="space-y-2">
                 <legend class="field-label">{{ __('How it is used') }}</legend>
                 @foreach (['single' => __('The whole value in one order. If the order is smaller, the rest is lost (the cashier is warned).'), 'balance' => __('Like a balance: what is left stays on the voucher for the next order.')] as $mode => $help)

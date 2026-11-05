@@ -7741,5 +7741,9 @@
     "and red after (minutes)": "وأحمر بعد (دقايق)",
     "Add vouchers (the contract has :n)": "ضيف فاوتشرات (التعاقد فيه :n)",
     "The new vouchers take the next serials; print them with “Print new vouchers”.": "الفاوتشرات الجديدة بتاخد المسلسلات اللي بعدها، واطبعها من «اطبع الفاوتشرات الجديدة».",
-    "Contract saved: :n new vouchers. Print them with “Print new vouchers”.": "التعاقد اتحفظ: اتضاف :n فاوتشر جديد. اطبعهم من «اطبع الفاوتشرات الجديدة»."
+    "Contract saved: :n new vouchers. Print them with “Print new vouchers”.": "التعاقد اتحفظ: اتضاف :n فاوتشر جديد. اطبعهم من «اطبع الفاوتشرات الجديدة».",
+    "Handed to": "اتسلّمت للمندوب",
+    "Handed to (the company's rep)": "اتسلّمت لمين (مندوب الشركة)",
+    "Rep mobile": "موبايل المندوب",
+    "Optional: who from the company received these vouchers. It shows next to each voucher and in the export.": "اختياري: مين من الشركة استلم الفاوتشرات دي. بيظهر جنب كل فاوتشر وفي ملف التصدير."
 }

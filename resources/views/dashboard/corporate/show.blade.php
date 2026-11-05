@@ -99,9 +99,22 @@
     'all' => __('All'), 'active' => __('Active'), 'expired' => __('Expired'), 'used' => __('Used up'), 'unprinted' => __('Not printed'), 'linked' => __('Linked to a mobile'), 'void' => __('Voided'),
 ])->map(fn ($label, $key) => [$key, $label, route('dash.corporate.show', ['contract' => $contract, 'filter' => $key])])->values()->all()])
 
+@if ($reps->isNotEmpty())
+    <div class="mb-3 flex flex-wrap items-center gap-2 text-sm" data-reps>
+        <span class="font-bold text-navy-700">{{ __('Handed to') }}:</span>
+        @foreach ($reps as $name => $count)
+            <a href="{{ route('dash.corporate.show', ['contract' => $contract, 'filter' => $filter, 'rep' => $name]) }}"
+               class="badge {{ $rep === $name ? 'bg-brand-600 text-white' : 'bg-navy-50 text-navy-700' }}">{{ $name }} · {{ $count }}</a>
+        @endforeach
+        @if ($rep !== null)
+            <a href="{{ route('dash.corporate.show', ['contract' => $contract, 'filter' => $filter]) }}" class="text-brand-700">{{ __('All') }}</a>
+        @endif
+    </div>
+@endif
+
 <section class="card overflow-x-auto" data-vouchers>
     <table class="table-base">
-        <thead><tr><th>{{ __('Serial') }}</th><th>{{ __('Code') }}</th><th>{{ __('Balance') }}</th><th>{{ __('Status') }}</th><th>{{ __('Valid until') }}</th><th>{{ __('Linked mobile') }}</th><th>{{ __('Prints') }}</th><th></th></tr></thead>
+        <thead><tr><th>{{ __('Serial') }}</th><th>{{ __('Code') }}</th><th>{{ __('Balance') }}</th><th>{{ __('Status') }}</th><th>{{ __('Valid until') }}</th><th>{{ __('Linked mobile') }}</th><th>{{ __('Handed to') }}</th><th>{{ __('Prints') }}</th><th></th></tr></thead>
         <tbody>
         @forelse ($vouchers as $v)
             <tr id="v-{{ $v->id }}" data-voucher-row="{{ $v->serial }}">
@@ -111,6 +124,7 @@
                 <td><span class="badge {{ $statusStyles[$v->statusKey()] ?? '' }}">{{ $v->statusLabel() }}</span></td>
                 <td class="whitespace-nowrap">{{ local_time($v->expires_on, 'Y/m/d') }}</td>
                 <td dir="ltr">{{ $v->customer?->phone ?? ($v->pending_phone ? '⏳ '.$v->pending_phone : '—') }}</td>
+                <td>{{ $v->handed_to ?? '—' }}@if ($v->handed_to_phone)<span class="block text-xs text-navy-500" dir="ltr">{{ $v->handed_to_phone }}</span>@endif</td>
                 <td class="tabular-nums">{{ $v->print_count }}</td>
                 <td>
                     <div class="flex flex-wrap items-center gap-1">

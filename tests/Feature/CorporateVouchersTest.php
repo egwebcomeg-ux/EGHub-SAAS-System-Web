@@ -132,8 +132,17 @@ class CorporateVouchersTest extends TenantTestCase
             ->assertSessionHasNoErrors()->assertSessionHas('ok', fn (string $ok) => str_contains($ok, '3'));
         $this->assertSame(['EVA-0041', 'EVA-0042', 'EVA-0043', 'EVA-0044', 'EVA-0045', 'EVA-0046', 'EVA-0047'], array_map(fn ($v) => $v->serial, $this->vouchers($second)));
         $this->actingAs($this->manager)->get($this->dashUrl("/corporate/{$second->id}/edit"))->assertOk()->assertSee('name="add_vouchers"', false);
+        // a batch handed to one of the company's reps carries the rep's name; the contract page filters by rep
+        $this->actingAs($this->manager)->post($this->dashUrl("/corporate/{$second->id}"), ['name' => 'Eva Pharma 2', 'add_vouchers' => 2, 'handed_to' => ' أحمد سمير ', 'handed_to_phone' => '01011112222'])
+            ->assertSessionHasNoErrors();
+        $handed = array_values(array_filter($this->vouchers($second), fn ($v) => $v->handed_to !== null));
+        $this->assertSame(['EVA-0048', 'EVA-0049'], array_map(fn ($v) => $v->serial, $handed));
+        $this->assertSame(['أحمد سمير', '01011112222'], [$handed[0]->handed_to, $handed[0]->handed_to_phone]);
+        $byRep = $this->actingAs($this->manager)->get($this->dashUrl("/corporate/{$second->id}?rep=".urlencode('أحمد سمير')))->assertOk()->assertSee('أحمد سمير · 2');
+        $this->assertSame(2, $byRep->viewData('vouchers')->total());
+        $this->actingAs($this->manager)->get($this->dashUrl("/corporate/{$second->id}/edit"))->assertOk()->assertSee('<option value="أحمد سمير">', false);
         // payments are recorded one by one on the company statement, not typed over on the contract
-        $this->actingAs($this->manager)->post($this->dashUrl("/corporate/{$second->id}/payments"), ['amount' => 1400, 'method' => 'transfer'])->assertSessionHasNoErrors();
+        $this->actingAs($this->manager)->post($this->dashUrl("/corporate/{$second->id}/payments"), ['amount' => 1800, 'method' => 'transfer'])->assertSessionHasNoErrors();
         $this->assertSame('paid', $this->as($this->tenant, fn () => CorporateContract::query()->find($second->id)->paid_status));
 
         $this->actingAs($this->manager)->get($this->dashUrl('/corporate'))->assertOk()->assertSee('Eva Pharma')->assertSee('تعاقدات الشركات');

@@ -57,7 +57,7 @@ final class CorporateVouchers
      * @param  array{name:string, contact_name?:?string, contact_phone?:?string, reference?:?string, prefix?:?string, voucher_value:float|string,
      *              quantity:int|string, expires_on:string, mode:string, branch_ids?:?array, days?:?array, hours_from?:?string, hours_to?:?string,
      *              min_order?:float|string|null, paid_amount?:float|string|null, paid_method?:?string, billing?:?string,
-     *              credit_limit?:float|string|null, booking_notice_hours?:int|string|null, notes?:?string}  $data
+     *              credit_limit?:float|string|null, booking_notice_hours?:int|string|null, notes?:?string, handed_to?:?string, handed_to_phone?:?string}  $data
      */
     public function createContract(array $data, User $by): CorporateContract
     {
@@ -69,7 +69,7 @@ final class CorporateVouchers
                 'status' => 'active', 'created_by' => $by->id,
             ]);
             if ($contract->quantity > 0) {
-                $this->issue($contract, $contract->quantity);
+                $this->issue($contract, $contract->quantity, $data['handed_to'] ?? null, $data['handed_to_phone'] ?? null);
             }
             Audit::record('corporate.created', $contract->name, ['quantity' => $contract->quantity, 'value' => $contract->voucher_value]);
             // what the company paid when signing is its first payment on the statement
@@ -97,18 +97,20 @@ final class CorporateVouchers
             $locked->update($attributes + ['quantity' => $quantity]);
             $locked->update(['paid_status' => CorporateContract::paidStatusFor($locked->paid_amount, $locked->totalValue())]);
             if ($quantity > $contract->quantity) {
-                $this->issue($locked, $quantity - $contract->quantity);
+                $this->issue($locked, $quantity - $contract->quantity, $data['handed_to'] ?? null, $data['handed_to_phone'] ?? null);
             }
-            Audit::record('corporate.updated', $locked->name, ['quantity' => $quantity]);
+            Audit::record('corporate.updated', $locked->name, array_filter(['quantity' => $quantity, 'handed_to' => $data['handed_to'] ?? null]));
             $contract->setRawAttributes($locked->getAttributes(), true);
 
             return $contract;
         });
     }
 
-    /** Adds $count vouchers to the contract, serials following the last one of the same prefix. */
-    public function issue(CorporateContract $contract, int $count): void
+    /** Adds $count vouchers to the contract, serials following the last one of the same prefix, handed to the company's rep when named. */
+    public function issue(CorporateContract $contract, int $count, ?string $handedTo = null, ?string $handedToPhone = null): void
     {
+        $handedTo = filled($handedTo) ? trim($handedTo) : null;
+        $handedToPhone = filled($handedToPhone) ? trim($handedToPhone) : null;
         if ($count < 1 || $count > self::MAX_QUANTITY) {
             throw new OrderException(__('Between 1 and :max vouchers per contract.', ['max' => self::MAX_QUANTITY]));
         }
@@ -121,7 +123,8 @@ final class CorporateVouchers
                 'tenant_id' => tenant()->getTenantKey(), 'corporate_contract_id' => $contract->id,
                 'serial' => $contract->prefix.'-'.str_pad((string) ($next + $i), 4, '0', STR_PAD_LEFT), 'code' => $code,
                 'value' => $contract->voucher_value, 'balance' => $contract->voucher_value, 'status' => 'active',
-                'expires_on' => $contract->expires_on->format('Y-m-d'), 'print_count' => 0, 'created_at' => $now, 'updated_at' => $now,
+                'expires_on' => $contract->expires_on->format('Y-m-d'), 'print_count' => 0, 'handed_to' => $handedTo, 'handed_to_phone' => $handedToPhone,
+                'created_at' => $now, 'updated_at' => $now,
             ];
         }
         foreach (array_chunk($rows, 200) as $chunk) {

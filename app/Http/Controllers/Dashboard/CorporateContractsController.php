@@ -78,7 +78,9 @@ class CorporateContractsController extends Controller
     public function show(Request $request, CorporateContract $contract, CorporateVouchers $service): View
     {
         $filter = in_array($request->query('filter'), ['active', 'used', 'void', 'expired', 'unprinted', 'linked'], true) ? (string) $request->query('filter') : 'all';
+        $rep = filled($request->query('rep')) ? mb_substr((string) $request->query('rep'), 0, 100) : null;
         $vouchers = $contract->vouchers()->with('customer')
+            ->when($rep !== null, fn ($q) => $q->where('handed_to', $rep))
             ->when($filter === 'active', fn ($q) => $q->where('status', 'active')->where('expires_on', '>=', local_today()))
             ->when($filter === 'expired', fn ($q) => $q->where('status', 'active')->where('expires_on', '<', local_today()))
             ->when(in_array($filter, ['used', 'void'], true), fn ($q) => $q->where('status', $filter))
@@ -87,9 +89,10 @@ class CorporateContractsController extends Controller
             ->orderBy('id')->paginate(50)->withQueryString();
 
         return view('dashboard.corporate.show', [
-            'contract' => $contract, 'stats' => $service->stats($contract), 'vouchers' => $vouchers, 'filter' => $filter,
+            'contract' => $contract, 'stats' => $service->stats($contract), 'vouchers' => $vouchers, 'filter' => $filter, 'rep' => $rep,
             'visitsWaiting' => $contract->bookings()->where('status', 'requested')->count(),
             'branchNames' => Branch::query()->pluck('name', 'id'),
+            'reps' => $contract->vouchers()->whereNotNull('handed_to')->selectRaw('handed_to, count(*) as vouchers')->groupBy('handed_to')->orderBy('handed_to')->pluck('vouchers', 'handed_to'),
         ]);
     }
 
@@ -97,7 +100,8 @@ class CorporateContractsController extends Controller
     {
         abort_if($contract->status === 'void', 404);
 
-        return view('dashboard.corporate.form', ['contract' => $contract, 'branches' => $this->branches()]);
+        return view('dashboard.corporate.form', ['contract' => $contract, 'branches' => $this->branches(),
+            'reps' => $contract->vouchers()->whereNotNull('handed_to')->distinct()->orderBy('handed_to')->pluck('handed_to')]);
     }
 
     public function update(Request $request, CorporateContract $contract, CorporateVouchers $service): RedirectResponse
@@ -203,10 +207,10 @@ class CorporateContractsController extends Controller
     /** The vouchers of a contract as CSV or Excel (serial, code, value, balance, status, expiry, link). */
     public function export(Request $request, CorporateContract $contract): Response
     {
-        $rows = [[__('Serial'), __('Code'), __('Value'), __('Balance'), __('Status'), __('Valid until'), __('Linked mobile'), __('Prints'), __('Link')]];
+        $rows = [[__('Serial'), __('Code'), __('Value'), __('Balance'), __('Status'), __('Valid until'), __('Linked mobile'), __('Handed to'), __('Rep mobile'), __('Prints'), __('Link')]];
         foreach ($contract->vouchers()->with('customer')->orderBy('id')->cursor() as $v) {
             $rows[] = [$v->serial, $v->formattedCode(), $v->value, $v->balance, $v->statusLabel(), $v->expires_on->format('Y-m-d'),
-                $v->customer?->phone ?? '', $v->print_count, $v->publicUrl()];
+                $v->customer?->phone ?? '', $v->handed_to ?? '', $v->handed_to_phone ?? '', $v->print_count, $v->publicUrl()];
         }
 
         return $this->download($rows, 'vouchers-'.$contract->prefix.'-'.local_today(), (string) $request->query('format'), __('Vouchers'));
@@ -361,6 +365,9 @@ class CorporateContractsController extends Controller
             'billing' => ['nullable', Rule::in(array_keys(CorporateContract::BILLING))],
             'credit_limit' => 'nullable|numeric|min:0|max:'.CorporateAccount::MAX_PAYMENT,
             'notes' => 'nullable|string|max:2000',
+            // the company's rep the new vouchers are handed to
+            'handed_to' => 'nullable|string|max:100',
+            'handed_to_phone' => 'nullable|string|max:20',
         ];
         if (! $contract) {
             // later payments are recorded one by one on the company statement
