@@ -75,9 +75,10 @@
                 <div class="col-span-2 rounded-xl bg-navy-50 p-3 sm:col-span-1"><div class="text-navy-500">{{ __('Use') }}</div><div class="font-extrabold">{{ $contract->modeLabel() }}</div></div>
             </div>
             <p class="text-xs text-navy-500">{{ __('The value and the use are printed on the vouchers and stay as they are. Change the date with “Extend” on the contract page.') }}</p>
-            <label class="block"><span class="field-label">{{ __('How many vouchers') }}</span>
-                <input class="field" name="quantity" type="number" min="{{ $contract->quantity }}" max="{{ \App\Services\Corporate\CorporateVouchers::MAX_QUANTITY }}" value="{{ old('quantity', $contract->quantity) }}" required dir="ltr"></label>
-            <p class="-mt-2 text-xs text-navy-500">{{ __('A bigger number adds new vouchers with the next serials.') }}</p>
+            <label class="block"><span class="field-label">{{ __('Add vouchers (the contract has :n)', ['n' => $contract->quantity]) }}</span>
+                <input class="field" name="add_vouchers" type="number" min="0" max="{{ max(0, \App\Services\Corporate\CorporateVouchers::MAX_QUANTITY - $contract->quantity) }}" value="{{ old('add_vouchers', 0) }}" dir="ltr"></label>
+            <p class="-mt-2 text-xs text-navy-500">{{ __('The new vouchers take the next serials; print them with “Print new vouchers”.') }}</p>
+            @error('quantity')<p class="text-sm font-bold text-red-700">{{ $message }}</p>@enderror
         @else
             <div class="grid gap-3 sm:grid-cols-2">
                 <label class="block"><span class="field-label">{{ __('Value of one voucher') }} *</span>

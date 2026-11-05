@@ -127,8 +127,13 @@ class CorporateVouchersTest extends TenantTestCase
         $this->actingAs($this->manager)->post($this->dashUrl("/corporate/{$second->id}"), ['name' => 'Eva Pharma 2', 'quantity' => 1])->assertSessionHasErrors('quantity');
         $this->actingAs($this->manager)->post($this->dashUrl("/corporate/{$second->id}"), ['name' => 'Eva Pharma 2', 'quantity' => 4])->assertSessionHasNoErrors();
         $this->assertCount(4, $this->vouchers($second));
+        // the edit form asks how many to add, and says how many were made
+        $this->actingAs($this->manager)->post($this->dashUrl("/corporate/{$second->id}"), ['name' => 'Eva Pharma 2', 'add_vouchers' => 3])
+            ->assertSessionHasNoErrors()->assertSessionHas('ok', fn (string $ok) => str_contains($ok, '3'));
+        $this->assertSame(['EVA-0041', 'EVA-0042', 'EVA-0043', 'EVA-0044', 'EVA-0045', 'EVA-0046', 'EVA-0047'], array_map(fn ($v) => $v->serial, $this->vouchers($second)));
+        $this->actingAs($this->manager)->get($this->dashUrl("/corporate/{$second->id}/edit"))->assertOk()->assertSee('name="add_vouchers"', false);
         // payments are recorded one by one on the company statement, not typed over on the contract
-        $this->actingAs($this->manager)->post($this->dashUrl("/corporate/{$second->id}/payments"), ['amount' => 800, 'method' => 'transfer'])->assertSessionHasNoErrors();
+        $this->actingAs($this->manager)->post($this->dashUrl("/corporate/{$second->id}/payments"), ['amount' => 1400, 'method' => 'transfer'])->assertSessionHasNoErrors();
         $this->assertSame('paid', $this->as($this->tenant, fn () => CorporateContract::query()->find($second->id)->paid_status));
 
         $this->actingAs($this->manager)->get($this->dashUrl('/corporate'))->assertOk()->assertSee('Eva Pharma')->assertSee('تعاقدات الشركات');

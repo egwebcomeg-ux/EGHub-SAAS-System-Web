@@ -7738,5 +7738,8 @@
     "A sale may take an ingredient below zero (the count sheet corrects it)": "البيع ممكن ينزّل الصنف الخام تحت الصفر (الجرد بيصلّحه)",
     "Too many wrong codes. Sign in again.": "أكواد غلط كتير. سجّل دخولك تاني.",
     "Kitchen ticket turns amber after (minutes)": "تذكرة المطبخ بتبقى برتقالي بعد (دقايق)",
-    "and red after (minutes)": "وأحمر بعد (دقايق)"
+    "and red after (minutes)": "وأحمر بعد (دقايق)",
+    "Add vouchers (the contract has :n)": "ضيف فاوتشرات (التعاقد فيه :n)",
+    "The new vouchers take the next serials; print them with “Print new vouchers”.": "الفاوتشرات الجديدة بتاخد المسلسلات اللي بعدها، واطبعها من «اطبع الفاوتشرات الجديدة».",
+    "Contract saved: :n new vouchers. Print them with “Print new vouchers”.": "التعاقد اتحفظ: اتضاف :n فاوتشر جديد. اطبعهم من «اطبع الفاوتشرات الجديدة»."
 }

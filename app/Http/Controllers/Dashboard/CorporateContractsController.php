@@ -103,15 +103,22 @@ class CorporateContractsController extends Controller
     public function update(Request $request, CorporateContract $contract, CorporateVouchers $service): RedirectResponse
     {
         abort_if($contract->status === 'void', 404);
+        // the edit form asks how many to add; quantity (the new total) is still taken as it was
+        $added = (int) ($request->validate(['add_vouchers' => 'nullable|integer|min:0|max:'.CorporateVouchers::MAX_QUANTITY])['add_vouchers'] ?? 0);
+        $request->mergeIfMissing(['quantity' => $contract->quantity + $added]);
         $data = $request->validate($this->rules($contract));
         $data['branch_ids'] = $this->ownBranches($data['branch_ids'] ?? []);
+        $before = $contract->quantity;
         try {
             $service->updateContract($contract, $data);
         } catch (OrderException $e) {
             return back()->withInput()->withErrors(['quantity' => $e->getMessage()]);
         }
+        $new = $contract->quantity - $before;
 
-        return redirect()->route('dash.corporate.show', $contract)->with('ok', __('Contract saved.'));
+        return redirect()->route('dash.corporate.show', $contract)->with('ok', $new > 0
+            ? __('Contract saved: :n new vouchers. Print them with “Print new vouchers”.', ['n' => $new])
+            : __('Contract saved.'));
     }
 
     public function status(Request $request, CorporateContract $contract, CorporateVouchers $service): RedirectResponse
