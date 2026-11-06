@@ -176,6 +176,30 @@ class MarketingTest extends TenantTestCase
         $this->actingAs($this->owner($a))->get($this->dashUrl('/menu/print'))->assertOk()->assertSee('A4 landscape');
     }
 
+    public function test_printed_menu_ribbons_template_tags_each_size_and_names_one_price_flavours(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $latte = $this->item($a, 'لاتيه', 85);
+        $tea = $this->item($a, 'آيس تي', 110);
+        $this->as($a, function () use ($latte, $tea) {
+            $latte->update(['name_en' => 'Latte']);
+            $size = $latte->optionGroups()->create(['name' => 'الحجم', 'name_en' => 'Size', 'type' => 'single', 'is_required' => true]);
+            $size->options()->create(['name' => 'وسط', 'name_en' => 'Medium', 'price' => 0]);
+            $size->options()->create(['name' => 'كبير', 'name_en' => 'Large', 'price' => 20]);
+            $tea->update(['name_en' => 'Iced Tea']);
+            $flavour = $tea->optionGroups()->create(['name' => 'النكهة', 'name_en' => 'Flavor', 'type' => 'single', 'is_required' => true]);
+            $flavour->options()->create(['name' => 'خوخ', 'name_en' => 'Peach', 'price' => 0]);
+            $flavour->options()->create(['name' => 'فراولة', 'name_en' => 'Strawberry', 'price' => 0]);
+        });
+
+        $this->actingAs($this->owner($a))->get($this->dashUrl('/menu/print?template=ribbons&lang=en'))->assertOk()
+            ->assertSee('A4 landscape')
+            ->assertSee('<span class="tag">M</span><span class="price">85</span><span class="tag">L</span><span class="price">105</span>', false)
+            // a pick of flavours at one price is not a size: one price, the flavours after the name
+            ->assertSee('<span>Iced Tea<small class="flavours"> (Peach - Strawberry)</small></span>', false)
+            ->assertSee('<span class="price">110</span>', false);
+    }
+
     public function test_printed_menu_opens_the_text_template_until_another_is_chosen(): void
     {
         $a = $this->restaurant('cafe-a');

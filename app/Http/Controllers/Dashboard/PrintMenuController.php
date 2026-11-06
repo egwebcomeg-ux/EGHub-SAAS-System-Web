@@ -16,7 +16,9 @@ use Illuminate\View\View;
  * Printable menu (A4), made from the live menu in the restaurant's colors. The browser flows categories into the
  * columns and picks the largest type that fits the chosen number of pages (Scratch Cafe's algorithm); "Save as
  * PDF" in the print dialog gives the PDF. Templates: text-only, with item photos (Kebab Pasha style), or cards: A4
- * landscape, four rounded panels in the brand's dark colour and white, each size on its own line (Tayebat El-Wadi style).
+ * landscape, four rounded panels in the brand's dark colour and white, each size on its own line (Tayebat El-Wadi style),
+ * or ribbons: A4 landscape, a light band with the logo on every page, three columns, category titles on ribbons in
+ * the main colour and each size's price behind a small tag (M 110 L 130), as Boska's printed menu.
  */
 class PrintMenuController extends Controller
 {
@@ -24,7 +26,7 @@ class PrintMenuController extends Controller
     {
         $extra = MenuLocales::enabled();
         $opts = $request->validate([
-            'template' => 'nullable|in:text,photos,cards',
+            'template' => 'nullable|in:text,photos,cards,ribbons',
             'pages' => 'nullable|integer|min:1|max:6',
             // ar, en, both (Arabic + English), an extra language "fr", or Arabic + an extra language "ar-fr"
             'lang' => ['nullable', Rule::in(array_merge(['ar', 'en', 'both'], $extra, array_map(fn ($c) => 'ar-'.$c, $extra)))],
@@ -51,9 +53,11 @@ class PrintMenuController extends Controller
             'branch' => $catalog->branch,
             'branches' => Branch::query()->where('is_active', true)->orderBy('sort_order')->get(),
             'settings' => $settings,
-            'template' => in_array($template, ['text', 'photos', 'cards'], true) ? $template : 'text',
-            // the panels are one landscape price list; the other templates start on two pages
-            'pages' => (int) ($opts['pages'] ?? ($template === 'cards' ? 1 : 2)),
+            'template' => in_array($template, ['text', 'photos', 'cards', 'ribbons'], true) ? $template : 'text',
+            // the panels are one landscape price list, the ribbons three landscape pages; the others start on two
+            'pages' => (int) ($opts['pages'] ?? match ($template) {
+                'cards' => 1, 'ribbons' => 3, default => 2
+            }),
             'lang' => $lang,
             'mainLang' => $mainLang,
             'secondLang' => $secondLang,

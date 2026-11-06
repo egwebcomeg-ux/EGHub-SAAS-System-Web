@@ -27,11 +27,28 @@
                 default => (string) \App\Services\Menu\MenuTranslations::text($model, $field, $locale) ?: $fallback,
             };
         };
+        // a required pick that changes the price is a size (one price each); a pick of flavours at one price is not
         $sizePrices = function ($item) use ($text, $mainLang) {
             $sizes = $item->optionGroups->first(fn ($g) => $g->type === 'single' && $g->is_required);
-            return $sizes ? $sizes->options->map(fn ($o) => [$text($o, 'name', $mainLang), $item->price + $o->price])->all() : [['', $item->price]];
+            return $sizes && $sizes->options->contains(fn ($o) => (float) $o->price !== 0.0)
+                ? $sizes->options->map(fn ($o) => [$text($o, 'name', $mainLang), $item->price + $o->price])->all() : [['', $item->price]];
+        };
+        // the ribbons template names the flavours of a one-price pick after the item (Sundae (Chocolate - Caramel)),
+        // unless the item's name already lists them
+        $flavourList = function ($item) use ($text, $mainLang) {
+            $pick = $item->optionGroups->first(fn ($g) => $g->type === 'single' && $g->is_required);
+            $names = $pick ? $pick->options->map(fn ($o) => $text($o, 'name', $mainLang)) : collect();
+            $name = $text($item, 'name', $mainLang);
+            return $names->isEmpty() || $names->every(fn ($flavour) => str_contains($name, $flavour)) ? null : $names->implode(' - ');
         };
         $cards = $template === 'cards';
+        $ribbons = $template === 'ribbons';
+        // the ribbons template tags each size with its initial (M, L) when the initials tell the sizes apart, else its name
+        $sizeTags = function (array $prices) use ($mainLang) {
+            $labels = array_column($prices, 0);
+            $initials = array_map(fn ($label) => mb_strtoupper(mb_substr($label, 0, 1)), $labels);
+            return $mainLang !== 'ar' && count(array_unique($initials)) === count($initials) ? $initials : $labels;
+        };
         // the panels print Arabic prices in Arabic digits, like the weights next to them
         $cardPrice = fn ($price) => $mainLang === 'ar' ? strtr(money($price), ['0' => '٠', '1' => '١', '2' => '٢', '3' => '٣', '4' => '٤', '5' => '٥', '6' => '٦', '7' => '٧', '8' => '٨', '9' => '٩', ',' => '٬', '.' => '٫']) : money($price);
         $phone = $branch->phone ?: $settings['phone'];
@@ -63,7 +80,7 @@
         footer.bottom { display: flex; align-items: center; gap: 5mm; border-top: 2px solid #e3e7ee; padding-top: 3mm; margin-top: 3mm; font-size: 11px; color: #4b5570; }
         footer.bottom .qr { width: 24mm; } footer.bottom .qr svg { width: 100%; height: auto; }
         #pool { position: absolute; visibility: hidden; width: 90mm; inset-inline-start: -9999px; }
-        @media print { html, body { background: #fff; } .sheet { margin: 0; box-shadow: none; } .no-print { display: none !important; } }
+        @media print { html, body { background: #fff; } .sheet { margin: 0; box-shadow: none; } .no-print, #pool { display: none !important; } }
         @if ($cards)
             @page { size: A4 landscape; margin: 0; }
             .sheet { width: 297mm; height: 210mm; padding: 9mm; position: relative; }
@@ -90,6 +107,28 @@
             .call b { background: var(--s2); color: #fff; padding: 1mm 6mm; font-size: 15px; }
             .call span { padding: .5mm 5mm; font-size: 19px; font-weight: 800; color: var(--s2); }
         @endif
+        @if ($ribbons)
+            @page { size: A4 landscape; margin: 0; }
+            .sheet { width: 297mm; height: 210mm; padding: 0 0 7mm; }
+            .band { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; height: 30mm; padding: 0 14mm; margin-bottom: 6mm; background: color-mix(in srgb, var(--s2) 12%, #fff); }
+            .band img { height: 22mm; }
+            .band h1 { margin: 0; color: var(--p); font-size: 34px; font-weight: 800; letter-spacing: .04em; }
+            .band p { margin: 0; color: #6b7480; font-size: 15px; letter-spacing: .3em; }
+            .sheet .cols { grid-template-columns: repeat(3, 1fr); gap: 0; padding: 0 6mm; }
+            .slot { padding: 0 6mm; }
+            .slot + .slot { border-inline-start: 1.5px solid #d5dbe0; }
+            .cat-head { display: inline-flex; border: 0; background: var(--p); color: #fff; font-size: calc(14px * var(--s)); letter-spacing: .2em; padding: 1.2mm 9mm 1.2mm 4mm; clip-path: polygon(0 0, 100% 0, calc(100% - 4mm) 50%, 100% 100%, 0 100%); margin-bottom: calc(2mm * var(--s)); }
+            [dir=rtl] .cat-head { letter-spacing: 0; padding: 1.2mm 4mm 1.2mm 9mm; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 4mm 50%); }
+            .cat-head .en { color: #fff; opacity: .75; letter-spacing: 0; margin-inline-start: 3mm; }
+            .item .line { font-weight: 500; }
+            .flavours { font-size: .72em; color: #4b5570; }
+            .item .dots { border-bottom-color: #8a95a3; }
+            .item .price { color: #1b2233; font-weight: 600; }
+            .tag { background: var(--p); color: #fff; font-size: .62em; font-weight: 700; padding: .2mm 1.2mm; border-radius: .6mm; margin-inline-start: 1.5mm; }
+            .item { padding: calc(.75mm * var(--s)) 0; }
+            .band .qr { display: flex; align-items: center; gap: 3mm; color: #4b5570; font-size: 11px; font-weight: 600; }
+            .band .qr svg { width: 20mm; height: auto; }
+        @endif
     </style>
 </head>
 <body>
@@ -100,6 +139,7 @@
                 <option value="text" @selected($template === 'text')>{{ __('Text only') }}</option>
                 <option value="photos" @selected($template === 'photos')>{{ __('With photos') }}</option>
                 <option value="cards" @selected($cards)>{{ __('Colour panels (landscape)') }}</option>
+                <option value="ribbons" @selected($ribbons)>{{ __('Ribbon titles (landscape)') }}</option>
             </select></div>
         <div><label class="field-label">{{ __('Pages') }}</label>
             <select class="field min-h-9 py-0" name="pages" onchange="this.form.submit()">
@@ -148,7 +188,18 @@
         @continue
     @endif
     <div class="sheet">
-        @if ($p === 1)
+        @if ($ribbons)
+            {{-- the ribbons template: the brand band with the logo on top of every page --}}
+            <div class="band">
+                <div class="qr">{!! $qr !!}<span>{{ __('Scan to see the menu and order', [], $mainLang === 'ar' ? 'ar' : 'en') }}</span></div>
+                @if ($settings['logo'])<img src="/storage/{{ $settings['logo'] }}" alt="">
+                @else<div><h1>{{ $mainLang !== 'ar' ? ($settings['brand_name_en'] ?: $settings['brand_name']) : $settings['brand_name'] }}</h1>
+                    @if ($t = $mainLang !== 'ar' ? $settings['tagline_en'] : $settings['tagline'])<p>{{ $t }}</p>@endif</div>@endif
+            </div>
+            <div class="cols"><div class="slot"></div><div class="slot"></div><div class="slot"></div></div>
+        @endif
+        {{-- the ribbons carry the QR in the band of every page, so no footer --}}
+        @if ($p === 1 && ! $ribbons)
             <header class="top">
                 <div>
                     <h1>{{ $mainLang !== 'ar' ? ($settings['brand_name_en'] ?: $settings['brand_name']) : $settings['brand_name'] }}</h1>
@@ -157,12 +208,12 @@
                 @if ($settings['logo'])<img src="/storage/{{ $settings['logo'] }}" alt="" style="height: 20mm">@endif
             </header>
         @endif
-        <div class="cols"><div class="slot"></div><div class="slot"></div></div>
-        @if ($p === $pages)
+        @unless ($ribbons)<div class="cols"><div class="slot"></div><div class="slot"></div></div>@endunless
+        @if ($p === $pages && ! $ribbons)
             <footer class="bottom">
                 <div class="qr">{!! $qr !!}</div>
                 <div>
-                    <b style="color: var(--s2)">{{ __('Scan to see the menu and order') }}</b><br>
+                    <b style="color: var(--s2)">{{ __('Scan to see the menu and order', [], $mainLang === 'ar' ? 'ar' : 'en') }}</b><br>
                     @if ($branch->address){{ $branch->address }}<br>@endif
                     {{ $branch->phone ?: $settings['phone'] }}
                     @if ((float) $settings['service_percent'] > 0 || (float) $settings['tax_percent'] > 0)
@@ -199,12 +250,14 @@
                     @if ($template === 'photos' && $item->image)<img src="/storage/{{ $item->image }}" alt="">@endif
                     <div class="body">
                         <div class="line">
-                            <span>{{ $text($item, 'name', $mainLang) }}</span>
+                            <span>{{ $text($item, 'name', $mainLang) }}@if ($ribbons && count($prices) === 1 && ($flavours = $flavourList($item)))<small class="flavours"> ({{ $flavours }})</small>@endif</span>
                             <span class="dots"></span>
-                            @if (count($prices) === 1)<span class="price">{{ money($prices[0][1]) }}</span>@endif
+                            @if (count($prices) === 1)<span class="price">{{ money($prices[0][1]) }}</span>
+                            @elseif ($ribbons)@foreach ($sizeTags($prices) as $i => $tag)<span class="tag">{{ $tag }}</span><span class="price">{{ money($prices[$i][1]) }}</span>@endforeach
+                            @endif
                         </div>
                         @if (($second = $text($item, 'name', $secondLang)) && $second !== $text($item, 'name', $mainLang))<div class="en" dir="{{ \App\Support\MenuLocales::dir($secondLang) }}">{{ $second }}</div>@endif
-                        @if (count($prices) > 1)
+                        @if (count($prices) > 1 && ! $ribbons)
                             <div class="sizes">@foreach ($prices as [$size, $price]){{ $size }} <b class="price">{{ money($price) }}</b>@if (!$loop->last) · @endif @endforeach</div>
                         @endif
                         @if ($desc && ($d = $text($item, 'description', $mainLang)))<div class="desc">{{ $d }}</div>@endif
