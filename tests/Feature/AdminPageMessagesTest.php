@@ -176,6 +176,79 @@ class AdminPageMessagesTest extends TenantTestCase
         $this->assertSame('[ملف]', $conversation->messages()->where('direction', 'in')->latest('id')->first()->body);
     }
 
+    /** @param  array<string, mixed>  $value */
+    private function changes(string $field, array $value, string $object = 'page', string $account = self::PAGE): TestResponse
+    {
+        $raw = json_encode(['object' => $object, 'entry' => [['id' => $account, 'changes' => [['field' => $field, 'value' => $value]]]]]);
+
+        return $this->call('POST', $this->menuUrl('webhooks/meta'), [], [], [], [
+            'CONTENT_TYPE' => 'application/json', 'HTTP_X_HUB_SIGNATURE_256' => 'sha256='.hash_hmac('sha256', $raw, self::SECRET),
+        ], $raw);
+    }
+
+    /** @return array<string, mixed> */
+    private function facebookComment(string $commentId, string $from = '9100000000000001', string $post = self::PAGE.'_1'): array
+    {
+        return ['item' => 'comment', 'verb' => 'add', 'comment_id' => $commentId, 'post_id' => $post, 'parent_id' => $post, 'message' => 'بكام الباقة؟', 'from' => ['id' => $from, 'name' => 'Mona Ali']];
+    }
+
+    public function test_a_comment_gets_one_private_message_and_a_public_answer_and_the_chat_carries_on(): void
+    {
+        $this->fakeMeta();
+
+        $this->changes('feed', $this->facebookComment('c_1'))->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/'.self::PAGE.'/messages') && $request['recipient'] === ['comment_id' => 'c_1']
+            && str_contains($request['message']['text'], 'أهلًا Mona') && count($request['message']['quick_replies']) === 3);
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/c_1/comments') && str_contains($request['message'], 'الماسنجر'));
+        $conversation = PlatformConversation::query()->sole();
+        $this->assertSame(self::SENDER, $conversation->phone, 'the id Meta gives back for the Messenger chat');
+        $this->assertSame('[تعليق] بكام الباقة؟', $conversation->messages()->where('direction', 'in')->sole()->body);
+        $this->assertFalse($conversation->canReply(), 'a comment does not open the 24-hour window');
+
+        // another comment of the same person on the same post, and the page's own comment, get nothing
+        $this->changes('feed', $this->facebookComment('c_2'))->assertOk();
+        $this->changes('feed', $this->facebookComment('c_3', self::PAGE))->assertOk();
+        $this->assertCount(2, Http::recorded(fn ($request) => $request->method() === 'POST'));
+
+        // their answer in Messenger goes to the model in the same conversation, with no second welcome
+        $this->webhook($this->message('عايز اعرف الاسعار'))->assertOk();
+        $this->assertSame(1, PlatformConversation::query()->count());
+        $this->assertSame('الباقة بسعرها من الموقع', $this->sent()->last()[0]['message']['text']);
+        $this->assertArrayNotHasKey('quick_replies', $this->sent()->last()[0]['message']);
+    }
+
+    public function test_an_instagram_comment_is_answered_in_the_direct_and_under_the_comment(): void
+    {
+        $this->fakeMeta();
+
+        $this->changes('comments', ['id' => 'ig_c_1', 'text' => 'التفاصيل', 'media' => ['id' => 'm_1'], 'from' => ['id' => '9200000000000001', 'username' => 'cafe.nakheel']], 'instagram', self::INSTAGRAM)->assertOk();
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/'.self::PAGE.'/messages') && $request['recipient'] === ['comment_id' => 'ig_c_1']);
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/ig_c_1/replies') && str_contains($request['message'], 'الدايركت'));
+        $this->assertSame(PlatformConversation::INSTAGRAM, PlatformConversation::query()->sole()->channel);
+    }
+
+    public function test_a_comment_meta_refuses_to_answer_privately_gets_no_public_answer(): void
+    {
+        Http::fake(['graph.facebook.com/*' => Http::response(['error' => ['message' => 'Permissions error', 'code' => 10]], 400)]);
+
+        $this->changes('feed', $this->facebookComment('c_1'))->assertOk();
+
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), '/c_1/comments'));
+        $this->assertSame(0, PlatformConversation::query()->count());
+    }
+
+    public function test_comments_are_not_answered_while_the_automatic_answer_is_off(): void
+    {
+        $this->fakeMeta();
+        PlatformSetting::put(PlatformAutoReply::SETTING, '0');
+
+        $this->changes('feed', $this->facebookComment('c_1'))->assertOk();
+
+        Http::assertNothingSent();
+    }
+
     public function test_without_a_token_the_answer_is_marked_not_sent(): void
     {
         Http::fake();

@@ -5,14 +5,18 @@ namespace App\Services\WhatsApp;
 use App\Models\PlatformAdmin;
 use App\Models\PlatformConversation;
 use App\Models\PlatformConversationMessage;
+use App\Models\PlatformSetting;
 use App\Models\Tenant;
 use App\Notifications\InboxNeedsAnswer;
 use App\Services\Crm\AdLeads;
+use App\Services\TenantProvisioner;
 use App\Services\WhatsApp\Drivers\MetaCloudDriver;
 use App\Services\WhatsApp\Drivers\MetaPageDriver;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 
 /**
  * «المحادثات»: keeps what people write to the EgHub number, or to its page on Messenger and Instagram, and sends the
@@ -32,6 +36,18 @@ final class PlatformInbox
 
     /** The text of the Utility template restaurant_welcome (submitted by PlatformTemplates), as the team reads it. */
     public const RESTAURANT_WELCOME_TEMPLATE = 'أهلًا {{1}}، حساب {{2}} على EgHub اتعمل. تقدر تكمّل المنيو والإعدادات من لوحة التحكم، ولو محتاج مساعدة في أي خطوة رد على الرسالة دي.';
+
+    /** How long a person who commented on a post is not answered again on that post. */
+    public const COMMENT_DAYS = 30;
+
+    /** The private message to a person who commented on the page's post or ad; :name has its leading space. */
+    public const COMMENT_MESSAGE = 'أهلًا:name 👋 شكرًا على تعليقك. EgHub بيعمل لمطعمك أو الكافيه بتاعك منيو QR مجاني بالعربي والإنجليزي، وطلبات أونلاين من غير عمولة، ومعاه :days يوم من الباقة الكاملة هدية. تقدر تسجّل في دقيقتين من هنا: :link'."\n".'أو اكتب سؤالك هنا أو اختار من الأزرار وهنرد عليك.';
+
+    /** The public answer under the comment, one picked at random so the page does not repeat itself. */
+    private const COMMENT_PUBLIC_REPLIES = [
+        PlatformConversation::MESSENGER => ['بعتنالك التفاصيل على الماسنجر 📩', 'شكرًا لتعليقك! بعتنالك كل التفاصيل في رسالة على الماسنجر 👍', 'أهلًا بيك 🙌 شوف رسايل الماسنجر، بعتنالك التفاصيل هناك.'],
+        PlatformConversation::INSTAGRAM => ['بعتنالك التفاصيل في الدايركت 📩', 'شكرًا لتعليقك! بعتنالك كل التفاصيل في الدايركت 👍', 'أهلًا بيك 🙌 شوف الدايركت، بعتنالك التفاصيل هناك.'],
+    ];
 
     /** The label of what cannot be shown as text: media stays on the sender's and on Meta's side. */
     private const TYPE_LABELS = [
@@ -71,6 +87,53 @@ final class PlatformInbox
         $label = self::TYPE_LABELS[$type] ?? '';
 
         return $this->keep($channel, $sender, null, $providerId, $type, trim(($label !== '' ? "[{$label}] " : '').$text));
+    }
+
+    /**
+     * A comment on a post or an ad of the EgHub page (Facebook or Instagram): the person gets the one private message
+     * Meta allows and a public answer under the comment says so; their answer opens the chat, where the automatic answer
+     * takes over. Once per person and post, so a thread of comments is not answered again. The comment shows in the
+     * conversation, but it does not open the 24-hour window: only the person's own message does.
+     *
+     * @return bool whether the private message went out
+     */
+    public function answerComment(string $channel, string $commentId, string $postId, string $from, string $name, string $text): bool
+    {
+        $providerId = 'comment:'.$commentId;
+        if ($commentId === '' || PlatformSetting::get(PlatformAutoReply::SETTING) !== '1'
+            || PlatformConversationMessage::query()->where('provider_id', $providerId)->exists()
+            || ! Cache::add('inbox:comment:'.$channel.':'.$from.':'.$postId, 1, now()->addDays(self::COMMENT_DAYS))) {
+            return false;
+        }
+        $driver = new MetaPageDriver($channel);
+        $message = strtr(self::COMMENT_MESSAGE, [
+            ':name' => $name !== '' ? ' '.Str::before($name, ' ') : '', ':days' => (string) TenantProvisioner::TRIAL_DAYS,
+            ':link' => route('register', ['utm_source' => $channel, 'utm_medium' => 'comment']),
+        ]);
+        try {
+            $sent = $driver->privateReply($commentId, $message, PlatformAutoReply::WELCOME_BUTTONS);
+        } catch (WhatsAppException $e) {
+            Log::warning('comment private reply failed: '.$e->getMessage());
+
+            return false;
+        }
+        $address = preg_match('/^\d{1,64}$/', $sent['recipient']) ? $sent['recipient'] : $from;
+        if (! preg_match('/^\d{1,64}$/', $address)) {
+            return true;
+        }
+        DB::transaction(function () use ($channel, $address, $name, $providerId, $text, $message, $sent) {
+            $conversation = PlatformConversation::query()->firstOrCreate(['channel' => $channel, 'phone' => $address], ['name' => $name !== '' ? mb_substr($name, 0, 120) : null]);
+            $conversation->messages()->create(['direction' => 'in', 'type' => 'comment', 'body' => trim('[تعليق] '.$text), 'provider_id' => $providerId]);
+            $conversation->messages()->create(['direction' => 'out', 'body' => $message, 'status' => 'sent', 'provider_id' => mb_substr($sent['id'], 0, 255)]);
+            $conversation->forceFill(['status' => 'open', 'last_message_at' => now()])->save();
+        });
+        try {
+            $driver->commentReply($commentId, self::COMMENT_PUBLIC_REPLIES[$channel][array_rand(self::COMMENT_PUBLIC_REPLIES[$channel])]);
+        } catch (WhatsAppException $e) {
+            Log::warning('comment public reply failed: '.$e->getMessage());
+        }
+
+        return true;
     }
 
     /** A person of the team answered in Meta's own inbox: the team sees it here, and the automatic answer goes quiet. */

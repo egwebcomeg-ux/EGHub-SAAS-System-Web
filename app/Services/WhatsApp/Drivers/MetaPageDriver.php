@@ -50,6 +50,36 @@ final class MetaPageDriver
         return $this->post($to, ['text' => $last] + ($quickReplies !== [] ? ['quick_replies' => $quickReplies] : []));
     }
 
+    /**
+     * The one private message Meta allows to a person who commented on the page (within 7 days of the comment): it goes
+     * to their Messenger or Instagram inbox, and their answer opens the usual chat. Meta gives back their id there.
+     *
+     * @param  array<string, string>  $buttons  id => title
+     * @return array{recipient: string, id: string}
+     */
+    public function privateReply(string $commentId, string $text, array $buttons = []): array
+    {
+        $quickReplies = [];
+        foreach ($buttons as $id => $title) {
+            $quickReplies[] = ['content_type' => 'text', 'title' => $title, 'payload' => $id];
+        }
+        $text = $this->parts($text)[0];
+        $response = $this->send((string) config('whatsapp.page.id').'/messages', [
+            'recipient' => ['comment_id' => $commentId],
+            'message' => ['text' => $text] + ($quickReplies !== [] ? ['quick_replies' => $quickReplies] : []),
+        ]);
+
+        return ['recipient' => (string) ($response['recipient_id'] ?? ''), 'id' => (string) ($response['message_id'] ?? throw new WhatsAppException('Meta returned no message id.'))];
+    }
+
+    /** A public answer under the comment, from the page. */
+    public function commentReply(string $commentId, string $text): string
+    {
+        $edge = $this->channel === PlatformConversation::INSTAGRAM ? 'replies' : 'comments';
+
+        return (string) ($this->send($commentId.'/'.$edge, ['message' => $text])['id'] ?? '');
+    }
+
     /** The name on the person's profile, when Meta gives it. */
     public function profileName(string $id): ?string
     {
@@ -86,13 +116,24 @@ final class MetaPageDriver
     /** @param  array<string, mixed>  $message */
     private function post(string $to, array $message): string
     {
+        $response = $this->send((string) config('whatsapp.page.id').'/messages', ['recipient' => ['id' => $to], 'messaging_type' => 'RESPONSE', 'message' => $message]);
+
+        return (string) ($response['message_id'] ?? throw new WhatsAppException('Meta returned no message id.'));
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function send(string $path, array $payload): array
+    {
         if (! self::connected($this->channel)) {
             throw new WhatsAppException('The EgHub page is not connected (META_PAGE_ID / META_INSTAGRAM_ID / META_PAGE_TOKEN).');
         }
         $token = (string) config('whatsapp.page.token');
         try {
             $response = Http::withToken($token)->acceptJson()->timeout((int) config('whatsapp.timeout', 15))
-                ->post($this->url((string) config('whatsapp.page.id').'/messages'), ['recipient' => ['id' => $to], 'messaging_type' => 'RESPONSE', 'message' => $message]);
+                ->post($this->url($path), $payload);
         } catch (ConnectionException) {
             throw new WhatsAppException('Meta could not be reached.');
         }
@@ -101,7 +142,7 @@ final class MetaPageDriver
             throw new WhatsAppException(mb_substr(str_replace($token, '***', $error), 0, 200), (int) $response->json('error.code', 0));
         }
 
-        return (string) ($response->json('message_id') ?? throw new WhatsAppException('Meta returned no message id.'));
+        return (array) $response->json();
     }
 
     private function url(string $path): string

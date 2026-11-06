@@ -48,7 +48,7 @@ final class PlatformAutoReply
     public const PAGE_WELCOME_TEXT = 'أهلًا بيك في EgHub، المنيو الإلكتروني والطلبات للمطاعم والكافيهات. اكتب سؤالك هنا أو اختار من الأزرار، ولو حابب تكلم حد من الفريق هيرد عليك هنا في نفس المحادثة.';
 
     /** The titles are the questions: a tap reaches the assistant like a written message, the last one hands over. */
-    private const WELCOME_BUTTONS = [
+    public const WELCOME_BUTTONS = [
         self::BUTTON_PREFIX.'prices' => 'الأسعار والباقات',
         self::BUTTON_PREFIX.'features' => 'المميزات',
         self::BUTTON_PREFIX.'team' => 'أكلم حد من الفريق',

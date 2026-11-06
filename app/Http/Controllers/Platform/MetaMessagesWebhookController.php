@@ -14,6 +14,7 @@ use Illuminate\Http\Response;
  * What people write to the EgHub page on Messenger and on Instagram (/webhooks/meta), signed with the same Meta app as
  * the WhatsApp webhook, whose handshake it shares. Only the EgHub accounts are read: a restaurant's page never comes here.
  * An echo is our own answer, or a person of the team answering in Meta's own inbox, which quiets the automatic answer.
+ * A comment on the page's posts and ads gets a private message and a public answer (PlatformInbox::answerComment).
  */
 class MetaMessagesWebhookController extends Controller
 {
@@ -37,9 +38,41 @@ class MetaMessagesWebhookController extends Controller
             foreach ((array) ($entry['messaging'] ?? []) as $event) {
                 $this->event($channel, $account, (array) $event, $inbox, $autoReply);
             }
+            foreach ((array) ($entry['changes'] ?? []) as $change) {
+                $this->comment($channel, $account, (array) $change, $inbox);
+            }
         }
 
         return response('', 200);
+    }
+
+    /**
+     * A new comment on the page's post or ad: Facebook sends it on the «feed» field, Instagram on «comments». The page's
+     * own comments (our public answers among them) and edits or deletions are left alone.
+     *
+     * @param  array<string, mixed>  $change
+     */
+    private function comment(string $channel, string $account, array $change, PlatformInbox $inbox): void
+    {
+        $value = (array) ($change['value'] ?? []);
+        $from = (array) ($value['from'] ?? []);
+        if ($channel === PlatformConversation::INSTAGRAM) {
+            if (($change['field'] ?? '') !== 'comments') {
+                return;
+            }
+            [$commentId, $postId, $text, $name] = [(string) ($value['id'] ?? ''), (string) ($value['media']['id'] ?? ''), (string) ($value['text'] ?? ''), (string) ($from['username'] ?? '')];
+        } else {
+            if (($change['field'] ?? '') !== 'feed' || ($value['item'] ?? '') !== 'comment' || ($value['verb'] ?? '') !== 'add') {
+                return;
+            }
+            [$commentId, $postId, $text, $name] = [(string) ($value['comment_id'] ?? ''), (string) ($value['post_id'] ?? ''), (string) ($value['message'] ?? ''), (string) ($from['name'] ?? '')];
+        }
+        $sender = (string) ($from['id'] ?? '');
+        if ($sender === '' || $sender === $account || $sender === (string) config('whatsapp.page.id')) {
+            return;
+        }
+        // two calls to Meta: after the response, so Meta is not kept waiting
+        app()->terminating(fn () => $inbox->answerComment($channel, $commentId, $postId, $sender, $name, mb_substr($text, 0, 1000)));
     }
 
     /** @param  array<string, mixed>  $event */
