@@ -5,15 +5,16 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\AssistantMessage;
 use App\Services\Assistant;
+use App\Services\DashboardActions;
 use App\Services\DashboardAssistant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 /**
- * POST /assistant on the dashboard: one turn of «اسألني» (App\Services\DashboardAssistant). The browser keeps the
+ * POST /assistant on the dashboard: one turn of Hoba (App\Services\DashboardAssistant). The browser keeps the
  * conversation and sends it back; every question is kept with the website assistant's (conversation "dash-{place}-…")
- * so the team sees what owners ask.
+ * so the team sees what owners ask. POST /assistant/run carries out a change Hoba offered, once the person confirmed it.
  */
 class AssistantController extends Controller
 {
@@ -59,6 +60,13 @@ class AssistantController extends Controller
             'handoff' => $r['handoff'], 'tokens_in' => $r['in'], 'tokens_out' => $r['out'],
         ]);
 
-        return response()->json(['reply' => $r['text'], 'links' => $r['links'], 'handoff' => $r['handoff'], 'whatsapp' => $wa]);
+        return response()->json(['reply' => $r['text'], 'links' => $r['links'], 'action' => $r['action'], 'handoff' => $r['handoff'], 'whatsapp' => $wa]);
+    }
+
+    public function run(Request $request): JsonResponse
+    {
+        $result = DashboardActions::run($request->user(), (string) $request->input('token', ''));
+
+        return response()->json($result, $result['ok'] ? 200 : 422);
     }
 }

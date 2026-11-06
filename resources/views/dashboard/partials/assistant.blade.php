@@ -1,7 +1,8 @@
 {{--
     «اسأل هوبا»: Hoba, the dashboard assistant (App\Services\DashboardAssistant), for plans with dashboard_assistant while a model
-    key is set. A floating button opens the chat; each answer may carry buttons to the pages it talks about. Not on the
-    working screens (cashier, kitchen, call center, pager, deliveries), where the corner belongs to the work.
+    key is set. A floating button opens the chat; each answer may carry buttons to the pages it talks about, and a card for
+    a change Hoba offers (App\Services\DashboardActions) that only happens on «confirm». Not on the working screens
+    (cashier, kitchen, call center, pager, deliveries), where the corner belongs to the work.
 --}}
 @if (auth()->check() && \App\Services\Assistant::enabled() && \App\Services\Entitlements::current()->allows(\App\Services\DashboardAssistant::FEATURE)
     && ! request()->routeIs('dash.pos*', 'dash.kitchen*', 'dash.callcenter*', 'dash.pager*', 'dash.driver*'))
@@ -13,6 +14,9 @@
             'tooMany' => __('Your place has used today’s questions. EgHub support on WhatsApp can help in the meantime.'),
             'handoffPrompt' => __('EgHub support can help you with this on WhatsApp.'),
             'handoffButton' => __('Message EgHub support'),
+            'confirm' => __('Confirm'),
+            'cancel' => __('Cancel'),
+            'cancelled' => __('Cancelled, nothing changed.'),
             'handoffText' => __("Hi, I'm from :place and I was asking Hoba, the dashboard assistant:\n:q", ['place' => tenant()->name]),
         ];
         $dashAsstChips = [__('How do I stop taking orders?'), __('How do I add an item with sizes?'), __('How do I print the menu?'), __('How do I add a staff member?')];
@@ -21,14 +25,14 @@
         <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         {{ __('Ask Hoba') }}
     </button>
-    <div id="dash-asst" hidden role="dialog" aria-modal="true" aria-labelledby="dash-asst-title" data-endpoint="{{ route('dash.assistant') }}"
+    <div id="dash-asst" hidden role="dialog" aria-modal="true" aria-labelledby="dash-asst-title" data-endpoint="{{ route('dash.assistant') }}" data-run="{{ route('dash.assistant.run') }}"
          data-l10n="{{ json_encode($dashAsstL10n, JSON_UNESCAPED_UNICODE) }}" data-key="eghub-dash-assistant-{{ auth()->id() }}"
          class="fixed inset-0 z-[60] flex flex-col overflow-hidden bg-white shadow-2xl sm:inset-auto sm:bottom-6 sm:end-6 sm:h-[min(620px,calc(100dvh-48px))] sm:w-[400px] sm:rounded-3xl sm:border sm:border-navy-100 print:hidden">
         <header class="flex items-center gap-3 bg-navy-900 px-4 py-3 text-white">
             <img src="{{ versioned_asset('icons/eghub-192.png') }}" alt="" width="40" height="40" class="size-10 shrink-0 rounded-xl bg-white p-0.5">
             <div class="min-w-0 flex-1">
                 <p id="dash-asst-title" class="truncate text-base font-extrabold">{{ __('Hoba') }}</p>
-                <p class="text-xs text-white/70">{{ __('Explains your dashboard · changes nothing') }}</p>
+                <p class="text-xs text-white/70">{{ __('Explains your dashboard · changes only what you confirm') }}</p>
             </div>
             <button type="button" data-dash-asst-reset class="grid size-9 place-items-center rounded-lg bg-white/10 text-lg hover:bg-white/20" title="{{ __('New chat') }}" aria-label="{{ __('New chat') }}">↺</button>
             <button type="button" data-dash-asst-close class="grid size-9 place-items-center rounded-lg bg-white/10 text-xl leading-none hover:bg-white/20" aria-label="{{ __('Close') }}">×</button>
@@ -94,6 +98,48 @@
             log.appendChild(row);
             log.scrollTop = log.scrollHeight;
         }
+        // a change Hoba offers: the server's own words, done only on «confirm»; the outcome stays in the chat
+        function actionCard(m) {
+            if (!m.action) return;
+            var card = document.createElement('div');
+            card.className = 'self-stretch rounded-2xl border border-brand-200 bg-white p-3 text-sm';
+            card.setAttribute('data-dash-asst-action', '');
+            var p = document.createElement('p');
+            p.className = 'mb-2 font-bold text-navy-900';
+            p.dir = 'auto';
+            p.textContent = m.action.summary;
+            card.appendChild(p);
+            if (m.action.result) {
+                var r = document.createElement('p');
+                r.className = m.action.ok ? 'font-bold text-emerald-700' : 'font-bold text-red-700';
+                r.textContent = (m.action.ok ? '✓ ' : '') + m.action.result;
+                card.appendChild(r);
+            } else {
+                var row = document.createElement('div');
+                row.className = 'flex gap-2';
+                var yes = document.createElement('button');
+                yes.type = 'button'; yes.className = 'btn-primary min-h-10 px-4'; yes.textContent = L.confirm;
+                yes.setAttribute('data-dash-asst-confirm', '');
+                var no = document.createElement('button');
+                no.type = 'button'; no.className = 'btn-ghost min-h-10 px-4'; no.textContent = L.cancel;
+                yes.addEventListener('click', function () {
+                    yes.disabled = no.disabled = true;
+                    fetch(panel.getAttribute('data-run'), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf ? csrf.content : '' },
+                        body: JSON.stringify({ token: m.action.token })
+                    }).then(function (r) { return r.json().catch(function () { return {}; }); })
+                      .then(function (d) { m.action.ok = !!d.ok; m.action.result = d.message || L.failed; })
+                      .catch(function () { m.action.ok = false; m.action.result = L.failed; })
+                      .then(function () { delete m.action.token; save(); redraw(); });
+                });
+                no.addEventListener('click', function () { m.action.ok = false; m.action.result = L.cancelled; delete m.action.token; save(); redraw(); });
+                row.appendChild(yes); row.appendChild(no);
+                card.appendChild(row);
+            }
+            log.appendChild(card);
+            log.scrollTop = log.scrollHeight;
+        }
         function handoffCard() {
             if (!wa) return;
             var div = document.createElement('div');
@@ -116,6 +162,7 @@
             state.messages.forEach(function (m) {
                 bubble(m.role, m.content);
                 linkButtons(m.links);
+                actionCard(m);
                 if (m.handoff) handoffCard();
             });
             chips.hidden = state.messages.length > 0;
@@ -140,10 +187,12 @@
                 typing.remove();
                 wa = res.d.whatsapp || wa;
                 if (res.status === 200 && res.d.reply) {
-                    state.messages.push({ role: 'assistant', content: res.d.reply, links: res.d.links || [], handoff: !!res.d.handoff });
+                    var said = { role: 'assistant', content: res.d.reply, links: res.d.links || [], action: res.d.action || null, handoff: !!res.d.handoff };
+                    state.messages.push(said);
                     save();
                     bubble('assistant', res.d.reply);
                     linkButtons(res.d.links);
+                    actionCard(said);
                     if (res.d.handoff) handoffCard();
                 } else {
                     state.messages.pop(); save();

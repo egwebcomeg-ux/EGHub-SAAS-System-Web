@@ -138,6 +138,8 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
 
     // «اسألني»: the dashboard assistant, one paid model call per question (App\Services\DashboardAssistant)
     Route::post('/assistant', [AssistantController::class, 'chat'])->middleware(['feature:dashboard_assistant', 'throttle:dash-assistant'])->name('assistant');
+    // a change Hoba offered, confirmed by the person (the token says what, for whom, until when)
+    Route::post('/assistant/run', [AssistantController::class, 'run'])->middleware(['feature:dashboard_assistant', 'throttle:20,1'])->name('assistant.run');
 
     // EgHub apps: this phone's push token (registered by the app's page on every load) and the user's own choice of
     // notifications on the phone

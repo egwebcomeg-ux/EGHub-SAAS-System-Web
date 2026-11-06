@@ -16,6 +16,8 @@ class AuditController extends Controller
         'item.created' => ['إضافة صنف', 'Item added'],
         'item.updated' => ['تعديل صنف', 'Item edited'],
         'item.price_changed' => ['تغيير سعر', 'Price changed'],
+        'item.sold_out' => ['تعليم صنف خلصان', 'Item marked sold out'],
+        'item.available' => ['رجوع صنف متاح', 'Item available again'],
         'item.deleted' => ['مسح صنف', 'Item deleted'],
         'settings.updated' => ['تعديل الإعدادات', 'Settings updated'],
         'branding.from_import' => ['شكل المنيو اتاخد من الملف المرفوع', 'Menu style taken from the uploaded file'],
