@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Dashboard\AnnouncementsController;
+use App\Http\Controllers\Dashboard\AssistantController;
 use App\Http\Controllers\Dashboard\AuditController;
 use App\Http\Controllers\Dashboard\AuthController;
 use App\Http\Controllers\Dashboard\AutomationsController;
@@ -134,6 +135,9 @@ Route::post('/native/track/{order}', [NativeTrackingController::class, 'store'])
 
 Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    // «اسألني»: the dashboard assistant, one paid model call per question (App\Services\DashboardAssistant)
+    Route::post('/assistant', [AssistantController::class, 'chat'])->middleware(['feature:dashboard_assistant', 'throttle:dash-assistant'])->name('assistant');
 
     // EgHub apps: this phone's push token (registered by the app's page on every load) and the user's own choice of
     // notifications on the phone

@@ -254,6 +254,7 @@
             <x-flash :toast="true" />
             @yield('content')
             @include('dashboard.partials.tutorials')
+            @include('dashboard.partials.assistant')
         </main>
     </div>
 </div>

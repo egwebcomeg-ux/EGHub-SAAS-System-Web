@@ -118,6 +118,8 @@ class AppServiceProvider extends ServiceProvider
             Limit::perDay(80)->by('asd:'.$r->ip()),
             Limit::perDay(3000)->by('as:all'),
         ]);
+        // «اسألني» in the dashboard: per staff member (the restaurant's daily ceiling is DashboardAssistant::take)
+        RateLimiter::for('dash-assistant', fn (Request $r) => Limit::perMinutes(10, 20)->by('da:'.($r->user()?->id ?? $r->ip())));
 
         $this->bootPageCache();
         $this->bootEntitlementsCache();

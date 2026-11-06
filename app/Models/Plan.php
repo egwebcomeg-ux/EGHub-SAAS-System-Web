@@ -76,6 +76,7 @@ class Plan extends Model
         'staff_roles' => ['صلاحيات موظفين مخصصة', 'Custom staff permissions', 'management'],
         'audit_log' => ['سجل العمليات', 'Audit log', 'management'],
         'backups' => ['نسخة احتياطية من بيانات المطعم (أسبوعية وعند الطلب)', 'Restaurant data backups (weekly and on demand)', 'management'],
+        'dashboard_assistant' => ['مساعد لوحة التحكم (اسأله إزاي تعمل أي حاجة)', 'Dashboard assistant (ask how to do anything)', 'management'],
         // platform
         'custom_domain' => ['دومين خاص', 'Custom domain', 'platform'],
         'hide_badge' => ['إخفاء شارة eghub', 'Remove eghub badge', 'platform'],
