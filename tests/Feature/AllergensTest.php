@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\MenuItem;
+use App\Services\Settings;
 use Tests\TenantTestCase;
 
 /** Allergen flags and the spicy level: saved from the item form, shown to guests and on the printed menu. */
@@ -13,6 +14,7 @@ class AllergensTest extends TenantTestCase
         $a = $this->restaurant('cafe-a');
         $owner = $this->owner($a);
         $item = $this->item($a, 'Shrimp pasta', 180);
+        $this->as($a, fn () => Settings::put(['business_type' => 'restaurant']));
 
         $this->actingAs($owner)->get($this->dashUrl("/menu/items/{$item->id}"))->assertOk()->assertSee('name="allergens[]"', false)->assertSee('name="spicy_level"', false);
 
