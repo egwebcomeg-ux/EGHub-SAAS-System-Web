@@ -19,7 +19,9 @@ class GuestPagesBrandingTest extends TenantTestCase
         $this->item($trial);
         $this->get($this->subUrl('cafe-trial'))->assertOk()->assertSee('data-guest-brand-badge', false)
             ->assertDontSee('egweb.com.eg', false)->assertDontSee('data-egweb-badge', false);
-        $this->get($this->subUrl('cafe-trial', 'about'))->assertOk()->assertSee('data-guest-brand-badge', false);
+        // the EgHub mark only, never a way to other places on EgHub
+        $this->get($this->subUrl('cafe-trial', 'about'))->assertOk()->assertSee('data-guest-brand-badge', false)
+            ->assertDontSee('/restaurants"', false);
 
         $free = $this->restaurant('cafe-free', 'free');
         $this->item($free);
@@ -36,6 +38,7 @@ class GuestPagesBrandingTest extends TenantTestCase
         $pro = $this->restaurant('cafe-pro', 'pro');
         $this->item($pro);
         $this->get($this->subUrl('cafe-pro'))->assertOk()->assertDontSee('data-guest-brand-badge', false)->assertSee('مقدم من');
+        $this->get($this->subUrl('cafe-pro', 'about'))->assertOk()->assertSee('مقدم من')->assertDontSee('/restaurants"', false);
 
         // the same paying place whose subscription lapsed: unpaid again, the capsule is back
         Subscription::query()->where('tenant_id', 'cafe-paid')->update(['status' => 'past_due']);

@@ -172,7 +172,6 @@
 
     <footer class="space-y-3 pt-4 text-center text-sm m-muted">
         @include('menu.partials.powered-by')
-        <a href="{{ platform_url(null, 'restaurants') }}" class="inline-flex items-center gap-1 text-xs">{{ __('More places on') }} <x-logo :size="14" class="!gap-1 [&_span]:text-xs" /></a>
     </footer>
 </main>
 @endsection
