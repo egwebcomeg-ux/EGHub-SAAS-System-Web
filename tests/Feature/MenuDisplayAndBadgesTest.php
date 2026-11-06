@@ -71,6 +71,29 @@ class MenuDisplayAndBadgesTest extends TenantTestCase
         $this->get($this->subUrl('cafe-basic'))->assertOk()->assertSee('"display":"simple"', false)->assertDontSee('data-item-page', false);
     }
 
+    public function test_a_shop_gets_its_own_badges_and_no_spicy_level(): void
+    {
+        [$shopMain] = ItemBadges::forBusiness('shop');
+        $this->assertSame('offer', $shopMain[0]);
+        $this->assertNotContains('spicy', $shopMain);
+        $this->assertNotContains('chef_pick', $shopMain);
+
+        $a = $this->restaurant('cafe-a');
+        $honey = $this->item($a, 'عسل', 120);
+        $owner = $this->owner($a);
+        $this->as($a, fn () => Settings::put(['business_type' => 'shop']));
+        $this->actingAs($owner)->get($this->dashUrl('/menu/items/'.$honey->id))->assertOk()
+            ->assertSee('value="offer"', false)->assertDontSee('name="spicy_level"', false);
+
+        // a shop item that has a spicy level already keeps the field, so it is never lost
+        $this->as($a, fn () => $honey->update(['spicy_level' => 1]));
+        $this->actingAs($owner)->get($this->dashUrl('/menu/items/'.$honey->id))->assertOk()->assertSee('name="spicy_level"', false);
+
+        $this->as($a, fn () => Settings::put(['business_type' => 'restaurant']));
+        $this->as($a, fn () => $honey->update(['spicy_level' => 0]));
+        $this->actingAs($owner)->get($this->dashUrl('/menu/items/'.$honey->id))->assertOk()->assertSee('name="spicy_level"', false);
+    }
+
     public function test_badges_by_business_type_and_the_item_form(): void
     {
         [$cafeMain] = ItemBadges::forBusiness('cafe');

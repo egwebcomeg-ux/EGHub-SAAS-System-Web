@@ -21,6 +21,12 @@ final class ItemBadges
 
     private const CAFE = ['barista_pick', 'iced', 'hot', 'sugar_free', 'plant_milk', 'decaf', 'strong', 'seasonal', 'healthy', 'new', 'bestseller', 'vegetarian'];
 
+    /** A shop sells products, not dishes: offers, stock, where it comes from, and whether it makes a gift. */
+    private const SHOP = ['offer', 'new', 'bestseller', 'limited', 'local', 'imported', 'organic', 'fresh', 'gift', 'seasonal', 'sugar_free', 'gluten_free'];
+
+    /** Only places that cook have a spicy level on their items. */
+    private const SPICY_TYPES = ['restaurant', 'both'];
+
     /**
      * The badges that suit the business type first, then the rest.
      *
@@ -31,11 +37,18 @@ final class ItemBadges
         $main = match ($type) {
             'cafe' => self::CAFE,
             'pastry' => self::PASTRY,
+            'shop' => self::SHOP,
             'both' => array_values(array_unique([...self::CAFE, ...self::RESTAURANT])),
             default => self::RESTAURANT,
         };
 
         return [$main, array_values(array_diff(array_keys(MenuItem::TAGS), $main))];
+    }
+
+    /** Whether the item form asks for a spicy level: a place that cooks, or an item that has one already (it is kept). */
+    public static function asksSpicy(string $type, int $current = 0): bool
+    {
+        return in_array($type, self::SPICY_TYPES, true) || $current > 0;
     }
 
     /** @return array{key:string, icon:string, label:string} */

@@ -79,6 +79,14 @@ class MenuItem extends TenantModel
         'decaf' => ['🌙', 'ديكاف', 'Decaf'],
         'strong' => ['⚡', 'كافيين عالي', 'Extra caffeine'],
         'seasonal' => ['🍂', 'موسمي', 'Seasonal'],
+        // a shop's products (ItemBadges::SHOP)
+        'offer' => ['🏷️', 'عليه عرض', 'On offer'],
+        'limited' => ['⏳', 'كمية محدودة', 'Limited stock'],
+        'local' => ['🇪🇬', 'صناعة مصرية', 'Made in Egypt'],
+        'imported' => ['🌍', 'مستورد', 'Imported'],
+        'organic' => ['🌿', 'أورجانيك', 'Organic'],
+        'fresh' => ['🧺', 'طازة', 'Fresh'],
+        'gift' => ['🎁', 'ينفع هدية', 'Great as a gift'],
     ];
 
     /** The fixed allergen list (stored as keys in `allergens`): key => [icon, arabic, english]. */

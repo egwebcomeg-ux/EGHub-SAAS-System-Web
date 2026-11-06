@@ -64,6 +64,7 @@
                     @endif
                 @endforeach
             </fieldset>
+            @if (\App\Support\ItemBadges::asksSpicy(\App\Support\BusinessType::current(), (int) old('spicy_level', $item->spicy_level ?? 0)))
             <fieldset>
                 <legend class="field-label">{{ __('Spicy level') }}</legend>
                 <div class="flex flex-wrap gap-2">
@@ -74,6 +75,7 @@
                     @endforeach
                 </div>
             </fieldset>
+            @endif
             <fieldset class="sm:col-span-2">
                 <legend class="field-label">{{ __('Allergens') }}</legend>
                 <p class="mb-2 text-xs text-navy-500">{{ __('Shown to guests when they open the item. Tick everything the dish contains.') }}</p>
