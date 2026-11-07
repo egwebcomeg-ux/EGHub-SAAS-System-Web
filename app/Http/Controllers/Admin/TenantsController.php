@@ -8,6 +8,7 @@ use App\Billing\LaunchOffer;
 use App\Http\Controllers\Controller;
 use App\Models\AddonPrice;
 use App\Models\AuditLog;
+use App\Models\BlockedSignup;
 use App\Models\CreditTransaction;
 use App\Models\Lead;
 use App\Models\Plan;
@@ -404,6 +405,40 @@ class TenantsController extends Controller
         PlatformAuditLog::record($request->user('admin'), 'tenant.activated', $tenant->id);
 
         return back()->with('ok', __('Restaurant activated.'));
+    }
+
+    /**
+     * A copycat: the restaurant is suspended, its dashboard closed, and its owners' emails and mobiles may not open
+     * a new account (BlockedSignup). Not told by email: it would only invite a new account with other details.
+     */
+    public function block(Request $request, Tenant $tenant): RedirectResponse
+    {
+        $data = $request->validate(['reason' => 'nullable|string|max:200']);
+        $admin = $request->user('admin');
+        $owners = User::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->role('owner')->get();
+        foreach ($owners as $owner) {
+            $email = BlockedSignup::normalizeEmail($owner->email);
+            $phone = BlockedSignup::normalizePhone($owner->phone);
+            if ($email !== null || $phone !== null) {
+                BlockedSignup::query()->firstOrCreate(
+                    ['tenant_id' => $tenant->id, 'email' => $email, 'phone' => $phone],
+                    ['reason' => $data['reason'] ?? null, 'admin_id' => $admin->id],
+                );
+            }
+        }
+        $tenant->update(['status' => 'suspended', 'suspended_at' => $tenant->suspended_at ?? now(), 'blocked_at' => now()]);
+        PlatformAuditLog::record($admin, 'tenant.blocked', $tenant->id, ['reason' => $data['reason'] ?? null]);
+
+        return back()->with('ok', __('Restaurant blocked. Its menu and dashboard are closed, and its owner\'s email and mobile can\'t open a new account.'));
+    }
+
+    public function unblock(Request $request, Tenant $tenant): RedirectResponse
+    {
+        BlockedSignup::query()->where('tenant_id', $tenant->id)->delete();
+        $tenant->update(['status' => 'active', 'suspended_at' => null, 'blocked_at' => null]);
+        PlatformAuditLog::record($request->user('admin'), 'tenant.unblocked', $tenant->id);
+
+        return back()->with('ok', __('Block lifted. The restaurant is active again.'));
     }
 
     /**

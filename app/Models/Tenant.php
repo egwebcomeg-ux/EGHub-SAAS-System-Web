@@ -51,12 +51,12 @@ class Tenant extends BaseTenant
 
     public static function getCustomColumns(): array
     {
-        return ['id', 'name', 'status', 'suspended_at', 'showcase_on_site', 'showcase_sort', 'hidden_from_directory', 'created_at', 'updated_at', 'deleted_at'];
+        return ['id', 'name', 'status', 'suspended_at', 'blocked_at', 'showcase_on_site', 'showcase_sort', 'hidden_from_directory', 'created_at', 'updated_at', 'deleted_at'];
     }
 
     protected function casts(): array
     {
-        return ['suspended_at' => 'datetime', 'data' => 'array', 'showcase_on_site' => 'boolean', 'showcase_sort' => 'integer', 'hidden_from_directory' => 'boolean'];
+        return ['suspended_at' => 'datetime', 'blocked_at' => 'datetime', 'data' => 'array', 'showcase_on_site' => 'boolean', 'showcase_sort' => 'integer', 'hidden_from_directory' => 'boolean'];
     }
 
     /**
@@ -130,6 +130,12 @@ class Tenant extends BaseTenant
     public function isSuspended(): bool
     {
         return $this->status === 'suspended';
+    }
+
+    /** Blocked from the admin (a copycat): suspended, its dashboard closed, its owner's email and mobile refused at sign-up. */
+    public function isBlocked(): bool
+    {
+        return $this->blocked_at !== null;
     }
 
     /** The active custom domain, if the plan (or an add-on) still includes custom domains. */

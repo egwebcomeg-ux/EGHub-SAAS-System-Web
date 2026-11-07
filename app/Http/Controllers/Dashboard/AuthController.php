@@ -57,11 +57,11 @@ class AuthController extends Controller
 
     /**
      * Deactivated users and removed restaurants never get in, whatever the way in (password, Google, Facebook).
-     * A suspended restaurant does: its menu is offline but the dashboard stays reachable to renew.
+     * A suspended restaurant does: its menu is offline but the dashboard stays reachable to renew. A blocked one doesn't.
      */
     public static function mayEnter(User $user): bool
     {
-        return $user->is_active && Tenant::query()->whereKey($user->tenant_id)->exists();
+        return $user->is_active && Tenant::query()->whereKey($user->tenant_id)->whereNull('blocked_at')->exists();
     }
 
     /** One-time signed link from signup (valid 5 minutes, only for a user who never logged in). */

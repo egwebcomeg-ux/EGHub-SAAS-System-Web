@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Dashboard host (app.<domain>): the restaurant is always the logged-in user's own, never taken from the URL,
  * so a staff member can't reach another restaurant by editing a link. Runs after `auth`.
- * Deactivated users and deleted restaurants are logged out. A support session opened from the admin
+ * Deactivated users, deleted restaurants and blocked ones are logged out. A support session opened from the admin
  * (App\Services\SupportAccess) ends after 60 minutes, or as soon as its admin loses the right to it.
  */
 class InitializeTenancyFromUser
@@ -23,14 +23,15 @@ class InitializeTenancyFromUser
         $user = Auth::guard('web')->user();
         $tenant = $user ? Tenant::query()->find($user->tenant_id) : null;
 
-        if (! $user || ! $tenant || ! $user->is_active) {
+        $support = SupportAccess::active($request);
+        // a blocked restaurant is closed to its own team; EgWeb support still opens it from the admin
+        if (! $user || ! $tenant || ! $user->is_active || ($tenant->isBlocked() && ! $support)) {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
 
             return redirect()->route('dash.login')->withErrors(['login' => __('Your account is not active.')]);
         }
 
-        $support = SupportAccess::active($request);
         if ($support && ($problem = app(SupportAccess::class)->problem($request, $user))) {
             app(SupportAccess::class)->end($request, $problem);
             if ($request->expectsJson()) {

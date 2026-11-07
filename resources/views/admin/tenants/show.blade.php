@@ -27,7 +27,9 @@
         <a href="{{ route('admin.tenants') }}" class="text-sm font-semibold text-navy-500 hover:text-navy-800">← {{ __('Restaurants') }}</a>
         <h1 class="page-title mt-1 flex flex-wrap items-center gap-2">
             <span class="break-words">{{ $tenant->name }}</span>
-            @if ($tenant->isSuspended())
+            @if ($tenant->isBlocked())
+                <span class="badge bg-red-100 text-red-700">{{ __('Blocked') }}</span>
+            @elseif ($tenant->isSuspended())
                 <span class="badge bg-navy-200 text-navy-700">{{ __('Suspended') }}</span>
             @elseif ($sub)
                 <span class="badge {{ ['trialing' => 'bg-brand-100 text-brand-700', 'active' => 'bg-emerald-100 text-emerald-800', 'past_due' => 'bg-amber-100 text-amber-800'][$sub->status] ?? 'bg-navy-100 text-navy-600' }}">{{ $sub->statusLabel() }}</span>
@@ -51,11 +53,23 @@
             </form>
         @endif
         @if ($canManage)
-            @if ($tenant->isSuspended())
-                <form method="post" action="{{ route('admin.tenants.activate', $tenant) }}">@csrf<button class="btn-primary">{{ __('Activate') }}</button></form>
+            @if ($tenant->isBlocked())
+                <form method="post" action="{{ route('admin.tenants.unblock', $tenant) }}" onsubmit="return confirm(@js(__('Lift the block and activate this restaurant?')))">@csrf<button class="btn-primary" data-unblock>{{ __('Lift the block') }}</button></form>
             @else
-                <form method="post" action="{{ route('admin.tenants.suspend', $tenant) }}" onsubmit="return confirm(@js(__('Take this menu offline?')))">@csrf<button class="btn-danger">{{ __('Suspend') }}</button></form>
+                @if ($tenant->isSuspended())
+                    <form method="post" action="{{ route('admin.tenants.activate', $tenant) }}">@csrf<button class="btn-primary">{{ __('Activate') }}</button></form>
+                @else
+                    <form method="post" action="{{ route('admin.tenants.suspend', $tenant) }}" onsubmit="return confirm(@js(__('Take this menu offline?')))">@csrf<button class="btn-danger">{{ __('Suspend') }}</button></form>
+                @endif
+                {{-- a copycat: menu and dashboard closed, the owner's email and mobile refused at sign-up --}}
+                <form method="post" action="{{ route('admin.tenants.block', $tenant) }}" data-block-form
+                    onsubmit="const r = prompt(@js(__('Block this restaurant? Its menu and dashboard close and its owner\'s email and mobile can\'t open a new account. Reason (optional):'))); if (r === null) return false; this.reason.value = r;">
+                    @csrf
+                    <input type="hidden" name="reason">
+                    <button class="btn-danger">{{ __('Block') }}</button>
+                </form>
             @endif
+            <a href="{{ route('admin.blocked-signups') }}" class="btn-ghost">{{ __('Blocked') }}</a>
         @endif
     </div>
 </div>

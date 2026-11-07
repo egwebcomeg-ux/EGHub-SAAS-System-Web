@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AdminsController;
 use App\Http\Controllers\Admin\AnnouncementsController;
 use App\Http\Controllers\Admin\AssistantController;
 use App\Http\Controllers\Admin\AuthController;
+use App\Http\Controllers\Admin\BlockedSignupsController;
 use App\Http\Controllers\Admin\BlogController;
 use App\Http\Controllers\Admin\BrandingController;
 use App\Http\Controllers\Admin\CallsController;
@@ -69,6 +70,11 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         Route::post('/tenants/{tenant}/directory', [TenantsController::class, 'directory'])->name('tenants.directory');
         Route::post('/tenants/{tenant}/suspend', [TenantsController::class, 'suspend'])->name('tenants.suspend');
         Route::post('/tenants/{tenant}/activate', [TenantsController::class, 'activate'])->name('tenants.activate');
+        // a copycat: menu and dashboard closed, its owner's email and mobile refused at sign-up («المحظورين»)
+        Route::post('/tenants/{tenant}/block', [TenantsController::class, 'block'])->name('tenants.block');
+        Route::post('/tenants/{tenant}/unblock', [TenantsController::class, 'unblock'])->name('tenants.unblock');
+        Route::get('/blocked-signups', [BlockedSignupsController::class, 'index'])->name('blocked-signups');
+        Route::post('/blocked-signups/{blocked}/delete', [BlockedSignupsController::class, 'destroy'])->whereNumber('blocked')->name('blocked-signups.destroy');
         // delete for good: the platform owner only (checked in the controller), with the slug typed to confirm
         Route::post('/tenants/{tenant}/delete', [TenantsController::class, 'destroy'])->middleware('throttle:10,1')->name('tenants.destroy');
         Route::post('/tenants/{tenant}/users/{user}/verify-phone', [TenantsController::class, 'verifyPhone'])->whereNumber('user')->name('tenants.verify-phone');

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Platform;
 
 use App\Http\Controllers\Controller;
+use App\Models\BlockedSignup;
 use App\Models\SocialAccount;
 use App\Models\Tenant;
 use App\Models\User;
@@ -72,6 +73,11 @@ class SignupController extends Controller
             'email' => $social['email'] ?? strtolower(trim((string) $request->input('email'))),
             'phone' => normalize_phone((string) $request->input('phone')) ?? $request->input('phone'),
         ]);
+        // a copycat blocked from the admin: one answer for the email and the number alike, so neither is confirmed
+        if (BlockedSignup::matches((string) $request->input('email'), (string) $request->input('phone'))) {
+            return back()->withInput($request->except('password', 'password_confirmation'))
+                ->withErrors(['email' => __('We can\'t open an account with these details. Contact EgHub support.')]);
+        }
         $data = $request->validate([
             'name' => 'required|string|max:80',
             'slug' => 'required|string|max:30',
