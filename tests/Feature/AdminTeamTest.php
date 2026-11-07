@@ -89,6 +89,29 @@ class AdminTeamTest extends TenantTestCase
         $this->assertTrue(PlatformAdmin::query()->whereKey($owner->id)->exists());
     }
 
+    public function test_owner_types_a_new_password_for_a_member_who_then_signs_in_with_it(): void
+    {
+        $owner = $this->platformOwner();
+        $member = PlatformAdmin::query()->create(['name' => 'Ganna', 'email' => 'ganna@egweb.test', 'password' => 'Secret-pass-123', 'role' => 'sales']);
+        $fields = ['name' => 'Ganna', 'email' => 'ganna@egweb.test', 'role' => 'sales', 'is_active' => 1];
+
+        $this->actingAs($owner, 'admin')->get($this->adminUrl("/team/{$member->id}/edit"))->assertOk()->assertSee('data-member-password', false);
+        $this->post($this->adminUrl("/team/{$member->id}"), $fields + ['password' => 'short'])->assertSessionHasErrors('password');
+        // left empty, the password stays
+        $this->post($this->adminUrl("/team/{$member->id}"), $fields + ['password' => ''])->assertRedirect(route('admin.admins'));
+        $this->assertTrue(Hash::check('Secret-pass-123', $member->fresh()->password));
+
+        $this->post($this->adminUrl("/team/{$member->id}"), $fields + ['password' => 'Ganna-new-2026'])->assertRedirect(route('admin.admins'));
+        $this->assertTrue(Hash::check('Ganna-new-2026', $member->fresh()->password));
+        $this->post($this->adminUrl('/logout'));
+        $this->post($this->adminUrl('/login'), ['email' => 'ganna@egweb.test', 'password' => 'Ganna-new-2026'])->assertRedirect(route('admin.home'));
+
+        // one's own password is not set from here
+        $this->actingAs($owner, 'admin')->get($this->adminUrl("/team/{$owner->id}/edit"))->assertDontSee('data-member-password', false);
+        $this->post($this->adminUrl("/team/{$owner->id}"), ['name' => 'Owner', 'email' => 'owner@egweb.test', 'role' => 'owner', 'is_active' => 1, 'password' => 'Owner-new-2026']);
+        $this->assertTrue(Hash::check('Secret-pass-123', $owner->fresh()->password));
+    }
+
     public function test_switching_a_member_off_blocks_them(): void
     {
         $owner = $this->platformOwner();

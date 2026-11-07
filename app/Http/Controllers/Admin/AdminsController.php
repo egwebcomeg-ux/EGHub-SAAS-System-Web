@@ -80,6 +80,8 @@ class AdminsController extends Controller
         $data = $request->validate($this->rules($me) + [
             'email' => ['required', 'email', 'max:120', Rule::unique('platform_admins', 'email')->ignore($member->id)],
             'is_active' => 'nullable|boolean',
+            // a new password typed by hand for someone else (one's own changes from «Forgot password»)
+            'password' => ['nullable', 'string', 'max:200', PasswordRule::min(10)],
         ]);
         $active = $request->boolean('is_active');
 
@@ -96,6 +98,13 @@ class AdminsController extends Controller
         ]);
         if (! $active) {
             $member->forceFill(['remember_token' => Str::random(60)])->save();
+        }
+        // a new password ends the sessions kept on their other devices
+        if (filled($data['password'] ?? null) && ! $member->is($me)) {
+            $member->forceFill(['password' => $data['password'], 'remember_token' => Str::random(60)])->save();
+            PlatformAuditLog::record($me, 'admin.password_set', $member->email, ['name' => $member->name]);
+
+            return redirect()->route('admin.admins')->with('ok', __('Saved. :name signs in with the new password now.', ['name' => $member->name]));
         }
 
         return redirect()->route('admin.admins')->with('ok', __('Saved.'));

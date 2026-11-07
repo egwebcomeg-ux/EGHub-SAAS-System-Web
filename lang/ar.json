@@ -931,6 +931,8 @@
     "If this email belongs to an account, a reset link is on its way. Check your inbox and spam folder.": "لو الإيميل ده مسجل عندنا، لينك تغيير كلمة السر في الطريق. بُص على الوارد والـ Spam.",
     "Choose a new password": "اختار كلمة سر جديدة",
     "New password": "كلمة السر الجديدة",
+    "Leave it empty to keep their password. At least 10 characters; send it to them privately. Saving it signs them out of their other devices.": "سيبها فاضية لو مش عايز تغيّر كلمة السر. 10 حروف على الأقل، وابعتهاله في الخاص. لما تحفظها هيخرج من الأجهزة التانية.",
+    "Saved. :name signs in with the new password now.": "اتحفظ. :name يدخل بكلمة السر الجديدة من دلوقتي.",
     "Confirm the new password": "أكّد كلمة السر الجديدة",
     "Save new password": "احفظ كلمة السر",
     "This reset link is invalid or has expired. Ask for a new one.": "اللينك ده مش صالح أو انتهى. اطلب لينك جديد.",

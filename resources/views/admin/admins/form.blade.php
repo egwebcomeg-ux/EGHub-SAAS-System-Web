@@ -70,6 +70,16 @@
         </div>
     </section>
 
+    @if ($member->exists && ! $isSelf)
+        <section class="card space-y-2" data-member-password>
+            <h2 class="section-title">{{ __('Password') }}</h2>
+            <label class="field-label" for="m-new-password">{{ __('New password') }}</label>
+            <input class="field sm:max-w-sm" id="m-new-password" name="password" type="text" minlength="10" maxlength="200" dir="ltr" autocomplete="new-password" value="">
+            <p class="text-xs text-navy-500">{{ __('Leave it empty to keep their password. At least 10 characters; send it to them privately. Saving it signs them out of their other devices.') }}</p>
+            @error('password')<p class="text-sm font-semibold text-red-600">{{ $message }}</p>@enderror
+        </section>
+    @endif
+
     @unless ($member->exists)
         <section class="card space-y-3">
             <h2 class="section-title">{{ __('First sign-in') }}</h2>
