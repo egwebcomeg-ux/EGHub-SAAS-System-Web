@@ -16,9 +16,9 @@ use Illuminate\View\View;
  * Printable menu (A4), made from the live menu in the restaurant's colors. The browser flows categories into the
  * columns and picks the largest type that fits the chosen number of pages (Scratch Cafe's algorithm); "Save as
  * PDF" in the print dialog gives the PDF. Templates: text-only, with item photos (Kebab Pasha style), or cards: A4
- * landscape, four rounded panels in the brand's dark colour and white, each size on its own line (Tayebat El-Wadi style),
- * or ribbons: A4 landscape, a light band with the logo on every page, three columns, category titles on ribbons in
- * the main colour and each size's price behind a small tag (M 110 L 130), as Boska's printed menu.
+ * landscape, four plain rounded cards, each size on its own line, or ribbons: A4 landscape, a light band with the logo on every page, three columns, category titles on ribbons in
+ * the main colour and each size's price behind a small tag (M 110 L 130), as Boska's printed menu. Every template
+ * prints on light (white) or dark paper (the brand's dark colour).
  */
 class PrintMenuController extends Controller
 {
@@ -27,6 +27,7 @@ class PrintMenuController extends Controller
         $extra = MenuLocales::enabled();
         $opts = $request->validate([
             'template' => 'nullable|in:text,photos,cards,ribbons',
+            'theme' => 'nullable|in:light,dark',
             'pages' => 'nullable|integer|min:1|max:6',
             // ar, en, both (Arabic + English), an extra language "fr", or Arabic + an extra language "ar-fr"
             'lang' => ['nullable', Rule::in(array_merge(['ar', 'en', 'both'], $extra, array_map(fn ($c) => 'ar-'.$c, $extra)))],
@@ -41,10 +42,12 @@ class PrintMenuController extends Controller
         };
         $branch = isset($opts['branch']) ? Branch::query()->find($opts['branch']) : null;
         $catalog = MenuCatalog::forBranch($branch)->withoutOffers()->allDay();
-        // the chosen template is remembered, so the restaurant's own look opens by itself next time
+        // the chosen template and paper are remembered, so the restaurant's own look opens by itself next time
         $template = $opts['template'] ?? Settings::get('print_template');
-        if (isset($opts['template']) && $opts['template'] !== Settings::get('print_template')) {
-            Settings::put(['print_template' => $opts['template']]);
+        $theme = $opts['theme'] ?? Settings::get('print_theme');
+        $chosen = array_filter(['print_template' => $opts['template'] ?? null, 'print_theme' => $opts['theme'] ?? null]);
+        if (array_diff_assoc($chosen, Settings::all())) {
+            Settings::put($chosen);
         }
         $settings = Settings::all();
 
@@ -54,6 +57,7 @@ class PrintMenuController extends Controller
             'branches' => Branch::query()->where('is_active', true)->orderBy('sort_order')->get(),
             'settings' => $settings,
             'template' => in_array($template, ['text', 'photos', 'cards', 'ribbons'], true) ? $template : 'text',
+            'dark' => $theme === 'dark',
             // the panels are one landscape price list, the ribbons three landscape pages; the others start on two
             'pages' => (int) ($opts['pages'] ?? match ($template) {
                 'cards' => 1, 'ribbons' => 3, default => 2

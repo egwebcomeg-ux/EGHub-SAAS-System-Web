@@ -115,6 +115,8 @@ final class Settings
         'item_placeholder' => '1',
         // the printed menu's last chosen template (text | photos | cards), opened again next time
         'print_template' => 'text',
+        // the printed menu's last chosen paper: light (white) | dark (the brand's dark colour)
+        'print_theme' => 'light',
         // item layout apart from the theme colors (App\Support\MenuLayouts): auto (the theme's own) | list | grid | cards | text
         'menu_layout' => 'auto',
         // tapping an item: simple (the bottom sheet) | pro (a full item page with its own link; plan feature menu_themes)
@@ -242,7 +244,7 @@ final class Settings
      * kitchen_seen_at every hour, the digests mark the day they went out, the print page remembers its template).
      */
     public const INTERNAL_KEYS = ['kitchen_seen_at', 'daily_digest_sent_for', 'weekly_report_sent_for', 'welcome_kit',
-        'print_template', 'menu_translation_status', 'onboarding', 'qr_printed_at', 'demo_content', 'ordering_decided'];
+        'print_template', 'print_theme', 'menu_translation_status', 'onboarding', 'qr_printed_at', 'demo_content', 'ordering_decided'];
 
     /** @param array<string,string|null> $values */
     public static function put(array $values): void

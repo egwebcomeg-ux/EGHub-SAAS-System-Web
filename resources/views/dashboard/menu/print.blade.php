@@ -54,80 +54,87 @@
         $phone = $branch->phone ?: $settings['phone'];
     @endphp
     <style>
-        :root { --p: {{ $primary }}; --s2: {{ $secondary }}; --s: 1; }
+        :root { --p: {{ $primary }}; --s2: {{ $secondary }}; --s: 1;
+            /* the paper: white, or the brand's dark colour (deepened, so a light brand colour still prints dark) */
+            --paper: #fff; --ink: #1b2233; --head: var(--s2); --muted: #66708a; --soft: #3a4560; --line: #e3e7ee; --leader: #b8c0cf;
+            --card: color-mix(in srgb, var(--s2) 5%, #fff); --card-line: color-mix(in srgb, var(--s2) 22%, #fff); }
+        @if ($dark)
+            :root { --paper: color-mix(in srgb, var(--s2) 45%, #070a12); --ink: #f2f4f8; --head: #fff; --muted: #aab3c5; --soft: #ced5e2;
+                --line: rgba(255,255,255,.16); --leader: rgba(255,255,255,.3); --card: rgba(255,255,255,.06); --card-line: rgba(255,255,255,.16); }
+            /* a dark logo or the QR would vanish on dark paper: each sits on a small white tile */
+            .logo-tile, .qr { background: #fff; border-radius: 3mm; padding: 1.5mm; }
+        @endif
         @page { size: A4; margin: 0; }
         html, body { background: #e9edf3; }
-        body { font-family: '{{ $settings['font'] }}', 'Cairo', sans-serif; color: #1b2233; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .sheet { width: 210mm; height: 297mm; margin: 8mm auto; background: #fff; padding: 12mm 11mm; display: flex; flex-direction: column; box-shadow: 0 6px 30px rgba(0,0,0,.12); overflow: hidden; }
+        body { font-family: '{{ $settings['font'] }}', 'Cairo', sans-serif; color: var(--ink); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .sheet { width: 210mm; height: 297mm; margin: 8mm auto; background: var(--paper); padding: 12mm 11mm; display: flex; flex-direction: column; box-shadow: 0 6px 30px rgba(0,0,0,.12); overflow: hidden; }
         .cols { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 9mm; min-height: 0; }
         .slot { overflow: hidden; min-height: 0; }
         .cat { margin-bottom: calc(5mm * var(--s)); break-inside: avoid; }
-        .cat-head { display: flex; align-items: center; gap: 2mm; color: var(--s2); font-weight: 800; font-size: calc(17px * var(--s)); border-bottom: 2px solid var(--p); padding-bottom: 1mm; margin-bottom: calc(2mm * var(--s)); }
+        .cat-head { display: flex; align-items: center; gap: 2mm; color: var(--head); font-weight: 800; font-size: calc(17px * var(--s)); border-bottom: 2px solid var(--p); padding-bottom: 1mm; margin-bottom: calc(2mm * var(--s)); }
         .cat-head .en { color: var(--p); font-weight: 600; font-size: .7em; margin-inline-start: auto; }
         .cat-head.is-cont::after { content: '…'; opacity: .5; }
         .item { display: flex; gap: 2.5mm; align-items: flex-start; padding: calc(1.3mm * var(--s)) 0; }
         .item img { width: calc(15mm * var(--s)); height: calc(15mm * var(--s)); object-fit: cover; border-radius: 2mm; flex-shrink: 0; }
         .item .body { flex: 1; min-width: 0; }
         .item .line { display: flex; align-items: baseline; gap: 1.5mm; font-size: calc(13px * var(--s)); font-weight: 700; }
-        .item .dots { flex: 1; border-bottom: 1px dotted #b8c0cf; transform: translateY(-1mm); }
+        .item .dots { flex: 1; border-bottom: 1px dotted var(--leader); transform: translateY(-1mm); }
         .item .price { color: var(--p); font-weight: 800; white-space: nowrap; }
-        .item .en { font-size: calc(10.5px * var(--s)); color: #66708a; font-weight: 600; }
-        .item .desc { font-size: calc(10px * var(--s)); color: #66708a; margin-top: .3mm; }
-        .item .sizes { font-size: calc(10.5px * var(--s)); color: #3a4560; }
-        header.top { display: flex; align-items: center; justify-content: space-between; gap: 6mm; border-bottom: 3px solid var(--s2); padding-bottom: 4mm; margin-bottom: 5mm; }
-        header.top h1 { font-size: 26px; font-weight: 800; color: var(--s2); margin: 0; }
-        header.top p { margin: 0; color: #66708a; font-size: 12px; }
-        footer.bottom { display: flex; align-items: center; gap: 5mm; border-top: 2px solid #e3e7ee; padding-top: 3mm; margin-top: 3mm; font-size: 11px; color: #4b5570; }
+        .item .en { font-size: calc(10.5px * var(--s)); color: var(--muted); font-weight: 600; }
+        .item .desc { font-size: calc(10px * var(--s)); color: var(--muted); margin-top: .3mm; }
+        .item .sizes { font-size: calc(10.5px * var(--s)); color: var(--soft); }
+        header.top { display: flex; align-items: center; justify-content: space-between; gap: 6mm; border-bottom: 3px solid var(--head); padding-bottom: 4mm; margin-bottom: 5mm; }
+        header.top h1 { font-size: 26px; font-weight: 800; color: var(--head); margin: 0; }
+        header.top p { margin: 0; color: var(--muted); font-size: 12px; }
+        footer.bottom { display: flex; align-items: center; gap: 5mm; border-top: 2px solid var(--line); padding-top: 3mm; margin-top: 3mm; font-size: 11px; color: var(--soft); }
         footer.bottom .qr { width: 24mm; } footer.bottom .qr svg { width: 100%; height: auto; }
+        /* the options bar keeps its own dark text on dark paper */
+        .no-print { color: #1b2233; }
         #pool { position: absolute; visibility: hidden; width: 90mm; inset-inline-start: -9999px; }
-        @media print { html, body { background: #fff; } .sheet { margin: 0; box-shadow: none; } .no-print, #pool { display: none !important; } }
+        @media print { html, body { background: var(--paper); } .sheet { margin: 0; box-shadow: none; } .no-print, #pool { display: none !important; } }
         @if ($cards)
             @page { size: A4 landscape; margin: 0; }
-            .sheet { width: 297mm; height: 210mm; padding: 9mm; position: relative; }
-            .sheet .cols { grid-template-columns: repeat(4, 1fr); gap: 6mm; position: relative; z-index: 1; }
-            .dot { position: absolute; border-radius: 50%; z-index: 0; }
-            .slot { border-radius: 8mm; padding: 6mm 5mm; }
-            .slot.dark { background: var(--s2); color: #fff; }
-            .slot.light { background: #fff; border: 2.5px solid var(--s2); }
-            .cat-head { border: 0; padding: 0; justify-content: flex-start; font-size: calc(20px * var(--s)); }
-            .cat-head .photo { width: calc(17mm * var(--s)); height: calc(17mm * var(--s)); border-radius: 50%; object-fit: cover; margin-inline-start: auto; flex-shrink: 0; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.18); }
-            /* the category's photo by its title, as the shop's own price list does; once, not on a continued panel */
+            .sheet { width: 297mm; height: 210mm; padding: 9mm; }
+            .sheet .cols { grid-template-columns: repeat(4, 1fr); gap: 5mm; }
+            /* four plain cards alike, in the paper's own colours */
+            .slot { border-radius: 5mm; padding: 5mm 4.5mm; background: var(--card); border: 1.5px solid var(--card-line); }
+            .cat-head { border-bottom: 2px solid var(--p); justify-content: flex-start; font-size: calc(18px * var(--s)); }
+            .cat-head .photo { width: calc(14mm * var(--s)); height: calc(14mm * var(--s)); border-radius: 50%; object-fit: cover; margin-inline-start: auto; flex-shrink: 0; }
+            /* the category's photo by its title; once, not on a continued card */
             .cat-head.is-cont .photo { display: none; }
-            .dark .cat-head { color: var(--p); } .dark .cat-head .en { color: #fff; opacity: .7; }
             .row { display: grid; grid-template-columns: 1fr auto 11mm; align-items: baseline; gap: 2mm; font-size: calc(14px * var(--s)); font-weight: 700; line-height: 1.35; }
             .item-block { padding: calc(.5mm * var(--s)) 0; }
             .row .size { color: var(--p); font-size: .9em; white-space: nowrap; }
             .row .price { text-align: end; font-weight: 800; }
-            .row .en { grid-column: 1 / -1; font-size: .72em; opacity: .65; }
-            .light .row .price { color: var(--s2); }
+            .row .en { grid-column: 1 / -1; font-size: .72em; color: var(--muted); font-weight: 600; }
+            .row .price { color: var(--head); }
             .item.item-block { display: block; }
-            footer.bottom { position: relative; z-index: 1; border: 0; margin-top: 4mm; padding: 0; justify-content: space-between; }
+            footer.bottom { border: 0; margin-top: 4mm; padding: 0; justify-content: space-between; }
             footer.bottom .qr { width: 20mm; }
-            .call { display: inline-flex; flex-direction: column; align-items: center; border: 2.5px solid var(--s2); border-radius: 4mm; overflow: hidden; }
-            .call b { background: var(--s2); color: #fff; padding: 1mm 6mm; font-size: 15px; }
-            .call span { padding: .5mm 5mm; font-size: 19px; font-weight: 800; color: var(--s2); }
+            .call { display: inline-flex; flex-direction: column; align-items: center; border: 2px solid var(--p); border-radius: 4mm; overflow: hidden; }
+            .call b { background: var(--p); color: #fff; padding: 1mm 6mm; font-size: 15px; }
+            .call span { padding: .5mm 5mm; font-size: 19px; font-weight: 800; color: var(--ink); }
         @endif
         @if ($ribbons)
             @page { size: A4 landscape; margin: 0; }
             .sheet { width: 297mm; height: 210mm; padding: 0 0 7mm; }
-            .band { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; height: 30mm; padding: 0 14mm; margin-bottom: 6mm; background: color-mix(in srgb, var(--s2) 12%, #fff); }
+            .band { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; height: 30mm; padding: 0 14mm; margin-bottom: 6mm; background: color-mix(in srgb, var(--s2) 12%, var(--paper)); }
             .band img { height: 22mm; }
             .band h1 { margin: 0; color: var(--p); font-size: 34px; font-weight: 800; letter-spacing: .04em; }
-            .band p { margin: 0; color: #6b7480; font-size: 15px; letter-spacing: .3em; }
+            .band p { margin: 0; color: var(--muted); font-size: 15px; letter-spacing: .3em; }
             .sheet .cols { grid-template-columns: repeat(3, 1fr); gap: 0; padding: 0 6mm; }
             .slot { padding: 0 6mm; }
-            .slot + .slot { border-inline-start: 1.5px solid #d5dbe0; }
+            .slot + .slot { border-inline-start: 1.5px solid var(--line); }
             .cat-head { display: inline-flex; border: 0; background: var(--p); color: #fff; font-size: calc(14px * var(--s)); letter-spacing: .2em; padding: 1.2mm 9mm 1.2mm 4mm; clip-path: polygon(0 0, 100% 0, calc(100% - 4mm) 50%, 100% 100%, 0 100%); margin-bottom: calc(2mm * var(--s)); }
             [dir=rtl] .cat-head { letter-spacing: 0; padding: 1.2mm 4mm 1.2mm 9mm; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 4mm 50%); }
             .cat-head .en { color: #fff; opacity: .75; letter-spacing: 0; margin-inline-start: 3mm; }
             .item .line { font-weight: 500; }
-            .flavours { font-size: .72em; color: #4b5570; }
-            .item .dots { border-bottom-color: #8a95a3; }
-            .item .price { color: #1b2233; font-weight: 600; }
+            .flavours { font-size: .72em; color: var(--soft); }
+            .item .price { color: var(--ink); font-weight: 600; }
             .tag { background: var(--p); color: #fff; font-size: .62em; font-weight: 700; padding: .2mm 1.2mm; border-radius: .6mm; margin-inline-start: 1.5mm; }
             .item { padding: calc(.75mm * var(--s)) 0; }
-            .band .qr { display: flex; align-items: center; gap: 3mm; color: #4b5570; font-size: 11px; font-weight: 600; }
-            .band .qr svg { width: 20mm; height: auto; }
+            .band .qr-call { display: flex; align-items: center; gap: 3mm; color: var(--soft); font-size: 11px; font-weight: 600; }
+            .band .qr { width: 20mm; } .band .qr svg { width: 100%; height: auto; display: block; }
         @endif
     </style>
 </head>
@@ -138,8 +145,13 @@
             <select class="field min-h-9 py-0" name="template" onchange="this.form.submit()">
                 <option value="text" @selected($template === 'text')>{{ __('Text only') }}</option>
                 <option value="photos" @selected($template === 'photos')>{{ __('With photos') }}</option>
-                <option value="cards" @selected($cards)>{{ __('Colour panels (landscape)') }}</option>
+                <option value="cards" @selected($cards)>{{ __('Cards (landscape)') }}</option>
                 <option value="ribbons" @selected($ribbons)>{{ __('Ribbon titles (landscape)') }}</option>
+            </select></div>
+        <div><label class="field-label">{{ __('Paper') }}</label>
+            <select class="field min-h-9 py-0" name="theme" onchange="this.form.submit()">
+                <option value="light" @selected(! $dark)>{{ __('Light') }}</option>
+                <option value="dark" @selected($dark)>{{ __('Dark') }}</option>
             </select></div>
         <div><label class="field-label">{{ __('Pages') }}</label>
             <select class="field min-h-9 py-0" name="pages" onchange="this.form.submit()">
@@ -169,17 +181,14 @@
 
 @for ($p = 1; $p <= $pages; $p++)
     @if ($cards)
-        {{-- the panels template: brand-coloured dots behind four panels, the logo, «order now» and the QR under them --}}
+        {{-- the cards template: four plain cards, the logo, «order now» and the QR under them --}}
         <div class="sheet">
-            @foreach ([['-9mm', '-6mm', '30mm', $primary], ['62%', '-12mm', '26mm', '#DCE34A'], ['30%', '96%', '24mm', '#6CC04A'], ['-8mm', '45%', '18mm', '#8E7CC3'], ['97%', '60%', '20mm', $primary], ['55%', '93%', '22mm', '#E86A7A']] as [$top, $left, $size, $color])
-                <span class="dot" style="top: {{ $top }}; left: {{ $left }}; width: {{ $size }}; height: {{ $size }}; background: {{ $color }}"></span>
-            @endforeach
             <div class="cols">
-                @for ($s = 0; $s < 4; $s++)<div class="slot {{ $s % 2 ? 'light' : 'dark' }}"></div>@endfor
+                @for ($s = 0; $s < 4; $s++)<div class="slot"></div>@endfor
             </div>
             @if ($p === $pages)
                 <footer class="bottom">
-                    @if ($settings['logo'])<img src="/storage/{{ $settings['logo'] }}" alt="" style="height: 22mm">@else<b style="color: var(--s2); font-size: 22px">{{ $settings['brand_name'] }}</b>@endif
+                    @if ($settings['logo'])<img class="logo-tile" src="/storage/{{ $settings['logo'] }}" alt="" style="height: 22mm">@else<b style="color: var(--head); font-size: 22px">{{ $settings['brand_name'] }}</b>@endif
                     @if ($phone)<div class="call"><b>📞 {{ __('Order now') }}</b><span dir="ltr">{{ $phone }}</span></div>@endif
                     <div class="qr">{!! $qr !!}</div>
                 </footer>
@@ -191,8 +200,8 @@
         @if ($ribbons)
             {{-- the ribbons template: the brand band with the logo on top of every page --}}
             <div class="band">
-                <div class="qr">{!! $qr !!}<span>{{ __('Scan to see the menu and order', [], $mainLang === 'ar' ? 'ar' : 'en') }}</span></div>
-                @if ($settings['logo'])<img src="/storage/{{ $settings['logo'] }}" alt="">
+                <div class="qr-call"><div class="qr">{!! $qr !!}</div><span>{{ __('Scan to see the menu and order', [], $mainLang === 'ar' ? 'ar' : 'en') }}</span></div>
+                @if ($settings['logo'])<img class="logo-tile" src="/storage/{{ $settings['logo'] }}" alt="">
                 @else<div><h1>{{ $mainLang !== 'ar' ? ($settings['brand_name_en'] ?: $settings['brand_name']) : $settings['brand_name'] }}</h1>
                     @if ($t = $mainLang !== 'ar' ? $settings['tagline_en'] : $settings['tagline'])<p>{{ $t }}</p>@endif</div>@endif
             </div>
@@ -205,7 +214,7 @@
                     <h1>{{ $mainLang !== 'ar' ? ($settings['brand_name_en'] ?: $settings['brand_name']) : $settings['brand_name'] }}</h1>
                     @if ($t = $mainLang !== 'ar' ? $settings['tagline_en'] : $settings['tagline'])<p>{{ $t }}</p>@endif
                 </div>
-                @if ($settings['logo'])<img src="/storage/{{ $settings['logo'] }}" alt="" style="height: 20mm">@endif
+                @if ($settings['logo'])<img class="logo-tile" src="/storage/{{ $settings['logo'] }}" alt="" style="height: 20mm">@endif
             </header>
         @endif
         @unless ($ribbons)<div class="cols"><div class="slot"></div><div class="slot"></div></div>@endunless
@@ -213,7 +222,7 @@
             <footer class="bottom">
                 <div class="qr">{!! $qr !!}</div>
                 <div>
-                    <b style="color: var(--s2)">{{ __('Scan to see the menu and order', [], $mainLang === 'ar' ? 'ar' : 'en') }}</b><br>
+                    <b style="color: var(--head)">{{ __('Scan to see the menu and order', [], $mainLang === 'ar' ? 'ar' : 'en') }}</b><br>
                     @if ($branch->address){{ $branch->address }}<br>@endif
                     {{ $branch->phone ?: $settings['phone'] }}
                     @if ((float) $settings['service_percent'] > 0 || (float) $settings['tax_percent'] > 0)

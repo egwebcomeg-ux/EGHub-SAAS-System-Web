@@ -176,6 +176,23 @@ class MarketingTest extends TenantTestCase
         $this->actingAs($this->owner($a))->get($this->dashUrl('/menu/print'))->assertOk()->assertSee('A4 landscape');
     }
 
+    public function test_printed_menu_prints_on_light_paper_unless_dark_is_chosen_and_remembers_it(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $this->item($a, 'Iced Latte', 80);
+        $owner = $this->owner($a);
+
+        $this->actingAs($owner)->get($this->dashUrl('/menu/print'))->assertOk()
+            ->assertSee('<option value="light" selected', false)->assertDontSee('.logo-tile, .qr { background: #fff', false);
+
+        $this->actingAs($owner)->get($this->dashUrl('/menu/print?template=cards&theme=dark'))->assertOk()
+            ->assertSee('<option value="dark" selected', false)->assertSee('.logo-tile, .qr { background: #fff', false);
+
+        // the next visit opens on dark paper again, with any template
+        $this->actingAs($owner)->get($this->dashUrl('/menu/print?template=text'))->assertOk()
+            ->assertSee('<option value="dark" selected', false);
+    }
+
     public function test_printed_menu_ribbons_template_tags_each_size_and_names_one_price_flavours(): void
     {
         $a = $this->restaurant('cafe-a');
