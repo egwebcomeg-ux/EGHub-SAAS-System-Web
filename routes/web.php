@@ -83,6 +83,7 @@ Route::domain("admin.$domain")->prefix('crm/device')->middleware(['crm.device', 
         Route::post('/ringing', [CallDeviceApiController::class, 'ringing']);
         Route::post('/calls', [CallDeviceApiController::class, 'calls']);
         Route::get('/directory', [CallDeviceApiController::class, 'directory']);
+        Route::post('/push-token', [CallDeviceApiController::class, 'pushToken']);
     });
 
 Route::domain("admin.$domain")->middleware(['admin.locale', 'admin.idle'])->name('admin.')->group(base_path('routes/admin.php'));

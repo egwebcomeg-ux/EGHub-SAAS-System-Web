@@ -10,6 +10,7 @@ use App\Models\Prospect;
 use App\Models\SalesCall;
 use App\Services\Crm\CallLog;
 use App\Services\Crm\ProspectScore;
+use App\Services\Push\FcmClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -105,6 +106,29 @@ class CallsController extends Controller
         $device->delete();
 
         return back()->with('ok', __('Saved.'));
+    }
+
+    /**
+     * «اتصل» on the computer: the admin's linked phone places the call (an FCM message the sales app acts on). The
+     * computer shows who it is at once, as for a call made on the phone. Without such a phone the page dials as before.
+     */
+    public function dial(Request $request, CallLog $log, FcmClient $fcm): JsonResponse
+    {
+        $data = $request->validate(['phone' => ['required', 'string', 'max:30', 'regex:/^\+?[0-9 ()-]{3,30}$/']]);
+        $number = preg_replace('/[^0-9+]/', '', $data['phone']);
+        $admin = $request->user('admin');
+        foreach (CallDevice::query()->dialable($admin->id)->latest('last_seen_at')->get() as $device) {
+            $card = $log->ringing($device, $number, 'outgoing');
+            $result = $fcm->send((string) $device->push_token, '', '', ['type' => 'sales_dial', 'number' => $number, 'name' => $card['known'] ? $card['name'] : ''], dataOnly: true);
+            if ($result === FcmClient::SENT) {
+                return response()->json(['ok' => true, 'device' => $device->name]);
+            }
+            if ($result === FcmClient::INVALID) {
+                $device->forceFill(['push_token' => null])->save();
+            }
+        }
+
+        return response()->json(['ok' => false], 409);
     }
 
     /** Asked every few seconds by the open dashboard. It does not count as activity for the idle sign-out. */

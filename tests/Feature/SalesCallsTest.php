@@ -7,6 +7,7 @@ use App\Models\Lead;
 use App\Models\PlatformAdmin;
 use App\Models\Prospect;
 use App\Models\SalesCall;
+use App\Services\Push\FcmClient;
 use Tests\TenantTestCase;
 
 /** The sales phone: its token, who a number belongs to, the call log it sends, the summary and who sees what. */
@@ -48,6 +49,30 @@ class SalesCallsTest extends TenantTestCase
 
         $admin->forceFill(['is_active' => false])->save();
         $this->getJson($url, $headers)->assertUnauthorized();
+    }
+
+    public function test_call_on_the_computer_places_the_call_on_the_admins_own_phone_only(): void
+    {
+        [$mona, $headers] = $this->linkedPhone();
+        [$ali, $aliHeaders] = $this->linkedPhone('sales', 'Ali Caller');
+        Prospect::query()->create(['name' => 'مطعم الأصيل', 'category' => 'restaurant', 'phone' => '01066666666']);
+        $this->postJson($this->adminUrl('/crm/device/push-token'), ['token' => 'ali-phone'], $aliHeaders)->assertOk();
+
+        // no phone that can dial yet: the page keeps the plain tel: link and the request is refused
+        $this->actingAs($mona, 'admin')->get($this->adminUrl('/crm/calls'))->assertDontSee('data-dial-url', false);
+        $this->postJson($this->adminUrl('/crm/calls/dial'), ['phone' => '01066666666'])->assertStatus(409);
+
+        $this->app['auth']->forgetGuards();
+        $this->postJson($this->adminUrl('/crm/device/push-token'), ['token' => 'mona-phone'], $headers)->assertOk();
+        $this->mock(FcmClient::class, fn ($fcm) => $fcm->shouldReceive('send')->once()
+            ->with('mona-phone', '', '', ['type' => 'sales_dial', 'number' => '01066666666', 'name' => 'مطعم الأصيل'], true)
+            ->andReturn(FcmClient::SENT));
+
+        $this->actingAs($mona, 'admin')->get($this->adminUrl('/crm/calls'))->assertSee('data-dial-url', false);
+        $this->postJson($this->adminUrl('/crm/calls/dial'), ['phone' => '010 6666 6666'])->assertOk()->assertJsonPath('device', 'Samsung A24');
+        // the computer shows who is being called at once
+        $this->getJson($this->adminUrl('/crm/calls/current'))->assertJsonPath('call.name', 'مطعم الأصيل')->assertJsonPath('call.direction', 'outgoing');
+        $this->postJson($this->adminUrl('/crm/calls/dial'), ['phone' => 'javascript:alert(1)'])->assertUnprocessable();
     }
 
     public function test_the_card_while_it_rings_knows_a_restaurant_a_place_and_a_new_number_and_reaches_the_computer(): void

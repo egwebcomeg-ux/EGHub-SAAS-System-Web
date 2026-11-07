@@ -99,7 +99,7 @@
         @endforelse
     </ul>
     <ul class="mt-3 hidden space-y-2" data-phone-status data-allow="{{ __('Allow') }}">
-        @foreach (['phone' => __('Phone'), 'callLog' => __('Call log'), 'overlay' => __('Show the card over calls'), 'notifications' => __('Notifications'), 'battery' => __('Battery: no restrictions')] as $key => $label)
+        @foreach (['phone' => __('Phone'), 'callLog' => __('Call log'), 'overlay' => __('Show the card over calls'), 'notifications' => __('Notifications'), 'battery' => __('Battery: no restrictions'), 'dial' => __('Calls from the computer')] as $key => $label)
             <li class="flex min-h-11 items-center justify-between gap-2 rounded-xl border border-navy-100 px-3 text-sm" data-phone-permission="{{ $key }}">
                 <span class="font-semibold text-navy-800">{{ $label }}</span><span data-permission-state></span>
             </li>

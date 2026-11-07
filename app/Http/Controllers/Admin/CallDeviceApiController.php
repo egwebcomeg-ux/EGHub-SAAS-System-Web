@@ -40,6 +40,15 @@ class CallDeviceApiController extends Controller
         ] : null]);
     }
 
+    /** The phone's FCM token, so «اتصل» on the computer reaches it. */
+    public function pushToken(Request $request): JsonResponse
+    {
+        $data = $request->validate(['token' => 'required|string|max:512']);
+        $request->attributes->get('callDevice')->forceFill(['push_token' => $data['token']])->save();
+
+        return response()->json(['ok' => true]);
+    }
+
     public function directory(CallDirectory $directory): JsonResponse
     {
         return response()->json(['ok' => true, 'numbers' => $directory->numbers()]);

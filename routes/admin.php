@@ -162,6 +162,7 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         Route::get('/crm/reports/export.csv', [SalesReportsController::class, 'export'])->name('crm.reports.export');
         Route::get('/crm/leads/{lead}/print', [SalesReportsController::class, 'leadFile'])->whereNumber('lead')->name('crm.lead-file');
         Route::get('/crm/calls', [CallsController::class, 'index'])->name('crm.calls');
+        Route::post('/crm/calls/dial', [CallsController::class, 'dial'])->middleware('throttle:20,1')->name('crm.calls.dial');
         Route::get('/crm/calls/current', [CallsController::class, 'current'])->withoutMiddleware('admin.idle')->middleware('throttle:60,1')->name('crm.calls.current');
         Route::get('/crm/calls/{call}', [CallsController::class, 'show'])->whereNumber('call')->name('crm.calls.show');
         Route::post('/crm/calls/{call}', [CallsController::class, 'summarize'])->whereNumber('call')->name('crm.calls.summarize');
