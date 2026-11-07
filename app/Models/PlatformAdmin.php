@@ -37,6 +37,7 @@ class PlatformAdmin extends Authenticatable
             'last_login_at' => 'datetime',
             'permissions' => 'array',
             'is_active' => 'boolean',
+            'two_factor_optional' => 'boolean',
             'crm_discount_max' => 'integer',
         ];
     }

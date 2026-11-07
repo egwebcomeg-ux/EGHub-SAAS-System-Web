@@ -23,7 +23,8 @@
                             <span @class(['badge', 'bg-brand-100 text-brand-700' => $member->isOwner(), 'bg-navy-100 text-navy-700' => ! $member->isOwner()])>{{ $member->roleName() }}</span>
                             @if (! empty($member->permissions))<span class="badge bg-navy-50 text-navy-600">+{{ count($member->permissions) }} {{ __('extra') }}</span>@endif
                             @unless ($member->is_active)<span class="badge bg-navy-200 text-navy-700">{{ __('Turned off') }}</span>@endunless
-                            @if ($member->hasTwoFactorEnabled())<span class="badge bg-emerald-100 text-emerald-800">✓ {{ __('Two-factor') }}</span>@endif
+                            @if ($member->hasTwoFactorEnabled())<span class="badge bg-emerald-100 text-emerald-800">✓ {{ __('Two-factor') }}</span>
+                            @elseif ($member->two_factor_optional && ! $member->isOwner())<span class="badge bg-amber-100 text-amber-800">{{ __('Without two-step') }}</span>@endif
                         </div>
                         <div class="truncate text-sm text-navy-500"><span dir="ltr">{{ $member->email }}</span> · {{ __('Last login') }}: {{ local_time($member->last_login_at) }}</div>
                     </div>

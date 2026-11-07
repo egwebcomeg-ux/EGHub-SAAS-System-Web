@@ -112,6 +112,31 @@ class AdminTeamTest extends TenantTestCase
         $this->assertTrue(Hash::check('Secret-pass-123', $owner->fresh()->password));
     }
 
+    public function test_an_owner_lets_a_sales_member_work_without_two_step_verification_but_never_an_owner(): void
+    {
+        config(['eghub.admin_require_2fa' => true]);
+        $owner = $this->platformOwner();
+        $owner->forceFill(['two_factor_secret' => 'JBSWY3DPEHPK3PXP', 'two_factor_confirmed_at' => now()])->save();
+        $member = PlatformAdmin::query()->create(['name' => 'Ganna', 'email' => 'ganna@egweb.test', 'password' => 'Secret-pass-123', 'role' => 'sales']);
+        $fields = ['name' => 'Ganna', 'email' => 'ganna@egweb.test', 'role' => 'sales', 'is_active' => 1];
+
+        // required by default: only the security page opens
+        $this->actingAs($member, 'admin')->get($this->adminUrl('/crm'))->assertRedirect(route('admin.security'));
+
+        $this->actingAs($owner, 'admin')->get($this->adminUrl("/team/{$member->id}/edit"))->assertSee('data-two-factor-optional', false);
+        $this->post($this->adminUrl("/team/{$member->id}"), $fields + ['two_factor_optional' => 1])->assertRedirect(route('admin.admins'));
+        $this->assertTrue($member->fresh()->two_factor_optional);
+        $this->actingAs($member->fresh(), 'admin')->get($this->adminUrl('/crm'))->assertOk();
+
+        // a non-owner with the team permission cannot switch it, and an owner role never has it
+        $lead = PlatformAdmin::query()->create(['name' => 'Lead', 'email' => 'lead@egweb.test', 'password' => 'Secret-pass-123', 'role' => 'manager', 'permissions' => ['admins.manage'], 'two_factor_optional' => true]);
+        $this->actingAs($lead, 'admin')->get($this->adminUrl("/team/{$member->id}/edit"))->assertDontSee('data-two-factor-optional', false);
+        $this->post($this->adminUrl("/team/{$member->id}"), $fields + ['two_factor_optional' => 0]);
+        $this->assertTrue($member->fresh()->two_factor_optional);
+        $second = PlatformAdmin::query()->create(['name' => 'Second', 'email' => 'second@egweb.test', 'password' => 'Secret-pass-123', 'role' => 'owner', 'two_factor_optional' => true]);
+        $this->actingAs($second, 'admin')->get($this->adminUrl('/crm'))->assertRedirect(route('admin.security'));
+    }
+
     public function test_switching_a_member_off_blocks_them(): void
     {
         $owner = $this->platformOwner();

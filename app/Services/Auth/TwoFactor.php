@@ -120,10 +120,14 @@ final class TwoFactor
         return Settings::get('require_2fa') === '1' && ! $user->hasTwoFactorEnabled();
     }
 
-    /** Every platform admin must use 2FA (config eghub.admin_require_2fa): until it is on, only the security page opens. */
+    /**
+     * Every platform admin must use 2FA (config eghub.admin_require_2fa): until it is on, only the security page opens.
+     * An owner may let a member who is not an owner do without it (two_factor_optional, e.g. the sales phone).
+     */
     public static function adminSetupRequired(PlatformAdmin $admin): bool
     {
-        return (bool) config('eghub.admin_require_2fa') && ! $admin->hasTwoFactorEnabled();
+        return (bool) config('eghub.admin_require_2fa') && ! $admin->hasTwoFactorEnabled()
+            && ! ($admin->two_factor_optional && ! $admin->isOwner());
     }
 
     public static function cookieName(string $guard): string

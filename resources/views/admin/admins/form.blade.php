@@ -28,6 +28,14 @@
                 {{ __('Can sign in (turn off to block this member without deleting them)') }}
             </label>
             @if ($isSelf)<input type="hidden" name="is_active" value="1">@endif
+            @if ($me->isOwner() && ! $isSelf)
+                <label class="flex items-start gap-2 text-sm sm:col-span-2" data-two-factor-optional>
+                    <input type="hidden" name="two_factor_optional" value="0">
+                    <input type="checkbox" name="two_factor_optional" value="1" @checked(old('two_factor_optional', $member->two_factor_optional)) class="mt-0.5 size-5 accent-brand-600">
+                    <span><span class="block font-semibold">{{ __('Can sign in without two-step verification') }}</span>
+                        <span class="text-navy-500">{{ __('For a member who signs in on the sales phone. Never for an owner. Their password is then the only lock, so make it a strong one.') }}</span></span>
+                </label>
+            @endif
         @endif
     </div>
 

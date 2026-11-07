@@ -96,6 +96,14 @@ class AdminsController extends Controller
             'name' => trim($data['name']), 'email' => $data['email'], 'role' => $data['role'],
             'permissions' => $this->extraPermissions($data), 'is_active' => $active, 'crm_discount_max' => $data['crm_discount_max'] ?? null,
         ]);
+        // only an owner lets someone do without two-step verification, and never an owner
+        if ($me->isOwner() && ! $member->is($me)) {
+            $optional = $request->boolean('two_factor_optional') && $data['role'] !== 'owner';
+            if ($optional !== $member->two_factor_optional) {
+                $member->forceFill(['two_factor_optional' => $optional])->save();
+                PlatformAuditLog::record($me, $optional ? 'admin.two_factor_optional' : 'admin.two_factor_required', $member->email, ['name' => $member->name]);
+            }
+        }
         if (! $active) {
             $member->forceFill(['remember_token' => Str::random(60)])->save();
         }
