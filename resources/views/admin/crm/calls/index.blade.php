@@ -78,6 +78,15 @@
 <section class="card" data-call-devices>
     <h2 class="section-title">{{ __('Your phone') }}</h2>
     <p class="muted mt-1">{{ __('Open this page from the EgHub Sales app on the office phone and link it. Its calls reach here by themselves.') }}</p>
+    {{-- the app is installed directly (Google Play does not allow reading the call log for this use) --}}
+    @if (is_file(public_path('downloads/eghub-sales.apk')))
+        @php($salesApk = platform_url(null, 'downloads/eghub-sales.apk'))
+        <div class="mt-3 flex flex-wrap items-center gap-2" data-sales-app-download>
+            <a href="{{ $salesApk }}" class="btn-primary min-h-10" download>⬇ {{ __('Download the EgHub Sales app (Android)') }}</a>
+            <bdi dir="ltr" class="select-all text-xs text-navy-500">{{ $salesApk }}</bdi>
+        </div>
+        <p class="mt-1 text-xs text-navy-500">{{ __('Open the link on the office phone and install it over the old one, without removing it first, so the phone stays linked.') }}</p>
+    @endif
     <ul class="mt-3 divide-y divide-navy-50">
         @forelse ($devices as $device)
             <li class="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">

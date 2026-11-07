@@ -932,6 +932,8 @@
     "Choose a new password": "اختار كلمة سر جديدة",
     "New password": "كلمة السر الجديدة",
     "Leave it empty to keep their password. At least 10 characters; send it to them privately. Saving it signs them out of their other devices.": "سيبها فاضية لو مش عايز تغيّر كلمة السر. 10 حروف على الأقل، وابعتهاله في الخاص. لما تحفظها هيخرج من الأجهزة التانية.",
+    "Download the EgHub Sales app (Android)": "نزّل تطبيق مبيعات EgHub (أندرويد)",
+    "Open the link on the office phone and install it over the old one, without removing it first, so the phone stays linked.": "افتح اللينك على موبايل المكتب ونزّله فوق القديم من غير ما تمسحه، عشان الموبايل يفضل مربوط.",
     "Can sign in without two-step verification": "يدخل من غير التحقق بخطوتين",
     "For a member who signs in on the sales phone. Never for an owner. Their password is then the only lock, so make it a strong one.": "للي بيدخل من موبايل المبيعات. ما ينفعش للمالك. كلمة السر هتبقى هي القفل الوحيد، فخليها قوية.",
     "Without two-step": "من غير تحقق بخطوتين",

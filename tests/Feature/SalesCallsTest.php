@@ -124,7 +124,9 @@ class SalesCallsTest extends TenantTestCase
         config(['eghub.admin_require_2fa' => false]);
 
         $this->actingAs($mona, 'admin');
-        $this->get($this->adminUrl('/crm/calls'))->assertOk()->assertSee('0403331234');
+        $this->get($this->adminUrl('/crm/calls'))->assertOk()->assertSee('0403331234')
+            // the phone app itself is downloaded from here
+            ->assertSee('/downloads/eghub-sales.apk', false);
         $this->get($this->adminUrl("/crm/calls/{$call->id}"))->assertOk();
 
         $this->actingAs($this->admin('sales', 'Ali Caller'), 'admin');
