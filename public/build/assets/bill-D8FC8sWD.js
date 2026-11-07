@@ -1,0 +1,1 @@
+function e(e,t,n){let r=t?e*(Number(n.service)||0)/100:0;return{service:r,tax:(e+r)*(Number(n.tax)||0)/100}}export{e as t};
