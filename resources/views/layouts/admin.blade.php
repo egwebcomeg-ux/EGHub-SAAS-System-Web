@@ -13,7 +13,7 @@
 @section('body_class', 'bg-navy-50 text-navy-900')
 
 @section('body')
-<div class="min-h-screen" data-admin-shell>
+<div class="min-h-screen" data-admin-shell @if ($admin->allows('inbox.manage')) data-inbox-pulse="{{ route('admin.inbox.pulse') }}" @endif>
     {{-- sidebar: fixed at the start side (right in Arabic), an off-canvas drawer under lg --}}
     <div class="fixed inset-0 z-40 hidden bg-navy-900/50 backdrop-blur-[1px] lg:hidden" data-admin-backdrop></div>
     <aside id="admin-sidebar" data-admin-sidebar
@@ -181,6 +181,70 @@
                 const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '') || document.activeElement?.isContentEditable;
                 if (e.key === '/' && !typing && !e.ctrlKey && !e.metaKey) { e.preventDefault(); input.focus(); input.select(); }
             });
+        }
+
+        // a new message in «المحادثات» on any admin page: a sound, a browser notification (once allowed from the
+        // conversations page), the count in the tab title and on the menu. One alert across open tabs (localStorage).
+        const shell = document.querySelector('[data-inbox-pulse]');
+        if (shell) {
+            const url = shell.dataset.inboxPulse, key = 'eghub-inbox-seen', title = document.title;
+            const read = () => { try { return +(localStorage.getItem(key) || 0); } catch { return 0; } };
+            const write = (id) => { try { localStorage.setItem(key, String(id)); } catch {} };
+            const beep = () => {
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    [0, 0.18].forEach((at) => {
+                        const osc = ctx.createOscillator(), gain = ctx.createGain();
+                        osc.frequency.value = 880;
+                        gain.gain.setValueAtTime(0.2, ctx.currentTime + at);
+                        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + at + 0.25);
+                        osc.connect(gain).connect(ctx.destination);
+                        osc.start(ctx.currentTime + at);
+                        osc.stop(ctx.currentTime + at + 0.25);
+                    });
+                } catch {}
+            };
+            const notify = async (m) => {
+                if (!('Notification' in window) || Notification.permission !== 'granted') return;
+                const options = { body: m.body, tag: 'eghub-inbox', renotify: true };
+                try {
+                    const n = new Notification(m.name, options);
+                    n.onclick = () => { window.focus(); location.href = m.url; };
+                } catch {
+                    // phones allow notifications only through a service worker
+                    (await navigator.serviceWorker?.getRegistration())?.showNotification(m.name, options);
+                }
+            };
+            const badge = (count) => {
+                const link = document.querySelector('[data-nav="admin.inbox"]');
+                if (!link) return;
+                let pill = link.querySelector('[data-inbox-badge]') || link.querySelector('.ms-auto');
+                if (!pill && count > 0) {
+                    pill = document.createElement('span');
+                    pill.className = 'ms-auto rounded-full bg-brand-600 px-2 text-xs leading-5 text-white';
+                    link.append(pill);
+                }
+                if (pill) { pill.dataset.inboxBadge = ''; pill.textContent = count; pill.hidden = count === 0; }
+            };
+            const tick = async () => {
+                try {
+                    const res = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    document.title = (data.unread ? '(' + data.unread + ') ' : '') + title;
+                    badge(data.unread);
+                    const id = data.latest?.id || 0, seen = read();
+                    if (seen && id > seen) { beep(); notify(data.latest); }
+                    if (id > seen) write(id);
+                } catch {}
+            };
+            tick();
+            setInterval(tick, 15000);
+            const on = document.querySelector('[data-inbox-notify-on]');
+            if (on && 'Notification' in window && Notification.permission === 'default') {
+                on.classList.remove('hidden');
+                on.addEventListener('click', async () => { await Notification.requestPermission(); on.classList.add('hidden'); beep(); });
+            }
         }
     })();
 </script>

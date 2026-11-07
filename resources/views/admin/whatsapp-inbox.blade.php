@@ -4,7 +4,11 @@
 @section('content')
 @php($canAdministerInbox = auth('admin')->user()->allows('inbox.admin'))
 <div class="mb-4">
-    <h1 class="page-title">{{ __('Conversations') }}</h1>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+        <h1 class="page-title">{{ __('Conversations') }}</h1>
+        {{-- the notification of a new message (layouts/admin polls inbox.pulse); the browser asks once --}}
+        <button type="button" class="btn-ghost hidden min-h-10 px-3" data-inbox-notify-on>🔔 {{ __('Turn on notifications') }}</button>
+    </div>
     <p class="muted">{{ __('What people write to the EgHub number and page, and your answers. Sign-in codes do not show here.') }}</p>
     <p class="muted mt-1 text-sm" data-inbox-channels>{{ __('Messenger') }}: {{ $messengerConnected ? __('Connected') : __('Not connected yet') }} · {{ __('Instagram') }}: {{ $instagramConnected ? __('Connected') : __('Not connected yet') }}</p>
 </div>
@@ -156,7 +160,13 @@
                     <span class="text-xs text-navy-500">{{ __('You can answer until :time.', ['time' => local_time($conversation->last_inbound_at->copy()->addHours(\App\Models\PlatformConversation::WINDOW_HOURS), 'Y/m/d H:i')]) }}</span>
                 </form>
             @else
-                <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-800" data-inbox-window-closed>{{ $conversation->last_inbound_at === null ? __('They have not answered yet. You can write here as soon as they do.') : ($conversation->isWhatsApp() ? __('More than 24 hours passed since their last message. WhatsApp allows only an approved template now, so you can call them or wait until they write again.') : __('More than 24 hours passed since their last message, so you can answer when they write again.')) }}</p>
+                <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-800" data-inbox-window-closed>{{ $conversation->last_inbound_at === null ? __('They have not answered yet. You can write here as soon as they do.') : ($conversation->isWhatsApp() ? __('More than 24 hours passed since their last message, so WhatsApp takes only an approved message now. Send them the follow-up below: when they answer, you write freely again.') : __('More than 24 hours passed since their last message, so you can answer when they write again.')) }}</p>
+                @if ($conversation->isWhatsApp() && $conversation->last_inbound_at !== null)
+                    <form method="post" action="{{ route('admin.inbox.follow-up', $conversation) }}" data-inbox-follow-up>
+                        @csrf
+                        <button class="btn-primary min-h-10">{{ __('Send them a follow-up message') }}</button>
+                    </form>
+                @endif
             @endif
 
             <details class="rounded-xl border border-navy-100 p-3">

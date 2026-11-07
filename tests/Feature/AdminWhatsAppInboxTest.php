@@ -136,6 +136,46 @@ class AdminWhatsAppInboxTest extends TenantTestCase
         $this->assertSame(0, $conversation->messages()->count());
     }
 
+    public function test_after_24_hours_a_follow_up_template_reaches_them_once_a_day(): void
+    {
+        config(['whatsapp.business_account_id' => '555']);
+        Http::fake(['graph.facebook.com/*' => fn ($request) => $request->method() === 'GET'
+            ? Http::response(['data' => [['name' => 'egmenu_welcome', 'status' => 'APPROVED'], ['name' => 'eghub_restaurant_welcome', 'status' => 'APPROVED']]])
+            : Http::response(['messages' => [['id' => 'wamid.'.uniqid()]]])]);
+        $this->artisan('eghub:whatsapp-templates')->assertSuccessful();
+        $this->restaurant('cafe-a');
+        $owner = PlatformConversation::factory()->create(['last_inbound_at' => now()->subHours(25), 'name' => 'Amira', 'tenant_id' => 'cafe-a']);
+        $lead = PlatformConversation::factory()->create(['last_inbound_at' => now()->subHours(25), 'name' => 'Mona']);
+        $admin = $this->admin();
+
+        $this->actingAs($admin, 'admin')->get($this->adminUrl("/inbox/{$owner->id}"))->assertSee('data-inbox-follow-up', false);
+        $this->post($this->adminUrl("/inbox/{$owner->id}/follow-up"))->assertRedirect()->assertSessionHasNoErrors();
+        $this->post($this->adminUrl("/inbox/{$lead->id}/follow-up"))->assertRedirect()->assertSessionHasNoErrors();
+
+        Http::assertSent(fn ($request) => ($request['to'] ?? null) === $owner->phone && $request['template']['name'] === 'eghub_restaurant_welcome');
+        Http::assertSent(fn ($request) => ($request['to'] ?? null) === $lead->phone && $request['template']['name'] === 'egmenu_welcome');
+        $this->assertSame($admin->id, $owner->messages()->sole()->admin_id);
+
+        // not twice in a day, and never while free text is allowed
+        $this->post($this->adminUrl("/inbox/{$owner->id}/follow-up"))->assertSessionHasErrors('body');
+        $open = PlatformConversation::factory()->create();
+        $this->post($this->adminUrl("/inbox/{$open->id}/follow-up"))->assertRedirect();
+        $this->assertSame([1, 1, 0], [$owner->messages()->count(), $lead->messages()->count(), $open->messages()->count()]);
+    }
+
+    public function test_the_pulse_tells_the_admin_pages_of_a_new_message_only_with_inbox_manage(): void
+    {
+        $this->webhook($this->text('عايز اعرف الاسعار'))->assertOk();
+        $conversation = PlatformConversation::query()->sole();
+
+        $this->actingAs($this->admin(), 'admin')->getJson($this->adminUrl('/inbox/pulse'))->assertOk()
+            ->assertJsonPath('unread', 1)->assertJsonPath('latest.name', 'Mona Cafe')->assertJsonPath('latest.body', 'عايز اعرف الاسعار')
+            ->assertJsonPath('latest.id', $conversation->messages()->sole()->id);
+        $this->get($this->adminUrl('/'))->assertSee('data-inbox-pulse=', false);
+
+        $this->actingAs($this->admin('finance'), 'admin')->getJson($this->adminUrl('/inbox/pulse'))->assertForbidden();
+    }
+
     public function test_when_meta_refuses_the_team_sees_why_and_the_text_stays(): void
     {
         Http::fake(['*' => Http::response(['error' => ['message' => 'session expired', 'code' => 190]], 401)]);

@@ -107,7 +107,9 @@ Route::middleware(['auth:admin', 'admin.access'])->group(function () {
         Route::post('/inbox/start', [WhatsAppInboxController::class, 'start'])->middleware('throttle:30,1')->name('inbox.start');
         Route::post('/tenants/{tenant}/conversation', [WhatsAppInboxController::class, 'startForRestaurant'])->middleware('throttle:30,1')->name('tenants.conversation');
         Route::get('/inbox/{conversation}', [WhatsAppInboxController::class, 'show'])->whereNumber('conversation')->name('inbox.show');
+        Route::get('/inbox/pulse', [WhatsAppInboxController::class, 'pulse'])->middleware('throttle:30,1')->name('inbox.pulse');
         Route::post('/inbox/{conversation}/reply', [WhatsAppInboxController::class, 'reply'])->whereNumber('conversation')->middleware('throttle:60,1')->name('inbox.reply');
+        Route::post('/inbox/{conversation}/follow-up', [WhatsAppInboxController::class, 'followUp'])->whereNumber('conversation')->middleware('throttle:20,1')->name('inbox.follow-up');
         Route::post('/inbox/{conversation}/resume-bot', [WhatsAppInboxController::class, 'resumeBot'])->whereNumber('conversation')->name('inbox.resume-bot');
         Route::post('/inbox/{conversation}/note', [WhatsAppInboxController::class, 'note'])->whereNumber('conversation')->name('inbox.note');
         Route::post('/inbox/{conversation}/assign', [WhatsAppInboxController::class, 'assign'])->whereNumber('conversation')->name('inbox.assign');

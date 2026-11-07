@@ -7,6 +7,7 @@ use App\Models\PlatformAdmin;
 use App\Models\PlatformAuditLog;
 use App\Models\PlatformCannedReply;
 use App\Models\PlatformConversation;
+use App\Models\PlatformConversationMessage;
 use App\Models\PlatformSetting;
 use App\Models\Prospect;
 use App\Models\Tenant;
@@ -17,6 +18,7 @@ use App\Services\WhatsApp\Drivers\MetaPageDriver;
 use App\Services\WhatsApp\PlatformAutoReply;
 use App\Services\WhatsApp\PlatformInbox;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -103,6 +105,54 @@ class WhatsAppInboxController extends Controller
         }
 
         return redirect()->route('admin.inbox.show', $row->platform_conversation_id);
+    }
+
+    /**
+     * «ابعتله رسالة متابعة»: WhatsApp takes no free text 24 hours after the person's last message, so the team reaches
+     * them again with an approved template: the restaurant welcome for an owner of a place on EgHub, else the general
+     * welcome. Their answer opens the 24 hours again. Not twice in a day.
+     */
+    public function followUp(Request $request, PlatformConversation $conversation, PlatformInbox $inbox): RedirectResponse
+    {
+        if (! $conversation->isWhatsApp() || $conversation->canReply()) {
+            return back();
+        }
+        if ($conversation->messages()->where('direction', 'out')->where('status', '!=', 'failed')->where('created_at', '>', now()->subDay())->exists()) {
+            return back()->withErrors(['body' => __('A message went to them in the last 24 hours. Wait for their answer, or call them.')]);
+        }
+        $name = (string) ($conversation->name ?: __('there'));
+        $tenant = $conversation->tenant_id ? Tenant::query()->find($conversation->tenant_id) : null;
+        if ($tenant && PlatformInbox::restaurantWelcomeIsApproved()) {
+            $row = $inbox->welcomeRestaurant($conversation, $name, $tenant->name, $request->user('admin'));
+        } elseif (! PlatformInbox::welcomeIsWaiting()) {
+            $row = $inbox->start($conversation->phone, $name, $request->user('admin'));
+        } else {
+            return back()->withErrors(['body' => __('Meta has not approved the welcome template yet, so a new conversation cannot start. It can answer whoever writes to us.')]);
+        }
+        if ($row->status === 'failed') {
+            return back()->withErrors(['body' => __(':channel did not send it: :error', ['channel' => __('WhatsApp'), 'error' => $row->errorText()])]);
+        }
+
+        return back()->with('ok', __('Sent. When they answer, you can write to them freely for 24 hours.'));
+    }
+
+    /**
+     * What the admin pages poll for the notification of a new message: how many conversations wait unread, and the
+     * newest message someone wrote (never its text beyond a short preview).
+     */
+    public function pulse(): JsonResponse
+    {
+        $latest = PlatformConversationMessage::query()->where('direction', 'in')->with('conversation')->latest('id')->first();
+
+        return response()->json([
+            'unread' => PlatformConversation::query()->where('status', 'open')->where('unread', '>', 0)->count(),
+            'latest' => $latest?->conversation ? [
+                'id' => $latest->id,
+                'name' => $latest->conversation->displayName(),
+                'body' => mb_substr((string) $latest->body, 0, 80),
+                'url' => route('admin.inbox.show', $latest->conversation),
+            ] : null,
+        ]);
     }
 
     /** From a restaurant's page: the conversation with its owner opens, with the welcome when it is due. */
