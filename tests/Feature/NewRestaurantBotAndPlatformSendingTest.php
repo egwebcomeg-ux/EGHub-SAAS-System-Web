@@ -84,7 +84,7 @@ class NewRestaurantBotAndPlatformSendingTest extends TenantTestCase
         $this->artisan('eghub:whatsapp-templates')->assertSuccessful();
         $this->restaurantWelcomeStatus = 'PENDING';
         $this->artisan('eghub:whatsapp-templates')->assertSuccessful();
-        $submitted = Http::recorded(fn ($request) => $request->method() === 'POST' && str_ends_with($request->url(), '/message_templates'));
+        $submitted = Http::recorded(fn ($request) => $request->method() === 'POST' && str_ends_with($request->url(), '/message_templates') && $request['name'] === 'eghub_restaurant_welcome');
         $this->assertCount(1, $submitted);
         $this->assertSame('UTILITY', $submitted->first()[0]['category']);
 

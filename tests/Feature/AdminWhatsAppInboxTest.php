@@ -7,6 +7,7 @@ use App\Models\PlatformCannedReply;
 use App\Models\PlatformConversation;
 use App\Models\PlatformConversationMessage;
 use App\Models\WhatsAppConnection;
+use App\Services\WhatsApp\PlatformInbox;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
 use Tests\TenantTestCase;
@@ -161,6 +162,38 @@ class AdminWhatsAppInboxTest extends TenantTestCase
         $open = PlatformConversation::factory()->create();
         $this->post($this->adminUrl("/inbox/{$open->id}/follow-up"))->assertRedirect();
         $this->assertSame([1, 1, 0], [$owner->messages()->count(), $lead->messages()->count(), $open->messages()->count()]);
+    }
+
+    public function test_after_24_hours_the_team_writes_its_own_words_inside_the_follow_up_template_once_a_day(): void
+    {
+        config(['whatsapp.business_account_id' => '555']);
+        $approved = false;
+        Http::fake(['graph.facebook.com/*' => function ($request) use (&$approved) {
+            return $request->method() === 'GET'
+                ? Http::response(['data' => $approved ? [['name' => 'eghub_follow_up', 'status' => 'APPROVED']] : []])
+                : Http::response(['id' => '1', 'status' => 'PENDING', 'messages' => [['id' => 'wamid.'.uniqid()]]]);
+        }]);
+        // the hourly check submits the template to Meta; until it is approved the box stays closed
+        $this->artisan('eghub:whatsapp-templates')->assertSuccessful();
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/555/message_templates') && $request['name'] === 'eghub_follow_up'
+            && $request['category'] === 'UTILITY' && $request['components'][0]['text'] === PlatformInbox::FOLLOW_UP_TEMPLATE);
+        $conversation = PlatformConversation::factory()->create(['last_inbound_at' => now()->subHours(25), 'name' => 'Amira Sayed']);
+        $admin = $this->admin();
+        $this->actingAs($admin, 'admin')->get($this->adminUrl("/inbox/{$conversation->id}"))->assertDontSee('data-inbox-follow-up-text', false);
+        $this->post($this->adminUrl("/inbox/{$conversation->id}/reply"), ['body' => 'رد'])->assertSessionHasErrors('body');
+
+        $approved = true;
+        $this->artisan('eghub:whatsapp-templates')->assertSuccessful();
+        $this->get($this->adminUrl("/inbox/{$conversation->id}"))->assertSee('data-inbox-follow-up-text', false);
+        $this->post($this->adminUrl("/inbox/{$conversation->id}/reply"), ['body' => "المنيو جاهز\n\nناقص اللوجو بس"])->assertSessionHasNoErrors();
+
+        Http::assertSent(fn ($request) => ($request['to'] ?? null) === $conversation->phone && $request['template']['name'] === 'eghub_follow_up'
+            && $request['template']['components'][0]['parameters'] === [['type' => 'text', 'text' => 'Amira'], ['type' => 'text', 'text' => 'المنيو جاهز ناقص اللوجو بس']]);
+        $this->assertSame("أهلًا Amira، معاك فريق EgHub بنتابع معاك:\nالمنيو جاهز ناقص اللوجو بس\nلو حابب تكمّل، رد على الرسالة دي.", $conversation->messages()->sole()->body);
+
+        // once a day: a second one waits for their answer
+        $this->post($this->adminUrl("/inbox/{$conversation->id}/reply"), ['body' => 'تاني'])->assertSessionHasErrors('body');
+        $this->assertSame(1, $conversation->messages()->count());
     }
 
     public function test_the_pulse_tells_the_admin_pages_of_a_new_message_only_with_inbox_manage(): void

@@ -37,6 +37,12 @@ final class PlatformInbox
     /** The text of the Utility template restaurant_welcome (submitted by PlatformTemplates), as the team reads it. */
     public const RESTAURANT_WELCOME_TEMPLATE = 'أهلًا {{1}}، حساب {{2}} على EgHub اتعمل. تقدر تكمّل المنيو والإعدادات من لوحة التحكم، ولو محتاج مساعدة في أي خطوة رد على الرسالة دي.';
 
+    /** The text of the Utility template follow_up (submitted by PlatformTemplates): {{2}} is what the team wrote. */
+    public const FOLLOW_UP_TEMPLATE = "أهلًا {{1}}، معاك فريق EgHub بنتابع معاك:\n{{2}}\nلو حابب تكمّل، رد على الرسالة دي.";
+
+    /** The longest text the team may put in the follow-up (Meta caps the whole body at 1024 characters). */
+    public const FOLLOW_UP_MAX = 700;
+
     /** How long a person who commented on a post is not answered again on that post. */
     public const COMMENT_DAYS = 30;
 
@@ -248,6 +254,23 @@ final class PlatformInbox
     public static function restaurantWelcomeIsApproved(): bool
     {
         return PlatformTemplates::isApproved((string) config('whatsapp.templates.restaurant_welcome'));
+    }
+
+    /**
+     * The team's own words after the 24 hours closed, inside the approved follow-up template. Meta takes no line break,
+     * tab or long run of spaces in a template's parameter, so the text goes on one line.
+     */
+    public function followUp(PlatformConversation $conversation, ?PlatformAdmin $admin, string $text): PlatformConversationMessage
+    {
+        $name = (string) ($conversation->name ? Str::before($conversation->name, ' ') : __('there'));
+        $words = mb_substr(trim((string) preg_replace('/\s+/u', ' ', $text)), 0, self::FOLLOW_UP_MAX);
+
+        return $this->startWithTemplate($conversation->phone, $name, 'follow_up', [$name, $words], self::FOLLOW_UP_TEMPLATE, $admin);
+    }
+
+    public static function followUpIsApproved(): bool
+    {
+        return PlatformTemplates::isApproved((string) config('whatsapp.templates.follow_up'));
     }
 
     /** The welcome waits for Meta: the team cannot start a conversation until then. */

@@ -97,6 +97,11 @@ final class PlatformTemplates
                 ['type' => 'BODY', 'text' => PlatformInbox::RESTAURANT_WELCOME_TEMPLATE, 'example' => ['body_text' => [['سارة', 'كافيه النخيل']]]],
                 ['type' => 'BUTTONS', 'buttons' => [['type' => 'URL', 'text' => 'لوحة التحكم', 'url' => platform_url('app', '/')]]],
             ],
+        ], [
+            'name' => (string) config('whatsapp.templates.follow_up'), 'language' => (string) config('whatsapp.languages.ar', 'ar'), 'category' => 'UTILITY',
+            'components' => [
+                ['type' => 'BODY', 'text' => PlatformInbox::FOLLOW_UP_TEMPLATE, 'example' => ['body_text' => [['سارة', 'المنيو بتاعك جاهز على اللينك، ناقص بس صورة اللوجو عشان نحطها فوق.']]]],
+            ],
         ]];
     }
 }

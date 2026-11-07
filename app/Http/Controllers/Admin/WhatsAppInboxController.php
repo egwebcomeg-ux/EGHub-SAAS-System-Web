@@ -46,11 +46,27 @@ class WhatsAppInboxController extends Controller
         return $this->page($request, $conversation);
     }
 
+    /**
+     * The team's answer. After the 24 hours closed, a WhatsApp answer goes inside the approved follow-up template
+     * (once a day, so a person who does not answer is not flooded); other channels wait for the person.
+     */
     public function reply(Request $request, PlatformConversation $conversation, PlatformInbox $inbox): RedirectResponse
     {
         $data = $request->validate(['body' => 'required|string|max:4096']);
         if (! $conversation->canReply()) {
-            return back()->withInput()->withErrors(['body' => __('More than 24 hours passed since their last message, so an answer cannot be sent now.')]);
+            if (! $conversation->isWhatsApp() || ! PlatformInbox::followUpIsApproved()) {
+                return back()->withInput()->withErrors(['body' => __('More than 24 hours passed since their last message, so an answer cannot be sent now.')]);
+            }
+            if ($conversation->messages()->where('direction', 'out')->where('status', '!=', 'failed')->where('created_at', '>', now()->subDay())->exists()) {
+                return back()->withInput()->withErrors(['body' => __('A message went to them in the last 24 hours. Wait for their answer, or call them.')]);
+            }
+            $request->validate(['body' => 'max:'.PlatformInbox::FOLLOW_UP_MAX]);
+            $row = $inbox->followUp($conversation, $request->user('admin'), $data['body']);
+            if ($row->status === 'failed') {
+                return back()->withInput()->withErrors(['body' => __(':channel did not send it: :error', ['channel' => __('WhatsApp'), 'error' => $row->errorText()])]);
+            }
+
+            return back()->with('ok', __('Sent. When they answer, you can write to them freely for 24 hours.'));
         }
         $row = $inbox->reply($conversation, $request->user('admin'), $data['body']);
         if ($row->status === 'failed') {

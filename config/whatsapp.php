@@ -92,6 +92,9 @@ return [
         // the welcome of a restaurant that signed up (category Utility: Meta caps Marketing per person, error 131049), the
         // exact text is App\Services\WhatsApp\PlatformInbox::RESTAURANT_WELCOME_TEMPLATE: {{1}} the owner, {{2}} the restaurant
         'restaurant_welcome' => env('WHATSAPP_TPL_RESTAURANT_WELCOME', 'eghub_restaurant_welcome'),
+        // the team's own words 24 hours after the person's last message (category Utility), the exact text is
+        // App\Services\WhatsApp\PlatformInbox::FOLLOW_UP_TEMPLATE: {{1}} the person, {{2}} what the team wrote
+        'follow_up' => env('WHATSAPP_TPL_FOLLOW_UP', 'eghub_follow_up'),
         // the trial menu offer a sales person sends a place that agreed on the phone (category Marketing), the exact
         // text is App\Services\Crm\WhatsAppOffer::TEMPLATE_TEXT: {{1}} the sales person, {{2}} the place, {{3}} the trial days
         'sales_offer' => env('WHATSAPP_TPL_SALES_OFFER', 'eghub_trial_menu_offer'),

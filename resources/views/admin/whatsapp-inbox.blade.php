@@ -144,7 +144,18 @@
 
             @error('body')<p class="rounded-lg bg-red-50 p-3 text-sm font-semibold text-red-700" role="alert">{{ $message }}</p>@enderror
 
-            @if ($conversation->canReply())
+            @php($followUpBox = ! $conversation->canReply() && $conversation->isWhatsApp() && \App\Services\WhatsApp\PlatformInbox::followUpIsApproved())
+            @if ($followUpBox)
+                {{-- after the 24 hours, the team still writes: its words go inside the approved follow-up template --}}
+                <form method="post" action="{{ route('admin.inbox.reply', $conversation) }}" class="space-y-2" data-inbox-follow-up-text>
+                    @csrf
+                    <p class="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{{ __('More than 24 hours passed since their last message, so what you write goes inside the approved follow-up message, once a day: «Hello :name, the EgHub team following up with you: … If you would like to go on, answer this message.» When they answer, you write freely again.', ['name' => $conversation->name ? \Illuminate\Support\Str::before($conversation->name, ' ') : __('there')]) }}</p>
+                    <label class="sr-only" for="inbox-body">{{ __('Your answer') }}</label>
+                    <textarea id="inbox-body" name="body" rows="3" maxlength="{{ \App\Services\WhatsApp\PlatformInbox::FOLLOW_UP_MAX }}" required dir="auto" class="field" placeholder="{{ __('Your answer') }}">{{ old('body') }}</textarea>
+                    <button class="btn-primary">{{ __('Send as a follow-up') }}</button>
+                    <span class="text-xs text-navy-500">{{ __('Line breaks become spaces; WhatsApp takes it on one line.') }}</span>
+                </form>
+            @elseif ($conversation->canReply())
                 <form method="post" action="{{ route('admin.inbox.reply', $conversation) }}" class="space-y-2" data-inbox-reply>
                     @csrf
                     @if ($canned->isNotEmpty())
