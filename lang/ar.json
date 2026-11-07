@@ -7829,5 +7829,10 @@
     "Block this restaurant? Its menu and dashboard close and its owner's email and mobile can't open a new account. Reason (optional):": "تحظر المطعم ده؟ المنيو ولوحة التحكم هيتقفلوا، وإيميل صاحبه ورقمه مش هيقدروا يفتحوا حساب جديد. السبب (اختياري):",
     "Restaurant blocked": "حظر مطعم",
     "Restaurant block lifted": "فك حظر مطعم",
-    "Blocked email or mobile removed": "شيل إيميل أو رقم من المحظورين"
+    "Blocked email or mobile removed": "شيل إيميل أو رقم من المحظورين",
+    "The story": "الحكاية",
+    "A full-screen welcome, your story and prices with dots, like a printed menu": "ترحيب بملء الشاشة، وحكاية مكانك، وأسعار بنقط زي المنيو المطبوع",
+    "See the menu": "شوف المنيو",
+    "Visit us": "زورنا",
+    "Our story": "حكايتنا"
 }

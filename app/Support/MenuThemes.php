@@ -22,6 +22,8 @@ final class MenuThemes
         'bistro' => ['bistro', ['restaurant']],
         'fastfood' => ['grid', ['restaurant', 'both', 'shop']],
         'oriental' => ['classic', ['restaurant', 'both']],
+        // «الحكاية»: a full-screen welcome, the place's story, a printed-menu list and «زورنا»; made for menus shown, not ordered from
+        'story' => ['minimal', ['restaurant', 'cafe', 'both', 'pastry']],
     ];
 
     /** @return list<string> */
@@ -46,6 +48,7 @@ final class MenuThemes
             'bistro' => [__('Bistro'), __('Charcoal and gold, elegant and calm')],
             'fastfood' => [__('Fast food'), __('Bold colors and big photos')],
             'oriental' => [__('Oriental grill'), __('Cream with an oriental pattern')],
+            'story' => [__('The story'), __('A full-screen welcome, your story and prices with dots, like a printed menu')],
             default => [__('Classic'), __('Text with a photo on the side')],
         };
     }
@@ -71,6 +74,7 @@ final class MenuThemes
         'bistro' => ['dark' => true, 'bg' => '#141414', 'surface' => '#1E1E1E', 'surface2' => '#282828', 'text' => '#ECE6DA', 'muted' => '#A59C8C', 'border' => '#3A3428', 'accent' => '#C9A45C', 'accentText' => '#141414'],
         'fastfood' => ['dark' => false, 'bg' => '#FFF8E7', 'surface' => '#FFFFFF', 'surface2' => '#FFF1CC', 'text' => '#1F1300', 'muted' => '#6B5A3A', 'border' => '#F3DFAE', 'accent' => '#F26522', 'accentText' => '#FFFFFF'],
         'oriental' => ['dark' => false, 'bg' => '#F8F1E3', 'surface' => '#FFFDF8', 'surface2' => '#F5EAD6', 'text' => '#3A2316', 'muted' => '#6E5643', 'border' => '#E3CFA8', 'accent' => '#F26522', 'accentText' => '#FFFFFF'],
+        'story' => ['dark' => false, 'bg' => '#F7EEDC', 'surface' => '#FFF8EC', 'surface2' => '#F0E0C2', 'text' => '#2A1A10', 'muted' => '#6B4F3A', 'border' => '#E3CBA1', 'accent' => '#B5452B', 'accentText' => '#FFFFFF'],
     ];
 
     /** The template the current restaurant's guest pages use (themes need the plan feature menu_themes). */

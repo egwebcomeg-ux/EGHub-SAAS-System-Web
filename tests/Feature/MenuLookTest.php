@@ -116,6 +116,34 @@ class MenuLookTest extends TenantTestCase
         $this->actingAs($this->owner($a))->get($this->dashUrl('/settings'))->assertOk()->assertSee('name="logo_background"', false);
     }
 
+    public function test_the_story_theme_opens_on_a_full_screen_welcome_with_the_story_and_ends_with_visit_us(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $this->item($a);
+        $this->as($a, function () {
+            Settings::put(['menu_theme' => 'story', 'logo' => 'tenants/cafe-a/brand/logo.webp', 'cover' => 'tenants/cafe-a/brand/cover.webp',
+                'tagline' => 'أكل بيتي من زمان', 'short_description' => 'بدأنا من مطبخ صغير في طنطا سنة 1998.']);
+            Branch::query()->first()->update(['address' => 'شارع البحر، طنطا', 'working_hours' => '10:00-23:00']);
+        });
+
+        $html = $this->get($this->subUrl('cafe-a'))->assertOk()
+            ->assertSee('data-story-hero', false)->assertSee("--story-cover: url('/storage/tenants/cafe-a/brand/cover.webp')", false)
+            ->assertSee('أكل بيتي من زمان')->assertSee('حكايتنا')->assertSee('بدأنا من مطبخ صغير في طنطا سنة 1998.')
+            ->assertSee('href="#menu-start"', false)->assertSee('id="menu-start"', false)
+            ->assertSee('data-story-visit', false)->assertSee('شارع البحر، طنطا')->assertSee('https://www.google.com/maps/search/', false)
+            ->getContent();
+        // the logo and cover live in the welcome only, never twice
+        $this->assertSame(1, substr_count($html, 'data-logo '));
+        $this->assertStringNotContainsString('data-season-banner', $html);
+
+        // without an address, hours, phone or map there is no «زورنا»
+        $this->as($a, fn () => Branch::query()->first()->update(['address' => '', 'working_hours' => '', 'phone' => '']));
+        $this->get($this->subUrl('cafe-a'))->assertOk()->assertDontSee('data-story-visit', false)->assertDontSee('href="#visit"', false);
+
+        $this->as($a, fn () => Settings::put(['menu_theme' => 'classic']));
+        $this->get($this->subUrl('cafe-a'))->assertOk()->assertDontSee('data-story-hero', false)->assertDontSee('data-story-text', false);
+    }
+
     public function test_the_order_type_chip_and_the_delivery_area_step(): void
     {
         $a = $this->restaurant('cafe-a');

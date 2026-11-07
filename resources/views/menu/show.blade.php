@@ -22,6 +22,8 @@
     $waysMenu = ! $table && count($sheetWays) > 1;
     $wayChips = ['dine' => '🍽 ' . __('In the place'), 'takeaway' => '🛍 ' . __('Takeaway'), 'delivery' => '🛵 ' . __('Delivery')];
     $logoClass = $logoTile ? 'rounded-2xl bg-white p-1 shadow-lg' : 'drop-shadow-[0_2px_6px_rgba(0,0,0,.35)]';
+    // «الحكاية»: the logo, name and cover move from the header to a full-screen welcome under it
+    $story = $theme === 'story';
 @endphp
 
 @push('head')
@@ -206,7 +208,7 @@
     @if ($season && $season->decoration)
         <div class="m-season-deco" data-season-deco="{{ $season->pattern() }}" aria-hidden="true"></div>
     @endif
-    @if ($settings['cover'])
+    @if ($settings['cover'] && ! $story)
         <img src="/storage/{{ $settings['cover'] }}" alt="" class="relative h-40 w-full object-cover opacity-90 sm:h-56" @if ($season?->banner) data-season-banner @endif>
     @endif
     @if (($settings['menu_header_brand'] ?? '0') === '1')
@@ -219,7 +221,7 @@
         @endif
     @endif
     <div class="relative mx-auto flex max-w-2xl items-center gap-3 px-4 py-4">
-        @if ($settings['logo'])
+        @if ($settings['logo'] && ! $story)
             <img src="/storage/{{ $settings['logo'] }}" alt="{{ $brand }}" class="h-14 max-h-16 w-auto min-w-14 max-w-36 shrink-0 object-contain sm:h-16 {{ $logoClass }} {{ $settings['cover'] ? '-mt-10' : '' }}" data-logo data-logo-tile="{{ $logoTile ? 'white' : 'none' }}">
         @endif
         @php
@@ -227,8 +229,8 @@
         @endphp
         <div class="min-w-0 flex-1">
             {{-- the name and tagline next to the logo (setting header_show_name); hidden, the name stays for screen readers --}}
-            <h1 @class(['truncate text-xl font-black', 'sr-only' => ! $showName]) data-header-name="{{ $showName ? 'shown' : 'hidden' }}">{{ $brand }}</h1>
-            @if ($showName && ($t = tr($settings['tagline'], $settings['tagline_en'])))<p class="truncate text-sm text-white/75" data-header-tagline>{{ $t }}</p>@endif
+            <h1 @class(['truncate text-xl font-black', 'sr-only' => ! $showName || $story]) data-header-name="{{ $showName && ! $story ? 'shown' : 'hidden' }}">{{ $brand }}</h1>
+            @if ($showName && ! $story && ($t = tr($settings['tagline'], $settings['tagline_en'])))<p class="truncate text-sm text-white/75" data-header-tagline>{{ $t }}</p>@endif
         </div>
         @if ($accountEntry ?? false)
             {{-- "حسابي": the remembered guest's page, or the sheet with the ways in --}}
@@ -271,6 +273,34 @@
         </div>
     @endif
 </header>
+@if ($story)
+    @php
+        $storyTagline = tr($settings['tagline'], $settings['tagline_en']);
+        $storyText = trim(tr($settings['short_description'] ?? '', $settings['short_description_en'] ?? ''));
+        $storyMap = $profile->mapUrl($branch) ?: ($branch->address ? 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode(trim($branch->address . ' ' . $profile->place())) : null);
+        $storyVisit = $branch->address || $branch->working_hours || $branch->phone || $storyMap;
+    @endphp
+    {{-- «الحكاية»: the full-screen welcome (the cover under a dark veil, else the brand color) and the place's story --}}
+    <section class="m-story-hero" @if ($settings['cover']) data-story-cover style="--story-cover: url('/storage/{{ $settings['cover'] }}')" @endif data-story-hero>
+        <div>
+            @if ($settings['logo'])
+                <img src="/storage/{{ $settings['logo'] }}" alt="" class="m-story-logo {{ $logoClass }}" data-logo data-logo-tile="{{ $logoTile ? 'white' : 'none' }}">
+            @endif
+            <p class="m-story-name" aria-hidden="true">{{ $brand }}</p>
+            @if ($storyTagline)<p class="m-story-tagline">{{ $storyTagline }}</p>@endif
+            <div class="m-story-actions">
+                <a href="#menu-start" class="m-story-btn m-primary" data-story-menu>{{ __('See the menu') }}</a>
+                @if ($storyVisit)<a href="#visit" class="m-story-btn m-story-btn-ghost" data-story-visit-link>{{ __('Visit us') }}</a>@endif
+            </div>
+        </div>
+    </section>
+    @if ($storyText)
+        <section class="m-story-band" data-story-text>
+            <h2>{{ __('Our story') }}</h2>
+            <p>{{ $storyText }}</p>
+        </section>
+    @endif
+@endif
 @if ($ticker)
     {{-- one short line at a time: offers, cart goal, the owner's lines, the season greeting (App\Support\MenuTicker) --}}
     <div class="m-ticker-bar" role="region" aria-label="{{ __('News of the place') }}" data-ticker data-ticker-mode="{{ $tickerMoves ? 'rotate' : 'static' }}" data-ticker-seconds="{{ \App\Support\MenuTicker::SECONDS }}">
@@ -454,7 +484,7 @@
 
 {{-- running offers show in the ticker under the header; m-quick-off hides the quick "+" while the cart cannot order --}}
 {{-- the floating 🛎 of a scanned table: room under the list so it never sits on the last card's "+" --}}
-<main @class(['mx-auto max-w-2xl px-4 pt-5', 'pb-32' => ! $calls, 'pb-52' => $calls, 'm-quick-off' => ! $quickOn]) data-menu-main>
+<main id="menu-start" @class(['mx-auto max-w-2xl px-4 pt-5', 'pb-32' => ! $calls, 'pb-52' => $calls, 'm-quick-off' => ! $quickOn]) data-menu-main>
     @if ($welcomeReward && ! $accountUrl)
         {{-- «سجّل وخد …»: the place's gift on the first online order, for phones that do not know the guest (App\Services\Marketing\WelcomeReward) --}}
         <button type="button" class="m-surface m-border mb-4 flex w-full items-center gap-3 rounded-2xl border p-3 text-start shadow-sm" data-welcome-banner data-account-open>
@@ -541,6 +571,9 @@
 
     @forelse ($categories as $c)
         <section id="cat-{{ $c->id }}" class="mb-8 scroll-mt-36" data-category>
+            @if ($story && $c->image)
+                <img src="/storage/{{ $c->image }}" alt="" loading="lazy" decoding="async" class="m-story-cat-img" data-story-cat-image>
+            @endif
             <h2 class="mb-1 text-xl font-extrabold" style="color: var(--menu-secondary)">{{ tx($c, 'name') }}@include('menu.items.alt-name', ['altOf' => $c])</h2>
             @if ($d = tx($c, 'description'))<p class="mb-3 text-sm m-muted">{{ $d }}</p>@endif
             @php
@@ -589,9 +622,24 @@
         @include('partials.rate-us')
     @endif
 
+    @if ($story && $storyVisit)
+        {{-- «زورنا»: where the place is, its hours, its phone and the map --}}
+        <section id="visit" class="m-story-visit scroll-mt-6" data-story-visit>
+            <h2>{{ __('Visit us') }}</h2>
+            <dl>
+                @if ($branch->address)<div><dt>{{ __('Address') }}</dt><dd class="font-semibold">{{ $branch->address }}</dd></div>@endif
+                @if ($branch->working_hours)<div><dt>{{ __('Opening hours') }}</dt><dd class="font-semibold" dir="auto">{{ $branch->working_hours }}</dd></div>@endif
+                @if ($branch->phone)<div><dt>{{ __('Phone') }}</dt><dd><a href="tel:{{ $branch->phone }}" dir="ltr" class="font-bold">{{ $branch->phone }}</a></dd></div>@endif
+            </dl>
+            @if ($storyMap)
+                <a href="{{ $storyMap }}" target="_blank" rel="noopener" class="m-story-btn m-primary mt-5" data-story-map>📍 {{ __('Location on the map') }}</a>
+            @endif
+        </section>
+    @endif
+
     <footer class="mt-10 space-y-3 text-center text-sm m-muted">
         @include('menu.partials.social-links', ['style' => 'footer'])
-        @if ($branch->address)<div>{{ $branch->address }}@if ($branch->working_hours) · {{ $branch->working_hours }}@endif</div>@endif
+        @if ($branch->address && ! ($story && $storyVisit))<div>{{ $branch->address }}@if ($branch->working_hours) · {{ $branch->working_hours }}@endif</div>@endif
         @if (\App\Services\KnowledgeBase::hasPublic())
             {{-- the knowledge base's public answers live on the about page: a quiet link down here, never a banner on top --}}
             <div><a href="{{ route('menu.about') }}#faq" class="font-semibold underline underline-offset-2" data-faq-link>{{ __('Frequently asked questions') }}</a></div>
