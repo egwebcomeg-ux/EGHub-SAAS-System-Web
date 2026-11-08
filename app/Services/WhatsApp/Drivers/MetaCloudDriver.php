@@ -3,6 +3,7 @@
 namespace App\Services\WhatsApp\Drivers;
 
 use App\Services\WhatsApp\InteractiveGateway;
+use App\Services\WhatsApp\Templates;
 use App\Services\WhatsApp\WhatsAppException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -32,7 +33,7 @@ final class MetaCloudDriver implements InteractiveGateway
     {
         $components = $params === [] ? [] : [[
             'type' => 'body',
-            'parameters' => array_map(fn ($v) => ['type' => 'text', 'text' => (string) $v], array_values($params)),
+            'parameters' => array_map(fn ($v) => ['type' => 'text', 'text' => Templates::metaValue((string) $v)], array_values($params)),
         ]];
         foreach (array_values($buttons) as $index => $button) {
             $components[] = [

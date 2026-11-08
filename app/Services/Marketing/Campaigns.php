@@ -107,7 +107,8 @@ final class Campaigns
                 $message = WhatsAppMessage::query()->find($message->id);
                 $message->forceFill(['status' => 'queued', 'error' => null])->save();
             } else {
-                $message = $this->whatsapp->record($customer->phone, 'campaign', ['text' => $this->render($campaign, $customer)], $customer->id, $campaign->id);
+                $message = $this->whatsapp->record($customer->phone, 'campaign', ['restaurant' => GuestNotifier::senderName(), 'text' => $this->render($campaign, $customer)],
+                    $customer->id, $campaign->id, payloads: OptOut::payloads($customer));
             }
             if ($message) {
                 $message = $this->whatsapp->deliver($message);

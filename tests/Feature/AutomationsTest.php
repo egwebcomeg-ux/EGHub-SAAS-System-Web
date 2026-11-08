@@ -104,7 +104,7 @@ class AutomationsTest extends TenantTestCase
         Artisan::call('eghub:automations');
         $messages = $this->messages($a, 'welcome');
         $this->assertCount(1, $messages);
-        $this->assertStringStartsWith('أهلاً Mona', $messages[0]->body);
+        $this->assertStringContainsString("\nأهلاً Mona", $messages[0]->body);
     }
 
     public function test_winback_reaches_guests_away_for_n_days_and_waits_90_days_before_repeating(): void

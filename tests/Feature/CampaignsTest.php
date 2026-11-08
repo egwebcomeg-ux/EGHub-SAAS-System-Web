@@ -98,7 +98,7 @@ class CampaignsTest extends TenantTestCase
         $optedOut = $this->as($a, fn () => Customer::query()->where('whatsapp_opt_out', true)->pluck('id'));
         $this->assertFalse($messages->pluck('customer_id')->intersect($optedOut)->isNotEmpty());
         $this->assertStringContainsString('/cafe-a?coupon=BACK20', $messages[0]->body);
-        $this->assertStringStartsWith('Hi Guest 001!', $messages[0]->body);
+        $this->assertStringContainsString("\nHi Guest 001!", $messages[0]->body);
 
         // a batch run again (the worker was killed half-way): the guests already written are passed over, none is charged twice
         $this->as($a, function () use ($campaign) {
@@ -195,7 +195,7 @@ class CampaignsTest extends TenantTestCase
             ->assertSeeInOrder(['data-campaign-via="whatsapp"', 'By EgHub', 'واتساب EgHub', 'data-campaign-via="manual"', 'By phone', 'من موبايلي'], false)
             ->assertSee($this->dashUrl('/customers/outreach/'.$manual->id), false);
         // the suggested messages write {code}: EgHub WhatsApp fills it in too
-        $this->assertStringStartsWith('Hi Guest 001 HI10', $this->as($a, fn () => WhatsAppMessage::query()->sole()->body));
+        $this->assertStringContainsString("\nHi Guest 001 HI10\n", $this->as($a, fn () => WhatsAppMessage::query()->sole()->body));
         $this->assertSame(['audience' => 1, 'opted_out' => 0, 'recipients' => 1, 'cost' => 0, 'balance' => 4],
             $this->actingAs($owner)->getJson($this->dashUrl('/campaigns/preview?segment=imported&channel=manual'))->assertOk()->json());
     }

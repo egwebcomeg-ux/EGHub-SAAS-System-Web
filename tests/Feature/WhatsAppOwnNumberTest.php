@@ -162,7 +162,7 @@ class WhatsAppOwnNumberTest extends TenantTestCase
             && $r->hasHeader('Authorization', 'Bearer '.self::TOKEN));
         Http::assertSent(fn ($r) => $r->method() === 'POST' && str_ends_with($r->url(), '/111222333/subscribed_apps'));
         $created = Http::recorded(fn ($r) => $r->method() === 'POST' && str_ends_with($r->url(), '/111222333/message_templates'));
-        $this->assertCount(16, $created); // 8 template names × ar, en (the sign-in code is an Authentication template)
+        $this->assertCount(20, $created); // 10 template names × ar, en (the sign-in code is an Authentication template)
         $code = $created->first(fn ($pair) => $pair[0]['name'] === 'egmenu_sign_in_code' && $pair[0]['language'] === 'ar')[0];
         $this->assertSame('AUTHENTICATION', $code['category']);
         $this->assertSame('COPY_CODE', $code['components'][2]['buttons'][0]['otp_type']);
@@ -171,10 +171,11 @@ class WhatsAppOwnNumberTest extends TenantTestCase
         $this->assertStringContainsString('أهلاً {{1}} 🙏 طلبك رقم {{2}} من {{3}}', $confirm['components'][0]['text']);
         $this->assertCount(6, $confirm['components'][0]['example']['body_text'][0]);
         $this->assertSame(['تأكيد الطلب', 'تعديل الطلب', 'إلغاء الطلب'], array_column($confirm['components'][1]['buttons'], 'text'));
-        $campaign = $created->first(fn ($pair) => $pair[0]['name'] === 'egmenu_campaign' && $pair[0]['language'] === 'ar')[0];
+        $campaign = $created->first(fn ($pair) => $pair[0]['name'] === 'eghub_campaign' && $pair[0]['language'] === 'ar')[0];
         $this->assertSame('MARKETING', $campaign['category']);
-        // Meta refuses a body that starts or ends with a variable
-        $this->assertSame("أهلاً 👋\n{{1}}\nشكراً ليك 🙏", $campaign['components'][0]['text']);
+        // Meta does not approve a body that is one variable: the restaurant's words sit between fixed lines, with a stop button
+        $this->assertSame("رسالة من {{1}} 💬\n{{2}}\nلو مش عايز توصلك عروض تانية دوس «إيقاف العروض».", $campaign['components'][0]['text']);
+        $this->assertSame(['إيقاف العروض'], array_column($campaign['components'][1]['buttons'], 'text'));
         $this->assertSame('pending', $c->templateStatus('egmenu_order_confirm', 'ar'));
 
         // the page shows the number, its own webhook URL and the masked token, never the token or the secret
@@ -198,7 +199,7 @@ class WhatsAppOwnNumberTest extends TenantTestCase
         $a = $this->restaurant('cafe-a');
         $this->metaTemplates = ['eghub_order_ready' => ['ar' => 'APPROVED', 'en' => 'REJECTED'], 'someone_elses' => ['ar' => 'APPROVED']];
         $this->actingAs($this->owner($a))->post($this->dashUrl('/settings/whatsapp-number'), $this->form());
-        $this->assertCount(14, Http::recorded(fn ($r) => $r->method() === 'POST' && str_ends_with($r->url(), '/message_templates')));
+        $this->assertCount(18, Http::recorded(fn ($r) => $r->method() === 'POST' && str_ends_with($r->url(), '/message_templates')));
 
         $this->metaTemplates += ['egmenu_order_confirm' => ['ar' => 'APPROVED', 'en' => 'PENDING']];
         $this->actingAs($this->owner($a))->post($this->dashUrl('/settings/whatsapp-number/templates'))->assertSessionHas('ok');
@@ -287,7 +288,7 @@ class WhatsAppOwnNumberTest extends TenantTestCase
         $preview = fn () => $this->as($a, fn () => app(Campaigns::class)->preview('all'));
 
         $this->assertSame(1, $preview()['cost']);
-        $this->connected($a, '444555666', self::SECRET, ['egmenu_campaign']);
+        $this->connected($a, '444555666', self::SECRET, ['eghub_campaign']);
         $this->assertSame(['recipients' => 1, 'cost' => 0, 'balance' => 0], array_intersect_key($preview(), array_flip(['recipients', 'cost', 'balance'])));
     }
 

@@ -78,16 +78,16 @@ final class GuestNotifier
             $where = $order->table ? ($en ? 'Table '.$order->table->name : 'ترابيزة '.$order->table->name) : $type;
             $lines = $order->items->map(fn ($i) => $i->quantity.'× '.$i->name)->implode($en ? ', ' : '، ');
             $who = trim($order->customer_name.' '.$order->customer_phone);
-            $text = ($en ? "New order #{$order->number} · {$where}" : "طلب جديد #{$order->number} · {$where}")
-                .($order->branch ? ' · '.tr($order->branch->name, $order->branch->name_en) : '')
-                ."\n{$lines}"
-                ."\n".($en ? 'Total: ' : 'الإجمالي: ').money($order->total).' '.($en ? 'EGP' : 'ج.م')
-                .($who !== '' ? "\n".($en ? 'Guest: ' : 'العميل: ').$who : '')
-                .($order->delivery_address ? "\n📍 ".trim(($order->delivery_address['zone'] ?? '').' - '.($order->delivery_address['text'] ?? ''), ' -') : '')
-                .($order->notes ? "\n📝 ".$order->notes : '')
-                ."\n".platform_url('app', 'orders');
+            $address = $order->delivery_address ? trim(($order->delivery_address['zone'] ?? '').' - '.($order->delivery_address['text'] ?? ''), ' -') : '';
 
-            return ['text' => $text];
+            return [
+                'number' => (string) $order->number,
+                'branch' => $order->branch ? tr($order->branch->name, $order->branch->name_en) : self::senderName(),
+                'where' => mb_strimwidth(implode(' · ', array_filter([$where, $who, $address, $order->notes ? '📝 '.$order->notes : ''])), 0, 300, '…'),
+                'items' => mb_strimwidth($lines, 0, 300, '…'),
+                'total' => money($order->total).' '.($en ? 'EGP' : 'ج.م'),
+                'link' => platform_url('app', 'orders'),
+            ];
         }, null);
     }
 
@@ -105,15 +105,15 @@ final class GuestNotifier
             $maps = DeliveryService::mapsUrl($order);
             $collect = $order->amountToCollect();
             $who = trim($order->customer_name.' '.$order->customer_phone);
-            $text = ($en ? "Hi {$driver->name}, order #{$order->number} is with you 🛵" : "يا {$driver->name}، طلب #{$order->number} معاك 🛵")
-                .($order->branch ? ' · '.tr($order->branch->name, $order->branch->name_en) : '')
-                .($who !== '' ? "\n".($en ? 'Guest: ' : 'العميل: ').$who : '')
-                .($where !== '' ? "\n📍 ".$where : '')
-                .($maps ? "\n".$maps : '')
-                ."\n".($en ? 'Collect: ' : 'تحصيل: ').($collect > 0 ? money($collect).' '.($en ? 'EGP' : 'ج.م') : ($en ? 'paid already' : 'مدفوع'))
-                ."\n".($en ? 'Your screen: ' : 'شاشتك: ').platform_url('app', 'driver');
 
-            return ['text' => $text];
+            return [
+                'name' => (string) $driver->name,
+                'number' => (string) $order->number,
+                'branch' => $order->branch ? tr($order->branch->name, $order->branch->name_en) : self::senderName(),
+                'address' => mb_strimwidth(implode(' · ', array_filter([$who, $where, (string) $maps])), 0, 400, '…'),
+                'collect' => $collect > 0 ? money($collect).' '.($en ? 'EGP' : 'ج.م') : ($en ? 'paid already' : 'مدفوع'),
+                'link' => platform_url('app', 'driver'),
+            ];
         }, null);
     }
 

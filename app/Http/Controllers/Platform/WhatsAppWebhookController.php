@@ -7,6 +7,7 @@ use App\Jobs\SendPlatformAutoReply;
 use App\Models\WhatsAppConnection;
 use App\Models\WhatsAppMessage;
 use App\Services\Customers\SignIn\WhatsAppSignIn;
+use App\Services\Marketing\OptOut;
 use App\Services\Orders\OrderConfirmation;
 use App\Services\WhatsApp\PhoneVerification;
 use App\Services\WhatsApp\PlatformAutoReply;
@@ -23,7 +24,8 @@ use Illuminate\Support\Facades\Log;
  *    with every payload signed by EgHub's app secret (X-Hub-Signature-256). Texts feed the owner's phone
  *    confirmation and a guest's «ادخل بواتساب» code (App\Services\Customers\SignIn\WhatsAppSignIn),
  *    any other message goes to the team (App\Services\WhatsApp\PlatformInbox);
- *    button taps answer an order confirmation (App\Services\Orders\OrderConfirmation); message statuses update
+ *    button taps answer an order confirmation (App\Services\Orders\OrderConfirmation) or stop a restaurant's
+ *    offers («إيقاف العروض», App\Services\Marketing\OptOut); message statuses update
  *    whatsapp_messages. A change whose metadata.phone_number_id is a restaurant's connected number (our own app
  *    subscribed to its WABA, as Embedded Signup will do) is handled for that restaurant only.
  *  - Meta Cloud API for a restaurant's own number (/webhooks/whatsapp/{webhook_key}): the restaurant's own Meta app
@@ -64,8 +66,9 @@ class WhatsAppWebhookController extends Controller
             $user = $from !== '' && $text !== '' ? $verification->confirm($from, $text) : null;
             $guest = $from !== '' && $text !== '' ? app(WhatsAppSignIn::class)->confirm($from, $text) : null;
             $order = $from !== '' && $payload !== '' ? $confirmation->handleTap($from, $payload) : null;
+            $stopped = $from !== '' && $payload !== '' && ! $order ? app(OptOut::class)->handleTap($from, $payload) : null;
 
-            return response()->json(['ok' => true, 'verified' => $user !== null || $guest !== null, 'answered' => $order !== null]);
+            return response()->json(['ok' => true, 'verified' => $user !== null || $guest !== null, 'answered' => $order !== null || $stopped !== null]);
         }
 
         $this->assertMetaSignature($request, (string) config('whatsapp.app_secret'), true);
@@ -129,7 +132,8 @@ class WhatsAppWebhookController extends Controller
                     // (Meta resends a payload it thinks was not received: the same wamid is answered once)
                     if (isset($message['from']) && is_string($payload) && $payload !== ''
                         && Cache::add('whatsapp:tap:'.($message['id'] ?? sha1($payload.$message['from'])), 1, now()->addDay())) {
-                        $confirmation->handleTap((string) $message['from'], $payload, $connection);
+                        $confirmation->handleTap((string) $message['from'], $payload, $connection)
+                            ?? app(OptOut::class)->handleTap((string) $message['from'], $payload, $connection);
                     }
                 }
                 foreach ((array) ($value['statuses'] ?? []) as $status) {

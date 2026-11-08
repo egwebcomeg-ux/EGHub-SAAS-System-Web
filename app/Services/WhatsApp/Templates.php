@@ -15,10 +15,12 @@ final class Templates
         'order_on_way' => ['name', 'restaurant', 'number', 'link'],
         'reservation_confirmed' => ['name', 'restaurant', 'date', 'guests'],
         'loyalty_reward' => ['name', 'restaurant', 'reward', 'link'],
-        'campaign' => ['text'],
-        'automation' => ['text'],
-        'order_staff' => ['text'],     // new-order alert to the branch's / restaurant's own WhatsApp number
-        'driver_assigned' => ['text'], // "an order is with you" to the delivery driver's own number
+        // the restaurant's own words (campaigns, automations) inside a Marketing template that names the sender and
+        // carries a «إيقاف العروض» button (BUTTONS): Meta does not approve a template that is one variable
+        'campaign' => ['restaurant', 'text'],
+        'automation' => ['restaurant', 'text'],
+        'order_staff' => ['number', 'branch', 'where', 'items', 'total', 'link'], // new-order alert to the branch's / restaurant's own number
+        'driver_assigned' => ['name', 'number', 'branch', 'address', 'collect', 'link'], // "an order is with you" to the driver's own number
         // a cash-on-delivery delivery order asks the guest to confirm it (App\Services\Orders\OrderConfirmation), with the
         // three quick-reply buttons of BUTTONS. Meta template (category Utility), body with {{1}}..{{6}} in this order:
         // ar: أهلاً {{1}} 🙏 طلبك رقم {{2}} من {{3}} وصلنا وبنجهّزه، ومحتاجين تأكيدك قبل ما نبعته:
@@ -47,6 +49,9 @@ final class Templates
             'edit' => ['تعديل الطلب', 'Edit order'],
             'cancel' => ['إلغاء الطلب', 'Cancel order'],
         ],
+        // the guest stops this restaurant's offers (App\Services\Marketing\OptOut)
+        'campaign' => ['stop' => ['إيقاف العروض', 'Stop offers']],
+        'automation' => ['stop' => ['إيقاف العروض', 'Stop offers']],
     ];
 
     /** Free-form texts answering the guest inside their 24-hour window: never a template, never a credit. */
@@ -73,10 +78,22 @@ final class Templates
             'ar' => 'مبروك يا {name} 🎁 كسبت «{reward}» في كارت ولاء {restaurant}. ورّي الكارت للكاشير: {link}',
             'en' => 'Congrats {name} 🎁 you earned "{reward}" on your {restaurant} loyalty card. Show your card at the counter: {link}',
         ],
-        'campaign' => ['ar' => '{text}', 'en' => '{text}'],
-        'automation' => ['ar' => '{text}', 'en' => '{text}'],
-        'order_staff' => ['ar' => '{text}', 'en' => '{text}'],
-        'driver_assigned' => ['ar' => '{text}', 'en' => '{text}'],
+        'campaign' => [
+            'ar' => "رسالة من {restaurant} 💬\n{text}\nلو مش عايز توصلك عروض تانية دوس «إيقاف العروض».",
+            'en' => "A message from {restaurant} 💬\n{text}\nTo stop receiving offers, tap “Stop offers”.",
+        ],
+        'automation' => [
+            'ar' => "رسالة من {restaurant} 💬\n{text}\nلو مش عايز توصلك عروض تانية دوس «إيقاف العروض».",
+            'en' => "A message from {restaurant} 💬\n{text}\nTo stop receiving offers, tap “Stop offers”.",
+        ],
+        'order_staff' => [
+            'ar' => "طلب جديد 🔔 #{number} في {branch}\n📍 {where}\n🛍 {items}\n💰 الإجمالي: {total}\nافتح لوحة الطلبات: {link}\nالطلب ظاهر كمان على شاشة الفرع.",
+            'en' => "New order 🔔 #{number} at {branch}\n📍 {where}\n🛍 {items}\n💰 Total: {total}\nOpen the orders board: {link}\nThe order is on the branch screen too.",
+        ],
+        'driver_assigned' => [
+            'ar' => "يا {name}، طلب #{number} من {branch} معاك 🛵\n📍 {address}\n💵 التحصيل عند الباب: {collect}\nتفاصيل الطلب على شاشتك: {link}\nتوصيلة موفقة 🙏",
+            'en' => "Hi {name}, order #{number} from {branch} is with you 🛵\n📍 {address}\n💵 Collect at the door: {collect}\nThe order on your screen: {link}\nSafe ride 🙏",
+        ],
         'order_confirm' => [
             'ar' => "أهلاً {name} 🙏 طلبك رقم {number} من {restaurant} وصلنا وبنجهّزه، ومحتاجين تأكيدك قبل ما نبعته:\n🛍 {items}\n💰 المبلغ عند الاستلام: {total}\n📍 {address}\nلو كله تمام دوس «تأكيد الطلب»، ولو حابب تعدّل دوس «تعديل الطلب»، ولو عايز تلغي دوس «إلغاء الطلب».",
             'en' => "Hi {name} 🙏 {restaurant} got your order #{number} and is preparing it. Please confirm it before it leaves:\n🛍 {items}\n💰 Cash on delivery: {total}\n📍 {address}\nAll good? Tap “Confirm order”. Want a change? Tap “Edit order”, or “Cancel order”.",
@@ -159,6 +176,8 @@ final class Templates
             'text' => $en ? 'Our new menu is out, with 20% off this week' : 'المنيو الجديد نزل وعليه خصم 20% الأسبوع ده',
             'items' => $en ? 'Burger ×2, Fries ×1' : 'برجر ×2، بطاطس ×1', 'total' => $en ? '240 EGP' : '240 جنيه',
             'address' => $en ? 'Maadi - 12 Street 9' : 'المعادي - 12 شارع 9',
+            'branch' => $en ? 'Maadi branch' : 'فرع المعادي', 'where' => $en ? 'Delivery · Ahmed 01012345678 · Maadi - 12 Street 9' : 'توصيل · أحمد 01012345678 · المعادي - 12 شارع 9',
+            'collect' => $en ? '240 EGP' : '240 جنيه',
         ];
 
         return array_map(fn (string $name) => $samples[$name] ?? 'x', self::PARAMS[$key] ?? []);
@@ -178,6 +197,17 @@ final class Templates
         }
 
         return $out;
+    }
+
+    /**
+     * A body parameter as Meta takes it: one line (no new lines, tabs or more than 4 spaces in a row, error 132018)
+     * and never empty.
+     */
+    public static function metaValue(string $value): string
+    {
+        $line = trim((string) preg_replace(['/\s*[\r\n]+\s*/u', '/[\t ]+/u'], [' · ', ' '], $value), ' ·');
+
+        return $line === '' ? '—' : $line;
     }
 
     /** @param array<string,string> $params */

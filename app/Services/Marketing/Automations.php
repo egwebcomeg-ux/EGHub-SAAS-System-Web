@@ -100,7 +100,8 @@ final class Automations
             if (! $this->canPay()) {
                 break; // the rest wait for a top-up and the next run
             }
-            $message = $this->whatsapp->record($customer->phone, 'automation', ['text' => $this->render($automation, $customer)], $customer->id, null, $automation->id);
+            $message = $this->whatsapp->record($customer->phone, 'automation', ['restaurant' => GuestNotifier::senderName(), 'text' => $this->render($automation, $customer)],
+                $customer->id, null, $automation->id, OptOut::payloads($customer));
             if (! $message) {
                 continue; // not a valid mobile number
             }

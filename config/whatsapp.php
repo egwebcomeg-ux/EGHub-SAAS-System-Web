@@ -78,9 +78,11 @@ return [
         'order_on_way' => env('WHATSAPP_TPL_ORDER_ON_WAY', 'eghub_order_on_way'),
         'reservation_confirmed' => env('WHATSAPP_TPL_RESERVATION_CONFIRMED', 'eghub_reservation_confirmed'),
         'loyalty_reward' => env('WHATSAPP_TPL_LOYALTY_REWARD', 'eghub_loyalty_reward'),
-        'campaign' => env('WHATSAPP_TPL_CAMPAIGN', 'egmenu_campaign'),
-        'automation' => env('WHATSAPP_TPL_AUTOMATION', 'egmenu_campaign'),       // free text {{1}}, same template as campaigns
-        'order_staff' => env('WHATSAPP_TPL_ORDER_STAFF', 'egmenu_campaign'),     // new-order alert to the restaurant, free text {{1}}
+        // Marketing: the restaurant's words between a fixed line naming it and a «إيقاف العروض» button
+        'campaign' => env('WHATSAPP_TPL_CAMPAIGN', 'eghub_campaign'),
+        'automation' => env('WHATSAPP_TPL_AUTOMATION', 'eghub_campaign'),        // same template as campaigns
+        'order_staff' => env('WHATSAPP_TPL_ORDER_STAFF', 'eghub_order_staff'),   // new-order alert to the restaurant (Utility)
+        'driver_assigned' => env('WHATSAPP_TPL_DRIVER_ASSIGNED', 'eghub_driver_assigned'), // the order is with the driver (Utility)
         // "confirm your cash-on-delivery order" (category Utility): 6 body parameters and 3 quick-reply buttons, the
         // exact text to submit is above Templates::PARAMS['order_confirm']
         'order_confirm' => env('WHATSAPP_TPL_ORDER_CONFIRM', 'egmenu_order_confirm'),
