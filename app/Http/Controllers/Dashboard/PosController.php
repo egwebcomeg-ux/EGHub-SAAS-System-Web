@@ -56,6 +56,8 @@ class PosController extends Controller
                 'canDiscardHold' => $request->user()->can('pos.hold.discard'),
                 // no order without the customer's mobile (looked up as it is typed, a new one is saved with the order)
                 'requirePhone' => self::requiresPhone(),
+                // the percent a mobile-wallet payment adds on top (OrderService::walletFee)
+                'walletFee' => OrderService::walletFeePercent(),
                 'share' => true, // the receipt's link on WhatsApp after payment
                 // cash in / out of the drawer from the POS (the open shift; shifts.manage)
                 'canCash' => Entitlements::current()->allows('shifts') && $request->user()->can('shifts.manage'),
@@ -163,6 +165,7 @@ class PosController extends Controller
             'subtotal' => 'required|numeric|min:0',
             'service' => 'nullable|numeric|min:0',
             'tax' => 'nullable|numeric|min:0',
+            'payment_fee' => 'nullable|numeric|min:0|max:100000',
             'total' => 'required|numeric|min:0',
             'method' => ['required', 'string', 'max:20'],
             'tendered' => 'nullable|numeric|min:0',

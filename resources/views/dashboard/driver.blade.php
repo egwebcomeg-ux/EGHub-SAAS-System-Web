@@ -27,7 +27,10 @@
             'deliveredPaid' => __('Delivered? This order is paid already: collect nothing.'),
             'howPaid' => __('How did the guest pay :amount?', ['amount' => '__A__']),
             'methods' => ['cash' => __('Cash'), 'card' => __('Card (POS machine)'), 'instapay' => 'InstaPay', 'wallet' => __('Mobile wallet')],
-            'methodHints' => ['cash' => __('stays with you until you hand it in'), 'card' => __('paid to the restaurant at once'), 'instapay' => __('paid to the restaurant at once'), 'wallet' => __('paid to the restaurant at once')],
+            'methodHints' => ['cash' => __('stays with you until you hand it in'), 'card' => __('paid to the restaurant at once'), 'instapay' => __('paid to the restaurant at once'),
+                'wallet' => \App\Services\Orders\OrderService::walletFeePercent() > 0
+                    ? __('collect :percent% more (the wallet fee), paid to the restaurant at once', ['percent' => \App\Services\Orders\OrderService::walletFeePercent() + 0])
+                    : __('paid to the restaurant at once')],
             'pickedAt' => __('Picked up :time', ['time' => '__T__']), 'notes' => __('Notes'),
             'sinceAssigned' => __('With you for :n min', ['n' => '__N__']), 'sinceAssignedNow' => __('Just given to you'),
             'sincePicked' => __('On the road for :n min', ['n' => '__N__']),

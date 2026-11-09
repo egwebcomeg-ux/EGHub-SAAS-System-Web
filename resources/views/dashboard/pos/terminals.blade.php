@@ -106,6 +106,17 @@
             <p class="muted text-sm">{{ __('Takeaway and dine-in alike: the cashier types the mobile, a known customer comes up with their name, a new one is saved with the order. Delivery and call-center orders always ask for it.') }}</p>
             <button class="btn-ghost w-full">{{ __('Save') }}</button>
         </form>
+        {{-- App\Services\Orders\OrderService::walletFee: the guest pays the mobile wallet's fee on top of the bill --}}
+        <form method="post" action="{{ route('dash.terminals.wallet_fee') }}" class="card space-y-2" data-wallet-fee>
+            @csrf
+            <h2 class="section-title">{{ __('Mobile wallet fee') }}</h2>
+            <div class="flex items-center gap-2">
+                <input class="field w-28" id="wallet_fee_percent" name="wallet_fee_percent" type="number" min="0" max="10" step="0.1" value="{{ $walletFee }}" required>
+                <label for="wallet_fee_percent" class="text-sm font-semibold">{{ __('% added when the guest pays by mobile wallet') }}</label>
+            </div>
+            <p class="muted text-sm">{{ __('At the cashier, the call center and the door. It shows in the payment window and on the receipt; 0 = no fee.') }}</p>
+            <button class="btn-ghost w-full">{{ __('Save') }}</button>
+        </form>
         {{-- printing from the EgHub cashier app (App\Services\Printing\PrintJobs); in a browser the receipt page prints as before --}}
         <form method="post" action="{{ route('dash.pos.printing') }}" class="card space-y-2" data-printing-settings>
             @csrf

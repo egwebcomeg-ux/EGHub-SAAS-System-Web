@@ -300,7 +300,21 @@ final class OrderService
             if ($method === WalletService::METHOD) {
                 app(WalletService::class)->payOrder($locked, $by, $shift);
             }
-            $order->update(['payment_status' => 'paid', 'payment_method' => $method, 'shift_id' => $shift?->id, 'corporate_amount' => $covered, 'payments' => $parts ?: null]);
+            // the mobile wallet's fee is the guest's: added to the order and to the wallet's part (setting wallet_fee_percent)
+            $fee = 0.0;
+            if ($parts !== []) {
+                $fee = self::walletFee(array_sum(array_map(fn ($p) => $p['method'] === self::MOBILE_WALLET ? $p['amount'] : 0, $parts)));
+                foreach ($parts as $i => $p) {
+                    if ($fee > 0 && $p['method'] === self::MOBILE_WALLET) {
+                        $parts[$i]['amount'] = round($p['amount'] + $fee, 2);
+                        break;
+                    }
+                }
+            } elseif ($method === self::MOBILE_WALLET && $rest > 0.004) {
+                $fee = self::walletFee($rest);
+            }
+            $order->update(['payment_status' => 'paid', 'payment_method' => $method, 'shift_id' => $shift?->id, 'corporate_amount' => $covered, 'payments' => $parts ?: null]
+                + ($fee > 0 ? ['payment_fee' => $fee, 'total' => round((float) $locked->total + $fee, 2)] : []));
             app(LoyaltyService::class)->orderCompleted($order);
             // a counter sale with no kitchen in use is done once paid (OrderFlow)
             app(OrderFlow::class)->finishCounterSale($order, $by);
@@ -317,6 +331,21 @@ final class OrderService
 
     /** Methods a split payment's parts can use (the guest's balance and the vouchers keep their own flow). */
     public const SPLIT_METHODS = ['cash', 'card', 'instapay', 'wallet'];
+
+    /** Payment by a mobile wallet (Vodafone Cash …), which carries the wallet fee; not the guest's prepaid balance ("credit"). */
+    public const MOBILE_WALLET = 'wallet';
+
+    /** The percent a mobile-wallet payment adds (setting wallet_fee_percent, 0 = none). */
+    public static function walletFeePercent(): float
+    {
+        return max(0.0, min(10.0, (float) Settings::get('wallet_fee_percent')));
+    }
+
+    /** What a mobile-wallet payment of $amount adds on top. */
+    public static function walletFee(float $amount): float
+    {
+        return $amount > 0 ? round($amount * self::walletFeePercent() / 100, 2) : 0.0;
+    }
 
     /**
      * The parts of a split payment, cleaned: known methods, amounts above zero; cash keeps what the guest handed over
@@ -442,7 +471,17 @@ final class OrderService
         $discount = round(max(0.0, (float) ($data['discount'] ?? 0)), 2);
         $service = round(max(0.0, (float) ($data['service'] ?? 0)), 2);
         $tax = round(max(0.0, (float) ($data['tax'] ?? 0)), 2);
-        $total = round($subtotal - $discount + $service + $tax, 2);
+        // the mobile wallet's fee as the device added it (on the wallet's part when split)
+        $fee = round(max(0.0, (float) ($data['payment_fee'] ?? 0)), 2);
+        $walletPaid = $parts !== [] ? array_sum(array_map(fn ($p) => $p['method'] === self::MOBILE_WALLET ? $p['amount'] : 0, $parts))
+            : ($method === self::MOBILE_WALLET ? (float) $data['total'] : 0.0);
+        if ($fee > 0 && $walletPaid <= 0) {
+            throw new OrderException(__('The amounts of this sale do not add up.'));
+        }
+        if (abs(self::walletFee(round($walletPaid - $fee, 2)) - $fee) > 0.011) {
+            $notes[] = __('The mobile-wallet fee differs from today\'s settings.');
+        }
+        $total = round($subtotal - $discount + $service + $tax + $fee, 2);
         if ($discount > $subtotal || abs($subtotal - (float) $data['subtotal']) > 0.011 || abs($total - (float) $data['total']) > 0.011) {
             throw new OrderException(__('The amounts of this sale do not add up.'));
         }
@@ -463,7 +502,7 @@ final class OrderService
 
         for ($attempt = 1; ; $attempt++) {
             try {
-                $order = DB::transaction(function () use ($data, $branch, $by, $shift, $terminal, $lines, $notes, $subtotal, $discount, $service, $tax, $total, $type, $table, $soldAt, $ref, $m, $method, $parts) {
+                $order = DB::transaction(function () use ($data, $branch, $by, $shift, $terminal, $lines, $notes, $subtotal, $discount, $service, $tax, $fee, $total, $type, $table, $soldAt, $ref, $m, $method, $parts) {
                     $order = Order::query()->create([
                         'branch_id' => $branch->id, 'dining_table_id' => $table?->id,
                         'number' => (int) Order::query()->lockForUpdate()->max('number') + 1,
@@ -472,7 +511,7 @@ final class OrderService
                         'customer_name' => mb_substr(trim((string) ($data['customer_name'] ?? '')), 0, 100),
                         'customer_phone' => normalize_phone((string) ($data['customer_phone'] ?? '')) ?? '',
                         'notes' => mb_substr(trim((string) ($data['notes'] ?? '')), 0, 500) ?: null,
-                        'subtotal' => $subtotal, 'discount' => $discount, 'service' => $service, 'tax' => $tax, 'total' => $total,
+                        'subtotal' => $subtotal, 'discount' => $discount, 'service' => $service, 'tax' => $tax, 'payment_fee' => $fee, 'total' => $total,
                         'payment_status' => 'paid', 'payment_method' => $method, 'shift_id' => $shift->id, 'terminal_id' => $terminal?->id,
                         'payments' => $parts,
                         'offline_ref' => $ref, 'created_offline_at' => $soldAt, 'synced_at' => now(),

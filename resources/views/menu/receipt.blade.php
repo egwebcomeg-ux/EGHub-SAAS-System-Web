@@ -47,13 +47,14 @@
             @endforeach
         </ul>
         <dl class="mt-2 space-y-1 border-t border-dashed border-navy-200 pt-3 text-sm">
-            @if ($order->discount > 0 || $order->service > 0 || $order->tax > 0 || $order->delivery_fee > 0)
+            @if ($order->discount > 0 || $order->service > 0 || $order->tax > 0 || $order->delivery_fee > 0 || $order->payment_fee > 0)
                 <div class="flex justify-between"><dt>{{ __('Subtotal') }}</dt><dd>{{ money($order->subtotal) }}</dd></div>
             @endif
             @if ($order->discount > 0)<div class="flex justify-between text-emerald-700"><dt>{{ __('Discount') }}</dt><dd>−{{ money($order->discount) }}</dd></div>@endif
             @if ($order->service > 0)<div class="flex justify-between"><dt>{{ __('Service') }}</dt><dd>{{ money($order->service) }}</dd></div>@endif
             @if ($order->tax > 0)<div class="flex justify-between"><dt>{{ __('Tax') }}</dt><dd>{{ money($order->tax) }}</dd></div>@endif
             @if ($order->delivery_fee > 0)<div class="flex justify-between"><dt>{{ __('Delivery fee') }}</dt><dd>{{ money($order->delivery_fee) }}</dd></div>@endif
+            @if ($order->payment_fee > 0)<div class="flex justify-between"><dt>{{ __('Mobile wallet fee') }}</dt><dd>{{ money($order->payment_fee) }}</dd></div>@endif
             <div class="flex justify-between text-lg font-extrabold"><dt>{{ __('Total') }}</dt><dd>{{ money($order->total) }} {{ $currency }}</dd></div>
             @if ($order->payment_status === 'paid')
                 @foreach (\App\Services\Orders\ShiftService::split($order) as $method => $amount)

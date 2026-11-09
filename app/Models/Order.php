@@ -87,6 +87,7 @@ class Order extends TenantModel
             'corporate_amount' => 'float',
             'refunded_amount' => 'float',
             'delivery_fee' => 'float',
+            'payment_fee' => 'float',
             'delivery_address' => 'array',
             'scheduled_for' => 'datetime',
             'preparing_at' => 'datetime',

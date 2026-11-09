@@ -45,6 +45,8 @@ class PosCustomerPhoneTest extends TenantTestCase
 
     public function test_with_the_setting_on_no_pos_order_goes_without_the_customer_mobile(): void
     {
+        // the customer box is on every order type, required or not; each item takes its own note
+        $this->actingAs($this->cashier)->get($this->dashUrl('/pos'))->assertOk()->assertSee('data-customer-box', false)->assertSee('data-note-dialog', false);
         $this->sell()->assertOk();
 
         $this->as($this->tenant, fn () => Settings::put(['pos_require_phone' => '1']));

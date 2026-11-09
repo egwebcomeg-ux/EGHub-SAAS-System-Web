@@ -257,6 +257,24 @@ class PosOfflineTest extends TenantTestCase
             ->assertJsonFragment(['number' => 2, 'offline_ref' => 'OFF-K1-3']);
     }
 
+    public function test_an_offline_mobile_wallet_sale_keeps_the_wallet_fee_the_device_added(): void
+    {
+        $this->shop();
+        $device = $this->claim($this->terminal(), $this->cashier);
+        $this->openShift($this->cashier, $device)->assertSessionHasNoErrors();
+        $shift = $this->shift($this->cashier);
+
+        // 120 by mobile wallet + 1%
+        $this->sync($this->sale($shift, $device, 1, ['method' => 'wallet', 'payment_fee' => 1.2, 'total' => 121.2]), $device)
+            ->assertOk()->assertJsonPath('review', false);
+        $order = $this->as($this->tenant, fn () => Order::query()->where('offline_ref', 'OFF-K1-1')->firstOrFail());
+        $this->assertSame([1.2, 121.2], [$order->payment_fee, $order->total]);
+        $this->assertSame(['wallet' => 121.2], ShiftService::split($order));
+
+        // a fee on a cash sale does not add up
+        $this->sync($this->sale($shift, $device, 2, ['payment_fee' => 1.2, 'total' => 121.2]), $device)->assertStatus(422);
+    }
+
     public function test_a_sale_made_yesterday_offline_lands_in_yesterdays_report(): void
     {
         $this->shop();

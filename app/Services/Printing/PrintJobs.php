@@ -145,7 +145,7 @@ final class PrintJobs
             $lines[] = self::text('⚠ '.$order->notes);
         }
         $lines[] = ['t' => 'divider'];
-        if ($order->discount > 0 || $order->service > 0 || $order->tax > 0 || $order->delivery_fee > 0) {
+        if ($order->discount > 0 || $order->service > 0 || $order->tax > 0 || $order->delivery_fee > 0 || $order->payment_fee > 0) {
             $lines[] = self::row(__('Subtotal'), money($order->subtotal));
         }
         if ($order->coupon_code && $order->coupon_discount > 0) {
@@ -164,6 +164,9 @@ final class PrintJobs
         }
         if ($order->delivery_fee > 0) {
             $lines[] = self::row(__('Delivery fee'), money($order->delivery_fee));
+        }
+        if ($order->payment_fee > 0) {
+            $lines[] = self::row(__('Mobile wallet fee'), money($order->payment_fee));
         }
         $lines[] = self::row(__('Total'), money($order->total).' '.$currency, true);
         if ($order->corporate_amount > 0) {

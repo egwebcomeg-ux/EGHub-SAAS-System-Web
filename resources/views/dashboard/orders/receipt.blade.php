@@ -54,7 +54,7 @@
     @unless ($kitchen)
         <hr>
         <table>
-            @if ($order->discount > 0 || $order->service > 0 || $order->tax > 0 || $order->delivery_fee > 0)<tr><td>{{ __('Subtotal') }}</td><td class="n">{{ money($order->subtotal) }}</td></tr>@endif
+            @if ($order->discount > 0 || $order->service > 0 || $order->tax > 0 || $order->delivery_fee > 0 || $order->payment_fee > 0)<tr><td>{{ __('Subtotal') }}</td><td class="n">{{ money($order->subtotal) }}</td></tr>@endif
             @if ($order->coupon_code && $order->coupon_discount > 0)
                 @if ($order->discount - $order->coupon_discount > 0.004)<tr><td>{{ __('Discount') }}</td><td class="n">−{{ money($order->discount - $order->coupon_discount) }}</td></tr>@endif
                 <tr><td>{{ __('Voucher :code', ['code' => $order->coupon_code]) }}</td><td class="n">−{{ money($order->coupon_discount) }}</td></tr>
@@ -64,6 +64,7 @@
             @if ($order->service > 0)<tr><td>{{ __('Service') }}</td><td class="n">{{ money($order->service) }}</td></tr>@endif
             @if ($order->tax > 0)<tr><td>{{ __('Tax') }}</td><td class="n">{{ money($order->tax) }}</td></tr>@endif
             @if ($order->delivery_fee > 0)<tr><td>{{ __('Delivery fee') }}</td><td class="n">{{ money($order->delivery_fee) }}</td></tr>@endif
+            @if ($order->payment_fee > 0)<tr><td>{{ __('Mobile wallet fee') }}</td><td class="n">{{ money($order->payment_fee) }}</td></tr>@endif
             <tr class="tot"><td>{{ __('Total') }}</td><td class="n">{{ money($order->total) }} {{ tr($settings['currency'], $settings['currency_en']) }}</td></tr>
             @if ($order->corporate_amount > 0)
                 <tr data-receipt-corporate><td>{{ __('Corporate voucher') }}</td><td class="n">−{{ money($order->corporate_amount) }}</td></tr>

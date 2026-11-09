@@ -92,7 +92,9 @@ class PosSplitPaymentTest extends TenantTestCase
         ])->assertOk();
         $order = $this->as($this->tenant, fn () => Order::query()->findOrFail($id));
         $this->assertSame(['paid', 'split'], [$order->payment_status, $order->payment_method]);
-        $this->assertSame(['wallet' => 100.0, 'cash' => 80.0], ShiftService::split($order));
+        // the mobile wallet's 1% goes on its part and on the order
+        $this->assertSame(['wallet' => 101.0, 'cash' => 80.0], ShiftService::split($order));
+        $this->assertSame([1.0, 181.0], [$order->payment_fee, $order->total]);
         // "split" without its parts is refused
         $this->actingAs($this->cashier)->postJson($this->dashUrl("/pos/orders/$id/pay"), ['method' => 'split'])->assertStatus(422);
     }

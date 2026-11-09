@@ -148,6 +148,8 @@ final class Settings
         'pos_waiter_pay_first' => '0',
         // '1' = no POS order without the customer's mobile (found or saved with the order; Dashboard\PosController)
         'pos_require_phone' => '0',
+        // percent added to what is paid by mobile wallet at the POS, the call center and the door (App\Services\Orders\OrderService::walletFee)
+        'wallet_fee_percent' => '1',
         // printing from the EgHub cashier app (App\Services\Printing\PrintJobs); the browser print stays as it is
         'pos_print_receipt_auto' => '0',      // '1' = the receipt prints by itself once an order is paid at the POS
         'pos_print_kitchen_auto' => '0',      // '1' = a kitchen ticket per station prints as soon as an order arrives

@@ -7839,5 +7839,13 @@
     "Customer mobile": "موبايل العميل",
     "Customer details": "بيانات العميل",
     "No order from the cashier without the customer's mobile": "مفيش طلب من الكاشير من غير موبايل العميل",
-    "Takeaway and dine-in alike: the cashier types the mobile, a known customer comes up with their name, a new one is saved with the order. Delivery and call-center orders always ask for it.": "في التيك أواي والصالة: الكاشير يكتب الموبايل، لو العميل مسجّل يظهر اسمه بس، ولو جديد يتسجّل مع الطلب. طلبات التوصيل والكول سنتر بتطلبه دايماً."
+    "Takeaway and dine-in alike: the cashier types the mobile, a known customer comes up with their name, a new one is saved with the order. Delivery and call-center orders always ask for it.": "في التيك أواي والصالة: الكاشير يكتب الموبايل، لو العميل مسجّل يظهر اسمه بس، ولو جديد يتسجّل مع الطلب. طلبات التوصيل والكول سنتر بتطلبه دايماً.",
+    "Mobile wallet fee": "رسوم المحفظة",
+    "Mobile wallet fee :fee · to collect :total": "رسوم المحفظة :fee · المطلوب تحصيله :total",
+    "Note for this item": "ملاحظة على الصنف",
+    "Add a note": "أضف ملاحظة",
+    "% added when the guest pays by mobile wallet": "% تتزوّد لما العميل يدفع بالمحفظة",
+    "At the cashier, the call center and the door. It shows in the payment window and on the receipt; 0 = no fee.": "في الكاشير والكول سنتر وعند التسليم للطيار. بتظهر في شاشة الدفع وعلى الفاتورة، و0 يعني من غير رسوم.",
+    "The mobile-wallet fee differs from today's settings.": "رسوم المحفظة مختلفة عن الإعداد الحالي.",
+    "collect :percent% more (the wallet fee), paid to the restaurant at once": "حصّل :percent% زيادة (رسوم المحفظة)، وبتتسجّل للمطعم على طول"
 }

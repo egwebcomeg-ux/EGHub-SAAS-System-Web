@@ -8,6 +8,7 @@ use App\Models\PosTerminal;
 use App\Models\Shift;
 use App\Services\Audit;
 use App\Services\Orders\OrderException;
+use App\Services\Orders\OrderService;
 use App\Services\Orders\Terminals;
 use App\Services\Orders\WaiterCash;
 use App\Services\Printing\PrintJobs;
@@ -33,7 +34,7 @@ class TerminalsController extends Controller
             'branches' => $branches, 'terminals' => $terminals, 'open' => $open, 'offlineHours' => Terminals::offlineHours(),
             'kitchenMinutes' => [(int) Settings::get('kitchen_warn_minutes'), (int) Settings::get('kitchen_late_minutes')],
             'printing' => PrintJobs::settings(), 'waiterPayFirst' => WaiterCash::payFirst(),
-            'requirePhone' => PosController::requiresPhone(),
+            'requirePhone' => PosController::requiresPhone(), 'walletFee' => OrderService::walletFeePercent(),
         ]);
     }
 
@@ -43,6 +44,17 @@ class TerminalsController extends Controller
         $on = $request->boolean('pos_require_phone');
         Settings::put(['pos_require_phone' => $on ? '1' : '0']);
         Audit::record('pos.require_phone', $on ? 'on' : 'off');
+
+        return back()->with('ok', __('Saved.'));
+    }
+
+    /** The percent a mobile-wallet payment adds on top (OrderService::walletFee); 0 = none. */
+    public function walletFee(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['wallet_fee_percent' => 'required|numeric|min:0|max:10']);
+        $percent = (string) round((float) $data['wallet_fee_percent'], 2);
+        Settings::put(['wallet_fee_percent' => $percent]);
+        Audit::record('pos.wallet_fee', $percent);
 
         return back()->with('ok', __('Saved.'));
     }

@@ -279,8 +279,8 @@ export function printLocalReceipt(sale, header, T, kitchen = false) {
     const lines = p.items.map((l) => `<tr><td><b>${l.qty}×</b> ${esc(l.name)}${l.options?.length ? `<div class="opt">${esc(l.options.map((o) => o.name).join('، '))}</div>` : ''}${l.notes ? `<div class="opt">⚠ ${esc(l.notes)}</div>` : ''}</td>${kitchen ? '' : `<td class="n">${m(l.unit_price * l.qty)}</td>`}</tr>`).join('');
     const row = (label, v) => `<tr><td>${esc(label)}</td><td class="n">${esc(v)}</td></tr>`;
     const totals = kitchen ? '' : `<hr><table>
-        ${p.discount > 0 || p.service > 0 || p.tax > 0 ? row(T.subtotal, m(p.subtotal)) : ''}
-        ${p.discount > 0 ? row(T.discount, '−' + m(p.discount)) : ''}${p.service > 0 ? row(T.service, m(p.service)) : ''}${p.tax > 0 ? row(T.tax, m(p.tax)) : ''}
+        ${p.discount > 0 || p.service > 0 || p.tax > 0 || p.payment_fee > 0 ? row(T.subtotal, m(p.subtotal)) : ''}
+        ${p.discount > 0 ? row(T.discount, '−' + m(p.discount)) : ''}${p.service > 0 ? row(T.service, m(p.service)) : ''}${p.tax > 0 ? row(T.tax, m(p.tax)) : ''}${p.payment_fee > 0 ? row(T.walletFee, m(p.payment_fee)) : ''}
         <tr class="tot"><td>${esc(T.total)}</td><td class="n">${m(p.total)} ${esc(header.currency)}</td></tr>
         ${(p.payments || [{ method: p.method, amount: p.total, tendered: p.tendered }]).map((x) => row(T.methods[x.method] || x.method, m(x.amount))
             + (x.tendered > x.amount ? row(T.changeLabel, m(x.tendered - x.amount)) : '')).join('')}

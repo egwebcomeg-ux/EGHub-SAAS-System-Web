@@ -208,6 +208,7 @@ if (dataEl) {
             return `<li class="flex items-center gap-2 py-2">
                 <div class="min-w-0 flex-1"><div class="font-semibold">${esc(item.name)}</div>
                     ${opts ? `<div class="text-xs text-navy-500">${esc(opts)}</div>` : ''}${l.notes ? `<div class="text-xs text-brand-700">${esc(l.notes)}</div>` : ''}</div>
+                <button type="button" class="grid size-10 shrink-0 place-items-center rounded-lg md:size-9 ${l.notes ? 'bg-brand-50 text-brand-700' : 'text-navy-500 hover:bg-navy-50'}" data-line-note="${i}" title="${esc(T.addNote)}" aria-label="${esc(T.addNote)}">📝</button>
                 <div class="flex items-center rounded-lg border border-navy-100">
                     <button type="button" class="size-10 md:size-9" data-step="-1" data-i="${i}">−</button><b class="w-6 text-center">${l.qty}</b>
                     <button type="button" class="size-10 md:size-9" data-step="1" data-i="${i}">+</button></div>
@@ -230,7 +231,34 @@ if (dataEl) {
         display?.postMessage({ lines: state.lines.map((l) => ({ name: items[l.item_id].name, qty: l.qty, amount: unit(l) * l.qty })), totals: t, currency: D.currency });
         recheckCoupon();
     }
+    // ---- a note on one item (any item, with options or not): it rides with that line to the kitchen and the receipt ----
+    const noteDialog = $('[data-note-dialog]');
+    let noteLine = null;
+    function openNote(i) {
+        noteLine = state.lines[i];
+        $('[data-note-item]').textContent = items[noteLine.item_id].name;
+        $('[data-note-input]').value = noteLine.notes || '';
+        noteDialog.showModal();
+        $('[data-note-input]').focus();
+    }
+    function saveNote() {
+        if (!noteLine) return;
+        noteLine.notes = $('[data-note-input]').value.trim().slice(0, 200);
+        // the same item with the same options and the same note is one line
+        const twin = state.lines.find((l) => l !== noteLine && l.item_id === noteLine.item_id && l.notes === noteLine.notes && l.option_ids.join() === noteLine.option_ids.join());
+        if (twin) {
+            twin.qty += noteLine.qty;
+            state.lines.splice(state.lines.indexOf(noteLine), 1);
+        }
+        noteLine = null;
+        noteDialog.close();
+        render();
+    }
+    $('[data-note-save]').addEventListener('click', saveNote);
+    $('[data-note-input]').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveNote(); } });
     $('[data-lines]').addEventListener('click', (e) => {
+        const n = e.target.closest('[data-line-note]');
+        if (n) return openNote(Number(n.dataset.lineNote));
         const b = e.target.closest('[data-step]');
         if (!b) return;
         const l = state.lines[Number(b.dataset.i)];
@@ -960,6 +988,7 @@ if (dataEl) {
         if (split) renderSplit();
         $('[data-credit-box]')?.classList.toggle('hidden', m !== 'credit');
         if (m === 'credit') $('[data-credit-phone]').value ? creditLookup() : $('[data-credit-phone]').focus();
+        showWalletFee();
     }
 
     // ---- paying from the guest's prepaid balance: show it before confirming ----
@@ -987,6 +1016,15 @@ if (dataEl) {
     const splitRest = () => Math.max(0, Math.round((payDue() - splitSum()) * 100) / 100);
     // the cash the guest hands over covers the cash parts (and the rest, when it goes on cash)
     const cashDue = () => (split ? split.filter((p) => p.method === 'cash').reduce((s, p) => s + p.amount, 0) + (method === 'cash' ? splitRest() : 0) : payDue());
+    // ---- the mobile wallet's fee (D.walletFee %) goes on top of what the wallet pays; the server adds the same ----
+    const walletFeeOf = (amount) => (D.walletFee > 0 && amount > 0.004 ? Math.round(amount * D.walletFee) / 100 : 0);
+    const walletPaid = () => (split ? split.filter((p) => p.method === 'wallet').reduce((s, p) => s + p.amount, 0) + (method === 'wallet' ? splitRest() : 0) : method === 'wallet' ? payDue() : 0);
+    function showWalletFee() {
+        const box = $('[data-wallet-fee]');
+        const fee = walletFeeOf(walletPaid());
+        box.classList.toggle('hidden', !fee);
+        box.textContent = fee ? T.walletFeeDue.replace('__F__', fmt(fee)).replace('__T__', fmt(payDue() + fee)) : '';
+    }
     function renderSplit() {
         const box = $('[data-split-box]');
         if (!box) return;
@@ -994,6 +1032,7 @@ if (dataEl) {
         $('[data-split-toggle]').setAttribute('aria-pressed', split ? 'true' : 'false');
         $('[data-split-toggle]').classList.toggle('ring-2', !!split);
         $('[data-method="credit"]')?.classList.toggle('hidden', !!split);
+        showWalletFee();
         if (!split) return;
         $('[data-split-list]').innerHTML = split.map((p, i) => `<li class="flex items-center justify-between gap-2 py-1.5">
             <span class="font-semibold">${esc(T.methods[p.method] || p.method)}</span>
@@ -1122,8 +1161,16 @@ if (dataEl) {
             parts[parts.length - 1].amount = Math.round((parts[parts.length - 1].amount + diff) * 100) / 100;
             sale.payments = parts;
         }
+        // the mobile wallet's fee, on top of the total and on the wallet's part (the server checks it against its setting)
+        const fee = walletFeeOf(parts ? parts.filter((p) => p.method === 'wallet').reduce((s, p) => s + p.amount, 0) : payMethod === 'wallet' ? total : 0);
+        if (fee) {
+            sale.payment_fee = fee;
+            sale.total = r2(total + fee);
+            const part = parts?.find((p) => p.method === 'wallet');
+            if (part) part.amount = r2(part.amount + fee);
+        }
         try {
-            await off.queue({ client_uuid: clientUuid, offline_ref: sale.offline_ref, created_offline_at: now, total, payload: sale });
+            await off.queue({ client_uuid: clientUuid, offline_ref: sale.offline_ref, created_offline_at: now, total: sale.total, payload: sale });
         } catch {
             return fail(T.offSaveFailed);
         }
@@ -1186,6 +1233,7 @@ if (dataEl) {
             $('[data-methods]').classList.toggle('opacity-40', plan.rest <= 0.004);
             renderQuick();
             showChange();
+            showWalletFee();
         }
         $('[data-corp-applied]').addEventListener('click', (e) => {
             const b = e.target.closest('[data-corp-remove]');

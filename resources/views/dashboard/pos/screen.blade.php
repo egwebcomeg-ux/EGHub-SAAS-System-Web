@@ -116,26 +116,21 @@
             <div class="hidden px-3 pb-2" data-table-box>
                 <select class="field" data-table><option value="">{{ __('Choose a table') }}</option></select>
             </div>
-            @if ($data['requirePhone'])
-                {{-- the restaurant takes no order without the customer's mobile: known customers come up as it is typed --}}
-                <div class="space-y-2 px-3 pb-2" data-customer-box>
-                    <div class="flex gap-2">
-                        <input class="field min-h-11 min-w-0 flex-1 text-lg font-bold tracking-wide" data-customer-phone placeholder="{{ __('Customer mobile') }} *" aria-label="{{ __('Customer mobile') }}" maxlength="20" dir="ltr" inputmode="tel" autocomplete="off" required>
-                        <button type="button" class="btn-ghost min-h-11 shrink-0 px-4" data-customer-lookup>{{ __('Search') }}</button>
-                    </div>
-                    <p class="hidden rounded-xl px-3 py-2 text-sm font-bold" data-customer-info role="status" aria-live="polite"></p>
-                    <input class="field min-h-9" data-customer-name placeholder="{{ __('Customer name') }}" aria-label="{{ __('Customer name') }}" maxlength="100">
+            {{-- the customer on every order type: a known mobile comes up with its name, a new one is saved with the order
+                 (required when the restaurant asks for it: pos_require_phone) --}}
+            <div class="space-y-2 px-3 pb-2" data-customer-box>
+                <div class="flex gap-2">
+                    <input class="field min-h-11 min-w-0 flex-1 text-lg font-bold tracking-wide" data-customer-phone placeholder="{{ __('Customer mobile') }}{{ $data['requirePhone'] ? ' *' : '' }}" aria-label="{{ __('Customer mobile') }}" maxlength="20" dir="ltr" inputmode="tel" autocomplete="off" @required($data['requirePhone'])>
+                    <button type="button" class="btn-ghost min-h-11 shrink-0 px-4" data-customer-lookup>{{ __('Search') }}</button>
                 </div>
-            @endif
+                <p class="hidden rounded-xl px-3 py-2 text-sm font-bold" data-customer-info role="status" aria-live="polite"></p>
+                <input class="field min-h-9" data-customer-name placeholder="{{ __('Customer name') }}" aria-label="{{ __('Customer name') }}" maxlength="100">
+            </div>
             <ul class="min-h-24 flex-1 divide-y divide-navy-50 overflow-y-auto px-3" data-lines></ul>
             <div class="space-y-2 border-t border-navy-100 p-3 text-sm">
                 <details>
-                    <summary class="cursor-pointer text-navy-500">{{ $data['requirePhone'] ? __('Notes') : __('Customer & notes') }}</summary>
+                    <summary class="cursor-pointer text-navy-500">{{ __('Notes') }}</summary>
                     <div class="mt-2 space-y-2">
-                        @unless ($data['requirePhone'])
-                            <input class="field min-h-9" data-customer-name placeholder="{{ __('Customer name') }}" maxlength="100">
-                            <input class="field min-h-9" data-customer-phone placeholder="{{ __('Mobile') }}" maxlength="20" dir="ltr" inputmode="tel">
-                        @endunless
                         <input class="field min-h-9" data-notes placeholder="{{ __('Notes for the order') }}" maxlength="500">
                     </div>
                 </details>
@@ -190,12 +185,27 @@
     </form>
 </dialog>
 
+{{-- a note on one item of the order (no onions, well done …): on the kitchen ticket and the receipt under that item --}}
+<dialog class="m-auto w-full max-w-md rounded-2xl p-0 backdrop:bg-black/50" data-note-dialog>
+    <form method="dialog" class="p-5">
+        <h3 class="mb-1 text-lg font-extrabold">{{ __('Note for this item') }}</h3>
+        <p class="mb-3 text-sm text-navy-500" data-note-item></p>
+        <input class="field" data-note-input placeholder="{{ __('Notes for the kitchen') }}" maxlength="200" aria-label="{{ __('Note for this item') }}">
+        <div class="mt-4 flex gap-2">
+            <button value="cancel" class="btn-ghost flex-1">{{ __('Cancel') }}</button>
+            <button type="button" class="btn-primary flex-1" data-note-save>{{ __('Save') }}</button>
+        </div>
+    </form>
+</dialog>
+
 {{-- payment --}}
 <dialog class="m-auto max-h-[95dvh] w-full max-w-md overflow-y-auto rounded-2xl p-0 backdrop:bg-black/50" data-pay-dialog>
     <form method="dialog" class="p-5">
         <h3 class="text-lg font-extrabold">{{ __('Payment') }}</h3>
         <div class="my-3 text-center text-4xl font-extrabold" data-pay-total></div>
         <div class="-mt-2 mb-3 hidden text-center text-lg font-bold text-brand-700" data-pay-due></div>
+        {{-- paid by mobile wallet: its fee goes on top (OrderService::walletFee) --}}
+        <p class="-mt-1 mb-3 hidden rounded-xl bg-amber-50 p-2 text-center text-sm font-bold text-amber-900" data-wallet-fee role="status"></p>
         @if (!empty($data['corporate']))
             {{-- corporate vouchers pay first (earliest expiry first); the method below pays the rest --}}
             <div class="mb-3 rounded-xl border border-navy-100 p-2" data-corp-box>
@@ -218,7 +228,7 @@
         @endif
         <div class="grid grid-cols-2 gap-2" data-methods>
             @foreach (['cash' => __('Cash'), 'card' => __('Card'), 'instapay' => 'InstaPay', 'wallet' => __('Mobile wallet')] as $key => $label)
-                <button type="button" class="btn-ghost" data-method="{{ $key }}">{{ $label }}</button>
+                <button type="button" class="btn-ghost" data-method="{{ $key }}">{{ $label }}@if ($key === 'wallet' && $data['walletFee'] > 0) <span class="text-xs text-navy-500">+{{ $data['walletFee'] + 0 }}%</span>@endif</button>
             @endforeach
             @if (!empty($data['wallet']))
                 <button type="button" class="btn-ghost col-span-2" data-method="credit">💳 {{ __('From the guest\'s balance') }}</button>
@@ -557,6 +567,8 @@
         'table' => __('Table :name', ['name' => '__N__']), 'takeaway' => __('Takeaway'), 'soldOut' => __('Sold out'), 'clearAsk' => __('Clear the order?'),
         'delivery' => __('Delivery'), 'deliveryFee' => __('Delivery fee'), 'phoneFirst' => __('Enter the caller mobile number.'),
         'phoneRequired' => __('Enter the customer\'s mobile number.'), 'noName' => __('No name saved'),
+        'walletFee' => __('Mobile wallet fee'), 'walletFeeDue' => __('Mobile wallet fee :fee · to collect :total', ['fee' => '__F__', 'total' => '__T__']),
+        'lineNote' => __('Note for this item'), 'addNote' => __('Add a note'),
         'chooseZone' => __('Choose the delivery zone.'), 'enterAddress' => __('Write the delivery address.'),
         'minOrder' => __('Minimum order for this zone: :amount', ['amount' => '__A__']), 'newCaller' => __('New customer, will be saved with the order.'),
         'outside' => __('This location is outside every delivery zone.'), 'pinned' => __('pinned'),
