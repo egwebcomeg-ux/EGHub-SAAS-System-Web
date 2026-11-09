@@ -7834,5 +7834,10 @@
     "A full-screen welcome, your story and prices with dots, like a printed menu": "ترحيب بملء الشاشة، وحكاية مكانك، وأسعار بنقط زي المنيو المطبوع",
     "See the menu": "شوف المنيو",
     "Visit us": "زورنا",
-    "Our story": "حكايتنا"
+    "Our story": "حكايتنا",
+    "Enter the customer's mobile number.": "اكتب رقم موبايل العميل.",
+    "Customer mobile": "موبايل العميل",
+    "Customer details": "بيانات العميل",
+    "No order from the cashier without the customer's mobile": "مفيش طلب من الكاشير من غير موبايل العميل",
+    "Takeaway and dine-in alike: the cashier types the mobile, a known customer comes up with their name, a new one is saved with the order. Delivery and call-center orders always ask for it.": "في التيك أواي والصالة: الكاشير يكتب الموبايل، لو العميل مسجّل يظهر اسمه بس، ولو جديد يتسجّل مع الطلب. طلبات التوصيل والكول سنتر بتطلبه دايماً."
 }

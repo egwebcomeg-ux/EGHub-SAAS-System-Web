@@ -9,6 +9,7 @@ use App\Models\DeliveryZone;
 use App\Models\LoyaltyCard;
 use App\Models\Order;
 use App\Services\Delivery\DeliveryPricing;
+use App\Services\Entitlements;
 use App\Services\Geocoding\AddressLookup;
 use App\Services\Loyalty\Membership;
 use App\Services\Orders\OrderConfirmation;
@@ -45,6 +46,10 @@ class CallCenterController extends Controller
         $data['corporate'] = false;
         $data['urls']['order'] = route('dash.callcenter.order');
         $data['urls']['lookup'] = route('dash.callcenter.lookup');
+        // back to the cashier screen with the order on screen (a cashier came here from its «توصيل» button)
+        if (Entitlements::current()->allows('pos') && $request->user()->can('pos.use')) {
+            $data['urls']['cashier'] = route('dash.pos');
+        }
         // manual: main area, then its street / sub-area (as the guest picks it); map: one list plus the map pin
         $data['zoneMode'] = Settings::get('delivery_zone_mode') === 'map' ? 'map' : 'manual';
         $data['branchName'] = tr($branch->name, $branch->name_en);

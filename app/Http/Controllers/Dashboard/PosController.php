@@ -54,6 +54,8 @@ class PosController extends Controller
                 'payFirst' => WaiterCash::mustPayFirst($request->user()),
                 'canDiscount' => $request->user()->can('pos.discount'),
                 'canDiscardHold' => $request->user()->can('pos.hold.discard'),
+                // no order without the customer's mobile (looked up as it is typed, a new one is saved with the order)
+                'requirePhone' => self::requiresPhone(),
                 'share' => true, // the receipt's link on WhatsApp after payment
                 // cash in / out of the drawer from the POS (the open shift; shifts.manage)
                 'canCash' => Entitlements::current()->allows('shifts') && $request->user()->can('shifts.manage'),
@@ -96,7 +98,8 @@ class PosController extends Controller
                     'holds' => route('dash.pos.holds'), 'holdsStore' => route('dash.pos.holds.store'),
                     'holdsResume' => url('/pos/holds/__ID__/resume'), 'holdsDiscard' => url('/pos/holds/__ID__/discard'),
                     'recent' => route('dash.pos.orders.recent'), 'refund' => url('/pos/orders/__ID__/refund'), 'cashMove' => route('dash.shifts.move'),
-                ] + (self::couponsAllowed() ? ['coupon' => route('dash.pos.coupon')] : []) + (WalletService::enabled() ? [
+                    'customer' => route('dash.pos.customer'),
+                ] + (Entitlements::current()->allows('call_center') ? ['delivery' => route('dash.callcenter')] : []) + (self::couponsAllowed() ? ['coupon' => route('dash.pos.coupon')] : []) + (WalletService::enabled() ? [
                     'walletLookup' => route('dash.wallet.lookup'), 'topup' => route('dash.wallet.topup'), 'giftSell' => route('dash.wallet.gift.sell'),
                 ] : []) + (self::corporateAllowed($request) ? [
                     'corporateCheck' => route('dash.pos.corporate.check'), 'corporateLink' => route('dash.pos.corporate.link'),
@@ -277,6 +280,9 @@ class PosController extends Controller
         if ($data['type'] === 'dine_in' && ! $table) {
             return response()->json(['message' => __('Choose a table.')], 422);
         }
+        if (self::requiresPhone() && trim((string) ($data['customer_phone'] ?? '')) === '') {
+            return response()->json(['message' => __('Enter the customer\'s mobile number.'), 'errors' => ['customer_phone' => [__('Enter the customer\'s mobile number.')]]], 422);
+        }
         if (empty($data['pay']) && WaiterCash::mustPayFirst($request->user())) {
             return response()->json(['message' => __('Take the payment first: the order goes to the kitchen once it is paid.')], 422);
         }
@@ -325,6 +331,27 @@ class PosController extends Controller
         } catch (OrderException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
+    }
+
+    /**
+     * The customer behind a mobile typed at the POS: a known one or a new one, saved with the order. Only the name
+     * comes back, one exact mobile at a time: the cashier sees no list and nothing else about the guest.
+     */
+    public function customer(Request $request): JsonResponse
+    {
+        $phone = normalize_phone((string) $request->query('phone', ''));
+        if (! $phone) {
+            return response()->json(['message' => __('Enter a valid Egyptian mobile number.')], 422);
+        }
+        $customer = Customer::query()->where('phone', $phone)->first();
+
+        return response()->json(['found' => (bool) $customer, 'phone' => $phone, 'name' => $customer?->name]);
+    }
+
+    /** The restaurant takes no POS order without the customer's mobile (setting pos_require_phone). */
+    public static function requiresPhone(): bool
+    {
+        return Settings::get('pos_require_phone') === '1';
     }
 
     /** Staff can take voucher / coupon codes at the POS when the restaurant has the loyalty card or campaigns. */

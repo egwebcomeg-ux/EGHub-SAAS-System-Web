@@ -98,6 +98,14 @@
             <p class="muted text-sm">{{ __('A waiter\'s order is sent only with its payment. The cash stays with the waiter until the cashier takes it on the shifts page; card, InstaPay and wallet go straight into the open shift. The cashier and the manager still open tables and pay at the end.') }}</p>
             <button class="btn-ghost w-full">{{ __('Save') }}</button>
         </form>
+        {{-- Dashboard\PosController::requiresPhone: every cashier order is tied to a customer (found or saved with it) --}}
+        <form method="post" action="{{ route('dash.terminals.phone') }}" class="card space-y-2" data-require-phone>
+            @csrf
+            <h2 class="section-title">{{ __('Customer details') }}</h2>
+            <label class="flex items-start gap-2 text-sm font-semibold"><input type="checkbox" class="mt-0.5 size-5" name="pos_require_phone" value="1" @checked($requirePhone)> {{ __('No order from the cashier without the customer\'s mobile') }}</label>
+            <p class="muted text-sm">{{ __('Takeaway and dine-in alike: the cashier types the mobile, a known customer comes up with their name, a new one is saved with the order. Delivery and call-center orders always ask for it.') }}</p>
+            <button class="btn-ghost w-full">{{ __('Save') }}</button>
+        </form>
         {{-- printing from the EgHub cashier app (App\Services\Printing\PrintJobs); in a browser the receipt page prints as before --}}
         <form method="post" action="{{ route('dash.pos.printing') }}" class="card space-y-2" data-printing-settings>
             @csrf

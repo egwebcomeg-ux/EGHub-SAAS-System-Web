@@ -464,6 +464,8 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/pos/coupon', [PosController::class, 'coupon'])->middleware(['feature:'.FeatureSets::DISCOUNT_CODES, 'throttle:60,1'])->name('pos.coupon');
         Route::post('/pos/orders/{order}/pay', [PosController::class, 'pay'])->name('pos.pay');
         Route::get('/pos/open', [PosController::class, 'open'])->name('pos.open');
+        // the customer behind a mobile typed at the POS: known (name, orders) or new
+        Route::get('/pos/customer', [PosController::class, 'customer'])->middleware('throttle:120,1')->name('pos.customer');
         Route::get('/pos/display', [PosController::class, 'display'])->name('pos.display');
         // offline mode: the catalog the device keeps, an "online?" check, and the sales made offline, one by one
         Route::get('/pos/catalog', [PosController::class, 'catalog'])->name('pos.catalog');
@@ -493,6 +495,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/pos/terminals', [TerminalsController::class, 'store'])->name('terminals.store');
         Route::post('/pos/terminals/settings', [TerminalsController::class, 'settings'])->name('terminals.settings');
         Route::post('/pos/terminals/waiter-payment', [TerminalsController::class, 'waiterPayment'])->name('terminals.waiter');
+        Route::post('/pos/terminals/customer-phone', [TerminalsController::class, 'customerPhone'])->name('terminals.phone');
         Route::post('/pos/printing', [PrintController::class, 'settings'])->name('pos.printing');
         Route::post('/pos/terminals/{terminal}', [TerminalsController::class, 'update'])->whereNumber('terminal')->name('terminals.update');
         Route::post('/pos/terminals/{terminal}/release', [TerminalsController::class, 'release'])->whereNumber('terminal')->name('terminals.release');
@@ -587,7 +590,8 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         ->middleware(['feature:'.FeatureSets::DELIVERY, 'permission:delivery.drivers'])->name('drivers.settle');
 
     // Call-center pack: phone orders with delivery zones
-    Route::middleware(['feature:call_center', 'permission:callcenter.use'])->group(function () {
+    // a cashier takes delivery orders here too (the POS «توصيل» button)
+    Route::middleware(['feature:call_center', 'permission:callcenter.use|pos.use'])->group(function () {
         Route::get('/call-center', [CallCenterController::class, 'screen'])->name('callcenter');
         Route::get('/call-center/customer', [CallCenterController::class, 'lookup'])->name('callcenter.lookup');
         Route::post('/call-center/orders', [CallCenterController::class, 'store'])->name('callcenter.order');

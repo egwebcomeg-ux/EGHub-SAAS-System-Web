@@ -35,6 +35,7 @@ class AuditController extends Controller
         'driver.settled' => ['تسوية فلوس طيار', 'Driver cash settled'],
         'waiter.settled' => ['استلام كاش من ويتر', 'Waiter cash received'],
         'pos.waiter_pay_first' => ['تحصيل الويتر قبل المطبخ', 'Waiter pays before the kitchen'],
+        'pos.require_phone' => ['موبايل العميل إجباري في الكاشير', 'Customer mobile required at the POS'],
         'table.closed' => ['قفل ترابيزة', 'Table closed'],
         'stock.purchase' => ['استلام مخزون', 'Stock received'],
         'stock.waste' => ['هالك مخزون', 'Stock waste'],

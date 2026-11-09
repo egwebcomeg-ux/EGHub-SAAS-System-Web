@@ -146,6 +146,8 @@ final class Settings
         'pos_offline_hours' => '12',
         // '1' = a waiter's POS order must be paid as it is sent, nothing reaches the kitchen unpaid (App\Services\Orders\WaiterCash)
         'pos_waiter_pay_first' => '0',
+        // '1' = no POS order without the customer's mobile (found or saved with the order; Dashboard\PosController)
+        'pos_require_phone' => '0',
         // printing from the EgHub cashier app (App\Services\Printing\PrintJobs); the browser print stays as it is
         'pos_print_receipt_auto' => '0',      // '1' = the receipt prints by itself once an order is paid at the POS
         'pos_print_kitchen_auto' => '0',      // '1' = a kitchen ticket per station prints as soon as an order arrives

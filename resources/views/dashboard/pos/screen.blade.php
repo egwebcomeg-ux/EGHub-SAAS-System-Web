@@ -11,6 +11,10 @@
     {{-- top bar --}}
     <header class="flex flex-wrap items-center gap-2 border-b border-navy-100 bg-white px-3 py-2">
         <a href="{{ route('dash.home') }}" class="btn-ghost min-h-9 px-3">← {{ __('Dashboard') }}</a>
+        @if ($cc && !empty($data['urls']['cashier']))
+            {{-- back to the counter: the order on screen goes with it (takeaway / dine-in) --}}
+            <a href="{{ $data['urls']['cashier'] }}" class="btn-ghost min-h-9 px-3" data-to-cashier>🧾 {{ __('Cashier screen') }}</a>
+        @endif
         <div class="font-bold">{{ tenant()->name }} @if ($cc)<span class="badge bg-brand-100 text-brand-700">{{ __('Call center') }}</span>@endif</div>
         @if ($branches->count() > 1)
             <form class="ms-2">
@@ -101,20 +105,37 @@
                     <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
                 </button>
             </div>
-                <div class="grid grid-cols-2 gap-1 p-3">
+                <div @class(['grid gap-1 p-3', 'grid-cols-3' => !empty($data['urls']['delivery']), 'grid-cols-2' => empty($data['urls']['delivery'])])>
                     <button type="button" class="btn min-h-10 rounded-lg" data-type="takeaway">{{ __('Takeaway') }}</button>
                     <button type="button" class="btn min-h-10 rounded-lg" data-type="dine_in">{{ __('Dine-in') }}</button>
+                    @if (!empty($data['urls']['delivery']))
+                        {{-- delivery is taken on the call-center screen (zone, address, map): the order on screen goes with it --}}
+                        <button type="button" class="btn min-h-10 rounded-lg bg-navy-50" data-to-delivery>🛵 {{ __('Delivery') }}</button>
+                    @endif
                 </div>
             <div class="hidden px-3 pb-2" data-table-box>
                 <select class="field" data-table><option value="">{{ __('Choose a table') }}</option></select>
             </div>
+            @if ($data['requirePhone'])
+                {{-- the restaurant takes no order without the customer's mobile: known customers come up as it is typed --}}
+                <div class="space-y-2 px-3 pb-2" data-customer-box>
+                    <div class="flex gap-2">
+                        <input class="field min-h-11 min-w-0 flex-1 text-lg font-bold tracking-wide" data-customer-phone placeholder="{{ __('Customer mobile') }} *" aria-label="{{ __('Customer mobile') }}" maxlength="20" dir="ltr" inputmode="tel" autocomplete="off" required>
+                        <button type="button" class="btn-ghost min-h-11 shrink-0 px-4" data-customer-lookup>{{ __('Search') }}</button>
+                    </div>
+                    <p class="hidden rounded-xl px-3 py-2 text-sm font-bold" data-customer-info role="status" aria-live="polite"></p>
+                    <input class="field min-h-9" data-customer-name placeholder="{{ __('Customer name') }}" aria-label="{{ __('Customer name') }}" maxlength="100">
+                </div>
+            @endif
             <ul class="min-h-24 flex-1 divide-y divide-navy-50 overflow-y-auto px-3" data-lines></ul>
             <div class="space-y-2 border-t border-navy-100 p-3 text-sm">
                 <details>
-                    <summary class="cursor-pointer text-navy-500">{{ __('Customer & notes') }}</summary>
+                    <summary class="cursor-pointer text-navy-500">{{ $data['requirePhone'] ? __('Notes') : __('Customer & notes') }}</summary>
                     <div class="mt-2 space-y-2">
-                        <input class="field min-h-9" data-customer-name placeholder="{{ __('Customer name') }}" maxlength="100">
-                        <input class="field min-h-9" data-customer-phone placeholder="{{ __('Mobile') }}" maxlength="20" dir="ltr" inputmode="tel">
+                        @unless ($data['requirePhone'])
+                            <input class="field min-h-9" data-customer-name placeholder="{{ __('Customer name') }}" maxlength="100">
+                            <input class="field min-h-9" data-customer-phone placeholder="{{ __('Mobile') }}" maxlength="20" dir="ltr" inputmode="tel">
+                        @endunless
                         <input class="field min-h-9" data-notes placeholder="{{ __('Notes for the order') }}" maxlength="500">
                     </div>
                 </details>
@@ -535,6 +556,7 @@
         'sent' => __('Sent to the kitchen'), 'paid' => __('Paid'), 'pay' => __('Pay'), 'noOpen' => __('No open orders.'),
         'table' => __('Table :name', ['name' => '__N__']), 'takeaway' => __('Takeaway'), 'soldOut' => __('Sold out'), 'clearAsk' => __('Clear the order?'),
         'delivery' => __('Delivery'), 'deliveryFee' => __('Delivery fee'), 'phoneFirst' => __('Enter the caller mobile number.'),
+        'phoneRequired' => __('Enter the customer\'s mobile number.'), 'noName' => __('No name saved'),
         'chooseZone' => __('Choose the delivery zone.'), 'enterAddress' => __('Write the delivery address.'),
         'minOrder' => __('Minimum order for this zone: :amount', ['amount' => '__A__']), 'newCaller' => __('New customer, will be saved with the order.'),
         'outside' => __('This location is outside every delivery zone.'), 'pinned' => __('pinned'),

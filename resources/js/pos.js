@@ -30,6 +30,8 @@ if (dataEl) {
     let renderCc = () => {}; // call-center panel: steps, zone facts, summary line (set below)
     let resetCc = () => {};
     let goStep = () => {};
+    let ccLookup = () => {}; // call center: look the caller up by the mobile typed (set below)
+    let customerReset = () => {}; // POS: clears the name found for the mobile (set below)
     // a branch priced by distance (call center): the customer's place (pin) or a distance ring prices the delivery
     const DIST = CC && D.pricing?.method === 'distance';
     let ccDelivery = () => zones[$('[data-zone]')?.value] || null; // the delivery chosen: {name, fee, min, minutes}
@@ -274,6 +276,7 @@ if (dataEl) {
             state.type = 'delivery';
             resetCc();
         }
+        customerReset();
         if ($('[data-discount]')) $('[data-discount]').value = 0;
         render();
     }
@@ -296,6 +299,7 @@ if (dataEl) {
     function canSubmit() {
         if (!state.lines.length) return false;
         if (state.type === 'dine_in' && !state.table) { alert(T.chooseTable); return false; }
+        if (!CC && D.requirePhone && !phoneValue()) { setTicket(true); alert(T.phoneRequired); $('[data-customer-phone]').focus(); return false; }
         if (CC) {
             if (!$('[data-customer-phone]').value.trim()) { goStep('customer', true); alert(T.phoneFirst); $('[data-customer-phone]').focus(); return false; }
             if (state.type === 'delivery') {
@@ -704,6 +708,7 @@ if (dataEl) {
             }
         }
         ccPoint = () => point;
+        ccLookup = lookup;
         resetPoint = () => setPoint(null, false);
         $('[data-lookup]').addEventListener('click', lookup);
         $('[data-customer-phone]').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); lookup(); } });
@@ -796,6 +801,75 @@ if (dataEl) {
             goStep('customer');
         };
         goStep('customer');
+    }
+
+    // ---- POS: the customer's mobile (required by the restaurant): the name of a known customer, or "new" ----
+    if (!CC && $('[data-customer-box]')) {
+        const info = $('[data-customer-info]');
+        const show = (text, tone) => {
+            info.textContent = text || '';
+            info.classList.toggle('hidden', !text);
+            info.classList.toggle('bg-emerald-50', tone === 'ok');
+            info.classList.toggle('text-emerald-800', tone === 'ok');
+            info.classList.toggle('bg-navy-50', tone === 'new');
+            info.classList.toggle('text-navy-700', tone === 'new');
+            info.classList.toggle('bg-red-50', tone === 'error');
+            info.classList.toggle('text-red-700', tone === 'error');
+        };
+        let asked = '';
+        async function findCustomer() {
+            const phone = phoneValue();
+            if (!phone || phone === asked || (off && !off.online)) return;
+            asked = phone;
+            try {
+                const c = await getJson(D.urls.customer + '?phone=' + encodeURIComponent(phone));
+                $('[data-customer-phone]').value = asked = c.phone;
+                if (c.found) {
+                    show('👤 ' + (c.name || T.noName), 'ok');
+                    if (c.name && !$('[data-customer-name]').value.trim()) $('[data-customer-name]').value = c.name;
+                } else {
+                    show(T.newCaller, 'new');
+                    $('[data-customer-name]').focus();
+                }
+            } catch (e) {
+                asked = '';
+                show(e.message, 'error');
+            }
+        }
+        $('[data-customer-lookup]').addEventListener('click', findCustomer);
+        $('[data-customer-phone]').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); findCustomer(); } });
+        $('[data-customer-phone]').addEventListener('change', findCustomer);
+        $('[data-customer-phone]').addEventListener('input', () => { if (phoneValue() !== asked) show(''); });
+        customerReset = () => { asked = ''; show(''); };
+    }
+
+    // ---- POS ⇄ call center: the order on screen goes along (delivery is taken on the call-center screen) ----
+    const HANDOFF = 'eghub-pos-handoff';
+    function handOff(url) {
+        try {
+            sessionStorage.setItem(HANDOFF, JSON.stringify({
+                at: Date.now(), lines: state.lines, notes: $('[data-notes]').value.trim(),
+                customer_name: $('[data-customer-name]').value.trim(), customer_phone: phoneValue(),
+            }));
+        } catch {}
+        location.href = url;
+    }
+    $('[data-to-delivery]')?.addEventListener('click', () => handOff(D.urls.delivery));
+    $('[data-to-cashier]')?.addEventListener('click', (e) => { e.preventDefault(); handOff(e.currentTarget.href); });
+    function takeHandOff() {
+        let cart = null;
+        try {
+            cart = JSON.parse(sessionStorage.getItem(HANDOFF) || 'null');
+            sessionStorage.removeItem(HANDOFF);
+        } catch {}
+        if (!cart || Date.now() - cart.at > 30 * 60000) return;
+        state.lines = (cart.lines || []).filter((l) => items[l.item_id]).map((l) => ({ item_id: l.item_id, qty: l.qty, option_ids: l.option_ids || [], notes: l.notes || '' }));
+        $('[data-notes]').value = cart.notes || '';
+        $('[data-customer-name]').value = cart.customer_name || '';
+        $('[data-customer-phone]').value = cart.customer_phone || '';
+        if (cart.customer_phone) {
+            if (CC) ccLookup(); else $('[data-customer-lookup]')?.click();
+        }
     }
 
     // ---- send / pay ----
@@ -1795,6 +1869,7 @@ if (dataEl) {
 
     renderCats();
     renderItems();
+    takeHandOff();
     render();
     refreshOpen();
     setInterval(() => { if (!off || off.online) { refreshOpen(); refreshHolds(); } }, 30000);

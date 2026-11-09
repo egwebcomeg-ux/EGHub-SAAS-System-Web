@@ -221,12 +221,16 @@ class CustomerImportTest extends TenantTestCase
         $this->actingAs($this->owner($a))->get($this->dashUrl('/customers'))->assertOk()->assertSee(__('Import customers'));
     }
 
-    public function test_only_the_owner_and_manager_import_while_the_cashier_still_sees_customers(): void
+    public function test_only_the_owner_and_manager_import_while_the_call_center_still_sees_customers(): void
     {
         $a = $this->restaurant('cafe-a');
+        $agent = $this->staff($a, 'callcenter', 'agent@a.test');
         $cashier = $this->staff($a, 'cashier', 'cashier@a.test');
 
-        $this->actingAs($cashier)->get($this->dashUrl('/customers'))->assertOk()->assertDontSee('data-customers-import', false);
+        $this->actingAs($agent)->get($this->dashUrl('/customers'))->assertOk()->assertDontSee('data-customers-import', false);
+        $this->actingAs($agent)->get($this->dashUrl('/customers/import'))->assertForbidden();
+        // the cashier sees no customer list at all (only the name of the mobile typed at the POS)
+        $this->actingAs($cashier)->get($this->dashUrl('/customers'))->assertForbidden();
         $this->actingAs($cashier)->get($this->dashUrl('/customers/import'))->assertForbidden();
         $this->actingAs($cashier)->post($this->dashUrl('/customers/import'), ['file' => $this->csv("Mobile\n01012345678\n")])->assertForbidden();
 

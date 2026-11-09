@@ -123,6 +123,10 @@ class AreaTabsTest extends TenantTestCase
         $this->assertTrue($this->railActive($html, 'dash.reports'));
         $this->assertNotContains('dash.feedback', $this->tiles($owner));
         $cashier = $this->staff($this->tenant, 'cashier', 'cashier@cafe-a.test');
+        // a cashier sees no guests by default; the owner may grant it
+        $this->assertNotContains('dash.feedback', $this->tiles($cashier));
+        $this->as($this->tenant, fn () => $cashier->givePermissionTo('customers.view'));
+        $cashier = $cashier->fresh();
         $this->assertContains('dash.feedback', $this->tiles($cashier));
         $this->assertNotContains('dash.reports', $this->tiles($cashier));
         // the cashier closes the day (shifts.manage): the Z report is the other tab there

@@ -80,6 +80,9 @@ class AdminTraceAndGuardsTest extends TenantTestCase
         $cashier = $this->staff($tenant, 'cashier', 'cashier@cafe.test');
 
         $this->actingAs($cashier)->get($this->dashUrl('/customers/export'))->assertForbidden();
+        $this->get($this->dashUrl('/customers'))->assertForbidden();
+        $agent = $this->staff($tenant, 'callcenter', 'agent@cafe.test');
+        $this->actingAs($agent)->get($this->dashUrl('/customers/export'))->assertForbidden();
         $this->get($this->dashUrl('/customers'))->assertOk()->assertDontSee('data-customers-export', false);
 
         $this->actingAs($owner)->get($this->dashUrl('/customers/export'))->assertOk();

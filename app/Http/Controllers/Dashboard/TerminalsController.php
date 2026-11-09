@@ -33,7 +33,18 @@ class TerminalsController extends Controller
             'branches' => $branches, 'terminals' => $terminals, 'open' => $open, 'offlineHours' => Terminals::offlineHours(),
             'kitchenMinutes' => [(int) Settings::get('kitchen_warn_minutes'), (int) Settings::get('kitchen_late_minutes')],
             'printing' => PrintJobs::settings(), 'waiterPayFirst' => WaiterCash::payFirst(),
+            'requirePhone' => PosController::requiresPhone(),
         ]);
+    }
+
+    /** Every POS order carries the customer's mobile, or not (PosController::requiresPhone). */
+    public function customerPhone(Request $request): RedirectResponse
+    {
+        $on = $request->boolean('pos_require_phone');
+        Settings::put(['pos_require_phone' => $on ? '1' : '0']);
+        Audit::record('pos.require_phone', $on ? 'on' : 'off');
+
+        return back()->with('ok', __('Saved.'));
     }
 
     /** Waiters take the money before the order goes to the kitchen, or not (App\Services\Orders\WaiterCash). */

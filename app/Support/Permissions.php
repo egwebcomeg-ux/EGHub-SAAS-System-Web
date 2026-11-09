@@ -109,7 +109,8 @@ final class Permissions
         ],
         'cashier' => [
             'label' => ['كاشير', 'Cashier'],
-            'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'shifts.manage', 'menu.availability', 'customers.view', 'loyalty.stamp', 'wallet.manage',
+            // no customer list: the POS shows the name of the mobile the cashier types, nothing more (the owner may grant it)
+            'permissions' => ['orders.view', 'orders.manage', 'pos.use', 'shifts.manage', 'menu.availability', 'loyalty.stamp', 'wallet.manage',
                 'vouchers.redeem', 'delivery.assign', 'kb.view', 'pager.use'],
             'hint' => ['الكاشير والورديات والطلبات، وصرف الفاوتشرات وتحديد الطيار', 'The POS, shifts and orders, redeeming vouchers and assigning drivers'],
         ],
