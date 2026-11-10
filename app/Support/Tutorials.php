@@ -108,10 +108,11 @@ final class Tutorials
                 __('Guests see the old price struck through and the offer in the ticker.'),
             ]),
             'corporate-contract' => $t('dash.corporate', 'contracts.manage', 'corporate_vouchers', __('A company contract'), [
-                __('New contract: the company, its contact and how it pays.'),
-                __('Voucher value, how many, expiry, serial prefix and how they are used.'),
-                __('Print the new vouchers (A4 or 80 mm receipts).'),
+                __('New company: its name and how it pays.'),
                 __('Record what the company paid on its statement.'),
+                __('Add its reps and put a balance for each one.'),
+                __('Issue each rep\'s vouchers out of his balance and print them.'),
+                __('A rep may also order on the company\'s account, outside the vouchers.'),
             ]),
             'company-visits' => $t('dash.corporate.bookings', 'contracts.manage|reservations.manage', 'corporate_vouchers', __('Company visits'), [
                 __('Record what the company paid on its statement.'),

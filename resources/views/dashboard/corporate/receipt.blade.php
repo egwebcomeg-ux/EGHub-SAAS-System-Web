@@ -27,7 +27,7 @@
             @if ($c['copy'])<div class="c"><span class="copy">{{ __('Reprint copy') }}</span></div>@endif
             <hr>
             <div class="c" style="font-weight:800;font-size:15px">🏢 {{ __('Corporate voucher') }}</div>
-            <div class="c">{{ $contract->name }}</div>
+            <div class="c">{{ $contract->name }}@if ($v->corporate_rep_id) · {{ $v->handed_to }}@endif</div>
             <div class="big">{{ money($v->value) }} {{ $currency }}</div>
             <div class="code">{{ $v->formattedCode() }}</div>
             <div class="qr">{!! $c['qr'] !!}</div>

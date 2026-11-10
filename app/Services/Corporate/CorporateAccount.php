@@ -5,6 +5,8 @@ namespace App\Services\Corporate;
 use App\Models\CorporateBooking;
 use App\Models\CorporateContract;
 use App\Models\CorporatePayment;
+use App\Models\CorporateRep;
+use App\Models\CorporateRepMovement;
 use App\Models\CorporateVoucher;
 use App\Models\CorporateVoucherRedemption;
 use App\Models\User;
@@ -15,8 +17,9 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The company account of a corporate contract: what the company is charged (the vouchers issued to it), what it paid
- * (corporate_payments), what its people drew (voucher uses) and what is still on its vouchers. Prepaid or on account,
+ * The company account of a corporate contract: what the company is charged (the vouchers issued to it, its visits,
+ * what was put on its reps' balances and what its reps ordered on its account), what it paid (corporate_payments),
+ * what its people drew (voucher uses) and what is still on its vouchers. Prepaid or on account,
  * the statement is the same ledger: charges and payments by date, with the balance after each line (positive = the
  * company owes, negative = it paid ahead). corporate_contracts.paid_amount / paid_status follow the payments.
  */
@@ -75,10 +78,11 @@ final class CorporateAccount
     }
 
     /**
-     * The account in figures: charged (vouchers issued), paid, owed (charged − paid; negative = paid ahead), drawn
-     * (voucher uses that stand), lost (the rest of one-use vouchers), and the value still on valid and expired vouchers.
+     * The account in figures: charged, paid, owed (charged − paid; negative = paid ahead), drawn (voucher uses that
+     * stand), direct (the reps' orders on the company's account), lost (the rest of one-use vouchers), the value still
+     * on valid and expired vouchers, and what is on the reps' balances and not on vouchers yet.
      *
-     * @return array{charged:float, paid:float, owed:float, drawn:float, lost:float, voucher_balance:float, expired_balance:float, credit_left:?float}
+     * @return array{charged:float, paid:float, owed:float, drawn:float, direct:float, lost:float, voucher_balance:float, expired_balance:float, rep_balance:float, credit_left:?float}
      */
     public function summary(CorporateContract $contract): array
     {
@@ -86,29 +90,43 @@ final class CorporateAccount
         $charged = $contract->totalValue();
         $uses = CorporateVoucherRedemption::query()->where('corporate_contract_id', $contract->id)->whereNull('refunded_at');
         // a void contract's vouchers can no longer be used: nothing is left on them
-        $vouchers = CorporateVoucher::query()->where('corporate_contract_id', $contract->id)->where('status', 'active')
+        $vouchers = CorporateVoucher::query()->where('corporate_contract_id', $contract->id)->where('status', 'active')->where('direct', false)
             ->when($contract->status === 'void', fn ($q) => $q->whereRaw('1 = 0'));
         $today = local_today();
         $owed = round($charged - $paid, 2);
 
         return [
             'charged' => $charged, 'paid' => $paid, 'owed' => $owed,
-            'drawn' => round((float) (clone $uses)->sum('amount'), 2), 'lost' => round((float) (clone $uses)->sum('forfeited'), 2),
+            'drawn' => round((float) (clone $uses)->sum('amount') - $contract->direct_value, 2), 'direct' => $contract->direct_value,
+            'lost' => round((float) (clone $uses)->sum('forfeited'), 2),
             'voucher_balance' => round((float) (clone $vouchers)->where('expires_on', '>=', $today)->sum('balance'), 2),
             'expired_balance' => round((float) (clone $vouchers)->where('expires_on', '<', $today)->sum('balance'), 2),
+            'rep_balance' => $contract->status === 'void' ? 0.0 : round((float) CorporateRep::query()->where('corporate_contract_id', $contract->id)->sum('balance'), 2),
             'credit_left' => $contract->billing === 'account' && $contract->credit_limit !== null ? round($contract->credit_limit - $owed, 2) : null,
         ];
     }
 
     /**
-     * The ledger, oldest first: each issue of vouchers and each confirmed visit (charges) and each payment (a credit,
-     * a cancelled one shown but not counted), with the balance after it.
+     * What the company can still take: a prepaid company what it paid ahead, one on account what is left of its
+     * credit (null = no limit).
+     */
+    public function available(CorporateContract $contract): ?float
+    {
+        $summary = $this->summary($contract);
+
+        return $contract->billing === 'account' ? $summary['credit_left'] : round(-$summary['owed'], 2);
+    }
+
+    /**
+     * The ledger, oldest first: each issue of vouchers, each confirmed visit, each amount put on a rep's balance and
+     * each order of a rep on the company's account (charges), and each payment or amount taken back from a rep (a
+     * credit; a cancelled payment is shown but not counted), with the balance after it.
      *
      * @return Collection<int, array{at:CarbonImmutable, kind:string, label:string, charge:float, credit:float, balance:float, payment:?CorporatePayment}>
      */
     public function ledger(CorporateContract $contract): Collection
     {
-        $issues = CorporateVoucher::query()->where('corporate_contract_id', $contract->id)->whereNull('corporate_booking_id')
+        $issues = CorporateVoucher::query()->where('corporate_contract_id', $contract->id)->whereNull('corporate_booking_id')->whereNull('corporate_rep_id')
             ->selectRaw('created_at, COUNT(*) as n')->groupBy('created_at')->orderBy('created_at')->get()
             ->map(fn ($row) => [
                 'at' => CarbonImmutable::parse($row->created_at), 'kind' => 'issue',
@@ -129,9 +147,22 @@ final class CorporateAccount
                 'label' => __('Visit of :name on :date · :n guests', ['name' => $b->rep_name, 'date' => local_time($b->visit_at, 'Y/m/d'), 'n' => $b->party_size]),
                 'charge' => $b->budget, 'credit' => 0.0, 'payment' => null,
             ]);
+        $reps = CorporateRepMovement::query()->where('corporate_contract_id', $contract->id)->whereIn('kind', ['topup', 'withdraw'])->with('rep:id,name')->get()
+            ->map(fn (CorporateRepMovement $m) => [
+                'at' => CarbonImmutable::parse($m->created_at), 'kind' => $m->kind === 'topup' ? 'rep' : 'rep_back',
+                'label' => trim(($m->rep?->name ?? '').($m->note ? ' · '.$m->note : '')),
+                'charge' => $m->kind === 'topup' ? $m->amount : 0.0, 'credit' => $m->kind === 'topup' ? 0.0 : $m->amount, 'payment' => null,
+            ]);
+        $direct = CorporateVoucherRedemption::query()->where('corporate_contract_id', $contract->id)->whereNull('refunded_at')
+            ->whereIn('corporate_voucher_id', CorporateVoucher::query()->where('direct', true)->select('id'))->with(['voucher.rep:id,name', 'order:id,number'])->get()
+            ->map(fn (CorporateVoucherRedemption $r) => [
+                'at' => CarbonImmutable::parse($r->created_at), 'kind' => 'direct',
+                'label' => trim(($r->voucher?->rep?->name ?? '').($r->order ? ' · #'.$r->order->number : ($r->reference ? ' · '.$r->reference : ''))),
+                'charge' => $r->amount, 'credit' => 0.0, 'payment' => null,
+            ]);
         $balance = 0.0;
 
-        return $issues->concat($visits)->concat($payments)->sortBy(fn ($line) => [$line['at']->getTimestamp(), $line['kind'] === 'payment' ? 1 : 0])->values()
+        return $issues->concat($visits)->concat($reps)->concat($direct)->concat($payments)->sortBy(fn ($line) => [$line['at']->getTimestamp(), $line['kind'] === 'payment' ? 1 : 0])->values()
             ->map(function (array $line) use (&$balance) {
                 $balance = round($balance + $line['charge'] - $line['credit'], 2);
 
@@ -142,6 +173,18 @@ final class CorporateAccount
     private function paidTotal(CorporateContract $contract): float
     {
         return round((float) CorporatePayment::query()->where('corporate_contract_id', $contract->id)->whereNull('cancelled_at')->sum('amount'), 2);
+    }
+
+    /** direct_value follows the uses that stand of the reps' allowances on the company's account (a refunded one no longer counts). */
+    public function refreshDirect(int $contractId): void
+    {
+        $contract = CorporateContract::query()->lockForUpdate()->find($contractId);
+        if (! $contract) {
+            return;
+        }
+        $contract->update(['direct_value' => round((float) CorporateVoucherRedemption::query()->where('corporate_contract_id', $contract->id)->whereNull('refunded_at')
+            ->whereIn('corporate_voucher_id', CorporateVoucher::query()->where('direct', true)->select('id'))->sum('amount'), 2)]);
+        $this->refreshPaid($contract);
     }
 
     /** paid_amount / paid_status follow the payments that stand and what the company is charged. */

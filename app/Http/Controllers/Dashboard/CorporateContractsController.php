@@ -11,6 +11,7 @@ use App\Models\CorporateVoucher;
 use App\Models\CorporateVoucherRedemption;
 use App\Models\Customer;
 use App\Services\Corporate\CorporateAccount;
+use App\Services\Corporate\CorporateReps;
 use App\Services\Corporate\CorporateVouchers;
 use App\Services\Import\XlsxWriter;
 use App\Services\Orders\OrderException;
@@ -25,7 +26,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * "Corporate contracts" (feature corporate_vouchers, permission contracts.manage): a company buys prepaid vouchers
- * for its staff. The list with each contract's figures, the contract form, pause / void, new expiry dates, printing
+ * for its staff. A company is added on its own; its reps, their balances and their vouchers are on its page
+ * (CorporateRepsController). The list with each contract's figures, the contract form, pause / void, new expiry dates, printing
  * (A4 cut-out cards or one 80mm receipt per voucher; a reprint says "نسخة"), the CSV / Excel export and the
  * company statement for settlement. Redemption happens at the POS (CorporateRedeemController).
  */
@@ -48,7 +50,7 @@ class CorporateContractsController extends Controller
             'found' => $q !== '' ? $this->search($q) : null,
             'totals' => [
                 'contracts' => CorporateContract::query()->where('status', '!=', 'void')->count(),
-                'remaining' => round((float) CorporateVoucher::query()->where('status', 'active')
+                'remaining' => round((float) CorporateVoucher::query()->where('status', 'active')->where('direct', false)
                     ->whereHas('contract', fn ($c) => $c->where('status', '!=', 'void'))->sum('balance'), 2),
                 'month' => round((float) CorporateVoucherRedemption::query()->whereNull('refunded_at')->where('created_at', '>=', local_at()->startOfMonth()->utc())->sum('amount'), 2),
                 'unpaid' => CorporateContract::query()->where('status', '!=', 'void')->where('paid_status', '!=', 'paid')->count(),
@@ -59,12 +61,18 @@ class CorporateContractsController extends Controller
 
     public function create(): View
     {
-        return view('dashboard.corporate.form', ['contract' => new CorporateContract(['mode' => 'single', 'expires_on' => local_at()->addMonths(3)->endOfMonth()->toDateString()]), 'branches' => $this->branches()]);
+        return view('dashboard.corporate.form', ['contract' => new CorporateContract(['mode' => 'single', 'expires_on' => local_at()->addYear()->endOfMonth()->toDateString()]), 'branches' => $this->branches()]);
     }
 
     public function store(Request $request, CorporateVouchers $service): RedirectResponse
     {
+        // a company is added on its own (no vouchers yet): its reps' vouchers are issued from its page
         $data = $request->validate($this->rules(null));
+        $data['quantity'] = (int) ($data['quantity'] ?? 0);
+        $data['voucher_value'] = (float) ($data['voucher_value'] ?? 0);
+        if ($data['quantity'] > 0 && $data['voucher_value'] < 1) {
+            return back()->withInput()->withErrors(['voucher_value' => __('The voucher value is not valid.')]);
+        }
         $data['branch_ids'] = $this->ownBranches($data['branch_ids'] ?? []);
         try {
             $contract = $service->createContract($data, $request->user());
@@ -72,14 +80,16 @@ class CorporateContractsController extends Controller
             return back()->withInput()->withErrors(['name' => $e->getMessage()]);
         }
 
-        return redirect()->route('dash.corporate.show', $contract)->with('ok', __(':n vouchers created. Print them from here.', ['n' => $contract->quantity]));
+        return redirect()->route('dash.corporate.show', $contract)->with('ok', $contract->quantity > 0
+            ? __(':n vouchers created. Print them from here.', ['n' => $contract->quantity])
+            : __('Company added. Add its reps now.'));
     }
 
-    public function show(Request $request, CorporateContract $contract, CorporateVouchers $service): View
+    public function show(Request $request, CorporateContract $contract, CorporateVouchers $service, CorporateReps $repsService): View
     {
         $filter = in_array($request->query('filter'), ['active', 'used', 'void', 'expired', 'unprinted', 'linked'], true) ? (string) $request->query('filter') : 'all';
         $rep = filled($request->query('rep')) ? mb_substr((string) $request->query('rep'), 0, 100) : null;
-        $vouchers = $contract->vouchers()->with('customer')
+        $vouchers = $contract->vouchers()->where('direct', false)->with('customer')
             ->when($rep !== null, fn ($q) => $q->where('handed_to', $rep))
             ->when($filter === 'active', fn ($q) => $q->where('status', 'active')->where('expires_on', '>=', local_today()))
             ->when($filter === 'expired', fn ($q) => $q->where('status', 'active')->where('expires_on', '<', local_today()))
@@ -92,7 +102,9 @@ class CorporateContractsController extends Controller
             'contract' => $contract, 'stats' => $service->stats($contract), 'vouchers' => $vouchers, 'filter' => $filter, 'rep' => $rep,
             'visitsWaiting' => $contract->bookings()->where('status', 'requested')->count(),
             'branchNames' => Branch::query()->pluck('name', 'id'),
-            'reps' => $contract->vouchers()->whereNotNull('handed_to')->selectRaw('handed_to, count(*) as vouchers')->groupBy('handed_to')->orderBy('handed_to')->pluck('vouchers', 'handed_to'),
+            'reps' => $contract->vouchers()->where('direct', false)->whereNotNull('handed_to')->selectRaw('handed_to, count(*) as vouchers')->groupBy('handed_to')->orderBy('handed_to')->pluck('vouchers', 'handed_to'),
+            'repRows' => $repsService->summaries($contract),
+            'unprinted' => $contract->vouchers()->where('direct', false)->where('status', '!=', 'void')->where('print_count', 0)->count(),
         ]);
     }
 
@@ -180,8 +192,10 @@ class CorporateContractsController extends Controller
     {
         $layout = in_array($request->query('layout'), self::PRINT_LAYOUTS, true) ? (string) $request->query('layout') : 'a4';
         $ids = array_filter(array_map('intval', explode(',', (string) $request->query('ids', ''))));
-        $vouchers = $contract->vouchers()->where('status', '!=', 'void')
+        $repId = (int) $request->query('rep_id');
+        $vouchers = $contract->vouchers()->where('status', '!=', 'void')->where('direct', false)
             ->when($ids !== [], fn ($q) => $q->whereIn('id', $ids))
+            ->when($repId > 0, fn ($q) => $q->where('corporate_rep_id', $repId))
             ->when($request->boolean('unprinted'), fn ($q) => $q->where('print_count', 0))
             ->orderBy('id')->limit(self::PRINT_MAX)->get();
         abort_if($vouchers->isEmpty(), 404);
@@ -193,7 +207,7 @@ class CorporateContractsController extends Controller
             'cards' => $vouchers->map(fn (CorporateVoucher $v) => [
                 'voucher' => $v, 'copy' => $copies[$v->id] ?? false, 'qr' => Qr::svg($v->publicUrl(), 200, '#111111'),
             ]),
-            'query' => array_filter(['ids' => $request->query('ids'), 'unprinted' => $request->query('unprinted')]),
+            'query' => array_filter(['ids' => $request->query('ids'), 'unprinted' => $request->query('unprinted'), 'rep_id' => $repId ?: null]),
             'branches' => $contract->branch_ids ? Branch::query()->whereIn('id', $contract->branch_ids)->get() : collect(),
         ]);
     }
@@ -208,7 +222,7 @@ class CorporateContractsController extends Controller
     public function export(Request $request, CorporateContract $contract): Response
     {
         $rows = [[__('Serial'), __('Code'), __('Value'), __('Balance'), __('Status'), __('Valid until'), __('Linked mobile'), __('Handed to'), __('Rep mobile'), __('Prints'), __('Link')]];
-        foreach ($contract->vouchers()->with('customer')->orderBy('id')->cursor() as $v) {
+        foreach ($contract->vouchers()->where('direct', false)->with('customer')->orderBy('id')->cursor() as $v) {
             $rows[] = [$v->serial, $v->formattedCode(), $v->value, $v->balance, $v->statusLabel(), $v->expires_on->format('Y-m-d'),
                 $v->customer?->phone ?? '', $v->handed_to ?? '', $v->handed_to_phone ?? '', $v->print_count, $v->publicUrl()];
         }
@@ -252,29 +266,30 @@ class CorporateContractsController extends Controller
      * The company statement: the account (charged, paid, owed, drawn, left on the vouchers), the ledger of charges and
      * payments with the balance after each, and every use of the vouchers (refunded uses are shown, not counted).
      */
-    public function statement(Request $request, CorporateContract $contract, CorporateAccount $account): View|Response
+    public function statement(Request $request, CorporateContract $contract, CorporateAccount $account, CorporateReps $repsService): View|Response
     {
         $from = $request->date('from');
         $to = $request->date('to');
         $rows = CorporateVoucherRedemption::query()->where('corporate_contract_id', $contract->id)
-            ->with(['voucher.customer', 'order:id,number,total', 'branch:id,name,name_en', 'cashier:id,name', 'approver:id,name', 'refunder:id,name'])
+            ->with(['voucher.customer', 'voucher.rep:id,name', 'order:id,number,total', 'branch:id,name,name_en', 'cashier:id,name', 'approver:id,name', 'refunder:id,name'])
             ->when($from, fn ($q) => $q->where('created_at', '>=', local_day_start($from)))->when($to, fn ($q) => $q->where('created_at', '<=', local_day_end($to)))
             ->orderBy('id')->get();
 
         if (in_array($request->query('format'), ['csv', 'xlsx'], true)) {
-            $out = [[__('Date'), __('Branch'), __('Order'), __('Serial'), __('Amount'), __('Lost (one use)'), __('Exception'), __('Cashier')]];
+            $out = [[__('Date'), __('Branch'), __('Order'), __('Serial'), __('Rep'), __('Amount'), __('Lost (one use)'), __('Exception'), __('Cashier')]];
             foreach ($rows->whereNull('refunded_at') as $r) {
                 $out[] = [local_time($r->created_at, 'Y-m-d H:i'), $r->branch ? tr($r->branch->name, $r->branch->name_en) : '', self::billLabel($r),
-                    $r->voucher?->serial, $r->amount, $r->forfeited, $r->exception_reason ? $r->exception_reason.' · '.$r->approver?->name : '', $r->cashier?->name];
+                    $r->voucher?->direct ? __('On the company\'s account') : $r->voucher?->serial, $r->voucher?->rep?->name ?? '',
+                    $r->amount, $r->forfeited, $r->exception_reason ? $r->exception_reason.' · '.$r->approver?->name : '', $r->cashier?->name];
             }
-            $out[] = [__('Total'), '', '', '', round($rows->whereNull('refunded_at')->sum('amount'), 2), round($rows->whereNull('refunded_at')->sum('forfeited'), 2), '', ''];
+            $out[] = [__('Total'), '', '', '', '', round($rows->whereNull('refunded_at')->sum('amount'), 2), round($rows->whereNull('refunded_at')->sum('forfeited'), 2), '', ''];
 
             return $this->download($out, 'statement-'.$contract->prefix.'-'.local_today(), (string) $request->query('format'), __('Statement'));
         }
 
         return view('dashboard.corporate.statement', [
             'contract' => $contract, 'rows' => $rows, 'from' => $from, 'to' => $to,
-            'account' => $account->summary($contract), 'ledger' => $account->ledger($contract),
+            'account' => $account->summary($contract), 'ledger' => $account->ledger($contract), 'repRows' => $repsService->summaries($contract),
             'total' => round($rows->whereNull('refunded_at')->sum('amount'), 2), 'forfeited' => round($rows->whereNull('refunded_at')->sum('forfeited'), 2),
         ]);
     }
@@ -352,8 +367,8 @@ class CorporateContractsController extends Controller
             'contact_name' => 'nullable|string|max:100',
             'contact_phone' => 'nullable|string|max:20',
             'reference' => 'nullable|string|max:60',
-            // 0 = a contract for company visits only (their vouchers are made when a visit is confirmed)
-            'quantity' => ['required', 'integer', 'min:'.($contract?->quantity ?? 0), 'max:'.CorporateVouchers::MAX_QUANTITY],
+            // 0 (or left out) = a company without a printed batch: its reps' vouchers and its visits' are made later
+            'quantity' => [$contract ? 'required' : 'nullable', 'integer', 'min:'.($contract?->quantity ?? 0), 'max:'.CorporateVouchers::MAX_QUANTITY],
             'booking_notice_hours' => 'nullable|integer|min:0|max:720',
             'branch_ids' => 'nullable|array|max:100',
             'branch_ids.*' => 'integer',
@@ -375,7 +390,8 @@ class CorporateContractsController extends Controller
                 'paid_amount' => 'nullable|numeric|min:0|max:'.CorporateAccount::MAX_PAYMENT,
                 'paid_method' => ['nullable', Rule::in(array_keys(CorporatePayment::METHODS))],
                 'prefix' => ['nullable', 'regex:/^[A-Za-z0-9]{1,6}$/'],
-                'voucher_value' => 'required|numeric|min:1|max:'.CorporateVouchers::MAX_VALUE,
+                // only a company signed with a printed batch has one value for all its vouchers
+                'voucher_value' => 'nullable|numeric|min:0|max:'.CorporateVouchers::MAX_VALUE,
                 'expires_on' => 'required|date|after_or_equal:'.local_today(),
                 'mode' => ['required', Rule::in(array_keys(CorporateContract::MODES))],
             ];

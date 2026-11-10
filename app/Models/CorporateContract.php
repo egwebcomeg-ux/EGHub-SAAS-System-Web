@@ -44,7 +44,7 @@ class CorporateContract extends TenantModel
         return [
             'voucher_value' => 'float', 'quantity' => 'integer', 'expires_on' => 'date', 'branch_ids' => 'array', 'days' => 'array',
             'min_order' => 'float', 'paid_amount' => 'float', 'credit_limit' => 'float', 'extra_value' => 'float',
-            'booking_notice_hours' => 'integer',
+            'booking_notice_hours' => 'integer', 'rep_value' => 'float', 'direct_value' => 'float',
         ];
     }
 
@@ -73,10 +73,18 @@ class CorporateContract extends TenantModel
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    /** What the company is charged for the whole contract: the printed vouchers and the confirmed visits. */
+    /**
+     * What the company is charged for the whole contract: the printed vouchers, the confirmed visits, what was put on
+     * its reps' balances and what its reps ordered on its account.
+     */
     public function totalValue(): float
     {
-        return round($this->voucher_value * $this->quantity + (float) $this->extra_value, 2);
+        return round($this->voucher_value * $this->quantity + (float) $this->extra_value + (float) $this->rep_value + (float) $this->direct_value, 2);
+    }
+
+    public function reps(): HasMany
+    {
+        return $this->hasMany(CorporateRep::class);
     }
 
     public function bookings(): HasMany

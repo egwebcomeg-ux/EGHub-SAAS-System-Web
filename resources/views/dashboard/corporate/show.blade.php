@@ -8,7 +8,9 @@
     $paidStyles = ['paid' => 'bg-emerald-100 text-emerald-800', 'partial' => 'bg-amber-100 text-amber-800', 'unpaid' => 'bg-red-100 text-red-700'];
     $live = $contract->status !== 'void';
 @endphp
-<x-dash.page-header :title="$contract->name" :help="$contract->quantity . ' × ' . money($contract->voucher_value) . ' · ' . $contract->modeLabel()">
+<x-dash.page-header :title="$contract->name" :help="$contract->voucher_value > 0
+    ? $contract->quantity . ' × ' . money($contract->voucher_value) . ' · ' . $contract->modeLabel()
+    : __('Add the company\'s reps, put a balance for each one, and issue his vouchers out of it.')">
     <div class="mt-2 flex flex-wrap gap-2">
         <span class="badge {{ $statusStyles[$contract->status] ?? '' }}" data-contract-status="{{ $contract->status }}">{{ $contract->statusLabel() }}</span>
         <span class="badge {{ $paidStyles[$contract->paid_status] ?? '' }}">{{ $contract->paidLabel() }} · {{ money($contract->paid_amount) }} / {{ money($contract->totalValue()) }}</span>
@@ -16,7 +18,9 @@
     </div>
     <x-slot:actions>
         @if ($live)
-            <a href="{{ route('dash.corporate.print', ['contract' => $contract, 'unprinted' => 1]) }}" class="btn-primary" target="_blank" data-print-new>🖨 {{ __('Print new vouchers') }}</a>
+            @if ($unprinted > 0)
+                <a href="{{ route('dash.corporate.print', ['contract' => $contract, 'unprinted' => 1]) }}" class="btn-primary" target="_blank" data-print-new>🖨 {{ __('Print new vouchers') }}</a>
+            @endif
             <a href="{{ route('dash.corporate.edit', $contract) }}" class="btn-ghost">{{ __('Edit') }}</a>
         @endif
         <a href="{{ route('dash.corporate.statement', $contract) }}" class="btn-ghost" data-statement-link>{{ __('Company statement') }}</a>
@@ -32,6 +36,8 @@
     <div class="stat-card"><div class="stat-label">{{ __('Lost (one use)') }}</div><div class="stat-value text-navy-500">{{ money($stats['forfeited']) }}</div></div>
     <div class="stat-card"><div class="stat-label">{{ __('Value left') }}</div><div class="stat-value text-brand-700" data-remaining-value>{{ money($stats['remaining_value']) }}</div></div>
 </div>
+
+@include('dashboard.corporate.partials.reps')
 
 <div class="mb-4 grid gap-4 lg:grid-cols-3">
     <section class="card space-y-2 text-sm lg:col-span-2">

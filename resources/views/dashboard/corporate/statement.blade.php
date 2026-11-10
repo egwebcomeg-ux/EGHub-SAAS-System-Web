@@ -37,12 +37,13 @@
                 <tr @class(['line-through opacity-60' => $payment?->cancelled_at]) data-ledger-row="{{ $line['kind'] }}">
                     <td class="whitespace-nowrap">{{ local_time($line['at'], 'Y/m/d') }}</td>
                     <td>
-                        {{ ['issue' => __('Vouchers issued'), 'visit' => __('Company visit'), 'payment' => __('Payment')][$line['kind']] }} · {{ $line['label'] }}
+                        {{ ['issue' => __('Vouchers issued'), 'visit' => __('Company visit'), 'payment' => __('Payment'), 'rep' => __('Balance for a rep'),
+                            'rep_back' => __('Back from a rep'), 'direct' => __('Order on the company\'s account')][$line['kind']] }} · {{ $line['label'] }}
                         @if ($payment?->note)<div class="text-xs text-navy-500">{{ $payment->note }}</div>@endif
                         @if ($payment?->cancelled_at)<div class="text-xs text-red-600">{{ __('Cancelled by :name: :reason', ['name' => $payment->canceller?->name ?? '—', 'reason' => $payment->cancel_reason]) }}</div>@endif
                     </td>
                     <td>{{ $line['charge'] > 0 ? money($line['charge']) : '' }}</td>
-                    <td class="text-emerald-700">{{ $payment ? money($payment->amount) : '' }}</td>
+                    <td class="text-emerald-700">{{ $payment ? money($payment->amount) : ($line['credit'] > 0 ? money($line['credit']) : '') }}</td>
                     <td @class(['font-extrabold', 'text-red-600' => $line['balance'] > 0])>{{ money(abs($line['balance'])) }}{{ $line['balance'] < 0 ? ' ' . __('ahead') : '' }}</td>
                     <td>
                         @if ($payment && ! $payment->cancelled_at)
@@ -86,6 +87,33 @@
     @endif
 </div>
 
+@if ($repRows->isNotEmpty())
+    {{-- each rep on his own: what was put for him, his vouchers, and his orders on the company's account apart --}}
+    <section class="card mb-4 overflow-x-auto" data-statement-reps>
+        <h2 class="section-title mb-3">{{ __('Reps') }}</h2>
+        <table class="table-base">
+            <thead><tr><th>{{ __('Rep') }}</th><th>{{ __('Put for him') }}</th><th>{{ __('Issued as vouchers') }}</th><th>{{ __('Used from them') }}</th><th>{{ __('Left on them') }}</th><th>{{ __('Balance') }}</th><th>{{ __('On the company\'s account') }}</th></tr></thead>
+            <tbody>
+            @foreach ($repRows as $row)
+                <tr data-statement-rep="{{ $row['rep']->name }}">
+                    <td class="font-bold">{{ $row['rep']->name }}@if ($row['rep']->phone)<span class="block text-xs font-normal text-navy-500" dir="ltr">{{ $row['rep']->phone }}</span>@endif</td>
+                    <td>{{ money($row['put']) }}</td>
+                    <td>{{ money($row['issued']) }}</td>
+                    <td>{{ money($row['drawn']) }}</td>
+                    <td>{{ money($row['on_vouchers']) }}</td>
+                    <td class="font-extrabold text-brand-700">{{ money($row['rep']->balance) }}</td>
+                    <td class="font-extrabold" data-statement-direct>{{ money($row['direct']) }}</td>
+                </tr>
+            @endforeach
+            </tbody>
+            <tfoot><tr class="font-extrabold">
+                <td>{{ __('Total') }}</td><td>{{ money($repRows->sum('put')) }}</td><td>{{ money($repRows->sum('issued')) }}</td><td>{{ money($repRows->sum('drawn')) }}</td>
+                <td>{{ money($repRows->sum('on_vouchers')) }}</td><td>{{ money($account['rep_balance']) }}</td><td>{{ money($account['direct']) }}</td>
+            </tr></tfoot>
+        </table>
+    </section>
+@endif
+
 <h2 class="section-title mb-2">{{ __('Uses of the vouchers') }}</h2>
 <form class="card mb-4 flex flex-wrap items-end gap-2">
     <label class="block"><span class="field-label">{{ __('From') }}</span><input class="field" type="date" name="from" value="{{ $from?->format('Y-m-d') }}"></label>
@@ -108,7 +136,10 @@
                 <td class="whitespace-nowrap">{{ local_time($r->created_at, 'Y/m/d h:i A') }}</td>
                 <td>{{ $r->branch ? tr($r->branch->name, $r->branch->name_en) : '—' }}</td>
                 <td @if ($r->isManual()) data-statement-paper @endif>{{ \App\Http\Controllers\Dashboard\CorporateContractsController::billLabel($r) ?: '—' }}</td>
-                <td dir="ltr" class="font-bold">{{ $r->voucher?->serial }}</td>
+                <td class="font-bold">
+                    @if ($r->voucher?->direct)<span class="badge bg-amber-100 text-amber-800" data-statement-on-account>{{ __('On the company\'s account') }}</span>@else<span dir="ltr">{{ $r->voucher?->serial }}</span>@endif
+                    @if ($r->voucher?->rep)<span class="block text-xs font-normal text-navy-500">{{ $r->voucher->rep->name }}</span>@endif
+                </td>
                 <td class="font-extrabold">{{ money($r->amount) }}@if ($r->forfeited > 0) <span class="text-xs font-normal text-navy-500">+ {{ __(':amount lost', ['amount' => money($r->forfeited)]) }}</span>@endif</td>
                 <td>{{ $r->cashier?->name ?? '—' }}</td>
                 <td class="text-sm text-navy-600">

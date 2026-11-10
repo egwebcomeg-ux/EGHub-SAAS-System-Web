@@ -3,11 +3,15 @@
     $editing = $contract->exists;
     $chosenBranches = array_map('intval', old('branch_ids', $contract->branch_ids ?? []));
     $chosenDays = array_map('intval', old('days', $contract->days ?? []));
+    // a company signed with one printed batch (one value for all its vouchers); others issue vouchers per rep
+    $batch = $editing && $contract->voucher_value > 0;
+    $hasExtras = filled(old('contact_name', $contract->contact_name)) || filled(old('contact_phone', $contract->contact_phone))
+        || filled(old('reference', $contract->reference)) || filled(old('notes', $contract->notes));
 @endphp
-@section('title', $editing ? __('Edit contract') : __('New contract'))
+@section('title', $editing ? __('Edit contract') : __('New company'))
 
 @section('content')
-<x-dash.page-header :title="$editing ? __('Edit contract') : __('New contract')" :help="__('The company, the vouchers (value, how many, until when) and where and when they work. The codes are made for you, each unique, with a check character that catches typos.')">
+<x-dash.page-header :title="$editing ? __('Edit contract') : __('New company')" :help="__('Add the company and how it pays. Its reps, the balance of each and their vouchers come next, on the company\'s page.')">
     <x-slot:actions>
         <a href="{{ $editing ? route('dash.corporate.show', $contract) : route('dash.corporate') }}" class="btn-ghost">{{ __('Back') }}</a>
     </x-slot:actions>
@@ -19,14 +23,6 @@
         <h2 class="section-title">{{ __('The company') }}</h2>
         <label class="block"><span class="field-label">{{ __('Company name') }} *</span>
             <input class="field" name="name" value="{{ old('name', $contract->name) }}" required maxlength="150" placeholder="{{ __('e.g. Eva Pharma') }}"></label>
-        <div class="grid gap-3 sm:grid-cols-2">
-            <label class="block"><span class="field-label">{{ __('Contact person') }}</span>
-                <input class="field" name="contact_name" value="{{ old('contact_name', $contract->contact_name) }}" maxlength="100"></label>
-            <label class="block"><span class="field-label">{{ __('Contact mobile') }}</span>
-                <input class="field" name="contact_phone" value="{{ old('contact_phone', $contract->contact_phone) }}" maxlength="20" dir="ltr" inputmode="tel"></label>
-        </div>
-        <label class="block"><span class="field-label">{{ __('Contract / invoice number') }}</span>
-            <input class="field" name="reference" value="{{ old('reference', $contract->reference) }}" maxlength="60" dir="auto"></label>
         @php $billing = old('billing', $contract->billing ?? 'prepaid'); @endphp
         <div class="grid gap-3 sm:grid-cols-2">
             <label class="block"><span class="field-label">{{ __('How the company pays') }}</span>
@@ -38,8 +34,6 @@
             <label class="block"><span class="field-label">{{ __('Most the company may owe (empty = no limit)') }}</span>
                 <input class="field" name="credit_limit" type="number" min="0" step="0.01" value="{{ old('credit_limit', $contract->credit_limit) }}" dir="ltr"></label>
         </div>
-        <label class="block"><span class="field-label">{{ __('Company visits are booked at least (hours ahead)') }}</span>
-            <input class="field" name="booking_notice_hours" type="number" min="0" max="720" value="{{ old('booking_notice_hours', $contract->booking_notice_hours ?? 24) }}" dir="ltr" data-notice-hours></label>
         <div class="grid gap-3 sm:grid-cols-2">
             @if ($editing)
                 <div class="rounded-xl bg-navy-50 p-3 text-sm">
@@ -62,13 +56,34 @@
                     </select></label>
             @endif
         </div>
-        <label class="block"><span class="field-label">{{ __('Notes') }}</span>
-            <textarea class="field min-h-20 py-2" name="notes" maxlength="2000">{{ old('notes', $contract->notes) }}</textarea></label>
+        <details class="rounded-xl border border-navy-100 p-3" @if ($hasExtras) open @endif data-company-extras>
+            <summary class="cursor-pointer text-sm font-bold text-navy-700">{{ __('More about the company (optional)') }}</summary>
+            <div class="mt-3 space-y-3">
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <label class="block"><span class="field-label">{{ __('Contact person') }}</span>
+                        <input class="field" name="contact_name" value="{{ old('contact_name', $contract->contact_name) }}" maxlength="100"></label>
+                    <label class="block"><span class="field-label">{{ __('Contact mobile') }}</span>
+                        <input class="field" name="contact_phone" value="{{ old('contact_phone', $contract->contact_phone) }}" maxlength="20" dir="ltr" inputmode="tel"></label>
+                </div>
+                <label class="block"><span class="field-label">{{ __('Contract / invoice number') }}</span>
+                    <input class="field" name="reference" value="{{ old('reference', $contract->reference) }}" maxlength="60" dir="auto"></label>
+                <label class="block"><span class="field-label">{{ __('Company visits are booked at least (hours ahead)') }}</span>
+                    <input class="field" name="booking_notice_hours" type="number" min="0" max="720" value="{{ old('booking_notice_hours', $contract->booking_notice_hours ?? 24) }}" dir="ltr" data-notice-hours></label>
+                <label class="block"><span class="field-label">{{ __('Notes') }}</span>
+                    <textarea class="field min-h-20 py-2" name="notes" maxlength="2000">{{ old('notes', $contract->notes) }}</textarea></label>
+            </div>
+        </details>
     </section>
 
     <section class="card space-y-3">
         <h2 class="section-title">{{ __('The vouchers') }}</h2>
-        @if ($editing)
+        @if ($editing && ! $batch)
+            <div class="grid grid-cols-2 gap-2 text-sm">
+                <div class="rounded-xl bg-navy-50 p-3"><div class="text-navy-500">{{ __('Valid until') }}</div><div class="font-extrabold">{{ local_time($contract->expires_on, 'Y/m/d') }}</div></div>
+                <div class="rounded-xl bg-navy-50 p-3"><div class="text-navy-500">{{ __('Use') }}</div><div class="font-extrabold">{{ $contract->modeLabel() }}</div></div>
+            </div>
+            <p class="text-xs text-navy-500">{{ __('Each rep\'s vouchers are issued from the company\'s page, with their own value. Change the date with “Extend” on the contract page.') }}</p>
+        @elseif ($editing)
             <div class="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
                 <div class="rounded-xl bg-navy-50 p-3"><div class="text-navy-500">{{ __('Value') }}</div><div class="font-extrabold">{{ money($contract->voucher_value) }}</div></div>
                 <div class="rounded-xl bg-navy-50 p-3"><div class="text-navy-500">{{ __('Valid until') }}</div><div class="font-extrabold">{{ local_time($contract->expires_on, 'Y/m/d') }}</div></div>
@@ -81,18 +96,14 @@
             @error('quantity')<p class="text-sm font-bold text-red-700">{{ $message }}</p>@enderror
             @include('dashboard.corporate.partials.handed-to')
         @else
+            <p class="text-sm text-navy-500">{{ __('The vouchers are issued later for each rep, out of his balance. Here: until when the contract runs and how its vouchers are used.') }}</p>
             <div class="grid gap-3 sm:grid-cols-2">
-                <label class="block"><span class="field-label">{{ __('Value of one voucher') }} *</span>
-                    <input class="field text-lg" name="voucher_value" type="number" min="1" step="0.01" value="{{ old('voucher_value', 200) }}" required dir="ltr"></label>
-                <label class="block"><span class="field-label">{{ __('How many vouchers') }} *</span>
-                    <input class="field text-lg" name="quantity" type="number" min="0" max="{{ \App\Services\Corporate\CorporateVouchers::MAX_QUANTITY }}" value="{{ old('quantity', 50) }}" required dir="ltr"></label>
                 <label class="block"><span class="field-label">{{ __('Valid until (inclusive)') }} *</span>
                     <input class="field" name="expires_on" type="date" min="{{ local_today() }}" value="{{ old('expires_on', $contract->expires_on?->format('Y-m-d')) }}" required></label>
                 <label class="block"><span class="field-label">{{ __('Serial prefix') }}</span>
                     <input class="field uppercase" name="prefix" value="{{ old('prefix') }}" maxlength="6" pattern="[A-Za-z0-9]{1,6}" dir="ltr" placeholder="EVA"></label>
             </div>
-            <p class="-mt-1 text-xs text-navy-500">{{ __('Serials look like EVA-0001. Empty = taken from the company name.') }} {{ __('0 vouchers = a contract for company visits only.') }}</p>
-            @include('dashboard.corporate.partials.handed-to')
+            <p class="-mt-1 text-xs text-navy-500">{{ __('Serials look like EVA-0001. Empty = taken from the company name.') }}</p>
             <fieldset class="space-y-2">
                 <legend class="field-label">{{ __('How it is used') }}</legend>
                 @foreach (['single' => __('The whole value in one order. If the order is smaller, the rest is lost (the cashier is warned).'), 'balance' => __('Like a balance: what is left stays on the voucher for the next order.')] as $mode => $help)
@@ -141,7 +152,7 @@
     </section>
 
     <div class="flex flex-wrap gap-2 lg:col-span-2">
-        <button class="btn-primary min-w-48">{{ $editing ? __('Save') : __('Create the contract and its vouchers') }}</button>
+        <button class="btn-primary min-w-48">{{ $editing ? __('Save') : __('Add the company') }}</button>
         <a href="{{ $editing ? route('dash.corporate.show', $contract) : route('dash.corporate') }}" class="btn-ghost">{{ __('Cancel') }}</a>
     </div>
 </form>

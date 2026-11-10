@@ -18,6 +18,7 @@ use App\Http\Controllers\Dashboard\CorporateBookingsController;
 use App\Http\Controllers\Dashboard\CorporateContractsController;
 use App\Http\Controllers\Dashboard\CorporateRedeemController;
 use App\Http\Controllers\Dashboard\CorporateReportController;
+use App\Http\Controllers\Dashboard\CorporateRepsController;
 use App\Http\Controllers\Dashboard\CouponsController;
 use App\Http\Controllers\Dashboard\CustomerImportController;
 use App\Http\Controllers\Dashboard\CustomersController;
@@ -704,6 +705,13 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/corporate/vouchers/{voucher}/receipt', [CorporateContractsController::class, 'receipt'])->whereNumber('voucher')->name('corporate.voucher.receipt');
         Route::post('/corporate/vouchers/{voucher}/extend', [CorporateContractsController::class, 'extendVoucher'])->whereNumber('voucher')->name('corporate.voucher.extend');
         Route::post('/corporate/vouchers/{voucher}/void', [CorporateContractsController::class, 'voidVoucher'])->whereNumber('voucher')->name('corporate.voucher.void');
+        // the company's reps: a balance each, his vouchers out of it, and his orders on the company's account
+        Route::post('/corporate/{contract}/reps', [CorporateRepsController::class, 'store'])->whereNumber('contract')->name('corporate.reps.store');
+        Route::post('/corporate/reps/{rep}', [CorporateRepsController::class, 'update'])->whereNumber('rep')->name('corporate.reps.update');
+        Route::post('/corporate/reps/{rep}/topup', [CorporateRepsController::class, 'topUp'])->whereNumber('rep')->middleware('throttle:30,1')->name('corporate.reps.topup');
+        Route::post('/corporate/reps/{rep}/withdraw', [CorporateRepsController::class, 'withdraw'])->whereNumber('rep')->middleware('throttle:30,1')->name('corporate.reps.withdraw');
+        Route::post('/corporate/reps/{rep}/vouchers', [CorporateRepsController::class, 'issue'])->whereNumber('rep')->middleware('throttle:20,1')->name('corporate.reps.issue');
+        Route::post('/corporate/reps/{rep}/direct', [CorporateRepsController::class, 'direct'])->whereNumber('rep')->middleware('throttle:30,1')->name('corporate.reps.direct');
         Route::post('/corporate/{contract}/portal', [CorporateBookingsController::class, 'portal'])->whereNumber('contract')->name('corporate.portal');
         Route::post('/corporate/bookings/{booking}/approve', [CorporateBookingsController::class, 'approve'])->whereNumber('booking')->name('corporate.bookings.approve');
         Route::post('/corporate/bookings/{booking}/decline', [CorporateBookingsController::class, 'decline'])->whereNumber('booking')->name('corporate.bookings.decline');

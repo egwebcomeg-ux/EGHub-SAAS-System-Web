@@ -67,7 +67,7 @@
                     <div class="cv__brand">
                         @if ($logo)<img src="{{ $logo }}" alt="">@endif
                         <span>{{ $brand }}</span>
-                        <span class="cv__company">{{ $contract->name }}</span>
+                        <span class="cv__company">{{ $contract->name }}@if ($v->corporate_rep_id) · {{ $v->handed_to }}@endif</span>
                     </div>
                     <div class="cv__body">
                         <div class="cv__label">{{ __('Corporate voucher') }}</div>

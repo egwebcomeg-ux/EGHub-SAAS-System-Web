@@ -102,12 +102,7 @@ final class CorporateBookings
      */
     public function available(CorporateContract $contract): ?float
     {
-        $summary = $this->account->summary($contract);
-        if ($contract->billing === 'account') {
-            return $summary['credit_left'];
-        }
-
-        return round(-$summary['owed'], 2);
+        return $this->account->available($contract);
     }
 
     /**

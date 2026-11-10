@@ -31,7 +31,7 @@ class CorporateVoucher extends TenantModel
     {
         return [
             'value' => 'float', 'balance' => 'float', 'expires_on' => 'date', 'linked_at' => 'datetime', 'pending_at' => 'datetime',
-            'printed_at' => 'datetime', 'print_count' => 'integer', 'valid_from' => 'date',
+            'printed_at' => 'datetime', 'print_count' => 'integer', 'valid_from' => 'date', 'direct' => 'boolean',
         ];
     }
 
@@ -50,6 +50,12 @@ class CorporateVoucher extends TenantModel
     public function isNotYetValid(): bool
     {
         return $this->valid_from !== null && $this->valid_from->toDateString() > local_today();
+    }
+
+    /** The company's rep it was issued to (out of his balance), or whose allowance on the company's account it is (`direct`). */
+    public function rep(): BelongsTo
+    {
+        return $this->belongsTo(CorporateRep::class, 'corporate_rep_id');
     }
 
     public function booking(): BelongsTo

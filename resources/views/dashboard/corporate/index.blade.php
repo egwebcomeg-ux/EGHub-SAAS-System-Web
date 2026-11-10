@@ -9,7 +9,7 @@
 @endphp
 <x-dash.page-header :title="__('Corporate contracts')" :help="__('A company buys prepaid vouchers for its staff: you print them, the cashier takes them at the POS, and the statement shows every use for settlement.')">
     <x-slot:actions>
-        <a href="{{ route('dash.corporate.create') }}" class="btn-primary" data-new-contract>＋ {{ __('New contract') }}</a>
+        <a href="{{ route('dash.corporate.create') }}" class="btn-primary" data-new-contract>＋ {{ __('New company') }}</a>
     </x-slot:actions>
 </x-dash.page-header>
 @include('dashboard.partials.area-tabs', ['area' => 'corporate', 'current' => 'contracts', 'tabCounts' => ['visits' => $totals['visits']]])
@@ -71,7 +71,7 @@
             <div class="text-4xl" aria-hidden="true">🏢</div>
             <p class="mt-2 font-semibold">{{ __('No contracts yet.') }}</p>
             <p class="text-sm text-navy-500">{{ __('Example: a company buys 300 vouchers of 200 for its staff. Create the contract, print the vouchers, and the cashier takes them like money.') }}</p>
-            <a href="{{ route('dash.corporate.create') }}" class="btn-primary mt-4">＋ {{ __('New contract') }}</a>
+            <a href="{{ route('dash.corporate.create') }}" class="btn-primary mt-4">＋ {{ __('New company') }}</a>
         </div>
     @else
         <table class="table-base">
@@ -87,7 +87,7 @@
                         <a href="{{ route('dash.corporate.show', $c) }}" class="font-bold text-brand-700 hover:underline">{{ $c->name }}</a>
                         <div class="text-xs text-navy-500">{{ $c->modeLabel() }}@if ($c->reference) · {{ $c->reference }}@endif</div>
                     </td>
-                    <td class="whitespace-nowrap">{{ $c->quantity }} × {{ money($c->voucher_value) }}</td>
+                    <td class="whitespace-nowrap">{{ $c->voucher_value > 0 ? $c->quantity . ' × ' . money($c->voucher_value) : __('Per rep') }}</td>
                     <td class="whitespace-nowrap">{{ local_time($c->expires_on, 'Y/m/d') }}</td>
                     <td class="whitespace-nowrap tabular-nums" data-counts>{{ $s['printed'] }} / {{ $s['used'] }} / {{ $s['remaining'] }}</td>
                     <td class="font-semibold">{{ money($s['consumed']) }}</td>

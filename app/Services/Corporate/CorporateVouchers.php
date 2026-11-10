@@ -106,8 +106,13 @@ final class CorporateVouchers
         });
     }
 
-    /** Adds $count vouchers to the contract, serials following the last one of the same prefix, handed to the company's rep when named. */
-    public function issue(CorporateContract $contract, int $count, ?string $handedTo = null, ?string $handedToPhone = null): void
+    /**
+     * Adds $count vouchers to the contract, serials following the last one of the same prefix, handed to the company's
+     * rep when named. A rep's vouchers (out of his balance) carry their own value, last day and mode in $own.
+     *
+     * @param  array{value?:float, expires_on?:string, mode?:string, corporate_rep_id?:int}  $own
+     */
+    public function issue(CorporateContract $contract, int $count, ?string $handedTo = null, ?string $handedToPhone = null, array $own = []): void
     {
         $handedTo = filled($handedTo) ? trim($handedTo) : null;
         $handedToPhone = filled($handedToPhone) ? trim($handedToPhone) : null;
@@ -122,8 +127,10 @@ final class CorporateVouchers
             $rows[] = [
                 'tenant_id' => tenant()->getTenantKey(), 'corporate_contract_id' => $contract->id,
                 'serial' => $contract->prefix.'-'.str_pad((string) ($next + $i), 4, '0', STR_PAD_LEFT), 'code' => $code,
-                'value' => $contract->voucher_value, 'balance' => $contract->voucher_value, 'status' => 'active',
-                'expires_on' => $contract->expires_on->format('Y-m-d'), 'print_count' => 0, 'handed_to' => $handedTo, 'handed_to_phone' => $handedToPhone,
+                'value' => $own['value'] ?? $contract->voucher_value, 'balance' => $own['value'] ?? $contract->voucher_value, 'status' => 'active',
+                'expires_on' => $own['expires_on'] ?? $contract->expires_on->format('Y-m-d'), 'mode' => $own['mode'] ?? null,
+                'corporate_rep_id' => $own['corporate_rep_id'] ?? null,
+                'print_count' => 0, 'handed_to' => $handedTo, 'handed_to_phone' => $handedToPhone,
                 'created_at' => $now, 'updated_at' => $now,
             ];
         }
@@ -196,9 +203,16 @@ final class CorporateVouchers
                 throw new OrderException(__('Only an active voucher can be voided.'));
             }
             $this->refuseVisitMeals($locked);
+            if ($locked->direct) {
+                throw new OrderException(__('This is a rep\'s allowance on the company\'s account: change it from the rep.'));
+            }
             $locked->update(['status' => 'void']);
             $voucher->status = 'void';
             Audit::record('corporate.voided', $locked->serial);
+            // a rep's voucher gives what was left on it back to his balance
+            if ($locked->corporate_rep_id && $locked->balance > 0) {
+                app(CorporateReps::class)->voucherVoided($locked);
+            }
         });
     }
 
@@ -265,6 +279,12 @@ final class CorporateVouchers
         if ($voucher->status === 'void' || $contract->status === 'void') {
             return $refuse(__('This voucher was cancelled.'));
         }
+        if ($voucher->direct && ! $voucher->rep?->is_active) {
+            return $refuse(__('This rep is stopped.'));
+        }
+        if ($voucher->direct && $voucher->balance <= 0) {
+            return $refuse(__('Nothing is left of what this rep may order on the company\'s account.'));
+        }
         if ($voucher->status === 'used' || $voucher->balance <= 0) {
             return $refuse(__('This voucher was already used.'));
         }
@@ -308,8 +328,10 @@ final class CorporateVouchers
         }
 
         return [
-            'id' => $v->id, 'code' => $byCode ? $v->code : null, 'serial' => $v->serial, 'company' => $v->contract->name,
-            'value' => $v->value, 'balance' => $v->balance, 'mode' => $v->modeName(), 'modeLabel' => $v->modeLabel(),
+            'id' => $v->id, 'code' => $byCode ? $v->code : null, 'serial' => $v->serial,
+            'company' => $v->contract->name.($v->direct ? ' · '.$v->rep?->name : ''), 'direct' => $v->direct,
+            'value' => $v->value, 'balance' => $v->balance, 'mode' => $v->modeName(),
+            'modeLabel' => $v->direct ? __('On the company\'s account') : $v->modeLabel(),
             'expires' => local_time($v->expires_on, 'Y/m/d'), 'expiresSort' => $v->expires_on->format('Y-m-d'),
             'ok' => $check['ok'], 'reason' => $check['reason'], 'expired' => $check['expired'],
             'linked' => $v->customer_id ? CorporateVoucher::maskPhone($v->customer?->phone) : null,
@@ -401,6 +423,7 @@ final class CorporateVouchers
                     $this->giveBack($voucher, $row->amount + $row->forfeited);
                 }
                 $row->update(['refunded_at' => now(), 'refunded_by' => $approver->id, 'refund_reason' => $reason]);
+                $this->uncharge($voucher);
                 Audit::record('corporate.manual_cancelled', ($voucher?->serial ?? '').' · '.__('Paper bill').($row->reference ? ' '.$row->reference : ''), [
                     'amount' => $row->amount, 'reason' => $reason,
                 ], $approver->id);
@@ -491,6 +514,14 @@ final class CorporateVouchers
                 break;
             }
             $applied = round(min($v->balance, $due), 2);
+            if ($v->direct) {
+                // an order on the company's account is charged now: a prepaid company needs the balance, one on account the credit
+                $account = app(CorporateAccount::class);
+                $available = $account->available(CorporateContract::query()->lockForUpdate()->findOrFail($v->corporate_contract_id));
+                if ($available !== null && $applied > $available + 0.004) {
+                    throw new OrderException($v->contract->name.': '.__('The company\'s account covers :left only. Record its payment or raise its limit.', ['left' => money(max(0, $available))]));
+                }
+            }
             $forfeited = $v->modeName() === 'single' ? round($v->balance - $applied, 2) : 0.0;
             $balance = round($v->balance - $applied - $forfeited, 2);
             // the balance read under the lock must still be there: a second payment of the same voucher finds 0 rows
@@ -504,6 +535,9 @@ final class CorporateVouchers
                 'amount' => $applied, 'forfeited' => $forfeited, 'branch_id' => $branch->id, 'user_id' => $by->id,
                 'approved_by' => $approvals[$v->id]['approver'] ?? null, 'exception_reason' => $approvals[$v->id]['reason'] ?? null,
             ]);
+            if ($v->direct) {
+                $account->refreshDirect($v->corporate_contract_id);
+            }
             $serials[] = $v->serial;
             $due = round($due - $applied, 2);
             $covered = round($covered + $applied, 2);
@@ -525,11 +559,20 @@ final class CorporateVouchers
                     $this->giveBack($voucher, $row->amount + $row->forfeited);
                 }
                 $row->update(['refunded_at' => now()]);
+                $this->uncharge($voucher);
                 Audit::record('corporate.refunded', ($voucher?->serial ?? '').' · #'.$order->number, ['amount' => $row->amount], $by?->id);
             }
 
             return $rows->count();
         });
+    }
+
+    /** A refunded order on the company's account is no longer charged to the company. */
+    private function uncharge(?CorporateVoucher $voucher): void
+    {
+        if ($voucher?->direct) {
+            app(CorporateAccount::class)->refreshDirect($voucher->corporate_contract_id);
+        }
     }
 
     /**
@@ -647,17 +690,19 @@ final class CorporateVouchers
     }
 
     /**
-     * Totals per contract for the list: printed / used / remaining vouchers, value consumed and left.
+     * Totals per contract for the list: printed / used / remaining vouchers, value consumed and left. The reps'
+     * allowances on the company's account are not vouchers to print: they are left out.
      *
      * @return array{printed:int, used:int, remaining:int, consumed:float, forfeited:float, remaining_value:float}
      */
     public function stats(CorporateContract $contract): array
     {
-        $vouchers = CorporateVoucher::query()->where('corporate_contract_id', $contract->id)
+        $vouchers = CorporateVoucher::query()->where('corporate_contract_id', $contract->id)->where('direct', false)
             ->selectRaw("SUM(CASE WHEN print_count > 0 THEN 1 ELSE 0 END) as printed, SUM(CASE WHEN status = 'used' THEN 1 ELSE 0 END) as used,
                 SUM(CASE WHEN status = 'active' AND balance > 0 THEN 1 ELSE 0 END) as remaining,
                 SUM(CASE WHEN status = 'active' THEN balance ELSE 0 END) as remaining_value")->first();
         $redeemed = CorporateVoucherRedemption::query()->where('corporate_contract_id', $contract->id)->whereNull('refunded_at')
+            ->whereNotIn('corporate_voucher_id', CorporateVoucher::query()->where('direct', true)->select('id'))
             ->selectRaw('SUM(amount) as consumed, SUM(forfeited) as forfeited')->first();
 
         return [

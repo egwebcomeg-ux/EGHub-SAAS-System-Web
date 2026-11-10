@@ -98,12 +98,15 @@ final class CorporateReport
             ->when($this->mode, fn ($q) => $q->whereIn('corporate_contract_id', CorporateContract::query()->where('mode', $this->mode)->select('id')));
     }
 
-    /** Vouchers of the contracts in the filter (a voucher belongs to no branch or cashier); a voided contract's vouchers count as void. */
+    /**
+     * Vouchers of the contracts in the filter (a voucher belongs to no branch or cashier); a voided contract's vouchers
+     * count as void. A rep's allowance on the company's account is not an issued voucher: left out.
+     */
     private function vouchers(): Collection
     {
         $voided = CorporateContract::query()->where('status', 'void')->pluck('id')->flip();
 
-        return CorporateVoucher::query()
+        return CorporateVoucher::query()->where('direct', false)
             ->when($this->contractId, fn ($q) => $q->where('corporate_contract_id', $this->contractId))
             ->when($this->mode, fn ($q) => $q->whereIn('corporate_contract_id', CorporateContract::query()->where('mode', $this->mode)->select('id')))
             ->get(['id', 'corporate_contract_id', 'value', 'balance', 'status', 'expires_on', 'created_at'])
