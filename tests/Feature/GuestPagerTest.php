@@ -251,15 +251,32 @@ class GuestPagerTest extends TenantTestCase
         $order = $this->order($a);
         $owner = $this->owner($a);
 
+        // the pager's QR is the only one on the receipt while the order is open
         $this->actingAs($owner)->get($this->dashUrl("/orders/{$order->id}/receipt"))->assertOk()->assertSee('data-receipt-pager', false)
-            ->assertSeeText('رقم طلبك #'.$order->number);
+            ->assertSeeText('رقم طلبك #'.$order->number)->assertDontSee('data-receipt-qr', false);
         // the cashier app's printed receipt (ESC/POS) carries the same number and QR
         $lines = collect($this->as($a, fn () => PrintJobs::receipt($order->fresh()))['lines']);
         $this->assertTrue($lines->contains(fn ($l) => ($l['text'] ?? null) === 'رقم طلبك #'.$order->number && $l['size'] === 2));
-        $this->assertTrue($lines->contains(fn ($l) => $l['t'] === 'qr' && $l['data'] === $this->as($a, fn () => $order->fresh()->pagerUrl())));
+        $this->assertSame([$this->as($a, fn () => $order->fresh()->pagerUrl())], $lines->where('t', 'qr')->pluck('data')->all());
         $this->actingAs($owner)->get($this->dashUrl("/orders/{$order->id}/receipt?copy=kitchen"))->assertOk()->assertDontSee('data-receipt-pager', false);
+        // once the order is handed over, the receipt is back to its own QR
         $this->move($a, $order, 'preparing', 'ready', 'served');
-        $this->actingAs($owner)->get($this->dashUrl("/orders/{$order->id}/receipt"))->assertOk()->assertDontSee('data-receipt-pager', false);
+        $this->actingAs($owner)->get($this->dashUrl("/orders/{$order->id}/receipt"))->assertOk()->assertDontSee('data-receipt-pager', false)
+            ->assertSee('data-receipt-qr', false);
+        $served = collect($this->as($a, fn () => PrintJobs::receipt($order->fresh()))['lines']);
+        $this->assertSame([$this->as($a, fn () => $order->fresh()->receiptUrl())], $served->where('t', 'qr')->pluck('data')->all());
+    }
+
+    public function test_the_station_tells_the_owner_when_cashier_takeaway_closes_before_the_pager_can_call(): void
+    {
+        $a = $this->restaurant('cafe-a', 'full');
+        $owner = $this->owner($a);
+
+        // no kitchen screen in use: a paid cashier takeaway is done at once, its receipt has no pager QR
+        $this->actingAs($owner)->get($this->dashUrl('/pager'))->assertOk()->assertSee('data-pager-flow-hint', false);
+
+        $this->as($a, fn () => Settings::put(['order_flow' => 'kitchen']));
+        $this->actingAs($owner)->get($this->dashUrl('/pager'))->assertOk()->assertDontSee('data-pager-flow-hint', false);
     }
 
     public function test_the_reports_show_the_waits_calls_and_connected_guests(): void

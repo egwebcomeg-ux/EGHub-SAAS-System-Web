@@ -95,9 +95,11 @@
         @endif
         <hr>
         <div class="c">{{ __('Thank you for your visit!') }}</div>
-        {{-- the same receipt on the guest's phone (signed link, nothing personal on it) --}}
-        <div class="c" style="margin-top:4px" data-receipt-qr>{!! \App\Services\Qr::svg($order->receiptUrl(), 150) !!}</div>
-        <div class="c muted">{{ __('Scan to keep this receipt on your phone') }}</div>
+        {{-- the same receipt on the guest's phone (signed link, nothing personal on it); one QR per receipt: the pager's while it is live (its page links to the receipt) --}}
+        @unless ($pagerUrl ?? null)
+            <div class="c" style="margin-top:4px" data-receipt-qr>{!! \App\Services\Qr::svg($order->receiptUrl(), 150) !!}</div>
+            <div class="c muted">{{ __('Scan to keep this receipt on your phone') }}</div>
+        @endunless
         <div class="c muted">{{ tenant()->url() }}</div>
     @endunless
 </body>

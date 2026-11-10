@@ -7847,5 +7847,6 @@
     "% added when the guest pays by mobile wallet": "% تتزوّد لما العميل يدفع بالمحفظة",
     "At the cashier, the call center and the door. It shows in the payment window and on the receipt; 0 = no fee.": "في الكاشير والكول سنتر وعند التسليم للطيار. بتظهر في شاشة الدفع وعلى الفاتورة، و0 يعني من غير رسوم.",
     "The mobile-wallet fee differs from today's settings.": "رسوم المحفظة مختلفة عن الإعداد الحالي.",
-    "collect :percent% more (the wallet fee), paid to the restaurant at once": "حصّل :percent% زيادة (رسوم المحفظة)، وبتتسجّل للمطعم على طول"
+    "collect :percent% more (the wallet fee), paid to the restaurant at once": "حصّل :percent% زيادة (رسوم المحفظة)، وبتتسجّل للمطعم على طول",
+    "Cashier takeaway sales close once paid here, so their receipt prints without the pager QR. To call takeaway guests, choose \"Goes to the kitchen until it is ready\" in the settings:": "أوردرات التيك أواي من الكاشير بتتقفل أول ما تتدفع عندك، فالفاتورة بتطلع من غير QR النداء. عشان تنادي على عملاء التيك أواي اختار «بيروح المطبخ لحد ما يجهز» في الإعدادات:"
 }

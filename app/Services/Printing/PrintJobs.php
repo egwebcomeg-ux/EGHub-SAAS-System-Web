@@ -182,7 +182,8 @@ final class PrintJobs
             }
         }
         $lines[] = self::text($paid ? __('Paid').' · '.PaymentMethods::label($order->payment_method ?? 'cash') : __('Unpaid'), 'center');
-        if (Pager::enabled() && Pager::forOrder($order) && ! Pager::isDone($order)) {
+        $pagerLive = Pager::enabled() && Pager::forOrder($order) && ! Pager::isDone($order);
+        if ($pagerLive) {
             $lines[] = ['t' => 'divider'];
             $lines[] = self::text(__('Scan so we can call you when your order is ready'), 'center', true);
             $lines[] = self::text(__('Your number').' #'.$order->number, 'center', true, 2);
@@ -190,8 +191,11 @@ final class PrintJobs
         }
         $lines[] = ['t' => 'divider'];
         $lines[] = self::text(__('Thank you for your visit!'), 'center');
-        $lines[] = ['t' => 'qr', 'data' => $order->receiptUrl(), 'size' => 5];
-        $lines[] = self::text(__('Scan to keep this receipt on your phone'), 'center');
+        // one QR per receipt: the pager's while it is live (its page links to the receipt), the e-receipt's otherwise
+        if (! $pagerLive) {
+            $lines[] = ['t' => 'qr', 'data' => $order->receiptUrl(), 'size' => 5];
+            $lines[] = self::text(__('Scan to keep this receipt on your phone'), 'center');
+        }
         $lines[] = self::text(tenant()->url(), 'center');
         $lines[] = ['t' => 'feed', 'n' => 3];
 
