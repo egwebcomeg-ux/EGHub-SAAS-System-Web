@@ -94,7 +94,7 @@
                 <rect x="{{ $loop->index * 10 + 1.5 }}" y="{{ 100 - $h }}" width="7" height="{{ $h }}" rx="1" class="fill-brand-500"><title>{{ $day }} · {{ money($value) }} {{ $cur }}</title></rect>
             @endforeach
         </svg>
-        <div class="mt-1 flex justify-between text-[11px] text-navy-500" dir="ltr"><span>{{ $report->from->format('m/d') }}</span><span>{{ $report->to->format('m/d') }}</span></div>
+        <div class="mt-1 flex justify-between text-xs text-navy-500" dir="ltr"><span>{{ $report->from->format('m/d') }}</span><span>{{ $report->to->format('m/d') }}</span></div>
         <details class="mt-2 text-sm"><summary class="cursor-pointer text-navy-500">{{ __('Show as table') }}</summary>
             <table class="table-base mt-2"><thead><tr><th>{{ __('Date') }}</th><th>{{ __('Value redeemed') }}</th></tr></thead>
                 <tbody>@foreach ($r['days'] as $day => $value)@if ($value > 0)<tr><td>{{ $day }}</td><td>{{ money($value) }}</td></tr>@endif @endforeach</tbody></table>

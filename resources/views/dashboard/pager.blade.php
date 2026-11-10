@@ -68,8 +68,8 @@
                         <label class="flex items-start gap-2"><input type="checkbox" name="auto_call" value="1" class="mt-1" @checked($autoCall)>
                             <span><b>{{ __('Call the guest by itself when the order is ready') }}</b><span class="block text-xs text-navy-500">{{ __('For orders from this system (POS, kiosk, online takeaway) with the QR on the receipt.') }}</span></span></label>
                         <label class="flex items-center gap-2">{{ __('Close open tickets after') }}
-                            <input class="field min-h-10 w-20" type="number" name="expire_hours" min="1" max="{{ \App\Services\Orders\Pager::MAX_EXPIRE_HOURS }}" value="{{ $expireHours }}"> {{ __('hours') }}</label>
-                        <button class="btn-primary min-h-10 px-4">{{ __('Save') }}</button>
+                            <input class="field w-20" type="number" name="expire_hours" min="1" max="{{ \App\Services\Orders\Pager::MAX_EXPIRE_HOURS }}" value="{{ $expireHours }}"> {{ __('hours') }}</label>
+                        <button class="btn-primary px-4">{{ __('Save') }}</button>
                     </form>
                 </details>
                 </div>

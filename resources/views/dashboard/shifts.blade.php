@@ -79,7 +79,7 @@
                                 <span><b>{{ $row['waiter']->name }}</b> <span class="muted text-sm">· {{ __(':n orders', ['n' => $row['orders']]) }}</span>
                                     <span class="block font-extrabold text-brand-700">{{ money($row['amount']) }}</span></span>
                                 <form method="post" action="{{ route('dash.shifts.waiter.settle', $row['waiter']) }}" onsubmit="return confirm(@js(__('Received :amount from :name?', ['amount' => money($row['amount']), 'name' => $row['waiter']->name])))">
-                                    @csrf<button class="btn-ghost min-h-10 px-3 text-sm">{{ __('I received it') }}</button>
+                                    @csrf<button class="btn-ghost min-h-9 px-3 text-sm">{{ __('I received it') }}</button>
                                 </form>
                             </li>
                         @endforeach
@@ -119,7 +119,7 @@
             @if ($terminals->isNotEmpty())
                 <form class="flex items-center gap-2" data-shifts-by-terminal>
                     <label class="muted text-sm" for="terminal-filter">{{ __('Terminal') }}</label>
-                    <select class="field min-h-10 py-0" id="terminal-filter" name="terminal" onchange="this.form.submit()">
+                    <select class="field min-h-9 py-0" id="terminal-filter" name="terminal" onchange="this.form.submit()">
                         <option value="">{{ __('All terminals') }}</option>
                         @foreach ($terminals as $t)<option value="{{ $t->id }}" @selected($terminal === $t->id)>{{ $t->label() }}</option>@endforeach
                     </select>

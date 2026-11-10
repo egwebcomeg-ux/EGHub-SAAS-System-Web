@@ -99,20 +99,33 @@ if (dataEl) {
         optItem = item;
         $('[data-options-title]').textContent = item.name;
         $('[data-line-notes]').value = '';
+        // an option is one chip: the whole chip is the target and the chosen one is filled, no radio or checkbox drawn
         $('[data-options-body]').innerHTML = item.groups.map((g) => `
-            <fieldset><legend class="mb-1 font-bold">${esc(g.name)} ${g.required ? `<span class="badge bg-brand-100 text-brand-700">${esc(T.required)}</span>` : ''}</legend>
-            <div class="grid grid-cols-2 gap-2">${g.options.map((o) => `
-                <label class="flex min-h-11 items-center gap-2 rounded-lg border border-navy-100 px-2 ${o.soldOut ? 'opacity-40' : ''}">
-                    <input type="${g.type === 'single' ? 'radio' : 'checkbox'}" name="g${g.id}" value="${o.id}" data-opt data-group="${g.id}" ${o.soldOut ? 'disabled' : ''} ${g.type === 'single' && o.default && !o.soldOut ? 'checked' : ''} class="size-4 accent-brand-600">
-                    <span class="text-sm">${esc(o.name)}${o.price ? ` <span class="text-navy-500">+${o.price}</span>` : ''}</span>
+            <fieldset><legend class="mb-2 flex flex-wrap items-center gap-2 text-sm font-extrabold text-navy-700">${esc(g.name)}
+                ${g.required ? `<span class="badge bg-brand-100 text-brand-700">${esc(T.required)}</span>` : ''}
+                ${g.type !== 'single' && g.max ? `<span class="text-xs font-semibold text-navy-500">${esc(T.chooseUpTo.replace('__N__', g.max))}</span>` : ''}</legend>
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">${g.options.map((o) => `
+                <label class="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-navy-100 px-3 py-2 text-sm font-semibold ring-brand-500 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-800 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-40 has-[:focus-visible]:ring-2">
+                    <input type="${g.type === 'single' ? 'radio' : 'checkbox'}" name="g${g.id}" value="${o.id}" data-opt data-group="${g.id}" ${o.soldOut ? 'disabled' : ''} ${g.type === 'single' && o.default && !o.soldOut ? 'checked' : ''} class="peer sr-only">
+                    <span class="min-w-0 flex-1 leading-snug">${esc(o.name)}</span>
+                    ${o.price ? `<span class="shrink-0 text-xs font-bold text-navy-500" dir="ltr">+${o.price}</span>` : ''}
+                    <span class="hidden shrink-0 font-extrabold text-brand-700 peer-checked:inline" aria-hidden="true">✓</span>
                 </label>`).join('')}</div></fieldset>`).join('');
+        optPrice();
         optDialog.showModal();
+    }
+    // the price of the item with what is ticked so far, on the "Add" button
+    function optPrice() {
+        const ids = $$('[data-opt]:checked', optDialog).map((i) => Number(i.value));
+        const extra = optItem.groups.flatMap((g) => g.options).filter((o) => ids.includes(o.id)).reduce((sum, o) => sum + Number(o.price || 0), 0);
+        $('[data-options-price]').textContent = fmt(Number(optItem.price) + extra);
     }
     optDialog.addEventListener('change', (e) => {
         const input = e.target.closest('[data-opt]');
-        if (input?.type !== 'checkbox') return;
+        if (!input) return;
         const g = optItem.groups.find((x) => x.id === Number(input.dataset.group));
-        if (g.max && $$(`[data-group="${g.id}"]:checked`, optDialog).length > g.max) input.checked = false;
+        if (input.type === 'checkbox' && g.max && $$(`[data-group="${g.id}"]:checked`, optDialog).length > g.max) input.checked = false;
+        optPrice();
     });
     $('[data-options-add]').addEventListener('click', () => {
         const ids = $$('[data-opt]:checked', optDialog).map((i) => Number(i.value));
@@ -229,8 +242,41 @@ if (dataEl) {
             $('[data-ticket-total]', bar).textContent = fmt(t.total);
         }
         display?.postMessage({ lines: state.lines.map((l) => ({ name: items[l.item_id].name, qty: l.qty, amount: unit(l) * l.qty })), totals: t, currency: D.currency });
+        syncExtras();
         recheckCoupon();
     }
+    // ---- notes, discount, voucher (POS): folded behind their chips until used; a filled one stays open ----
+    const extraOpen = new Set();
+    const extraFilled = {
+        notes: () => !!$('[data-notes]').value.trim(),
+        discount: () => Number($('[data-discount]')?.value || 0) > 0,
+        coupon: () => !!($('[data-coupon]')?.value.trim() || state.coupon),
+    };
+    function syncExtras() {
+        $$('[data-extra]').forEach((chip) => {
+            const key = chip.dataset.extra;
+            if (extraFilled[key]()) extraOpen.add(key);
+            const open = extraOpen.has(key);
+            $(`[data-extra-panel="${key}"]`).classList.toggle('hidden', !open);
+            chip.setAttribute('aria-expanded', open);
+            chip.classList.toggle('bg-brand-50', open);
+            chip.classList.toggle('text-brand-700', open);
+            chip.classList.toggle('bg-navy-50', !open);
+        });
+    }
+    $$('[data-extra]').forEach((chip) => chip.addEventListener('click', () => {
+        const key = chip.dataset.extra;
+        // a second tap folds it again, unless something is written in it
+        if (extraOpen.has(key) && !extraFilled[key]()) extraOpen.delete(key);
+        else extraOpen.add(key);
+        syncExtras();
+        if (extraOpen.has(key)) {
+            const field = $(`[data-extra-panel="${key}"] input`);
+            field.focus();
+            field.select();
+        }
+    }));
+    $('[data-notes]').addEventListener('input', syncExtras);
     // ---- a note on one item (any item, with options or not): it rides with that line to the kitchen and the receipt ----
     const noteDialog = $('[data-note-dialog]');
     let noteLine = null;
@@ -306,6 +352,7 @@ if (dataEl) {
         }
         customerReset();
         if ($('[data-discount]')) $('[data-discount]').value = 0;
+        extraOpen.clear();
         render();
     }
 
@@ -1962,6 +2009,11 @@ if (dataEl) {
         if (e.key === 'Escape') setTicket(false);
     });
     $('[data-help-open]')?.addEventListener('click', () => $('[data-help-dialog]').showModal());
+    // "More" in the top bar: it closes before the button's own window opens (capture), so the focus lands in that window
+    $('[data-more-open]')?.addEventListener('click', () => $('[data-more-dialog]').showModal());
+    $('[data-more-dialog]')?.addEventListener('click', (e) => {
+        if (e.target.closest('button[type="button"]')) e.currentTarget.close();
+    }, true);
 
     renderCats();
     renderItems();

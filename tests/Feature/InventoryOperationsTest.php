@@ -332,4 +332,17 @@ class InventoryOperationsTest extends TenantTestCase
             $this->actingAs($this->owner)->get($this->dashUrl($path))->assertOk()->assertSee(__('Stock counts'));
         }
     }
+
+    public function test_a_purchase_opens_in_a_restaurant_with_several_branches(): void
+    {
+        $this->as($this->tenant, fn () => Branch::query()->create(['name' => 'Second', 'slug' => 'second']));
+        $purchase = $this->as($this->tenant, fn () => Purchase::query()->create([
+            'supplier_id' => Supplier::query()->create(['name' => 'Dairy Co'])->id, 'branch_id' => $this->branch->id,
+            'purchased_on' => local_today(), 'created_by' => $this->owner->id,
+        ]));
+
+        foreach (['/inventory/purchases/create', "/inventory/purchases/{$purchase->id}"] as $path) {
+            $this->actingAs($this->owner)->get($this->dashUrl($path))->assertOk()->assertSee('Second');
+        }
+    }
 }

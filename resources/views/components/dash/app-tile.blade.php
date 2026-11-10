@@ -26,5 +26,5 @@
         @endif
     </span>
     <span class="app-tile-label">{{ $app['label'] }}</span>
-    @if ($app['locked'])<span class="text-[11px] font-bold text-brand-700">{{ __('Upgrade') }}</span>@endif
+    @if ($app['locked'])<span class="text-xs font-bold text-brand-700">{{ __('Upgrade') }}</span>@endif
 </a>

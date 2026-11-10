@@ -99,7 +99,7 @@
                 <label class="field-label" for="transfer-quantity">{{ __('Quantity') }}</label>
                 <input id="transfer-quantity" class="field" name="quantity" type="number" step="0.001" min="0.001" required>
                 <input class="field" name="note" maxlength="150" placeholder="{{ __('Note') }}">
-                <button class="btn-navy w-full min-h-10">{{ __('Transfer') }}</button>
+                <button class="btn-navy w-full">{{ __('Transfer') }}</button>
             </form>
         @endif
         <form method="post" action="{{ route('dash.inventory.store') }}" class="card space-y-2">

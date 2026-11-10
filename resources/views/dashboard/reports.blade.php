@@ -85,7 +85,7 @@
                     </div>
                 @endforeach
             </div>
-            <div class="mt-1 flex justify-between text-[11px] text-navy-500" dir="ltr">
+            <div class="mt-1 flex justify-between text-xs text-navy-500" dir="ltr">
                 <span>{{ $from->format('m/d') }}</span><span>{{ $to->format('m/d') }}</span>
             </div>
             <details class="mt-2 text-sm">
@@ -111,7 +111,7 @@
                 </div>
             @endforeach
         </div>
-        <div class="mt-1 flex justify-between text-[11px] text-navy-500" dir="ltr">
+        <div class="mt-1 flex justify-between text-xs text-navy-500" dir="ltr">
             @foreach ([0, 6, 12, 18, 23] as $h)<span>{{ $h }}</span>@endforeach
         </div>
         @php($peak = array_search(max($report['hours']), $report['hours'], true))

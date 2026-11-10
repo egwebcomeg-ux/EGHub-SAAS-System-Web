@@ -464,7 +464,7 @@
                         <div class="rounded-2xl bg-[#e5ddd5] p-3" dir="{{ $waLocale === 'en' ? 'ltr' : 'rtl' }}">
                             <div class="max-w-sm rounded-xl rounded-ss-none bg-white p-3 text-sm leading-relaxed shadow-sm">
                                 {!! str_replace(e('{restaurant}'), '<b data-wa-sender>'.e($waSender).'</b>', e($waSample)) !!}
-                                <div class="mt-1 text-end text-[11px] text-navy-400" dir="ltr">12:30 ✓✓</div>
+                                <div class="mt-1 text-end text-xs text-navy-400" dir="ltr">12:30 ✓✓</div>
                             </div>
                         </div>
                         <p class="mt-1 text-xs text-navy-500">{{ __('Messages are in your menu\'s default language.') }}

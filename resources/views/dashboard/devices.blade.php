@@ -39,7 +39,7 @@
                 <div class="flex flex-wrap items-center justify-between gap-2">
                     <h2 class="section-title">{{ __('TV screens') }}</h2>
                     <div class="flex flex-wrap gap-2">
-                        <a href="{{ route('dash.tv.alerts') }}" class="btn-ghost min-h-9 border-red-200 px-3 text-red-700" data-urgent>{{ __('Urgent message') }}</a>
+                        <a href="{{ route('dash.tv.alerts') }}" class="btn-ghost min-h-9 px-3 text-red-700" data-urgent>{{ __('Urgent message') }}</a>
                         <a href="{{ route('dash.tv.pair') }}" class="btn-primary min-h-9 px-3" data-pair-tv>{{ __('Pair a TV') }}</a>
                         @if ($tab === 'all')<a href="{{ route('dash.devices', ['tab' => 'tv']) }}#add-tv" class="btn-ghost min-h-9 px-3">＋ {{ __('Add screen') }}</a>@endif
                     </div>
@@ -84,25 +84,26 @@
                         @forelse ($screens as $s)
                             <x-dash.device-card type="tv" :label="__('TV screen')" :name="$s->name" :url="$s->url()" :qr="$qrs['tv'][$s->id]" :inactive="! $s->is_active" :open="__('Preview')"
                                 :meta="(($n = $s->followsGroup() ? $s->group->slides_count : $s->slides_count) ? trans_choice(':count slide|:count slides', $n) : __('Whole menu')) . ($s->branch ? ' · ' . tr($s->branch->name, $s->branch->name_en) : '')">
+                                <x-slot:actions>
+                                    <a href="{{ route('dash.tv.edit', $s) }}" class="btn-primary min-h-9 px-3" data-edit-playlist>{{ __('Edit playlist') }}</a>
+                                    @unless ($s->isPaired())<a href="{{ route('dash.tv.pair', ['screen' => $s->id]) }}" class="btn-ghost min-h-9 px-3">{{ __('Pair a TV') }}</a>@endunless
+                                </x-slot:actions>
                                 @if ($s->group)
                                     <p class="text-sm"><span class="badge {{ $s->followsGroup() ? 'bg-sky-50 text-sky-800' : 'bg-amber-50 text-amber-800' }}">{{ __('Group') }}: {{ $s->group->name }}{{ $s->followsGroup() ? '' : ' · ' . __('Own playlist') }}</span></p>
                                 @endif
                                 <div data-tv-live="{{ $s->id }}">@include('dashboard.partials.tv-now', ['screen' => $s, 'nowSlides' => null])</div>
                                 @include('dashboard.partials.tv-device-line', ['screen' => $s])
-                                <div class="flex flex-wrap gap-2">
-                                    <a href="{{ route('dash.tv.edit', $s) }}" class="btn-primary min-h-9 px-3" data-edit-playlist>{{ __('Edit playlist') }}</a>
-                                    @unless ($s->isPaired())<a href="{{ route('dash.tv.pair', ['screen' => $s->id]) }}" class="btn-ghost min-h-9 px-3">{{ __('Pair a TV') }}</a>@endunless
-                                </div>
-                                <details>
-                                    <summary class="cursor-pointer text-sm font-semibold text-brand-700">{{ __('Whole-menu settings') }}</summary>
-                                    <form method="post" action="{{ route('dash.tv.update', $s) }}" class="mt-3 grid gap-3 sm:grid-cols-2">
-                                        @csrf
-                                        @include('dashboard.partials.tv-fields', ['s' => $s])
-                                        <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="is_active" value="1" @checked($s->is_active) class="size-4 accent-brand-600"> {{ __('Active') }}</label>
-                                        <div class="sm:col-span-2"><button class="btn-primary">{{ __('Save') }}</button></div>
-                                    </form>
-                                </details>
-                                <div class="flex flex-wrap gap-3 border-t border-navy-100 pt-2 text-sm">
+                                {{-- one closing line: the settings open under it, the rare actions stay beside it --}}
+                                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-navy-100 pt-2 text-sm">
+                                    <details class="open:w-full">
+                                        <summary class="cursor-pointer py-2 font-semibold text-brand-700">{{ __('Whole-menu settings') }}</summary>
+                                        <form method="post" action="{{ route('dash.tv.update', $s) }}" class="mt-1 grid gap-3 pb-2 sm:grid-cols-2">
+                                            @csrf
+                                            @include('dashboard.partials.tv-fields', ['s' => $s])
+                                            <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="is_active" value="1" @checked($s->is_active) class="size-4 accent-brand-600"> {{ __('Active') }}</label>
+                                            <div class="sm:col-span-2"><button class="btn-primary">{{ __('Save') }}</button></div>
+                                        </form>
+                                    </details>
                                     <form method="post" action="{{ route('dash.tv.regenerate', $s) }}" onsubmit="return confirm(@js($confirmLink))">@csrf<button class="min-h-10 px-1 text-navy-600 underline" data-regenerate>{{ __('New link') }}</button></form>
                                     <form method="post" action="{{ route('dash.tv.delete', $s) }}" onsubmit="return confirm(@js(__('Delete this screen?')))">@csrf<button class="min-h-10 px-1 text-red-600">{{ __('Delete') }}</button></form>
                                 </div>
@@ -136,16 +137,16 @@
                             @endphp
                             <x-dash.device-card type="kiosk" :label="__('Kiosk')" :name="$k->name" :url="$k->url()" :qr="$qrs['kiosk'][$k->id]" :inactive="! $k->is_active" :open="__('Open kiosk')"
                                 :meta="tr($k->branch?->name, $k->branch?->name_en) . ' · ' . collect($o['order_types'])->map(fn ($t) => $t === 'takeaway' ? __('Takeaway') : __('Dine-in'))->implode(' / ')">
-                                <details>
-                                    <summary class="cursor-pointer text-sm font-semibold text-brand-700">{{ __('Rename and settings') }}</summary>
-                                    <form method="post" action="{{ route('dash.kiosks.update', $k) }}" class="mt-3 grid gap-3 sm:grid-cols-2">
-                                        @csrf
-                                        @include('dashboard.partials.kiosk-fields', ['k' => $k, 'branches' => $activeBranches])
-                                        <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="is_active" value="1" @checked($k->is_active) class="size-4 accent-brand-600"> {{ __('Active') }}</label>
-                                        <div class="sm:col-span-2"><button class="btn-primary">{{ __('Save') }}</button></div>
-                                    </form>
-                                </details>
-                                <div class="flex flex-wrap gap-3 border-t border-navy-100 pt-2 text-sm">
+                                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-navy-100 pt-2 text-sm">
+                                    <details class="open:w-full">
+                                        <summary class="cursor-pointer py-2 font-semibold text-brand-700">{{ __('Rename and settings') }}</summary>
+                                        <form method="post" action="{{ route('dash.kiosks.update', $k) }}" class="mt-1 grid gap-3 pb-2 sm:grid-cols-2">
+                                            @csrf
+                                            @include('dashboard.partials.kiosk-fields', ['k' => $k, 'branches' => $activeBranches])
+                                            <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="is_active" value="1" @checked($k->is_active) class="size-4 accent-brand-600"> {{ __('Active') }}</label>
+                                            <div class="sm:col-span-2"><button class="btn-primary">{{ __('Save') }}</button></div>
+                                        </form>
+                                    </details>
                                     <form method="post" action="{{ route('dash.kiosks.regenerate', $k) }}" onsubmit="return confirm(@js($confirmLink))">@csrf<button class="min-h-10 px-1 text-navy-600 underline" data-regenerate>{{ __('New link') }}</button></form>
                                     <form method="post" action="{{ route('dash.kiosks.delete', $k) }}" onsubmit="return confirm(@js(__('Delete this kiosk?')))">@csrf<button class="min-h-10 px-1 text-red-600">{{ __('Delete') }}</button></form>
                                 </div>

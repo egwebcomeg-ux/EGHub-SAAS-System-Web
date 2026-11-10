@@ -95,7 +95,7 @@
         <nav class="flex-1 space-y-4 overflow-y-auto overscroll-contain px-3 pb-4 [scrollbar-color:rgba(255,255,255,.15)_transparent] [scrollbar-width:thin]">
             @foreach ($groups as ['title' => $title, 'apps' => $items])
                 <div class="space-y-0.5">
-                    @if ($title)<div class="px-3 pb-1 text-[11px] font-bold tracking-wide text-white/40">{{ $title }}</div>@endif
+                    @if ($title)<div class="px-3 pb-1 text-xs font-bold tracking-wide text-white/40">{{ $title }}</div>@endif
                     @foreach ($items as ['route' => $route, 'label' => $label, 'icon' => $icon])
                         @php($active = $isActive($route))
                         <a href="{{ route($route) }}" @if ($active) aria-current="page" @endif @class([$navLink, $navOn => $active, 'text-white/70 hover:bg-white/5 hover:text-white' => ! $active])>
@@ -176,6 +176,13 @@
                 </div>
             </div>
             <div class="flex shrink-0 items-center gap-2">
+                @if ($pageTutorials = \App\Support\Tutorials::forRoute(request()->route()?->getName(), $user))
+                    {{-- the page's video tutorial (its window is at the end of the page, see partials/tutorials) --}}
+                    <button type="button" class="btn-ghost min-h-10 px-3" title="{{ __('Video tutorial') }}"
+                            onclick="document.getElementById('tutorial-{{ $pageTutorials[0]['key'] }}').showModal()" data-tutorial-open="{{ $pageTutorials[0]['key'] }}">
+                        <span aria-hidden="true">▶</span> <span class="sr-only sm:not-sr-only">{{ __('Video tutorial') }}</span>
+                    </button>
+                @endif
                 @if (\App\Http\Controllers\Dashboard\NotificationsController::visibleFor($user))
                     {{-- the bell: new / ready orders, waiter calls, bookings, low stock (polled, see notifications.js) --}}
                     <div class="relative" data-notifications data-feed="{{ route('dash.notifications') }}" data-seen="{{ route('dash.notifications.seen') }}"
@@ -253,7 +260,7 @@
             @include('dashboard.partials.phone-banner')
             <x-flash :toast="true" />
             @yield('content')
-            @include('dashboard.partials.tutorials')
+            @include('dashboard.partials.tutorials', ['tutorials' => $pageTutorials])
             @include('dashboard.partials.assistant')
         </main>
     </div>

@@ -63,7 +63,7 @@
             <span class="sr-only">{{ __('Search apps') }}</span>
             <svg class="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-navy-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 21l-4.3-4.3M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z"/></svg>
             <input type="search" class="field ps-10 pe-10" placeholder="{{ __('Search apps') }}" autocomplete="off" data-apps-search>
-            <kbd class="pointer-events-none absolute end-3 top-1/2 hidden -translate-y-1/2 rounded-md border border-navy-200 bg-navy-50 px-1.5 font-sans text-[11px] font-bold text-navy-500 lg:block" aria-hidden="true">/</kbd>
+            <kbd class="pointer-events-none absolute end-3 top-1/2 hidden -translate-y-1/2 rounded-md border border-navy-200 bg-navy-50 px-1.5 font-sans text-xs font-bold text-navy-500 lg:block" aria-hidden="true">/</kbd>
         </label>
     </div>
 

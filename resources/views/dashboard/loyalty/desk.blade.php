@@ -156,11 +156,11 @@
                             <div class="mt-2 flex flex-wrap items-center gap-2">
                                 <input class="field min-w-0 flex-1 text-sm" value="{{ $cardUrl }}" dir="ltr" readonly onclick="this.select()" aria-label="{{ __("The guest's card link") }}">
                                 @if ($customer->phone)
-                                    <a href="https://wa.me/{{ whatsapp_number($customer->phone) }}?text={{ rawurlencode($cardMessage) }}" target="_blank" rel="noopener" class="btn-primary min-h-10 px-3" data-card-whatsapp>{{ __('Send on WhatsApp') }}</a>
+                                    <a href="https://wa.me/{{ whatsapp_number($customer->phone) }}?text={{ rawurlencode($cardMessage) }}" target="_blank" rel="noopener" class="btn-primary min-h-9 px-3" data-card-whatsapp>{{ __('Send on WhatsApp') }}</a>
                                 @endif
-                                <button type="button" class="btn-ghost min-h-10 px-3" data-copy="{{ $cardUrl }}"
+                                <button type="button" class="btn-ghost min-h-9 px-3" data-copy="{{ $cardUrl }}"
                                         onclick="navigator.clipboard?.writeText(this.dataset.copy).then(() => { this.textContent = @js(__('Copied')) })">{{ __('Copy') }}</button>
-                                <a href="{{ $cardUrl }}" target="_blank" rel="noopener" class="btn-ghost min-h-10 px-3">{{ __('Open') }}</a>
+                                <a href="{{ $cardUrl }}" target="_blank" rel="noopener" class="btn-ghost min-h-9 px-3">{{ __('Open') }}</a>
                             </div>
                             <p class="muted mt-2 text-xs" data-card-install-hint>{{ __('The guest can add the card to their phone from the link') }}</p>
                         </div>

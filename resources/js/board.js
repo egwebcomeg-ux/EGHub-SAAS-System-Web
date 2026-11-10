@@ -39,11 +39,16 @@ if (board) {
             audio ??= new (window.AudioContext || window.webkitAudioContext)();
             if (audio.state === 'suspended') audio.resume();
             unlocked = true;
-            hint?.classList.add('hidden');
-            hint?.classList.remove('flex');
         } catch {}
     }
     ['pointerdown', 'keydown', 'touchstart'].forEach((ev) => document.addEventListener(ev, unlock, { passive: true }));
+    // the hint leaves once the tap is over: hiding it on pointerdown moved the page under the finger, so that tap missed its button
+    function hideHint() {
+        if (!unlocked) return;
+        hint?.classList.add('hidden');
+        hint?.classList.remove('flex');
+    }
+    ['click', 'keyup'].forEach((ev) => document.addEventListener(ev, hideHint, { passive: true }));
 
     function tone(freq, at, length, volume = 0.25) {
         const osc = audio.createOscillator();
@@ -244,14 +249,21 @@ if (board) {
         busyBox.classList.toggle('bg-amber-50', !!busy);
         busyBox.classList.toggle('ring-1', !!busy);
         busyBox.classList.toggle('ring-amber-200', !!busy);
-        busyBox.querySelector('[data-busy-presets]')?.classList.toggle('hidden', !!busy);
         busyBox.querySelector('[data-busy="off"]')?.classList.toggle('hidden', !busy);
-        const msg = busyBox.querySelector('[data-busy-message]');
-        if (msg) {
-            msg.classList.toggle('hidden', !!busy);
-            if (busy) msg.value = '';
+        busyToggle?.classList.toggle('hidden', !!busy);
+        if (busy) {
+            showBusyPresets(false);
+            const msg = busyBox.querySelector('[data-busy-message]');
+            if (msg) msg.value = '';
         }
     }
+    // the durations and the guests' message stay folded until "We're busy now" is tapped
+    const busyToggle = busyBox?.querySelector('[data-busy-toggle]');
+    function showBusyPresets(show) {
+        busyBox.querySelector('[data-busy-presets]')?.classList.toggle('hidden', !show);
+        busyToggle?.setAttribute('aria-expanded', show ? 'true' : 'false');
+    }
+    busyToggle?.addEventListener('click', () => showBusyPresets(busyToggle.getAttribute('aria-expanded') !== 'true'));
     busyBox?.addEventListener('click', async (e) => {
         const btn = e.target.closest('[data-busy]');
         if (!btn) return;
@@ -260,7 +272,6 @@ if (board) {
         if (btn.dataset.busy === 'minutes') body.minutes = Number(btn.dataset.value);
         if (btn.dataset.busy === 'time') body.time = btn.dataset.value;
         if (btn.dataset.busy === 'custom') {
-            msgInput?.classList.remove('hidden');
             const time = prompt(t.customTime, '23:00');
             if (!time || !/^\d{2}:\d{2}$/.test(time.trim())) return;
             body = { mode: 'time', time: time.trim(), message: msgInput?.value || '' };

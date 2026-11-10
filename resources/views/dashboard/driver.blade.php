@@ -53,7 +53,7 @@
     <header class="sticky top-0 z-20 flex items-center justify-between gap-2 bg-navy-800 px-3 py-2 text-white shadow">
         <div class="min-w-0 flex-1 leading-tight">
             <div class="truncate text-base font-black">{{ __('My deliveries') }}</div>
-            <div class="truncate text-[11px] text-white/70">{{ $user->name }} · {{ tenant()->name }} · <span data-refreshed></span></div>
+            <div class="truncate text-xs text-white/70">{{ $user->name }} · {{ tenant()->name }} · <span data-refreshed></span></div>
         </div>
         {{-- one-handed on a small phone: three square buttons, 44px each --}}
         <button type="button" class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white/10 text-xl active:bg-white/20" data-sound aria-pressed="true" aria-label="{{ __('Sound on for new orders') }}" title="{{ __('Sound on for new orders') }}">🔔</button>

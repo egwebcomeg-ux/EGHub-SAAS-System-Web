@@ -7,9 +7,9 @@
 
 <form method="get" class="mb-4 flex flex-wrap items-end gap-2" data-expenses-month>
     <label class="grid gap-1 text-xs font-semibold text-navy-600">{{ __('Month') }}
-        <input class="field min-h-10" type="month" name="month" value="{{ $month }}" dir="ltr">
+        <input class="field" type="month" name="month" value="{{ $month }}" dir="ltr">
     </label>
-    <button class="btn-navy min-h-10 px-5">{{ __('View') }}</button>
+    <button class="btn-navy px-5">{{ __('View') }}</button>
 </form>
 
 <div class="grid gap-4 lg:grid-cols-3">

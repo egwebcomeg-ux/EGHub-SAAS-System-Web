@@ -1,16 +1,10 @@
 {{--
-    "▶ شرح بالفيديو" of the current page (App\Support\Tutorials): a button that opens the video with its steps. Nothing
-    shows when the page has no recorded tutorial. $tutorials: the page's tutorials; $inline: a plain button in the page
-    instead of the floating one.
+    The video tutorials of the current page (App\Support\Tutorials): each one's window, the video with its steps. Nothing
+    shows when the page has no recorded tutorial. $tutorials: the page's tutorials; $inline: a button per tutorial in the
+    page (otherwise the dashboard's top bar carries the "▶ شرح بالفيديو" button that opens the first one).
 --}}
 @php($tutorials = $tutorials ?? (auth()->check() ? \App\Support\Tutorials::forRoute(request()->route()?->getName(), auth()->user()) : []))
 @if ($tutorials)
-    @unless ($inline ?? false)
-        <button type="button" class="fixed bottom-4 start-4 z-40 flex min-h-11 items-center gap-2 rounded-full bg-navy-800 px-4 text-sm font-bold text-white shadow-lg ring-1 ring-white/20 hover:bg-navy-700 print:hidden"
-                onclick="document.getElementById('tutorial-{{ $tutorials[0]['key'] }}').showModal()" data-tutorial-open="{{ $tutorials[0]['key'] }}">
-            ▶ {{ __('Video tutorial') }}
-        </button>
-    @endunless
     @foreach ($tutorials as $tutorial)
         @if ($inline ?? false)
             <button type="button" class="btn-ghost" onclick="document.getElementById('tutorial-{{ $tutorial['key'] }}').showModal()" data-tutorial-open="{{ $tutorial['key'] }}">▶ {{ $tutorial['title'] }}</button>

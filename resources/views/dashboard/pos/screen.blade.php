@@ -35,36 +35,23 @@
                     {{ $shift ? __('Shift open since :time', ['time' => local_time($shift->opened_at, 'h:i A')]) : __('No open shift') }}
                 </a>
             @endif
-            @if (!$cc && !empty($data['walletManage']))
-                <button type="button" class="btn-ghost min-h-9 px-3" data-topup-open>💳 {{ __('Top up balance') }}</button>
-                <button type="button" class="btn-ghost min-h-9 px-3" data-gift-open>🎁 {{ __('Gift card') }}</button>
-            @endif
             @if ($cc && auth()->user()->canAny(['delivery.assign', 'delivery.drivers']) && \App\Services\Entitlements::current()->allows('delivery_zones|online_ordering'))
                 {{-- delivery orders taken here get their driver on the drivers page (or the orders board) --}}
                 <a href="{{ route('dash.drivers') }}" class="btn-ghost min-h-9 px-3" target="_blank" rel="noopener" data-drivers-link>🛵 {{ __('Drivers') }}</a>
             @endif
-            @if ($kb)
+            @if ($cc && $kb)
                 {{-- the knowledge base: the answers the team gives on the phone and at the counter (F1) --}}
-                @if ($cc)
-                    <button type="button" class="btn-ghost min-h-9 px-3" data-kb-open title="F1">📖 {{ __('Knowledge base') }}</button>
-                @else
-                    <button type="button" class="btn-ghost min-h-9 min-w-9 px-3" data-kb-open aria-label="{{ __('Knowledge base') }}" title="{{ __('Knowledge base') }} (F1)">📖</button>
-                @endif
+                <button type="button" class="btn-ghost min-h-9 px-3" data-kb-open title="F1">📖 {{ __('Knowledge base') }}</button>
             @endif
             <button type="button" class="btn-ghost min-h-9 px-3" data-open-orders>{{ __('Open orders') }} <span class="badge bg-brand-600 text-white" data-open-count>0</span></button>
-            @unless ($cc)
+            @if ($cc)
+                <button type="button" class="btn-ghost hidden min-h-9 px-3" data-customer-display>🖥 {{ __('Customer display') }}</button>
+            @else
                 <button type="button" class="btn-ghost min-h-9 px-3" data-holds-open>⏸ {{ __('Held') }} <span class="badge bg-navy-700 text-white" data-holds-count>0</span></button>
                 <button type="button" class="btn-ghost min-h-9 px-3" data-orders-open title="F9">🧾 {{ __('Orders & refunds') }}</button>
-                @if (!empty($data['canCash']))
-                    <button type="button" class="btn-ghost min-h-9 px-3" data-cash-open>💵 {{ __('Cash in / out') }}</button>
-                @endif
-            @endunless
-            <button type="button" @class(['btn-ghost min-h-9 px-3', 'hidden' => $cc]) data-customer-display title="{{ __('Opens a window to drag onto the screen facing the guest') }}">🖥 {{ __('Customer display') }}</button>
-            @unless ($cc)
-                {{-- shown only inside the EgHub cashier app (resources/js/native-print.js) --}}
-                <button type="button" class="btn-ghost hidden min-h-9 px-3" data-printers-open>🖨 {{ __('Printers') }}</button>
-                <button type="button" class="btn-ghost min-h-9 min-w-9 px-3 font-extrabold" data-help-open aria-label="{{ __('Keyboard shortcuts') }}" title="{{ __('Keyboard shortcuts') }}">?</button>
-            @endunless
+                {{-- what a cashier opens a few times a day stays behind one button, so the bar holds on one row --}}
+                <button type="button" class="btn-ghost min-h-9 px-3" data-more-open aria-haspopup="dialog">⋯ {{ __('More') }}</button>
+            @endif
         </div>
     </header>
 
@@ -128,45 +115,56 @@
             </div>
             <ul class="min-h-24 flex-1 divide-y divide-navy-50 overflow-y-auto px-3" data-lines></ul>
             <div class="space-y-2 border-t border-navy-100 p-3 text-sm">
-                <details>
-                    <summary class="cursor-pointer text-navy-500">{{ __('Notes') }}</summary>
-                    <div class="mt-2 space-y-2">
-                        <input class="field min-h-9" data-notes placeholder="{{ __('Notes for the order') }}" maxlength="500">
-                    </div>
-                </details>
+                {{-- notes, discount and voucher stay folded until one is used: its chip opens the field, a filled field stays open (pos.js: syncExtras) --}}
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" class="btn min-h-9 rounded-full bg-navy-50 px-3" data-extra="notes" aria-expanded="false">📝 {{ __('Notes') }}</button>
+                    @if ($data['canDiscount'])
+                        <button type="button" class="btn min-h-9 rounded-full bg-navy-50 px-3" data-extra="discount" aria-expanded="false">٪ {{ __('Discount') }}</button>
+                    @endif
+                    @if (! empty($data['coupons']))
+                        <button type="button" class="btn min-h-9 rounded-full bg-navy-50 px-3" data-extra="coupon" aria-expanded="false">🎟 {{ __('Voucher') }}</button>
+                    @endif
+                </div>
+                <div class="hidden" data-extra-panel="notes">
+                    <input class="field min-h-9" data-notes placeholder="{{ __('Notes for the order') }}" aria-label="{{ __('Notes for the order') }}" maxlength="500">
+                </div>
                 @if ($data['canDiscount'])
-                    <div class="flex items-center gap-2">
-                        <span class="text-navy-500">{{ __('Discount') }}</span>
-                        <input class="field min-h-9 w-24" type="number" min="0" step="0.5" data-discount value="0">
-                        <select class="field min-h-9 w-20" data-discount-kind><option value="amount">{{ __('EGP') }}</option><option value="percent">%</option></select>
+                    <div class="hidden" data-extra-panel="discount">
+                        <div class="flex items-center gap-2">
+                            <span class="text-navy-500">{{ __('Discount') }}</span>
+                            <input class="field min-h-9 w-24" type="number" min="0" step="0.5" data-discount value="0" aria-label="{{ __('Discount') }}">
+                            <select class="field min-h-9 w-20" data-discount-kind aria-label="{{ __('Discount') }}"><option value="amount">{{ __('EGP') }}</option><option value="percent">%</option></select>
+                        </div>
                     </div>
                 @endif
                 @if (! empty($data['coupons']))
-                    <div class="space-y-1" data-coupon-box>
+                    <div class="hidden space-y-1" data-extra-panel="coupon" data-coupon-box>
                         <div class="flex items-center gap-2">
-                            <span class="text-navy-500">{{ __('Voucher') }}</span>
-                            <input class="field min-h-9 flex-1 uppercase" data-coupon maxlength="30" dir="ltr" autocomplete="off" placeholder="{{ __('Voucher code') }}">
-                            <button type="button" class="btn-ghost min-h-9 px-3" data-coupon-apply>{{ __('Apply') }}</button>
+                            <input class="field min-h-9 min-w-0 flex-1 uppercase" data-coupon maxlength="30" dir="ltr" autocomplete="off" placeholder="{{ __('Voucher code') }}" aria-label="{{ __('Voucher code') }}">
+                            <button type="button" class="btn-ghost min-h-9 shrink-0 px-3" data-coupon-apply>{{ __('Apply') }}</button>
                         </div>
                         <p class="hidden text-xs" data-coupon-info></p>
                     </div>
                 @endif
                 <div class="space-y-0.5" data-totals></div>
+                {{-- two rows: getting paid first (the exact amount in cash in one tap, change / card / wallet behind "Pay"), then the rest --}}
                 @if ($data['payFirst'])
                     {{-- the restaurant asks its waiters to take the money first (App\Services\Orders\WaiterCash) --}}
                     <button type="button" class="btn-primary w-full" data-pay>{{ __('Take the payment and send') }}</button>
                     <p class="text-center text-xs text-navy-500" data-pay-first>{{ __('The order goes to the kitchen once it is paid.') }}</p>
+                    <button type="button" class="btn-ghost w-full bg-emerald-50 text-emerald-800 hover:bg-emerald-100" data-pay-cash title="F3">💵 {{ __('Exact cash') }}</button>
                 @else
                     <div class="grid grid-cols-2 gap-2 pt-1">
-                        <button type="button" class="btn-ghost" data-send>{{ __('Send to kitchen') }}</button>
+                        <button type="button" class="btn-ghost bg-emerald-50 text-emerald-800 hover:bg-emerald-100" data-pay-cash title="F3">💵 {{ __('Exact cash') }}</button>
                         <button type="button" class="btn-primary" data-pay>{{ __('Pay') }}</button>
                     </div>
                 @endif
-                {{-- the exact amount in cash, in one tap: no payment window (change, card and wallet stay behind "Pay") --}}
-                <button type="button" class="btn-ghost w-full bg-emerald-50 text-emerald-800 hover:bg-emerald-100" data-pay-cash title="F3">💵 {{ __('Exact cash') }}</button>
-                <div class="grid grid-cols-2 gap-2">
-                    <button type="button" class="btn-ghost min-h-11" data-hold title="F4">⏸ {{ __('Hold') }}</button>
-                    <button type="button" class="min-h-11 w-full rounded-xl text-center text-sm font-semibold text-red-600 hover:bg-red-50" data-clear>{{ __('Clear') }}</button>
+                <div class="flex gap-2">
+                    @unless ($data['payFirst'])
+                        <button type="button" class="btn-ghost min-w-0 flex-1 px-2" data-send>{{ __('Send to kitchen') }}</button>
+                    @endunless
+                    <button type="button" class="btn-ghost min-w-0 flex-1 px-2" data-hold title="F4">⏸ {{ __('Hold') }}</button>
+                    <button type="button" class="btn min-w-0 shrink-0 px-3 text-red-600 hover:bg-red-50" data-clear>{{ __('Clear') }}</button>
                 </div>
             </div>
         </aside>
@@ -175,14 +173,17 @@
 </div>
 
 {{-- options --}}
-<dialog class="m-auto w-full max-w-md rounded-2xl p-0 backdrop:bg-black/50" data-options-dialog>
-    <form method="dialog" class="p-5">
-        <h3 class="mb-3 text-lg font-extrabold" data-options-title></h3>
-        <div class="space-y-4" data-options-body></div>
-        <input class="field mt-4" data-line-notes placeholder="{{ __('Notes for the kitchen') }}" maxlength="200">
-        <div class="mt-4 flex gap-2">
-            <button value="cancel" class="btn-ghost flex-1">{{ __('Cancel') }}</button>
-            <button type="button" class="btn-primary flex-1" data-options-add>{{ __('Add') }}</button>
+{{-- the groups scroll between the item's name and the buttons, so "Add" (with the price so far) never leaves the screen --}}
+<dialog class="m-auto w-full max-w-xl rounded-2xl p-0 backdrop:bg-black/50" data-options-dialog>
+    <form method="dialog" class="flex max-h-[90dvh] flex-col">
+        <h3 class="border-b border-navy-100 px-5 py-3 text-lg font-extrabold" data-options-title></h3>
+        <div class="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4" data-options-body></div>
+        <div class="space-y-3 border-t border-navy-100 px-5 py-4">
+            <input class="field" data-line-notes placeholder="{{ __('Notes for the kitchen') }}" aria-label="{{ __('Notes for the kitchen') }}" maxlength="200">
+            <div class="flex gap-2">
+                <button value="cancel" class="btn-ghost flex-1">{{ __('Cancel') }}</button>
+                <button type="button" class="btn-primary flex-[2] justify-between" data-options-add><span>{{ __('Add') }}</span><span class="font-extrabold" data-options-price></span></button>
+            </div>
         </div>
     </form>
 </dialog>
@@ -506,6 +507,33 @@
         </dialog>
     @endif
 
+    {{-- "More" in the top bar: each button opens its own window (pos.js closes this one first) --}}
+    <dialog class="m-auto w-full max-w-md rounded-2xl p-0 backdrop:bg-black/50" data-more-dialog>
+        <form method="dialog" class="p-5">
+            <div class="mb-3 flex items-center justify-between">
+                <h3 class="text-lg font-extrabold">{{ __('More') }}</h3>
+                <button value="cancel" class="grid size-11 place-items-center rounded-xl text-2xl leading-none text-navy-500 hover:bg-navy-50" aria-label="{{ __('Close') }}">×</button>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                @if (!empty($data['walletManage']))
+                    <button type="button" class="btn-ghost justify-start" data-topup-open>💳 {{ __('Top up balance') }}</button>
+                    <button type="button" class="btn-ghost justify-start" data-gift-open>🎁 {{ __('Gift card') }}</button>
+                @endif
+                @if (!empty($data['canCash']))
+                    <button type="button" class="btn-ghost justify-start" data-cash-open>💵 {{ __('Cash in / out') }}</button>
+                @endif
+                <button type="button" class="btn-ghost justify-start" data-customer-display title="{{ __('Opens a window to drag onto the screen facing the guest') }}">🖥 {{ __('Customer display') }}</button>
+                {{-- shown only inside the EgHub cashier app (resources/js/native-print.js) --}}
+                <button type="button" class="btn-ghost hidden justify-start" data-printers-open>🖨 {{ __('Printers') }}</button>
+                @if ($kb)
+                    {{-- the knowledge base: the answers the team gives on the phone and at the counter (F1) --}}
+                    <button type="button" class="btn-ghost justify-between" data-kb-open><span>📖 {{ __('Knowledge base') }}</span><kbd class="text-xs font-normal text-navy-500" dir="ltr">F1</kbd></button>
+                @endif
+                <button type="button" class="btn-ghost justify-between" data-help-open><span>⌨ {{ __('Keyboard shortcuts') }}</span><kbd class="text-xs font-normal text-navy-500" dir="ltr">?</kbd></button>
+            </div>
+        </form>
+    </dialog>
+
     {{-- keyboard shortcuts --}}
     <dialog class="m-auto w-full max-w-sm rounded-2xl p-0 backdrop:bg-black/50" data-help-dialog>
         <form method="dialog" class="p-5">
@@ -567,7 +595,7 @@
             'test' => __('Test page'), 'printFailed' => __('Printing failed'),
         ],
         'total' => __('Total'), 'subtotal' => __('Subtotal'), 'service' => __('Service'), 'tax' => __('Tax'), 'discount' => __('Discount'),
-        'all' => __('All'), 'empty' => __('Tap items to add them.'), 'required' => __('Required'), 'pickRequired' => __('Please choose: :group', ['group' => '__G__']),
+        'all' => __('All'), 'empty' => __('Tap items to add them.'), 'required' => __('Required'), 'chooseUpTo' => __('Choose up to :n', ['n' => '__N__']), 'pickRequired' => __('Please choose: :group', ['group' => '__G__']),
         'chooseTable' => __('Choose a table.'), 'change' => __('Change: :amount', ['amount' => '__A__']), 'short' => __('Short by :amount', ['amount' => '__A__']),
         'sent' => __('Sent to the kitchen'), 'paid' => __('Paid'), 'pay' => __('Pay'), 'noOpen' => __('No open orders.'),
         'table' => __('Table :name', ['name' => '__N__']), 'takeaway' => __('Takeaway'), 'soldOut' => __('Sold out'), 'clearAsk' => __('Clear the order?'),

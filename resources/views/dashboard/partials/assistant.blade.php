@@ -118,10 +118,10 @@
                 var row = document.createElement('div');
                 row.className = 'flex gap-2';
                 var yes = document.createElement('button');
-                yes.type = 'button'; yes.className = 'btn-primary min-h-10 px-4'; yes.textContent = L.confirm;
+                yes.type = 'button'; yes.className = 'btn-primary min-h-9 px-4'; yes.textContent = L.confirm;
                 yes.setAttribute('data-dash-asst-confirm', '');
                 var no = document.createElement('button');
-                no.type = 'button'; no.className = 'btn-ghost min-h-10 px-4'; no.textContent = L.cancel;
+                no.type = 'button'; no.className = 'btn-ghost min-h-9 px-4'; no.textContent = L.cancel;
                 yes.addEventListener('click', function () {
                     yes.disabled = no.disabled = true;
                     fetch(panel.getAttribute('data-run'), {

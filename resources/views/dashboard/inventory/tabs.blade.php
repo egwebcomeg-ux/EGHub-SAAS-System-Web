@@ -1,4 +1,4 @@
-{{-- Inventory sub-navigation + branch picker (hidden for staff tied to one branch). --}}
+{{-- Inventory sub-navigation + branch picker (hidden for staff tied to one branch, and on a page that has no current branch: a purchase picks its own). --}}
 @php
     $inventoryTabs = [
         ['dash.inventory', __('Stock')],
@@ -16,7 +16,7 @@
     'label' => __('Inventory'), 'current' => $currentTab,
     'tabs' => array_map(fn ($t) => [$t[0], $t[1], route($t[0])], $inventoryTabs),
 ])
-@if (isset($branches) && $branches->count() > 1)
+@if (isset($branches, $branch) && $branches->count() > 1)
     <form class="mb-4 flex justify-end">
         @foreach (request()->only(['from', 'to', 'kind']) as $key => $value)<input type="hidden" name="{{ $key }}" value="{{ $value }}">@endforeach
         <select name="branch" class="field min-h-9 w-auto py-0" onchange="this.form.submit()" aria-label="{{ __('Branch') }}">

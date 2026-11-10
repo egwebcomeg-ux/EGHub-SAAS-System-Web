@@ -23,7 +23,7 @@ module.exports = {
         await t.say('أي طلب جديد (من الكاشير أو الترابيزة أو الأونلاين) بيروح لشاشة المطبخ لوحده.', 3200);
         await t.click((p) => p.locator('[data-items] button').filter({ hasText: 'آيس لاتيه' }).first(), 'مثلاً من الكاشير: آيس لاتيه...', 1000);
         await t.click((p) => p.locator('[data-items] button').filter({ hasText: 'براونيز' }).first(), '...وبراونيز.', 1000);
-        await t.click((p) => p.locator('[data-ticket] summary').first(), 'ولو فيه ملاحظة للمطبخ اكتبها هنا.', 900);
+        await t.click('[data-ticket] [data-extra="notes"]', 'ولو فيه ملاحظة للمطبخ اكتبها هنا.', 900);
         await t.fill('[data-ticket] [data-notes]', 'البراونيز سخنة', '');
         await t.click('[data-ticket] [data-send]', 'ودوس «ابعت للمطبخ».', 2000);
         await t.go('app:/kitchen', 'ودي شاشة المطبخ: بتشتغل على أي تابلت أو شاشة في المطبخ.');

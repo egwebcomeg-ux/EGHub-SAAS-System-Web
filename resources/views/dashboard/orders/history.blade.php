@@ -22,7 +22,7 @@
     </label>
     <label class="grid gap-1 text-xs font-semibold text-navy-600">{{ __('From') }}<input class="field" type="date" name="from" value="{{ $filters['from'] }}" dir="ltr"></label>
     <label class="grid gap-1 text-xs font-semibold text-navy-600">{{ __('To') }}<input class="field" type="date" name="to" value="{{ $filters['to'] }}" dir="ltr"></label>
-    <div class="sm:col-span-2 lg:col-span-5"><button class="btn-navy min-h-10 px-5">{{ __('Search') }}</button></div>
+    <div class="sm:col-span-2 lg:col-span-5"><button class="btn-navy px-5">{{ __('Search') }}</button></div>
 </form>
 
 <div class="card overflow-x-auto">

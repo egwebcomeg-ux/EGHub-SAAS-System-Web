@@ -65,25 +65,29 @@
 </div>
 
 {{-- busy mode: pauses online / takeaway / delivery ordering; table orders go on --}}
-<section class="card mb-4 flex flex-wrap items-center justify-between gap-3" data-busy-box data-busy-url="{{ route('dash.orders.busy') }}"
+{{-- one line while the restaurant takes orders: the durations and the guests' message wait behind "We're busy now" --}}
+<section class="card mb-4 py-3" data-busy-box data-busy-url="{{ route('dash.orders.busy') }}"
     data-can-manage="{{ $canManage ? 1 : 0 }}">
-    <div class="flex items-center gap-3">
-        <span class="grid size-10 place-items-center rounded-xl text-xl" data-busy-icon>🟢</span>
-        <div>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex min-w-0 items-center gap-3">
+            <span class="text-xl" data-busy-icon>🟢</span>
             <div class="font-bold" data-busy-label>{{ $busy ? __('Busy until :time', ['time' => $busy['until']]) : __('Taking online orders') }}</div>
-            <div class="text-xs text-navy-500">{{ __('Busy mode pauses online, pickup and delivery orders from the menu link; table orders keep coming.') }}</div>
         </div>
+        @if ($canManage)
+            <button type="button" class="btn-ghost min-h-9 px-3" data-busy-toggle aria-expanded="false" aria-controls="busy-presets">⏸ {{ __("We're busy now") }}</button>
+            <button type="button" class="hidden min-h-9 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white" data-busy="off">{{ __("We're back") }}</button>
+        @endif
     </div>
     @if ($canManage)
-        <div class="flex flex-wrap items-center gap-2">
-            <div class="flex flex-wrap gap-2" data-busy-presets>
-                <button type="button" class="btn-ghost min-h-10 px-3" data-busy="minutes" data-value="30">{{ __("We're busy now") }} · 30 {{ __('min') }}</button>
-                <button type="button" class="btn-ghost min-h-10 px-3" data-busy="minutes" data-value="60">1 {{ __('hour') }}</button>
-                <button type="button" class="btn-ghost min-h-10 px-3" data-busy="time" data-value="21:00">{{ __('Until 21:00') }}</button>
-                <button type="button" class="btn-ghost min-h-10 px-3" data-busy="custom">{{ __('Custom…') }}</button>
+        <div id="busy-presets" class="mt-3 hidden border-t border-navy-100 pt-3" data-busy-presets>
+            <p class="mb-3 text-xs text-navy-500">{{ __('Busy mode pauses online, pickup and delivery orders from the menu link; table orders keep coming.') }}</p>
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="button" class="btn-ghost min-h-9 px-3" data-busy="minutes" data-value="30">30 {{ __('min') }}</button>
+                <button type="button" class="btn-ghost min-h-9 px-3" data-busy="minutes" data-value="60">1 {{ __('hour') }}</button>
+                <button type="button" class="btn-ghost min-h-9 px-3" data-busy="time" data-value="21:00">{{ __('Until 21:00') }}</button>
+                <button type="button" class="btn-ghost min-h-9 px-3" data-busy="custom">{{ __('Custom…') }}</button>
+                <input class="field max-w-xs" maxlength="200" data-busy-message placeholder="{{ __('Message for guests (optional)') }}">
             </div>
-            <button type="button" class="hidden min-h-10 rounded-xl bg-emerald-600 px-4 font-bold text-white" data-busy="off">{{ __("We're back") }}</button>
-            <input class="field hidden max-w-xs" maxlength="200" data-busy-message placeholder="{{ __('Message for guests (optional)') }}">
         </div>
     @endif
 </section>
@@ -92,18 +96,18 @@
 <div class="mb-4 hidden flex-wrap gap-2" data-calls></div>
 <div class="mb-4 hidden flex-wrap gap-2" data-reservations></div>
 
-{{-- quick filters with live counts (remembered on this device) --}}
-<div class="mb-3 max-w-sm">
-    <input type="search" class="field" data-board-search maxlength="24" placeholder="{{ __('Search: order number or OFF-K1-3') }}" aria-label="{{ __('Search orders') }}">
-</div>
-<div class="-mx-1 mb-4 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible" data-chips role="toolbar" aria-label="{{ __('Filter orders') }}">
-    @foreach ($chips as [$key, $label])
-        <button type="button" data-chip="{{ $key }}" aria-pressed="false"
-            class="group flex min-h-10 shrink-0 items-center gap-2 rounded-full bg-white px-4 text-sm font-bold text-navy-700 shadow-sm ring-1 ring-navy-100 transition hover:ring-brand-200 aria-pressed:bg-navy-800 aria-pressed:text-white aria-pressed:ring-navy-800">
-            <span>{{ $label }}</span>
-            <span class="min-w-6 rounded-full bg-navy-100 px-1.5 text-center text-xs tabular-nums text-navy-700 group-aria-pressed:bg-brand-600 group-aria-pressed:text-white" data-chip-count="{{ $key }}">0</span>
-        </button>
-    @endforeach
+{{-- the search, then the quick filters with live counts (remembered on this device) --}}
+<div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start">
+    <input type="search" class="field max-w-sm lg:w-64 lg:shrink-0" data-board-search maxlength="24" placeholder="{{ __('Search: order number or OFF-K1-3') }}" aria-label="{{ __('Search orders') }}">
+    <div class="-mx-1 flex min-w-0 gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible" data-chips role="toolbar" aria-label="{{ __('Filter orders') }}">
+        @foreach ($chips as [$key, $label])
+            <button type="button" data-chip="{{ $key }}" aria-pressed="false"
+                class="group flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-white px-4 text-sm font-bold text-navy-700 shadow-sm ring-1 ring-navy-100 transition hover:ring-brand-200 aria-pressed:bg-navy-800 aria-pressed:text-white aria-pressed:ring-navy-800">
+                <span>{{ $label }}</span>
+                <span class="min-w-6 rounded-full bg-navy-100 px-1.5 text-center text-xs tabular-nums text-navy-700 group-aria-pressed:bg-brand-600 group-aria-pressed:text-white" data-chip-count="{{ $key }}">0</span>
+            </button>
+        @endforeach
+    </div>
 </div>
 
 <div id="board" class="grid gap-4 lg:grid-cols-3"
@@ -148,8 +152,8 @@
             <input type="password" inputmode="numeric" autocomplete="off" maxlength="12" class="field mt-1" data-cancel-pin required>
         </label>
         <div class="flex justify-end gap-2 pt-1">
-            <button type="button" class="btn-ghost min-h-10 px-4" data-cancel-close>{{ __('Back') }}</button>
-            <button type="submit" class="min-h-10 rounded-xl bg-red-600 px-4 font-bold text-white">{{ __('Approve') }}</button>
+            <button type="button" class="btn-ghost px-4" data-cancel-close>{{ __('Back') }}</button>
+            <button type="submit" class="min-h-11 rounded-xl bg-red-600 px-4 font-bold text-white">{{ __('Approve') }}</button>
         </div>
     </form>
 </dialog>

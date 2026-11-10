@@ -118,10 +118,10 @@
                     @csrf
                     <input type="hidden" name="plan_id" value="{{ $custom['plan']->id }}">
                     <label class="sr-only" for="custom-renew-months">{{ __('Pay for') }}</label>
-                    <select id="custom-renew-months" name="months" class="field min-h-10 w-auto">
+                    <select id="custom-renew-months" name="months" class="field w-auto">
                         @foreach (\App\Models\Plan::CYCLES as $m)<option value="{{ $m }}">{{ cycle_label($m) }}</option>@endforeach
                     </select>
-                    <button class="btn-navy min-h-10">{{ $subscription?->status === 'trialing' ? __('Subscribe') : __('Renew') }}</button>
+                    <button class="btn-navy">{{ $subscription?->status === 'trialing' ? __('Subscribe') : __('Renew') }}</button>
                 </form>
             @endif
         </div>

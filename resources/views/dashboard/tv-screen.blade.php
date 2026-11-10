@@ -53,8 +53,8 @@
                     @if (! empty($info['app']))<dt>{{ __('Player version') }}</dt><dd dir="ltr" class="text-start">{{ $info['app'] }}</dd>@endif
                 </dl>
                 <div class="flex flex-wrap gap-2">
-                    <form method="post" action="{{ route('dash.tv.reload', $screen) }}">@csrf<button class="btn-ghost min-h-10 px-3">{{ __('Refresh the screen') }}</button></form>
-                    <a href="{{ route('dash.tv.pair', ['screen' => $screen->id]) }}" class="btn-ghost min-h-10 px-3">{{ __('Pair another TV') }}</a>
+                    <form method="post" action="{{ route('dash.tv.reload', $screen) }}">@csrf<button class="btn-ghost min-h-9 px-3">{{ __('Refresh the screen') }}</button></form>
+                    <a href="{{ route('dash.tv.pair', ['screen' => $screen->id]) }}" class="btn-ghost min-h-9 px-3">{{ __('Pair another TV') }}</a>
                     <form method="post" action="{{ route('dash.tv.unpair', $screen) }}" onsubmit="return confirm(@js(__('Unpair this TV? It goes back to showing a code.')))">@csrf<button class="min-h-10 px-2 text-sm text-red-600">{{ __('Unpair') }}</button></form>
                 </div>
             @else
