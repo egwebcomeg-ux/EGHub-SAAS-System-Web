@@ -8,6 +8,8 @@ let order = {};
 /**
  * Signs the recording's browser in as someone else on a page of its own, off camera (its video is thrown away), while
  * the recording shows a title card naming whose screen comes next (the next page replaces it).
+ * The recording's page is cut off from the server meanwhile: it keeps polling, and a late answer to one of its requests
+ * would put the old session's cookie back over the new one.
  */
 async function signInAs(t, email, title, subtitle) {
     await t.page.evaluate(([title, subtitle]) => {
@@ -16,6 +18,8 @@ async function signInAs(t, email, title, subtitle) {
         c.innerHTML = `<div>${title}<small>${subtitle}</small></div>`;
         document.body.appendChild(c);
     }, [title, subtitle]);
+    await t.page.route('**/*', (route) => route.abort());
+    await t.page.waitForTimeout(1500);
     const context = t.page.context();
     await context.clearCookies();
     const page = await context.newPage();
@@ -27,6 +31,7 @@ async function signInAs(t, email, title, subtitle) {
     const video = page.video();
     await page.close();
     await video?.delete();
+    await t.page.unroute('**/*');
 }
 
 module.exports = {
