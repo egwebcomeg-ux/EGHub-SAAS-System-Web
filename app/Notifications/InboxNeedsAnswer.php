@@ -28,7 +28,7 @@ class InboxNeedsAnswer extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject(__(':channel: :name is waiting for an answer', $where))
             ->line(__(':name wrote to EgHub on :channel and waits for someone from the team.', $where))
-            ->lineIf($this->conversation->isWhatsApp(), __('Mobile: :phone', ['phone' => '+'.$this->conversation->phone]))
+            ->lineIf($this->conversation->isWhatsApp(), __('Mobile: :phone', ['phone' => "\u{2066}+{$this->conversation->phone}\u{2069}"]))
             ->action(__('Open the conversation'), platform_url('admin', '/inbox/'.$this->conversation->id))
             ->salutation('EgHub');
     }

@@ -36,7 +36,8 @@
                     {{ __('Open WhatsApp and send') }}
                 </a>
                 <div class="rounded-xl bg-navy-50 p-3 text-sm text-navy-700">
-                    <div class="mb-1">{{ __('Or send this text yourself to :number:', ['number' => '+'.$number]) }}</div>
+                    {{-- isolated left-to-right, so the "+" stays in front of the number inside Arabic text --}}
+                    <div class="mb-1">{{ __('Or send this text yourself to :number:', ['number' => "\u{2066}+$number\u{2069}"]) }}</div>
                     <div class="flex flex-wrap items-center gap-2">
                         <code class="rounded-lg bg-white px-3 py-1.5 text-base font-bold tracking-widest" dir="ltr">{{ $message }}</code>
                         <button type="button" class="btn-ghost min-h-9 px-3" data-copy="{{ $message }}">{{ __('Copy') }}</button>
