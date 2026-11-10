@@ -272,9 +272,9 @@ class OrdersController extends Controller
     }
 
     /**
-     * 80mm receipt for the thermal printer (customer copy, or kitchen copy without prices). With the guest pager the
-     * customer copy carries the pager QR ("scan so we can call you"), and copy=pager prints only the number and that
-     * QR (a takeaway ticket to hand over).
+     * 80mm receipt for the thermal printer: the customer copy, copy=kitchen (no prices), or copy=both in one print (a
+     * page each). With the guest pager the customer copy carries the pager QR ("scan so we can call you"), and
+     * copy=pager prints only the number and that QR (a takeaway ticket to hand over).
      */
     public function receipt(Request $request, Order $order): View
     {
@@ -294,7 +294,11 @@ class OrdersController extends Controller
         return view('dashboard.orders.receipt', [
             'order' => $order->load(['items', 'table', 'branch', 'driver']),
             'settings' => Settings::all(),
-            'kitchen' => $copy === 'kitchen',
+            'copies' => match ($copy) { // true = a kitchen copy
+                'kitchen' => [true],
+                'both' => [false, true],
+                default => [false],
+            },
             'pagerUrl' => $pager,
         ]);
     }

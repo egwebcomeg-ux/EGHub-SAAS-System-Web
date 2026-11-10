@@ -72,6 +72,7 @@ class NativePrintingTest extends TenantTestCase
         $this->assertContains('#'.$order->number, $texts);
         $this->assertSame(3, collect($job['lines'])->firstWhere('text', '#'.$order->number)['size']);
         $this->assertContains('  ⚠ من غير بصل', $texts);
+        $this->assertTrue(collect($job['lines'])->firstWhere('text', '  ⚠ من غير بصل')['bold']); // what is under the item's name reads on thermal paper
         $rows = collect($job['lines'])->where('t', 'row');
         $this->assertSame(money(240), $rows->firstWhere('left', '2× برجر لحم')['right']);
         $this->assertTrue($rows->firstWhere('left', 'الإجمالي')['bold']);
@@ -139,12 +140,14 @@ class NativePrintingTest extends TenantTestCase
         $this->assertSame(0, OrderPrint::query()->withoutGlobalScopes()->count());
     }
 
-    public function test_the_kitchen_queue_lists_new_orders_after_the_setting_is_on_until_their_tickets_print(): void
+    public function test_the_kitchen_queue_is_on_from_its_first_read_and_lists_new_orders_until_their_tickets_print(): void
     {
         [$a, $grill, $burger, $juice, , $bar] = $this->kitchenRestaurant();
         $owner = $this->owner($a);
+        $this->assertSame(['1', '1'], $this->as($a, fn () => [Settings::get('pos_print_receipt_auto'), Settings::get('pos_print_kitchen_auto')])); // nothing saved: on
         $before = $this->sell($a, [['item_id' => $burger->id, 'qty' => 1]], null);
-        $this->actingAs($owner)->getJson($this->dashUrl('/pos/print-queue'))->assertOk()->assertJsonPath('orders', []); // setting off
+        $this->travel(1)->minutes();
+        $this->actingAs($owner)->getJson($this->dashUrl('/pos/print-queue'))->assertOk()->assertJsonPath('orders', []); // the first read only marks the start
 
         $this->travel(1)->minutes();
         $this->actingAs($owner)->post($this->dashUrl('/pos/printing'), [
@@ -154,7 +157,7 @@ class NativePrintingTest extends TenantTestCase
         $order = $this->sell($a, [['item_id' => $burger->id, 'qty' => 1], ['item_id' => $juice->id, 'qty' => 1]], null);
 
         $queue = $this->actingAs($owner)->getJson($this->dashUrl('/pos/print-queue'))->assertOk()->json('orders');
-        $this->assertSame([$order->id], array_column($queue, 'id')); // the order from before the switch never prints
+        $this->assertSame([$order->id], array_column($queue, 'id')); // the order from before the first read never prints
         $this->assertNotContains($before->id, array_column($queue, 'id'));
         $this->assertEqualsCanonicalizing(["kitchen:{$grill->id}", "kitchen:$bar"], $queue[0]['roles']);
 
@@ -162,6 +165,29 @@ class NativePrintingTest extends TenantTestCase
         $this->assertSame(["kitchen:$bar"], $this->actingAs($owner)->getJson($this->dashUrl('/pos/print-queue'))->json('orders.0.roles'));
         $this->jobs($a, $order, ["kitchen:$bar"]);
         $this->actingAs($owner)->getJson($this->dashUrl('/pos/print-queue'))->assertJsonPath('orders', []);
+    }
+
+    public function test_the_kitchen_printing_switched_off_prints_nothing_and_starts_again_from_the_moment_it_is_back_on(): void
+    {
+        [$a, , $burger] = $this->kitchenRestaurant();
+        $owner = $this->owner($a);
+        $queue = fn (): array => array_column($this->actingAs($owner)->getJson($this->dashUrl('/pos/print-queue'))->assertOk()->json('orders'), 'id');
+        $printing = fn (array $values) => $this->actingAs($owner)->post($this->dashUrl('/pos/printing'), $values + ['pos_print_copies' => 1, 'pos_print_kitchen_copies' => 1])
+            ->assertSessionHasNoErrors();
+        $queue();
+        $this->travel(1)->minutes();
+
+        $printing([]);
+        $whileOff = $this->sell($a, [['item_id' => $burger->id, 'qty' => 1]], null);
+        $this->assertSame([], $queue());
+
+        $this->travel(1)->minutes();
+        $printing(['pos_print_kitchen_auto' => '1']);
+        $this->travel(1)->minutes();
+        $after = $this->sell($a, [['item_id' => $burger->id, 'qty' => 1]], null);
+
+        $this->assertSame([$after->id], $queue());
+        $this->assertNotContains($whileOff->id, $queue());
     }
 
     public function test_the_kitchen_printing_can_take_only_the_waiters_orders(): void
@@ -172,6 +198,7 @@ class NativePrintingTest extends TenantTestCase
         $this->actingAs($owner)->post($this->dashUrl('/pos/printing'), [
             'pos_print_kitchen_auto' => '1', 'pos_print_kitchen_from' => ['waiter'], 'pos_print_copies' => 1, 'pos_print_kitchen_copies' => 1,
         ])->assertSessionHasNoErrors();
+        $this->actingAs($owner)->getJson($this->dashUrl('/pos/print-queue'))->assertOk(); // the app's first read: the queue starts here
         $this->travel(1)->minutes();
 
         $cashiers = $this->sell($a, [['item_id' => $burger->id, 'qty' => 1]], null);

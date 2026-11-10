@@ -312,6 +312,9 @@ final class PrintJobs
      * Orders of $branch still waiting for a kitchen ticket by the automatic printing: new or preparing, placed after
      * the setting was switched on (and in the last few hours), with the kitchen roles not printed yet.
      *
+     * The printing is on by default, so a restaurant that never saved the setting has no start time: the first read
+     * stamps it, and the orders already open at that moment are not printed.
+     *
      * @return list<array{id:int, number:int, roles:list<string>}>
      */
     public static function pendingKitchen(Branch $branch, int $limit = 20): array
@@ -323,7 +326,12 @@ final class PrintJobs
         $from = $settings['kitchen_from'];
         $since = now()->subHours(self::KITCHEN_WINDOW_HOURS);
         $on = Settings::get('pos_print_kitchen_since');
-        if ($on !== '' && ($onAt = rescue(fn () => Carbon::parse($on)->utc(), null, false)) && $onAt->gt($since)) {
+        if ($on === '') {
+            Settings::put(['pos_print_kitchen_since' => now()->toIso8601String()]);
+
+            return [];
+        }
+        if (($onAt = rescue(fn () => Carbon::parse($on)->utc(), null, false)) && $onAt->gt($since)) {
             $since = $onAt;
         }
         $orders = Order::query()->where('branch_id', $branch->id)->whereIn('status', ['new', 'preparing'])
@@ -402,12 +410,12 @@ final class PrintJobs
         return array_values(array_filter($lines, fn (array $l) => ($l['text'] ?? '') !== ''));
     }
 
-    /** @return list<array<string,mixed>> */
+    /** @return list<array<string,mixed>> the options and the note under an item, bold: thin text fades on thermal paper */
     private static function itemDetails(OrderItem $item): array
     {
         $lines = [];
         if ($item->options) {
-            $lines[] = self::text('  + '.collect($item->options)->pluck('name')->implode('، '));
+            $lines[] = self::text('  + '.collect($item->options)->pluck('name')->implode('، '), 'right', true);
         }
         if ($item->notes) {
             $lines[] = self::text('  ⚠ '.$item->notes, 'right', true);

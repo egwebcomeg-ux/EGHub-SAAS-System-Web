@@ -41,4 +41,26 @@ class PosReceiptShareTest extends TenantTestCase
         $this->actingAs($cashier)->get($this->dashUrl("/orders/{$order->id}/receipt"))->assertOk()->assertSee('data-receipt-qr', false)->assertSee('<svg', false);
         $this->actingAs($cashier)->get($this->dashUrl('/pos'))->assertOk()->assertSee('data-share-wa', false)->assertSee('"share":true', false);
     }
+
+    public function test_one_print_gives_the_receipt_and_the_kitchen_ticket_each_on_its_own_page(): void
+    {
+        $a = $this->restaurant('cafe-a', 'basic');
+        app(Billing::class)->setAddon($a, 'pos_pack', 1);
+        $latte = $this->item($a, 'Latte', 60);
+        $cashier = $this->staff($a, 'cashier', 'cashier@cafe-a.test');
+        $this->actingAs($cashier)->post($this->dashUrl('/shifts/open'), ['opening_cash' => 0]);
+        $id = $this->actingAs($cashier)->postJson($this->dashUrl('/pos/orders'), [
+            'client_uuid' => (string) Str::uuid(), 'type' => 'takeaway', 'items' => [['item_id' => $latte->id, 'qty' => 2]], 'pay' => 'cash',
+        ])->assertOk()->json('id');
+
+        $this->actingAs($cashier)->get($this->dashUrl("/orders/$id/receipt?copy=both"))->assertOk()
+            ->assertSeeInOrder(['data-receipt-copy="customer"', 'data-receipt-qr', 'data-receipt-copy="kitchen"'], false);
+        $this->actingAs($cashier)->get($this->dashUrl("/orders/$id/receipt"))->assertOk()
+            ->assertSee('data-receipt-copy="customer"', false)->assertDontSee('data-receipt-copy="kitchen"', false);
+        $this->actingAs($cashier)->get($this->dashUrl("/orders/$id/receipt?copy=kitchen"))->assertOk()
+            ->assertSee('data-receipt-copy="kitchen"', false)->assertDontSee('data-receipt-copy="customer"', false)->assertDontSee('data-receipt-qr', false);
+
+        // the cashier screen: both copies in one print, and the exact cash in one tap
+        $this->actingAs($cashier)->get($this->dashUrl('/pos'))->assertOk()->assertSee('data-print="both"', false)->assertSee('data-pay-cash', false);
+    }
 }

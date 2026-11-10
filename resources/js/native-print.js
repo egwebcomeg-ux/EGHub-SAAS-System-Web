@@ -84,9 +84,21 @@ export function createNativePrinter(cfg) {
         return r.ok;
     }
 
+    /**
+     * The roles this device has a printer for; null when the app cannot tell (an older app: nothing is held back).
+     * The automatic printing is on by default, so a device without a printer must stay quiet: it never claims a copy
+     * it cannot print and never shows "Printing failed".
+     */
+    const deviceRoles = () => {
+        const list = callJson('listPrinters');
+        return Array.isArray(list) ? list.map((p) => p.role).filter(Boolean) : null;
+    };
+
     /** Prints roles of an order. Automatic (reprint false): only copies never printed, by any device. */
     async function printOrder(orderId, roles, { reprint = false } = {}) {
-        const wanted = reprint ? roles : roles.filter((r) => !memory[memKey(orderId, r)] && Date.now() - (failures[memKey(orderId, r)] || 0) >= RETRY_MS);
+        const mine = reprint ? null : deviceRoles();
+        const wanted = reprint ? roles : roles.filter((r) => (!mine || mine.includes(r))
+            && !memory[memKey(orderId, r)] && Date.now() - (failures[memKey(orderId, r)] || 0) >= RETRY_MS);
         if (!orderId || !wanted.length) return 0;
         let data;
         try {
@@ -108,6 +120,8 @@ export function createNativePrinter(cfg) {
     let busy = false;
     async function poll() {
         if (busy || !cfg.printing.kitchenAuto || !deviceKitchen() || !cfg.urls.queue) return;
+        const mine = deviceRoles();
+        if (mine && !mine.some((r) => r.startsWith('kitchen:'))) return; // no kitchen printer on this device
         busy = true;
         try {
             const data = await request(cfg.urls.queue, null, 'GET');

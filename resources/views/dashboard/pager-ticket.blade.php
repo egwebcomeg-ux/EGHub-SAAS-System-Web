@@ -9,7 +9,7 @@
         @page { size: 80mm auto; margin: 3mm; }
         body { width: 74mm; margin: 0 auto; font-family: 'Cairo', Tahoma, sans-serif; font-size: 13px; color: #000; text-align: center; }
         h1 { font-size: 15px; margin: 0; }
-        .muted { color: #444; font-size: 11px; }
+        .muted { color: #000; font-size: 11px; }
         .big { font-size: 46px; font-weight: 900; line-height: 1.1; margin: 4px 0; }
         .scan { font-size: 15px; font-weight: 800; margin-top: 4px; }
         hr { border: 0; border-top: 1px dashed #000; margin: 6px 0; }

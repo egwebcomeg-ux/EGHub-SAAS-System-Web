@@ -912,6 +912,32 @@ if (dataEl) {
     }
     $('[data-share-wa]')?.addEventListener('click', () => { if (lastShare) shareReceipt(lastShare); });
 
+    // At the POS the "done" window closes by itself after a few seconds, so the next order starts without a tap; a touch
+    // or a key inside it keeps it open (printing and WhatsApp stay in "Orders & refunds"). The call center keeps it
+    // open: the agent reads the number to the caller.
+    const doneNew = $('[data-done-new]');
+    const doneNewLabel = doneNew?.textContent.trim() || '';
+    let doneTimer = null;
+    function stopDoneTimer() {
+        clearInterval(doneTimer);
+        doneTimer = null;
+        if (doneNew) doneNew.textContent = doneNewLabel;
+    }
+    function openDone(seconds = 6) {
+        stopDoneTimer();
+        doneDialog.showModal();
+        if (CC || !doneNew) return;
+        let left = seconds;
+        doneNew.textContent = `${doneNewLabel} (${left})`;
+        doneTimer = setInterval(() => {
+            left--;
+            if (left <= 0) return doneDialog.close();
+            doneNew.textContent = `${doneNewLabel} (${left})`;
+        }, 1000);
+    }
+    doneDialog.addEventListener('close', stopDoneTimer);
+    ['pointerdown', 'keydown'].forEach((type) => doneDialog.addEventListener(type, stopDoneTimer));
+
     function done(order, status) {
         lastOrderId = order.id;
         lastOffline = null;
@@ -921,19 +947,25 @@ if (dataEl) {
         $('[data-done-status]').textContent = status;
         reset();
         refreshOpen();
-        doneDialog.showModal();
+        const receiptPrints = !!printer && printer.receiptAuto && (status === T.paid || !!order.paid);
+        openDone(receiptPrints ? 3 : 6);
         if (printer) {
             // the cashier app prints by itself: the receipt once paid (setting), the kitchen tickets of the new order
-            if (printer.receiptAuto && (status === T.paid || order.paid)) printer.printOrder(order.id, ['receipt']);
+            if (receiptPrints) printer.printOrder(order.id, ['receipt']);
             printer.poll();
         }
     }
+    // data-print: customer (the receipt), kitchen (the ticket) or both in one go
     $$('[data-print]').forEach((b) => b.addEventListener('click', () => {
-        if (lastOffline) return printLocalReceipt(lastOffline, D.receiptHeader, T, b.dataset.print === 'kitchen');
+        const copy = b.dataset.print;
+        if (lastOffline) return printLocalReceipt(lastOffline, D.receiptHeader, T, copy === 'both' ? 'both' : copy === 'kitchen');
         if (printer && lastOrderId) {
-            return printer.printOrder(lastOrderId, b.dataset.print === 'kitchen' ? printer.kitchenRoles() : ['receipt'], { reprint: true });
+            const mine = printer.printers().map((p) => p.role);
+            const roles = copy === 'customer' ? ['receipt'] : copy === 'kitchen' ? printer.kitchenRoles()
+                : ['receipt', ...printer.kitchenRoles()].filter((r) => !mine.length || mine.includes(r)); // both: the printers this device has
+            return printer.printOrder(lastOrderId, roles, { reprint: true });
         }
-        if (lastOrderId) window.open(D.urls.receipt.replace('__ID__', lastOrderId) + (b.dataset.print === 'kitchen' ? '?copy=kitchen' : ''), '_blank', 'width=420,height=700');
+        if (lastOrderId) window.open(D.urls.receipt.replace('__ID__', lastOrderId) + (copy === 'customer' ? '' : '?copy=' + copy), '_blank', 'width=420,height=700');
     }));
 
     // no "send" button when the waiter takes the money first (D.payFirst): the order goes with its payment
@@ -1087,6 +1119,21 @@ if (dataEl) {
     });
     $('[data-pay]')?.addEventListener('click', () => { if (canSubmit()) openPay(null); });
     $('[data-pay-confirm]').addEventListener('click', (e) => submitOnce([e.currentTarget], () => confirmPay()));
+    // the exact amount in cash, in one tap (F3): no payment window; change, card, wallet and vouchers stay behind "Pay"
+    $('[data-pay-cash]')?.addEventListener('click', (e) => submitOnce([e.currentTarget], async () => {
+        if (!canSubmit()) return;
+        const saleUuid = ticketUuid;
+        const fail = (text) => alert(text);
+        $('[data-tendered]').value = ''; // an amount left in the payment window is not this sale's
+        if (off && !off.online) return sellOffline('cash', false, saleUuid, fail);
+        try {
+            done(await api(D.urls.order, payload('cash', saleUuid)), T.paid);
+        } catch (err) {
+            // the connection dropped on the way: keep it offline under the same id (the server saves it once)
+            if (err instanceof NetworkError && off) return sellOffline('cash', false, saleUuid, fail);
+            fail(err.message);
+        }
+    }));
     async function confirmPay() {
         const err = $('[data-pay-error]');
         err.classList.add('hidden');
@@ -1182,7 +1229,7 @@ if (dataEl) {
         $('[data-done-number]').textContent = sale.offline_ref;
         $('[data-done-status]').textContent = T.savedOffline;
         reset();
-        doneDialog.showModal();
+        openDone();
     }
 
     // ---- corporate vouchers: scan / type the code or the guest's mobile, refusals with their reason, exceptions ----
@@ -1900,11 +1947,12 @@ if (dataEl) {
         });
     }
 
-    // ---- keyboard: / search, F2 pay, F4 hold, F8 open orders, ? the shortcuts (Esc closes any window) ----
+    // ---- keyboard: / search, F2 pay, F3 exact cash, F4 hold, F8 open orders, ? the shortcuts (Esc closes any window) ----
     const typing = (el) => el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
     const anyDialogOpen = () => $$('dialog').some((d) => d.open);
     document.addEventListener('keydown', (e) => {
         if (e.key === 'F2') { e.preventDefault(); if (!anyDialogOpen()) $('[data-pay]')?.click(); return; }
+        if (e.key === 'F3') { e.preventDefault(); if (!anyDialogOpen()) $('[data-pay-cash]')?.click(); return; }
         if (e.key === 'F4') { e.preventDefault(); if (!anyDialogOpen()) $('[data-hold]')?.click(); return; }
         if (e.key === 'F8') { e.preventDefault(); if (!anyDialogOpen()) $('[data-open-orders]')?.click(); return; }
         if (e.key === 'F9') { e.preventDefault(); if (!anyDialogOpen()) $('[data-orders-open]')?.click(); return; }

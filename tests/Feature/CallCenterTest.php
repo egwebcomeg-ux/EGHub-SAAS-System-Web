@@ -166,7 +166,7 @@ class CallCenterTest extends TenantTestCase
             'data-min-warning', 'data-address ', 'data-address-label', 'data-map-toggle', 'data-lines', 'data-totals', 'data-send'] as $hook) {
             $page->assertSee($hook, false);
         }
-        $page->assertDontSee('data-pay>', false)->assertDontSee('data-coupon-apply', false); // paid later, on delivery
+        $page->assertDontSee('data-pay>', false)->assertDontSee('data-pay-cash', false)->assertDontSee('data-coupon-apply', false); // paid later, on delivery
 
         $data = $this->screenData($page);
         $this->assertSame('manual', $data['zoneMode']);

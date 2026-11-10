@@ -9,13 +9,14 @@
         @page { size: 80mm auto; margin: 3mm; }
         body { width: 74mm; margin: 0 auto; font-family: 'Cairo', Tahoma, sans-serif; font-size: 13px; color: #000; }
         h1 { font-size: 16px; margin: 0; text-align: center; }
-        .c { text-align: center; } .muted { color: #444; font-size: 11px; }
+        .c { text-align: center; } .muted { color: #000; font-size: 11px; }
         .big { font-size: 26px; font-weight: 800; text-align: center; margin: 4px 0; }
         table { width: 100%; border-collapse: collapse; }
         td { padding: 2px 0; vertical-align: top; }
         td.n { text-align: end; white-space: nowrap; }
         hr { border: 0; border-top: 1px dashed #000; margin: 6px 0; }
-        .opt { font-size: 11px; color: #333; } .tot td { font-weight: 800; font-size: 15px; }
+        .it { font-size: 14px; font-weight: 700; } .opt { font-size: 13px; font-weight: 700; color: #000; }
+        .tot td { font-weight: 800; font-size: 15px; }
         @media screen { body { padding: 12px; background: #fff; } }
     </style>
 </head>
@@ -32,8 +33,8 @@
     <table>
         @foreach ($bill['lines'] as $line)
             <tr>
-                <td><b>{{ $line['qty'] }}×</b> {{ $line['name'] }}
-                    @if ($line['options'])<div class="opt">{{ $line['options'] }}</div>@endif
+                <td class="it">{{ $line['qty'] }}× {{ $line['name'] }}
+                    @if ($line['options'])<div class="opt">+ {{ $line['options'] }}</div>@endif
                 </td>
                 <td class="n">{{ money($line['total']) }}</td>
             </tr>

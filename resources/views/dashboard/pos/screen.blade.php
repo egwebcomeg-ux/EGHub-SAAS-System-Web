@@ -162,6 +162,8 @@
                         <button type="button" class="btn-primary" data-pay>{{ __('Pay') }}</button>
                     </div>
                 @endif
+                {{-- the exact amount in cash, in one tap: no payment window (change, card and wallet stay behind "Pay") --}}
+                <button type="button" class="btn-ghost w-full bg-emerald-50 text-emerald-800 hover:bg-emerald-100" data-pay-cash title="F3">💵 {{ __('Exact cash') }}</button>
                 <div class="grid grid-cols-2 gap-2">
                     <button type="button" class="btn-ghost min-h-11" data-hold title="F4">⏸ {{ __('Hold') }}</button>
                     <button type="button" class="min-h-11 w-full rounded-xl text-center text-sm font-semibold text-red-600 hover:bg-red-50" data-clear>{{ __('Clear') }}</button>
@@ -509,7 +511,7 @@
         <form method="dialog" class="p-5">
             <h3 class="mb-3 text-lg font-extrabold">{{ __('Keyboard shortcuts') }}</h3>
             <dl class="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 text-sm">
-                @foreach (['/' => __('Search items'), 'F2' => __('Pay'), 'F4' => __('Hold the order'), 'F8' => __('Open orders'), 'F9' => __('Orders & refunds')] + ($kb ? ['F1' => __('Knowledge base')] : []) + ['Esc' => __('Close the window'), '?' => __('This list')] as $key => $what)
+                @foreach (['/' => __('Search items'), 'F2' => __('Pay'), 'F3' => __('Exact cash'), 'F4' => __('Hold the order'), 'F8' => __('Open orders'), 'F9' => __('Orders & refunds')] + ($kb ? ['F1' => __('Knowledge base')] : []) + ['Esc' => __('Close the window'), '?' => __('This list')] as $key => $what)
                     <dt><kbd class="inline-grid min-w-10 place-items-center rounded-lg border border-navy-200 bg-navy-50 px-2 py-1 font-mono font-bold" dir="ltr">{{ $key }}</kbd></dt><dd>{{ $what }}</dd>
                 @endforeach
             </dl>
@@ -533,8 +535,12 @@
             <button type="button" class="btn-ghost" data-print="customer">{{ __('Print receipt') }}</button>
             <button type="button" class="btn-ghost" data-print="kitchen">{{ __('Kitchen ticket') }}</button>
         </div>
+        @unless ($cc)
+            <button type="button" class="btn-ghost mt-2 w-full" data-print="both">🖨 {{ __('Print the receipt and the kitchen ticket') }}</button>
+        @endunless
         <button type="button" class="btn-ghost mt-2 hidden w-full text-emerald-700" data-share-wa>📲 {{ __('Send the receipt on WhatsApp') }}</button>
-        <button value="ok" class="btn-primary mt-3 w-full">{{ __('New order') }}</button>
+        {{-- at the POS the window closes by itself after a few seconds (pos.js); a touch inside it keeps it open --}}
+        <button value="ok" class="btn-primary mt-3 w-full" data-done-new>{{ __('New order') }}</button>
     </form>
 </dialog>
 
