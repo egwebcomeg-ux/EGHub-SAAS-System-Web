@@ -142,7 +142,7 @@ final class PrintJobs
         }
         if ($order->notes) {
             $lines[] = ['t' => 'divider'];
-            $lines[] = self::text('⚠ '.$order->notes, 'right', true, underline: true);
+            $lines[] = self::text('⚠ '.$order->notes, 'right', true, frame: true);
         }
         $lines[] = ['t' => 'divider'];
         if ($order->discount > 0 || $order->service > 0 || $order->tax > 0 || $order->delivery_fee > 0 || $order->payment_fee > 0) {
@@ -186,14 +186,15 @@ final class PrintJobs
         if ($pagerLive) {
             $lines[] = ['t' => 'divider'];
             $lines[] = self::text(__('Scan so we can call you when your order is ready'), 'center', true);
-            $lines[] = self::text(__('Your number').' #'.$order->number, 'center', true, 2);
-            $lines[] = ['t' => 'qr', 'data' => $order->pagerUrl(), 'size' => 6];
+            // the "#" between left-to-right marks stays in front of the number inside Arabic text
+            $lines[] = self::text(__('Your number')." \u{200E}#\u{200E}".$order->number, 'center', true, 2);
+            $lines[] = ['t' => 'qr', 'data' => $order->pagerUrl(), 'size' => 4];
         }
         $lines[] = ['t' => 'divider'];
         $lines[] = self::text(__('Thank you for your visit!'), 'center');
         // one QR per receipt: the pager's while it is live (its page links to the receipt), the e-receipt's otherwise
         if (! $pagerLive) {
-            $lines[] = ['t' => 'qr', 'data' => $order->receiptUrl(), 'size' => 5];
+            $lines[] = ['t' => 'qr', 'data' => $order->receiptUrl(), 'size' => 4];
             $lines[] = self::text(__('Scan to keep this receipt on your phone'), 'center');
         }
         $lines[] = self::text(tenant()->url(), 'center');
@@ -229,7 +230,7 @@ final class PrintJobs
         }
         if ($order->notes) {
             $lines[] = ['t' => 'divider'];
-            $lines[] = self::text('⚠ '.$order->notes, 'right', true, underline: true);
+            $lines[] = self::text('⚠ '.$order->notes, 'right', true, frame: true);
         }
         $lines[] = ['t' => 'feed', 'n' => 3];
 
@@ -399,6 +400,9 @@ final class PrintJobs
         }
         $lines[] = self::text($type.($order->table ? ' · '.__('Table :name', ['name' => $order->table->name]) : ''), 'center', $kitchen, $kitchen ? 2 : 1);
         $lines[] = self::text(local_time($order->created_at).($order->terminal ? ' · '.$order->terminal->label() : ''), 'center');
+        if (! $kitchen && ($cashier = $order->cashierName())) {
+            $lines[] = self::text(__('Cashier: :name', ['name' => $cashier]), 'center');
+        }
         if ($order->customer_name || ($order->customer_phone && ! $kitchen)) {
             $lines[] = self::text(trim($order->customer_name.' '.($kitchen ? '' : $order->customer_phone)), 'center');
         }
@@ -412,7 +416,7 @@ final class PrintJobs
 
     /**
      * @return list<array<string,mixed>> the options and the note under an item, bold (thin text fades on thermal paper);
-     *                                   the note is underlined too, so the cook can't miss it
+     *                                   the note is in a frame too, so the cook can't miss it
      */
     private static function itemDetails(OrderItem $item): array
     {
@@ -421,16 +425,16 @@ final class PrintJobs
             $lines[] = self::text('  + '.collect($item->options)->pluck('name')->implode('، '), 'right', true);
         }
         if ($item->notes) {
-            $lines[] = self::text('  ⚠ '.$item->notes, 'right', true, underline: true);
+            $lines[] = self::text('⚠ '.$item->notes, 'right', true, frame: true);
         }
 
         return $lines;
     }
 
-    /** @return array{t:string, text:string, align:string, bold:bool, size:int, underline?:bool} the cashier app ignores keys it doesn't know */
-    private static function text(string $text, string $align = 'right', bool $bold = false, int $size = 1, bool $underline = false): array
+    /** @return array{t:string, text:string, align:string, bold:bool, size:int, frame?:bool} the cashier app ignores keys it doesn't know */
+    private static function text(string $text, string $align = 'right', bool $bold = false, int $size = 1, bool $frame = false): array
     {
-        return ['t' => 'text', 'text' => $text, 'align' => $align, 'bold' => $bold, 'size' => $size] + ($underline ? ['underline' => true] : []);
+        return ['t' => 'text', 'text' => $text, 'align' => $align, 'bold' => $bold, 'size' => $size] + ($frame ? ['frame' => true] : []);
     }
 
     /** @return array{t:string, left:string, right:string, bold:bool} */

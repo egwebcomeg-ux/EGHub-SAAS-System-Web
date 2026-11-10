@@ -71,10 +71,11 @@ class NativePrintingTest extends TenantTestCase
         $this->assertContains('كافيه أ', $texts);
         $this->assertContains('#'.$order->number, $texts);
         $this->assertSame(3, collect($job['lines'])->firstWhere('text', '#'.$order->number)['size']);
-        $this->assertContains('  ⚠ من غير بصل', $texts);
-        $this->assertTrue(collect($job['lines'])->firstWhere('text', '  ⚠ من غير بصل')['bold']); // what is under the item's name reads on thermal paper
-        $this->assertTrue(collect($job['lines'])->firstWhere('text', '  ⚠ من غير بصل')['underline']); // and the note stands out
-        $this->assertArrayNotHasKey('underline', collect($job['lines'])->firstWhere('text', '#'.$order->number));
+        $this->assertContains('⚠ من غير بصل', $texts);
+        $this->assertTrue(collect($job['lines'])->firstWhere('text', '⚠ من غير بصل')['bold']); // what is under the item's name reads on thermal paper
+        $this->assertTrue(collect($job['lines'])->firstWhere('text', '⚠ من غير بصل')['frame']); // and the note stands out in a box
+        $this->assertArrayNotHasKey('frame', collect($job['lines'])->firstWhere('text', '#'.$order->number));
+        $this->assertContains('الكاشير: '.$this->as($a, fn () => $order->fresh()->cashierName()), $texts);
         $rows = collect($job['lines'])->where('t', 'row');
         $this->assertSame(money(240), $rows->firstWhere('left', '2× برجر لحم')['right']);
         $this->assertTrue($rows->firstWhere('left', 'الإجمالي')['bold']);

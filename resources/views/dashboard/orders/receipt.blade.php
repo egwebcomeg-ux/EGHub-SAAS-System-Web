@@ -4,10 +4,11 @@
     <meta charset="utf-8">
     <title>#{{ $order->number }}</title>
     @fonts
-    {{-- 80mm thermal paper: no Tailwind, plain print CSS so it renders the same in every browser. Thermal heads lose thin or grey text: everything is pure black, and the item lines (name, options, note) are bold. --}}
+    {{-- 80mm thermal paper: no Tailwind, plain print CSS so it renders the same in every browser. Thermal heads lose thin or grey text: everything is pure black, and the item lines (name, options, note) are bold.
+         Most 80mm printers print only about 72mm of it, some less: the content keeps 66mm in the middle, so the prices at the edge are never cut. --}}
     <style>
-        @page { size: 80mm auto; margin: 3mm; }
-        body { width: 74mm; margin: 0 auto; font-family: 'Cairo', Tahoma, sans-serif; font-size: 13px; color: #000; }
+        @page { size: 80mm auto; margin: 0; }
+        body { width: 66mm; margin: 0 auto; padding: 3mm 0; font-family: 'Cairo', Tahoma, sans-serif; font-size: 13px; color: #000; }
         h1 { font-size: 16px; margin: 0; text-align: center; }
         .c { text-align: center; } .muted { color: #000; font-size: 11px; }
         .big { font-size: 34px; font-weight: 800; text-align: center; margin: 4px 0; }
@@ -16,7 +17,8 @@
         td.n { text-align: end; white-space: nowrap; }
         hr { border: 0; border-top: 1px dashed #000; margin: 6px 0; }
         .it { font-size: 14px; font-weight: 700; } .opt { font-size: 13px; font-weight: 700; color: #000; }
-        .note { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+        .note { display: inline-block; margin-top: 2px; padding: 0 6px; border: 2px solid #000; border-radius: 4px; }
+        .qr svg { width: 30mm; height: 30mm; }
         .tot td { font-weight: 800; font-size: 15px; }
         .next { break-before: page; page-break-before: always; }
         @media screen { body { padding: 12px; background: #fff; } .next { margin-top: 24px; } }
@@ -38,6 +40,7 @@
             <div class="c">
                 {{ \App\Models\Order::TYPES[$order->type][app()->getLocale() === 'en' ? 1 : 0] }}@if ($order->table) · {{ __('Table :name', ['name' => $order->table->name]) }}@endif
                 <div class="muted">{{ local_time($order->created_at) }}@if ($order->terminal) · {{ $order->terminal->label() }}@endif</div>
+                @if (! $kitchen && ($cashier = $order->cashierName()))<div class="muted" data-receipt-cashier>{{ __('Cashier: :name', ['name' => $cashier]) }}</div>@endif
                 @if ($order->customer_name || $order->customer_phone)<div>{{ $order->customer_name }} {{ $order->customer_phone }}</div>@endif
                 @if ($order->delivery_address)
                     <div style="font-weight:700">{{ $order->delivery_address['zone'] ?? '' }}</div>
@@ -50,13 +53,13 @@
                     <tr>
                         <td class="it">{{ $i->quantity }}× {{ $i->name }}
                             @if ($i->options)<div class="opt">+ {{ collect($i->options)->pluck('name')->implode('، ') }}</div>@endif
-                            @if ($i->notes)<div class="opt note" data-item-note>⚠ {{ $i->notes }}</div>@endif
+                            @if ($i->notes)<div class="opt" data-item-note><span class="note">⚠ {{ $i->notes }}</span></div>@endif
                         </td>
                         @unless ($kitchen)<td class="n">{{ money($i->line_total) }}</td>@endunless
                     </tr>
                 @endforeach
             </table>
-            @if ($order->notes)<hr><div class="note" style="font-weight:700">⚠ {{ $order->notes }}</div>@endif
+            @if ($order->notes)<hr><div><span class="note" style="font-weight:700">⚠ {{ $order->notes }}</span></div>@endif
             @unless ($kitchen)
                 <hr>
                 <table>
@@ -94,8 +97,8 @@
                     <hr>
                     <div class="c" data-receipt-pager>
                         <div style="font-weight:800;font-size:14px">📣 {{ __('Scan so we can call you when your order is ready') }}</div>
-                        <div style="font-weight:900;font-size:26px;margin-top:2px" data-receipt-pager-number>{{ __('Your number') }} #{{ $order->number }}</div>
-                        <div style="margin-top:4px">{!! \App\Services\Qr::svg($pagerUrl, 170) !!}</div>
+                        <div style="font-weight:900;font-size:22px;margin-top:2px" data-receipt-pager-number>{{ __('Your number') }} <bdi dir="ltr">#{{ $order->number }}</bdi></div>
+                        <div class="qr" style="margin-top:4px">{!! \App\Services\Qr::svg($pagerUrl, 113) !!}</div>
                         <div class="muted">{{ __('Keep the page open on your phone. No app needed.') }}</div>
                     </div>
                 @endif
@@ -103,7 +106,7 @@
                 <div class="c">{{ __('Thank you for your visit!') }}</div>
                 {{-- the same receipt on the guest's phone (signed link, nothing personal on it); one QR per receipt: the pager's while it is live (its page links to the receipt) --}}
                 @unless ($pagerUrl ?? null)
-                    <div class="c" style="margin-top:4px" data-receipt-qr>{!! \App\Services\Qr::svg($order->receiptUrl(), 150) !!}</div>
+                    <div class="c qr" style="margin-top:4px" data-receipt-qr>{!! \App\Services\Qr::svg($order->receiptUrl(), 113) !!}</div>
                     <div class="c muted">{{ __('Scan to keep this receipt on your phone') }}</div>
                 @endunless
                 <div class="c muted">{{ tenant()->url() }}</div>

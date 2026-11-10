@@ -6,8 +6,8 @@
     @fonts
     {{-- One 80mm bill for every order of the table (same print CSS as the order receipt). --}}
     <style>
-        @page { size: 80mm auto; margin: 3mm; }
-        body { width: 74mm; margin: 0 auto; font-family: 'Cairo', Tahoma, sans-serif; font-size: 13px; color: #000; }
+        @page { size: 80mm auto; margin: 0; }
+        body { width: 66mm; margin: 0 auto; padding: 3mm 0; font-family: 'Cairo', Tahoma, sans-serif; font-size: 13px; color: #000; }
         h1 { font-size: 16px; margin: 0; text-align: center; }
         .c { text-align: center; } .muted { color: #000; font-size: 11px; }
         .big { font-size: 26px; font-weight: 800; text-align: center; margin: 4px 0; }

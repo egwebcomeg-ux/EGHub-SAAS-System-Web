@@ -182,6 +182,24 @@ class Order extends TenantModel
         return $this->belongsTo(PosTerminal::class, 'terminal_id');
     }
 
+    /** The shift the order was paid in: its user is the cashier who took the money. */
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
+    }
+
+    /** Staff who entered the order (POS, waiter, call center); null for the guest's own orders. */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /** The cashier's name for the receipt: who took the money, else who entered the order. */
+    public function cashierName(): ?string
+    {
+        return $this->shift?->user?->name ?? $this->creator?->name;
+    }
+
     /** "#121" or, for a sale made offline, "#121 (كان OFF-K1-3)". */
     public function reference(): string
     {

@@ -253,10 +253,10 @@ class GuestPagerTest extends TenantTestCase
 
         // the pager's QR is the only one on the receipt while the order is open
         $this->actingAs($owner)->get($this->dashUrl("/orders/{$order->id}/receipt"))->assertOk()->assertSee('data-receipt-pager', false)
-            ->assertSeeText('رقم طلبك #'.$order->number)->assertDontSee('data-receipt-qr', false);
+            ->assertSee('رقم طلبك <bdi dir="ltr">#'.$order->number.'</bdi>', false)->assertDontSee('data-receipt-qr', false);
         // the cashier app's printed receipt (ESC/POS) carries the same number and QR
         $lines = collect($this->as($a, fn () => PrintJobs::receipt($order->fresh()))['lines']);
-        $this->assertTrue($lines->contains(fn ($l) => ($l['text'] ?? null) === 'رقم طلبك #'.$order->number && $l['size'] === 2));
+        $this->assertTrue($lines->contains(fn ($l) => ($l['text'] ?? null) === "رقم طلبك \u{200E}#\u{200E}".$order->number && $l['size'] === 2));
         $this->assertSame([$this->as($a, fn () => $order->fresh()->pagerUrl())], $lines->where('t', 'qr')->pluck('data')->all());
         $this->actingAs($owner)->get($this->dashUrl("/orders/{$order->id}/receipt?copy=kitchen"))->assertOk()->assertDontSee('data-receipt-pager', false);
         // once the order is handed over, the receipt is back to its own QR

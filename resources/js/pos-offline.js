@@ -283,7 +283,7 @@ export function printLocalReceipt(sale, header, T, copy = false) {
     const row = (label, v) => `<tr><td>${esc(label)}</td><td class="n">${esc(v)}</td></tr>`;
     const when = new Date(p.created_offline_at).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' });
     const body = (kitchen) => {
-        const lines = p.items.map((l) => `<tr><td class="it">${l.qty}× ${esc(l.name)}${l.options?.length ? `<div class="opt">+ ${esc(l.options.map((o) => o.name).join('، '))}</div>` : ''}${l.notes ? `<div class="opt note">⚠ ${esc(l.notes)}</div>` : ''}</td>${kitchen ? '' : `<td class="n">${m(l.unit_price * l.qty)}</td>`}</tr>`).join('');
+        const lines = p.items.map((l) => `<tr><td class="it">${l.qty}× ${esc(l.name)}${l.options?.length ? `<div class="opt">+ ${esc(l.options.map((o) => o.name).join('، '))}</div>` : ''}${l.notes ? `<div class="opt"><span class="note">⚠ ${esc(l.notes)}</span></div>` : ''}</td>${kitchen ? '' : `<td class="n">${m(l.unit_price * l.qty)}</td>`}</tr>`).join('');
         const totals = kitchen ? '' : `<hr><table>
         ${p.discount > 0 || p.service > 0 || p.tax > 0 || p.payment_fee > 0 ? row(T.subtotal, m(p.subtotal)) : ''}
         ${p.discount > 0 ? row(T.discount, '−' + m(p.discount)) : ''}${p.service > 0 ? row(T.service, m(p.service)) : ''}${p.tax > 0 ? row(T.tax, m(p.tax)) : ''}${p.payment_fee > 0 ? row(T.walletFee, m(p.payment_fee)) : ''}
@@ -293,15 +293,15 @@ export function printLocalReceipt(sale, header, T, copy = false) {
         </table><div class="c muted">${esc(T.offlineReceiptNote)}</div><hr><div class="c">${esc(T.thanks)}</div><div class="c muted">${esc(header.url)}</div>`;
         return `${kitchen ? `<h1>${esc(T.kitchenTicket)}</h1>` : `<h1>${esc(header.brand)}</h1><div class="c muted">${esc(header.branch)}${header.phone ? ' · ' + esc(header.phone) : ''}</div>`}
         <div class="big" dir="ltr">${esc(p.offline_ref)}</div><div class="c">${esc(p.type === 'dine_in' ? T.dineIn : T.takeaway)}<div class="muted">${esc(when)}</div>
-        ${p.customer_name ? `<div>${esc(p.customer_name)}</div>` : ''}</div><hr><table>${lines}</table>${p.notes ? `<hr><div class="opt note">⚠ ${esc(p.notes)}</div>` : ''}${totals}`;
+        ${p.customer_name ? `<div>${esc(p.customer_name)}</div>` : ''}</div><hr><table>${lines}</table>${p.notes ? `<hr><div class="opt"><span class="note">⚠ ${esc(p.notes)}</span></div>` : ''}${totals}`;
     };
     const copies = copy === 'both' ? [false, true] : [!!copy];
     const html = `<!doctype html><html dir="rtl"><head><meta charset="utf-8"><title>${esc(p.offline_ref)}</title><style>
-        @page { size: 80mm auto; margin: 3mm; } body { width: 74mm; margin: 0 auto; font-family: 'Cairo', Tahoma, sans-serif; font-size: 13px; color: #000; }
+        @page { size: 80mm auto; margin: 0; } body { width: 66mm; margin: 0 auto; padding: 3mm 0; font-family: 'Cairo', Tahoma, sans-serif; font-size: 13px; color: #000; }
         h1 { font-size: 16px; margin: 0; text-align: center; } .c { text-align: center; } .muted { color: #000; font-size: 11px; }
         .big { font-size: 26px; font-weight: 800; text-align: center; margin: 4px 0; } table { width: 100%; border-collapse: collapse; }
         td { padding: 2px 0; vertical-align: top; } td.n { text-align: end; white-space: nowrap; } hr { border: 0; border-top: 1px dashed #000; margin: 6px 0; }
-        .it { font-size: 14px; font-weight: 700; } .opt { font-size: 13px; font-weight: 700; color: #000; } .note { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; } .tot td { font-weight: 800; font-size: 15px; }
+        .it { font-size: 14px; font-weight: 700; } .opt { font-size: 13px; font-weight: 700; color: #000; } .note { display: inline-block; margin-top: 2px; padding: 0 6px; border: 2px solid #000; border-radius: 4px; } .tot td { font-weight: 800; font-size: 15px; }
         .next { break-before: page; page-break-before: always; }</style></head><body>
         ${copies.map((kitchen, i) => `<section${i ? ' class="next"' : ''}>${body(kitchen)}</section>`).join('')}</body></html>`;
     const frame = document.createElement('iframe');
