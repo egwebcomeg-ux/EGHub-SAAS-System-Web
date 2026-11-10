@@ -24,14 +24,14 @@ final class OrderNumberSignIn implements GuestSignInMethod
     public function attempt(string $phone, array $input): ?Customer
     {
         $number = latin_digits(ltrim(trim((string) ($input['number'] ?? '')), '#'));
+        // numbers start again every shift (OrderNumbers): the guest's own served order with that number, the latest
         $order = ctype_digit($number) && strlen($number) <= 9
             ? Order::query()->where('number', (int) $number)->where('status', 'served')
-                ->where('created_at', '>=', now()->subDays(self::DAYS))->whereNotNull('customer_id')->first()
+                ->where('created_at', '>=', now()->subDays(self::DAYS))
+                ->whereIn('customer_id', Customer::query()->where('phone', $phone)->select('id'))->latest('id')->first()
             : null;
         $customer = $order ? Customer::query()->find($order->customer_id) : null;
-        // compared even without an order, against a value that never matches
-        $matches = hash_equals(hash('sha256', 'p|'.($customer->phone ?? random_token(8))), hash('sha256', 'p|'.$phone));
-        if (! $matches || ! $customer) {
+        if (! $customer) {
             return null;
         }
         if ((float) $customer->credit_balance != 0.0 || $customer->walletTransactions()->exists()) {

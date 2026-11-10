@@ -267,16 +267,24 @@ class GuestPagerTest extends TenantTestCase
         $this->assertSame([$this->as($a, fn () => $order->fresh()->receiptUrl())], $served->where('t', 'qr')->pluck('data')->all());
     }
 
-    public function test_the_station_tells_the_owner_when_cashier_takeaway_closes_before_the_pager_can_call(): void
+    public function test_a_paid_cashier_takeaway_stays_open_with_the_pager_qr_even_without_a_kitchen_screen(): void
     {
         $a = $this->restaurant('cafe-a', 'full');
-        $owner = $this->owner($a);
+        $this->as($a, fn () => Settings::put(['order_flow' => 'counter']));
+        $pay = fn (Order $order) => $this->as($a, fn () => app(OrderService::class)->pay(Order::query()->find($order->id), 'cash', $this->owner($a), null, withoutShift: true)->fresh());
 
-        // no kitchen screen in use: a paid cashier takeaway is done at once, its receipt has no pager QR
-        $this->actingAs($owner)->get($this->dashUrl('/pager'))->assertOk()->assertSee('data-pager-flow-hint', false);
+        // with the pager the sale waits to be marked ready, so the receipt can call the guest
+        $paid = $pay($this->order($a));
+        $this->assertSame(['paid', 'new'], [$paid->payment_status, $paid->status]);
+        $lines = collect($this->as($a, fn () => PrintJobs::receipt($paid))['lines']);
+        $this->assertSame([$this->as($a, fn () => $paid->pagerUrl())], $lines->where('t', 'qr')->pluck('data')->all());
 
-        $this->as($a, fn () => Settings::put(['order_flow' => 'kitchen']));
-        $this->actingAs($owner)->get($this->dashUrl('/pager'))->assertOk()->assertDontSee('data-pager-flow-hint', false);
+        // without the pager in the plan it is done at once, as before
+        $b = $this->restaurant('cafe-b', 'free');
+        $this->as($b, fn () => Settings::put(['order_flow' => 'counter']));
+        $sale = $this->order($b);
+        $done = $this->as($b, fn () => app(OrderService::class)->pay(Order::query()->find($sale->id), 'cash', $this->owner($b), null, withoutShift: true)->fresh());
+        $this->assertSame('served', $done->status);
     }
 
     public function test_the_reports_show_the_waits_calls_and_connected_guests(): void

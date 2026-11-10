@@ -142,7 +142,7 @@ final class PrintJobs
         }
         if ($order->notes) {
             $lines[] = ['t' => 'divider'];
-            $lines[] = self::text('⚠ '.$order->notes);
+            $lines[] = self::text('⚠ '.$order->notes, 'right', true, underline: true);
         }
         $lines[] = ['t' => 'divider'];
         if ($order->discount > 0 || $order->service > 0 || $order->tax > 0 || $order->delivery_fee > 0 || $order->payment_fee > 0) {
@@ -229,7 +229,7 @@ final class PrintJobs
         }
         if ($order->notes) {
             $lines[] = ['t' => 'divider'];
-            $lines[] = self::text('⚠ '.$order->notes, 'right', true);
+            $lines[] = self::text('⚠ '.$order->notes, 'right', true, underline: true);
         }
         $lines[] = ['t' => 'feed', 'n' => 3];
 
@@ -410,7 +410,10 @@ final class PrintJobs
         return array_values(array_filter($lines, fn (array $l) => ($l['text'] ?? '') !== ''));
     }
 
-    /** @return list<array<string,mixed>> the options and the note under an item, bold: thin text fades on thermal paper */
+    /**
+     * @return list<array<string,mixed>> the options and the note under an item, bold (thin text fades on thermal paper);
+     *                                   the note is underlined too, so the cook can't miss it
+     */
     private static function itemDetails(OrderItem $item): array
     {
         $lines = [];
@@ -418,16 +421,16 @@ final class PrintJobs
             $lines[] = self::text('  + '.collect($item->options)->pluck('name')->implode('، '), 'right', true);
         }
         if ($item->notes) {
-            $lines[] = self::text('  ⚠ '.$item->notes, 'right', true);
+            $lines[] = self::text('  ⚠ '.$item->notes, 'right', true, underline: true);
         }
 
         return $lines;
     }
 
-    /** @return array{t:string, text:string, align:string, bold:bool, size:int} */
-    private static function text(string $text, string $align = 'right', bool $bold = false, int $size = 1): array
+    /** @return array{t:string, text:string, align:string, bold:bool, size:int, underline?:bool} the cashier app ignores keys it doesn't know */
+    private static function text(string $text, string $align = 'right', bool $bold = false, int $size = 1, bool $underline = false): array
     {
-        return ['t' => 'text', 'text' => $text, 'align' => $align, 'bold' => $bold, 'size' => $size];
+        return ['t' => 'text', 'text' => $text, 'align' => $align, 'bold' => $bold, 'size' => $size] + ($underline ? ['underline' => true] : []);
     }
 
     /** @return array{t:string, left:string, right:string, bold:bool} */

@@ -16,6 +16,7 @@
         td.n { text-align: end; white-space: nowrap; }
         hr { border: 0; border-top: 1px dashed #000; margin: 6px 0; }
         .it { font-size: 14px; font-weight: 700; } .opt { font-size: 13px; font-weight: 700; color: #000; }
+        .note { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
         .tot td { font-weight: 800; font-size: 15px; }
         .next { break-before: page; page-break-before: always; }
         @media screen { body { padding: 12px; background: #fff; } .next { margin-top: 24px; } }
@@ -49,13 +50,13 @@
                     <tr>
                         <td class="it">{{ $i->quantity }}× {{ $i->name }}
                             @if ($i->options)<div class="opt">+ {{ collect($i->options)->pluck('name')->implode('، ') }}</div>@endif
-                            @if ($i->notes)<div class="opt">⚠ {{ $i->notes }}</div>@endif
+                            @if ($i->notes)<div class="opt note" data-item-note>⚠ {{ $i->notes }}</div>@endif
                         </td>
                         @unless ($kitchen)<td class="n">{{ money($i->line_total) }}</td>@endunless
                     </tr>
                 @endforeach
             </table>
-            @if ($order->notes)<hr><div style="font-weight:700">⚠ {{ $order->notes }}</div>@endif
+            @if ($order->notes)<hr><div class="note" style="font-weight:700">⚠ {{ $order->notes }}</div>@endif
             @unless ($kitchen)
                 <hr>
                 <table>

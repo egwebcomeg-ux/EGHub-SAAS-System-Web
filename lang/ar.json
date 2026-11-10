@@ -7848,7 +7848,6 @@
     "At the cashier, the call center and the door. It shows in the payment window and on the receipt; 0 = no fee.": "في الكاشير والكول سنتر وعند التسليم للطيار. بتظهر في شاشة الدفع وعلى الفاتورة، و0 يعني من غير رسوم.",
     "The mobile-wallet fee differs from today's settings.": "رسوم المحفظة مختلفة عن الإعداد الحالي.",
     "collect :percent% more (the wallet fee), paid to the restaurant at once": "حصّل :percent% زيادة (رسوم المحفظة)، وبتتسجّل للمطعم على طول",
-    "Cashier takeaway sales close once paid here, so their receipt prints without the pager QR. To call takeaway guests, choose \"Goes to the kitchen until it is ready\" in the settings:": "أوردرات التيك أواي من الكاشير بتتقفل أول ما تتدفع عندك، فالفاتورة بتطلع من غير QR النداء. عشان تنادي على عملاء التيك أواي اختار «بيروح المطبخ لحد ما يجهز» في الإعدادات:",
     "Exact cash": "كاش بالظبط",
     "Print the receipt and the kitchen ticket": "اطبع الفاتورة وتذكرة المطبخ",
     "This rep orders on the company's account: he is known at the cashier by his mobile.": "المندوب ده بيطلب على حساب الشركة: الكاشير بيعرفه برقم موبايله.",

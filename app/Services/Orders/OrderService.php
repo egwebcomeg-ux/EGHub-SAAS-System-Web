@@ -160,7 +160,7 @@ final class OrderService
 
                     $order = Order::query()->create([
                         'branch_id' => $branch->id, 'dining_table_id' => $table?->id, 'customer_id' => $customer?->id,
-                        'number' => (int) Order::query()->lockForUpdate()->max('number') + 1,
+                        'number' => OrderNumbers::next($branch),
                         'client_uuid' => $uuid, 'tracking_token' => random_token(12),
                         'type' => $type, 'source' => $data['source'] ?? 'qr', 'status' => 'new',
                         'customer_name' => mb_substr(trim((string) ($data['customer_name'] ?? '')), 0, 100),
@@ -505,7 +505,7 @@ final class OrderService
                 $order = DB::transaction(function () use ($data, $branch, $by, $shift, $terminal, $lines, $notes, $subtotal, $discount, $service, $tax, $fee, $total, $type, $table, $soldAt, $ref, $m, $method, $parts) {
                     $order = Order::query()->create([
                         'branch_id' => $branch->id, 'dining_table_id' => $table?->id,
-                        'number' => (int) Order::query()->lockForUpdate()->max('number') + 1,
+                        'number' => OrderNumbers::next($branch),
                         'client_uuid' => $data['client_uuid'], 'tracking_token' => random_token(12),
                         'type' => $type, 'source' => 'pos', 'status' => 'served',
                         'customer_name' => mb_substr(trim((string) ($data['customer_name'] ?? '')), 0, 100),

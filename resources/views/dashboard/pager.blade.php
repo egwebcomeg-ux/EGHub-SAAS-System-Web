@@ -54,13 +54,6 @@
 
             @can('settings.manage')
                 <div class="mt-auto pt-4 text-sm">
-                @if ($takeawayClosesOnPayment)
-                    {{-- a paid cashier takeaway is closed at once (App\Services\Orders\OrderFlow), so its receipt has no pager QR --}}
-                    <p class="mb-3 rounded-xl bg-amber-50 p-2 text-xs text-amber-900" data-pager-flow-hint>
-                        {{ __('Cashier takeaway sales close once paid here, so their receipt prints without the pager QR. To call takeaway guests, choose "Goes to the kitchen until it is ready" in the settings:') }}
-                        <a class="font-bold underline" href="{{ route('dash.settings') }}">{{ __('How orders move') }}</a>
-                    </p>
-                @endif
                 <details>
                     <summary class="cursor-pointer font-bold text-navy-600">⚙ {{ __('Pager settings') }}</summary>
                     <form method="POST" action="{{ route('dash.pager.settings') }}" class="mt-3 space-y-3">

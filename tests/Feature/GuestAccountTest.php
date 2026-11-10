@@ -148,6 +148,18 @@ class GuestAccountTest extends TenantTestCase
         $this->assertSame('', $audit->ip);
     }
 
+    public function test_an_order_number_used_again_in_a_later_shift_still_opens_the_right_guests_account(): void
+    {
+        $a = $this->restaurant('cafe-a');
+        $mona = $this->guest($a);
+        $sara = $this->guest($a, '01099999999', 'Sara');
+        // numbers start again every shift: Mona's #7 last week, Sara's #7 today
+        $this->placedOrder($a, $mona, ['number' => 7, 'created_at' => now()->subWeek()]);
+        $this->placedOrder($a, $sara, ['number' => 7]);
+
+        $this->verify('cafe-a', self::PHONE, '#7')->assertRedirect($this->subUrl('cafe-a', "me/{$mona->card_token}"));
+    }
+
     public function test_every_wrong_combination_gets_the_same_answer_and_opens_nothing(): void
     {
         $a = $this->restaurant('cafe-a');

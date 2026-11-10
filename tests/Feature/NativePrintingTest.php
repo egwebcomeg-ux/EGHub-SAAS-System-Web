@@ -73,6 +73,8 @@ class NativePrintingTest extends TenantTestCase
         $this->assertSame(3, collect($job['lines'])->firstWhere('text', '#'.$order->number)['size']);
         $this->assertContains('  ⚠ من غير بصل', $texts);
         $this->assertTrue(collect($job['lines'])->firstWhere('text', '  ⚠ من غير بصل')['bold']); // what is under the item's name reads on thermal paper
+        $this->assertTrue(collect($job['lines'])->firstWhere('text', '  ⚠ من غير بصل')['underline']); // and the note stands out
+        $this->assertArrayNotHasKey('underline', collect($job['lines'])->firstWhere('text', '#'.$order->number));
         $rows = collect($job['lines'])->where('t', 'row');
         $this->assertSame(money(240), $rows->firstWhere('left', '2× برجر لحم')['right']);
         $this->assertTrue($rows->firstWhere('left', 'الإجمالي')['bold']);

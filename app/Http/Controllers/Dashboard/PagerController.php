@@ -8,7 +8,6 @@ use App\Models\PagerTicket;
 use App\Services\Audit;
 use App\Services\Notify\GuestNotifier;
 use App\Services\Orders\OrderException;
-use App\Services\Orders\OrderFlow;
 use App\Services\Orders\Pager;
 use App\Services\Qr;
 use App\Services\Settings;
@@ -39,7 +38,6 @@ class PagerController extends Controller
             'poll' => Pager::POLL_SECONDS,
             'autoCall' => Pager::autoCalls(),
             'expireHours' => Pager::expireHours(),
-            'takeawayClosesOnPayment' => ! OrderFlow::counterSalesGoToKitchen(),
         ]);
     }
 

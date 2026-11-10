@@ -71,12 +71,15 @@ final class OrderFlow
 
     /**
      * A paid counter sale is done at once when the restaurant works without the kitchen: served straight away, no
-     * "ready" news (the guest has it in hand). Called inside the payment's transaction.
+     * "ready" news (the guest has it in hand). Not with the guest pager: its receipt carries the pager's QR, so the
+     * sale waits until someone marks it ready and the guest's phone rings. Called inside the payment's transaction.
      */
     public function finishCounterSale(Order $order, ?User $by = null): void
     {
         if ($order->source !== 'pos' || $order->dining_table_id || $order->type !== 'takeaway' || $order->payment_status !== 'paid'
-            || ! in_array($order->status, ['new', 'preparing', 'ready'], true) || $order->scheduled_for || self::counterSalesGoToKitchen()) {
+            || ! in_array($order->status, ['new', 'preparing', 'ready'], true) || $order->scheduled_for || self::counterSalesGoToKitchen()
+            // with the guest pager the receipt carries its QR: the sale stays open until it is ready and the guest is called
+            || (Pager::enabled() && Pager::forOrder($order))) {
             return;
         }
         DB::transaction(function () use ($order, $by) {
