@@ -7912,5 +7912,11 @@
     "New company: its name and how it pays.": "شركة جديدة: اسمها وطريقة دفعها.",
     "Add its reps and put a balance for each one.": "ضيف مناديبها وحط لكل مندوب رصيده.",
     "Issue each rep's vouchers out of his balance and print them.": "طلّع فاوتشرات كل مندوب من رصيده واطبعها.",
-    "A rep may also order on the company's account, outside the vouchers.": "والمندوب ممكن يطلب على حساب الشركة خارج الفاوتشرات."
+    "A rep may also order on the company's account, outside the vouchers.": "والمندوب ممكن يطلب على حساب الشركة خارج الفاوتشرات.",
+    "Caller number": "رقم المتصل",
+    "Mobile or landline": "موبايل أو أرضي",
+    "Enter the caller number.": "اكتب رقم المتصل.",
+    "Enter a valid phone number: a mobile, or a landline with its area code.": "اكتب رقم صحيح: موبايل، أو أرضي بكود المحافظة (زي 0403597535).",
+    "Enter the customer's phone number.": "اكتب رقم العميل.",
+    "Customer number (mobile or landline)": "رقم العميل (موبايل أو أرضي)"
 }

@@ -76,14 +76,17 @@ class CallCenterController extends Controller
         return $view->with(['data' => $data, 'mode' => 'callcenter', 'needsShift' => false]);
     }
 
-    /** Caller card: name, second phone, saved addresses, notes, the last orders and loyalty (tier, stamps, balance). */
+    /**
+     * Caller card: name, second phone, saved addresses, notes, the last orders and loyalty (tier, stamps, balance). The
+     * caller may ring from any of the customer's numbers, a landline too: found by the first or the second one.
+     */
     public function lookup(Request $request, Membership $membership): JsonResponse
     {
-        $phone = normalize_phone((string) $request->query('phone', ''));
+        $phone = normalize_contact_phone((string) $request->query('phone', ''));
         if (! $phone) {
-            return response()->json(['message' => __('Enter a valid Egyptian mobile number.')], 422);
+            return response()->json(['message' => __('Enter a valid phone number: a mobile, or a landline with its area code.')], 422);
         }
-        $customer = Customer::query()->where('phone', $phone)->first();
+        $customer = Customer::findByAnyPhone($phone);
         if (! $customer) {
             return response()->json(['found' => false, 'phone' => $phone]);
         }
@@ -96,7 +99,9 @@ class CallCenterController extends Controller
             array_values(array_filter((array) ($customer->addresses ?? []), 'is_array')));
 
         return response()->json([
-            'found' => true, 'phone' => $phone, 'name' => $customer->name, 'phone_2' => $customer->phone_2,
+            // the number they called from stays the order's; the other one of the customer is shown as the second
+            'found' => true, 'phone' => $phone, 'name' => $customer->name,
+            'phone_2' => $customer->phone === $phone ? $customer->phone_2 : $customer->phone,
             'notes' => $customer->notes, 'addresses' => $addresses,
             'orders_count' => Order::query()->where('customer_id', $customer->id)->where('status', '!=', 'cancelled')->count(),
             'tier' => $membership->tierFor($customer)?->displayName(),
@@ -238,8 +243,10 @@ class CallCenterController extends Controller
         if (! $customer) {
             return;
         }
-        if (! empty($data['phone_2'])) {
-            $customer->phone_2 = mb_substr(trim($data['phone_2']), 0, 20);
+        // the other number of the customer (a call from their second number shows the first one here: not copied over)
+        $second = ! empty($data['phone_2']) ? (normalize_contact_phone($data['phone_2']) ?? mb_substr(trim($data['phone_2']), 0, 20)) : null;
+        if ($second !== null && $second !== $customer->phone) {
+            $customer->phone_2 = $second;
         }
         if ($zone) {
             $text = trim($data['address']);

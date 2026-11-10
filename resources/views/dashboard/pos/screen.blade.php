@@ -107,7 +107,7 @@
                  (required when the restaurant asks for it: pos_require_phone) --}}
             <div class="space-y-2 px-3 pb-2" data-customer-box>
                 <div class="flex gap-2">
-                    <input class="field min-h-11 min-w-0 flex-1 text-lg font-bold tracking-wide" data-customer-phone placeholder="{{ __('Customer mobile') }}{{ $data['requirePhone'] ? ' *' : '' }}" aria-label="{{ __('Customer mobile') }}" maxlength="20" dir="ltr" inputmode="tel" autocomplete="off" @required($data['requirePhone'])>
+                    <input class="field min-h-11 min-w-0 flex-1 text-lg font-bold tracking-wide" data-customer-phone placeholder="{{ __('Customer number (mobile or landline)') }}{{ $data['requirePhone'] ? ' *' : '' }}" aria-label="{{ __('Customer number (mobile or landline)') }}" maxlength="20" dir="ltr" inputmode="tel" autocomplete="off" @required($data['requirePhone'])>
                     <button type="button" class="btn-ghost min-h-11 shrink-0 px-4" data-customer-lookup>{{ __('Search') }}</button>
                 </div>
                 <p class="hidden rounded-xl px-3 py-2 text-sm font-bold" data-customer-info role="status" aria-live="polite"></p>
@@ -599,7 +599,7 @@
         'chooseTable' => __('Choose a table.'), 'change' => __('Change: :amount', ['amount' => '__A__']), 'short' => __('Short by :amount', ['amount' => '__A__']),
         'sent' => __('Sent to the kitchen'), 'paid' => __('Paid'), 'pay' => __('Pay'), 'noOpen' => __('No open orders.'),
         'table' => __('Table :name', ['name' => '__N__']), 'takeaway' => __('Takeaway'), 'soldOut' => __('Sold out'), 'clearAsk' => __('Clear the order?'),
-        'delivery' => __('Delivery'), 'deliveryFee' => __('Delivery fee'), 'phoneFirst' => __('Enter the caller mobile number.'),
+        'delivery' => __('Delivery'), 'deliveryFee' => __('Delivery fee'), 'phoneFirst' => __('Enter the caller number.'),
         'phoneRequired' => __('Enter the customer\'s mobile number.'), 'noName' => __('No name saved'),
         'walletFee' => __('Mobile wallet fee'), 'walletFeeDue' => __('Mobile wallet fee :fee · to collect :total', ['fee' => '__F__', 'total' => '__T__']),
         'lineNote' => __('Note for this item'), 'addNote' => __('Add a note'),

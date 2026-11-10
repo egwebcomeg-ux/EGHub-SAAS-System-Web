@@ -284,7 +284,7 @@ class PosController extends Controller
             return response()->json(['message' => __('Choose a table.')], 422);
         }
         if (self::requiresPhone() && trim((string) ($data['customer_phone'] ?? '')) === '') {
-            return response()->json(['message' => __('Enter the customer\'s mobile number.'), 'errors' => ['customer_phone' => [__('Enter the customer\'s mobile number.')]]], 422);
+            return response()->json(['message' => __('Enter the customer\'s phone number.'), 'errors' => ['customer_phone' => [__('Enter the customer\'s phone number.')]]], 422);
         }
         if (empty($data['pay']) && WaiterCash::mustPayFirst($request->user())) {
             return response()->json(['message' => __('Take the payment first: the order goes to the kitchen once it is paid.')], 422);
@@ -337,16 +337,17 @@ class PosController extends Controller
     }
 
     /**
-     * The customer behind a mobile typed at the POS: a known one or a new one, saved with the order. Only the name
-     * comes back, one exact mobile at a time: the cashier sees no list and nothing else about the guest.
+     * The customer behind a number typed at the POS (a mobile or a landline, the customer's first or second number):
+     * a known one or a new one, saved with the order. Only the name comes back, one exact number at a time: the
+     * cashier sees no list and nothing else about the guest.
      */
     public function customer(Request $request): JsonResponse
     {
-        $phone = normalize_phone((string) $request->query('phone', ''));
+        $phone = normalize_contact_phone((string) $request->query('phone', ''));
         if (! $phone) {
-            return response()->json(['message' => __('Enter a valid Egyptian mobile number.')], 422);
+            return response()->json(['message' => __('Enter a valid phone number: a mobile, or a landline with its area code.')], 422);
         }
-        $customer = Customer::query()->where('phone', $phone)->first();
+        $customer = Customer::findByAnyPhone($phone);
 
         return response()->json(['found' => (bool) $customer, 'phone' => $phone, 'name' => $customer?->name]);
     }

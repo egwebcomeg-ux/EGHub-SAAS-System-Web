@@ -144,9 +144,12 @@ final class OrderService
             $deliveryFee = round(max(0, (float) ($quote['fee'] ?? 0)), 2);
         }
 
-        $phone = isset($data['customer_phone']) && $data['customer_phone'] !== '' ? normalize_phone((string) $data['customer_phone']) : null;
+        // staff on the phone take any number of the caller, a landline too; a guest ordering alone gives a mobile
+        $staffEntered = in_array($data['source'] ?? null, ['pos', 'callcenter'], true);
+        $phone = isset($data['customer_phone']) && $data['customer_phone'] !== ''
+            ? ($staffEntered ? normalize_contact_phone((string) $data['customer_phone']) : normalize_phone((string) $data['customer_phone'])) : null;
         if (isset($data['customer_phone']) && $data['customer_phone'] !== '' && ! $phone) {
-            throw new OrderException(__('Enter a valid Egyptian mobile number.'));
+            throw new OrderException($staffEntered ? __('Enter a valid phone number: a mobile, or a landline with its area code.') : __('Enter a valid Egyptian mobile number.'));
         }
 
         for ($attempt = 1; ; $attempt++) {
@@ -509,7 +512,7 @@ final class OrderService
                         'client_uuid' => $data['client_uuid'], 'tracking_token' => random_token(12),
                         'type' => $type, 'source' => 'pos', 'status' => 'served',
                         'customer_name' => mb_substr(trim((string) ($data['customer_name'] ?? '')), 0, 100),
-                        'customer_phone' => normalize_phone((string) ($data['customer_phone'] ?? '')) ?? '',
+                        'customer_phone' => normalize_contact_phone((string) ($data['customer_phone'] ?? '')) ?? '',
                         'notes' => mb_substr(trim((string) ($data['notes'] ?? '')), 0, 500) ?: null,
                         'subtotal' => $subtotal, 'discount' => $discount, 'service' => $service, 'tax' => $tax, 'payment_fee' => $fee, 'total' => $total,
                         'payment_status' => 'paid', 'payment_method' => $method, 'shift_id' => $shift->id, 'terminal_id' => $terminal?->id,
@@ -865,7 +868,8 @@ final class OrderService
 
     private function customer(string $phone, string $name, string $source = 'menu'): Customer
     {
-        $customer = Customer::query()->firstOrCreate(['phone' => $phone], ['name' => mb_substr($name, 0, 100), 'source' => $source]);
+        // a call from the customer's second number is still that customer
+        $customer = Customer::findByAnyPhone($phone) ?? Customer::query()->create(['phone' => $phone, 'name' => mb_substr($name, 0, 100), 'source' => $source]);
         if ($customer->name === '' && $name !== '') {
             $customer->name = mb_substr($name, 0, 100);
         }

@@ -35,9 +35,9 @@
 
             <section id="cc-pane-customer" class="space-y-2 p-3" data-cc-pane="customer">
                 <div class="space-y-1" data-caller-search>
-                    <label class="text-sm font-bold text-navy-700" for="cc-phone">{{ __('Caller mobile') }}</label>
+                    <label class="text-sm font-bold text-navy-700" for="cc-phone">{{ __('Caller number') }}</label>
                     <div class="flex gap-2">
-                        <input id="cc-phone" class="field min-h-12 min-w-0 flex-1 text-xl font-bold tracking-wide" data-customer-phone placeholder="01xxxxxxxxx" maxlength="20" dir="ltr" inputmode="tel" autocomplete="off" autofocus>
+                        <input id="cc-phone" class="field min-h-12 min-w-0 flex-1 text-xl font-bold tracking-wide" data-customer-phone placeholder="{{ __('Mobile or landline') }}" maxlength="20" dir="ltr" inputmode="tel" autocomplete="off" autofocus>
                         <button type="button" class="btn-primary min-h-12 shrink-0 px-5" data-lookup>{{ __('Search') }}</button>
                     </div>
                 </div>

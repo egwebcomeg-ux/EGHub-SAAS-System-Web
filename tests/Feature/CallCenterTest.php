@@ -72,6 +72,33 @@ class CallCenterTest extends TenantTestCase
         $this->assertCount(1, $this->as($a, fn () => Customer::query()->first())->addresses);
     }
 
+    public function test_a_landline_caller_and_a_call_from_the_customers_second_number_reach_the_same_customer(): void
+    {
+        $a = $this->withCallCenter('cafe-a');
+        $latte = $this->item($a, 'Latte', 60);
+        $zone = $this->zone($a);
+        $agent = $this->staff($a, 'callcenter', 'agent@a.test');
+        $lookup = fn (string $phone) => $this->actingAs($agent)->getJson($this->dashUrl('/call-center/customer?phone='.urlencode($phone)));
+
+        // a landline with its area code is a number to take an order on; a short number is not
+        $lookup('040 359 7535')->assertOk()->assertJsonPath('found', false)->assertJsonPath('phone', '0403597535');
+        $lookup('3597535')->assertStatus(422)->assertJsonPath('message', 'اكتب رقم صحيح: موبايل، أو أرضي بكود المحافظة (زي 0403597535).');
+        $this->actingAs($agent)->postJson($this->dashUrl('/call-center/orders'), $this->order($latte->id, 2, $zone, [
+            'customer_phone' => '0403597535', 'phone_2' => '01012345678',
+        ]))->assertOk();
+        $customer = $this->as($a, fn () => Customer::query()->sole());
+        $this->assertSame(['0403597535', '01012345678'], [$customer->phone, $customer->phone_2]);
+
+        // the same customer calls from their mobile: found, the order goes on their account with the number they called from
+        $lookup('01012345678')->assertOk()->assertJsonPath('found', true)->assertJsonPath('phone', '01012345678')->assertJsonPath('phone_2', '0403597535')
+            ->assertJsonPath('addresses.0.text', '12 Street 9, floor 3');
+        $this->actingAs($agent)->postJson($this->dashUrl('/call-center/orders'), $this->order($latte->id, 2, $zone, ['phone_2' => '0403597535']))->assertOk();
+        $this->assertSame(1, $this->as($a, fn () => Customer::query()->count()));
+        $last = $this->as($a, fn () => Order::query()->latest('id')->first());
+        $this->assertSame([$customer->id, '01012345678'], [$last->customer_id, $last->customer_phone]);
+        $this->assertSame(['0403597535', '01012345678'], $this->as($a, fn () => [Customer::query()->sole()->phone, Customer::query()->sole()->phone_2]));
+    }
+
     public function test_minimum_order_zone_branch_and_isolation(): void
     {
         $a = $this->withCallCenter('cafe-a');

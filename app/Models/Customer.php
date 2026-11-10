@@ -22,6 +22,12 @@ class Customer extends TenantModel
         return Attribute::get(fn (?string $value) => (string) $value);
     }
 
+    /** The customer with this number as their first or their second phone (the first wins), in this restaurant. */
+    public static function findByAnyPhone(string $phone): ?self
+    {
+        return self::query()->where('phone', $phone)->first() ?? self::query()->where('phone_2', $phone)->first();
+    }
+
     protected static function booted(): void
     {
         static::creating(function (self $customer) {

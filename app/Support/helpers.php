@@ -102,6 +102,26 @@ function normalize_phone(string $raw): ?string
     return preg_match('/^01[0125]\d{8}$/', $d) ? $d : null;
 }
 
+/**
+ * A number staff may take a caller on: an Egyptian mobile (as normalize_phone), or a landline with its area code
+ * (0403597535 Tanta, 0223456789 Cairo), "+20" or "0020" in front allowed. Null when it is neither. A landline gets no
+ * WhatsApp or SMS: whatever needs a mobile keeps using normalize_phone(), which refuses it.
+ */
+function normalize_contact_phone(string $raw): ?string
+{
+    if ($mobile = normalize_phone($raw)) {
+        return $mobile;
+    }
+    $d = preg_replace('/\D+/', '', strtr($raw, ['٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4', '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9'])) ?? '';
+    if (str_starts_with($d, '0020')) {
+        $d = '0'.substr($d, 4);
+    } elseif (str_starts_with($d, '20') && in_array(strlen($d), [10, 11], true)) {
+        $d = '0'.substr($d, 2);
+    }
+
+    return preg_match('/^0[2-9]\d{7,8}$/', $d) ? $d : null;
+}
+
 /** Egyptian local number (01220000637) to wa.me international form (201220000637). */
 function whatsapp_number(string $phone): string
 {

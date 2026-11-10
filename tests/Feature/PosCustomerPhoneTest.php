@@ -71,6 +71,23 @@ class PosCustomerPhoneTest extends TenantTestCase
         $this->actingAs($this->cashier)->get($this->dashUrl('/customers'))->assertForbidden();
     }
 
+    public function test_the_cashier_takes_a_landline_and_finds_the_customer_by_either_number(): void
+    {
+        $this->as($this->tenant, fn () => Customer::query()->create(['phone' => '01012345678', 'name' => 'Mona', 'phone_2' => '0403597535']));
+
+        // the customer's landline is their second number: same customer, the number typed stays on the order
+        $this->actingAs($this->cashier)->getJson($this->dashUrl('/pos/customer?phone=040-359-7535'))
+            ->assertOk()->assertExactJson(['found' => true, 'phone' => '0403597535', 'name' => 'Mona']);
+        $this->sell(['customer_phone' => '0403597535'])->assertOk();
+        $order = $this->as($this->tenant, fn () => Order::query()->sole());
+        $this->assertSame('0403597535', $order->customer_phone);
+        $this->assertSame(1, $this->as($this->tenant, fn () => Customer::query()->count()));
+
+        // a new landline is a new customer
+        $this->sell(['customer_phone' => '0223456789', 'customer_name' => 'Sara'])->assertOk();
+        $this->assertSame('Sara', $this->as($this->tenant, fn () => Customer::query()->where('phone', '0223456789')->sole()->name));
+    }
+
     public function test_the_cashier_takes_a_delivery_order_on_the_call_center_screen(): void
     {
         $zone = $this->as($this->tenant, fn () => DeliveryZone::query()->create([
