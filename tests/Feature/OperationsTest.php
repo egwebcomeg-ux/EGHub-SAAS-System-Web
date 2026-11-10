@@ -88,6 +88,14 @@ class OperationsTest extends TenantTestCase
         $this->assertSame(60.0, $summary['by_method']['card']);
         $this->assertSame(590.0, $summary['expected_cash']); // 500 + 120 − 30
 
+        // cash a driver still holds: the close is refused with the reason on the page, not an error page
+        $out = $this->as($a, fn () => Order::query()->first());
+        $this->as($a, fn () => Order::query()->whereKey($out->id)->update(['cash_collected' => 40]));
+        $this->actingAs($cashier)->from($this->dashUrl('/shifts'))->post($this->dashUrl('/shifts/close'), ['closing_cash' => 580])
+            ->assertRedirect($this->dashUrl('/shifts'))->assertSessionHasErrors('shift');
+        $this->assertNull($shift->fresh()->closed_at);
+        $this->as($a, fn () => Order::query()->whereKey($out->id)->update(['cash_settled_at' => now()]));
+
         $this->actingAs($cashier)->post($this->dashUrl('/shifts/close'), ['closing_cash' => 580])->assertSessionHasNoErrors();
         $shift->refresh();
         $this->assertNotNull($shift->closed_at);

@@ -96,7 +96,12 @@ class ShiftsController extends Controller
     {
         $data = $request->validate(['closing_cash' => 'required|numeric|min:0|max:1000000', 'notes' => 'nullable|string|max:300']);
         $shift = $shifts->current($request->user()) ?? abort(422);
-        $shift = $shifts->close($shift, (float) $data['closing_cash'], $data['notes'] ?? null);
+        try {
+            $shift = $shifts->close($shift, (float) $data['closing_cash'], $data['notes'] ?? null);
+        } catch (OrderException $e) {
+            // e.g. a driver or a waiter still holds cash of this branch: said on the page, the shift stays open
+            return back()->withInput()->withErrors(['shift' => $e->getMessage()]);
+        }
         $diff = $shifts->summary($shift)['difference'];
 
         return back()->with('ok', __('Shift closed. Difference: :diff', ['diff' => money($diff)]));

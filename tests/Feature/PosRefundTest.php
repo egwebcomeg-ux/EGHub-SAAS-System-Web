@@ -170,7 +170,8 @@ class PosRefundTest extends TenantTestCase
             'client_uuid' => (string) Str::uuid(), 'type' => 'takeaway', 'items' => [['item_id' => $this->latte->id, 'qty' => 1]],
         ])->json('id');
         $this->refund($this->order($open), ['full' => true], $this->manager)->assertStatus(422)->assertJsonPath('message', 'المرتجع بيبقى على طلب مدفوع بس.');
-        $this->refund($this->sell(1), ['full' => true, 'reason' => ''], $this->manager)->assertStatus(422);
+        $this->refund($this->sell(1), ['full' => true, 'reason' => ''], $this->manager)->assertStatus(422)
+            ->assertJsonPath('errors.reason.0', 'السبب مطلوب.'); // the field's Arabic name, not "reason"
 
         $paid = $this->sell(1);
         $b = $this->restaurant('cafe-b', 'pro');
