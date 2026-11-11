@@ -26,8 +26,9 @@ class DeliveryZonesTest extends TenantTestCase
         $branch = $this->as($tenant, fn () => Branch::query()->firstOrFail());
 
         // manual by default: the mode cards show, the map does not, each main area offers "add a street"
-        $this->actingAs($owner)->post($this->dashUrl('/delivery-zones'), ['branch_id' => $branch->id, 'name' => 'مدينة نصر', 'fee' => 30])->assertSessionHasNoErrors();
+        $this->actingAs($owner)->post($this->dashUrl('/delivery-zones'), ['branch_id' => $branch->id, 'name' => 'مدينة نصر', 'name_en' => '', 'fee' => 30])->assertSessionHasNoErrors();
         $main = $this->as($tenant, fn () => DeliveryZone::query()->firstOrFail());
+        $this->assertSame('', $main->name_en);
         $page = $this->actingAs($owner)->get($this->dashUrl('/delivery-zones'))->assertOk();
         $page->assertSee('data-zone-mode', false)->assertSee('data-add-street', false)->assertDontSee('id="zones-map"', false);
 

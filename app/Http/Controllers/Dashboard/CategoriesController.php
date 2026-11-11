@@ -118,6 +118,11 @@ class CategoriesController extends Controller
         $data['visible_until'] = ($data['visible_until'] ?? null) ?: null;
         $data['visible_days'] = $days !== [] && count($days) < 7 ? $days : null;
 
-        return $data + ['name_en' => '', 'description' => '', 'description_en' => ''];
+        // a field left empty arrives as null (ConvertEmptyStringsToNull); the columns take an empty text
+        foreach (['name_en', 'description', 'description_en'] as $field) {
+            $data[$field] = (string) ($data[$field] ?? '');
+        }
+
+        return $data;
     }
 }

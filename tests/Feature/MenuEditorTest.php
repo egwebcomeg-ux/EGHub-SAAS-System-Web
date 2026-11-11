@@ -35,8 +35,11 @@ class MenuEditorTest extends TenantTestCase
         Storage::fake('public');
         $a = $this->restaurant('cafe-a');
         $owner = $this->owner($a);
-        $this->actingAs($owner)->post($this->dashUrl('/menu/categories'), ['name' => 'قهوة'])->assertSessionHasNoErrors();
-        $cat = $this->as($a, fn () => Category::query()->first());
+        // the English name and descriptions left empty in the form: saved as empty text
+        $this->actingAs($owner)->post($this->dashUrl('/menu/categories'), ['name' => 'قهوة', 'name_en' => '', 'description' => '', 'description_en' => ''])
+            ->assertSessionHasNoErrors();
+        $cat = $this->as($a, fn () => Category::query()->where('name', 'قهوة')->sole());
+        $this->assertSame(['', '', ''], [$cat->name_en, $cat->description, $cat->description_en]);
 
         $this->actingAs($owner)->post($this->dashUrl('/menu/items'), [
             'category_id' => $cat->id, 'name' => 'لاتيه', 'name_en' => 'Latte', 'price' => 65, 'is_active' => '1',

@@ -115,6 +115,9 @@ class DeliveryZonesController extends Controller
             'estimated_minutes' => 'nullable|integer|min:5|max:300',
         ]);
 
-        return $data + ['name_en' => ''];
+        // an empty English name arrives as null (ConvertEmptyStringsToNull); the column takes an empty text
+        $data['name_en'] = (string) ($data['name_en'] ?? '');
+
+        return $data;
     }
 }
