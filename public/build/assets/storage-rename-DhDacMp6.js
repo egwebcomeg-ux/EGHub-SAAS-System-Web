@@ -1,0 +1,1 @@
+try{for(let e of Object.keys(localStorage))if(e.startsWith(`egmenu.`)&&!e.startsWith(`egmenu.pos.`)){let t=`eghub.`+e.slice(7);localStorage.getItem(t)===null&&localStorage.setItem(t,localStorage.getItem(e)),localStorage.removeItem(e)}}catch{}
