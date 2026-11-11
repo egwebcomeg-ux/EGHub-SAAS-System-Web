@@ -16,6 +16,7 @@ use App\Services\Qr;
 use App\Services\Screens\ScreenPairing;
 use App\Services\Settings;
 use App\Support\BusinessType;
+use App\Support\EgHubApps;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
@@ -35,6 +36,8 @@ class DevicesController extends Controller
         'kiosk' => [['kiosk.manage'], 'kiosk'],
         'display' => [['pos.use', 'tables.manage'], 'customer_display'],
         'kitchen' => [['kitchen.view'], 'kitchen_display'],
+        // the EgHub Android apps for the staff's phones and devices (each app listed only when the plan has its area)
+        'apps' => [['users.manage', 'settings.manage'], null],
     ];
 
     /**
@@ -51,7 +54,7 @@ class DevicesController extends Controller
             if (! $user->canAny($permissions)) {
                 continue;
             }
-            $unlocked = $rights->allows($feature);
+            $unlocked = $feature === null || $rights->allows($feature);
             if ($unlocked || $user->can('billing.manage')) {
                 $out[$type] = $unlocked;
             }
@@ -70,7 +73,7 @@ class DevicesController extends Controller
     {
         return [
             'tv' => __('TV screens'), 'kiosk' => __('Kiosk'), 'display' => __('Customer display & order board'),
-            'kitchen' => BusinessType::prepScreen(),
+            'kitchen' => BusinessType::prepScreen(), 'apps' => __('Phone apps'),
         ][$type] ?? $type;
     }
 
@@ -109,11 +112,31 @@ class DevicesController extends Controller
             'boards' => $shows('display') ? $this->boards($branches, $qr) : collect(),
             'posDisplay' => $shows('display') && $user->can('pos.use') && Entitlements::current()->allows('pos') ? route('dash.pos.display') : null,
             'kitchen' => $shows('kitchen') ? $this->kitchenLinks($qr) : collect(),
+            'phoneApps' => $shows('apps') ? self::phoneApps($qr) : [],
             'stationsUrl' => $shows('kitchen') && $user->can('menu.manage') && Entitlements::current()->allows('kitchen_stations') ? route('dash.stations') : null,
             'branches' => $branches,
             'activeBranches' => $branches->where('is_active', true)->values(),
             'categories' => $shows('tv') ? Category::query()->orderBy('sort_order')->get(['id', 'name', 'name_en']) : collect(),
         ]);
+    }
+
+    /**
+     * The EgHub apps that can be downloaded today and whose area is in the plan, each with a QR of its download link
+     * so a phone scans it and installs the app.
+     *
+     * @return list<array{key: string, name: string, for: string, summary: string, features: list<string>, beta: bool, url: string, qr: string}>
+     */
+    public static function phoneApps(\Closure $qr): array
+    {
+        $rights = Entitlements::current();
+
+        return collect(EgHubApps::all())
+            ->filter(fn (array $a) => $a['download'] !== null
+                && ($a['feature'] === null || collect(explode('|', $a['feature']))->contains(fn (string $f) => $rights->allows($f))))
+            ->map(fn (array $a) => [
+                'key' => $a['key'], 'name' => $a['name'], 'for' => $a['for'], 'summary' => $a['summary'], 'features' => $a['features'],
+                'beta' => $a['status'] === EgHubApps::BETA, 'url' => $a['download'], 'qr' => $qr($a['download']),
+            ])->values()->all();
     }
 
     /**

@@ -6,7 +6,8 @@ namespace App\Support;
  * The EgHub apps the marketing site lists on /apps, honestly: an app is "available" only when it can really be
  * downloaded today (a file we serve, `download`); every other one is "coming soon", and no page claims a store
  * listing that does not exist. Until an app ships, what it adds is named as coming and what already works in the
- * browser is said plainly.
+ * browser is said plainly. `feature`: the plan feature ('a|b' = either) a restaurant needs for the app to be of use;
+ * the dashboard's "Phone apps" (Screens & devices) lists an app only then.
  */
 final class EgHubApps
 {
@@ -19,7 +20,7 @@ final class EgHubApps
 
     /**
      * @return array<string, array{key:string, name:string, icon:string, for:string, summary:string, status:string,
-     *     download:?string, file:?string, features:list<string>, today:string, module:?string}>
+     *     download:?string, file:?string, features:list<string>, today:string, module:?string, feature:?string}>
      */
     public static function all(): array
     {
@@ -27,7 +28,7 @@ final class EgHubApps
             [
                 'key' => 'screens', 'name' => __('EgHub Screens'), 'icon' => 'tv', 'for' => __('Android TV and TV boxes'),
                 'summary' => __('The TV player of the menu screens: your menu, pictures, videos, offers and ready order numbers on the shop TVs.'),
-                'status' => self::AVAILABLE, 'file' => 'tv.apk', 'module' => 'tv-screens',
+                'status' => self::AVAILABLE, 'file' => 'tv.apk', 'module' => 'tv-screens', 'feature' => 'tv_screens',
                 'features' => [
                     __('Pair the TV with the 6-digit code it shows'),
                     __('Updates by itself when you change a price'),
@@ -38,7 +39,7 @@ final class EgHubApps
             [
                 'key' => 'pos', 'name' => __('EgHub Cashier'), 'icon' => 'cash', 'for' => __('Android tablets and cashier devices (Sunmi and others)'),
                 'summary' => __('The POS on an Android till that prints by itself on your receipt and kitchen printers.'),
-                'status' => self::BETA, 'file' => 'downloads/eghub-pos.apk', 'module' => 'pos',
+                'status' => self::BETA, 'file' => 'downloads/eghub-pos.apk', 'module' => 'pos', 'feature' => 'pos',
                 'features' => [
                     __('The receipt prints by itself after the payment, and the cash drawer opens'),
                     __('A kitchen ticket for each station as soon as the order arrives'),
@@ -50,7 +51,7 @@ final class EgHubApps
             [
                 'key' => 'restaurant', 'name' => __('EgHub Manager'), 'icon' => 'bell', 'for' => __('The owner\'s and manager\'s Android phone'),
                 'summary' => __('Your dashboard on your phone, with a notification for every order that needs you.'),
-                'status' => self::BETA, 'file' => 'downloads/eghub-restaurant.apk', 'module' => 'online-ordering',
+                'status' => self::BETA, 'file' => 'downloads/eghub-restaurant.apk', 'module' => 'online-ordering', 'feature' => null,
                 'features' => [
                     __('A notification for each new online or call-center order'),
                     __('The guest\'s answer to the WhatsApp confirmation'),
@@ -62,7 +63,7 @@ final class EgHubApps
             [
                 'key' => 'waiter', 'name' => __('EgHub Waiter'), 'icon' => 'users', 'for' => __('The waiters\' Android phones'),
                 'summary' => __('Table orders from the waiter\'s phone, and a notification when an order is ready to serve.'),
-                'status' => self::BETA, 'file' => 'downloads/eghub-waiter.apk', 'module' => 'table-ordering',
+                'status' => self::BETA, 'file' => 'downloads/eghub-waiter.apk', 'module' => 'table-ordering', 'feature' => 'pos|order_board',
                 'features' => [
                     __('Take a table\'s order on the phone'),
                     __('«The order is ready» on the phone, even with the app closed'),
@@ -72,7 +73,7 @@ final class EgHubApps
             [
                 'key' => 'driver', 'name' => __('EgHub Driver'), 'icon' => 'scooter', 'for' => __('The delivery riders\' Android phones'),
                 'summary' => __('The driver screen as an app that keeps sharing the location with the screen off.'),
-                'status' => self::BETA, 'file' => 'downloads/eghub-driver.apk', 'module' => 'delivery-drivers',
+                'status' => self::BETA, 'file' => 'downloads/eghub-driver.apk', 'module' => 'delivery-drivers', 'feature' => 'delivery_zones|online_ordering',
                 'features' => [
                     __('The location keeps reaching the guest\'s map in the background'),
                     __('It stops by itself once the order is delivered'),
@@ -82,7 +83,7 @@ final class EgHubApps
             [
                 'key' => 'kiosk', 'name' => __('EgHub Kiosk'), 'icon' => 'tablet', 'for' => __('Android tablets at the counter'),
                 'summary' => __('The self-order kiosk locked on the tablet, with the screen always on.'),
-                'status' => self::BETA, 'file' => 'downloads/eghub-kiosk.apk', 'module' => 'kiosk',
+                'status' => self::BETA, 'file' => 'downloads/eghub-kiosk.apk', 'module' => 'kiosk', 'feature' => 'kiosk',
                 'features' => [
                     __('Guests cannot leave the kiosk page'),
                     __('The screen never sleeps'),

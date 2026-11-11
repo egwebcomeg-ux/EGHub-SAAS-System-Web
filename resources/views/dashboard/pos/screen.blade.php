@@ -577,7 +577,13 @@
     <dialog class="m-auto max-h-[95dvh] w-full max-w-md overflow-y-auto rounded-2xl p-0 backdrop:bg-black/50" data-printers-dialog>
         <form method="dialog" class="p-5">
             <h2 class="text-lg font-bold">🖨 {{ __('Printers') }}</h2>
-            <p class="mt-1 text-sm text-navy-500">{{ __('Choose the printer of each copy on this device. The owner sets automatic printing in POS → Terminals.') }}</p>
+            <p class="mt-1 text-sm text-navy-500" data-printers-app-help>{{ __('Choose the printer of each copy on this device. The owner sets automatic printing in POS → Terminals.') }}</p>
+            {{-- in a browser (resources/js/browser-print.js): one switch, and how to make Chrome print without asking --}}
+            <div class="mt-1 hidden space-y-2 text-sm text-navy-600" data-printers-browser-help>
+                <p>{{ __('Turn it on on the one computer next to the kitchen printer: each new order (from the waiters, the QR menu, online… as the owner chose in POS → Terminals) prints its kitchen ticket by itself, once.') }}</p>
+                <p>{{ __('To print without the print window every time: make the kitchen printer the default printer of Windows, then open Chrome from a shortcut that ends with:') }} <code class="rounded bg-navy-50 px-1" dir="ltr">--kiosk-printing</code></p>
+                <p class="text-xs text-navy-500">{{ __('Keep this cashier screen open on that computer: it prints only while it is open.') }}</p>
+            </div>
             <ul class="mt-2 divide-y divide-navy-100" data-printers-roles></ul>
             <label class="mt-3 flex items-center gap-2 rounded-xl bg-navy-50 p-3 text-sm font-semibold" data-printers-kitchen-row>
                 <input type="checkbox" class="size-5" data-printers-kitchen> {{ __('This device prints the kitchen tickets of new orders') }}

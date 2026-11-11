@@ -7918,5 +7918,11 @@
     "Enter the caller number.": "اكتب رقم المتصل.",
     "Enter a valid phone number: a mobile, or a landline with its area code.": "اكتب رقم صحيح: موبايل، أو أرضي بكود المحافظة (زي 0403597535).",
     "Enter the customer's phone number.": "اكتب رقم العميل.",
-    "Customer number (mobile or landline)": "رقم العميل (موبايل أو أرضي)"
+    "Customer number (mobile or landline)": "رقم العميل (موبايل أو أرضي)",
+    "Phone apps": "تطبيقات الموبايل",
+    "Android apps for your staff: scan the QR with the phone (or send them the link), install the app and sign in with the account you made for them in Users & roles.": "تطبيقات أندرويد لفريقك: صوّر الـ QR بالموبايل (أو ابعتله اللينك)، نزّل التطبيق وادخل بالحساب اللي عملته له في «المستخدمين والصلاحيات».",
+    "No app for what your plan includes yet.": "لسه مفيش تطبيق للي في باقتك.",
+    "Turn it on on the one computer next to the kitchen printer: each new order (from the waiters, the QR menu, online… as the owner chose in POS → Terminals) prints its kitchen ticket by itself, once.": "شغّلها على كمبيوتر واحد بس، اللي جنب طابعة المطبخ: كل أوردر جديد (من الويتر، أو منيو الـ QR، أو الأونلاين… حسب اختيار صاحب المطعم في الكاشير ← أجهزة الكاشير) بيطبع تذكرة المطبخ لوحده، مرة واحدة.",
+    "To print without the print window every time: make the kitchen printer the default printer of Windows, then open Chrome from a shortcut that ends with:": "عشان يطبع من غير ما شاشة الطباعة تظهر كل مرة: خلّي طابعة المطبخ هي الطابعة الأساسية في ويندوز، وافتح كروم من اختصار في آخره:",
+    "Keep this cashier screen open on that computer: it prints only while it is open.": "سيب شاشة الكاشير دي مفتوحة على الكمبيوتر ده: الطباعة بتشتغل وهي مفتوحة بس."
 }

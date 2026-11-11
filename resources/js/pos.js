@@ -5,6 +5,7 @@ import { createOffline, NetworkError, printLocalReceipt } from './pos-offline';
 import './kb-drawer';
 import { bindPager, pagerButtons, pagerStatus } from './pager-call';
 import { createNativePrinter } from './native-print';
+import { createBrowserKitchenPrinter } from './browser-print';
 import { quoteAt } from './delivery-geo';
 import { charges } from './bill';
 
@@ -46,6 +47,11 @@ if (dataEl) {
     const printer = !CC && D.printing ? createNativePrinter({
         tenant: D.tenant, csrf: () => session.csrf, printing: D.printing,
         urls: { jobs: D.urls.printJobs, release: D.urls.printRelease, queue: D.urls.printQueue }, texts: T.native || {},
+    }) : null;
+    // in a browser: this device may print the kitchen tickets of new orders (waiters' orders and the rest, as the owner chose)
+    const browserKitchen = !CC && !printer && D.printing ? createBrowserKitchenPrinter({
+        tenant: D.tenant, csrf: () => session.csrf, kitchenAuto: D.printing.kitchenAuto,
+        urls: { jobs: D.urls.printJobs, queue: D.urls.printQueue, receipt: D.urls.receipt },
     }) : null;
 
     // every request of the screen: a lost connection throws NetworkError (with a readable message), a refusal Error
@@ -1001,6 +1007,7 @@ if (dataEl) {
             if (receiptPrints) printer.printOrder(order.id, ['receipt']);
             printer.poll();
         }
+        browserKitchen?.poll();
     }
     // data-print: customer (the receipt), kitchen (the ticket) or both in one go
     $$('[data-print]').forEach((b) => b.addEventListener('click', () => {
@@ -1837,6 +1844,18 @@ if (dataEl) {
         $('[data-printers-kitchen]').addEventListener('change', (e) => { printer.setDeviceKitchen(e.target.checked); printer.poll(); });
         // the app is shown again (back from its own printer picker): refresh the list
         document.addEventListener('visibilitychange', () => { if (!document.hidden && dlg.open) renderPrinters(); });
+    }
+
+    // ---- in a browser: the same dialog holds only "this device prints the kitchen tickets" and how to print silently ----
+    if (browserKitchen && $('[data-printers-open]')) {
+        const dlg = $('[data-printers-dialog]');
+        const kitchen = $('[data-printers-kitchen]');
+        $('[data-printers-roles]').classList.add('hidden');
+        $('[data-printers-app-help]')?.classList.add('hidden');
+        $('[data-printers-browser-help]')?.classList.remove('hidden');
+        $('[data-printers-open]').classList.remove('hidden');
+        $('[data-printers-open]').addEventListener('click', () => { kitchen.checked = browserKitchen.enabled(); dlg.showModal(); });
+        kitchen.addEventListener('change', (e) => browserKitchen.setEnabled(e.target.checked));
     }
 
     // ---- recent paid orders: find by number or OFF-K1-3, reprint, share, refund with a manager's OK ----

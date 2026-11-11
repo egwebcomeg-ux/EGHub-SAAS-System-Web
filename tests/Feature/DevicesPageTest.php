@@ -21,8 +21,10 @@ class DevicesPageTest extends TenantTestCase
             $page->assertSee('data-device-locked="'.$type.'"', false);
         }
         $page->assertSee(route('dash.billing'), false)->assertDontSee('data-device="tv"', false);
-        // no device in the plan: no sidebar entry (the page still explains what each one needs)
-        $this->actingAs($owner)->get($this->dashUrl('/'))->assertDontSee('href="'.route('dash.devices').'"', false);
+        // the phone apps are there for every plan (the manager's app), so the area is in the sidebar; the kiosk app
+        // only with the kiosk in the plan
+        $page->assertSee('data-phone-app="restaurant"', false)->assertSee('downloads/eghub-restaurant.apk', false)->assertDontSee('data-phone-app="kiosk"', false);
+        $this->actingAs($owner)->get($this->dashUrl('/'))->assertSee('href="'.route('dash.devices').'"', false);
 
         // Business + kitchen pack: TV screens, the kitchen display; kiosk and customer display stay locked
         $biz = $this->restaurant('cafe-biz', 'business');
@@ -31,7 +33,8 @@ class DevicesPageTest extends TenantTestCase
         $this->actingAs($this->owner($biz))->get($this->dashUrl('/devices'))->assertOk()
             ->assertSee('data-device="tv"', false)->assertSee(str_repeat('a', 20))
             ->assertSee('data-device="kitchen"', false)->assertSee(route('dash.kitchen'), false)
-            ->assertSee('data-device-locked="kiosk"', false)->assertDontSee('data-device-locked="tv"', false);
+            ->assertSee('data-device-locked="kiosk"', false)->assertDontSee('data-device-locked="tv"', false)
+            ->assertSee('data-phone-app="screens"', false)->assertSee('data-phone-app="waiter"', false)->assertSee('downloads/eghub-waiter.apk', false);
         $this->actingAs($this->owner($biz))->get($this->dashUrl('/'))->assertSee('href="'.route('dash.devices').'"', false);
 
         // the kitchen staff only sees the kitchen screens; a waiter's plan view has no locked upsell cards

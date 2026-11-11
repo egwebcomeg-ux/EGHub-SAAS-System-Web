@@ -199,6 +199,23 @@
                     @endforeach
                 </div>
             </section>
+        @elseif ($type === 'apps')
+            <section class="space-y-3" id="apps">
+                <h2 class="section-title">{{ $label('apps') }}</h2>
+                <p class="text-sm text-navy-500">{{ __('Android apps for your staff: scan the QR with the phone (or send them the link), install the app and sign in with the account you made for them in Users & roles.') }}</p>
+                @if ($phoneApps === [])
+                    <p class="card text-sm text-navy-500">{{ __('No app for what your plan includes yet.') }}</p>
+                @else
+                    <div class="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                        @foreach ($phoneApps as $app)
+                            <x-dash.device-card type="app" :label="$app['for']" :name="$app['name']" :url="$app['url']" :qr="$app['qr']" :open="__('Download')"
+                                :meta="$app['beta'] ? __('Early version') : null" data-phone-app="{{ $app['key'] }}">
+                                <p class="text-sm text-navy-600">{{ $app['summary'] }}</p>
+                            </x-dash.device-card>
+                        @endforeach
+                    </div>
+                @endif
+            </section>
         @endif
     @endforeach
 </div>
