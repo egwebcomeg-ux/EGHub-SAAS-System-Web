@@ -8,6 +8,8 @@ use App\Models\PlatformAuditLog;
 use App\Models\PlatformSetting;
 use App\Models\Tenant;
 use App\Services\DomainDns;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
 use Tests\TenantTestCase;
 
 /**
@@ -81,6 +83,43 @@ class AdminDomainRequestsTest extends TenantTestCase
         $log = PlatformAuditLog::query()->where('action', 'domain.approved')->sole();
         $this->assertSame([$admin->id, 'menu.cafe-a.com', 'cafe-a'], [$log->admin_id, $log->subject, $log->meta['tenant']]);
         $this->actingAs($this->admin('owner', 'Omar Owner'), 'admin')->get($this->adminUrl('/activity'))->assertOk()->assertSee(__('Custom domain approved'));
+    }
+
+    public function test_approving_adds_the_domain_on_the_hosting_account_and_a_panel_error_keeps_it_waiting(): void
+    {
+        config(['services.cpanel' => ['host' => 'panel.test', 'port' => 2083, 'user' => 'eghub', 'token' => 'TKN']]);
+        Http::fake([
+            'panel.test:2083/execute/DomainInfo/list_domains' => Http::response(['status' => 1, 'data' => [
+                'main_domain' => 'eghub.app', 'parked_domains' => ['menu.cafe-old.com'], 'addon_domains' => [], 'sub_domains' => [],
+            ]]),
+            'panel.test:2083/json-api/cpanel*' => Http::sequence()
+                ->push(['cpanelresult' => ['data' => [['result' => 1, 'reason' => '']]]])
+                ->push(['cpanelresult' => ['data' => [['result' => 0, 'reason' => 'The domain does not resolve to this server.']]]])
+                ->push(['cpanelresult' => ['error' => 'Access denied']]),
+            'panel.test:2083/execute/SSL/start_autossl_check' => Http::response(['status' => 1]),
+        ]);
+        $domain = $this->domain($this->restaurant('cafe-a', 'business'), 'Menu.Cafe-A.com');
+        $this->actingAs($this->admin('support'), 'admin')->post($this->adminUrl("/domains/{$domain->id}/approve"))->assertSessionHasNoErrors();
+
+        $this->assertTrue($domain->fresh()->isActive());
+        Http::assertSent(fn (Request $r) => str_contains($r->url(), 'cpanel_jsonapi_func=park') && $r['domain'] === 'menu.cafe-a.com'
+            && $r->hasHeader('Authorization', 'cpanel eghub:TKN'));
+        Http::assertSent(fn (Request $r) => str_ends_with($r->url(), '/execute/SSL/start_autossl_check'));
+        $this->assertSame(1, PlatformAuditLog::query()->where('action', 'domain.hosted')->count());
+
+        // already an alias: approved without parking it again
+        $old = $this->domain($this->restaurant('cafe-old', 'business'), 'menu.cafe-old.com');
+        $this->post($this->adminUrl("/domains/{$old->id}/approve"))->assertSessionHasNoErrors();
+        $this->assertTrue($old->fresh()->isActive());
+        Http::assertSentCount(5);
+
+        // the panel refuses: the request keeps waiting and the admin reads why
+        $b = $this->domain($this->restaurant('cafe-b', 'business'), 'menu.cafe-b.com');
+        $this->post($this->adminUrl("/domains/{$b->id}/approve"))->assertSessionHasErrors(['domain' => __('The hosting panel did not add :domain: :error', [
+            'domain' => 'menu.cafe-b.com', 'error' => 'The domain does not resolve to this server.',
+        ])]);
+        $this->post($this->adminUrl("/domains/{$b->id}"), ['status' => 'active'])->assertSessionHasErrors('domain');
+        $this->assertSame('pending', $b->fresh()->status);
     }
 
     public function test_rejecting_needs_a_reason_the_owner_reads_and_stops_the_domain(): void

@@ -8,6 +8,7 @@ use App\Models\PlatformAuditLog;
 use App\Notifications\DomainDecided;
 use App\Services\DomainDns;
 use App\Services\Entitlements;
+use App\Services\HostingDomains;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ use Illuminate\View\View;
 
 /**
  * EgWeb's side of custom domains (tenants.manage): after the domain is registered (egweb.com.eg) or pointed to the
- * server, and added as an alias with SSL on the hosting account, the admin approves it. Approving makes the menu and
+ * server, the admin approves it; approving adds it as an alias with AutoSSL on the hosting account (HostingDomains). Approving makes the menu and
  * QR codes use it (Tenant::customDomain, while the plan or an add-on includes custom domains); rejecting sends the
  * owner the reason on their domain page. «طلبات الدومين» lists every restaurant's domain, waiting ones first.
  */
@@ -50,9 +51,15 @@ class DomainsController extends Controller
         ]);
     }
 
-    /** Connected: the menu and its QR codes use the domain from now on (when the plan includes it). */
-    public function approve(Request $request, Domain $domain): RedirectResponse
+    /**
+     * Connected: the domain is added on the hosting account (alias + AutoSSL, when the cPanel token is set), then the
+     * menu and its QR codes use it from now on (when the plan includes it). A hosting error keeps the request waiting.
+     */
+    public function approve(Request $request, Domain $domain, HostingDomains $hosting): RedirectResponse
     {
+        if ($error = $this->addOnHosting($request, $domain, $hosting)) {
+            return $error;
+        }
         $domain->update(['status' => 'active', 'note' => null, 'verified_at' => $domain->verified_at ?? now()]);
         $this->log($request, 'domain.approved', $domain);
         Notification::send($domain->tenant->owners(), new DomainDecided($domain));
@@ -84,13 +91,16 @@ class DomainsController extends Controller
     }
 
     /** Any status and note, from the restaurant's page. */
-    public function update(Request $request, Domain $domain): RedirectResponse
+    public function update(Request $request, Domain $domain, HostingDomains $hosting): RedirectResponse
     {
         $data = $request->validate([
             'status' => ['required', Rule::in(array_keys(Domain::STATUSES))],
             'note' => 'nullable|string|max:300',
         ]);
         $before = $domain->status;
+        if ($data['status'] === 'active' && $before !== 'active' && ($error = $this->addOnHosting($request, $domain, $hosting))) {
+            return $error;
+        }
         $domain->update([
             'status' => $data['status'], 'note' => $data['note'] ?? null,
             'verified_at' => $data['status'] === 'active' ? ($domain->verified_at ?? now()) : null,
@@ -102,6 +112,24 @@ class DomainsController extends Controller
         }
 
         return back()->with('ok', __('Domain updated.'));
+    }
+
+    /** Adds the domain on the hosting account; the way back with the panel's error when that failed, else null. */
+    private function addOnHosting(Request $request, Domain $domain, HostingDomains $hosting): ?RedirectResponse
+    {
+        if (! $hosting->configured()) {
+            return null;
+        }
+        $result = $hosting->add($domain->domain);
+        if ($result['ok']) {
+            if ($result['added']) {
+                $this->log($request, 'domain.hosted', $domain);
+            }
+
+            return null;
+        }
+
+        return back()->withErrors(['domain' => __('The hosting panel did not add :domain: :error', ['domain' => $domain->domain, 'error' => $result['error']])]);
     }
 
     /** @param  array<string, mixed>  $meta */

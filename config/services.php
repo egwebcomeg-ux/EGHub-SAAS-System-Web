@@ -81,6 +81,15 @@ return [
         'monthly_limit' => (int) env('GOOGLE_PLACES_MONTHLY_LIMIT', 900),
     ],
 
+    // The hosting account EgHub runs on (App\Services\HostingDomains): approving a restaurant's domain adds it there
+    // as an alias of the app (same folder) and starts AutoSSL. token = cPanel → Manage API Tokens. Empty: done by hand.
+    'cpanel' => [
+        'host' => env('CPANEL_HOST', '127.0.0.1'),
+        'port' => (int) env('CPANEL_PORT', 2083),
+        'user' => env('CPANEL_USER'),
+        'token' => env('CPANEL_TOKEN'),
+    ],
+
     /*
     | Kashier (developers.kashier.io): restaurants pay their EgHub invoices online (App\Billing\Gateways\KashierGateway).
     | merchant_id (MID-xxx-xxx), api_key = the Payment API key (signs webhooks), secret_key = the merchant secret key

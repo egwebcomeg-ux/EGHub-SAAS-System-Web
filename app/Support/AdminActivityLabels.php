@@ -28,6 +28,7 @@ final class AdminActivityLabels
         'crm.script_removed' => 'Call script line removed',
         'crm.script_defaults' => 'Call script reset to the defaults',
         'domain.approved' => 'Custom domain approved',
+        'domain.hosted' => 'Custom domain added on the hosting account',
         'domain.rejected' => 'Custom domain rejected',
         'domain.updated' => 'Custom domain status changed',
         'egweb_clients.added' => 'Client logo added',
