@@ -18,12 +18,15 @@ use App\Services\TenantProvisioner;
 use Illuminate\Support\Facades\Log;
 
 /**
- * The automatic answer on the EgHub number and page: App\Services\Assistant answers from the live plans and add-ons, so a price
- * is never invented. It stays quiet where a person of the team has the conversation (assigned by hand, or answered in
- * the last 24 hours), and hands over when the person asks for someone, when it cannot answer, on media it cannot read,
- * when the model is down, or after DAILY_LIMIT answers to one person, and then gives the conversation to the team member
- * with the fewest open ones. Until a person answers it keeps answering what it can, on every channel, and says only once
- * that the team will answer. The first message of a new person gets a welcome with buttons. Off until the team switches it on in «محادثات واتساب».
+ * The automatic answer on the EgHub number and page. A tap on a topic of the guide (App\Services\WhatsApp\BotGuide) is
+ * answered from the website's facts without the model; a written question goes to App\Services\Assistant, which answers
+ * from the live plans and add-ons, so a price is never invented, and every answer carries «القائمة الرئيسية» and
+ * «أكلم حد من الفريق». When the model is missing or down, or after DAILY_LIMIT answers to one person, the guide's menu
+ * is offered instead. It hands over only when the person asks for someone (the team button, or in words) or sends
+ * media it cannot read, and then gives the conversation to the team member with the fewest open ones. It stays quiet
+ * where a person of the team has the conversation (assigned by hand, or answered in the last 24 hours); until a person
+ * answers it keeps answering, and says only once that the team will answer. The first message of a new person gets a
+ * welcome with buttons. Off until the team switches it on in «محادثات واتساب».
  */
 final class PlatformAutoReply
 {
@@ -42,6 +45,9 @@ final class PlatformAutoReply
     public const HANDOVER_NOTE = 'المحادثة مستنية رد من الفريق. الرد الآلي بيجاوب على الأسئلة لحد ما حد يرد.';
 
     public const BUTTON_PREFIX = 'inbox:';
+
+    /** A written question the model could not take (no model, down, or the day's limit): the guide is offered. */
+    public const GUIDE_ONLY_TEXT = 'مقدرتش أجاوب على سؤالك ده دلوقتي.';
 
     public const WELCOME_TEXT = 'أهلًا بيك في EgHub، المنيو الإلكتروني والطلبات للمطاعم والكافيهات. اكتب سؤالك هنا أو اختار من الأزرار، ولو حابب تكلم حد من الفريق هيرد عليك هنا على نفس الرقم.';
 
@@ -86,11 +92,12 @@ TXT;
 CHANNEL: This conversation is on :channel, in the chat of EgHub's own page. The person is already talking to EgHub here: never give a wa.me link. When the team is needed, say that someone from the team will answer here in this chat. Never claim to be a human; if asked, say you are EgHub's automatic assistant. If they ask for a phone number, give only EgHub's main number from your instructions, and say that writing «أكلم حد من الفريق» here brings a person; never give any personal number. Do not promise working hours or a response time. If they ask to delete their messages or data, say the team will do it and end your answer with [[HUMAN]].
 TXT;
 
-    public function __construct(private PlatformInbox $inbox) {}
+    public function __construct(private PlatformInbox $inbox, private BotGuide $guide) {}
 
     public static function enabled(): bool
     {
-        return PlatformSetting::get(self::SETTING) === '1' && Assistant::enabled();
+        // the guide answers without the model, so the switch alone turns it on; written questions need the model
+        return PlatformSetting::get(self::SETTING) === '1';
     }
 
     public function shouldAnswer(PlatformConversation $conversation): bool
@@ -121,8 +128,25 @@ TXT;
                 return;
             }
         }
-        if (in_array($message->type, self::MEDIA_TYPES, true) || $this->answersToday($conversation) >= self::DAILY_LIMIT) {
+        if (in_array($message->type, self::MEDIA_TYPES, true)) {
             $this->handOver($conversation, self::HANDOVER_TEXT);
+
+            return;
+        }
+        // the guide: a tap on a topic (or the menu asked for) is answered from the website's facts, at once
+        $asked = (string) $message->body;
+        if (BotGuide::isTeam($asked)) {
+            $this->handOver($conversation, self::HANDOVER_TEXT);
+
+            return;
+        }
+        if ($guide = $this->guide->answerFor($asked)) {
+            $this->inbox->replyWithList($conversation, $guide['text'], $guide['rows']);
+
+            return;
+        }
+        if (! Assistant::enabled() || $this->answersToday($conversation) >= self::DAILY_LIMIT) {
+            $this->showMenu($conversation, self::GUIDE_ONLY_TEXT);
 
             return;
         }
@@ -131,7 +155,7 @@ TXT;
             $answer = Assistant::reply($turns, 'ar', $this->channelRules($conversation));
         } catch (\Throwable $e) {
             Log::warning('whatsapp auto reply failed: '.$e->getMessage());
-            $this->handOver($conversation, self::HANDOVER_TEXT);
+            $this->showMenu($conversation, self::GUIDE_ONLY_TEXT);
 
             return;
         }
@@ -146,12 +170,32 @@ TXT;
             'handoff' => $answer['handoff'], 'tokens_in' => $answer['in'], 'tokens_out' => $answer['out'],
         ]);
 
-        if ($answer['handoff']) {
+        // only the person decides to leave the bot: they asked for someone, or they tap the team button under the answer
+        // (while the team is already on its way, a question the model cannot take just reaches them, without a word)
+        if ($answer['handoff'] && ($conversation->waitingForTeam() || Assistant::wantsPerson((string) end($turns)['content']))) {
             $this->handOver($conversation, $text);
 
             return;
         }
-        $this->inbox->reply($conversation, null, $text);
+        if ($answer['handoff']) {
+            $text .= "\n\nلو حابب حد من الفريق يكمّل معاك، دوس «".BotGuide::TEAM.'».';
+        }
+        if (mb_strlen($text) > 1024) {
+            $this->inbox->reply($conversation, null, $text);
+
+            return;
+        }
+        $this->inbox->replyWithButtons($conversation, $text, [
+            self::BUTTON_PREFIX.'menu' => BotGuide::MENU,
+            self::BUTTON_PREFIX.'team' => BotGuide::TEAM,
+        ]);
+    }
+
+    /** The guide's main menu under $intro: the person always has a way on, and the team is one tap away. */
+    private function showMenu(PlatformConversation $conversation, string $intro): void
+    {
+        $menu = $this->guide->menu($intro);
+        $this->inbox->replyWithList($conversation, $menu['text'], $menu['rows']);
     }
 
     /** The rules of this channel, and the team's own ready answers: what they write there the assistant can say. */

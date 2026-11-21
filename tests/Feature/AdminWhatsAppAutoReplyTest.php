@@ -2,12 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Models\Plan;
 use App\Models\PlatformAdmin;
 use App\Models\PlatformCannedReply;
 use App\Models\PlatformConversation;
 use App\Models\PlatformSetting;
 use App\Notifications\InboxNeedsAnswer;
+use App\Services\WhatsApp\BotGuide;
 use App\Services\WhatsApp\PlatformAutoReply;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Testing\TestResponse;
@@ -71,6 +74,18 @@ class AdminWhatsAppAutoReplyTest extends TenantTestCase
         return $conversation;
     }
 
+    /** The text of a message to Meta: plain, or the body of buttons or a list. */
+    private static function body(Request $request): string
+    {
+        return (string) ($request['text']['body'] ?? $request['interactive']['body']['text'] ?? '');
+    }
+
+    /** @return list<string> the titles of a list message's rows */
+    private static function rows(Request $request): array
+    {
+        return array_column($request['interactive']['action']['sections'][0]['rows'] ?? [], 'title');
+    }
+
     private function sentToMeta(): int
     {
         return Http::recorded(fn ($request) => str_contains($request->url(), 'graph.facebook.com'))->count();
@@ -101,7 +116,8 @@ class AdminWhatsAppAutoReplyTest extends TenantTestCase
         $this->webhook($this->text('الاسعار؟'))->assertOk();
 
         Http::assertSent(fn ($request) => str_contains($request->url(), 'api.anthropic.com') && str_contains(json_encode($request['system'], JSON_UNESCAPED_UNICODE), 'CHANNEL:'));
-        Http::assertSent(fn ($request) => str_contains($request->url(), '/'.self::PHONE_ID.'/messages') && $request['to'] === self::FROM && ! str_contains($request['text']['body'], 'wa.me'));
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/'.self::PHONE_ID.'/messages') && $request['to'] === self::FROM && ! str_contains(self::body($request), 'wa.me')
+            && array_column($request['interactive']['action']['buttons'], 'reply') === [['id' => 'inbox:menu', 'title' => BotGuide::MENU], ['id' => 'inbox:team', 'title' => BotGuide::TEAM]]);
 
         $conversation = PlatformConversation::query()->sole();
         $row = $conversation->messages()->where('direction', 'out')->latest('id')->first();
@@ -147,7 +163,7 @@ class AdminWhatsAppAutoReplyTest extends TenantTestCase
         $this->webhook($this->text('شاشة'))->assertOk();
 
         Http::assertSent(fn ($request) => str_contains($request->url(), 'api.anthropic.com') && str_contains(json_encode($request['system']), 'already been told'));
-        Http::assertSent(fn ($request) => str_contains($request->url(), 'graph.facebook.com') && ($request['text']['body'] ?? '') === 'الشاشة في الباقة الكاملة');
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'graph.facebook.com') && self::body($request) === 'الشاشة في الباقة الكاملة');
         $this->assertSame($admin->id, $conversation->refresh()->assigned_to);
 
         $this->actingAs($admin, 'admin')->post($this->adminUrl("/inbox/{$conversation->id}/reply"), ['body' => 'أهلا'])->assertSessionHasNoErrors();
@@ -204,31 +220,69 @@ class AdminWhatsAppAutoReplyTest extends TenantTestCase
         $this->assertTrue(PlatformConversation::query()->sole()->waitingForTeam());
     }
 
-    public function test_when_the_model_is_down_the_person_is_told_the_team_will_answer(): void
+    public function test_when_the_model_is_down_or_the_day_is_used_up_the_guide_is_offered_and_nobody_is_handed_over(): void
     {
         Http::fake([
             'api.anthropic.com/*' => Http::response(['error' => 'down'], 500),
-            'graph.facebook.com/*' => Http::response(['messages' => [['id' => 'wamid.out1']]]),
+            'graph.facebook.com/*' => fn () => Http::response(['messages' => [['id' => 'wamid.out'.uniqid()]]]),
         ]);
-        $this->welcomed();
+        $conversation = $this->welcomed();
 
         $this->webhook($this->text('الاسعار'))->assertOk();
 
-        Http::assertSent(fn ($request) => str_contains($request->url(), 'graph.facebook.com') && $request['text']['body'] === PlatformAutoReply::HANDOVER_TEXT);
-        $this->assertTrue(PlatformConversation::query()->sole()->waitingForTeam());
-    }
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'graph.facebook.com') && $request['interactive']['type'] === 'list'
+            && str_starts_with(self::body($request), PlatformAutoReply::GUIDE_ONLY_TEXT) && in_array(BotGuide::TEAM, self::rows($request), true));
+        $this->assertFalse($conversation->refresh()->waitingForTeam());
 
-    public function test_after_the_daily_limit_the_team_takes_over_without_the_model(): void
-    {
-        $this->fakeModel('رد');
-        $conversation = PlatformConversation::factory()->create(['phone' => self::FROM]);
         foreach (range(1, PlatformAutoReply::DAILY_LIMIT) as $i) {
             $conversation->messages()->create(['direction' => 'out', 'body' => "رد $i", 'status' => 'sent']);
         }
-
+        $asked = $this->askedTheModel();
         $this->webhook($this->text('كمان سؤال'))->assertOk();
+        $this->assertSame($asked, $this->askedTheModel());
+        $this->assertFalse($conversation->refresh()->waitingForTeam());
+    }
+
+    public function test_the_guide_answers_taps_without_the_model_and_always_offers_the_next_choices(): void
+    {
+        $this->fakeModel('رد');
+        config(['assistant.key' => '']); // the guide works with no model at all
+        $plan = Plan::query()->offered()->where('is_public', true)->where('monthly_price', '>', 0)->orderBy('sort_order')->firstOrFail();
+        $conversation = $this->welcomed();
+
+        // the welcome's «المميزات» opens the menu: the prices, every group of modules, how to start, the team
+        $this->webhook(['type' => 'interactive', 'interactive' => ['type' => 'button_reply', 'button_reply' => ['id' => 'inbox:features', 'title' => 'المميزات']]])->assertOk();
+        $titles = self::rows(Http::recorded(fn ($request) => str_contains($request->url(), 'graph.facebook.com'))->last()[0]);
+        $this->assertSame(BotGuide::PRICES, $titles[0]);
+        $this->assertContains('التشغيل', $titles);
+        $this->assertSame(BotGuide::TEAM, end($titles));
+
+        // a group, then one of its modules, picked from the list
+        $this->webhook(['type' => 'interactive', 'interactive' => ['type' => 'list_reply', 'list_reply' => ['id' => 'guide:4', 'title' => 'التشغيل']]])->assertOk();
+        Http::assertSent(fn ($request) => str_contains(self::body($request), 'كاشير POS:') && in_array('كاشير POS', self::rows($request), true));
+        $this->webhook(['type' => 'interactive', 'interactive' => ['type' => 'list_reply', 'list_reply' => ['id' => 'guide:0', 'title' => 'كاشير POS']]])->assertOk();
+        Http::assertSent(fn ($request) => str_contains(self::body($request), '/features/pos') && in_array(BotGuide::MENU, self::rows($request), true));
+
+        // the prices come from the live plans
+        $this->webhook($this->text(BotGuide::PRICES))->assertOk();
+        Http::assertSent(fn ($request) => str_contains(self::body($request), $plan->name.': '.money($plan->monthly_price).' جنيه في الشهر'));
 
         $this->assertSame(0, $this->askedTheModel());
+        $this->assertFalse($conversation->refresh()->waitingForTeam());
+        $this->assertSame(1, $conversation->messages()->where('direction', 'in')->where('body', 'كاشير POS')->count());
+    }
+
+    public function test_a_question_the_model_sends_to_the_team_stays_with_the_bot_until_the_person_asks(): void
+    {
+        $this->fakeModel('دي محتاجة الفريق. [[HUMAN]]');
+        $conversation = $this->welcomed();
+
+        $this->webhook($this->text('عندي مشكلة في الفاتورة'))->assertOk();
+
+        $this->assertFalse($conversation->refresh()->waitingForTeam());
+        Http::assertSent(fn ($request) => str_contains(self::body($request), BotGuide::TEAM) && ! str_contains(self::body($request), '[[HUMAN]]'));
+
+        $this->webhook(['type' => 'interactive', 'interactive' => ['type' => 'button_reply', 'button_reply' => ['id' => 'inbox:team', 'title' => BotGuide::TEAM]]])->assertOk();
         $this->assertTrue($conversation->refresh()->waitingForTeam());
     }
 
@@ -243,7 +297,7 @@ class AdminWhatsAppAutoReplyTest extends TenantTestCase
 
         $this->webhook($this->text('الاسعار'))->assertOk();
         $this->assertSame(1, $this->askedTheModel());
-        $this->assertSame(1, Http::recorded(fn ($request) => str_contains($request->url(), 'graph.facebook.com') && $request['type'] === 'interactive')->count());
+        $this->assertSame(1, Http::recorded(fn ($request) => str_contains($request->url(), 'graph.facebook.com') && count($request['interactive']['action']['buttons'] ?? []) === 3)->count());
     }
 
     public function test_a_long_islamic_greeting_gets_the_buttons_only(): void

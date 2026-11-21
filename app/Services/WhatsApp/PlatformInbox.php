@@ -205,6 +205,24 @@ final class PlatformInbox
     }
 
     /**
+     * A guide answer with its next choices: a list on WhatsApp, quick replies on Messenger and Instagram.
+     *
+     * @param  list<array{title: string, description: string}>  $rows
+     */
+    public function replyWithList(PlatformConversation $conversation, string $text, array $rows): PlatformConversationMessage
+    {
+        if ($conversation->isWhatsApp()) {
+            return $this->deliver($conversation, null, $text, fn () => (new MetaCloudDriver)->replyWithList($conversation->phone, $text, 'اختار موضوع', $rows));
+        }
+        $buttons = [];
+        foreach (array_slice($rows, 0, 13) as $i => $row) {
+            $buttons[PlatformAutoReply::BUTTON_PREFIX.'guide:'.$i] = mb_substr($row['title'], 0, 20);
+        }
+
+        return $this->deliver($conversation, null, $text, fn () => $this->driver($conversation)->replyWithButtons($conversation->phone, $text, $buttons));
+    }
+
+    /**
      * The team writes first to a new customer: only an approved template may open a conversation. The person's answer
      * opens the 24-hour window, and the automatic answer takes it from there.
      */
@@ -361,7 +379,7 @@ final class PlatformInbox
         $text = match ($type) {
             'text' => (string) ($message['text']['body'] ?? ''),
             'image', 'video', 'document' => (string) ($message[$type]['caption'] ?? ''),
-            'interactive' => (string) ($message['interactive']['button_reply']['title'] ?? ''),
+            'interactive' => (string) ($message['interactive']['button_reply']['title'] ?? $message['interactive']['list_reply']['title'] ?? ''),
             default => '',
         };
         $label = self::TYPE_LABELS[$type] ?? (in_array($type, ['text', 'interactive'], true) ? '' : $type);

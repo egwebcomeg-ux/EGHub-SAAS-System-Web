@@ -92,6 +92,32 @@ final class MetaCloudDriver implements InteractiveGateway
         ]);
     }
 
+    /**
+     * A list message: the text, and a button that opens up to 10 choices. A text longer than a list body may be goes
+     * first on its own, and the list follows with a short line.
+     *
+     * @param  list<array{title: string, description: string}>  $rows
+     */
+    public function replyWithList(string $to, string $text, string $button, array $rows): string
+    {
+        if (mb_strlen($text) > 1024) {
+            $this->reply($to, $text);
+            $text = 'تحب تعرف إيه كمان؟';
+        }
+        $items = [];
+        foreach (array_slice($rows, 0, 10) as $i => $row) {
+            $items[] = ['id' => 'guide:'.$i, 'title' => mb_substr($row['title'], 0, 24)]
+                + ($row['description'] !== '' ? ['description' => mb_substr($row['description'], 0, 72)] : []);
+        }
+
+        return $this->post([
+            'messaging_product' => 'whatsapp', 'recipient_type' => 'individual', 'to' => $to, 'type' => 'interactive',
+            'interactive' => ['type' => 'list', 'body' => ['text' => $text], 'action' => [
+                'button' => mb_substr($button, 0, 20), 'sections' => [['title' => 'EgHub', 'rows' => $items]],
+            ]],
+        ]);
+    }
+
     /** @param  array<string,mixed>  $payload */
     private function post(array $payload): string
     {

@@ -6,6 +6,7 @@ use App\Models\PlatformAdmin;
 use App\Models\PlatformAuditLog;
 use App\Models\PlatformConversation;
 use App\Models\PlatformSetting;
+use App\Services\WhatsApp\BotGuide;
 use App\Services\WhatsApp\PlatformAutoReply;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Collection;
@@ -215,7 +216,8 @@ class AdminPageMessagesTest extends TenantTestCase
         $this->webhook($this->message('عايز اعرف الاسعار'))->assertOk();
         $this->assertSame(1, PlatformConversation::query()->count());
         $this->assertSame('الباقة بسعرها من الموقع', $this->sent()->last()[0]['message']['text']);
-        $this->assertArrayNotHasKey('quick_replies', $this->sent()->last()[0]['message']);
+        // no second welcome: the answer carries only the way on, the menu and the team
+        $this->assertSame([BotGuide::MENU, BotGuide::TEAM], array_column($this->sent()->last()[0]['message']['quick_replies'], 'title'));
     }
 
     public function test_an_instagram_comment_is_answered_in_the_direct_and_under_the_comment(): void
