@@ -76,6 +76,9 @@ final class FilettoImporter
 
     private const SIZE_AR = ['Single' => 'سنجل', 'Double' => 'دبل'];
 
+    /** Sizes of the old menu the owner no longer sells (⅓ kg of the grills, 2026-11-23): left out, and a re-run removes them. */
+    private const DROPPED_SIZES = ['ثلث كيلو'];
+
     private const EXTRA_EN = [
         'sauce_cheddar' => 'Cheddar sauce', 'sauce_texas' => 'Texas sauce', 'sauce_bbq' => 'BBQ sauce', 'sauce_ketchup' => 'Ketchup',
         'sauce_mayo' => 'Mayonnaise', 'sauce_sweet_chili' => 'Sweet chili sauce', 'sauce_dark_smoked' => 'Dark smoked sauce',
@@ -430,6 +433,9 @@ final class FilettoImporter
     {
         $variations = [];
         foreach ($this->rows('menu_variations', 'menu_item_id, sort_order, id') as $v) {
+            if (in_array(trim((string) $v['name']), self::DROPPED_SIZES, true)) {
+                continue;
+            }
             $variations[(int) $v['menu_item_id']][] = $v;
         }
         $extras = collect($this->rows('extras'))->keyBy('slug');

@@ -71,7 +71,7 @@ class FilettoImportTest extends TenantTestCase
             (11, 'sand_hawawshi', 1, 'حواوشي', 'Hawawshi', NULL, 95, NULL, 'جديد', 0, 0, 1, '[]'),
             (41, 'sand_sojok', 1, 'سجق', 'Sojok', NULL, 95, NULL, NULL, 0, 1, 0, '[\"drink_can\"]'),
             (60, 'cass_vegetable_plain', 1, 'طاجن خضار سادة', 'Vegetable Tagine', NULL, 119, NULL, 'جديد', 0, 0, 1, '[]')");
-        $db->exec("INSERT INTO menu_variations VALUES (1, 10, 'v1', 'سنجل', 75, 0, NULL), (2, 10, 'v2', 'دبل', 98, 1, NULL)");
+        $db->exec("INSERT INTO menu_variations VALUES (1, 10, 'v1', 'سنجل', 75, 0, NULL), (2, 10, 'v2', 'دبل', 98, 1, NULL), (3, 10, 'v3', 'ثلث كيلو', 60, 2, NULL)");
         $db->exec("INSERT INTO extras VALUES (1, 'sauce_cheddar', 'صوص شيدر', 25, 'sauce'), (2, 'drink_can', 'كانز', 25, 'drink')");
         $db->exec("INSERT INTO delivery_zones VALUES (1, 'zone_a', 'A — المركز', 30, 30, 80, 1, NULL, '[[30.7,30.9],[30.7,31.1],[30.8,31.1]]', '#22c55e', 1),
             (2, 'zone_a_bahr', 'شارع البحر', NULL, NULL, NULL, 1, 1, NULL, '#22c55e', 1)");
@@ -130,7 +130,7 @@ class FilettoImportTest extends TenantTestCase
             $this->assertSame(['سندوتشات'], Category::query()->pluck('name')->all()); // the starter categories went
 
             $kofta = MenuItem::query()->where('name', 'كفتة')->with('optionGroups.options')->firstOrFail();
-            // the single keeps 75, the double's new price 110 → base 75 + 35
+            // the single keeps 75, the double's new price 110 → base 75 + 35; the ⅓ kg size (60) is no longer sold
             $this->assertSame([75.0, 'Kofta Sandwich'], [$kofta->price, $kofta->name_en]);
             Storage::disk('public')->assertExists($kofta->image);
             $groups = $kofta->optionGroups->keyBy('name_en');
