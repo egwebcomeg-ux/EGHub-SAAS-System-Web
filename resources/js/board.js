@@ -3,6 +3,7 @@
 import './storage-rename';
 import './kb-drawer';
 import { bindPager, pagerButtons, pagerStatus } from './pager-call';
+import { ringBell } from './bell';
 
 const board = document.getElementById('board');
 if (board) {
@@ -50,24 +51,12 @@ if (board) {
     }
     ['click', 'keyup'].forEach((ev) => document.addEventListener(ev, hideHint, { passive: true }));
 
-    function tone(freq, at, length, volume = 0.25) {
-        const osc = audio.createOscillator();
-        const gain = audio.createGain();
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(volume, at);
-        gain.gain.exponentialRampToValueAtTime(0.001, at + length);
-        osc.connect(gain).connect(audio.destination);
-        osc.start(at);
-        osc.stop(at + length + 0.05);
-    }
-
-    // Two short tones with Web Audio (no sound file to load).
+    // A loud bell ring (bell.js) when an order, a waiter call or a booking arrives.
     function chime() {
         if (!soundOn) return;
         try {
             audio ??= new (window.AudioContext || window.webkitAudioContext)();
-            tone(784, audio.currentTime, 0.35);
-            tone(1046, audio.currentTime + 0.18, 0.35);
+            ringBell(audio, 1.5);
         } catch {}
     }
 
@@ -94,8 +83,7 @@ if (board) {
     function alarm() {
         if (alarmMuted || !unlocked || waitingGuestOrders === 0) return;
         try {
-            const now = audio.currentTime;
-            [0, 0.22, 0.44].forEach((d, i) => tone(i % 2 ? 660 : 880, now + d, 0.2, 0.3));
+            ringBell(audio, 1.5);
         } catch {}
     }
     setInterval(alarm, ALARM_EVERY_MS);

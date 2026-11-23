@@ -3,6 +3,7 @@
 import './storage-rename';
 
 import { bindPager, pagerButtons, pagerStatus } from './pager-call';
+import { ringBell } from './bell';
 
 const kds = document.getElementById('kds');
 if (kds) {
@@ -28,13 +29,9 @@ if (kds) {
     function chime() {
         if (!soundOn) return;
         try {
-            audio ??= new AudioContext();
-            [0, 0.2, 0.4].forEach((d) => {
-                const o = audio.createOscillator(); const g = audio.createGain();
-                o.frequency.value = 880; g.gain.setValueAtTime(0.3, audio.currentTime + d);
-                g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + d + 0.18);
-                o.connect(g).connect(audio.destination); o.start(audio.currentTime + d); o.stop(audio.currentTime + d + 0.2);
-            });
+            audio ??= new (window.AudioContext || window.webkitAudioContext)();
+            if (audio.state === 'suspended') audio.resume();
+            ringBell(audio, 1.5);
         } catch {}
     }
 

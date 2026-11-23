@@ -9,6 +9,7 @@
 // tap first, so the beep is ready from the start there; native-push.js registers the phone's push token.
 import './storage-rename';
 import { call, callJson, inApp, onNative } from './native';
+import { ringBell } from './bell';
 
 const dataEl = document.getElementById('driver-data');
 if (dataEl) {
@@ -166,18 +167,7 @@ if (dataEl) {
     function beep() {
         if (!soundOn || !audio || audio.state !== 'running') return;
         try {
-            [0, 0.25, 0.5].forEach((at) => {
-                const osc = audio.createOscillator();
-                const gain = audio.createGain();
-                osc.type = 'sine';
-                osc.frequency.value = 880;
-                gain.gain.setValueAtTime(0.0001, audio.currentTime + at);
-                gain.gain.exponentialRampToValueAtTime(0.4, audio.currentTime + at + 0.02);
-                gain.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + at + 0.2);
-                osc.connect(gain).connect(audio.destination);
-                osc.start(audio.currentTime + at);
-                osc.stop(audio.currentTime + at + 0.22);
-            });
+            ringBell(audio, 1.5);
         } catch {}
     }
     function renderSound() {
