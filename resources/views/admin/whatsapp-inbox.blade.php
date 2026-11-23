@@ -10,37 +10,45 @@
         <button type="button" class="btn-ghost hidden min-h-10 px-3" data-inbox-notify-on>🔔 {{ __('Turn on notifications') }}</button>
     </div>
     <p class="muted">{{ __('What people write to the EgHub number and page, and your answers. Sign-in codes do not show here.') }}</p>
-    <p class="muted mt-1 text-sm" data-inbox-channels>{{ __('Messenger') }}: {{ $messengerConnected ? __('Connected') : __('Not connected yet') }} · {{ __('Instagram') }}: {{ $instagramConnected ? __('Connected') : __('Not connected yet') }}</p>
+    <p class="mt-2 flex flex-wrap gap-2 text-xs font-semibold" data-inbox-channels>
+        @foreach ([__('Messenger') => $messengerConnected, __('Instagram') => $instagramConnected] as $channel => $connected)
+            <span @class(['rounded-full px-2.5 py-1', 'bg-emerald-50 text-emerald-800' => $connected, 'bg-navy-50 text-navy-600' => ! $connected])>{{ $channel }}: {{ $connected ? __('Connected') : __('Not connected yet') }}</span>
+        @endforeach
+    </p>
 </div>
 
-<section class="card mb-4 flex flex-wrap items-center justify-between gap-3" data-inbox-auto-reply>
-    <div class="min-w-0">
-        <h2 class="section-title">{{ __('Automatic answer') }}: {{ $autoReplyOn ? __('On') : __('Off') }}</h2>
-        <p class="muted text-sm">{{ __('Answers prices and services from the live plans. It goes quiet when someone asks for the team or a person from the team answers.') }}</p>
-        @if (! $assistantReady)<p class="mt-1 text-sm font-semibold text-red-700">{{ __('The assistant has no API key, so nothing is answered.') }}</p>@endif
-    </div>
-    @if ($canAdministerInbox)
-        <form method="post" action="{{ route('admin.inbox.auto-reply') }}">
-            @csrf
-            <input type="hidden" name="enabled" value="{{ $autoReplyOn ? 0 : 1 }}">
-            <button @class(['min-h-10 px-4', 'btn-ghost' => $autoReplyOn, 'btn-navy' => ! $autoReplyOn])>{{ $autoReplyOn ? __('Turn it off') : __('Turn it on') }}</button>
-        </form>
-    @endif
-</section>
+<div class="mb-4 grid gap-4 lg:grid-cols-2">
+    <section class="card flex flex-col justify-between gap-3" data-inbox-auto-reply>
+        <div class="min-w-0">
+            <h2 class="section-title flex items-center gap-2">{{ __('Automatic answer') }}
+                <span @class(['badge', 'bg-emerald-100 text-emerald-800' => $autoReplyOn, 'bg-navy-100 text-navy-700' => ! $autoReplyOn])>{{ $autoReplyOn ? __('On') : __('Off') }}</span>
+            </h2>
+            <p class="muted mt-1 text-sm">{{ __('Answers prices and services from the live plans. It goes quiet when someone asks for the team or a person from the team answers.') }}</p>
+            @if (! $assistantReady)<p class="mt-1 text-sm font-semibold text-red-700">{{ __('The assistant has no API key, so nothing is answered.') }}</p>@endif
+        </div>
+        @if ($canAdministerInbox)
+            <form method="post" action="{{ route('admin.inbox.auto-reply') }}">
+                @csrf
+                <input type="hidden" name="enabled" value="{{ $autoReplyOn ? 0 : 1 }}">
+                <button @class(['min-h-10 px-4', 'btn-ghost' => $autoReplyOn, 'btn-navy' => ! $autoReplyOn])>{{ $autoReplyOn ? __('Turn it off') : __('Turn it on') }}</button>
+            </form>
+        @endif
+    </section>
 
-<section class="card mb-4" data-inbox-start>
-    <h2 class="section-title">{{ __('Start a conversation') }}</h2>
-    <p class="muted text-sm">{{ __('Sends the approved welcome to a new customer who agreed to hear from you. When they answer, the automatic answer takes over.') }}</p>
-    <form method="post" action="{{ route('admin.inbox.start') }}" class="mt-2 grid gap-2 sm:grid-cols-3">
-        @csrf
-        <label class="sr-only" for="start-name">{{ __('Name') }}</label>
-        <input id="start-name" name="name" required maxlength="60" value="{{ old('name', request('name')) }}" class="field min-h-10" placeholder="{{ __('Name') }}">
-        <label class="sr-only" for="start-phone">{{ __('Mobile') }}</label>
-        <input id="start-phone" name="phone" required maxlength="20" dir="ltr" value="{{ old('phone', request('phone')) }}" class="field min-h-10" placeholder="{{ __('Mobile') }}">
-        <button class="btn-navy min-h-10">{{ __('Start a conversation') }}</button>
-    </form>
-    @error('phone')<p class="mt-2 text-sm font-semibold text-red-700" role="alert">{{ $message }}</p>@enderror
-</section>
+    <section class="card" data-inbox-start>
+        <h2 class="section-title">{{ __('Start a conversation') }}</h2>
+        <p class="muted mt-1 text-sm">{{ __('Sends the approved welcome to a new customer who agreed to hear from you. When they answer, the automatic answer takes over.') }}</p>
+        <form method="post" action="{{ route('admin.inbox.start') }}" class="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+            @csrf
+            <label class="sr-only" for="start-name">{{ __('Name') }}</label>
+            <input id="start-name" name="name" required maxlength="60" value="{{ old('name', request('name')) }}" class="field min-h-10" placeholder="{{ __('Name') }}">
+            <label class="sr-only" for="start-phone">{{ __('Mobile') }}</label>
+            <input id="start-phone" name="phone" required maxlength="20" dir="ltr" value="{{ old('phone', request('phone')) }}" class="field min-h-10" placeholder="{{ __('Mobile') }}">
+            <button class="btn-navy min-h-10 px-4">{{ __('Start a conversation') }}</button>
+        </form>
+        @error('phone')<p class="mt-2 text-sm font-semibold text-red-700" role="alert">{{ $message }}</p>@enderror
+    </section>
+</div>
 
 <div class="grid gap-4 lg:grid-cols-3">
     <section @class(['card space-y-3', 'hidden lg:block' => $conversation]) data-inbox-list>
@@ -193,26 +201,42 @@
     </section>
 </div>
 
-<section class="card mt-4 space-y-3" data-inbox-canned>
-    <h2 class="section-title">{{ __('Ready answers') }}</h2>
-    <p class="muted text-sm">{{ __('The automatic answer uses these too, on top of what the site says. Write here what it should know.') }}</p>
-    <ul class="divide-y divide-navy-100">
-        @foreach ($canned as $c)
-            <li class="flex items-start justify-between gap-3 py-2 text-sm">
-                <div class="min-w-0"><div class="font-semibold">{{ $c->title }}</div><div class="whitespace-pre-line text-navy-600" dir="auto">{{ $c->body }}</div></div>
-                @if ($canAdministerInbox)<form method="post" action="{{ route('admin.inbox.canned.delete', $c) }}">@csrf<button class="btn-ghost min-h-9 px-3 text-red-600">{{ __('Delete') }}</button></form>@endif
-            </li>
-        @endforeach
-    </ul>
+<section class="card mt-4 space-y-4" data-inbox-canned>
+    <div>
+        <h2 class="section-title flex items-center gap-2">{{ __('Ready answers') }}
+            @if ($canned->isNotEmpty())<span class="badge bg-navy-100 text-navy-700">{{ $canned->count() }}</span>@endif
+        </h2>
+        <p class="muted mt-1 text-sm">{{ __('The automatic answer uses these too, on top of what the site says. Write here what it should know.') }}</p>
+    </div>
+    @if ($canned->isNotEmpty())
+        <ul class="grid gap-3 md:grid-cols-2">
+            @foreach ($canned as $c)
+                <li class="flex flex-col gap-2 rounded-xl border border-navy-100 bg-navy-50/40 p-3 text-sm">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0 font-bold text-navy-900">{{ $c->title }}</div>
+                        @if ($canAdministerInbox)
+                            <form method="post" action="{{ route('admin.inbox.canned.delete', $c) }}" onsubmit="return confirm(@js(__('Delete').' «'.$c->title.'»؟'))">
+                                @csrf
+                                <button class="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50">{{ __('Delete') }}</button>
+                            </form>
+                        @endif
+                    </div>
+                    <div class="whitespace-pre-line break-words text-navy-600" dir="auto">{{ $c->body }}</div>
+                </li>
+            @endforeach
+        </ul>
+    @endif
     @if ($canAdministerInbox)
-    <form method="post" action="{{ route('admin.inbox.canned') }}" class="grid gap-2 sm:grid-cols-3">
-        @csrf
-        <label class="sr-only" for="canned-title">{{ __('Title') }}</label>
-        <input id="canned-title" name="title" required maxlength="80" class="field min-h-10" placeholder="{{ __('Title') }}">
-        <label class="sr-only" for="canned-body">{{ __('The answer') }}</label>
-        <textarea id="canned-body" name="body" rows="2" required maxlength="1000" dir="auto" class="field sm:col-span-2" placeholder="{{ __('The answer') }}"></textarea>
-        <button class="btn-navy min-h-10 sm:col-start-3">{{ __('Add') }}</button>
-    </form>
+        <form method="post" action="{{ route('admin.inbox.canned') }}" class="space-y-2 rounded-xl border border-dashed border-navy-200 p-3">
+            @csrf
+            <label class="block text-sm font-semibold" for="canned-title">{{ __('Title') }}</label>
+            <input id="canned-title" name="title" required maxlength="80" class="field min-h-10" placeholder="{{ __('Title') }}">
+            <label class="block text-sm font-semibold" for="canned-body">{{ __('The answer') }}</label>
+            <textarea id="canned-body" name="body" rows="4" required maxlength="1000" dir="auto" class="field" placeholder="{{ __('The answer') }}"></textarea>
+            <div class="flex justify-end">
+                <button class="btn-navy min-h-10 px-6">{{ __('Add') }}</button>
+            </div>
+        </form>
     @endif
 </section>
 
