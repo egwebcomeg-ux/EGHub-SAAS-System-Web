@@ -167,7 +167,7 @@ if (dataEl) {
     function beep() {
         if (!soundOn || !audio || audio.state !== 'running') return;
         try {
-            ringBell(audio, 1.5);
+            ringBell(audio);
         } catch {}
     }
     function renderSound() {

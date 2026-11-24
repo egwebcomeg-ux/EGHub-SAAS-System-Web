@@ -31,7 +31,7 @@ if (kds) {
         try {
             audio ??= new (window.AudioContext || window.webkitAudioContext)();
             if (audio.state === 'suspended') audio.resume();
-            ringBell(audio, 1.5);
+            ringBell(audio);
         } catch {}
     }
 

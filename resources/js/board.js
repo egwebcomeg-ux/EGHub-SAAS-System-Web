@@ -56,7 +56,7 @@ if (board) {
         if (!soundOn) return;
         try {
             audio ??= new (window.AudioContext || window.webkitAudioContext)();
-            ringBell(audio, 1.5);
+            ringBell(audio);
         } catch {}
     }
 
@@ -83,7 +83,7 @@ if (board) {
     function alarm() {
         if (alarmMuted || !unlocked || waitingGuestOrders === 0) return;
         try {
-            ringBell(audio, 1.5);
+            ringBell(audio);
         } catch {}
     }
     setInterval(alarm, ALARM_EVERY_MS);
