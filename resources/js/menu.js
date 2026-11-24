@@ -13,6 +13,21 @@ if (dataEl) {
     const $ = (sel, root = document) => root.querySelector(sel);
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
     const fmt = (n) => `${Math.round(n * 100) / 100} ${M.currency}`;
+    // the guest's way to an order, for the restaurant's reports (counters only): each step once per visit (this tab),
+    // and where the cart's own checks stopped the guest. The placed order and its refusals are counted by the server.
+    const funnelKey = `eghub.funnel.${M.tenant}`;
+    let reached = [];
+    try { reached = JSON.parse(sessionStorage.getItem(funnelKey) || '[]'); } catch {}
+    const funnel = (event, why = '') => {
+        const key = why ? `${event}:${why}` : event;
+        if (!M.funnelUrl || reached.includes(key)) return;
+        reached.push(key);
+        try { sessionStorage.setItem(funnelKey, JSON.stringify(reached)); } catch {}
+        fetch(M.funnelUrl.replace(/\/xxx$/, `/${event}`) + (why ? `?why=${why}` : ''), {
+            method: 'POST', keepalive: true, headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '' },
+        }).catch(() => {});
+    };
+    funnel('visit');
     // the bilingual menu (setting menu_bilingual): the other language under a name, in its own lang/dir; the outer
     // span keeps the page's direction so the line stays aligned with the name above it
     const alt = (text, cls = 'm-alt') => (M.alt && text ? `<span class="${cls}" data-alt-name><span lang="${esc(M.alt.lang)}" dir="${esc(M.alt.dir)}">${esc(text)}</span></span>` : '');
@@ -288,6 +303,7 @@ if (dataEl) {
         $('[data-item-form]', sheet).scrollTop = 0;
         syncDescMore();
         countView(current.id);
+        funnel('item');
     }
 
     sheet.addEventListener('close', () => {
@@ -418,6 +434,7 @@ if (dataEl) {
         if (same) same.qty = Math.min(30, same.qty + count);
         else cart.push({ item_id: item.id, option_ids: optionIds, qty: count, notes });
         track('AddToCart', { content_ids: [String(item.id)], content_name: item.name, content_type: 'product', value: unitPrice(item, optionIds) * count, num_items: count });
+        funnel('add');
         save();
         renderBar();
         askWayAfterAdd();
@@ -786,7 +803,7 @@ if (dataEl) {
         if (e.target.closest('[data-customer-name], [data-customer-phone], [data-addr]')) renderSendHelp();
     });
 
-    $('[data-open-cart]').addEventListener('click', () => { renderCart(); cartSheet.showModal(); });
+    $('[data-open-cart]').addEventListener('click', () => { renderCart(); cartSheet.showModal(); funnel('cart'); });
     cartSheet.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-step]');
         if (!btn) return;
@@ -1466,14 +1483,16 @@ if (dataEl) {
         if (!cart.length) return;
         const errorBox = $('[data-order-error]');
         errorBox.classList.add('hidden');
-        const fail = (msg) => { errorBox.textContent = msg; errorBox.classList.remove('hidden'); };
-        if (!wayPicked) return fail(T.chooseWay);
+        funnel('send');
+        // a stop of the cart's own checks is counted too (where guests get stuck), once per visit and reason
+        const fail = (msg, why) => { errorBox.textContent = msg; errorBox.classList.remove('hidden'); if (why) funnel('stop', why); };
+        if (!wayPicked) return fail(T.chooseWay, 'way');
         if (mode === 'online') {
-            if (!$('[data-customer-phone]').value.trim()) return fail(T.phoneRequired);
-            if (otype === 'delivery' && !currentZone()) return fail(byMap() ? T.pinFirst : T.chooseZone);
+            if (!$('[data-customer-phone]').value.trim()) return fail(T.phoneRequired, 'phone');
+            if (otype === 'delivery' && !currentZone()) return fail(byMap() ? T.pinFirst : T.chooseZone, byMap() ? 'pin' : 'zone');
             if (otype === 'delivery' && !addrField('street')?.value.trim()) {
                 addrField('street')?.focus();
-                return fail(T.enterStreet);
+                return fail(T.enterStreet, 'street');
             }
         }
         sendBtn.disabled = true;
@@ -1514,6 +1533,7 @@ if (dataEl) {
             rememberLastOrder();
             rememberGuest();
             try { localStorage.removeItem(refKey); } catch {}
+            try { sessionStorage.removeItem(funnelKey); } catch {} // a next order in this tab is a new way to count
             cart = [];
             save();
             window.location.href = body.url;

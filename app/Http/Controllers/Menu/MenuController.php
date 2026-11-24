@@ -269,6 +269,7 @@ class MenuController extends Controller
                 'orderUrl' => route('menu.order'),
                 'couponUrl' => route('menu.coupon'),
                 'viewUrl' => route('menu.item.view', ['item' => 0]),
+                'funnelUrl' => route('menu.funnel', ['event' => 'xxx']),
                 'service' => (float) $settings['service_percent'],
                 'tax' => (float) $settings['tax_percent'],
                 // the bilingual menu (setting menu_bilingual): the language of the second names (nameAlt) of the sheet

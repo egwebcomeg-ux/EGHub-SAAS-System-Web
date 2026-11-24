@@ -96,6 +96,13 @@ class ReportsController extends Controller
                 array_map(fn ($r) => [$r['label'], $r['orders'], $r['revenue'], $r['share']], $report->split($table === 'sources' ? 'source' : 'type'))],
             'guests' => [[__('Week of'), __('New guests'), __('Returning guests')],
                 array_map(fn ($r) => [$r['week'], $r['new'], $r['returning']], $report->weeks())],
+            'funnel' => (function () use ($report, $pct) {
+                $funnel = $report->funnel();
+
+                return [[__('Step'), __('Visits'), __('Of all visits %'), __('Lost since the step before')],
+                    array_merge(array_map(fn ($s) => [$s['label'], $s['count'], $pct($s['share']), $s['lost']], $funnel['steps']),
+                        array_map(fn ($s) => [__('Stopped: :reason', ['reason' => $s['label']]), $s['count'], '', ''], $funnel['stops']))];
+            })(),
             default => abort(404),
         };
 

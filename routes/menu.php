@@ -7,6 +7,7 @@ use App\Http\Controllers\Menu\CardAppController;
 use App\Http\Controllers\Menu\CompanyPortalController;
 use App\Http\Controllers\Menu\CorporateVoucherController;
 use App\Http\Controllers\Menu\FeedbackController;
+use App\Http\Controllers\Menu\FunnelController;
 use App\Http\Controllers\Menu\GeoController;
 use App\Http\Controllers\Menu\GiftController;
 use App\Http\Controllers\Menu\GuestEmailController;
@@ -168,6 +169,8 @@ Route::post('/popups/{popup}/{event}', [MenuController::class, 'popupEvent'])->w
 
 // item sheet opened (counter for the advanced reports: viewed vs ordered)
 Route::post('/i/{item}/view', [ItemViewController::class, 'store'])->whereNumber('item')->middleware('throttle:60,1')->name('item.view');
+// the guest's way to an order: a step reached or a stop (counters for the advanced reports, no personal data)
+Route::post('/f/{event}', [FunnelController::class, 'store'])->where('event', '[a-z]{3,10}')->middleware('throttle:60,1')->name('funnel');
 // Self-order kiosk (kiosk pack): a tablet at the counter, secret link per kiosk
 Route::get('/kiosk/{token}', [KioskController::class, 'show'])->where('token', '[a-f0-9]{20}')->name('kiosk');
 Route::post('/kiosk/{token}/order', [KioskController::class, 'order'])->where('token', '[a-f0-9]{20}')

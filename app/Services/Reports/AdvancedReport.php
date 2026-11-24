@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\LoyaltyCard;
 use App\Models\LoyaltyReward;
 use App\Models\LoyaltyTransaction;
+use App\Models\MenuFunnelCount;
 use App\Models\MenuItem;
 use App\Models\MenuItemView;
 use App\Models\Order;
@@ -54,7 +55,64 @@ final class AdvancedReport
             'types' => $this->split('type'),
             'loyalty' => Entitlements::current()->allows('loyalty_stamps|loyalty_points') ? $this->loyalty() : null,
             'weeks' => $this->weeks(),
+            'funnel' => $this->funnel(),
         ];
+    }
+
+    /**
+     * The guest's way to an order on the public menu in the range (the whole restaurant: the page counts no branch):
+     * visits that reached each step, the share of all visits, and how many were lost since the step before; then what
+     * stopped guests, most frequent first (the cart's own checks and the restaurant's refusal messages).
+     *
+     * @return array{steps: list<array{key:string, label:string, count:int, share:?float, lost:int}>, stops: list<array{label:string, count:int, refused:bool}>}
+     */
+    public function funnel(): array
+    {
+        $rows = MenuFunnelCount::query()->whereBetween('day', [$this->from->toDateString(), $this->to->toDateString().' 23:59:59'])
+            ->get(['event', 'detail', 'count']);
+        $totals = $rows->groupBy('event')->map(fn (Collection $g) => (int) $g->sum('count'));
+        $visits = $totals->get('visit', 0);
+        $steps = [];
+        $before = null;
+        foreach (MenuFunnelCount::STEPS as $key) {
+            $count = $totals->get($key, 0);
+            $steps[] = ['key' => $key, 'label' => self::stepLabel($key), 'count' => $count,
+                'share' => $visits ? round($count * 100 / $visits, 1) : null, 'lost' => $before === null ? 0 : max(0, $before - $count)];
+            $before = $count;
+        }
+        $stops = $rows->whereIn('event', [MenuFunnelCount::STOP, MenuFunnelCount::REFUSED])
+            ->groupBy(fn ($r) => $r->event.'|'.$r->detail)
+            ->map(fn (Collection $g) => [
+                'label' => $g->first()->event === MenuFunnelCount::STOP ? self::stopLabel($g->first()->detail) : $g->first()->detail,
+                'count' => (int) $g->sum('count'), 'refused' => $g->first()->event === MenuFunnelCount::REFUSED,
+            ])->sortByDesc('count')->values()->all();
+
+        return ['steps' => $steps, 'stops' => $stops];
+    }
+
+    public static function stepLabel(string $key): string
+    {
+        return match ($key) {
+            'visit' => __('Opened the menu'),
+            'item' => __('Opened an item'),
+            'add' => __('Added to the cart'),
+            'cart' => __('Opened the cart'),
+            'send' => __('Pressed «send order»'),
+            'placed' => __('Order placed'),
+            default => $key,
+        };
+    }
+
+    public static function stopLabel(string $key): string
+    {
+        return match ($key) {
+            'way' => __('Did not choose how to order (pickup / delivery)'),
+            'phone' => __('Did not write the mobile number'),
+            'zone' => __('Did not choose the delivery area'),
+            'pin' => __('Did not set the location on the map'),
+            'street' => __('Did not write the street'),
+            default => $key,
+        };
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Customer;
 use App\Models\DeliveryZone;
+use App\Models\MenuFunnelCount;
 use App\Models\Order;
 use App\Services\Customers\GuestAccount;
 use App\Services\Customers\Outreach;
@@ -26,6 +27,7 @@ use App\Support\OrderTracking;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
@@ -36,7 +38,71 @@ class OrderController extends Controller
 {
     public function store(Request $request, OrderService $orders): JsonResponse
     {
-        $data = $request->validate([
+        try {
+            $data = $this->validated($request);
+        } catch (ValidationException $e) {
+            // what stopped the guest, for the advanced reports' "way to an order" (the first message only)
+            MenuFunnelCount::bump(MenuFunnelCount::REFUSED, (string) collect($e->errors())->flatten()->first());
+
+            throw $e;
+        }
+
+        // "Pay from my balance": only the guest whose card this phone holds (card link cookie), with their own number
+        $data['pay_wallet'] = $request->boolean('pay_wallet');
+        if ($data['pay_wallet']) {
+            $token = $request->cookie('card_'.tenant()->getTenantKey());
+            $guest = WalletService::enabled() && is_string($token) ? Customer::query()->where('card_token', $token)->first() : null;
+            if (! $guest || normalize_phone((string) ($data['customer_phone'] ?? '')) !== $guest->phone) {
+                return $this->refuse(__('Open your card link on this phone and order with its mobile number to pay from your balance.'));
+            }
+        }
+
+        // the membership discount follows the mobile only for the guest this phone is signed in as (card cookie)
+        $me = GuestAccount::fromRequest($request);
+        $data['member_phone_verified'] = $me !== null && normalize_phone((string) ($data['customer_phone'] ?? '')) === $me->phone;
+
+        $data['guest_email'] = GuestIdentity::normalizeEmail($data['customer_email'] ?? null);
+        $data['campaign_recipient_id'] = Outreach::recipientFor($data['ref'] ?? null);
+        unset($data['customer_email'], $data['ref']);
+
+        $table = MenuController::currentTable($request);
+        if (! $table && self::mustProvePhone((string) ($data['type'] ?? 'takeaway'))
+            && ! ($me && GuestAccount::provedPhone($request, $me) && normalize_phone((string) ($data['customer_phone'] ?? '')) === $me->phone)) {
+            return $this->refuse(__('Confirm your mobile number first: sign in with it (a code on WhatsApp), then send the order. Your cart stays.'),
+                ['sign_in_url' => route('menu.account.sign-in')]);
+        }
+        // a mobile no guest of this restaurant had before: the order creates the guest, so this phone may keep them
+        $phone = normalize_phone((string) ($data['customer_phone'] ?? ''));
+        $newGuest = $phone !== null && ! Customer::query()->where('phone', $phone)->exists();
+        try {
+            // at a scanned table the order is always dine-in: a type sent by the page never drops the service charge
+            // or takes the order out of the table's bill
+            $order = $table
+                ? $orders->place(['source' => 'qr', 'type' => 'dine_in'] + $data, $table->branch, $table)
+                : $this->placeOnline($data, $orders);
+        } catch (OrderException $e) {
+            return $this->refuse($e->getMessage());
+        }
+
+        return $this->placed($request, $order, $newGuest);
+    }
+
+    /**
+     * A refused order: the message to the guest, also counted as what stopped them (advanced reports).
+     *
+     * @param  array<string, mixed>  $extra
+     */
+    private function refuse(string $message, array $extra = []): JsonResponse
+    {
+        MenuFunnelCount::bump(MenuFunnelCount::REFUSED, $message);
+
+        return response()->json(['message' => $message] + $extra, 422);
+    }
+
+    /** @return array<string, mixed> */
+    private function validated(Request $request): array
+    {
+        return $request->validate([
             'client_uuid' => 'required|uuid',
             'items' => 'required|array|min:1|max:'.OrderService::MAX_LINES,
             'items.*.item_id' => 'required|integer',
@@ -65,46 +131,14 @@ class OrderController extends Controller
             'scheduled_for' => 'nullable|date',
             'pay_wallet' => 'nullable|boolean',
         ]);
+    }
 
-        // "Pay from my balance": only the guest whose card this phone holds (card link cookie), with their own number
-        $data['pay_wallet'] = $request->boolean('pay_wallet');
-        if ($data['pay_wallet']) {
-            $token = $request->cookie('card_'.tenant()->getTenantKey());
-            $guest = WalletService::enabled() && is_string($token) ? Customer::query()->where('card_token', $token)->first() : null;
-            if (! $guest || normalize_phone((string) ($data['customer_phone'] ?? '')) !== $guest->phone) {
-                return response()->json(['message' => __('Open your card link on this phone and order with its mobile number to pay from your balance.')], 422);
-            }
+    /** The placed order's answer: where the guest goes next, and "حسابي" on this phone for a brand-new guest. */
+    private function placed(Request $request, Order $order, bool $newGuest): JsonResponse
+    {
+        if ($order->wasRecentlyCreated) {
+            MenuFunnelCount::bump('placed'); // the last step of the guest's way, counted here (the page leaves at once)
         }
-
-        // the membership discount follows the mobile only for the guest this phone is signed in as (card cookie)
-        $me = GuestAccount::fromRequest($request);
-        $data['member_phone_verified'] = $me !== null && normalize_phone((string) ($data['customer_phone'] ?? '')) === $me->phone;
-
-        $data['guest_email'] = GuestIdentity::normalizeEmail($data['customer_email'] ?? null);
-        $data['campaign_recipient_id'] = Outreach::recipientFor($data['ref'] ?? null);
-        unset($data['customer_email'], $data['ref']);
-
-        $table = MenuController::currentTable($request);
-        if (! $table && self::mustProvePhone((string) ($data['type'] ?? 'takeaway'))
-            && ! ($me && GuestAccount::provedPhone($request, $me) && normalize_phone((string) ($data['customer_phone'] ?? '')) === $me->phone)) {
-            return response()->json([
-                'message' => __('Confirm your mobile number first: sign in with it (a code on WhatsApp), then send the order. Your cart stays.'),
-                'sign_in_url' => route('menu.account.sign-in'),
-            ], 422);
-        }
-        // a mobile no guest of this restaurant had before: the order creates the guest, so this phone may keep them
-        $phone = normalize_phone((string) ($data['customer_phone'] ?? ''));
-        $newGuest = $phone !== null && ! Customer::query()->where('phone', $phone)->exists();
-        try {
-            // at a scanned table the order is always dine-in: a type sent by the page never drops the service charge
-            // or takes the order out of the table's bill
-            $order = $table
-                ? $orders->place(['source' => 'qr', 'type' => 'dine_in'] + $data, $table->branch, $table)
-                : $this->placeOnline($data, $orders);
-        } catch (OrderException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
-        }
-
         // a pickup ordered from the guest's own phone needs no QR: the page they land on is already their pager
         // (on the address the guest is using, like the tracking page)
         $url = Pager::enabled() && Pager::forOrder($order) ? route('menu.pager.show', $order->pagerKey()) : route('menu.order.show', $order->tracking_token);

@@ -334,7 +334,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::get('/reports', [ReportsController::class, 'index'])->name('reports');
         Route::get('/reports/export', [ReportsController::class, 'export'])->name('reports.export');
         Route::get('/reports/export/{table}', [ReportsController::class, 'exportTable'])
-            ->whereIn('table', ['comparison', 'items', 'heatmap', 'branches', 'sources', 'types', 'guests'])->name('reports.export.table');
+            ->whereIn('table', ['comparison', 'items', 'heatmap', 'branches', 'sources', 'types', 'guests', 'funnel'])->name('reports.export.table');
     });
 
     Route::get('/audit', [AuditController::class, 'index'])
