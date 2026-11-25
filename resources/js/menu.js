@@ -2038,22 +2038,25 @@ if (dataEl) {
     }));
 
     const links = [...document.querySelectorAll('[data-cat-link]')];
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-            if (!entry.isIntersecting) return;
-            links.forEach((a) => {
-                const on = a.dataset.catLink === entry.target.id;
-                if (a.hasAttribute('data-cat-circle')) {
-                    // circles: the active one is ringed in the accent
-                    a.setAttribute('aria-current', on ? 'true' : 'false');
-                } else {
-                    a.classList.toggle('m-primary', on);
-                    a.classList.toggle('m-surface-2', !on);
-                }
-                if (on) a.scrollIntoView({ inline: 'center', block: 'nearest' });
-            });
+    function markCategory(id, bringIntoView) {
+        links.forEach((a) => {
+            const on = a.dataset.catLink === id;
+            if (a.hasAttribute('data-cat-circle')) {
+                // circles: the active one is ringed in the accent
+                a.setAttribute('aria-current', on ? 'true' : 'false');
+            } else {
+                a.classList.toggle('m-primary', on);
+                a.classList.toggle('m-surface-2', !on);
+            }
+            if (on && bringIntoView) a.scrollIntoView({ inline: 'center', block: 'nearest' });
         });
+    }
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => { if (entry.isIntersecting) markCategory(entry.target.id, true); });
     }, { rootMargin: '-40% 0px -55% 0px' });
+    // at the top of the page no category has reached the middle yet: the first one is the current one
+    const firstCategory = document.querySelector('[data-category]');
+    if (firstCategory) markCategory(firstCategory.id, false);
     document.querySelectorAll('[data-category], [data-favs]').forEach((s) => observer.observe(s));
 
     // ---- the top of the menu: banner slideshow and ticker. Only one of them moves by itself (the server decides,

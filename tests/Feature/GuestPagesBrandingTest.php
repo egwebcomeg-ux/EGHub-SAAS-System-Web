@@ -108,4 +108,14 @@ class GuestPagesBrandingTest extends TenantTestCase
         $this->as($pro, fn () => Settings::put(['show_platform_badge' => '1']));
         $this->get($this->subUrl('cafe-partner'))->assertOk()->assertSee('مقدم من')->assertDontSee('data-guest-brand-badge', false);
     }
+
+    public function test_the_eghub_mark_reads_on_a_dark_template(): void
+    {
+        $pro = $this->restaurant('cafe-night', 'pro');
+        $this->item($pro);
+        $this->get($this->subUrl('cafe-night'))->assertOk()->assertSee('مقدم من')->assertSee('fill="#213368"', false);
+
+        $this->as($pro, fn () => Settings::put(['menu_theme' => 'dark']));
+        $this->get($this->subUrl('cafe-night'))->assertOk()->assertSee('مقدم من')->assertDontSee('fill="#213368"', false);
+    }
 }

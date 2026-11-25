@@ -1,9 +1,10 @@
 {{-- Star rating card for guests. Happy guests (4-5) get the restaurant's Google review link afterwards. --}}
+<style>.rate-star { color: color-mix(in srgb, var(--menu-muted, #64748b) 40%, transparent); }</style>
 <section class="card mt-6 text-center" data-rate>
     <h2 class="section-title">{{ __('How was your experience?') }}</h2>
     <div class="my-3 flex justify-center gap-1" dir="ltr" data-stars>
         @for ($i = 1; $i <= 5; $i++)
-            <button type="button" class="text-4xl text-navy-200 transition" data-star="{{ $i }}" aria-label="{{ $i }}">★</button>
+            <button type="button" class="rate-star text-4xl transition" data-star="{{ $i }}" aria-label="{{ $i }}">★</button>
         @endfor
     </div>
     <div class="hidden space-y-3" data-rate-more>
