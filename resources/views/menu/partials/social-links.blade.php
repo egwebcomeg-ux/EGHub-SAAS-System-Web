@@ -16,7 +16,7 @@
         <span class="inline-flex items-center gap-1.5 align-middle" data-social="header">
             @foreach ($socialLinks as $key => [$label, $svg])
                 <a href="{{ $settings[$key] }}" target="_blank" rel="noopener" aria-label="{{ $label }}" title="{{ $label }}"
-                   class="inline-grid size-8 place-items-center rounded-full bg-white/15 text-white hover:bg-white/25 [&>svg]:size-4">{!! $svg !!}</a>
+                   class="m-hbtn">{!! $svg !!}</a>
             @endforeach
         </span>
     @else

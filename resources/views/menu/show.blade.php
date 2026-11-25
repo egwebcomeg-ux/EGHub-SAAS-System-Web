@@ -50,6 +50,22 @@
     .m-header-light .border-white\/30 { border-color: var(--menu-border); }
     .m-header-light [data-logo] { filter: none; }
     .m-header-light .m-chip { background: var(--menu-surface-2); color: var(--menu-text); box-shadow: inset 0 0 0 1px var(--menu-border); }
+    /* the small round header buttons (about the place, the social accounts): the look of the chips */
+    .m-hbtn { position: relative; display: inline-grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 999px;
+        background: rgba(255, 255, 255, .14); color: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28); }
+    .m-hbtn:hover { background: rgba(255, 255, 255, .24); }
+    .m-hbtn::before { content: ''; position: absolute; inset: -4px; }
+    .m-hbtn > svg { width: 1rem; height: 1rem; }
+    /* "open now" beside the logo: a pill with a dot (green when open, red on the closed one), then the hours */
+    .m-open { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem .5rem; font-size: .75rem; line-height: 1.4; }
+    .m-open-pill { display: inline-flex; align-items: center; gap: .35rem; border-radius: 999px; padding: .2rem .65rem; font-weight: 800; white-space: nowrap;
+        background: rgba(255, 255, 255, .14); color: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28); }
+    .m-open-pill::before { content: ''; width: .45rem; height: .45rem; flex-shrink: 0; border-radius: 999px; background: #F87171; }
+    .m-open-pill.is-open { background: rgba(16, 185, 129, .92); box-shadow: none; }
+    .m-open-pill.is-open::before { background: #fff; }
+    .m-open-hours { min-width: 0; font-weight: 600; color: rgba(255, 255, 255, .8); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+    .m-header-light .m-hbtn, .m-header-light .m-open-pill:not(.is-open) { background: var(--menu-surface-2); color: var(--menu-text); box-shadow: inset 0 0 0 1px var(--menu-border); }
+    .m-header-light .m-open-hours { color: var(--menu-muted); }
     .m-goal-track { height: .55rem; border-radius: 999px; background: var(--menu-surface-2); box-shadow: inset 0 0 0 1px var(--menu-border); overflow: hidden; }
     .m-goal-fill { height: 100%; border-radius: inherit; background: var(--menu-accent); transition: width .4s ease; }
     .m-tag { background: color-mix(in srgb, var(--menu-text) 8%, transparent); }
@@ -220,18 +236,28 @@
             <img src="{{ $headerPeek }}" alt="" class="m-brand-peek" aria-hidden="true" data-brand-peek>
         @endif
     @endif
-    <div class="relative mx-auto flex max-w-2xl items-center gap-3 px-4 py-4">
+    <div class="relative mx-auto flex max-w-2xl items-center gap-3 px-4 pt-4 pb-3">
         @if ($settings['logo'] && ! $story)
             <img src="/storage/{{ $settings['logo'] }}" alt="{{ $brand }}" class="h-14 max-h-16 w-auto min-w-14 max-w-36 shrink-0 object-contain sm:h-16 {{ $logoClass }} {{ $settings['cover'] ? '-mt-10' : '' }}" data-logo data-logo-tile="{{ $logoTile ? 'white' : 'none' }}">
         @endif
         @php
             $showName = \App\Support\MenuHeader::showsName($settings);
         @endphp
-        <div class="min-w-0 flex-1">
+        {{-- beside the logo: the name, the tagline and "open now"; on a phone too narrow for them next to the
+             buttons, the buttons go up a line (wrap-reverse) and these keep the full width under them --}}
+        <div class="flex min-w-0 flex-1 flex-wrap-reverse items-center gap-x-3 gap-y-2" data-header-top>
+        <div @class(['min-w-0 flex-1', 'min-w-28 basis-28' => $openNow !== null])>
             {{-- the name and tagline next to the logo (setting header_show_name); hidden, the name stays for screen readers --}}
             <h1 @class(['truncate text-xl font-black', 'sr-only' => ! $showName || $story]) data-header-name="{{ $showName && ! $story ? 'shown' : 'hidden' }}">{{ $brand }}</h1>
             @if ($showName && ! $story && ($t = tr($settings['tagline'], $settings['tagline_en'])))<p class="truncate text-sm text-white/75" data-header-tagline>{{ $t }}</p>@endif
+            @if ($openNow !== null)
+                <p @class(['m-open', 'mt-1' => $showName && ! $story]) data-open-now="{{ $openNow ? 'open' : 'closed' }}">
+                    <span @class(['m-open-pill', 'is-open' => $openNow])>{{ $openNow ? __('Open now') : __('Closed now') }}</span>
+                    @if ($branch->working_hours)<span class="m-open-hours" dir="auto">{{ $branch->working_hours }}</span>@endif
+                </p>
+            @endif
         </div>
+        <div class="ms-auto flex shrink-0 items-center gap-2">
         @if ($accountEntry ?? false)
             {{-- "حسابي": the remembered guest's page, or the sheet with the ways in --}}
             @php
@@ -247,6 +273,8 @@
         @if (! $table && \App\Services\Reservations\ReservationService::enabled())
             <a href="{{ route('menu.reserve', $branches->count() > 1 ? ['branch' => $branch->id] : []) }}" class="m-primary inline-flex min-h-11 shrink-0 items-center rounded-full px-3 text-sm font-bold shadow" data-reserve-link>{{ __('Book a table') }}</a>
         @endif
+        </div>
+        </div>
     </div>
     {{-- how the guest orders and from which branch (a scanned table fixes both), then at the end small round buttons:
          the place's page (about) and its social accounts --}}
@@ -263,15 +291,10 @@
             @endif
             <div class="ms-auto flex items-center gap-1.5" data-header-links>
                 <a href="{{ route('menu.about') }}" aria-label="{{ __('About the place') }}" title="{{ __('About the place') }}" data-about-link
-                   class="inline-grid size-8 place-items-center rounded-full bg-white/15 text-white hover:bg-white/25"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg></a>
+                   class="m-hbtn"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg></a>
                 @include('menu.partials.social-links', ['style' => 'header'])
             </div>
     </div>
-    @if ($openNow !== null)
-        <div class="relative mx-auto max-w-2xl px-4 pb-3">
-            <span @class(['rounded-full px-3 py-1 text-xs font-bold', 'bg-emerald-500/90 text-white' => $openNow, 'bg-white/20 text-white/90' => ! $openNow]) data-open-now>{{ $openNow ? __('Open now') : __('Closed now') }}@if ($branch->working_hours) · <span dir="auto">{{ $branch->working_hours }}</span>@endif</span>
-        </div>
-    @endif
 </header>
 @if ($story)
     @php
