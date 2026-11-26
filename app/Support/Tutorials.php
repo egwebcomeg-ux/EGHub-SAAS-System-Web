@@ -107,6 +107,12 @@ final class Tutorials
                 __('Save: it runs by itself at its times on the menu and the cashier.'),
                 __('Guests see the old price struck through and the offer in the ticker.'),
             ]),
+            'corporate-full' => $t('dash.corporate', 'contracts.manage', 'corporate_vouchers', __('Company contracts: the full guide'), [
+                __('Add the company: how it pays, what it paid, how long the contract runs and how its vouchers are used.'),
+                __('Each rep: a balance, vouchers out of it, orders on the company\'s account, money back to the company.'),
+                __('The cashier redeems a voucher, or puts an order on the account by the rep\'s mobile.'),
+                __('Follow the vouchers, record payments on the statement, confirm visits and read the report.'),
+            ]),
             'corporate-contract' => $t('dash.corporate', 'contracts.manage', 'corporate_vouchers', __('A company contract'), [
                 __('New company: its name and how it pays.'),
                 __('Record what the company paid on its statement.'),
@@ -310,7 +316,7 @@ final class Tutorials
         'whatsapp' => ['whatsapp'],
         'campaigns' => ['campaigns'],
         'wallet' => ['gift-cards', 'guest-desk'],
-        'corporate-vouchers' => ['corporate-contract', 'company-visits', 'redeem-voucher'],
+        'corporate-vouchers' => ['corporate-full', 'corporate-contract', 'company-visits', 'redeem-voucher'],
         'knowledge-base' => ['knowledge-base'],
         'pos' => ['pos-sale', 'shifts-cash'],
         'kiosk' => ['kiosk'],

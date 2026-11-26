@@ -188,6 +188,7 @@ class LoyaltyTest extends TenantTestCase
 
     public function test_cards_and_customers_stay_inside_their_restaurant(): void
     {
+        $this->confirmIdentity();
         $a = $this->restaurant('cafe-a');
         $b = $this->restaurant('cafe-b');
         $this->program($a);
@@ -206,6 +207,7 @@ class LoyaltyTest extends TenantTestCase
 
     public function test_a_guest_typed_name_is_never_a_formula_in_the_customer_export(): void
     {
+        $this->confirmIdentity();
         $a = $this->restaurant('cafe-a');
         $this->program($a);
         $this->post($this->subUrl('cafe-a', 'card'), ['phone' => '01077777777', 'name' => '=HYPERLINK("http://x.test","Win")']);

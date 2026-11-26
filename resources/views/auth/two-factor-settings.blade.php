@@ -1,13 +1,16 @@
 {{--
     Two-factor section of the security page (dashboard and platform admin).
-    $user, $pending (secret issued, not confirmed), $secret, $qr (SVG), $recoveryCodes (flashed once), $routes (prefix), $required
+    $user, $pending (app secret issued, not confirmed), $secret, $qr (SVG), $recoveryCodes (flashed once), $routes (prefix),
+    $required, $emailAllowed (staff with an email may use emailed codes), $emailPending (a code to turn that on is out), $maskedEmail
 --}}
 <div class="grid max-w-5xl gap-4 lg:grid-cols-5" data-two-factor>
     <section class="card lg:col-span-3">
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <h2 class="section-title">{{ __('Two-factor authentication') }}</h2>
-                <p class="mt-1 text-sm text-navy-500">{{ __('After your password, a 6-digit code from an authenticator app on your phone (Google Authenticator, Microsoft Authenticator, Authy) is asked for.') }}</p>
+                <p class="mt-1 text-sm text-navy-500">{{ $emailAllowed
+                    ? __('After your password, a 6-digit code is asked for: from an authenticator app on your phone (Google Authenticator, Microsoft Authenticator), or sent to your email.')
+                    : __('After your password, a 6-digit code from an authenticator app on your phone (Google Authenticator, Microsoft Authenticator, Authy) is asked for.') }}</p>
             </div>
             @if ($user->hasTwoFactorEnabled())
                 <span class="badge bg-emerald-100 text-emerald-800" data-two-factor-state="on">✓ {{ __('Turned on') }}</span>
@@ -35,7 +38,7 @@
             </div>
         @endif
 
-        @if ($user->hasTwoFactorEnabled())
+        @if ($user->hasAppTwoFactor())
             <p class="mt-4 text-sm text-navy-700">
                 {{ __('Enabled on :date.', ['date' => local_time($user->two_factor_confirmed_at, 'Y/m/d')]) }}
                 · {{ __(':n recovery codes left', ['n' => $user->twoFactorRecoveryCodesLeft()]) }}
@@ -49,6 +52,9 @@
                 <button class="btn-danger">{{ __('Turn off') }}</button>
             </form>
         @elseif ($pending)
+            @if ($user->hasEmailTwoFactor())
+                <p class="mt-4 text-sm text-navy-600">{{ __('Until the app is confirmed, the code keeps coming to your email.') }}</p>
+            @endif
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
                 <div class="rounded-2xl border border-navy-100 bg-white p-3 text-center">
                     <div class="mx-auto w-52 [&_svg]:h-auto [&_svg]:w-full" data-two-factor-qr>{!! $qr !!}</div>
@@ -73,11 +79,52 @@
                 @csrf
                 <button class="text-sm text-navy-500 underline">{{ __('Start over with a new key') }}</button>
             </form>
-        @else
-            <form method="post" action="{{ route($routes . 'security.enable') }}" class="mt-4">
+        @elseif ($user->hasEmailTwoFactor())
+            <p class="mt-4 text-sm text-navy-700" data-two-factor-email-on>
+                {{ __('A code reaches :email at each sign-in.', ['email' => $maskedEmail]) }}
+                · {{ __('Enabled on :date.', ['date' => local_time($user->two_factor_email_at, 'Y/m/d')]) }}
+            </p>
+            <form method="post" action="{{ route($routes . 'security.enable') }}" class="mt-3">
                 @csrf
-                <button class="btn-primary">{{ __('Turn on two-factor authentication') }}</button>
+                <button class="btn-ghost">{{ __('Use an authenticator app instead') }}</button>
             </form>
+            <form method="post" action="{{ route($routes . 'security.disable') }}" class="mt-4 flex flex-wrap items-end gap-3 rounded-xl bg-navy-50 p-4">
+                @csrf
+                <div class="min-w-48 flex-1">
+                    <label class="field-label" for="password">{{ __('Current password') }}</label>
+                    <input class="field" id="password" name="password" type="password" required autocomplete="current-password" dir="ltr">
+                </div>
+                <button class="btn-danger">{{ __('Turn off') }}</button>
+            </form>
+        @elseif ($emailPending)
+            <form method="post" action="{{ route($routes . 'security.email.confirm') }}" class="mt-4 space-y-3 rounded-xl bg-navy-50 p-4" data-two-factor-email-confirm>
+                @csrf
+                <p class="text-sm text-navy-700">{{ __('Enter the 6-digit code we sent to :email.', ['email' => $maskedEmail]) }}</p>
+                <div class="flex flex-wrap items-end gap-3">
+                    <div class="min-w-40 flex-1">
+                        <label class="field-label" for="email_code">{{ __('Code from the email') }}</label>
+                        <input class="field text-center text-xl tracking-widest" id="email_code" name="code" required inputmode="numeric" autocomplete="one-time-code" dir="ltr" maxlength="12">
+                    </div>
+                    <button class="btn-primary">{{ __('Confirm and turn on') }}</button>
+                </div>
+            </form>
+            <form method="post" action="{{ route($routes . 'security.email') }}" class="mt-3 text-end">
+                @csrf
+                <button class="text-sm text-navy-500 underline">{{ __('Send the code again') }}</button>
+            </form>
+        @else
+            <div class="mt-4 flex flex-wrap gap-2">
+                <form method="post" action="{{ route($routes . 'security.enable') }}">
+                    @csrf
+                    <button class="btn-primary">{{ $emailAllowed ? __('With an authenticator app') : __('Turn on two-factor authentication') }}</button>
+                </form>
+                @if ($emailAllowed)
+                    <form method="post" action="{{ route($routes . 'security.email') }}" data-two-factor-email-start>
+                        @csrf
+                        <button class="btn-ghost">{{ __('With a code to my email') }}</button>
+                    </form>
+                @endif
+            </div>
         @endif
     </section>
 

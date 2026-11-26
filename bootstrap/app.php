@@ -6,6 +6,7 @@ use App\Http\Middleware\AdminLocale;
 use App\Http\Middleware\AuthenticateCallDevice;
 use App\Http\Middleware\BlockDuringSupportAccess;
 use App\Http\Middleware\CachePublicPage;
+use App\Http\Middleware\ConfirmIdentity;
 use App\Http\Middleware\GuestAccountsOpen;
 use App\Http\Middleware\IdentifyTenantByDomain;
 use App\Http\Middleware\IdentifyTenantByPath;
@@ -58,6 +59,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.idle' => AdminIdleTimeout::class,
             'crm.device' => AuthenticateCallDevice::class,
             'support.blocked' => BlockDuringSupportAccess::class,
+            'confirm.identity' => ConfirmIdentity::class,
             'page.cache' => CachePublicPage::class,
             'guest.accounts' => GuestAccountsOpen::class,
         ]);

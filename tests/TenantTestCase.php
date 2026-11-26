@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use App\Http\Middleware\ConfirmIdentity;
 use App\Models\Category;
 use App\Models\MenuItem;
 use App\Models\Tenant;
@@ -135,5 +136,11 @@ abstract class TenantTestCase extends TestCase
     protected function adminUrl(string $path = '/'): string
     {
         return 'http://admin.egmenu.test'.$path;
+    }
+
+    /** "Is it really you?" already answered in this session, for tests of the actions behind confirm.identity. */
+    protected function confirmIdentity(): static
+    {
+        return $this->withSession([ConfirmIdentity::SESSION => now()->timestamp]);
     }
 }

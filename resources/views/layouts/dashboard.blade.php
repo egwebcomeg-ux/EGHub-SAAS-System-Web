@@ -258,6 +258,7 @@
             @include('dashboard.partials.demo-banner')
             @include('dashboard.partials.whatsapp-banner')
             @include('dashboard.partials.phone-banner')
+            @include('dashboard.partials.email-banner')
             <x-flash :toast="true" />
             @yield('content')
             @include('dashboard.partials.tutorials', ['tutorials' => $pageTutorials])

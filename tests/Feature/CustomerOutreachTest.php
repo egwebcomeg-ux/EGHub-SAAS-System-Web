@@ -150,6 +150,7 @@ class CustomerOutreachTest extends TenantTestCase
 
     public function test_claim_links_in_a_campaign_and_their_csv(): void
     {
+        $this->confirmIdentity();
         $a = $this->restaurant('cafe-a');
         $mona = $this->customer($a, '01011111111', ['source' => 'import', 'name' => 'Mona', 'addresses' => [['label' => '', 'zone_id' => null, 'text' => 'Road 9']]]);
         $owner = $this->owner($a);
@@ -175,6 +176,7 @@ class CustomerOutreachTest extends TenantTestCase
 
     public function test_the_meta_audience_export_is_in_customer_list_format_for_owner_and_manager_only(): void
     {
+        $this->confirmIdentity();
         $a = $this->restaurant('cafe-a');
         $this->customer($a, '01011111111', ['source' => 'import', 'name' => 'Mona Adel Hassan', 'email' => 'Mona@Example.com']);
         $this->customer($a, '01022222222', ['source' => 'import', 'whatsapp_opt_out' => true]);

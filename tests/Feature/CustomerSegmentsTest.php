@@ -89,6 +89,7 @@ class CustomerSegmentsTest extends TenantTestCase
 
     public function test_the_customers_page_filters_by_segment_and_the_export_follows(): void
     {
+        $this->confirmIdentity();
         $a = $this->restaurant('cafe-a', 'business');
         $g = $this->guests($a);
         $owner = $this->owner($a);
@@ -133,6 +134,7 @@ class CustomerSegmentsTest extends TenantTestCase
 
     public function test_old_group_names_lead_to_the_same_group(): void
     {
+        $this->confirmIdentity();
         $a = $this->restaurant('cafe-a', 'business');
         $this->guests($a);
         $owner = $this->owner($a);

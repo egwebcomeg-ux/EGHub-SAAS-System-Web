@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\PlatformAdmin;
 use App\Models\ServiceRequest;
 use App\Models\Tenant;
+use App\Notifications\AccountCode;
 use App\Notifications\ServiceRequested;
 use Illuminate\Support\Facades\Notification;
 use Tests\TenantTestCase;
@@ -53,7 +54,9 @@ class SignupMenuSetupTest extends TenantTestCase
         $this->post($this->menuUrl('register'), $this->signup())->assertRedirect();
 
         $this->assertSame(0, ServiceRequest::query()->count());
-        Notification::assertNothingSent();
+        // only the code that confirms the owner's email (App\Services\Auth\EmailCode), no service request
+        Notification::assertCount(1);
+        Notification::assertSentOnDemand(AccountCode::class);
 
         $tenant = Tenant::query()->findOrFail('new-cafe');
         $this->actingAs($this->owner($tenant))->get($this->dashUrl('/'))->assertOk()

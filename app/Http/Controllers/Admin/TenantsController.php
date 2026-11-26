@@ -375,7 +375,7 @@ class TenantsController extends Controller
     public function resetTwoFactor(Request $request, Tenant $tenant, int $user): RedirectResponse
     {
         $staff = User::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->findOrFail($user);
-        if ($staff->two_factor_secret === null) {
+        if ($staff->two_factor_secret === null && $staff->two_factor_email_at === null) {
             return back()->withErrors(['two_factor' => __('This user has no two-factor authentication.')]);
         }
         $staff->disableTwoFactor();

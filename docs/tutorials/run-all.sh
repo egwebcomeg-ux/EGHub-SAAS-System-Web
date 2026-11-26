@@ -7,7 +7,7 @@ export NODE_PATH=$(npm root -g)
 export TINKER="${PHP:-php} artisan tinker"
 OUT=${OUT:-../../public/tutorials}
 for id in menu-items tables-qr order-flow-settings pos-sale order-board kitchen-display guest-qr-order callcenter-order \
-          reservations guest-desk rewards campaigns coupons offers corporate-contract company-visits redeem-voucher reports \
+          reservations guest-desk rewards campaigns coupons offers corporate-contract company-visits redeem-voucher corporate-full reports \
           inventory-recipes purchases inventory-count users-roles daily-digest menu-import menu-languages printed-menu \
           pager kiosk tv-screens knowledge-base delivery-zones custom-domain whatsapp shifts-cash gift-cards reviews \
           driver-tracking menu-design; do

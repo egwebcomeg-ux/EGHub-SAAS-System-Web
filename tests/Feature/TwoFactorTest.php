@@ -64,7 +64,7 @@ class TwoFactorTest extends TenantTestCase
         $owner = $this->owner($a);
 
         $this->actingAs($owner)->get($this->dashUrl('/security'))->assertOk()
-            ->assertSee('data-two-factor-state="off"', false)->assertSee(__('Turn on two-factor authentication'));
+            ->assertSee('data-two-factor-state="off"', false)->assertSee(__('With an authenticator app'))->assertSee('data-two-factor-email-start', false);
 
         $this->actingAs($owner)->post($this->dashUrl('/security/two-factor'))->assertRedirect(route('dash.security'));
         $owner->refresh();

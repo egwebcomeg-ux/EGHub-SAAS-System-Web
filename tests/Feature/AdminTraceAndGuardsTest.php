@@ -75,6 +75,7 @@ class AdminTraceAndGuardsTest extends TenantTestCase
 
     public function test_a_cashier_cannot_export_the_guest_list_and_an_owners_export_is_logged(): void
     {
+        $this->confirmIdentity();
         $tenant = $this->restaurant('cafe-a');
         $owner = $this->owner($tenant);
         $cashier = $this->staff($tenant, 'cashier', 'cashier@cafe.test');

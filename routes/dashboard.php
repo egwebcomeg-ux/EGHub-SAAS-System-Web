@@ -14,6 +14,7 @@ use App\Http\Controllers\Dashboard\CallCenterGeoController;
 use App\Http\Controllers\Dashboard\CampaignsController;
 use App\Http\Controllers\Dashboard\CardsController;
 use App\Http\Controllers\Dashboard\CategoriesController;
+use App\Http\Controllers\Dashboard\ConfirmIdentityController;
 use App\Http\Controllers\Dashboard\CorporateBookingsController;
 use App\Http\Controllers\Dashboard\CorporateContractsController;
 use App\Http\Controllers\Dashboard\CorporateRedeemController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\Dashboard\DevicesController;
 use App\Http\Controllers\Dashboard\DomainController;
 use App\Http\Controllers\Dashboard\DriverController;
 use App\Http\Controllers\Dashboard\DriversController;
+use App\Http\Controllers\Dashboard\EmailVerificationController;
 use App\Http\Controllers\Dashboard\ExpensesController;
 use App\Http\Controllers\Dashboard\FeedbackController;
 use App\Http\Controllers\Dashboard\HoldsController;
@@ -158,6 +160,14 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::get('/phone', [PhoneVerificationController::class, 'show'])->name('phone');
     Route::post('/phone', [PhoneVerificationController::class, 'update'])->middleware(['support.blocked', 'throttle:10,1'])->name('phone.update');
     Route::get('/phone/status', [PhoneVerificationController::class, 'status'])->middleware('throttle:60,1')->name('phone.status');
+    // "Is it really you?" before a sensitive action (confirm.identity): a code to the email, or the password without one
+    Route::get('/confirm', [ConfirmIdentityController::class, 'show'])->name('confirm');
+    Route::post('/confirm', [ConfirmIdentityController::class, 'confirm'])->middleware('throttle:10,1')->name('confirm.store');
+    Route::post('/confirm/resend', [ConfirmIdentityController::class, 'resend'])->middleware('throttle:3,1')->name('confirm.resend');
+    // Confirm the account's email with a 6-digit code (sent at signup, or from this page). Never blocks anything.
+    Route::get('/email', [EmailVerificationController::class, 'show'])->middleware('support.blocked')->name('email');
+    Route::post('/email', [EmailVerificationController::class, 'verify'])->middleware(['support.blocked', 'throttle:10,1'])->name('email.verify');
+    Route::post('/email/resend', [EmailVerificationController::class, 'resend'])->middleware(['support.blocked', 'throttle:3,1'])->name('email.resend');
 
     Route::middleware('permission:users.manage')->group(function () {
         Route::get('/users', [UsersController::class, 'index'])->name('users');
@@ -195,7 +205,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/domain/book', [DomainController::class, 'book'])->middleware(['support.blocked', 'throttle:10,1'])->name('domain.book');
         Route::post('/domain/connect', [DomainController::class, 'connect'])->middleware('throttle:10,1')->name('domain.connect');
         Route::post('/domain/check', [DomainController::class, 'check'])->middleware('throttle:10,1')->name('domain.check');
-        Route::post('/domain/delete', [DomainController::class, 'destroy'])->middleware('support.blocked')->name('domain.delete');
+        Route::post('/domain/delete', [DomainController::class, 'destroy'])->middleware(['support.blocked', 'confirm.identity'])->name('domain.delete');
 
         // the restaurant's own WhatsApp Business number (App\Services\WhatsApp\OwnNumber): the page explains on a plan
         // without WhatsApp messages; the token is the owner's, so EgWeb support can only test it (support.blocked)
@@ -214,8 +224,8 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
             Route::get('/backups', [BackupsController::class, 'index'])->name('backups');
             Route::middleware('feature:backups')->group(function () {
                 // the restaurant's data leaves only with its owner, never with EgWeb support (support.blocked)
-                Route::post('/backups', [BackupsController::class, 'store'])->middleware(['support.blocked', 'throttle:10,1'])->name('backups.store');
-                Route::get('/backups/{backup}/download', [BackupsController::class, 'download'])->whereNumber('backup')->middleware(['signed', 'support.blocked'])->name('backups.download');
+                Route::post('/backups', [BackupsController::class, 'store'])->middleware(['support.blocked', 'confirm.identity', 'throttle:10,1'])->name('backups.store');
+                Route::get('/backups/{backup}/download', [BackupsController::class, 'download'])->whereNumber('backup')->middleware(['signed', 'support.blocked', 'confirm.identity'])->name('backups.download');
                 Route::post('/backups/{backup}/delete', [BackupsController::class, 'destroy'])->whereNumber('backup')->name('backups.delete');
             });
         });
@@ -367,7 +377,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     // ---- Guests: customers, loyalty card, feedback ----
     Route::middleware(['feature:customers', 'permission:customers.view'])->group(function () {
         Route::get('/customers', [CustomersController::class, 'index'])->name('customers');
-        Route::get('/customers/export', [CustomersController::class, 'export'])->middleware(['support.blocked', 'permission:customers.import'])->name('customers.export');
+        Route::get('/customers/export', [CustomersController::class, 'export'])->middleware(['support.blocked', 'permission:customers.import', 'confirm.identity'])->name('customers.export');
         // import a guest list (CSV / Excel): upload, review, save (owner and manager only: customers.import)
         Route::middleware('permission:customers.import')->group(function () {
             Route::get('/customers/import', [CustomerImportController::class, 'create'])->name('customers.import');
@@ -379,7 +389,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         });
         // a group of guests for Meta Ads (customer list format), owner and manager only, in the audit log
         Route::get('/customers/audience-export', [CustomersController::class, 'audienceExport'])
-            ->middleware(['permission:customers.import', 'support.blocked', 'throttle:10,1'])->name('customers.audience-export');
+            ->middleware(['permission:customers.import', 'support.blocked', 'confirm.identity', 'throttle:10,1'])->name('customers.audience-export');
         // «حملة واتساب مجانية»: the send list of a campaign sent row by row from the staff's own WhatsApp (no Meta, no
         // credits); it is made on the campaigns page, where the old address of its form now leads
         Route::middleware('permission:marketing.manage')->prefix('/customers/outreach')->name('outreach')->group(function () {
@@ -389,7 +399,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
                 ->middleware('throttle:120,1')->name('.sent');
             Route::post('/{campaign}/rows/{recipient}/opt-out', [OutreachController::class, 'optOut'])->whereNumber(['campaign', 'recipient'])->name('.opt-out');
             Route::get('/{campaign}/links.csv', [OutreachController::class, 'export'])->whereNumber('campaign')
-                ->middleware(['permission:customers.import', 'support.blocked'])->name('.export');
+                ->middleware(['permission:customers.import', 'support.blocked', 'confirm.identity'])->name('.export');
             Route::post('/{campaign}/sms', [OutreachController::class, 'sms'])->whereNumber('campaign')->middleware('throttle:6,1')->name('.sms');
         });
         Route::get('/customers/{customer}', [CustomersController::class, 'show'])->name('customers.show');
@@ -808,6 +818,7 @@ Route::middleware(['auth:web', 'tenant.user', 'feature:campaigns', 'permission:m
 Route::middleware('admin.locale')->group(function () {
     Route::get('/two-factor', [TwoFactorController::class, 'show'])->name('two-factor');
     Route::post('/two-factor', [TwoFactorController::class, 'verify'])->middleware('throttle:5,1')->name('two-factor.verify');
+    Route::post('/two-factor/email', [TwoFactorController::class, 'email'])->middleware('throttle:3,1')->name('two-factor.email');
 });
 // (the account's password, two-factor and PIN are the owner's own: not for EgWeb support signed in from the admin)
 Route::middleware(['auth:web', 'tenant.user'])->group(function () {
@@ -815,6 +826,9 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     Route::post('/security/two-factor', [SecurityController::class, 'enable'])->middleware('support.blocked')->name('security.enable');
     Route::post('/security/two-factor/confirm', [SecurityController::class, 'confirm'])->middleware(['support.blocked', 'throttle:10,1'])->name('security.confirm');
     Route::post('/security/two-factor/disable', [SecurityController::class, 'disable'])->middleware(['support.blocked', 'throttle:10,1'])->name('security.disable');
+    // two-factor by a code emailed at each sign-in, for staff without an authenticator app
+    Route::post('/security/two-factor/email', [SecurityController::class, 'emailStart'])->middleware(['support.blocked', 'throttle:5,1'])->name('security.email');
+    Route::post('/security/two-factor/email/confirm', [SecurityController::class, 'emailConfirm'])->middleware(['support.blocked', 'throttle:10,1'])->name('security.email.confirm');
     Route::post('/security/pin', [SecurityController::class, 'pin'])->middleware(['support.blocked', 'throttle:10,1'])->name('security.pin');
     // the account's own password (a welcome-kit owner must pick one before anything else: InitializeTenancyFromUser)
     Route::post('/security/password', [SecurityController::class, 'password'])->middleware(['support.blocked', 'throttle:10,1'])->name('security.password');

@@ -60,6 +60,7 @@ class TenantBackupsTest extends TenantTestCase
 
     public function test_the_zip_holds_only_the_restaurants_own_rows_and_files_and_no_secrets(): void
     {
+        $this->confirmIdentity();
         $a = $this->restaurant('cafe-a', 'full');
         $b = $this->restaurant('cafe-b', 'full');
         $this->item($a, 'Latte A');
@@ -187,6 +188,7 @@ class TenantBackupsTest extends TenantTestCase
 
     public function test_downloads_are_signed_and_scoped_to_the_restaurant(): void
     {
+        $this->confirmIdentity();
         $a = $this->restaurant('cafe-a', 'full');
         $b = $this->restaurant('cafe-b', 'full');
         $mine = $this->backup($a);
@@ -213,6 +215,7 @@ class TenantBackupsTest extends TenantTestCase
 
     public function test_one_manual_backup_an_hour(): void
     {
+        $this->confirmIdentity();
         $a = $this->restaurant('cafe-a', 'full');
         $owner = $this->owner($a);
 
@@ -222,7 +225,7 @@ class TenantBackupsTest extends TenantTestCase
         $this->actingAs($owner)->get($this->dashUrl('/backups'))->assertOk()->assertSee('data-backup-blocked', false);
 
         $this->travel(61)->minutes();
-        $this->actingAs($owner)->post($this->dashUrl('/backups'))->assertSessionHasNoErrors();
+        $this->confirmIdentity()->actingAs($owner)->post($this->dashUrl('/backups'))->assertSessionHasNoErrors();
         $this->assertSame(2, $this->as($a, fn () => TenantBackup::query()->count()));
     }
 

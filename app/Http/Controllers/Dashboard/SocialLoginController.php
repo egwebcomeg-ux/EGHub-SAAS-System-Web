@@ -7,6 +7,7 @@ use App\Models\SocialAccount;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Audit;
+use App\Services\Auth\LoginAlert;
 use App\Services\Auth\SocialProviders;
 use App\Services\Auth\TwoFactor;
 use Illuminate\Http\RedirectResponse;
@@ -92,6 +93,7 @@ class SocialLoginController extends Controller
 
         Auth::guard('web')->login($user);
         $request->session()->regenerate();
+        LoginAlert::signedIn($request, 'web', $user);
         $user->forceFill(['last_login_at' => now()])->save();
         $this->audit($user, $provider);
 

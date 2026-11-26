@@ -43,6 +43,7 @@ class User extends Authenticatable implements HasLocalePreference
     /**
      * A new password, whoever sets it (the security page, "forgot password", an EgWeb admin), retires the temporary
      * one of the welcome kit; only a save that sets a new temporary password itself (App\Services\WelcomeKit) keeps it.
+     * A changed email is unconfirmed again.
      */
     protected static function booted(): void
     {
@@ -50,6 +51,10 @@ class User extends Authenticatable implements HasLocalePreference
             if ($user->isDirty('password') && ! $user->isDirty('temporary_password')) {
                 $user->must_change_password = false;
                 $user->temporary_password = null;
+            }
+            // a new address is not proven yet (it may be the one the email two-factor codes go to)
+            if ($user->exists && $user->isDirty('email') && ! $user->isDirty('email_verified_at')) {
+                $user->email_verified_at = null;
             }
         });
     }

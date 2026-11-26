@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\PlatformAdmin;
+use App\Services\Auth\LoginAlert;
 use App\Services\Auth\TwoFactor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -37,6 +38,7 @@ class AuthController extends Controller
 
         Auth::guard('admin')->login($admin, $request->boolean('remember'));
         $request->session()->regenerate();
+        LoginAlert::signedIn($request, 'admin', $admin);
         $admin->forceFill(['last_login_at' => now()])->save();
 
         return redirect()->intended(route('admin.home'));

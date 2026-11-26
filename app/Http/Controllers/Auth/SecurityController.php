@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PlatformAdmin;
 use App\Models\User;
 use App\Services\Audit;
+use App\Services\Auth\EmailCode;
 use App\Services\Auth\Totp;
 use App\Services\Auth\TwoFactor;
 use App\Services\Qr;
@@ -30,7 +31,8 @@ abstract class SecurityController extends Controller
     public function show(Request $request): View
     {
         $user = $this->user($request);
-        $pending = $user->two_factor_secret !== null && ! $user->hasTwoFactorEnabled();
+        $pending = $user->two_factor_secret !== null && ! $user->hasAppTwoFactor();
+        $emailAllowed = TwoFactor::emailAllowed($user);
 
         return view($this->view, [
             'user' => $user,
@@ -40,14 +42,18 @@ abstract class SecurityController extends Controller
             'recoveryCodes' => $request->session()->get('two_factor_recovery_codes'),
             'routes' => $this->routes,
             'required' => $user instanceof User ? TwoFactor::setupRequired($user) : TwoFactor::adminSetupRequired($user),
+            // staff may pick a code by email instead of the app; a code to turn it on may be waiting
+            'emailAllowed' => $emailAllowed,
+            'emailPending' => $emailAllowed && ! $user->hasTwoFactorEnabled() && EmailCode::pending($user, EmailCode::ENABLE),
+            'maskedEmail' => EmailCode::mask($user->email),
         ]);
     }
 
-    /** Step 1: a fresh secret to scan. Nothing is enforced until a code confirms the app has it. */
+    /** Step 1: a fresh secret to scan (also to move from email codes to the app). Nothing changes until a code confirms it. */
     public function enable(Request $request): RedirectResponse
     {
         $user = $this->user($request);
-        if ($user->hasTwoFactorEnabled()) {
+        if ($user->hasAppTwoFactor()) {
             return redirect()->route($this->routes.'security');
         }
         $user->startTwoFactorSetup(Totp::secret());
@@ -60,7 +66,7 @@ abstract class SecurityController extends Controller
     {
         $data = $request->validate(['code' => 'required|string|max:12']);
         $user = $this->user($request);
-        if ($user->hasTwoFactorEnabled() || $user->two_factor_secret === null) {
+        if ($user->hasAppTwoFactor() || $user->two_factor_secret === null) {
             return redirect()->route($this->routes.'security');
         }
         if (! Totp::verify($user->two_factor_secret, $data['code'])) {

@@ -8,10 +8,13 @@ use Illuminate\Support\Str;
 /**
  * Two-factor authentication columns shared by restaurant staff (users) and platform admins. The TOTP secret and the
  * hashed recovery codes are encrypted at rest; a secret without confirmed_at is a setup that was never finished.
+ * Staff may instead get the code by email (two_factor_email_at, users only; App\Services\Auth\EmailCode); an app
+ * set up later replaces it.
  *
  * @property string|null $two_factor_secret
  * @property list<string>|null $two_factor_recovery_codes
  * @property Carbon|null $two_factor_confirmed_at
+ * @property Carbon|null $two_factor_email_at
  */
 trait HasTwoFactor
 {
@@ -20,27 +23,46 @@ trait HasTwoFactor
         $this->casts['two_factor_secret'] = 'encrypted';
         $this->casts['two_factor_recovery_codes'] = 'encrypted:array';
         $this->casts['two_factor_confirmed_at'] = 'datetime';
+        $this->casts['two_factor_email_at'] = 'datetime';
         $this->hidden[] = 'two_factor_secret';
         $this->hidden[] = 'two_factor_recovery_codes';
     }
 
     public function hasTwoFactorEnabled(): bool
     {
+        return $this->hasAppTwoFactor() || $this->hasEmailTwoFactor();
+    }
+
+    /** The code comes from an authenticator app (TOTP). */
+    public function hasAppTwoFactor(): bool
+    {
         return $this->two_factor_secret !== null && $this->two_factor_confirmed_at !== null;
     }
 
-    /** A new setup: fresh secret, nothing confirmed yet. An already enabled setup is left untouched. */
+    /** The code is emailed at each sign-in (and the account still has an email to send it to). */
+    public function hasEmailTwoFactor(): bool
+    {
+        return ! $this->hasAppTwoFactor() && $this->two_factor_email_at !== null && filled($this->email);
+    }
+
+    /** Email two-factor on; reaching the code also proves the address. */
+    public function enableEmailTwoFactor(): void
+    {
+        $this->forceFill(['two_factor_email_at' => now(), 'email_verified_at' => $this->email_verified_at ?? now()])->save();
+    }
+
+    /** A new app setup: fresh secret, nothing confirmed yet. An app already enabled is left untouched. */
     public function startTwoFactorSetup(string $secret): void
     {
-        if ($this->hasTwoFactorEnabled()) {
+        if ($this->hasAppTwoFactor()) {
             return;
         }
         $this->forceFill(['two_factor_secret' => $secret, 'two_factor_confirmed_at' => null, 'two_factor_recovery_codes' => null])->save();
     }
 
     /**
-     * Marks the setup confirmed and issues the recovery codes; the plain codes are returned once and only their
-     * hashes are kept.
+     * Marks the app setup confirmed (it replaces email codes) and issues the recovery codes; the plain codes are
+     * returned once and only their hashes are kept.
      *
      * @return list<string>
      */
@@ -53,7 +75,7 @@ trait HasTwoFactor
         $this->forceFill([
             'two_factor_confirmed_at' => now(),
             'two_factor_recovery_codes' => array_map(fn (string $c) => hash('sha256', $c), $codes),
-        ])->save();
+        ] + ($this->two_factor_email_at !== null ? ['two_factor_email_at' => null] : []))->save();
 
         return $codes;
     }
@@ -82,12 +104,13 @@ trait HasTwoFactor
 
     public function disableTwoFactor(): void
     {
-        $this->forceFill(['two_factor_secret' => null, 'two_factor_recovery_codes' => null, 'two_factor_confirmed_at' => null])->save();
+        $this->forceFill(['two_factor_secret' => null, 'two_factor_recovery_codes' => null, 'two_factor_confirmed_at' => null]
+            + ($this->two_factor_email_at !== null ? ['two_factor_email_at' => null] : []))->save();
     }
 
     /** Changes whenever 2FA is set up again or reset, so devices remembered before stop being trusted. */
     public function twoFactorFingerprint(): string
     {
-        return hash('sha256', (string) $this->two_factor_secret.'|'.$this->two_factor_confirmed_at?->timestamp);
+        return hash('sha256', (string) $this->two_factor_secret.'|'.$this->two_factor_confirmed_at?->timestamp.($this->two_factor_email_at ? '|'.$this->two_factor_email_at->timestamp : ''));
     }
 }

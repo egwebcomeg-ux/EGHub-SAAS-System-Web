@@ -12,8 +12,10 @@ use Symfony\Component\HttpFoundation\Cookie;
 
 /**
  * The second login step for the two session guards (web = restaurant staff, admin = platform admins).
- * After the password matched, the user is parked in the session (nothing is logged in yet) until a TOTP or
- * recovery code arrives; a device can be remembered for 30 days with a cookie signed per user.
+ * After the password matched, the user is parked in the session (nothing is logged in yet) until a TOTP, recovery
+ * or emailed code arrives; a device can be remembered for 30 days with a cookie signed per user. Restaurant staff may
+ * get the code by email (EmailCode): always when that is their way, on request when they have the app and an email.
+ * Platform admins keep the app only.
  */
 final class TwoFactor
 {
@@ -48,6 +50,15 @@ final class TwoFactor
     public static function challenge(Request $request, string $guard, Authenticatable $user, bool $remember): void
     {
         $request->session()->put("2fa.$guard", ['id' => $user->getAuthIdentifier(), 'remember' => $remember, 'at' => now()->timestamp]);
+        if ($user instanceof User && $user->hasEmailTwoFactor()) {
+            EmailCode::send($user, EmailCode::LOGIN);
+        }
+    }
+
+    /** May this account ask for its sign-in code by email? Staff with an email; never a platform admin. */
+    public static function emailAllowed(User|PlatformAdmin $user): bool
+    {
+        return $user instanceof User && filled($user->email);
     }
 
     /** The user waiting for their code in this session, or null when there is none or it expired. */
@@ -63,11 +74,14 @@ final class TwoFactor
         return $user?->hasTwoFactorEnabled() ? $user : null;
     }
 
-    /** True when $code is the current TOTP, or an unused recovery code (which is consumed). */
+    /** True when $code is the current TOTP, the emailed code, or an unused recovery code (which is consumed). */
     public static function check(User|PlatformAdmin $user, string $code): bool
     {
         $code = trim($code);
-        if (Totp::verify((string) $user->two_factor_secret, $code)) {
+        if ($user->hasAppTwoFactor() && Totp::verify((string) $user->two_factor_secret, $code)) {
+            return true;
+        }
+        if (self::emailAllowed($user) && EmailCode::check($user, EmailCode::LOGIN, $code)) {
             return true;
         }
 
@@ -80,6 +94,7 @@ final class TwoFactor
         $data = (array) $request->session()->pull("2fa.$guard", []);
         Auth::guard($guard)->login($user, (bool) ($data['remember'] ?? false));
         $request->session()->regenerate();
+        LoginAlert::signedIn($request, $guard, $user);
         $user->forceFill(['last_login_at' => now()])->save();
         if ($rememberDevice) {
             cookie()->queue(self::rememberCookie($request, $guard, $user));

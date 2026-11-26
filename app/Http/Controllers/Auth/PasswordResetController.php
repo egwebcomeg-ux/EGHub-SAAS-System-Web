@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Support\Passwords;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Contracts\Auth\CanResetPassword;
@@ -52,7 +53,9 @@ abstract class PasswordResetController extends Controller
         $status = Password::broker($this->broker())->reset(
             ['email' => strtolower(trim($data['email']))] + $data,
             function (CanResetPassword $user, string $password): void {
-                $user->forceFill(['password' => $password, 'remember_token' => Str::random(60)])->save();
+                // the link came by email: the address is proven too (staff only, admins have no such column)
+                $user->forceFill(['password' => $password, 'remember_token' => Str::random(60)]
+                    + ($user instanceof User && $user->email_verified_at === null ? ['email_verified_at' => now()] : []))->save();
                 event(new PasswordReset($user));
             },
         );

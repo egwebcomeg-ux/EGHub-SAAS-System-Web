@@ -8,6 +8,7 @@ use App\Models\SocialAccount;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Notifications\NewSignup;
+use App\Services\Auth\EmailCode;
 use App\Services\Auth\SocialProviders;
 use App\Services\Crm\ProspectLinker;
 use App\Services\MenuSetupRequest;
@@ -109,6 +110,9 @@ class SignupController extends Controller
                 'user_id' => $owner->id, 'provider' => $social['provider'], 'provider_user_id' => $social['id'], 'email' => $social['email'],
             ]);
             $request->session()->forget(self::SOCIAL_SESSION);
+        } else {
+            // the code that confirms the email waits in the inbox when the dashboard asks for it (dash.email)
+            EmailCode::send($owner, EmailCode::VERIFY);
         }
         app(MenuSetupRequest::class)->fromSignup($request, $tenant, $owner);
         // «صمم باقتك» picked on the pricing page: the dashboard focuses on those modules and the billing page ticks them

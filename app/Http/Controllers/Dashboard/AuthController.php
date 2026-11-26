@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Auth\LoginAlert;
 use App\Services\Auth\TwoFactor;
 use App\Services\SupportAccess;
 use Illuminate\Http\RedirectResponse;
@@ -50,6 +51,7 @@ class AuthController extends Controller
 
         Auth::guard('web')->login($user, $request->boolean('remember'));
         $request->session()->regenerate();
+        LoginAlert::signedIn($request, 'web', $user);
         $user->forceFill(['last_login_at' => now()])->save();
 
         return redirect()->intended(route('dash.home'));
