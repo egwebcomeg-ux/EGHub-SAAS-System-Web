@@ -21,6 +21,7 @@ use App\Services\Entitlements;
 use App\Services\Inventory\StockService;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Loyalty\Membership;
+use App\Services\Marketing\MetaConversions;
 use App\Services\Marketing\WelcomeReward;
 use App\Services\Menu\MenuCatalog;
 use App\Services\Notify\GuestNotifier;
@@ -116,7 +117,7 @@ final class OrderService
         // Membership tier of the guest behind the mobile number: its discount comes off what is left. Staff (cashier,
         // call center) know who they serve; a guest ordering alone only gets it signed in on their phone as that
         // mobile's guest (member_phone_verified, set by Menu\OrderController), never by typing someone's number.
-        $memberPhone = in_array($data['source'] ?? null, ['pos', 'callcenter'], true) || ! empty($data['member_phone_verified'])
+        $memberPhone = in_array($data['source'] ?? null, Order::STAFF_SOURCES, true) || ! empty($data['member_phone_verified'])
             ? normalize_phone((string) ($data['customer_phone'] ?? '')) : null;
         [$tier, $memberOff] = app(Membership::class)->discountFor($memberPhone, $subtotal - $discount);
         $discount = round($discount + $memberOff, 2);
@@ -145,7 +146,7 @@ final class OrderService
         }
 
         // staff on the phone take any number of the caller, a landline too; a guest ordering alone gives a mobile
-        $staffEntered = in_array($data['source'] ?? null, ['pos', 'callcenter'], true);
+        $staffEntered = in_array($data['source'] ?? null, Order::STAFF_SOURCES, true);
         $phone = isset($data['customer_phone']) && $data['customer_phone'] !== ''
             ? ($staffEntered ? normalize_contact_phone((string) $data['customer_phone']) : normalize_phone((string) $data['customer_phone'])) : null;
         if (isset($data['customer_phone']) && $data['customer_phone'] !== '' && ! $phone) {
@@ -159,7 +160,7 @@ final class OrderService
                         app(Coupons::class)->redeem($coupon);
                     }
                     $customer = $phone && Entitlements::current()->allows('customers|wallet')
-                        ? $this->customer($phone, (string) ($data['customer_name'] ?? ''), ($data['source'] ?? 'qr') === 'callcenter' ? 'callcenter' : 'menu') : null;
+                        ? $this->customer($phone, (string) ($data['customer_name'] ?? ''), in_array($data['source'] ?? 'qr', ['callcenter', 'whatsapp'], true) ? 'callcenter' : 'menu') : null;
 
                     $order = Order::query()->create([
                         'branch_id' => $branch->id, 'dining_table_id' => $table?->id, 'customer_id' => $customer?->id,
@@ -194,6 +195,7 @@ final class OrderService
                     app(StockService::class)->deductForOrder($order); // inventory pack only
                     DB::afterCommit(fn () => app(GuestNotifier::class)->orderPlaced($order)); // WhatsApp "we got your order"
                     DB::afterCommit(fn () => app(StaffPush::class)->orderPlaced($order)); // the staff's phones (EgHub apps)
+                    DB::afterCommit(fn () => MetaConversions::orderPlaced($order, request())); // the restaurant's Meta pixel, from the server
 
                     if (! empty($data['pay_wallet'])) {
                         app(WalletService::class)->payOrder($order, $by);

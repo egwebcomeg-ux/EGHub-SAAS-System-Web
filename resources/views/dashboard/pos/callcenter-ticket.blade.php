@@ -34,6 +34,15 @@
             <h2 class="hidden px-4 pt-3 text-xs font-extrabold tracking-wide text-navy-500 xl:block">{{ __('Customer & delivery') }}</h2>
 
             <section id="cc-pane-customer" class="space-y-2 p-3" data-cc-pane="customer">
+                {{-- a phone call, or a chat on WhatsApp: the order is counted under its own source in the reports --}}
+                <fieldset class="grid grid-cols-2 gap-1 rounded-xl bg-navy-50 p-1" data-cc-channels>
+                    <legend class="sr-only">{{ __('The order came by') }}</legend>
+                    @foreach (['callcenter' => '☎ '.__('Phone call'), 'whatsapp' => '💬 '.__('WhatsApp')] as $value => $label)
+                        <label class="flex min-h-10 cursor-pointer items-center justify-center rounded-lg text-sm font-bold text-navy-600 has-[:checked]:bg-white has-[:checked]:text-navy-900 has-[:checked]:shadow-sm">
+                            <input type="radio" name="cc_channel" value="{{ $value }}" class="sr-only" data-cc-channel @checked($value === 'callcenter')> {{ $label }}
+                        </label>
+                    @endforeach
+                </fieldset>
                 <div class="space-y-1" data-caller-search>
                     <label class="text-sm font-bold text-navy-700" for="cc-phone">{{ __('Caller number') }}</label>
                     <div class="flex gap-2">

@@ -12,6 +12,7 @@ use App\Services\Entitlements;
 use App\Services\ImageService;
 use App\Services\Import\Ai\AiException;
 use App\Services\Import\Ai\AiProviders;
+use App\Services\Marketing\MetaConversions;
 use App\Services\Marketing\TrackingPixels;
 use App\Services\Notify\GuestNotifier;
 use App\Services\Orders\AutoCancel;
@@ -58,6 +59,7 @@ class SettingsController extends Controller
             'extraLanguages' => Entitlements::current()->allows('extra_languages'),
             'advancedReports' => Entitlements::current()->allows('advanced_reports'),
             'pixels' => TrackingPixels::enabled(),
+            'capiToken' => MetaConversions::token() !== null, 'capiStatus' => MetaConversions::status(),
         ]);
     }
 
@@ -147,9 +149,11 @@ class SettingsController extends Controller
             'meta_pixel_id' => ['nullable', 'string', TrackingPixels::RULES['meta_pixel_id']],
             'ga4_measurement_id' => ['nullable', 'string', TrackingPixels::RULES['ga4_measurement_id']],
             'tiktok_pixel_id' => ['nullable', 'string', TrackingPixels::RULES['tiktok_pixel_id']],
-        ], [], ['meta_pixel_id' => 'Meta Pixel ID', 'ga4_measurement_id' => 'GA4 Measurement ID', 'tiktok_pixel_id' => 'TikTok Pixel ID']);
+            'meta_capi_token' => ['nullable', 'string', 'max:500', 'regex:/^[A-Za-z0-9_-]+$/'],
+            'meta_test_event_code' => ['nullable', 'string', 'max:40', 'regex:/^[A-Za-z0-9]+$/'],
+        ], [], ['meta_pixel_id' => 'Meta Pixel ID', 'ga4_measurement_id' => 'GA4 Measurement ID', 'tiktok_pixel_id' => 'TikTok Pixel ID', 'meta_capi_token' => 'Conversions API access token', 'meta_test_event_code' => 'Test event code']);
 
-        $values = collect($data)->except(['logo', 'cover', 'ai_key', 'cuisine', 'menu_locales', 'menu_badge_filters', ...array_keys(BrandAssets::PIECES)])->map(fn ($v) => (string) ($v ?? ''))->all();
+        $values = collect($data)->except(['logo', 'cover', 'ai_key', 'meta_capi_token', 'meta_test_event_code', 'cuisine', 'menu_locales', 'menu_badge_filters', ...array_keys(BrandAssets::PIECES)])->map(fn ($v) => (string) ($v ?? ''))->all();
         if (($values['qr_target'] ?? '') === '') {
             unset($values['qr_target']); // not sent: keep the current target
         }
@@ -158,6 +162,15 @@ class SettingsController extends Controller
             foreach (array_keys(TrackingPixels::RULES) as $key) {
                 $values[$key] = (string) ($data[$key] ?? '');
             }
+            // the Conversions API token: replaced only when a new one is typed, stored encrypted, never shown again
+            if (! empty($data['meta_capi_token'])) {
+                $values[MetaConversions::TOKEN] = MetaConversions::encrypt($data['meta_capi_token']);
+                $values[MetaConversions::STATUS] = '';
+            } elseif ($request->boolean('remove_meta_capi_token')) {
+                $values[MetaConversions::TOKEN] = '';
+                $values[MetaConversions::STATUS] = '';
+            }
+            $values[MetaConversions::TEST_CODE] = (string) ($data['meta_test_event_code'] ?? '');
         } else {
             foreach (array_keys(TrackingPixels::RULES) as $key) {
                 unset($values[$key]);
@@ -319,7 +332,7 @@ class SettingsController extends Controller
             $values['menu_header_brand'] = $request->boolean('menu_header_brand') ? '1' : '0';
         }
         Settings::put($values);
-        Audit::record('settings.updated', '', ['keys' => array_values(array_diff(array_keys($values), ['ai_key']))]);
+        Audit::record('settings.updated', '', ['keys' => array_values(array_diff(array_keys($values), ['ai_key', MetaConversions::TOKEN]))]);
 
         // back on the tab the owner saved from
         $tab = $request->input('settings_tab');

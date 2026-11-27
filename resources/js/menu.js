@@ -803,7 +803,18 @@ if (dataEl) {
         if (e.target.closest('[data-customer-name], [data-customer-phone], [data-addr]')) renderSendHelp();
     });
 
-    $('[data-open-cart]').addEventListener('click', () => { renderCart(); cartSheet.showModal(); funnel('cart'); });
+    let checkoutTracked = false;
+    $('[data-open-cart]').addEventListener('click', () => {
+        renderCart(); cartSheet.showModal(); funnel('cart');
+        // the cart is where the guest sends the order: the ad pixels' InitiateCheckout, once per page
+        if (!checkoutTracked && cart.length) {
+            checkoutTracked = true;
+            track('InitiateCheckout', {
+                content_type: 'product', content_ids: [...new Set(cart.map((l) => String(l.item_id)))], num_items: cart.reduce((s, l) => s + l.qty, 0),
+                value: cart.reduce((s, l) => s + unitPrice(M.items[l.item_id], l.option_ids) * l.qty, 0),
+            });
+        }
+    });
     cartSheet.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-step]');
         if (!btn) return;

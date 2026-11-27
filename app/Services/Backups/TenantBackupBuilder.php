@@ -47,7 +47,7 @@ class TenantBackupBuilder
         'whatsapp_connections' => ['access_token', 'app_secret', 'verify_token']];
 
     /** Settings keys whose value is a credential (the AI key is the restaurant's own paid key). */
-    private const REDACTED_SETTINGS = ['ai_key'];
+    private const REDACTED_SETTINGS = ['ai_key', 'meta_capi_token'];
 
     /** Tables of raw traffic: only the last N months are kept, like the orders. */
     private const RECENT_ONLY = ['menu_item_views', 'menu_visits', 'driver_locations', 'delivery_track_points', 'whatsapp_messages', 'pager_tickets'];

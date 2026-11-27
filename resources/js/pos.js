@@ -368,7 +368,10 @@ if (dataEl) {
             items: state.lines, discount: totals().staff, pay: pay || null,
             customer_name: $('[data-customer-name]').value.trim(), customer_phone: $('[data-customer-phone]').value.trim(), notes: $('[data-notes]').value.trim(),
         };
-        if (CC) p.phone_2 = $('[data-phone2]').value.trim();
+        if (CC) {
+            p.phone_2 = $('[data-phone2]').value.trim();
+            p.channel = document.querySelector('[data-cc-channel]:checked')?.value || 'callcenter';
+        }
         if (state.coupon) p.coupon = state.coupon.code;
         if (CC && state.type === 'delivery') {
             Object.assign(p, { zone_id: DIST ? null : Number($('[data-zone]').value) || null, address: $('[data-address]').value.trim(), address_label: $('[data-address-label]').value.trim() });
@@ -742,6 +745,7 @@ if (dataEl) {
                         <div class="truncate text-base font-extrabold">${esc(c.name || T.noName)}</div>
                         <div class="flex flex-wrap gap-x-3 text-sm text-navy-500">${phones.map((x) => `<span dir="ltr">${esc(x)}</span>`).join('')}</div>
                     </div>
+                    ${c.whatsapp ? `<a href="${esc(c.whatsapp)}" target="eghub-whatsapp" rel="noopener" class="btn-ghost min-h-11 shrink-0 px-3 text-sm text-emerald-700" data-caller-whatsapp>WhatsApp</a>` : ''}
                     <button type="button" class="btn-ghost min-h-11 shrink-0 px-3 text-sm" data-caller-edit>${esc(T.edit)}</button>
                 </div>
                 <div class="mt-2 flex flex-wrap gap-1.5">${chips.map((x) => `<span class="rounded-full bg-navy-50 px-2.5 py-1 text-xs font-semibold text-navy-700">${esc(x)}</span>`).join('')}</div>
@@ -790,6 +794,13 @@ if (dataEl) {
         }
         ccPoint = () => point;
         ccLookup = lookup;
+        // the agent's channel (phone call / WhatsApp) stays picked for the next order on this computer
+        try {
+            const kept = localStorage.getItem('eghub-cc-channel');
+            const radio = kept && document.querySelector(`[data-cc-channel][value="${kept}"]`);
+            if (radio) radio.checked = true;
+        } catch {}
+        document.querySelectorAll('[data-cc-channel]').forEach((r) => r.addEventListener('change', () => { try { localStorage.setItem('eghub-cc-channel', r.value); } catch {} }));
         resetPoint = () => setPoint(null, false);
         $('[data-lookup]').addEventListener('click', lookup);
         $('[data-customer-phone]').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); lookup(); } });

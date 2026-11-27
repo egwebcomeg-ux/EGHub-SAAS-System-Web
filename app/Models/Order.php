@@ -58,7 +58,13 @@ class Order extends TenantModel
     ];
 
     /** Orders guests place themselves (the board alarm rings for these until someone accepts them). */
-    public const GUEST_SOURCES = ['qr', 'online', 'whatsapp'];
+    public const GUEST_SOURCES = ['qr', 'online'];
+
+    /**
+     * Orders the staff type in: the cashier, and the call center taking a phone call or a WhatsApp chat (the agent
+     * picks «واتساب» on the call-center screen, so the reports count WhatsApp orders on their own).
+     */
+    public const STAFF_SOURCES = ['pos', 'callcenter', 'whatsapp'];
 
     /** cancel_reason written by eghub:auto-cancel (shown translated to the guest). */
     public const REASON_NOT_ACCEPTED = 'not accepted in time';
@@ -108,6 +114,7 @@ class Order extends TenantModel
             'review_notes' => 'array',
             'payments' => 'array',
             'pager_calls' => 'integer',
+            'followed_up_at' => 'datetime',
             'pager_called_at' => 'datetime',
             'pager_seen_at' => 'datetime',
             'pager_picked_up_at' => 'datetime',
@@ -192,6 +199,12 @@ class Order extends TenantModel
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /** Staff who messaged the guest about this order from «متابعة العملاء» (App\Services\Orders\FollowUp). */
+    public function followedUpBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'followed_up_by');
     }
 
     /** The cashier's name for the receipt: who took the money, else who entered the order. */

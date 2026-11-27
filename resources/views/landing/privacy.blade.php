@@ -14,7 +14,7 @@
         <h2>Messages to EgHub</h2>
         <p>When you write to EgHub on WhatsApp, Facebook Messenger or Instagram, we keep your message, your name on that service and your mobile number or that service’s ID for you, so our team can answer. An automatic assistant may answer first: your messages in that conversation are sent to our AI provider to write the answer. They are not used for anything else, and never sold. To have them deleted, write “delete my messages” in the same chat or email info@eghub.app, and we delete the conversation.</p>
         <h2>Cookies</h2>
-        <p>We use the cookies needed to keep you signed in, remember your language and keep a guest’s cart. On the EgHub website itself (not on restaurant menus) we use the Meta pixel to measure our own ads: it counts visits, taps on WhatsApp links and new sign-ups. A restaurant may add its own ad pixels (Meta, Google, TikTok) to its menu; they are set up and controlled by that restaurant.</p>
+        <p>We use the cookies needed to keep you signed in, remember your language and keep a guest’s cart. On the EgHub website itself (not on restaurant menus) we use the Meta pixel to measure our own ads: it counts visits, taps on WhatsApp links and new sign-ups. A restaurant may add its own ad pixels (Meta, Google, TikTok) to its menu; they are set up and controlled by that restaurant. A restaurant that connects the Meta Conversions API also has its orders sent from our server to its own Meta account, with the guest’s mobile and first name hashed (SHA-256) so Meta can only match them to its users, never read them.</p>
         <h2>Services we rely on</h2>
         <p>Hosting, email delivery and, when a restaurant connects them, payment or AI providers. They receive only what is needed for their part of the service.</p>
         <h2>Keeping and deleting data</h2>
@@ -30,7 +30,7 @@
         <h2>رسايلك لـ EgHub</h2>
         <p>لما تكتب لـ EgHub على واتساب أو ماسنجر فيسبوك أو إنستجرام، بنحتفظ برسالتك واسمك على الخدمة دي ورقم موبايلك أو رقم تعريفك عليها، عشان فريقنا يرد عليك. وممكن مساعد آلي يرد الأول، ورسايلك في المحادثة دي بتتبعت لمزود الذكاء الاصطناعي بتاعنا عشان يكتب الرد. مش بنستخدمها في حاجة تانية ومش بنبيعها. ولو عايز تمسحها، اكتب «امسح رسايلي» في نفس المحادثة أو ابعت على info@eghub.app، وهنمسح المحادثة.</p>
         <h2>الكوكيز</h2>
-        <p>بنستخدم الكوكيز اللازمة: إنك تفضل مسجل دخول، وتفتكر لغتك، وتحفظ سلة العميل. وعلى موقع EgHub نفسه (مش على منيوهات المطاعم) بنستخدم بيكسل Meta عشان نقيس إعلاناتنا: بيعدّ الزيارات، والضغط على لينكات واتساب، والتسجيلات الجديدة. وأي مطعم ممكن يضيف بيكسلات الإعلانات بتاعته (Meta أو Google أو TikTok) على المنيو بتاعه، وده بيظبطه المطعم نفسه وتحت مسؤوليته.</p>
+        <p>بنستخدم الكوكيز اللازمة: إنك تفضل مسجل دخول، وتفتكر لغتك، وتحفظ سلة العميل. وعلى موقع EgHub نفسه (مش على منيوهات المطاعم) بنستخدم بيكسل Meta عشان نقيس إعلاناتنا: بيعدّ الزيارات، والضغط على لينكات واتساب، والتسجيلات الجديدة. وأي مطعم ممكن يضيف بيكسلات الإعلانات بتاعته (Meta أو Google أو TikTok) على المنيو بتاعه، وده بيظبطه المطعم نفسه وتحت مسؤوليته. ولو المطعم ربط Meta Conversions API، السيرفر بتاعنا بيبعت طلباته لحساب Meta بتاع المطعم، ومعاها موبايل العميل واسمه الأول متشفّرين (SHA-256)، بحيث Meta تقدر تطابقهم بمستخدمينها بس ومن غير ما تقدر تقراهم.</p>
         <h2>خدمات بنعتمد عليها</h2>
         <p>الاستضافة وإرسال الإيميلات، ولما المطعم يربطها بنفسه: بوابات الدفع أو مزودي الذكاء الاصطناعي. كل خدمة بتاخد اللي محتاجاه لدورها بس.</p>
         <h2>الاحتفاظ بالبيانات ومسحها</h2>

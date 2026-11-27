@@ -56,7 +56,7 @@ final class BusyMode
     /** Does busy mode block this order? Only guests ordering without a table (online / takeaway / delivery). */
     public static function blocks(string $source, bool $hasTable): bool
     {
-        return ! $hasTable && in_array($source, ['qr', 'online', 'whatsapp'], true) && self::isBusy();
+        return ! $hasTable && in_array($source, ['qr', 'online'], true) && self::isBusy();
     }
 
     /** @return array{until:string, until_iso:string, message:string}|null for the board feed / public menu */

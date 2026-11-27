@@ -36,7 +36,7 @@ use Illuminate\Support\Facades\Log;
 final class OrderConfirmation
 {
     /** Orders the guest placed alone (no call-center agent already on the phone with them). */
-    public const SOURCES = ['online', 'whatsapp'];
+    public const SOURCES = ['online'];
 
     /** button action => confirm_status */
     public const ACTIONS = ['confirm' => 'confirmed', 'edit' => 'edit', 'cancel' => 'cancel_requested'];

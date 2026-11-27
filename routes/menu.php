@@ -4,6 +4,7 @@ use App\Http\Controllers\Menu\AccountController;
 use App\Http\Controllers\Menu\BoardController;
 use App\Http\Controllers\Menu\BrandAssetController;
 use App\Http\Controllers\Menu\CardAppController;
+use App\Http\Controllers\Menu\CatalogFeedController;
 use App\Http\Controllers\Menu\CompanyPortalController;
 use App\Http\Controllers\Menu\CorporateVoucherController;
 use App\Http\Controllers\Menu\FeedbackController;
@@ -37,6 +38,8 @@ Route::get('/about', [ProfileController::class, 'show'])->middleware('page.cache
 Route::get('/brand/{file}', [BrandAssetController::class, 'show'])->where('file', '[0-9a-f-]{36}\.svg')->name('brand.asset');
 // shareable link of one item: the menu with the item opened (full page in the professional display)
 Route::get('/item/{item}', [MenuController::class, 'item'])->whereNumber('item')->middleware('page.cache:menu')->name('item');
+// the menu as a Meta catalog data feed for the restaurant's ads (Commerce Manager fetches it on a schedule)
+Route::get('/catalog/meta.csv', [CatalogFeedController::class, 'meta'])->middleware('throttle:30,1')->name('catalog.meta');
 // the menu counts a visit from a page the page cache served (MenuController::visit)
 Route::get('/visit', [MenuController::class, 'visit'])->middleware('throttle:30,1')->name('visit');
 Route::get('/t/{token}', [MenuController::class, 'table'])->where('token', '[a-f0-9]{20}')->name('table');

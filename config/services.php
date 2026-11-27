@@ -83,6 +83,11 @@ return [
 
     // The hosting account EgHub runs on (App\Services\HostingDomains): approving a restaurant's domain adds it there
     // as an alias of the app (same folder) and starts AutoSSL. token = cPanel → Manage API Tokens. Empty: done by hand.
+    // Meta Conversions API (App\Services\Marketing\MetaConversions): the Graph API version of the /events calls
+    'meta_capi' => [
+        'version' => env('META_GRAPH_VERSION', 'v23.0'),
+    ],
+
     'cpanel' => [
         'host' => env('CPANEL_HOST', '127.0.0.1'),
         'port' => (int) env('CPANEL_PORT', 2083),

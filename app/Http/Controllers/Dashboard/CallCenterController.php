@@ -101,6 +101,8 @@ class CallCenterController extends Controller
         return response()->json([
             // the number they called from stays the order's; the other one of the customer is shown as the second
             'found' => true, 'phone' => $phone, 'name' => $customer->name,
+            // the caller's chat on WhatsApp Web (a mobile only)
+            'whatsapp' => ($mobile = normalize_phone($phone)) !== null ? 'https://web.whatsapp.com/send?phone='.whatsapp_number($mobile) : null,
             'phone_2' => $customer->phone === $phone ? $customer->phone_2 : $customer->phone,
             'notes' => $customer->notes, 'addresses' => $addresses,
             'orders_count' => Order::query()->where('customer_id', $customer->id)->where('status', '!=', 'cancelled')->count(),
@@ -135,6 +137,8 @@ class CallCenterController extends Controller
             'customer_name' => 'nullable|string|max:100',
             'customer_phone' => 'required|string|max:20',
             'phone_2' => 'nullable|string|max:20',
+            // where the guest reached the call center: a phone call, or a WhatsApp chat (counted as a WhatsApp order)
+            'channel' => ['nullable', Rule::in(['callcenter', 'whatsapp'])],
             'discount' => 'nullable|numeric|min:0',
             'zone_id' => ['nullable', 'integer'],
             'address' => ['nullable', 'required_if:type,delivery', 'string', 'max:300'],
@@ -171,7 +175,7 @@ class CallCenterController extends Controller
             + ($point ? ['lat' => $point[0], 'lng' => $point[1]] : []) : null;
 
         try {
-            $order = $orders->place($data + ['source' => 'callcenter', 'delivery_zone' => $zone, 'delivery_address' => $address], $branch, null, $request->user());
+            $order = $orders->place($data + ['source' => $data['channel'] ?? 'callcenter', 'delivery_zone' => $zone, 'delivery_address' => $address], $branch, null, $request->user());
         } catch (OrderException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -219,7 +223,7 @@ class CallCenterController extends Controller
 
         try {
             $order = $orders->place($data + [
-                'source' => 'callcenter', 'delivery_zone' => null, 'delivery_address' => $address,
+                'source' => $data['channel'] ?? 'callcenter', 'delivery_zone' => null, 'delivery_address' => $address,
                 'delivery_quote' => ['fee' => $quote['fee'], 'min' => $quote['min'], 'label' => $quote['label']],
             ], $branch, null, $request->user());
         } catch (OrderException $e) {

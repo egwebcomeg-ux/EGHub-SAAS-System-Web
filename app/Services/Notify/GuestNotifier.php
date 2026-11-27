@@ -31,10 +31,10 @@ final class GuestNotifier
     ];
 
     /** Orders the guest placed without staff in front of them get a "we received it" message. */
-    public const RECEIVED_SOURCES = ['online', 'callcenter', 'kiosk'];
+    public const RECEIVED_SOURCES = ['online', 'callcenter', 'whatsapp', 'kiosk'];
 
     /** Orders nobody at the counter typed in: the branch's WhatsApp gets a "new order" alert (setting wa_order_to_staff). */
-    public const STAFF_ALERT_SOURCES = ['qr', 'online', 'whatsapp', 'kiosk'];
+    public const STAFF_ALERT_SOURCES = ['qr', 'online', 'kiosk'];
 
     public function __construct(private WhatsApp $whatsapp) {}
 

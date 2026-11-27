@@ -32,6 +32,7 @@ use App\Http\Controllers\Dashboard\DriversController;
 use App\Http\Controllers\Dashboard\EmailVerificationController;
 use App\Http\Controllers\Dashboard\ExpensesController;
 use App\Http\Controllers\Dashboard\FeedbackController;
+use App\Http\Controllers\Dashboard\FollowUpController;
 use App\Http\Controllers\Dashboard\HoldsController;
 use App\Http\Controllers\Dashboard\HomeController;
 use App\Http\Controllers\Dashboard\InventoryController;
@@ -600,6 +601,12 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
     });
     Route::post('/drivers/{driver}/settle', [DriversController::class, 'settle'])->whereNumber('driver')
         ->middleware(['feature:'.FeatureSets::DELIVERY, 'permission:delivery.drivers'])->name('drivers.settle');
+
+    // «متابعة العملاء»: every order of the day with a WhatsApp Web button (App\Services\Orders\FollowUp), on every plan
+    Route::middleware('permission:callcenter.use|orders.manage')->group(function () {
+        Route::get('/follow-up', [FollowUpController::class, 'index'])->name('followup');
+        Route::post('/follow-up/{order}', [FollowUpController::class, 'mark'])->whereNumber('order')->middleware('throttle:120,1')->name('followup.mark');
+    });
 
     // Call-center pack: phone orders with delivery zones
     // a cashier takes delivery orders here too (the POS «توصيل» button)

@@ -101,9 +101,11 @@ final class StaffPush
         }
         $order->loadMissing('branch');
         $type = Order::TYPES[$order->type][app()->getLocale() === 'en' ? 1 : 0] ?? $order->type;
-        $title = $order->source === 'callcenter'
-            ? __('New call-center order #:n', ['n' => $order->number])
-            : __('New online order #:n', ['n' => $order->number]);
+        $title = match ($order->source) {
+            'callcenter' => __('New call-center order #:n', ['n' => $order->number]),
+            'whatsapp' => __('New WhatsApp order #:n', ['n' => $order->number]),
+            default => __('New online order #:n', ['n' => $order->number]),
+        };
         $this->notify('order_new', $order->branch_id, $title,
             trim($type.' · '.money($order->total).' · '.$order->customer_name, ' ·'),
             ['url' => platform_url('app', '/orders'), 'order' => (string) $order->id]);

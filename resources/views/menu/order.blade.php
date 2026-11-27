@@ -4,7 +4,7 @@
 @push('head')
 @include('menu.partials.theme')
 @include('menu.partials.pixels', ['purchase' => $order->status === 'cancelled' ? null : [
-    'id' => $order->number, 'value' => round((float) $order->total, 2),
+    'id' => $order->number, 'event_id' => \App\Services\Marketing\MetaConversions::eventId($order), 'value' => round((float) $order->total, 2),
     'items' => $order->items->map(fn ($i) => ['id' => $i->menu_item_id, 'name' => $i->name, 'quantity' => $i->quantity, 'price' => round((float) $i->unit_price, 2)])->values()->all(),
 ]])
 <style>

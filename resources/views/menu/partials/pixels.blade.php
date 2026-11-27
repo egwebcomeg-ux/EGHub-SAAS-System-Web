@@ -1,7 +1,9 @@
 {{--
     Ad tracking pixels of the restaurant (App\Services\Marketing\TrackingPixels), public menu pages only.
-    Defines window.egmTrack(event, params) for ViewContent / AddToCart / Purchase from the menu script; PageView fires here.
-    $purchase (optional): ['id' => order number, 'value' => total, 'items' => [{id, name, qty}]] fires Purchase once per order.
+    Defines window.egmTrack(event, params) for ViewContent / AddToCart / InitiateCheckout / Purchase from the menu script;
+    PageView fires here, Contact on a tap of a WhatsApp or phone link.
+    $purchase (optional): ['id' => order number, 'event_id' => MetaConversions::eventId(), 'value' => total, 'items' => [{id, name, qty}]]
+    fires Purchase once per order; the server sends the same event id (Conversions API), so Meta counts the order once.
 --}}
 @php
     $pixelIds = \App\Services\Marketing\TrackingPixels::ids();
@@ -10,14 +12,19 @@
 @if (array_filter($pixelIds))
 <script data-egm-pixels>
 (function () {
-    var ga4 = { ViewContent: 'view_item', AddToCart: 'add_to_cart', Purchase: 'purchase' };
-    var tiktok = { ViewContent: 'ViewContent', AddToCart: 'AddToCart', Purchase: 'PlaceAnOrder' };
+    var ga4 = { ViewContent: 'view_item', AddToCart: 'add_to_cart', InitiateCheckout: 'begin_checkout', Purchase: 'purchase', Contact: 'generate_lead' };
+    var tiktok = { ViewContent: 'ViewContent', AddToCart: 'AddToCart', InitiateCheckout: 'InitiateCheckout', Purchase: 'PlaceAnOrder', Contact: 'Contact' };
     window.egmTrack = function (event, params) {
         params = Object.assign({ currency: 'EGP' }, params || {});
-        try { if (window.fbq) fbq('track', event, params); } catch (e) {}
+        try { if (window.fbq) fbq('track', event, params, params.event_id ? { eventID: params.event_id } : undefined); } catch (e) {}
         try { if (window.gtag && ga4[event]) gtag('event', ga4[event], Object.assign({ transaction_id: params.order_id }, params)); } catch (e) {}
         try { if (window.ttq && tiktok[event]) ttq.track(tiktok[event], params); } catch (e) {}
     };
+    // a tap on the restaurant's WhatsApp or phone: Contact (ads that bring chats and calls are measured too)
+    document.addEventListener('click', function (e) {
+        var link = e.target.closest && e.target.closest('a[href^="https://wa.me/"], a[href^="https://api.whatsapp.com/"], a[href^="tel:"]');
+        if (link) window.egmTrack('Contact', { content_name: link.href.indexOf('tel:') === 0 ? 'phone' : 'whatsapp' });
+    }, true);
 })();
 </script>
 @if ($pixelIds['meta'])
@@ -54,7 +61,7 @@ gtag('config', '{{ $pixelIds['ga4'] }}', { currency: 'EGP' });
     var key = 'egm-purchased-' + p.id;
     try { if (localStorage.getItem(key)) return; localStorage.setItem(key, '1'); } catch (e) {}
     window.addEventListener('load', function () {
-        window.egmTrack('Purchase', { order_id: String(p.id), value: p.value, currency: 'EGP', num_items: p.items.length,
+        window.egmTrack('Purchase', { order_id: String(p.id), event_id: p.event_id, value: p.value, currency: 'EGP', num_items: p.items.length,
             content_type: 'product', content_ids: p.items.map(function (i) { return String(i.id); }), contents: p.items });
     });
 })();

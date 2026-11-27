@@ -564,7 +564,47 @@
                 <div><label class="field-label" for="meta_pixel_id">Meta Pixel ID</label><input class="field" id="meta_pixel_id" name="meta_pixel_id" value="{{ old('meta_pixel_id', $s['meta_pixel_id']) }}" dir="ltr" inputmode="numeric" placeholder="123456789012345">@error('meta_pixel_id')<div class="field-error">{{ $message }}</div>@enderror</div>
                 <div><label class="field-label" for="ga4_measurement_id">Google Analytics 4</label><input class="field" id="ga4_measurement_id" name="ga4_measurement_id" value="{{ old('ga4_measurement_id', $s['ga4_measurement_id']) }}" dir="ltr" placeholder="G-XXXXXXXXXX">@error('ga4_measurement_id')<div class="field-error">{{ $message }}</div>@enderror</div>
                 <div><label class="field-label" for="tiktok_pixel_id">TikTok Pixel ID</label><input class="field" id="tiktok_pixel_id" name="tiktok_pixel_id" value="{{ old('tiktok_pixel_id', $s['tiktok_pixel_id']) }}" dir="ltr" placeholder="CXXXXXXXXXXXXXXXXXXX">@error('tiktok_pixel_id')<div class="field-error">{{ $message }}</div>@enderror</div>
-                <p class="rounded-xl bg-navy-50 p-3 text-xs text-navy-600 sm:col-span-3">{{ __('Privacy: the pixels belong to your own ad accounts and only see what guests do on your menu pages, never their names or phone numbers. You are responsible for telling your guests about them, as described in the') }}
+                <div class="grid gap-3 rounded-xl border border-navy-100 p-3 sm:col-span-3 sm:grid-cols-2" data-capi>
+                    <div class="sm:col-span-2">
+                        <h3 class="font-bold">{{ __('Meta Conversions API') }}</h3>
+                        <p class="text-sm text-navy-500">{{ __('Your server also tells your Meta pixel about every order really placed: the ones the browser loses (iPhones, ad blockers) and the phone and WhatsApp orders the call center types in. Each order is counted once.') }}</p>
+                    </div>
+                    <div>
+                        <label class="field-label" for="meta_capi_token">{{ __('Access token (Events Manager → Settings → Conversions API)') }}</label>
+                        <input class="field" id="meta_capi_token" name="meta_capi_token" type="password" autocomplete="off" dir="ltr" placeholder="{{ $capiToken ? '••••••••' : '' }}">
+                        @error('meta_capi_token')<div class="field-error">{{ $message }}</div>@enderror
+                        @if ($capiToken)<label class="mt-1 flex items-center gap-2 text-xs"><input type="checkbox" name="remove_meta_capi_token" value="1" class="size-4 accent-brand-600"> {{ __('Remove the saved token') }}</label>@endif
+                        <p class="mt-1 text-xs text-navy-500">{{ __('Stored encrypted and never shown again.') }}</p>
+                    </div>
+                    <div>
+                        <label class="field-label" for="meta_test_event_code">{{ __('Test event code (optional, while checking the setup)') }}</label>
+                        <input class="field" id="meta_test_event_code" name="meta_test_event_code" value="{{ old('meta_test_event_code', $s['meta_test_event_code']) }}" dir="ltr" placeholder="TEST12345">
+                        @error('meta_test_event_code')<div class="field-error">{{ $message }}</div>@enderror
+                        <p class="mt-1 text-xs text-navy-500">{{ __('Empty it once the events show in Meta, or they keep going to the test tab only.') }}</p>
+                    </div>
+                    @if ($capiToken)
+                        <p @class(['rounded-lg px-3 py-2 text-sm font-semibold sm:col-span-2', 'bg-emerald-50 text-emerald-800' => ($capiStatus['ok'] ?? null) === true, 'bg-red-50 text-red-700' => ($capiStatus['ok'] ?? null) === false, 'bg-navy-50 text-navy-600' => ! isset($capiStatus['ok'])]) data-capi-status>
+                            @if (! isset($capiStatus['ok']))
+                                {{ __('Saved. The next order will be sent to Meta.') }}
+                            @elseif ($capiStatus['ok'])
+                                ✓ {{ __('Meta received the last order at :time.', ['time' => local_time(\Illuminate\Support\Carbon::parse($capiStatus['at']), 'd/m h:i A')]) }}
+                            @else
+                                {{ __('Meta refused the last order: :error', ['error' => $capiStatus['error'] ?? '']) }}
+                            @endif
+                        </p>
+                    @endif
+                </div>
+                <div class="rounded-xl border border-navy-100 p-3 sm:col-span-3" data-catalog-feed>
+                    <h3 class="font-bold">{{ __('Catalog for Meta ads') }}</h3>
+                    <p class="text-sm text-navy-500">{{ __('Your dishes with their photos and current prices, for catalog ads that show a guest the dish they looked at. In Commerce Manager: Catalog → Data sources → Scheduled feed, paste this link and update it every hour, then connect the same pixel to the catalog.') }}</p>
+                    @php $catalogUrl = tenant()->url('catalog/meta.csv'); @endphp
+                    <div class="mt-2 flex gap-2">
+                        <input class="field min-w-0 flex-1" value="{{ $catalogUrl }}" readonly dir="ltr" data-catalog-url onclick="this.select()">
+                        <button type="button" class="btn-ghost shrink-0 px-4" onclick="const f = this.previousElementSibling; f.select(); navigator.clipboard?.writeText(f.value).catch(() => {}); this.textContent = @js(__('Copied'));">{{ __('Copy') }}</button>
+                    </div>
+                    <p class="mt-1 text-xs text-navy-500">{{ __('Only dishes with a photo and a price are in it.') }}</p>
+                </div>
+                <p class="rounded-xl bg-navy-50 p-3 text-xs text-navy-600 sm:col-span-3">{{ __('Privacy: the pixels belong to your own ad accounts and see what guests do on your menu pages. With the Conversions API your server also sends each order with the mobile and first name of the guest, hashed so Meta can only match them to its own users and never read them. You are responsible for telling your guests about this, as described in the') }}
                     <a href="{{ route('privacy') }}" target="_blank" rel="noopener" class="font-semibold text-brand-700 underline">{{ __('Privacy policy') }}</a>.</p>
             @else
                 <div class="rounded-xl bg-navy-50 p-3 text-sm sm:col-span-3">

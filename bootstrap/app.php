@@ -42,8 +42,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // LiteSpeed page cache (App\Services\PageCache): last, so it sees every cookie of the response. Public pages opt in
         // with page.cache:{landing|directory|menu}; every other response is no-cache; purges ride on any response.
         $middleware->append(LiteSpeedCacheHeaders::class);
-        // the marketing site's language stays readable by the cache (one copy per value), it is not a secret
-        $middleware->encryptCookies(except: [PageCache::LANDING_LANG_COOKIE]);
+        // the marketing site's language stays readable by the cache (one copy per value), it is not a secret; the Meta
+        // pixel's own cookies are written by its script and read back by App\Services\Marketing\MetaConversions
+        $middleware->encryptCookies(except: [PageCache::LANDING_LANG_COOKIE, '_fbp', '_fbc']);
         // Inbound WhatsApp (Meta / provider) is server-to-server: authenticated by signature or shared secret, not CSRF.
         // The payment gateway's webhook (app.<domain>/billing/kashier/webhook) is signed by the gateway the same way.
         $middleware->validateCsrfTokens(except: ['webhooks/meta', 'webhooks/whatsapp', 'webhooks/whatsapp/*', 'billing/*/webhook']);

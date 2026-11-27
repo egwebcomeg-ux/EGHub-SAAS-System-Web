@@ -55,6 +55,10 @@ final class Settings
         'meta_pixel_id' => '',
         'ga4_measurement_id' => '',
         'tiktok_pixel_id' => '',
+        // Meta Conversions API (App\Services\Marketing\MetaConversions): the token is stored encrypted
+        'meta_capi_token' => '',
+        'meta_test_event_code' => '',
+        'meta_capi_status' => '',
         // ordering
         'ordering_enabled' => '1',
         'whatsapp_ordering' => '0',
