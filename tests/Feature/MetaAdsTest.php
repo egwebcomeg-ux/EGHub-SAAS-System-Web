@@ -154,7 +154,7 @@ class MetaAdsTest extends TenantTestCase
         $this->assertSame(['Latte', 'Espresso, milk', 'in stock', 'new', '65.00 EGP'], array_slice($byId[(string) $latte->id], 1, 5));
         $this->assertSame('out of stock', $byId[(string) $mocha->id][3]);
         $this->assertStringEndsWith('/cafe-a/item/'.$latte->id, $byId[(string) $latte->id][7]);
-        $this->assertStringEndsWith('/cafe-a/storage/items/latte.jpg', $byId[(string) $latte->id][8]);
+        $this->assertSame('http://egmenu.test/storage/items/latte.jpg', $byId[(string) $latte->id][8]);
         $this->assertStringNotContainsString('Other restaurant tea', $response->streamedContent());
 
         // the owner copies the link from the settings page; a plan without the pixels has no feed

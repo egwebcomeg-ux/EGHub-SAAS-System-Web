@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\MenuItem;
 use App\Services\Marketing\TrackingPixels;
 use App\Services\Menu\MenuCatalog;
+use App\Services\Seo\RestaurantProfile;
 use App\Services\Settings;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -28,10 +29,11 @@ class CatalogFeedController extends Controller
 
         // the rows are read now: the stream runs after the request, when the restaurant is no longer the current one
         $rows = [];
+        $profile = app(RestaurantProfile::class);
         foreach ($catalog->categories() as $category) {
             foreach ($category->items as $item) {
                 if ($item->image && (float) $item->price > 0) {
-                    $rows[] = self::row($item, $category, $brand);
+                    $rows[] = self::row($item, $category, $brand, $profile);
                 }
             }
         }
@@ -47,7 +49,7 @@ class CatalogFeedController extends Controller
     }
 
     /** @return list<string> */
-    private static function row(MenuItem $item, Category $category, string $brand): array
+    private static function row(MenuItem $item, Category $category, string $brand, RestaurantProfile $profile): array
     {
         $title = mb_substr(trim((string) $item->name), 0, 150);
         $description = trim(preg_replace('/\s+/u', ' ', strip_tags((string) $item->description)) ?? '');
@@ -63,7 +65,8 @@ class CatalogFeedController extends Controller
             $price((float) ($offer ?? $item->price)),
             $offer !== null ? $price((float) $item->price) : '',
             tenant()->url('item/'.$item->id),
-            tenant()->url('storage/'.ltrim((string) $item->image, '/')),
+            // uploads are served from the root of the host, not under the restaurant's path
+            (string) $profile->imageUrl((string) $item->image),
             mb_substr($brand, 0, 100),
             mb_substr(trim((string) $category->name), 0, 750),
         ];
