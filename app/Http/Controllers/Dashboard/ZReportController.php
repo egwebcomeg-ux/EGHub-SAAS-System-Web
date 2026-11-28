@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\PosTerminal;
+use App\Services\Orders\ShiftService;
 use App\Services\Printing\PrintJobs;
 use App\Services\Reports\ZReport;
 use App\Services\Settings;
@@ -25,6 +26,8 @@ class ZReportController extends Controller
             'date' => 'nullable|date_format:Y-m-d', 'branch' => 'nullable|integer', 'terminal' => 'nullable|integer',
             'format' => ['nullable', Rule::in(['80mm', 'a4', 'csv', 'xlsx', 'job'])],
         ]);
+        // blind count: the day's cash is on this report, so a cashier reads it once their own shift is closed
+        abort_if(ShiftService::blindFor($request->user()) && app(ShiftService::class)->current($request->user()), 403, __('Close your shift first: the count is blind, the report opens after it.'));
         $today = CarbonImmutable::parse(local_today());
         $day = $request->filled('date') ? CarbonImmutable::createFromFormat('Y-m-d', (string) $request->query('date'))->startOfDay() : $today;
         if ($day->gt($today)) {

@@ -45,6 +45,8 @@ class ShiftsController extends Controller
             // drivers holding the cash of their deliveries: the cashier takes it the same way
             'driverCash' => $current ? DeliveryService::holders($current->branch_id) : collect(),
             'stale' => $current && ShiftService::isStale($current),
+            // blind count: this user closes without the expected cash on the page
+            'blind' => ShiftService::blindFor($request->user()),
             // a manager closes the shift a cashier left open (other people's, in their own branch)
             'openShifts' => Permissions::isManager($request->user())
                 ? Shift::query()->with(['user', 'terminal'])->whereNull('closed_at')->where('user_id', '!=', $request->user()->id)
@@ -130,7 +132,7 @@ class ShiftsController extends Controller
         Audit::record('shift.cash_'.$move->type, $move->reason, ['amount' => $move->amount, 'category' => $move->category, 'shift' => $shift->id]);
         if ($request->expectsJson()) {
             // the POS drawer window: the new expected cash at once
-            return response()->json(['ok' => true, 'expected_cash' => $shifts->summary($shift)['expected_cash']]);
+            return response()->json(['ok' => true, 'expected_cash' => ShiftService::blindFor($request->user()) ? null : $shifts->summary($shift)['expected_cash']]);
         }
 
         return back()->with('ok', __('Saved.'));
@@ -145,6 +147,9 @@ class ShiftsController extends Controller
         } catch (OrderException $e) {
             // e.g. a driver or a waiter still holds cash of this branch: said on the page, the shift stays open
             return back()->withInput()->withErrors(['shift' => $e->getMessage()]);
+        }
+        if (ShiftService::blindFor($request->user())) {
+            return back()->with('ok', __('Shift closed. The manager reviews the count.'));
         }
         $diff = $shifts->summary($shift)['difference'];
 

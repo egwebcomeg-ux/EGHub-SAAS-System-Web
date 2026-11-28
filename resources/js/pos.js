@@ -2013,7 +2013,7 @@ if (dataEl) {
                 const r = await api(D.urls.cashMove, {
                     type: $('[data-cash-type]:checked').value, amount, reason: $('[data-cash-reason]').value.trim(), category: $('[data-cash-category]').value || null,
                 });
-                show('[data-cash-done]', T.cashSaved.replace('__A__', fmt(r.expected_cash)));
+                show('[data-cash-done]', r.expected_cash == null ? T.cashSavedBlind : T.cashSaved.replace('__A__', fmt(r.expected_cash)));
                 $('[data-cash-amount]').value = '';
                 $('[data-cash-reason]').value = '';
             } catch (ex) {

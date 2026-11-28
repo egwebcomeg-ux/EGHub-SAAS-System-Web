@@ -44,20 +44,27 @@
             <div class="grid gap-3 sm:grid-cols-3">
                 <div class="rounded-xl bg-navy-50 p-3"><div class="muted">{{ __('Opening cash') }}</div><div class="text-xl font-extrabold">{{ money($current->opening_cash) }}</div></div>
                 <div class="rounded-xl bg-navy-50 p-3"><div class="muted">{{ __('Paid orders') }}</div><div class="text-xl font-extrabold">{{ $summary['orders'] }}</div></div>
-                <div class="rounded-xl bg-brand-50 p-3"><div class="muted">{{ __('Expected cash in drawer') }}</div><div class="text-xl font-extrabold text-brand-700">{{ money($summary['expected_cash']) }}</div></div>
+                @if ($blind)
+                    <div class="rounded-xl bg-brand-50 p-3" data-blind-count><div class="muted">{{ __('Expected cash in drawer') }}</div><div class="text-sm font-semibold text-brand-700">{{ __('Blind count: count the drawer and write what you find.') }}</div></div>
+                @else
+                    <div class="rounded-xl bg-brand-50 p-3" data-expected-cash><div class="muted">{{ __('Expected cash in drawer') }}</div><div class="text-xl font-extrabold text-brand-700">{{ money($summary['expected_cash']) }}</div></div>
+                @endif
             </div>
             <table class="table-base mt-4">
                 <tbody>
                 @foreach ($methods as $key => $label)
                     @continue(in_array($key, ['credit', 'corporate'], true) && empty($summary['by_method'][$key]))
+                    @continue($blind && $key === 'cash')
                     <tr @if ($key === 'corporate') data-shift-corporate @endif><td>{{ $label }}@if ($key === 'corporate') <span class="muted">· {{ __('not cash in the drawer') }}</span>@endif</td><td class="text-end font-semibold">{{ money($summary['by_method'][$key]) }}</td></tr>
                 @endforeach
                 @foreach ($summary['prepaid'] as $key => $amount)
+                    @continue($blind && $key === 'cash')
                     <tr><td>{{ __('Wallet top-ups & gift cards') }} · {{ $methods[$key] ?? $key }}</td><td class="text-end font-semibold text-emerald-700">+{{ money($amount) }}</td></tr>
                 @endforeach
                 <tr><td>{{ __('Cash in') }}</td><td class="text-end font-semibold text-emerald-700">+{{ money($summary['cash_in']) }}</td></tr>
                 <tr><td>{{ __('Cash out') }}@if ($summary['expenses'] > 0) <span class="muted">· {{ __('of it expenses :amount', ['amount' => money($summary['expenses'])]) }}</span>@endif</td><td class="text-end font-semibold text-navy-700">−{{ money($summary['cash_out']) }}</td></tr>
                 @foreach ($summary['refunds'] as $key => $amount)
+                    @continue($blind && $key === 'cash')
                     <tr data-shift-refund><td>{{ __('Refunds') }} · {{ $methods[$key] ?? $key }} <span class="muted">· {{ __('already taken off above') }}</span></td><td class="text-end font-semibold text-red-600">−{{ money($amount) }}</td></tr>
                 @endforeach
                 </tbody>
@@ -143,7 +150,7 @@
                 <li class="flex flex-wrap items-end justify-between gap-3 py-3" data-open-shift="{{ $s->id }}">
                     <span><b>{{ $s->user?->name }}</b>@if ($s->terminal) <span class="muted text-sm">· {{ $s->terminal->label() }}</span>@endif
                         <span @class(['block text-sm', 'font-semibold text-red-700' => \App\Services\Orders\ShiftService::isStale($s), 'muted' => ! \App\Services\Orders\ShiftService::isStale($s)])>{{ __('Since :time', ['time' => local_time($s->opened_at, 'm/d h:i A')]) }}</span>
-                        <span class="block text-sm">{{ __('Expected cash in drawer') }}: <b>{{ money($sum['expected_cash']) }}</b></span></span>
+                        <span class="block text-sm" data-open-expected="{{ $sum['expected_cash'] }}">{{ __('Expected cash in drawer') }}: <b>{{ money($sum['expected_cash']) }}</b></span></span>
                     <form method="post" action="{{ route('dash.shifts.close.other', $s) }}" class="flex flex-wrap items-end gap-2" onsubmit="return confirm(@js(__('Close the shift of :name?', ['name' => $s->user?->name])))">
                         @csrf
                         <input class="field w-36" name="closing_cash" type="number" min="0" step="1" required placeholder="{{ __('Counted cash in drawer') }}" aria-label="{{ __('Counted cash in drawer') }}">
@@ -180,9 +187,13 @@
                     <td>{{ local_time($s->opened_at, 'm/d h:i A') }}</td>
                     <td>{{ local_time($s->closed_at, 'm/d h:i A') }}</td>
                     <td>{{ money($sum['total']) }}</td>
-                    <td>{{ money($s->expected_cash) }}</td>
+                    <td>{{ $blind ? '—' : money($s->expected_cash) }}</td>
                     <td>{{ money($s->closing_cash) }}</td>
-                    <td @class(['font-bold', 'text-red-600' => $sum['difference'] < 0, 'text-emerald-700' => $sum['difference'] >= 0])>{{ money($sum['difference']) }}</td>
+                    @if ($blind)
+                        <td>—</td>
+                    @else
+                        <td data-shift-diff="{{ $sum['difference'] }}" @class(['font-bold', 'text-red-600' => $sum['difference'] < 0, 'text-emerald-700' => $sum['difference'] >= 0])>{{ money($sum['difference']) }}</td>
+                    @endif
                 </tr>
             @endforeach
             </tbody>

@@ -9,6 +9,8 @@ use App\Models\OrderRefund;
 use App\Models\PosTerminal;
 use App\Models\Shift;
 use App\Models\User;
+use App\Services\Settings;
+use App\Support\Permissions;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -23,6 +25,18 @@ final class ShiftService
      * company's prepaid vouchers (CorporateVouchers): the part of an order they paid (orders.corporate_amount).
      */
     public const METHODS = ['cash', 'card', 'instapay', 'wallet', 'credit', 'corporate'];
+
+    /** Blind count (setting shift_blind_count): the restaurant hides the expected cash from whoever counts the drawer. */
+    public static function blindCount(): bool
+    {
+        return Settings::get('shift_blind_count') === '1';
+    }
+
+    /** Whether $user counts blind: the cash figures of a shift stay hidden from everyone but the owner and managers. */
+    public static function blindFor(User $user): bool
+    {
+        return self::blindCount() && ! Permissions::isManager($user);
+    }
 
     /**
      * How a paid order's total splits by method: the corporate vouchers' part, and the rest by the order's method.

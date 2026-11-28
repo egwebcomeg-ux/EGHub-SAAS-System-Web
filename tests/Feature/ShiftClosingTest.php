@@ -134,6 +134,42 @@ class ShiftClosingTest extends TenantTestCase
         $this->actingAs($cashier)->get($this->dashUrl('/shifts'))->assertOk()->assertDontSee('data-shift-stale', false);
     }
 
+    public function test_with_the_blind_count_a_cashier_closes_without_the_expected_cash_and_the_manager_still_sees_it(): void
+    {
+        $a = $this->cafe();
+        $cashier = $this->staff($a, 'cashier', 'cashier@cafe-a.test');
+        $manager = $this->staff($a, 'manager', 'manager@cafe-a.test');
+        $this->actingAs($cashier)->post($this->dashUrl('/pos/terminals/blind-count'), ['shift_blind_count' => 1])->assertForbidden();
+        $this->actingAs($manager)->get($this->dashUrl('/pos/terminals'))->assertOk()->assertSee('data-blind-count', false);
+        $this->actingAs($manager)->post($this->dashUrl('/pos/terminals/blind-count'), ['shift_blind_count' => 1])->assertSessionHasNoErrors();
+        $this->actingAs($cashier)->post($this->dashUrl('/shifts/open'), ['opening_cash' => 150])->assertSessionHasNoErrors();
+
+        // nothing on the cashier's side tells what the drawer should hold: the page, the drawer window, the day's report
+        $this->actingAs($cashier)->get($this->dashUrl('/shifts'))->assertOk()->assertSee('data-blind-count', false)->assertDontSee('data-expected-cash', false);
+        $this->actingAs($cashier)->postJson($this->dashUrl('/shifts/move'), ['type' => 'in', 'amount' => 50, 'reason' => 'Float'])->assertOk()->assertJsonPath('expected_cash', null);
+        $this->actingAs($cashier)->get($this->dashUrl('/pos/z-report'))->assertForbidden();
+        $this->actingAs($manager)->get($this->dashUrl('/shifts'))->assertOk()->assertSee('data-open-expected="200"', false);
+
+        $this->actingAs($cashier)->post($this->dashUrl('/shifts/close'), ['closing_cash' => 180])->assertSessionHas('ok', 'اتقفلت الوردية. المدير هيراجع العدّ.');
+        $shift = $this->as($a, fn () => Shift::query()->sole());
+        $this->assertSame([200.0, 180.0], [$shift->expected_cash, $shift->closing_cash]);
+        // closed: the report opens, the cashier's own history keeps the count without the gap, the manager reads it
+        $this->actingAs($cashier)->get($this->dashUrl('/pos/z-report'))->assertOk();
+        $this->actingAs($cashier)->get($this->dashUrl('/shifts'))->assertOk()->assertDontSee('data-shift-diff', false);
+        $this->actingAs($manager)->get($this->dashUrl('/shifts'))->assertOk()->assertSee('data-shift-diff="-20"', false);
+    }
+
+    public function test_without_the_blind_count_the_cashier_sees_the_expected_cash(): void
+    {
+        $a = $this->cafe();
+        $cashier = $this->staff($a, 'cashier', 'cashier@cafe-a.test');
+        $this->actingAs($cashier)->post($this->dashUrl('/shifts/open'), ['opening_cash' => 150])->assertSessionHasNoErrors();
+
+        $this->actingAs($cashier)->get($this->dashUrl('/shifts'))->assertOk()->assertSee('data-expected-cash', false)->assertDontSee('data-blind-count', false);
+        $this->actingAs($cashier)->postJson($this->dashUrl('/shifts/move'), ['type' => 'in', 'amount' => 50, 'reason' => 'Float'])->assertOk()->assertJsonPath('expected_cash', 200);
+        $this->actingAs($cashier)->get($this->dashUrl('/pos/z-report'))->assertOk();
+    }
+
     public function test_the_morning_digest_names_the_shift_left_open_and_the_cash_not_handed_in(): void
     {
         $a = $this->cafe();

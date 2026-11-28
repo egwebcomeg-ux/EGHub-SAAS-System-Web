@@ -8038,5 +8038,11 @@
     "Close the shift of :name?": "تقفل وردية :name؟",
     "Shift of :name closed. Difference: :diff": "وردية :name اتقفلت. الفرق: :diff",
     "Shift of :user is still open since :time: count the drawer and close it.": "وردية :user لسه مفتوحة من :time: عدّ الدرج واقفلها.",
-    "Drivers and waiters still hold :amount that was not handed in to the cashier.": "لسه مع الطيارين والويترز :amount ما اتسلّمتش للكاشير."
+    "Drivers and waiters still hold :amount that was not handed in to the cashier.": "لسه مع الطيارين والويترز :amount ما اتسلّمتش للكاشير.",
+    "Closing the shift": "تقفيل الوردية",
+    "Blind count: the cashier does not see the expected cash": "العدّ الأعمى: الكاشير ميشوفش الكاش المتوقع",
+    "The cashier counts the drawer and writes what is in it; the expected cash and the difference show only to the owner and the managers, so a shortage or a surplus is recorded as it is.": "الكاشير يعدّ الدرج ويكتب اللي فيه؛ المتوقع والفرق بيظهروا للمالك والمديرين بس، فأي عجز أو زيادة بيتسجل على حقيقته.",
+    "Blind count: count the drawer and write what you find.": "العدّ أعمى: عدّ الدرج واكتب اللي لقيته.",
+    "Shift closed. The manager reviews the count.": "اتقفلت الوردية. المدير هيراجع العدّ.",
+    "Close your shift first: the count is blind, the report opens after it.": "اقفل ورديتك الأول: العدّ أعمى، والتقرير بيفتح بعد التقفيل."
 }

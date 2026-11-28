@@ -658,7 +658,7 @@
             'leftOf' => __(':left of :qty left', ['left' => '__L__', 'qty' => '__Q__']),
             'pager' => \App\Services\Orders\Pager::staffTexts(),
             // cash in / out
-            'cashSaved' => __('Saved. Expected cash in the drawer: :amount', ['amount' => '__A__']), 'cashReason' => __('Write the reason.'),
+            'cashSaved' => __('Saved. Expected cash in the drawer: :amount', ['amount' => '__A__']), 'cashSavedBlind' => __('Saved.'), 'cashReason' => __('Write the reason.'),
         ];
     }
     if (! empty($data['corporate'])) {

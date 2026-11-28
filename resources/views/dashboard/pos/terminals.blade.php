@@ -98,6 +98,14 @@
             <p class="muted text-sm">{{ __('A waiter\'s order is sent only with its payment. The cash stays with the waiter until the cashier takes it on the shifts page; card, InstaPay and wallet go straight into the open shift. The cashier and the manager still open tables and pay at the end.') }}</p>
             <button class="btn-ghost w-full">{{ __('Save') }}</button>
         </form>
+        {{-- App\Services\Orders\ShiftService::blindFor: the cashier counts the drawer without the expected figure on the page --}}
+        <form method="post" action="{{ route('dash.terminals.blind') }}" class="card space-y-2" data-blind-count>
+            @csrf
+            <h2 class="section-title">{{ __('Closing the shift') }}</h2>
+            <label class="flex items-start gap-2 text-sm font-semibold"><input type="checkbox" class="mt-0.5 size-5" name="shift_blind_count" value="1" @checked($blindCount)> {{ __('Blind count: the cashier does not see the expected cash') }}</label>
+            <p class="muted text-sm">{{ __('The cashier counts the drawer and writes what is in it; the expected cash and the difference show only to the owner and the managers, so a shortage or a surplus is recorded as it is.') }}</p>
+            <button class="btn-ghost w-full">{{ __('Save') }}</button>
+        </form>
         {{-- Dashboard\PosController::requiresPhone: every cashier order is tied to a customer (found or saved with it) --}}
         <form method="post" action="{{ route('dash.terminals.phone') }}" class="card space-y-2" data-require-phone>
             @csrf

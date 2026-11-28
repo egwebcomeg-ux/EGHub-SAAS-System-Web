@@ -150,6 +150,8 @@ final class Settings
         'pos_offline_hours' => '12',
         // '1' = a waiter's POS order must be paid as it is sent, nothing reaches the kitchen unpaid (App\Services\Orders\WaiterCash)
         'pos_waiter_pay_first' => '0',
+        // '1' = blind count: a cashier closes the shift without seeing the expected cash, only managers see it (App\Services\Orders\ShiftService::blindFor)
+        'shift_blind_count' => '0',
         // '1' = no POS order without the customer's mobile (found or saved with the order; Dashboard\PosController)
         'pos_require_phone' => '0',
         // percent added to what is paid by mobile wallet at the POS, the call center and the door (App\Services\Orders\OrderService::walletFee)

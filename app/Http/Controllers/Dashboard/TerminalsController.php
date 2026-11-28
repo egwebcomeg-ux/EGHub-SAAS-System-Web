@@ -9,6 +9,7 @@ use App\Models\Shift;
 use App\Services\Audit;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\OrderService;
+use App\Services\Orders\ShiftService;
 use App\Services\Orders\Terminals;
 use App\Services\Orders\WaiterCash;
 use App\Services\Printing\PrintJobs;
@@ -33,7 +34,7 @@ class TerminalsController extends Controller
         return view('dashboard.pos.terminals', [
             'branches' => $branches, 'terminals' => $terminals, 'open' => $open, 'offlineHours' => Terminals::offlineHours(),
             'kitchenMinutes' => [(int) Settings::get('kitchen_warn_minutes'), (int) Settings::get('kitchen_late_minutes')],
-            'printing' => PrintJobs::settings(), 'waiterPayFirst' => WaiterCash::payFirst(),
+            'printing' => PrintJobs::settings(), 'waiterPayFirst' => WaiterCash::payFirst(), 'blindCount' => ShiftService::blindCount(),
             'requirePhone' => PosController::requiresPhone(), 'walletFee' => OrderService::walletFeePercent(),
         ]);
     }
@@ -55,6 +56,16 @@ class TerminalsController extends Controller
         $percent = (string) round((float) $data['wallet_fee_percent'], 2);
         Settings::put(['wallet_fee_percent' => $percent]);
         Audit::record('pos.wallet_fee', $percent);
+
+        return back()->with('ok', __('Saved.'));
+    }
+
+    /** Blind count: cashiers close their shift without seeing the expected cash, or not (ShiftService::blindFor). */
+    public function blindCount(Request $request): RedirectResponse
+    {
+        $on = $request->boolean('shift_blind_count');
+        Settings::put(['shift_blind_count' => $on ? '1' : '0']);
+        Audit::record('pos.blind_count', $on ? 'on' : 'off');
 
         return back()->with('ok', __('Saved.'));
     }

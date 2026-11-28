@@ -507,6 +507,7 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/pos/terminals', [TerminalsController::class, 'store'])->name('terminals.store');
         Route::post('/pos/terminals/settings', [TerminalsController::class, 'settings'])->name('terminals.settings');
         Route::post('/pos/terminals/waiter-payment', [TerminalsController::class, 'waiterPayment'])->name('terminals.waiter');
+        Route::post('/pos/terminals/blind-count', [TerminalsController::class, 'blindCount'])->name('terminals.blind');
         Route::post('/pos/terminals/customer-phone', [TerminalsController::class, 'customerPhone'])->name('terminals.phone');
         Route::post('/pos/terminals/wallet-fee', [TerminalsController::class, 'walletFee'])->name('terminals.wallet_fee');
         Route::post('/pos/printing', [PrintController::class, 'settings'])->name('pos.printing');
