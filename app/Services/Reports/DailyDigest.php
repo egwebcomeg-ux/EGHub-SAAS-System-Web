@@ -29,6 +29,9 @@ final class DailyDigest
     /** A shift whose counted cash is this far from the expected is flagged. */
     public const CASH_TOLERANCE = 1.0;
 
+    /** A shift open for longer than this when the digest is written was left open (a night shift still running is not). */
+    public const OPEN_SHIFT_HOURS = 16;
+
     /** @return int restaurants sent */
     public function run(?CarbonImmutable $today = null): int
     {
@@ -79,6 +82,7 @@ final class DailyDigest
      *               cancelled:list<array{order:string, reason:?string, approved_by:?string, by:?string}>,
      *               refunds:list<array{order:string, amount:float, reason:string, approved_by:?string, by:?string}>,
      *               shifts:list<array{user:string, expected:float, counted:float, difference:float}>,
+     *               open_shifts:list<array{user:string, since:string}>, cash_held:float,
      *               open_orders:int, visits_waiting:int, low_stock:list<string>}
      */
     public function build(CarbonImmutable $day): array
@@ -97,6 +101,11 @@ final class DailyDigest
         $shifts = Shift::query()->whereBetween('closed_at', [$from, $to])->with('user:id,name')->orderBy('id')->get()
             ->map(fn (Shift $s) => ['user' => (string) $s->user?->name, 'expected' => round((float) $s->expected_cash, 2), 'counted' => round((float) $s->closing_cash, 2),
                 'difference' => round((float) $s->closing_cash - (float) $s->expected_cash, 2)])->all();
+        // shifts nobody closed (a cashier went home with the shift open) and the cash drivers / waiters did not hand in
+        $openShifts = Shift::query()->whereNull('closed_at')->where('opened_at', '<=', $to)->where('opened_at', '<=', now()->subHours(self::OPEN_SHIFT_HOURS))
+            ->with('user:id,name')->orderBy('opened_at')->get()
+            ->map(fn (Shift $s) => ['user' => (string) $s->user?->name, 'since' => local_time($s->opened_at, 'm/d h:i A')])->all();
+        $cashHeld = round((float) Order::query()->where('cash_collected', '>', 0)->whereNull('cash_settled_at')->where('created_at', '<=', $to)->sum('cash_collected'), 2);
         $openOrders = Order::query()->whereIn('status', ['new', 'preparing', 'ready', 'on_way'])->whereNull('scheduled_for')->where('created_at', '<=', $to)->count();
         $visits = Entitlements::current()->allows('corporate_vouchers') ? CorporateBooking::query()->where('status', 'requested')->count() : 0;
         $low = Entitlements::current()->allows('inventory')
@@ -108,10 +117,10 @@ final class DailyDigest
         $digest = [
             'date' => $day->format('Y/m/d'), 'orders' => (clone $sold)->count(), 'revenue' => round((float) (clone $paid)->sum('total'), 2),
             'methods' => $methods, 'discounts' => round((float) (clone $sold)->sum('discount'), 2),
-            'cancelled' => $cancelled, 'refunds' => $refunds, 'shifts' => $shifts, 'open_orders' => $openOrders,
+            'cancelled' => $cancelled, 'refunds' => $refunds, 'shifts' => $shifts, 'open_shifts' => $openShifts, 'cash_held' => $cashHeld, 'open_orders' => $openOrders,
             'visits_waiting' => $visits, 'low_stock' => $low,
         ];
-        $digest['empty'] = $digest['orders'] === 0 && ! $cancelled && ! $refunds && ! $shifts && ! $visits;
+        $digest['empty'] = $digest['orders'] === 0 && ! $cancelled && ! $refunds && ! $shifts && ! $openShifts && ! $visits;
 
         return $digest;
     }

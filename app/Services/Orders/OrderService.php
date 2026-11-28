@@ -318,6 +318,10 @@ final class OrderService
             } elseif ($method === self::MOBILE_WALLET && $rest > 0.004) {
                 $fee = self::walletFee($rest);
             }
+            // the cash a driver collected for this order reached the counter with this payment: nothing left in their pocket
+            if ($locked->cash_collected > 0 && $locked->cash_settled_at === null) {
+                $order->forceFill(['cash_settled_at' => now(), 'cash_settled_by' => $by->id]);
+            }
             $order->update(['payment_status' => 'paid', 'payment_method' => $method, 'shift_id' => $shift?->id, 'corporate_amount' => $covered, 'payments' => $parts ?: null]
                 + ($fee > 0 ? ['payment_fee' => $fee, 'total' => round((float) $locked->total + $fee, 2)] : []));
             app(LoyaltyService::class)->orderCompleted($order);

@@ -32,6 +32,9 @@
         <button class="btn-primary w-full">{{ __('Open shift') }}</button>
     </form>
 @else
+    @if ($stale)
+        <p class="mb-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700" data-shift-stale>{{ __('This shift has been open since :time. Count the drawer and close it, then open a new one for today.', ['time' => local_time($current->opened_at, 'm/d h:i A')]) }}</p>
+    @endif
     <div class="grid gap-4 lg:grid-cols-3">
         <section class="card lg:col-span-2">
             <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
@@ -86,6 +89,24 @@
                     </ul>
                 </section>
             @endif
+            @if ($driverCash->isNotEmpty())
+                {{-- App\Services\Orders\DeliveryService: the cash each driver collected at the door, paid into this drawer once received --}}
+                <section class="card space-y-2" data-driver-cash>
+                    <h2 class="section-title">{{ __('Cash with the drivers') }}</h2>
+                    <p class="muted text-sm">{{ __('Take it from the driver before you close: the shift does not close while a driver holds cash.') }}</p>
+                    <ul class="divide-y divide-navy-50">
+                        @foreach ($driverCash as $row)
+                            <li class="flex items-center justify-between gap-2 py-2" data-driver="{{ $row['driver']->id }}">
+                                <span><b>{{ $row['driver']->name }}</b> <span class="muted text-sm">· {{ __(':n orders', ['n' => $row['orders']]) }}</span>
+                                    <span class="block font-extrabold text-brand-700">{{ money($row['amount']) }}</span></span>
+                                <form method="post" action="{{ route('dash.shifts.driver.settle', $row['driver']) }}" onsubmit="return confirm(@js(__('Received :amount from :name?', ['amount' => money($row['amount']), 'name' => $row['driver']->name])))">
+                                    @csrf<button class="btn-ghost min-h-9 px-3 text-sm">{{ __('I received it') }}</button>
+                                </form>
+                            </li>
+                        @endforeach
+                    </ul>
+                </section>
+            @endif
             <form method="post" action="{{ route('dash.shifts.move') }}" class="card space-y-2">
                 @csrf
                 <h2 class="section-title">{{ __('Cash in / out') }}</h2>
@@ -110,6 +131,29 @@
             </form>
         </div>
     </div>
+@endif
+
+@if ($openShifts->isNotEmpty())
+    {{-- for a manager: shifts of other cashiers still open, closed here with the count when the cashier is not around --}}
+    <section class="card mt-6 space-y-3" data-open-shifts>
+        <h2 class="section-title">{{ __('Shifts still open') }}</h2>
+        <p class="muted text-sm">{{ __('A cashier closes their own shift. Close one from here only when they cannot: count its drawer first.') }}</p>
+        <ul class="divide-y divide-navy-50">
+            @foreach ($openShifts as ['shift' => $s, 'summary' => $sum])
+                <li class="flex flex-wrap items-end justify-between gap-3 py-3" data-open-shift="{{ $s->id }}">
+                    <span><b>{{ $s->user?->name }}</b>@if ($s->terminal) <span class="muted text-sm">· {{ $s->terminal->label() }}</span>@endif
+                        <span @class(['block text-sm', 'font-semibold text-red-700' => \App\Services\Orders\ShiftService::isStale($s), 'muted' => ! \App\Services\Orders\ShiftService::isStale($s)])>{{ __('Since :time', ['time' => local_time($s->opened_at, 'm/d h:i A')]) }}</span>
+                        <span class="block text-sm">{{ __('Expected cash in drawer') }}: <b>{{ money($sum['expected_cash']) }}</b></span></span>
+                    <form method="post" action="{{ route('dash.shifts.close.other', $s) }}" class="flex flex-wrap items-end gap-2" onsubmit="return confirm(@js(__('Close the shift of :name?', ['name' => $s->user?->name])))">
+                        @csrf
+                        <input class="field w-36" name="closing_cash" type="number" min="0" step="1" required placeholder="{{ __('Counted cash in drawer') }}" aria-label="{{ __('Counted cash in drawer') }}">
+                        <input class="field w-44" name="notes" maxlength="300" placeholder="{{ __('Notes (optional)') }}" aria-label="{{ __('Notes (optional)') }}">
+                        <button class="btn-navy min-h-11 px-4">{{ __('Close shift') }}</button>
+                    </form>
+                </li>
+            @endforeach
+        </ul>
+    </section>
 @endif
 
 @if ($history->isNotEmpty())

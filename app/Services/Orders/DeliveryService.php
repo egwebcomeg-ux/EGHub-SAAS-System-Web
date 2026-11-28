@@ -12,6 +12,7 @@ use App\Services\Notify\GuestNotifier;
 use App\Services\Push\StaffPush;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection as Rows;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -57,6 +58,42 @@ final class DeliveryService
         return self::driverQuery()->where('is_active', true)
             ->when($branchId, fn ($q) => $q->where(fn ($q) => $q->whereNull('branch_id')->orWhere('branch_id', $branchId)))
             ->orderBy('name')->get();
+    }
+
+    /**
+     * The drivers of drivers(), and anyone still holding work of theirs: an order given to them or cash not handed in.
+     * A driver switched off or moved to another role stays on the page until that is cleared.
+     *
+     * @return Collection<int,User>
+     */
+    public static function driversWithWork(?int $branchId = null): Collection
+    {
+        $drivers = self::drivers($branchId);
+        $busy = Order::query()->whereNotNull('driver_id')->whereNotIn('driver_id', $drivers->modelKeys())
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->where(fn ($q) => $q
+                ->where(fn ($q) => $q->whereIn('delivery_status', ['assigned', 'picked_up'])->whereNotIn('status', ['served', 'cancelled']))
+                ->orWhere(fn ($q) => $q->where('delivery_status', 'delivered')->where('status', 'served')->where('cash_collected', '>', 0)->whereNull('cash_settled_at')))
+            ->distinct()->pluck('driver_id');
+
+        return $busy->isEmpty() ? $drivers : $drivers->merge(User::query()->whereIn('id', $busy)->orderBy('name')->get());
+    }
+
+    /**
+     * The drivers holding collected cash of a branch, most first (the cashier takes it into the open shift).
+     *
+     * @return Rows<int, array{driver:User, orders:int, amount:float}>
+     */
+    public static function holders(int $branchId): Rows
+    {
+        $rows = Order::query()->whereNotNull('driver_id')->where('branch_id', $branchId)->where('delivery_status', 'delivered')->where('status', 'served')
+            ->where('cash_collected', '>', 0)->whereNull('cash_settled_at')
+            ->selectRaw('driver_id, count(*) as orders, sum(cash_collected) as amount')->groupBy('driver_id')->get();
+        $users = User::query()->whereIn('id', $rows->pluck('driver_id'))->get()->keyBy('id');
+
+        return $rows->filter(fn ($r) => $users->has($r->driver_id))
+            ->map(fn ($r) => ['driver' => $users[$r->driver_id], 'orders' => (int) $r->orders, 'amount' => round((float) $r->amount, 2)])
+            ->sortByDesc('amount')->values();
     }
 
     /** Users with the driver role (a whereHas, so a database where the role was not seeded yet simply has none). */

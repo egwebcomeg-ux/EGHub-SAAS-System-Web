@@ -60,6 +60,12 @@ final class ShiftService
         return Shift::query()->where('user_id', $user->id)->whereNull('closed_at')->latest('id')->first();
     }
 
+    /** A shift left open from an earlier day (restaurant time): the cashier is reminded to count and close it. */
+    public static function isStale(Shift $shift): bool
+    {
+        return $shift->isOpen() && $shift->opened_at->lt(local_day_start());
+    }
+
     /** Opens the cashier's shift, on this device's terminal when it has one (one open shift per terminal). */
     public function open(User $user, Branch $branch, float $openingCash, ?PosTerminal $terminal = null): Shift
     {
@@ -71,6 +77,11 @@ final class ShiftService
         }
 
         return DB::transaction(function () use ($user, $branch, $openingCash, $terminal) {
+            // two taps on "open shift": the second waits here and finds the first one's shift
+            User::query()->lockForUpdate()->whereKey($user->id)->value('id');
+            if ($this->current($user)) {
+                throw new OrderException(__('You already have an open shift.'));
+            }
             if ($terminal) {
                 PosTerminal::query()->lockForUpdate()->whereKey($terminal->id)->value('id');
                 if ($open = $terminal->openShift()) {
@@ -110,6 +121,10 @@ final class ShiftService
         }
 
         return DB::transaction(function () use ($shift, $counted, $notes) {
+            // the cashier and a manager closing the same shift at once: the second finds it closed
+            if (Shift::query()->lockForUpdate()->whereKey($shift->id)->value('closed_at') !== null) {
+                throw new OrderException(__('This shift is closed.'));
+            }
             $shift->update([
                 'expected_cash' => $this->summary($shift)['expected_cash'], 'closing_cash' => round($counted, 2),
                 'notes' => $notes, 'closed_at' => now(),

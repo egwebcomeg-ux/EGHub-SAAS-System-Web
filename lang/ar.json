@@ -8029,5 +8029,14 @@
     "Only dishes with a photo and a price are in it.": "بيظهر فيه بس الأطباق اللي ليها صورة وسعر.",
     "Privacy: the pixels belong to your own ad accounts and see what guests do on your menu pages. With the Conversions API your server also sends each order with the mobile and first name of the guest, hashed so Meta can only match them to its own users and never read them. You are responsible for telling your guests about this, as described in the": "الخصوصية: البيكسلات تبع حسابات إعلاناتك أنت، وبتشوف اللي العملاء بيعملوه على صفحات المنيو. ومع الـ Conversions API السيرفر بيبعت كمان كل طلب ومعاه موبايل العميل واسمه الأول متشفّرين، بحيث Meta تطابقهم بمستخدمينها بس ومن غير ما تقدر تقراهم. وأنت مسؤول إنك تعرّف عملاءك بده، زي ما هو موضح في",
     "Conversions API access token": "توكن Conversions API",
-    "Test event code": "كود اختبار الأحداث"
+    "Test event code": "كود اختبار الأحداث",
+    "Cash with the drivers": "فلوس مع الطيارين",
+    "Take it from the driver before you close: the shift does not close while a driver holds cash.": "استلمها من الطيار قبل ما تقفل: الوردية مش بتتقفل طول ما فيه فلوس مع طيار.",
+    "This shift has been open since :time. Count the drawer and close it, then open a new one for today.": "الوردية دي مفتوحة من :time. عدّ الدرج واقفلها، وبعدين افتح وردية جديدة للنهارده.",
+    "Shifts still open": "ورديات لسه مفتوحة",
+    "A cashier closes their own shift. Close one from here only when they cannot: count its drawer first.": "كل كاشير بيقفل ورديته بنفسه. اقفل من هنا بس لو هو مش موجود: عدّ درجه الأول.",
+    "Close the shift of :name?": "تقفل وردية :name؟",
+    "Shift of :name closed. Difference: :diff": "وردية :name اتقفلت. الفرق: :diff",
+    "Shift of :user is still open since :time: count the drawer and close it.": "وردية :user لسه مفتوحة من :time: عدّ الدرج واقفلها.",
+    "Drivers and waiters still hold :amount that was not handed in to the cashier.": "لسه مع الطيارين والويترز :amount ما اتسلّمتش للكاشير."
 }

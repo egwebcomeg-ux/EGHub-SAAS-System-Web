@@ -50,7 +50,7 @@ class DriversController extends Controller
     {
         $user = $request->user();
         $branch = $user->branch_id;
-        $drivers = DeliveryService::drivers($branch);
+        $drivers = DeliveryService::driversWithWork($branch);
         $active = Order::query()->whereIn('driver_id', $drivers->modelKeys())->whereIn('delivery_status', ['assigned', 'picked_up'])
             ->whereNotIn('status', ['served', 'cancelled'])->when($branch, fn ($q) => $q->where('branch_id', $branch))
             ->orderBy('driver_assigned_at')->get()->groupBy('driver_id');
@@ -150,7 +150,8 @@ class DriversController extends Controller
     /** The driver handed in the cash they collected: unpaid orders are paid in cash into the manager's shift. */
     public function settle(Request $request, User $driver, DeliveryService $delivery, ShiftService $shifts): JsonResponse
     {
-        abort_unless($driver->hasRole('driver'), 404);
+        // a driver switched off or moved to another role still hands in what they hold
+        abort_unless($driver->hasRole('driver') || DeliveryService::unsettled($driver)->exists(), 404);
         try {
             $result = $delivery->settle($driver, $request->user(), $shifts->current($request->user()), $request->user()->branch_id);
         } catch (OrderException $e) {

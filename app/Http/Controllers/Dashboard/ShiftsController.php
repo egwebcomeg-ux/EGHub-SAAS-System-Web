@@ -8,10 +8,12 @@ use App\Models\PosTerminal;
 use App\Models\Shift;
 use App\Models\User;
 use App\Services\Audit;
+use App\Services\Orders\DeliveryService;
 use App\Services\Orders\OrderException;
 use App\Services\Orders\ShiftService;
 use App\Services\Orders\Terminals;
 use App\Services\Orders\WaiterCash;
+use App\Support\Permissions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,7 +42,49 @@ class ShiftsController extends Controller
             'terminal' => $terminal,
             // waiters holding the cash of their tables, taken into this shift with "received"
             'waiterCash' => $current ? WaiterCash::holders($current->branch_id) : collect(),
+            // drivers holding the cash of their deliveries: the cashier takes it the same way
+            'driverCash' => $current ? DeliveryService::holders($current->branch_id) : collect(),
+            'stale' => $current && ShiftService::isStale($current),
+            // a manager closes the shift a cashier left open (other people's, in their own branch)
+            'openShifts' => Permissions::isManager($request->user())
+                ? Shift::query()->with(['user', 'terminal'])->whereNull('closed_at')->where('user_id', '!=', $request->user()->id)
+                    ->when($request->user()->branch_id, fn ($q, $branch) => $q->where('branch_id', $branch))->orderBy('opened_at')->get()
+                    ->map(fn (Shift $s) => ['shift' => $s, 'summary' => $shifts->summary($s)])
+                : collect(),
         ]);
+    }
+
+    /** The cashier took a driver's cash: the delivered orders are paid in cash into the open shift. */
+    public function settleDriver(Request $request, User $driver, ShiftService $shifts, DeliveryService $delivery): RedirectResponse
+    {
+        $shift = $shifts->current($request->user());
+        if (! $shift) {
+            return back()->withErrors(['shift' => __('Open a shift first.')]);
+        }
+        try {
+            $result = $delivery->settle($driver, $request->user(), $shift, $shift->branch_id);
+        } catch (OrderException $e) {
+            return back()->withErrors(['shift' => $e->getMessage()]);
+        }
+
+        return back()->with('ok', __(':name handed in :amount for :n orders.', ['name' => $driver->name, 'amount' => money($result['amount']), 'n' => $result['orders']]));
+    }
+
+    /** A manager counts and closes a shift its cashier left open (their own they close like everyone, with close()). */
+    public function closeOther(Request $request, Shift $shift, ShiftService $shifts): RedirectResponse
+    {
+        abort_unless(Permissions::isManager($request->user()), 403);
+        abort_if($request->user()->branch_id && $request->user()->branch_id !== $shift->branch_id, 404);
+        $data = $request->validate(['closing_cash' => 'required|numeric|min:0|max:1000000', 'notes' => 'nullable|string|max:300']);
+        try {
+            $shift = $shifts->close($shift, (float) $data['closing_cash'], $data['notes'] ?? null);
+        } catch (OrderException $e) {
+            return back()->withInput()->withErrors(['shift' => $e->getMessage()]);
+        }
+        $diff = $shifts->summary($shift)['difference'];
+        Audit::record('shift.closed_by_manager', (string) $shift->user?->name, ['shift' => $shift->id, 'counted' => $shift->closing_cash, 'expected' => $shift->expected_cash, 'difference' => $diff]);
+
+        return back()->with('ok', __('Shift of :name closed. Difference: :diff', ['name' => $shift->user?->name, 'diff' => money($diff)]));
     }
 
     /** The cashier took a waiter's cash: their orders join the open shift and its drawer counts the money. */

@@ -67,6 +67,12 @@ class DailyDigestReport extends Notification implements ShouldQueue
                 'difference' => self::ltr(($s['difference'] > 0 ? '+' : '').money($s['difference'])),
             ]));
         }
+        foreach ($d['open_shifts'] ?? [] as $s) {
+            $mail->line('🔓 '.__('Shift of :user is still open since :time: count the drawer and close it.', ['user' => self::isolate($s['user']), 'time' => self::ltr($s['since'])]));
+        }
+        if (($d['cash_held'] ?? 0) > 0) {
+            $mail->line('🛵 '.__('Drivers and waiters still hold :amount that was not handed in to the cashier.', ['amount' => self::ltr(money($d['cash_held']))]));
+        }
         if ($d['open_orders'] > 0) {
             $mail->line('⏳ '.__(':n orders are still open: close or cancel them from the order board.', ['n' => $d['open_orders']]));
         }

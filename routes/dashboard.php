@@ -520,6 +520,10 @@ Route::middleware(['auth:web', 'tenant.user'])->group(function () {
         Route::post('/shifts/close', [ShiftsController::class, 'close'])->name('shifts.close');
         // a waiter hands in the cash they took at the tables (App\Services\Orders\WaiterCash)
         Route::post('/shifts/waiters/{waiter}/settle', [ShiftsController::class, 'settleWaiter'])->whereNumber('waiter')->name('shifts.waiter.settle');
+        // a driver hands in the cash of their deliveries to the cashier (App\Services\Orders\DeliveryService::settle)
+        Route::post('/shifts/drivers/{driver}/settle', [ShiftsController::class, 'settleDriver'])->whereNumber('driver')->name('shifts.driver.settle');
+        // a manager closes the shift a cashier left open
+        Route::post('/shifts/{shift}/close', [ShiftsController::class, 'closeOther'])->whereNumber('shift')->name('shifts.close.other');
     });
 
     // Screens & devices: TV boards, kiosks, customer display / order board, kitchen display links (each type by its right)
