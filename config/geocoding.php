@@ -11,13 +11,28 @@
 |
 | nominatim: OpenStreetMap's public geocoder (https://operations.osmfoundation.org/policies/nominatim/): at most one
 | request a second for the whole platform, a real User-Agent, results cached. The base URL can point at a paid or
-| self-hosted Nominatim instead. A Google provider can be added later behind the same Geocoder interface.
+| self-hosted Nominatim instead.
+|
+| google: Google Maps for the delivery maps and their addresses (App\Services\Geocoding\MapProvider). It needs two
+| keys of one Google Cloud project: a server key (Geocoding API, restricted to the server's IP) and a browser key
+| (Maps JavaScript API, restricted to the sites below). Wherever Google cannot be used (a key missing, a host the
+| browser key does not allow, the month's limit reached) OpenStreetMap takes over by itself.
 |
 */
 
 return [
 
     'driver' => env('GEOCODER', 'nominatim'),
+
+    'google' => [
+        'server_key' => env('GOOGLE_MAPS_SERVER_KEY') ?: env('GOOGLE_PLACES_KEY'),
+        'browser_key' => env('GOOGLE_MAPS_BROWSER_KEY'),
+        // restaurants' own domains the browser key allows (the main domains and their subdomains always are)
+        'hosts' => array_values(array_filter(array_map(fn ($h) => mb_strtolower(trim($h)), explode(',', (string) env('GOOGLE_MAPS_HOSTS', ''))))),
+        // Geocoding API calls a calendar month for the whole platform; past it OpenStreetMap answers until the next month
+        'monthly_limit' => (int) env('GOOGLE_GEOCODING_MONTHLY_LIMIT', 9000),
+        'timeout' => 5,
+    ],
 
     // one cached answer per ~25 m square (degrees; 0.00025° of latitude ≈ 28 m)
     'precision' => 0.00025,

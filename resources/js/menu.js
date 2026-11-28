@@ -5,6 +5,7 @@ import './storage-rename';
 
 import { quoteAt, zoneAt } from './delivery-geo';
 import { charges } from './bill';
+import { loadGoogleMaps } from './gmaps';
 
 const dataEl = document.getElementById('menu-data');
 if (dataEl) {
@@ -53,6 +54,8 @@ if (dataEl) {
     try { pin = JSON.parse(session.get(pinKey) || 'null'); } catch { pin = null; }
     // the place found for the confirmed pin («شارع البحر، قسم أول طنطا»), asked from this host (M.geo), one call per ~25 m
     const GEO = M.geo;
+    // whose map the pin sits on: the server answers with that provider's addresses (Google's stay on Google's map)
+    const MAP_KIND = M.gmaps ? 'google' : 'osm';
     const placeKey = `eghub.place.${M.tenant}`;
     let place = null;
     try { place = JSON.parse(session.get(placeKey) || 'null'); } catch { place = null; }
@@ -1130,6 +1133,7 @@ if (dataEl) {
             const url = new URL(GEO.reverse, location.href);
             url.searchParams.set('lat', lat.toFixed(6));
             url.searchParams.set('lng', lng.toFixed(6));
+            url.searchParams.set('map', MAP_KIND);
             if (O?.branch) url.searchParams.set('branch', O.branch);
             const ask = fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store', credentials: 'same-origin' })
                 .then((r) => (r.ok ? r.json() : null)).catch(() => null);
@@ -1211,6 +1215,7 @@ if (dataEl) {
     let leafletLoading = null;
     function loadLeaflet() {
         if (window.L) return Promise.resolve();
+        if (M.gmaps) return loadGoogleMaps(M.gmaps); // the same map on Google (gmaps.js installs it as window.L)
         if (!M.leaflet) return Promise.reject(new Error('no leaflet'));
         leafletLoading ??= new Promise((resolve, reject) => {
             const css = document.createElement('link');
@@ -1385,6 +1390,7 @@ if (dataEl) {
         showResults(`<p class="m-muted p-3 text-sm">${esc(T.placeLoading)}</p>`);
         const url = new URL(GEO.search, location.href);
         url.searchParams.set('q', q.slice(0, 100));
+        url.searchParams.set('map', MAP_KIND);
         if (O?.branch) url.searchParams.set('branch', O.branch);
         const d = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store', credentials: 'same-origin' })
             .then((r) => (r.ok ? r.json() : null)).catch(() => null);

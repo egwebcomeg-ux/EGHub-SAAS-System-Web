@@ -29,11 +29,12 @@ class CallCenterGeoController extends Controller
         $data = $request->validate([
             'lat' => 'required|numeric|between:-90,90',
             'lng' => 'required|numeric|between:-180,180',
+            'map' => 'nullable|string|max:10',
         ]);
         $branch = PosController::branch($request);
         $lat = (float) $data['lat'];
         $lng = (float) $data['lng'];
-        $place = AddressLookup::enabled() ? $lookup->reverse($lat, $lng) : null;
+        $place = AddressLookup::enabled() ? $lookup->shownOn($data['map'] ?? null)->reverse($lat, $lng) : null;
 
         return response()->json([
             'found' => $place !== null,
@@ -56,6 +57,7 @@ class CallCenterGeoController extends Controller
             'q' => 'required|string|min:3|max:100',
             'phone' => 'nullable|string|max:20',
             'more' => 'nullable|boolean',
+            'map' => 'nullable|string|max:10',
         ]);
         $branch = PosController::branch($request);
         $phone = normalize_phone((string) ($data['phone'] ?? ''));
@@ -73,7 +75,7 @@ class CallCenterGeoController extends Controller
         if (AddressLookup::enabled() && ($results === [] || $request->boolean('more'))) {
             $searched = true;
             $near = $branch->lat !== null && $branch->lng !== null ? [(float) $branch->lat, (float) $branch->lng] : null;
-            $places = $lookup->search($data['q'], $near);
+            $places = $lookup->shownOn($data['map'] ?? null)->search($data['q'], $near);
             $ok = $places !== null;
             foreach ($places ?? [] as $p) {
                 $results[] = [

@@ -15,8 +15,7 @@ use App\Models\SubscriptionAddon;
 use App\Models\Tenant;
 use App\Services\Entitlements;
 use App\Services\Geocoding\Geocoder;
-use App\Services\Geocoding\NominatimGeocoder;
-use App\Services\Geocoding\NullGeocoder;
+use App\Services\Geocoding\MapProvider;
 use App\Services\Notify\ReservationNotifier;
 use App\Services\Notify\WhatsAppReservationNotifier;
 use App\Services\PageCache;
@@ -57,11 +56,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ReservationNotifier::class, WhatsAppReservationNotifier::class);
         // Online subscription payments: Kashier is the gateway EgWeb has a contract with (App\Billing\OnlinePayments)
         $this->app->bind(PaymentGateway::class, KashierGateway::class);
-        // the street of a delivery pin and the checkout map's search (config geocoding.driver): nominatim | none
-        $this->app->bind(Geocoder::class, fn () => match (config('geocoding.driver')) {
-            'nominatim' => new NominatimGeocoder,
-            default => new NullGeocoder,
-        });
+        // the street of a delivery pin and the checkout map's search (config geocoding.driver): nominatim | google | none
+        $this->app->bind(Geocoder::class, fn () => MapProvider::geocoder(MapProvider::name()));
         // one list of purges per request or command (App\Services\PageCache); a queue worker flushes it after each job
         $this->app->singleton(PageCache::class);
         // the pricing rules read in this request or job (App\Billing\PricingRules)

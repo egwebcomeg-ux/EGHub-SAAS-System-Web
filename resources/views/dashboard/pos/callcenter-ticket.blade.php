@@ -63,7 +63,10 @@
                     <button type="button" class="btn min-h-11 whitespace-nowrap rounded-lg px-2 text-sm" data-type="delivery">🛵 {{ __('Delivery') }}</button>
                     <button type="button" class="btn min-h-11 whitespace-nowrap rounded-lg px-2 text-sm" data-type="takeaway">🛍 {{ __('Pickup') }}</button>
                 </div>
-                @include('partials.leaflet')
+                {{-- Leaflet, unless the map is Google's (the key comes with the page's data, pos.js loads it) --}}
+                @unless ($data['gmaps'] ?? null)
+                    @include('partials.leaflet')
+                @endunless
                 <div class="space-y-2" data-delivery-box>
                     <div class="hidden space-y-1" data-addresses-box>
                         <div class="text-xs font-bold text-navy-500">{{ __('Saved addresses') }}</div>

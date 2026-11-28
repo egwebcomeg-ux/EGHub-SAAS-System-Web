@@ -14,11 +14,28 @@ final class AddressLookup
 {
     private const NONE = '__none__';
 
-    public function __construct(private Geocoder $geocoder) {}
+    /** @param  string|null  $provider  the provider's name in the cache keys (the request's own when null) */
+    public function __construct(private Geocoder $geocoder, private ?string $provider = null) {}
 
     public static function enabled(): bool
     {
-        return config('geocoding.driver') !== 'none';
+        return MapProvider::name() !== MapProvider::NONE;
+    }
+
+    /**
+     * The lookup for a screen showing the map $shown ("google", or anything else for Leaflet): Google's addresses go
+     * on a Google map only, every other screen gets OpenStreetMap's.
+     */
+    public function shownOn(?string $shown): self
+    {
+        $name = MapProvider::forMap($shown);
+
+        return $name === MapProvider::name() ? $this : new self(MapProvider::geocoder($name), $name);
+    }
+
+    private function provider(): string
+    {
+        return $this->provider ?? MapProvider::name();
     }
 
     /**
@@ -37,7 +54,7 @@ final class AddressLookup
     public function reverse(float $lat, float $lng): ?array
     {
         [$lat, $lng] = self::snap($lat, $lng);
-        $key = 'geo:rev:'.config('geocoding.driver').':'.$lat.','.$lng;
+        $key = 'geo:rev:'.$this->provider().':'.$lat.','.$lng;
         $cached = Cache::get($key);
         if ($cached !== null) {
             return $cached === self::NONE ? null : $cached;
@@ -67,7 +84,7 @@ final class AddressLookup
         }
         // the same words near the same branch (a ~10 km square) share one answer
         $around = $near ? round($near[0], 1).','.round($near[1], 1) : '-';
-        $key = 'geo:search:'.config('geocoding.driver').':'.hash('sha256', mb_strtolower($query).'|'.$around);
+        $key = 'geo:search:'.$this->provider().':'.hash('sha256', mb_strtolower($query).'|'.$around);
         $cached = Cache::get($key);
         if (is_array($cached)) {
             return $cached;

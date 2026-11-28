@@ -16,6 +16,7 @@ use App\Services\Customers\GuestAccount;
 use App\Services\Delivery\DeliveryPricing;
 use App\Services\Entitlements;
 use App\Services\Geocoding\AddressLookup;
+use App\Services\Geocoding\MapProvider;
 use App\Services\ItemVideo;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Marketing\WelcomeReward;
@@ -244,7 +245,9 @@ class MenuController extends Controller
                 'whatsapp' => ($wa = (string) ($branch->whatsapp ?: $settings['whatsapp'] ?: $branch->phone)) !== '' ? whatsapp_number($wa) : null,
                 // "pin my location" at the delivery step: the map library loads on demand (App\Support\Leaflet), the
                 // map opens on the branch; with drawn zones the pin picks the zone and must fall inside one
-                'leaflet' => $online && $online['delivery'] ? Leaflet::assets() : null,
+                // on Google (App\Services\Geocoding\MapProvider) the same map is Google's: its key instead of the Leaflet files
+                'leaflet' => $online && $online['delivery'] && ! MapProvider::client() ? Leaflet::assets() : null,
+                'gmaps' => $online && $online['delivery'] ? MapProvider::client() : null,
                 // the pin's street and the map's search, asked from this host (Menu\GeoController); off with GEOCODER=none
                 'geo' => $online && $online['delivery'] && AddressLookup::enabled()
                     ? ['reverse' => route('menu.geo.reverse'), 'search' => route('menu.geo.search')] : null,

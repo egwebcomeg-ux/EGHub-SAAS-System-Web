@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Services\Delivery\DeliveryPricing;
 use App\Services\Entitlements;
 use App\Services\Geocoding\AddressLookup;
+use App\Services\Geocoding\MapProvider;
 use App\Services\Loyalty\Membership;
 use App\Services\Orders\OrderConfirmation;
 use App\Services\Orders\OrderException;
@@ -53,6 +54,8 @@ class CallCenterController extends Controller
         // manual: main area, then its street / sub-area (as the guest picks it); map: one list plus the map pin
         $data['zoneMode'] = Settings::get('delivery_zone_mode') === 'map' ? 'map' : 'manual';
         $data['branchName'] = tr($branch->name, $branch->name_en);
+        // the customer's map is Google's where the platform runs on it (resources/js/gmaps.js), Leaflet otherwise
+        $data['gmaps'] = MapProvider::client();
         // priced by distance: the map opens on the branch, the rings are the fallback without a pin
         $data['pricing'] = DeliveryPricing::method($branch) === DeliveryPricing::DISTANCE ? [
             'method' => DeliveryPricing::DISTANCE, 'ready' => DeliveryPricing::distanceReady($branch),

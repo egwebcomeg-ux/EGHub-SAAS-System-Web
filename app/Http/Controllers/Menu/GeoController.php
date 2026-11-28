@@ -31,12 +31,13 @@ class GeoController extends Controller
             'lat' => 'required|numeric|between:-90,90',
             'lng' => 'required|numeric|between:-180,180',
             'branch' => 'nullable|integer',
+            'map' => 'nullable|string|max:10',
         ]);
         $branch = $this->branch($data['branch'] ?? null);
         $lat = (float) $data['lat'];
         $lng = (float) $data['lng'];
 
-        $place = $lookup->reverse($lat, $lng);
+        $place = $lookup->shownOn($data['map'] ?? null)->reverse($lat, $lng);
         $quote = DeliveryPricing::byLocation($branch, Settings::all()) ? DeliveryPricing::quote($branch, $lat, $lng) : null;
 
         return response()->json([
@@ -59,10 +60,11 @@ class GeoController extends Controller
         $data = $request->validate([
             'q' => 'required|string|min:3|max:100',
             'branch' => 'nullable|integer',
+            'map' => 'nullable|string|max:10',
         ]);
         $branch = $this->branch($data['branch'] ?? null);
         $near = $branch->lat !== null && $branch->lng !== null ? [(float) $branch->lat, (float) $branch->lng] : null;
-        $places = $lookup->search($data['q'], $near);
+        $places = $lookup->shownOn($data['map'] ?? null)->search($data['q'], $near);
         // priced by the pin (distance rings, drawn areas): each place says what delivery there costs, or that it is outside
         $priced = DeliveryPricing::byLocation($branch, Settings::all());
 

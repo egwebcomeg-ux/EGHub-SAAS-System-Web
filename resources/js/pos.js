@@ -7,6 +7,7 @@ import { bindPager, pagerButtons, pagerStatus } from './pager-call';
 import { createNativePrinter } from './native-print';
 import { createBrowserKitchenPrinter } from './browser-print';
 import { quoteAt } from './delivery-geo';
+import { loadGoogleMaps } from './gmaps';
 import { charges } from './bill';
 
 const dataEl = document.getElementById('pos-data');
@@ -543,6 +544,7 @@ if (dataEl) {
                 const url = new URL(D.urls.geoReverse, location.href);
                 url.searchParams.set('lat', p[0]);
                 url.searchParams.set('lng', p[1]);
+                url.searchParams.set('map', D.gmaps ? 'google' : 'osm');
                 const r = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' }).then((x) => (x.ok ? x.json() : null)).catch(() => null);
                 if (!r || seq !== reverseSeq || point !== p || !r.found) return;
                 fillAddress(lineOf(r), { street: r.street || undefined, building: r.house_number || undefined, area: r.area || r.city || undefined });
@@ -631,6 +633,7 @@ if (dataEl) {
                 showResults(`<p class="p-3 text-sm text-navy-500">${esc(T.searching)}</p>`);
                 const url = new URL(D.urls.geoSuggest, location.href);
                 url.searchParams.set('q', q.slice(0, 100));
+                url.searchParams.set('map', D.gmaps ? 'google' : 'osm');
                 if (phoneValue()) url.searchParams.set('phone', phoneValue());
                 if (more) url.searchParams.set('more', '1');
                 r = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' }).then((x) => (x.ok ? x.json() : null)).catch(() => null);
@@ -684,6 +687,8 @@ if (dataEl) {
             document.addEventListener('click', (e) => { if (!e.target.closest('[data-addr-search]')) showResults(''); });
             initDistMap();
         }
+        // on Google the map library comes after the page: the distance map starts once it is in
+        if (D.gmaps) loadGoogleMaps(D.gmaps).then(() => { if (DIST) initDistMap(); }).catch(() => {});
 
         // ---- saved addresses: one tap fills the zone (or the pin), the address and its name ----
         const pick = (a) => {
